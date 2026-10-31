@@ -1,14 +1,6 @@
 
-import type { ChartData, Timeframe } from '../types';
 
-/**
- * DEZZTA CHART - Timeframe Aggregation Engine
- *
- * Input timestamps must be Unix timestamps in SECONDS.
- * Input data must be chronological OHLCV candles.
- * This module aggregates existing candles; it does not create
- * missing market data or convert coarse data into finer data.
- */
+import type { ChartData, Timeframe } from '../types';
 
 const FIXED_INTERVALS: Partial<Record<Timeframe, number>> = {
   '1s': 1,
@@ -30,30 +22,32 @@ const FIXED_INTERVALS: Partial<Record<Timeframe, number>> = {
 
 const SECONDS_PER_DAY = 86400;
 
+const TIMEFRAME_ORDER: Timeframe[] = [
+  '1s', '5s', '15s', '30s', '45s',
+  '1m', '3m', '5m', '15m', '30m', '45m',
+  '1h', '2h', '4h', '1d', '1w', '1M', '3M',
+];
+
 function getUtcDayStart(timestamp: number): number {
   return Math.floor(timestamp / SECONDS_PER_DAY) * SECONDS_PER_DAY;
 }
 
 function getUtcMonthStart(
   timestamp: number,
-  monthInterval: 1 | 3,
+  monthInterval: 1 | 3
 ): number {
   const date = new Date(timestamp * 1000);
   const year = date.getUTCFullYear();
   const month = date.getUTCMonth();
-
   const alignedMonth =
     Math.floor(month / monthInterval) * monthInterval;
 
   return Date.UTC(year, alignedMonth, 1) / 1000;
 }
 
-/**
- * Returns the UTC bucket start for a given timeframe.
- */
 export function getTimeframeBucketStart(
   timestamp: number,
-  timeframe: Timeframe,
+  timeframe: Timeframe
 ): number {
   if (!Number.isFinite(timestamp)) {
     throw new Error('Invalid candle timestamp.');
@@ -70,8 +64,6 @@ export function getTimeframeBucketStart(
   if (timeframe === '1w') {
     const dayStart = getUtcDayStart(timestamp);
     const date = new Date(dayStart * 1000);
-
-    // Monday is the start of the week.
     const daysSinceMonday = (date.getUTCDay() + 6) % 7;
 
     return dayStart - daysSinceMonday * SECONDS_PER_DAY;
@@ -86,26 +78,55 @@ export function getTimeframeBucketStart(
   return Math.floor(timestamp / interval) * interval;
 }
 
-/**
- * Aggregate source OHLCV candles into a target timeframe.
- *
- * Open   = first source candle open
- * High   = highest source candle high
- * Low    = lowest source candle low
- * Close  = last source candle close
- * Volume = sum of source candle volumes
- */
-export function aggregateCandles(
-  candles: ChartData[],
-  timeframe: Timeframe,
-): ChartData[] {
-  if (candles.length === 0) {
-    return [];
+function validateTimeframeConversion(
+  sourceTimeframe: Timeframe,
+  targetTimeframe: Timeframe
+): void {
+  const sourceIndex = TIMEFRAME_ORDER.indexOf(sourceTimeframe);
+  const targetIndex = TIMEFRAME_ORDER.indexOf(targetTimeframe);
+
+  if (sourceIndex === -1 || targetIndex === -1) {
+    throw new Error('Unsupported source or target timeframe.');
   }
 
-  const sortedCandles = [...candles].sort(
-    (a, b) => a.timestamp - b.timestamp,
-  );
+  if (targetIndex < sourceIndex) {
+    throw new Error(
+      `Cannot convert ${sourceTimeframe} data into finer ${targetTimeframe} candles.`
+    );
+  }
+}
+
+function isValidCandle(candle: ChartData): boolean {
+  const values = [
+    candle.timestamp,
+    candle.open,
+    candle.high,
+    candle.low,
+    candle.close,
+    candle.volume,
+  ];
+
+  if (!values.every(Number.isFinite)) return false;
+  if (candle.volume < 0) return false;
+  if (candle.high < candle.low) return false;
+  if (candle.high < Math.max(candle.open, candle.close)) return false;
+  if (candle.low > Math.min(candle.open, candle.close)) return false;
+
+  return true;
+}
+
+export function aggregateCandles(
+  candles: ChartData[],
+  sourceTimeframe: Timeframe,
+  targetTimeframe: Timeframe
+): ChartData[] {
+  validateTimeframeConversion(sourceTimeframe, targetTimeframe);
+
+  if (candles.length === 0) return [];
+
+  const sortedCandles = [...candles]
+    .filter(isValidCandle)
+    .sort((a, b) => a.timestamp - b.timestamp);
 
   const result: ChartData[] = [];
 
@@ -113,22 +134,9 @@ export function aggregateCandles(
   let currentCandle: ChartData | null = null;
 
   for (const candle of sortedCandles) {
-    if (
-      !Number.isFinite(candle.timestamp) ||
-      !Number.isFinite(candle.open) ||
-      !Number.isFinite(candle.high) ||
-      !Number.isFinite(candle.low) ||
-      !Number.isFinite(candle.close) ||
-      !Number.isFinite(candle.volume) ||
-      candle.high < candle.low ||
-      candle.volume < 0
-    ) {
-      continue;
-    }
-
     const bucket = getTimeframeBucketStart(
       candle.timestamp,
-      timeframe,
+      targetTimeframe
     );
 
     if (bucket !== currentBucket) {
@@ -153,12 +161,12 @@ export function aggregateCandles(
     if (currentCandle !== null) {
       currentCandle.high = Math.max(
         currentCandle.high,
-        candle.high,
+        candle.high
       );
 
       currentCandle.low = Math.min(
         currentCandle.low,
-        candle.low,
+        candle.low
       );
 
       currentCandle.close = candle.close;
