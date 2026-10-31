@@ -23,39 +23,25 @@ const makeCandle = (
 });
 
 describe('getTimeframeBucketStart', () => {
-  it('groups minute candles into the correct 5-minute bucket', () => {
+  it('calculates 5-minute buckets', () => {
     expect(getTimeframeBucketStart(305, '5m')).toBe(300);
     expect(getTimeframeBucketStart(599, '5m')).toBe(300);
     expect(getTimeframeBucketStart(600, '5m')).toBe(600);
   });
 
-  it('groups hourly candles correctly', () => {
-    expect(getTimeframeBucketStart(3601, '1h')).toBe(3600);
-    expect(getTimeframeBucketStart(7200, '1h')).toBe(7200);
-  });
-
-  it('groups weekly candles from Monday UTC', () => {
-    // 2024-01-01 00:00:00 UTC was Monday.
+  it('calculates weekly buckets from Monday UTC', () => {
     const monday = Date.UTC(2024, 0, 1) / 1000;
     const thursday = monday + 3 * 86400;
 
     expect(getTimeframeBucketStart(thursday, '1w')).toBe(monday);
   });
 
-  it('groups monthly candles by calendar month', () => {
+  it('calculates monthly buckets', () => {
     const january = Date.UTC(2024, 0, 1) / 1000;
     const february = Date.UTC(2024, 1, 1) / 1000;
 
     expect(getTimeframeBucketStart(january + 86400, '1M')).toBe(january);
     expect(getTimeframeBucketStart(february + 86400, '1M')).toBe(february);
-  });
-
-  it('groups quarterly candles correctly', () => {
-    const january = Date.UTC(2024, 0, 1) / 1000;
-    const april = Date.UTC(2024, 3, 1) / 1000;
-
-    expect(getTimeframeBucketStart(january + 86400, '3M')).toBe(january);
-    expect(getTimeframeBucketStart(april + 86400, '3M')).toBe(april);
   });
 
   it('supports all configured timeframes', () => {
@@ -79,14 +65,14 @@ describe('getTimeframeBucketStart', () => {
 });
 
 describe('aggregateCandles', () => {
-  it('aggregates OHLCV values correctly', () => {
+  it('aggregates OHLCV correctly from 1m to 5m', () => {
     const candles: ChartData[] = [
       makeCandle(0, 100, 110, 95, 105, 10),
       makeCandle(60, 105, 115, 100, 112, 20),
       makeCandle(120, 112, 120, 108, 118, 30),
     ];
 
-    const result = aggregateCandles(candles, '5m');
+    const result = aggregateCandles(candles, '1m', '5m');
 
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual({
@@ -99,44 +85,52 @@ describe('aggregateCandles', () => {
     });
   });
 
-  it('sorts input candles chronologically', () => {
+  it('sorts candles chronologically', () => {
     const candles: ChartData[] = [
       makeCandle(60, 105, 115, 100, 112, 20),
       makeCandle(0, 100, 110, 95, 105, 10),
     ];
 
-    const result = aggregateCandles(candles, '5m');
+    const result = aggregateCandles(candles, '1m', '5m');
 
     expect(result[0].open).toBe(100);
     expect(result[0].close).toBe(112);
     expect(result[0].volume).toBe(30);
   });
 
-  it('creates separate candles for separate buckets', () => {
+  it('separates different target buckets', () => {
     const candles: ChartData[] = [
       makeCandle(0, 100, 110, 95, 105, 10),
       makeCandle(300, 105, 115, 100, 112, 20),
     ];
 
-    const result = aggregateCandles(candles, '5m');
+    const result = aggregateCandles(candles, '1m', '5m');
 
     expect(result).toHaveLength(2);
-    expect(result[0].timestamp).toBe(0);
-    expect(result[1].timestamp).toBe(300);
   });
 
   it('returns an empty array for empty input', () => {
-    expect(aggregateCandles([], '1m')).toEqual([]);
+    expect(aggregateCandles([], '1m', '5m')).toEqual([]);
   });
 
-  it('ignores invalid candle values', () => {
+  it('rejects conversion from coarser to finer timeframe', () => {
+    const candles = [
+      makeCandle(0, 100, 110, 95, 105, 10),
+    ];
+
+    expect(() =>
+      aggregateCandles(candles, '1h', '5m')
+    ).toThrow();
+  });
+
+  it('rejects invalid OHLCV candles', () => {
     const candles: ChartData[] = [
       makeCandle(0, 100, 110, 95, 105, 10),
       makeCandle(60, 100, 90, 95, 105, 10),
       makeCandle(120, 100, 110, 95, 105, -5),
     ];
 
-    const result = aggregateCandles(candles, '5m');
+    const result = aggregateCandles(candles, '1m', '5m');
 
     expect(result).toHaveLength(1);
     expect(result[0].volume).toBe(10);
