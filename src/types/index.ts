@@ -1,3 +1,4 @@
+
 // Type definitions for DEZZTA CHART application
 
 export interface SymbolData {
@@ -16,9 +17,33 @@ export interface ChartData {
   volume: number;
 }
 
-export type Timeframe = '1m' | '5m' | '15m' | '1h' | '4h' | '1d' | '1w' | '1M';
+// Supported chart timeframes
+export type Timeframe =
+  | '1s'
+  | '5s'
+  | '15s'
+  | '30s'
+  | '45s'
+  | '1m'
+  | '3m'
+  | '5m'
+  | '15m'
+  | '30m'
+  | '45m'
+  | '1h'
+  | '2h'
+  | '4h'
+  | '1d'
+  | '1w'
+  | '1M'
+  | '3M';
 
-export type ChartType = 'candlestick' | 'line' | 'bar' | 'area';
+// Supported chart styles
+export type ChartType =
+  | 'candlestick'
+  | 'line'
+  | 'bar'
+  | 'area';
 
 export type Theme = 'dark' | 'light';
 
