@@ -1,0 +1,27 @@
+.chart-placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-chart-bg);
+  margin: var(--spacing-md);
+  border-radius: 8px;
+  border: 1px dashed var(--color-border);
+  min-height: 300px;
+}
+
+.chart-content {
+  text-align: center;
+}
+
+.chart-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.chart-subtitle {
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
