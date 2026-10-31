@@ -11,6 +11,11 @@ import type {
   DeepPartial,
   ChartOptions,
 } from 'lightweight-charts';
+import type { Timeframe } from '../types';
+
+interface CandlestickChartProps {
+  timeframe: Timeframe;
+}
 
 // Sample OHLC data — not live market data
 const sampleCandles: CandlestickData[] = [
@@ -36,17 +41,19 @@ const sampleCandles: CandlestickData[] = [
   { time: '2024-01-26', open: 124.5, high: 126.3, low: 124.1, close: 125.8 },
 ];
 
-const CandlestickChart: React.FC = () => {
+const CandlestickChart: React.FC<CandlestickChartProps> = ({
+  timeframe,
+}) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   const [containerSize, setContainerSize] = useState({
     width: 0,
     height: 0,
   });
 
+  // Create chart once
   useEffect(() => {
     const container = chartContainerRef.current;
     if (!container) return;
@@ -76,7 +83,7 @@ const CandlestickChart: React.FC = () => {
         barSpacing: 12,
         rightOffset: 5,
         timeVisible: true,
-        secondsVisible: false,
+        secondsVisible: timeframe.endsWith('s'),
       },
       crosshair: {
         mode: 0,
@@ -133,20 +140,27 @@ const CandlestickChart: React.FC = () => {
     };
 
     const observer = new ResizeObserver(updateChartSize);
-    resizeObserverRef.current = observer;
     observer.observe(container);
 
     updateChartSize();
 
     return () => {
       observer.disconnect();
-      resizeObserverRef.current = null;
-
       chart.remove();
       chartRef.current = null;
       candleSeriesRef.current = null;
     };
   }, []);
+
+  // Update time scale display when timeframe changes
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+
+    chart.timeScale().applyOptions({
+      secondsVisible: timeframe.endsWith('s'),
+    });
+  }, [timeframe]);
 
   return (
     <div
