@@ -21,7 +21,7 @@ const App: React.FC = () => {
       />
 
       <main className="main-content">
-        <CandlestickChart />
+        <CandlestickChart timeframe={timeframe} />
       </main>
 
       <BottomNav />
