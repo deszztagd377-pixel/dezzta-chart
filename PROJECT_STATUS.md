@@ -7,9 +7,9 @@ Working branch: phase-2/market-data-foundation
 
 ## Overall progress
 
-- Estimated overall progress toward the intended full application: 15%.
+- Estimated overall progress toward the intended full application: 16%.
 - This is a planning estimate based on completed product capabilities, not a measured code-line percentage.
-- Phase 2 foundation progress: initial market-data DTOs and contract documentation added; provider ingestion, WebSocket service, persistence, and chart integration remain unimplemented.
+- Phase 2 foundation progress: market-data DTOs, contract documentation, and a Python/FastAPI backend scaffold are in place; Databento ingestion, event broadcasting, persistence, recovery, and chart integration remain unimplemented.
 
 ## Current foundation
 
@@ -33,7 +33,7 @@ Working branch: phase-2/market-data-foundation
 
 ## Phase 2 — Market Data Foundation
 
-Status: provider, initial instrument scope, and deployment direction selected; first transport-contract foundation added; live integration not started.
+Status: provider, initial instrument scope, and deployment direction selected; transport-contract and Python backend scaffolds added; live integration not started.
 
 ### Selected provider and data requirements
 
