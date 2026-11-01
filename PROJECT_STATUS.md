@@ -9,7 +9,7 @@ Working branch: phase-2/market-data-foundation
 
 - Estimated overall progress toward the intended full application: 15%.
 - This is a planning estimate based on completed product capabilities, not a measured code-line percentage.
-- Product implementation progress in Phase 2: 0% at the start of this branch; repository audit and planning only.
+- Phase 2 foundation progress: initial market-data DTOs and contract documentation added; provider ingestion, WebSocket service, persistence, and chart integration remain unimplemented.
 
 ## Current foundation
 
@@ -33,7 +33,7 @@ Working branch: phase-2/market-data-foundation
 
 ## Phase 2 — Market Data Foundation
 
-Status: provider, initial instrument scope, and deployment direction selected; implementation not started.
+Status: provider, initial instrument scope, and deployment direction selected; first transport-contract foundation added; live integration not started.
 
 ### Selected provider and data requirements
 
@@ -65,8 +65,8 @@ Status: provider, initial instrument scope, and deployment direction selected; i
 Planned engineering sequence:
 1. Confirm account entitlement, exchange licensing, supported ES/NQ/GC instrument coverage, and operating budget with the account owner.
 2. Verify contract symbology, instrument definitions, expiration/roll rules, and the exact Databento SDK/API supported for the chosen backend runtime.
-3. Define normalized event contracts while preserving original provider record metadata.
-4. Build and test secure backend ingestion and WebSocket fan-out with replay, reconnect, gap detection, and backpressure.
+3. Build a reproducible Python backend environment using verified official Databento client and WebSocket server versions.
+4. Implement secure backend ingestion and WebSocket fan-out with replay, reconnect, gap detection, and backpressure.
 5. Connect historical candle loading and timeframe aggregation to the existing chart.
 6. Verify data integrity under disconnects, bursts, and recovery; document any transformations and limitations before claiming lossless behavior.
 
@@ -86,4 +86,7 @@ Planned engineering sequence:
 - Recorded Databento as primary provider, ordinary cloud hosting, strict data-accuracy priority, MBO target schema, and TCP-ingest-to-app-WebSocket architecture.
 - Confirmed the initial futures product scope: ES, NQ, and GC.
 - Recorded the need for instrument-definition-based contract resolution and rollover handling; no fixed expiry contract is hard-coded.
-- No product source files changed; market-data implementation remains unstarted.
+- Added `src/types/marketData.ts` with typed ES/NQ/GC instrument metadata, MBO event envelope, status/quality messages, and Databento flag constants.
+- Added `docs/MARKET_DATA_CONTRACT.md` documenting the initial wire contract, instrument resolution, and integrity rules.
+- Selected the official Databento Python client as the first backend implementation candidate after checking the current official Live quickstart; backend runtime dependencies are not installed yet.
+- No live provider ingestion, WebSocket service, storage, or chart integration has been implemented.
