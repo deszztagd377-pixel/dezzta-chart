@@ -78,3 +78,30 @@ def test_websocket_sends_status_after_authentication() -> None:
     assert message["type"] == "market_data.status"
     assert message["quality"]["state"] == "disconnected"
     assert message["instruments"] == ["ES", "NQ", "GC"]
+
+
+def test_ohlcv_endpoint_starts_empty_and_does_not_fabricate_bars() -> None:
+    client = TestClient(create_app(make_settings()))
+    response = client.get("/v1/ohlcv")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["type"] == "market_data.ohlcv.snapshot"
+    assert payload["state"] == "unavailable"
+    assert payload["timestampUnit"] == "nanoseconds"
+    assert payload["priceRepresentation"] == "decimal-string"
+    assert payload["bars"] == []
+    assert "provider ingestion is not connected" in payload["detail"]
+
+
+def test_ohlcv_endpoint_rejects_unsupported_timeframe() -> None:
+    client = TestClient(create_app(make_settings()))
+    response = client.get("/v1/ohlcv?timeframe=2m")
+    assert response.status_code == 422
+
+
+def test_market_data_status_reports_ohlcv_pipeline_without_claiming_live_feed() -> None:
+    client = TestClient(create_app(make_settings()))
+    payload = client.get("/v1/market-data/status").json()
+    assert payload["ohlcv_pipeline_available"] is True
+    assert payload["ohlcv_provider_connected"] is False
+    assert payload["connected"] is False
