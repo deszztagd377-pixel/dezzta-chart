@@ -7,7 +7,7 @@ are catalogued; spreads and unknown symbols are excluded.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 import re
 from typing import Any, Iterable, Mapping
 
@@ -23,6 +23,21 @@ _CONTRACT_SYMBOL = re.compile(r"^(ES|NQ|GC)[FGHJKMNQUVXZ](?:\d{1,2})$")
 
 class InvalidInstrumentDefinition(ValueError):
     """Raised when a provider definition cannot be safely normalized."""
+
+
+def _nanoseconds_to_iso_date(value: int) -> str:
+    seconds = value // 1_000_000_000
+    return datetime.fromtimestamp(seconds, tz=timezone.utc).date().isoformat()
+
+
+def _fixed_point_to_decimal(value: Any) -> str:
+    raw = int(value)
+    negative = raw < 0
+    absolute = abs(raw)
+    whole, fraction = divmod(absolute, 1_000_000_000)
+    fractional = str(fraction).rjust(9, "0").rstrip("0")
+    result = f"{whole}.{fractional}" if fractional else str(whole)
+    return f"-{result}" if negative and absolute else result
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,18 +71,25 @@ class FuturesInstrument:
             raise InvalidInstrumentDefinition("Only outright futures are supported.")
 
         expiration_value = definition.get("expiration")
-        if isinstance(expiration_value, datetime):
-            expiration = expiration_value.date().isoformat()
-        elif isinstance(expiration_value, date):
-            expiration = expiration_value.isoformat()
-        elif expiration_value:
-            expiration = str(expiration_value)[:10]
-            try:
-                date.fromisoformat(expiration)
-            except ValueError as exc:
-                raise InvalidInstrumentDefinition("Invalid contract expiration.") from exc
-        else:
-            raise InvalidInstrumentDefinition("Contract expiration is required.")
+        try:
+            if isinstance(expiration_value, datetime):
+                expiration = expiration_value.date().isoformat()
+            elif isinstance(expiration_value, date):
+                expiration = expiration_value.isoformat()
+            elif isinstance(expiration_value, int):
+                if expiration_value <= 0:
+                    raise ValueError("Expiration timestamp must be positive.")
+                expiration = _nanoseconds_to_iso_date(expiration_value)
+            elif expiration_value:
+                expiration_text = str(expiration_value).strip()
+                if expiration_text.isdigit() and len(expiration_text) >= 15:
+                    expiration = _nanoseconds_to_iso_date(int(expiration_text))
+                else:
+                    expiration = date.fromisoformat(expiration_text[:10]).isoformat()
+            else:
+                raise ValueError("Contract expiration is required.")
+        except (OverflowError, OSError, ValueError) as exc:
+            raise InvalidInstrumentDefinition("Invalid contract expiration.") from exc
 
         try:
             instrument_id = int(definition["instrument_id"])
@@ -79,11 +101,20 @@ class FuturesInstrument:
             ) from exc
 
         if instrument_id < 0 or publisher_id < 0 or ts_event < 0:
-            raise InvalidInstrumentDefinition("Provider identifiers and timestamp must be non-negative.")
+            raise InvalidInstrumentDefinition(
+                "Provider identifiers and timestamp must be non-negative."
+            )
 
         root = match.group(1)
         increment = definition.get("min_price_increment")
         currency = definition.get("currency")
+
+        try:
+            normalized_increment = (
+                _fixed_point_to_decimal(increment) if increment is not None else None
+            )
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise InvalidInstrumentDefinition("Invalid minimum price increment.") from exc
 
         return cls(
             root=root,
@@ -95,7 +126,7 @@ class FuturesInstrument:
             instrument_class=instrument_class,
             expiration=expiration,
             currency=str(currency) if currency else None,
-            min_price_increment=str(increment) if increment is not None else None,
+            min_price_increment=normalized_increment,
             definition_ts_event_ns=str(ts_event),
         )
 
