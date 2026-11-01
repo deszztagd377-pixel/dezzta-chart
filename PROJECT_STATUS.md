@@ -98,6 +98,12 @@ Status: provider and initial instrument scope selected; transport contract, back
 
 ## Change log
 
+### Timeframe engine audit — 2026-11-01
+- Audited the current timeframe engine, selector, chart component, and app wiring.
+- Fixed duplicate source-candle snapshot handling: when multiple valid OHLCV snapshots share a timestamp, aggregation now uses the last supplied snapshot rather than incorrectly summing repeated cumulative volume and mixing revisions.
+- Added regression coverage for duplicate-timestamp snapshots and input immutability.
+- Important limitation confirmed: the current chart fixture contains daily date-only OHLC values and no volume field. It cannot honestly produce second/minute/hour candles or volume-based calculations. The timeframe selector still does not represent a functional multi-resolution data pipeline; chart integration is deferred until a properly timestamped base-resolution OHLCV fixture/data contract is available. No synthetic or fabricated market data will be presented as live.
+
 ### 2026-11-01
 - Created the Phase 2 working branch from the audited main branch.
 - Added typed frontend market-data contracts and transport documentation.
