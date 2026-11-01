@@ -23,7 +23,7 @@ pip install -r requirements-dev.txt
 ```
 
 Copy `.env.example` to `.env` and set a long random `MARKET_DATA_WS_TOKEN`.
-Do not commit `.env` or share the token. The Databento key is not used yet.
+Do not commit `.env` or share the token. The Databento key is not used by this scaffold.
 
 Start the service:
 
@@ -43,6 +43,17 @@ empty contract list. It will only list expiry-specific outright futures after
 validated provider instrument definitions are supplied. It does not invent
 contract months, choose a front month, or apply an automatic rollover rule.
 Spread instruments and unsupported roots are excluded.
+
+## Definition adapter
+
+`app/databento_definitions.py` converts Databento DBN-like instrument
+definition record objects into plain Python mappings. It preserves provider
+numeric units and record order, and validates required attributes. It is a
+pure adapter: it does not create a Databento client, connect to a feed, read
+credentials, or download provider data.
+
+The mappings can be passed to `InstrumentCatalog.replace_definitions()`
+after a trusted definition source has been separately configured and reviewed.
 
 ## WebSocket
 
@@ -67,8 +78,8 @@ pytest
 
 - No Databento connection or subscription is implemented.
 - No provider instrument-definition download or refresh scheduler is implemented.
-- The in-memory catalog accepts normalized definitions for validation/testing; it is not yet populated by a provider.
+- The in-memory catalog is not populated by a provider.
 - No market-data events are broadcast.
 - No persistence, replay, snapshot recovery, or gap recovery is implemented.
 - The status endpoint intentionally reports the feed as disconnected.
-- Configure a production WebSocket authentication mechanism and TLS termination before public deployment.
+- Configure a production WebSocket authentication mechanism and TLS termination before any public deployment.
