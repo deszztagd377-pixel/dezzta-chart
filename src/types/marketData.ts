@@ -106,7 +106,7 @@ export const DATABENTO_MBO_FLAGS = {
  * Keep priceRaw as the canonical value; do not route it through Number.
  */
 export function databentoPriceToDecimalString(priceRaw: string): string {
-  if (!/^-?\\d+$/.test(priceRaw)) {
+  if (!/^-?\d+$/.test(priceRaw)) {
     throw new Error('Invalid Databento fixed-point price.');
   }
 
