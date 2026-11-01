@@ -92,3 +92,79 @@ def test_unknown_root_is_rejected():
 
     with pytest.raises(ValueError, match="Unsupported product root"):
         catalog.list_contracts("MES")
+
+
+
+def test_incremental_update_replaces_existing_contract_metadata():
+    catalog = InstrumentCatalog()
+    catalog.replace_definitions([definition(ts_event=100)])
+
+    updated = definition(
+        raw_symbol="ESZ6",
+        instrument_id=123,
+        ts_event=200,
+        min_price_increment=500_000_000,
+    )
+    assert catalog.upsert_definition(updated) is True
+    contracts = catalog.list_contracts()
+    assert len(contracts) == 1
+    assert contracts[0]["min_price_increment"] == "0.5"
+    assert contracts[0]["definition_ts_event_ns"] == "200"
+
+
+def test_older_update_cannot_overwrite_newer_definition():
+    catalog = InstrumentCatalog()
+    catalog.replace_definitions([definition(ts_event=200)])
+
+    assert catalog.upsert_definition(definition(ts_event=150)) is False
+    assert catalog.list_contracts()[0]["definition_ts_event_ns"] == "200"
+
+
+def test_delete_removes_contract_and_blocks_delayed_resurrection():
+    catalog = InstrumentCatalog()
+    catalog.replace_definitions([definition(ts_event=100)])
+
+    assert catalog.delete_definition(
+        publisher_id=1,
+        instrument_id=123,
+        event_ts_ns=200,
+    ) is True
+    assert catalog.list_contracts() == []
+    assert catalog.upsert_definition(definition(ts_event=150)) is False
+    assert catalog.snapshot()["state"] == "definitions_unavailable"
+
+
+def test_newer_definition_can_recreate_contract_after_delete():
+    catalog = InstrumentCatalog()
+    catalog.replace_definitions([definition(ts_event=100)])
+    catalog.delete_definition(
+        publisher_id=1,
+        instrument_id=123,
+        event_ts_ns=200,
+    )
+
+    assert catalog.upsert_definition(definition(ts_event=300)) is True
+    assert catalog.list_contracts()[0]["definition_ts_event_ns"] == "300"
+
+
+def test_stale_delete_cannot_remove_newer_definition():
+    catalog = InstrumentCatalog()
+    catalog.replace_definitions([definition(ts_event=300)])
+
+    assert catalog.delete_definition(
+        publisher_id=1,
+        instrument_id=123,
+        event_ts_ns=200,
+    ) is False
+    assert catalog.list_contracts()[0]["definition_ts_event_ns"] == "300"
+
+
+def test_delete_requires_non_negative_identity_and_timestamp():
+    catalog = InstrumentCatalog()
+
+    with pytest.raises(ValueError, match="non-negative"):
+        catalog.delete_definition(
+            publisher_id=1,
+            instrument_id=123,
+            event_ts_ns=-1,
+        )
