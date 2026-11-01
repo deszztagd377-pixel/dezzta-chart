@@ -55,6 +55,16 @@ credentials, or download provider data.
 The mappings can be passed to `InstrumentCatalog.replace_definitions()`
 after a trusted definition source has been separately configured and reviewed.
 
+## Instrument definition lifecycle
+
+The in-memory catalog supports two distinct update paths:
+
+- `replace_definitions(rows)` replaces a complete authoritative snapshot; contracts omitted from that snapshot are removed.
+- `upsert_definition(row)` inserts or updates one contract using the provider event timestamp.
+- `delete_definition(publisher_id, instrument_id, event_ts_ns)` applies a timestamped deletion and retains a tombstone.
+
+Incremental events are ordered by `ts_event`: older updates cannot overwrite newer definitions, older deletes cannot remove newer definitions, and delayed updates cannot resurrect a deleted contract. Contract identity is scoped by dataset, publisher ID, and instrument ID. These lifecycle methods are currently in-memory only; no provider event consumer or persistent store is connected.
+
 ## WebSocket
 
 WebSocket: `ws://127.0.0.1:8000/ws/market-data`
