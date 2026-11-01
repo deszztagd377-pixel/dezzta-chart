@@ -28,7 +28,7 @@ Working branch: phase-2/market-data-foundation
 - The timeframe selector updates React state, but the chart currently only changes the seconds-visible display option; it does not yet load or aggregate data for the selected timeframe.
 - The existing sample candles are not real market data.
 - Watchlist and Settings navigation currently changes only the selected navigation item; there are no implemented pages behind them.
-- Drawing tools, Footprint, Heatmap, persistence, and Android packaging are not implemented.
+- Drawing tools, indicator tier navigation, Volume Profile, Footprint, Heatmap, Liquidation Maps, persistence, and Android packaging are not implemented.
 - No package-lock.json was present in the audited repository tree.
 
 ## Phase 2 — Market Data Foundation
@@ -49,32 +49,39 @@ Status: provider and initial instrument scope selected; transport contract, back
 ### Completed in this phase
 
 - FastAPI health/status endpoints and authenticated app-facing WebSocket scaffold.
-- Provider-neutral `InstrumentCatalog` with outright-futures validation, expiry sorting, and root filtering.
+- Provider-neutral `InstrumentCatalog` with outright-futures validation, expiry sorting, root filtering, atomic full-snapshot replacement, timestamp-ordered upserts/deletes, and tombstones against stale resurrection.
 - `GET /v1/instruments` endpoint with honest empty-catalog behavior before provider definitions exist.
 - Pure `databento_definitions.py` adapter that maps DBN-like definition objects into validated plain mappings without networking or credentials.
-- Unit tests for catalog normalization, fixed-point values, nanosecond expirations, adapter field mapping, byte-symbol decoding, required-field checks, and ordering.
+- Unit tests for catalog normalization, fixed-point values, nanosecond expirations, adapter field mapping, byte-symbol decoding, required-field checks, ordering, update/delete lifecycle, and stale-event rejection.
 
 ### Not implemented
 
 - No live or historical provider connection, download, or subscription.
 - No provider definition refresh scheduler or production population of the catalog.
+- Lifecycle operations are currently in-memory only; no provider event consumer or persistent catalog store is connected.
 - No market-data event broadcast, persistent storage, replay, or recovery.
 - No brokerage or order-execution integration.
-- No Footprint or Heatmap implementation; those complex indicator tasks are reserved for a separate Claude-assisted workflow after the project owner supplies visual references.
+- No Footprint, Heatmap, or Liquidation Maps implementation; these three Exclusive Indicators are reserved for one coordinated Claude-assisted workflow after the project owner supplies visual references for each.
+- Volume Profile is planned as a Mid Tier indicator, with its visual reference to be supplied by the project owner.
+- A separate Tools-menu Volume Profile tool is also planned: it displays a compact profile visualization at the chart side, without the full indicator's data-value presentation; users can move/resize its selected chart range and the profile recalculates for that range.
+- Indicator navigation is planned as three categories: Low Tier (general indicators), Mid Tier (Volume Profile), and Exclusive (Footprint, Heatmap, Liquidation Maps). Tools are a separate entry point, not another indicator category.
+- These are recorded product requirements only; no indicator or Tools UI implementation has started.
 
 ## Planned engineering sequence
 
 1. Keep this stage provider-neutral and validate the adapter against documented record fields and fixtures.
-2. Add safe catalog lifecycle semantics for definition updates/deletions and stale snapshots.
-3. Review the frontend contract and add a read-only instrument metadata display using fixture data.
-4. Continue backend quality, observability, and local test coverage.
-5. Reassess external provider access only when account ownership, age-appropriate authorization, entitlement, licensing, and cost are independently confirmed.
+2. Review the frontend contract and add a read-only instrument metadata display using fixture data.
+3. Add the planned Low Tier / Mid Tier / Exclusive indicator navigation and separate Tools entry point when the chart UI phase begins.
+4. Implement Volume Profile Mid Tier and the compact movable-range Volume Profile Tool after the project owner supplies visual references.
+5. Reserve Footprint, Heatmap, and Liquidation Maps for one Claude-assisted Exclusive Indicators phase after their visual references are supplied.
+6. Continue backend quality, observability, and local test coverage.
 
 ## Non-negotiable product constraints
 
 - Preserve normal candlestick spacing when Footprint mode is OFF.
 - Only Footprint ON may activate a dedicated spaced-candle/cluster layout.
-- Do not implement Footprint or Heatmap visuals before the project owner supplies reference images; their large implementation tasks are intended for Claude.
+- Do not implement Footprint, Heatmap, or Liquidation Maps visuals before the project owner supplies reference images; their combined large implementation task is intended for Claude.
+- Keep Volume Profile Mid Tier separate from the compact movable-range Volume Profile Tool in the Tools menu.
 - Preserve existing working chart interactions and avoid unrelated visual redesign.
 - Never fabricate provider data, contract expiry, or feed status.
 
@@ -86,3 +93,9 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Added FastAPI backend scaffold and authenticated status WebSocket.
 - Added provider-neutral futures instrument catalog with validation, sorting, filtering, and tests.
 - Added pure Databento definition-record adapter and tests; no provider client or network connection was created.
+
+### 2026-11-01 — Instrument lifecycle and indicator product requirements
+- Added timestamp-ordered catalog upserts and deletions, plus tombstones to reject stale resurrection events.
+- Documented complete-snapshot replacement semantics and added lifecycle regression tests.
+- Recorded the planned Low Tier / Mid Tier / Exclusive indicator categories and the separate Tools-menu Volume Profile tool.
+- Recorded Footprint, Heatmap, and Liquidation Maps as one Claude-assisted Exclusive Indicators workstream pending user visual references.
