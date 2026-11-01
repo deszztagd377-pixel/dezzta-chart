@@ -48,7 +48,8 @@ def test_weekly_bucket_starts_on_monday_utc():
 def test_month_and_quarter_buckets_use_calendar_boundaries():
     february_2024 = 1_706_745_600 * NS
     january_2024 = 1_704_067_200 * NS
-    assert bucket_start_ns(february_2024, "1M") == january_2024
+    february_start = 1_706_745_600_000_000_000
+    assert bucket_start_ns(february_2024, "1M") == february_start
     assert bucket_start_ns(february_2024, "3M") == january_2024
 
 
