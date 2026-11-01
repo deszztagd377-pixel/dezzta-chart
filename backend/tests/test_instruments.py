@@ -13,7 +13,8 @@ def definition(**overrides):
         "instrument_class": "F",
         "expiration": date(2026, 12, 18),
         "currency": "USD",
-        "min_price_increment": "0.25",
+        # Databento definition prices use a signed integer scaled by 1e-9.
+        "min_price_increment": 250_000_000,
         "ts_event": 1790000000000000000,
     }
     values.update(overrides)
@@ -35,6 +36,14 @@ def test_normalizes_supported_outright_contracts(raw_symbol, root):
     assert contract.min_price_increment == "0.25"
 
 
+def test_normalizes_provider_expiration_nanoseconds():
+    contract = FuturesInstrument.from_provider_definition(
+        definition(expiration=1_798_588_800_000_000_000)
+    )
+
+    assert contract.expiration == "2027-01-01"
+
+
 @pytest.mark.parametrize(
     "overrides",
     [
@@ -43,6 +52,7 @@ def test_normalizes_supported_outright_contracts(raw_symbol, root):
         {"instrument_class": "S"},
         {"expiration": None},
         {"instrument_id": "not-an-id"},
+        {"min_price_increment": "not-a-number"},
     ],
 )
 def test_rejects_unsupported_or_incomplete_definitions(overrides):
