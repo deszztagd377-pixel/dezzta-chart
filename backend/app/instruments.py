@@ -18,7 +18,7 @@ SUPPORTED_PRODUCTS: dict[str, str] = {
 }
 
 # CME month codes: F G H J K M N Q U V X Z.
-_CONTRACT_SYMBOL = re.compile(r"^(ES|NQ|GC)[FGHJKMNQUVXZ](?:\\d{1,2})$")
+_CONTRACT_SYMBOL = re.compile(r"^(ES|NQ|GC)[FGHJKMNQUVXZ](?:\d{1,2})$")
 
 
 class InvalidInstrumentDefinition(ValueError):
