@@ -28,3 +28,11 @@ yarn-error.log*
 
 # Vite
 .vite/
+# Python backend
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
