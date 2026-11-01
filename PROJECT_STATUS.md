@@ -33,15 +33,34 @@ Working branch: phase-2/market-data-foundation
 
 ## Phase 2 — Market Data Foundation
 
-Status: audit complete; implementation not started.
+Status: provider and deployment direction selected; implementation not started.
+
+### Selected provider and data requirements
+
+- Primary provider: Databento.
+- Primary CME dataset target: `GLBX.MDP3`, subject to account entitlement, instrument coverage, and exchange licensing.
+- Target schema: `mbo` (Market by Order / Level 3), retaining the event-level order updates delivered by the provider.
+- The project owner prioritizes strict data accuracy and lossless handling. The system must not intentionally sample, aggregate, conflate, or discard valid MBO events in the ingestion path.
+- Never claim “100% raw exchange bytes” or absolute zero processing: Databento documents its Live service as a normalized feed with parsing, normalization, and book construction. Preserve the provider-delivered DBN records and event metadata before any application-specific transformations where licensing and storage terms permit.
+- Databento's official Live Raw API uses a binary protocol over TCP/IP sockets, not WebSockets. The backend will connect to Databento using its official Raw API/client library. The app-facing DEZZTA CHART service may publish received events to clients over our own WebSocket connection.
+- Deployment decision: ordinary cloud backend initially, prioritizing development efficiency. No Aurora I colocation or dedicated cross-connect in this phase.
+- Cloud deployment does not itself guarantee lossless end-to-end delivery. The backend must implement bounded buffering, backpressure, durable capture where appropriate, sequence/quality monitoring, reconnect/replay or MBO snapshot recovery, and explicit gap detection. If data integrity cannot be maintained, mark the stream degraded and recover rather than silently presenting incomplete data as complete.
+- Credentials remain server-side and must never be embedded in the React bundle or Android app.
+
+### Target architecture
+
+1. Databento Live Raw API (TCP) → secure backend ingestion service in ordinary cloud hosting.
+2. Preserve incoming provider records and timestamps; validate sequence/quality indicators and detect gaps without silently filtering valid events.
+3. Maintain/rebuild MBO book state and derive chart-facing data in separate downstream stages; retain a clear distinction between original provider records and derived values.
+4. Backend → authenticated DEZZTA CHART WebSocket → React/Android clients.
+5. Historical data and recovery use Databento's supported historical/intraday replay and MBO snapshot mechanisms as applicable.
 
 Planned engineering sequence:
-1. Confirm the intended market-data source/provider and supported market scope with the project owner.
-2. Define a provider-independent market data contract and normalized OHLCV model.
-3. Implement and test the data adapter boundary without inventing provider endpoints or credentials.
-4. Connect historical candle data and timeframe aggregation to the chart.
-5. Add live updates only after the provider's actual capabilities and constraints are confirmed.
-6. Verify tests, production build, and integration behavior before merging.
+1. Confirm account entitlement, exchange licensing, supported instruments, and operating budget with the account owner.
+2. Define normalized event contracts while preserving original provider record metadata.
+3. Build and test secure backend ingestion and WebSocket fan-out with replay, reconnect, gap detection, and backpressure.
+4. Connect historical candle loading and timeframe aggregation to the existing chart.
+5. Verify data integrity under disconnects, bursts, and recovery; document any transformations and limitations before claiming lossless behavior.
 
 ## Non-negotiable product constraints
 
@@ -56,4 +75,5 @@ Planned engineering sequence:
 ### 2026-11-01
 - Created the Phase 2 working branch from the audited main branch.
 - Completed a read-only inspection of all files in the repository tree.
-- No product source files changed in this audit.
+- Recorded Databento as primary provider, ordinary cloud hosting, strict data-accuracy priority, MBO target schema, and TCP-ingest-to-app-WebSocket architecture.
+- No product source files changed; market-data implementation remains unstarted.
