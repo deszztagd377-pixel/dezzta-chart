@@ -123,6 +123,39 @@ describe('aggregateCandles', () => {
     ).toThrow();
   });
 
+
+  it('uses the latest snapshot when source candles share a timestamp', () => {
+    const candles: ChartData[] = [
+      makeCandle(0, 100, 110, 95, 105, 10),
+      makeCandle(0, 100, 115, 94, 112, 14),
+      makeCandle(60, 112, 120, 108, 118, 20),
+    ];
+
+    const result = aggregateCandles(candles, '1m', '5m');
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({
+      timestamp: 0,
+      open: 100,
+      high: 120,
+      low: 94,
+      close: 118,
+      volume: 34,
+    });
+  });
+
+  it('does not mutate the input candle array', () => {
+    const candles: ChartData[] = [
+      makeCandle(60, 105, 115, 100, 112, 20),
+      makeCandle(0, 100, 110, 95, 105, 10),
+    ];
+    const original = candles.map((candle) => ({ ...candle }));
+
+    aggregateCandles(candles, '1m', '5m');
+
+    expect(candles).toEqual(original);
+  });
+
   it('rejects invalid OHLCV candles', () => {
     const candles: ChartData[] = [
       makeCandle(0, 100, 110, 95, 105, 10),
