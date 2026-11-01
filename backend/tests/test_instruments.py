@@ -38,7 +38,7 @@ def test_normalizes_supported_outright_contracts(raw_symbol, root):
 
 def test_normalizes_provider_expiration_nanoseconds():
     contract = FuturesInstrument.from_provider_definition(
-        definition(expiration=1_798_588_800_000_000_000)
+        definition(expiration=1_798_761_600_000_000_000)
     )
 
     assert contract.expiration == "2027-01-01"
