@@ -26,6 +26,7 @@ Working branch: phase-2/market-data-foundation
 
 - No live market-data provider or backend is currently configured in the repository.
 - The timeframe selector updates React state, but the chart currently only changes the seconds-visible display option; it does not yet load or aggregate data for the selected timeframe.
+- Watchlist now displays an explicitly offline, read-only supported-product catalog fixture for ES/NQ/GC; no expiry-specific contracts are fabricated.
 - The existing sample candles are not real market data.
 - Global indicator requirement: every indicator must be designed for compatibility across all supported chart timeframes, including second-based intervals. This is a target to validate per indicator, not a claim that every calculation is automatically valid on every timeframe.
 - Performance requirement: minimize avoidable latency, rendering work, memory growth, and UI blocking; test responsiveness under representative data loads. Zero bugs or zero lag cannot be guaranteed, so regression testing and explicit error handling are mandatory.
@@ -55,6 +56,8 @@ Status: provider and initial instrument scope selected; transport contract, back
 - FastAPI health/status endpoints and authenticated app-facing WebSocket scaffold.
 - Provider-neutral `InstrumentCatalog` with outright-futures validation, expiry sorting, root filtering, atomic full-snapshot replacement, timestamp-ordered upserts/deletes, and tombstones against stale resurrection.
 - `GET /v1/instruments` endpoint with honest empty-catalog behavior before provider definitions exist.
+- Frontend instrument-catalog DTO and offline fixture for ES/NQ/GC, with tests confirming that no unverified contract metadata is invented.
+- Read-only Watchlist catalog panel clearly marked OFFLINE FIXTURE; chart tab remains separate.
 - Pure `databento_definitions.py` adapter that maps DBN-like definition objects into validated plain mappings without networking or credentials.
 - Unit tests for catalog normalization, fixed-point values, nanosecond expirations, adapter field mapping, byte-symbol decoding, required-field checks, ordering, update/delete lifecycle, and stale-event rejection.
 
@@ -114,3 +117,8 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Recorded right-side candle-expiry countdown placement and synchronized-clock/data-freshness requirements.
 - Expanded Mid Tier planning to approximately 10 indicators; Volume Profile is confirmed and the candidate list requires owner approval.
 - Recorded common indicators as Low Tier and confirmed that additions to Exclusive Indicators are controlled only by the project owner.
+
+### 2026-11-01 — Frontend instrument catalog fixture
+- Added typed frontend catalog snapshot contract and an explicit offline fixture for ES, NQ, and GC product roots.
+- Added fixture tests proving that no expiry-specific contract or active contract is fabricated.
+- Added a read-only Watchlist catalog panel, clearly marked OFFLINE FIXTURE; chart rendering remains in its own tab.
