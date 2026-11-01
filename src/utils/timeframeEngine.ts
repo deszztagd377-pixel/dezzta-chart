@@ -124,8 +124,18 @@ export function aggregateCandles(
 
   if (candles.length === 0) return [];
 
-  const sortedCandles = [...candles]
-    .filter(isValidCandle)
+  // A feed may publish several revisions of the same source candle.
+  // Keep the last supplied snapshot for each timestamp instead of summing
+  // repeated cumulative OHLCV updates into the target candle.
+  const latestByTimestamp = new Map<number, ChartData>();
+
+  for (const candle of candles) {
+    if (isValidCandle(candle)) {
+      latestByTimestamp.set(candle.timestamp, candle);
+    }
+  }
+
+  const sortedCandles = [...latestByTimestamp.values()]
     .sort((a, b) => a.timestamp - b.timestamp);
 
   const result: ChartData[] = [];
