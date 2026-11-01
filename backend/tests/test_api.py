@@ -1,4 +1,6 @@
+import pytest
 from fastapi.testclient import TestClient
+from starlette.websockets import WebSocketDisconnect
 
 from app.config import Settings
 from app.main import create_app
@@ -37,14 +39,10 @@ def test_market_data_status_is_honest_about_unimplemented_feed() -> None:
 def test_websocket_requires_authentication() -> None:
     client = TestClient(create_app(make_settings()))
 
-    with client.websocket_connect("/ws/market-data") as websocket:
-        websocket.send_json({"type": "auth", "token": "wrong-token"})
-        # Starlette surfaces a WebSocketDisconnect when the server rejects it.
-        try:
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect("/ws/market-data") as websocket:
+            websocket.send_json({"type": "auth", "token": "wrong-token"})
             websocket.receive_json()
-            assert False, "Expected authentication rejection"
-        except Exception as error:
-            assert "4401" in str(error) or error.__class__.__name__ == "WebSocketDisconnect"
 
 
 def test_websocket_sends_status_after_authentication() -> None:
