@@ -102,18 +102,27 @@ export const DATABENTO_MBO_FLAGS = {
   MAYBE_BAD_BOOK: 1 << 2,
 } as const;
 
-/** Convert Databento's signed fixed-point price integer to a decimal number.
- * Use only at the presentation/calculation boundary; retain priceRaw upstream.
+/** Convert the signed 1e-9 fixed-point integer to an exact decimal string.
+ * Keep priceRaw as the canonical value; do not route it through Number.
  */
-export function databentoPriceToNumber(priceRaw: string): number {
-  if (!/^-?\d+$/.test(priceRaw)) {
+export function databentoPriceToDecimalString(priceRaw: string): string {
+  if (!/^-?\\d+$/.test(priceRaw)) {
     throw new Error('Invalid Databento fixed-point price.');
   }
 
-  const value = Number(priceRaw) / 1_000_000_000;
-  if (!Number.isFinite(value)) {
-    throw new Error('Databento price is outside the supported numeric range.');
-  }
+  const raw = BigInt(priceRaw);
+  const negative = raw < 0n;
+  const absolute = negative ? -raw : raw;
+  const scale = 1_000_000_000n;
+  const whole = absolute / scale;
+  const fractional = (absolute % scale)
+    .toString()
+    .padStart(9, '0')
+    .replace(/0+$/, '');
 
-  return value;
+  const decimal = fractional.length > 0
+    ? `${whole.toString()}.${fractional}`
+    : whole.toString();
+
+  return negative && absolute !== 0n ? `-${decimal}` : decimal;
 }
