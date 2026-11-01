@@ -12,11 +12,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import Settings
 from app.instruments import InstrumentCatalog, SUPPORTED_PRODUCTS
+from app.ohlcv import InvalidOhlcvBar, OhlcvPipeline, bucket_start_ns
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     config = settings or Settings.from_environment()
     catalog = InstrumentCatalog()
+    ohlcv_pipeline = OhlcvPipeline()
     application = FastAPI(
         title="DEZZTA CHART Backend",
         version="0.2.0",
@@ -46,7 +48,65 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "state": "disconnected",
             "connected": False,
             "ingestion_implemented": False,
+            "ohlcv_pipeline_available": True,
+            "ohlcv_provider_connected": False,
             "instruments": list(SUPPORTED_PRODUCTS),
+        }
+
+
+    @application.get("/v1/ohlcv", tags=["market-data"])
+    async def ohlcv_snapshot(
+        dataset: str | None = None,
+        publisher_id: int | None = None,
+        instrument_id: int | None = None,
+        timeframe: str | None = None,
+    ) -> dict[str, object]:
+        """Return normalized OHLCV bars without inventing missing market data.
+
+        The in-memory pipeline is ready for a provider adapter, but no provider
+        is connected by this scaffold. An empty response is therefore expected.
+        """
+        if timeframe is not None:
+            try:
+                bucket_start_ns(0, timeframe)
+            except InvalidOhlcvBar as exc:
+                raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+        bars = ohlcv_pipeline.list_bars(
+            dataset=dataset,
+            publisher_id=publisher_id,
+            instrument_id=instrument_id,
+            timeframe=timeframe,
+        )
+        return {
+            "type": "market_data.ohlcv.snapshot",
+            "version": 1,
+            "state": "ready" if bars else "unavailable",
+            "timestampUnit": "nanoseconds",
+            "priceRepresentation": "decimal-string",
+            "bars": [
+                {
+                    "dataset": bar.dataset,
+                    "publisherId": bar.publisher_id,
+                    "instrumentId": bar.instrument_id,
+                    "rawSymbol": bar.raw_symbol,
+                    "timeframe": bar.timeframe,
+                    "tsStartNs": str(bar.ts_start_ns),
+                    "open": str(bar.open),
+                    "high": str(bar.high),
+                    "low": str(bar.low),
+                    "close": str(bar.close),
+                    "volume": str(bar.volume),
+                    "tsEventNs": str(bar.ts_event_ns),
+                    "tsReceivedNs": str(bar.ts_received_ns),
+                    "sequence": bar.sequence,
+                }
+                for bar in bars
+            ],
+            "detail": (
+                None if bars
+                else "No OHLCV bars are available; provider ingestion is not connected."
+            ),
         }
 
     @application.get("/v1/instruments", tags=["instruments"])
