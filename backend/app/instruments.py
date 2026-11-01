@@ -18,7 +18,7 @@ SUPPORTED_PRODUCTS: dict[str, str] = {
 }
 
 # CME month codes: F G H J K M N Q U V X Z.
-_CONTRACT_SYMBOL = re.compile(r"^(ES|NQ|GC)[FGHJKMNQUVXZ](?:\d{1,2})$")
+_CONTRACT_SYMBOL = re.compile(r"^(ES|NQ|GC)[FGHJKMNQUVXZ](?:\\d{1,2})$")
 
 
 class InvalidInstrumentDefinition(ValueError):
@@ -132,10 +132,20 @@ class FuturesInstrument:
 
 
 class InstrumentCatalog:
-    """In-memory, replaceable snapshot of verified outright contract definitions."""
+    """In-memory catalog with snapshot replacement and ordered lifecycle events.
+
+    Contract identity is scoped by dataset, publisher, and instrument ID.
+    Definition timestamps are used to stop delayed updates from overwriting
+    newer metadata and to stop delayed upserts from resurrecting deleted rows.
+    """
 
     def __init__(self) -> None:
         self._contracts: dict[tuple[str, int, int], FuturesInstrument] = {}
+        self._tombstones: dict[tuple[str, int, int], int] = {}
+
+    @staticmethod
+    def _key(contract: FuturesInstrument) -> tuple[str, int, int]:
+        return (contract.dataset, contract.publisher_id, contract.instrument_id)
 
     def replace_definitions(
         self,
@@ -143,6 +153,11 @@ class InstrumentCatalog:
         *,
         dataset: str = "GLBX.MDP3",
     ) -> int:
+        """Replace the complete snapshot; omitted contracts become stale/removed.
+
+        Invalid rows are counted and excluded. The new snapshot is assembled
+        before assignment, so callers never observe a partially replaced catalog.
+        """
         next_contracts: dict[tuple[str, int, int], FuturesInstrument] = {}
         rejected = 0
         for definition in definitions:
@@ -154,10 +169,75 @@ class InstrumentCatalog:
             except InvalidInstrumentDefinition:
                 rejected += 1
                 continue
-            key = (contract.dataset, contract.publisher_id, contract.instrument_id)
-            next_contracts[key] = contract
+
+            key = self._key(contract)
+            previous = next_contracts.get(key)
+            if previous is None or int(contract.definition_ts_event_ns) > int(
+                previous.definition_ts_event_ns
+            ):
+                next_contracts[key] = contract
+            else:
+                rejected += 1
+
         self._contracts = next_contracts
+        # A complete authoritative snapshot supersedes the incremental tombstones.
+        self._tombstones.clear()
         return rejected
+
+    def upsert_definition(
+        self,
+        definition: Mapping[str, Any],
+        *,
+        dataset: str = "GLBX.MDP3",
+    ) -> bool:
+        """Insert/update one contract unless its event is stale or tombstoned."""
+        contract = FuturesInstrument.from_provider_definition(
+            definition,
+            dataset=dataset,
+        )
+        key = self._key(contract)
+        event_ts = int(contract.definition_ts_event_ns)
+        tombstone_ts = self._tombstones.get(key)
+        if tombstone_ts is not None and event_ts <= tombstone_ts:
+            return False
+
+        current = self._contracts.get(key)
+        if current is not None and event_ts <= int(current.definition_ts_event_ns):
+            return False
+
+        self._contracts[key] = contract
+        self._tombstones.pop(key, None)
+        return True
+
+    def delete_definition(
+        self,
+        *,
+        publisher_id: int,
+        instrument_id: int,
+        event_ts_ns: int,
+        dataset: str = "GLBX.MDP3",
+    ) -> bool:
+        """Apply a timestamped deletion; stale deletes cannot remove newer rows.
+
+        Tombstones are retained so a delayed older upsert cannot resurrect a
+        contract after its deletion event.
+        """
+        if publisher_id < 0 or instrument_id < 0 or event_ts_ns < 0:
+            raise ValueError("Deletion identifiers and timestamp must be non-negative.")
+
+        key = (dataset, publisher_id, instrument_id)
+        current = self._contracts.get(key)
+        previous_tombstone = self._tombstones.get(key)
+        newest_known = max(
+            int(current.definition_ts_event_ns) if current else -1,
+            previous_tombstone if previous_tombstone is not None else -1,
+        )
+        if event_ts_ns < newest_known:
+            return False
+
+        self._contracts.pop(key, None)
+        self._tombstones[key] = event_ts_ns
+        return True
 
     def list_contracts(self, root: str | None = None) -> list[dict[str, Any]]:
         normalized_root = root.upper() if root else None
