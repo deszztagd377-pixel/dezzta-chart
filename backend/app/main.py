@@ -1,23 +1,25 @@
 """HTTP and WebSocket entry point for DEZZTA CHART.
 
-This is a backend foundation only. It does not connect to Databento or publish
-market events yet. The WebSocket requires an application-level auth handshake.
+The backend currently exposes an instrument-catalog foundation. It does not
+connect to Databento or publish market events yet.
 """
 
 import asyncio
 import hmac
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import Settings
+from app.instruments import InstrumentCatalog, SUPPORTED_PRODUCTS
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     config = settings or Settings.from_environment()
+    catalog = InstrumentCatalog()
     application = FastAPI(
         title="DEZZTA CHART Backend",
-        version="0.1.0",
+        version="0.2.0",
         description="Secure backend foundation for DEZZTA CHART market data.",
     )
 
@@ -44,8 +46,33 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "state": "disconnected",
             "connected": False,
             "ingestion_implemented": False,
-            "instruments": ["ES", "NQ", "GC"],
+            "instruments": list(SUPPORTED_PRODUCTS),
         }
+
+    @application.get("/v1/instruments", tags=["instruments"])
+    async def instrument_catalog(root: str | None = None) -> dict[str, object]:
+        """Return verified outright futures definitions currently in memory.
+
+        An empty contract list is expected until a provider definition source
+        is configured. No synthetic expiry or active contract is fabricated.
+        """
+        try:
+            contracts = catalog.list_contracts(root)
+        except ValueError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+        snapshot = catalog.snapshot()
+        if root:
+            normalized_root = root.upper()
+            snapshot["supported_products"] = [
+                product
+                for product in snapshot["supported_products"]
+                if product["root"] == normalized_root
+            ]
+            snapshot["requested_root"] = normalized_root
+        snapshot["contracts"] = contracts
+        snapshot["contract_count"] = len(contracts)
+        return snapshot
 
     @application.websocket("/ws/market-data")
     async def market_data_socket(websocket: WebSocket) -> None:
@@ -98,7 +125,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "version": 1,
                 "dataset": "GLBX.MDP3",
                 "schema": "mbo",
-                "instruments": ["ES", "NQ", "GC"],
+                "instruments": list(SUPPORTED_PRODUCTS),
                 "quality": {
                     "state": "disconnected",
                     "bookSynchronized": False,
@@ -111,8 +138,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             }
         )
 
-        # Keep the authenticated connection open. Market events will be
-        # broadcast here only after the ingestion and recovery layers exist.
         try:
             while True:
                 await websocket.receive_text()
