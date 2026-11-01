@@ -59,11 +59,16 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Frontend instrument-catalog DTO and offline fixture for ES/NQ/GC, with tests confirming that no unverified contract metadata is invented.
 - Read-only Watchlist catalog panel clearly marked OFFLINE FIXTURE; chart tab remains separate.
 - Pure `databento_definitions.py` adapter that maps DBN-like definition objects into validated plain mappings without networking or credentials.
+- Provider-neutral in-memory OHLCV pipeline with nanosecond timestamps, exact Decimal OHLCV values, timeframe bucket validation, atomic snapshot replacement, duplicate-snapshot replacement, and stale revision protection.
+- Versioned frontend OHLCV transport DTO preserving timestamp and decimal precision as strings.
+- Read-only `GET /v1/ohlcv` snapshot endpoint; returns an explicit unavailable state while no provider adapter has populated the pipeline.
 - Unit tests for catalog normalization, fixed-point values, nanosecond expirations, adapter field mapping, byte-symbol decoding, required-field checks, ordering, update/delete lifecycle, and stale-event rejection.
 
 ### Not implemented
 
 - No live or historical provider connection, download, or subscription.
+- No provider adapter currently converts market events or provider OHLCV records into the normalized OHLCV pipeline; the new pipeline is an ingestion boundary, not a live feed.
+- No OHLCV WebSocket broadcast, chart-rendering adapter, or selected-timeframe chart integration yet.
 - No provider definition refresh scheduler or production population of the catalog.
 - Lifecycle operations are currently in-memory only; no provider event consumer or persistent catalog store is connected.
 - No market-data event broadcast, persistent storage, replay, or recovery.
@@ -128,3 +133,11 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Added typed frontend catalog snapshot contract and an explicit offline fixture for ES, NQ, and GC product roots.
 - Added fixture tests proving that no expiry-specific contract or active contract is fabricated.
 - Added a read-only Watchlist catalog panel, clearly marked OFFLINE FIXTURE; chart rendering remains in its own tab.
+
+
+### 2026-11-01 — OHLCV pipeline foundation
+- Added provider-neutral in-memory OHLCV bar validation and ingestion with exact decimal values and nanosecond timestamps.
+- Added UTC-aligned second/minute/hour/day/week/month/quarter bucket validation.
+- Added atomic snapshot replacement, last-supplied duplicate snapshot semantics, and event-time/sequence stale-revision protection.
+- Added a versioned frontend OHLCV DTO and a read-only snapshot API that reports unavailable while no provider adapter is connected.
+- Added backend unit and API regression tests. Local isolated OHLCV unit checks: 14 passed; full repository CI remains unverified until the latest GitHub Actions run is confirmed.
