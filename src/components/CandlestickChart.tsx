@@ -125,7 +125,11 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
     candleSeries.setData(sampleCandles);
     chart.timeScale().fitContent();
 
+    let isActive = true;
+
     const updateChartSize = () => {
+      if (!isActive) return;
+
       const { width, height } = container.getBoundingClientRect();
       if (width > 0 && height > 0) {
         chart.resize(width, height);
@@ -138,6 +142,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
     updateChartSize();
 
     return () => {
+      isActive = false;
       observer.disconnect();
       chart.remove();
       chartRef.current = null;
