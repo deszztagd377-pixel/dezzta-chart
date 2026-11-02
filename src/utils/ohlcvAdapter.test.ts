@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { parseOhlcvSnapshot, toChartCandles } from './ohlcvAdapter';
-import type { OhlcvSnapshotMessage } from '../types/ohlcv';
 
 const baseBar = {
   dataset: 'GLBX.MDP3',
@@ -102,7 +101,7 @@ describe('toChartCandles', () => {
       bars: [
         { ...baseBar },
         { ...baseBar, instrumentId: 456 },
-        { ...baseBar, timeframe: '5s', tsStartNs: '1793577605000000000' },
+        { ...baseBar, timeframe: '5s' },
       ],
     });
     const snapshot = parseOhlcvSnapshot(payload);
