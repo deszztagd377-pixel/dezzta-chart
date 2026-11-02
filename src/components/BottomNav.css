@@ -1,15 +1,13 @@
 .bottom-nav {
   display: flex;
+  flex: 0 0 var(--nav-height, 60px);
   align-items: center;
   justify-content: space-around;
+  width: 100%;
   height: var(--nav-height, 60px);
   background-color: var(--color-bg-secondary);
   border-top: 1px solid var(--color-border);
-  padding: var(--spacing-sm) 0;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  padding: var(--spacing-sm, 8px) 0;
   z-index: 10;
 }
 
@@ -42,7 +40,7 @@
   font-weight: 500;
 }
 
-/* Ensure touch targets are at least 48px for mobile accessibility */
+/* Keep navigation controls comfortable to tap on mobile. */
 @media (max-width: 768px) {
   .nav-item {
     min-height: 48px;
