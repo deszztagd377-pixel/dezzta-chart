@@ -106,11 +106,11 @@ Status: provider and initial instrument scope selected; transport contract, back
 ## Change log
 
 ### 2026-11-02 — Frontend OHLCV contract adapter
-- Added runtime validation for the versioned OHLCV snapshot envelope and every bar; validates decimal strings, nanosecond timestamps, OHLCV boundaries, safe identifiers/sequences, and feed-state values.
+- Added runtime validation for the versioned OHLCV snapshot envelope and every bar; validates decimal strings, nanosecond timestamps, OHLCV boundaries using exact BigInt decimal comparison (no pre-render floating-point rounding), safe identifiers/sequences, and feed-state values.
 - Chronology is validated per series identity (dataset, publisher, instrument, raw symbol, timeframe), because distinct series may legitimately share a bucket timestamp.
 - Added an exact-identity chart adapter. Decimal and nanosecond strings are converted to JavaScript numbers only at the chart boundary; bars from other instruments/timeframes are excluded.
-- Added regression tests for valid precision-preserving payloads, malformed values, invalid OHLC boundaries, negative volume, duplicate same-series timestamps, mixed-series timestamps, exact identity filtering, and unavailable snapshots.
-- GitHub Actions run #96 passed frontend tests, production build, and backend tests.
+- Added regression tests for valid precision-preserving payloads, malformed values, invalid OHLC boundaries including sub-floating-point precision differences, negative volume, duplicate same-series timestamps, mixed-series timestamps, exact identity filtering, and unavailable snapshots.
+- GitHub Actions run #98 passed frontend tests, production build, and backend tests.
 - This is a tested adapter only: no HTTP request lifecycle, instrument picker, live provider connection, or chart data replacement has been enabled.
 - Working branch head for this implementation: `5f8ee7ab78537105d5d51d7c700e41f3ebfcc8a4`.
 - Overall estimated progress: 18.20% (+0.20 percentage points from the documented 18.00% baseline).
