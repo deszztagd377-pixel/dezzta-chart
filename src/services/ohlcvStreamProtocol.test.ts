@@ -92,8 +92,8 @@ describe('OhlcvStreamSequenceGuard', () => {
 
   it('identifies duplicates and stale updates without advancing the watermark', () => {
     const guard = new OhlcvStreamSequenceGuard('stream-es-1s-a', series, 8);
-    expect(guard.accept(event({ sequence: 8 })).reason).toBe('duplicate');
-    expect(guard.accept(event({ sequence: 6 })).reason).toBe('stale');
+    expect(guard.accept(event({ sequence: 8 }))).toMatchObject({ accepted: false, reason: 'duplicate' });
+    expect(guard.accept(event({ sequence: 6 }))).toMatchObject({ accepted: false, reason: 'stale' });
     expect(guard.watermark).toBe(8);
   });
 
@@ -113,11 +113,12 @@ describe('OhlcvStreamSequenceGuard', () => {
 
   it('rejects events from another stream or instrument', () => {
     const guard = new OhlcvStreamSequenceGuard('stream-es-1s-a', series, 7);
-    expect(guard.accept(event({ streamId: 'other-stream' })).reason).toBe('stream_mismatch');
+    expect(guard.accept(event({ streamId: 'other-stream' })))
+      .toMatchObject({ accepted: false, reason: 'stream_mismatch' });
     expect(guard.accept(event({
       series: { ...series, instrumentId: 999 },
       bar: { ...bar, instrumentId: 999 },
-    })).reason).toBe('series_mismatch');
+    }))).toMatchObject({ accepted: false, reason: 'series_mismatch' });
     expect(guard.watermark).toBe(7);
   });
 
