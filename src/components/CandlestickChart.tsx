@@ -188,6 +188,8 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
   return (
     <div
       ref={chartContainerRef}
+      role="region"
+      aria-label="Chart area showing sample OHLC data"
       style={{
         width: '100%',
         height: '100%',
