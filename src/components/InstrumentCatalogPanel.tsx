@@ -26,6 +26,7 @@ const InstrumentCatalogPanel: React.FC<InstrumentCatalogPanelProps> = ({
   const [contracts, setContracts] = useState<FuturesContractDto[]>([]);
   const [productName, setProductName] = useState('E-mini S&P 500 Futures');
   const [errorMessage, setErrorMessage] = useState('');
+  const [refreshNonce, setRefreshNonce] = useState(0);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -47,7 +48,7 @@ const InstrumentCatalogPanel: React.FC<InstrumentCatalogPanelProps> = ({
       });
 
     return () => controller.abort();
-  }, [apiBaseUrl, root]);
+  }, [apiBaseUrl, root, refreshNonce]);
 
   const visibleContracts = useMemo(() => {
     const query = search.trim().toUpperCase();
@@ -128,7 +129,7 @@ const InstrumentCatalogPanel: React.FC<InstrumentCatalogPanelProps> = ({
         <div className="instrument-catalog__message instrument-catalog__message--error" role="alert">
           <strong>Catalog could not be loaded</strong>
           <span>{errorMessage}</span>
-          <button type="button" onClick={() => setRoot((current) => current)}>Retry</button>
+          <button type="button" onClick={() => setRefreshNonce((value) => value + 1)}>Retry</button>
         </div>
       )}
 
