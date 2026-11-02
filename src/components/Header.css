@@ -1,12 +1,13 @@
 .header {
+  --header-safe-area: env(safe-area-inset-top, 0px);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 var(--header-height, 56px);
-  height: var(--header-height, 56px);
+  flex: 0 0 calc(var(--header-height, 56px) + var(--header-safe-area));
+  height: calc(var(--header-height, 56px) + var(--header-safe-area));
   background-color: var(--color-bg-secondary);
   border-bottom: 1px solid var(--color-border);
-  padding: 0 var(--spacing-md);
+  padding: var(--header-safe-area) var(--spacing-md) 0;
   position: sticky;
   top: 0;
   z-index: 10;
