@@ -19,7 +19,7 @@ from typing import Any, Callable, Iterable
 from app.aggregation import Aggregator
 from app.coverage import CoverageTracker
 from app.databento_ohlcv import RecordRejected, record_to_bar
-from app.ohlcv import OhlcvPipeline
+from app.ohlcv import OhlcvBar, OhlcvPipeline
 from app.symbology import InstrumentResolver
 
 _NS = 1_000_000_000
@@ -85,6 +85,7 @@ class OhlcvIngestionService:
         queue_max: int = 10_000,
         batch_size: int = 500,
         clock_ns: Callable[[], int] = time.time_ns,
+        on_bar_applied: Callable[[OhlcvBar], None] | None = None,
     ) -> None:
         self.pipeline = pipeline
         self.resolver = resolver
@@ -95,6 +96,7 @@ class OhlcvIngestionService:
         self._buffer = BoundedBuffer(queue_max)
         self._batch = batch_size
         self._clock = clock_ns
+        self._on_bar_applied = on_bar_applied
         self._sequence = itertools.count(1)
         self._event: asyncio.Event | None = None
         self._session_start: int | None = None
@@ -201,6 +203,13 @@ class OhlcvIngestionService:
         # prove continuous coverage. Only successful historical query windows
         # may mark a range covered.
         self.aggregator.on_bar_applied(bar)
+        if self._on_bar_applied is not None:
+            try:
+                self._on_bar_applied(bar)
+            except Exception:
+                # A client fan-out failure must never stop the single-writer
+                # ingestion loop or invalidate the accepted pipeline bar.
+                self._count("broadcast_callback_error")
 
     def status(self) -> dict[str, Any]:
         return {
