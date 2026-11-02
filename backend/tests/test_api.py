@@ -294,6 +294,10 @@ def test_authenticated_websocket_receives_validated_live_ohlcv_update() -> None:
             assert snapshot["state"] == "unavailable"
             assert snapshot["watermark"] == 0
 
+            for _ in range(100):
+                if FakeLive.callback is not None:
+                    break
+                time.sleep(0.01)
             assert FakeLive.callback is not None
             FakeLive.callback(_record(0))
             update = websocket.receive_json()
