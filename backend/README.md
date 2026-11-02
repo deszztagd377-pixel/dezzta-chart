@@ -78,7 +78,40 @@ The WebSocket client must send this first message after connecting:
 {"type":"auth","token":"YOUR_LOCAL_MARKET_DATA_WS_TOKEN"}
 ```
 
-The socket then sends a status message. It does not send market events yet.
+After authentication, the server sends a status message. The client must then send
+one version 1 subscription with the exact verified series identity:
+
+```json
+{
+  "type": "market_data.subscribe",
+  "version": 1,
+  "series": {
+    "dataset": "GLBX.MDP3",
+    "publisherId": 1,
+    "instrumentId": 123,
+    "rawSymbol": "ESZ6",
+    "timeframe": "1s"
+  }
+}
+```
+
+The server responds with a `market_data.ohlcv.snapshot` envelope containing
+`streamId` and `watermark`, followed by ordered
+`market_data.ohlcv.update` events. The outer event sequence is scoped to the
+subscription and is distinct from the local bar revision sequence.
+
+Snapshot query and subscription registration occur synchronously on the same
+asyncio event loop, with no await between them. This creates an atomic
+snapshot/watermark boundary relative to the single-writer ingestion loop.
+Accepted base and derived bar revisions are fanned out only to exact matching
+series subscriptions.
+
+Each client has a bounded queue. If it fills, the server closes that connection
+with code 1013; the client must reconnect and request a new snapshot. Updates
+are never silently skipped to keep a slow client connected. This is in-memory
+delivery only: server restart, process loss, and reconnect require a fresh
+snapshot. No provider connection or live feed is implied by a successful
+WebSocket subscription.
 
 ## Tests
 
@@ -92,7 +125,7 @@ pytest
 - Optional Databento SDK source adapters and a bounded OHLCV ingestion/provider lifecycle are present, but no production provider key or session is configured or verified for this project.
 - Provider live and historical features remain disabled by default. Enabling them requires a separate review of account entitlements, exchange licensing, explicit symbols, historical query costs, and operational limits.
 - Provider instrument definitions are not automatically refreshed on a schedule. The in-memory catalog is empty until trusted definitions are loaded.
-- The WebSocket sends status only; it does not broadcast OHLCV or order-book events.
+- The authenticated WebSocket now supports exact-series OHLCV snapshots and bounded in-memory OHLCV updates. It does not provide order-book/MBO events, durable replay, or cross-process delivery.
 - Catalog, OHLCV pipeline, and coverage state are in-memory. Persistence, replay, snapshot recovery, and gap recovery across restarts are not implemented.
 - With default settings, the status endpoint correctly reports the provider as disconnected; this is not evidence of a working external feed.
 - Review CORS, TLS, hosting access controls, and WebSocket authentication before public deployment.
