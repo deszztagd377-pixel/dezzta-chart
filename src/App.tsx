@@ -3,6 +3,7 @@ import Header from './components/Header';
 import BottomNav, { type NavItem } from './components/BottomNav';
 import CandlestickChart from './components/CandlestickChart';
 import InstrumentCatalogPanel from './components/InstrumentCatalogPanel';
+import SettingsPanel from './components/SettingsPanel';
 import TimeframeSelector from './components/TimeframeSelector';
 import type { Timeframe } from './types';
 import './App.css';
@@ -10,6 +11,7 @@ import './App.css';
 const App: React.FC = () => {
   const [timeframe, setTimeframe] = useState<Timeframe>('1d');
   const [activeItem, setActiveItem] = useState<NavItem>('chart');
+  const [showGrid, setShowGrid] = useState(true);
 
   return (
     <div className="app-container">
@@ -19,7 +21,7 @@ const App: React.FC = () => {
         <>
           <TimeframeSelector selected={timeframe} onSelect={setTimeframe} />
           <main className="main-content">
-            <CandlestickChart timeframe={timeframe} />
+            <CandlestickChart timeframe={timeframe} showGrid={showGrid} />
           </main>
         </>
       )}
@@ -32,9 +34,11 @@ const App: React.FC = () => {
 
       {activeItem === 'settings' && (
         <main className="main-content">
-          <section style={{ padding: 20, color: '#9ca3af' }}>
-            Settings page is not implemented yet.
-          </section>
+          <SettingsPanel
+            showGrid={showGrid}
+            onShowGridChange={setShowGrid}
+            onReset={() => setShowGrid(true)}
+          />
         </main>
       )}
 
