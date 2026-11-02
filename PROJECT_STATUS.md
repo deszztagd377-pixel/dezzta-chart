@@ -296,3 +296,14 @@ Status: provider and initial instrument scope selected; transport contract, back
 - The existing CI workflow is configured for pushes to this branch, but this audit did not obtain a verified latest-head run result. CI and tests remain unverified.
 - Branch comparison after the documentation commits: 172 commits ahead of `main`, 0 behind. `main` remains untouched.
 - No overall progress increase: frontend WebSocket transport, secure session/token issuance, per-series authorization, deployment, and live feed are still incomplete.
+
+
+### 2026-11-02 — Multi-asset product direction and Firebase authentication prototype approval
+- Owner confirmed the product direction includes equities, crypto, futures, FX, indices, and further asset classes where a verified source, venue, instrument definition, data schema, and license permit coverage. "All pairs" is a long-term coverage goal, not a claim that every global symbol is automatically available from one provider.
+- Added `docs/MULTI_ASSET_MARKET_DATA_ARCHITECTURE.md` defining canonical instrument identity, provider-neutral adapters, asset-specific metadata, venue/session handling, source provenance, exact-series indicator rules, licensing gates, and staged delivery.
+- Audited current implementation: `backend/app/instruments.py` and `backend/app/config.py` remain futures-focused, with ES/NQ/GC allow-list defaults; current instrument catalog and resolver are in-memory. The frontend shared store still uses futures-oriented exact series identity. Multi-asset support is therefore **not implemented** yet.
+- Owner approved Firebase Authentication as the primary provider for an authentication prototype. Updated `docs/AUTH_PROVIDER_EVALUATION.md` to record the approval and require a provider-neutral identity verifier. No Firebase SDK, service account, credentials, token endpoint, WebSocket ticket, or per-series authorization code has been added yet.
+- Firebase's official documentation confirms client ID-token retrieval and Python Admin SDK verification; ID tokens are short-lived (about one hour), while refresh tokens maintain sessions and can be revoked. See https://firebase.google.com/docs/auth/admin/verify-id-tokens and https://firebase.google.com/docs/auth/admin/manage-sessions.
+- Databento coverage is dataset/venue-specific. It documents multiple asset classes, including equities, FX, futures, and options, but this does not establish universal global coverage or all crypto spot pairs. Exact availability, entitlements, and redistribution rights must be verified per product.
+- No progress increase: these commits document approved architecture and do not implement multi-asset canonical IDs, authentication, live feed, persistence, frontend streaming, or deployment. Overall progress remains 19.40%.
+- `main` remains untouched. Latest branch comparison and CI status must be checked separately; no CI pass is claimed by this status note.
