@@ -49,10 +49,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
 
-  const [containerSize, setContainerSize] = useState({
-    width: 0,
-    height: 0,
-  });
+  const [isChartReady, setIsChartReady] = useState(false);
 
   useEffect(() => {
     const container = chartContainerRef.current;
@@ -133,9 +130,9 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
 
     const updateChartSize = () => {
       const { width, height } = container.getBoundingClientRect();
-      setContainerSize({ width, height });
       if (width > 0 && height > 0) {
         chart.resize(width, height);
+        setIsChartReady(true);
       }
     };
 
@@ -202,7 +199,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       >
         DEMO DATA · SAMPLE OHLC
       </div>
-      {containerSize.width === 0 && (
+      {!isChartReady && (
         <div
           style={{
             position: 'absolute',
