@@ -93,3 +93,30 @@ pytest
 - No persistence, replay, snapshot recovery, or gap recovery is implemented.
 - The status endpoint intentionally reports the feed as disconnected.
 - Configure a production WebSocket authentication mechanism and TLS termination before any public deployment.
+
+
+## Phase 2 — Databento OHLCV ingestion
+
+Everything is **off by default**; without `DATABENTO_API_KEY` the backend starts normally and
+`GET /v1/market-data/status` reports `ohlcv.state = "disconnected"`.
+
+Environment variables: `DATABENTO_API_KEY`, `DATABENTO_DATASET`, `DATABENTO_LIVE_ENABLED`,
+`DATABENTO_LIVE_SYMBOLS` (explicit contracts), `DATABENTO_HISTORICAL_ENABLED`,
+`DATABENTO_DEFINITION_SYMBOLS`, `DATABENTO_HISTORICAL_MAX_SPAN_HOURS`,
+`DATABENTO_HISTORICAL_WINDOW_MINUTES`, `INSTRUMENT_ROOTS`, `OHLCV_QUEUE_MAX`, `OHLCV_MAX_RESPONSE_BARS`.
+
+Modules: `symbology.py` (identity/validity), `databento_ohlcv.py` (record -> bar), `aggregation.py`,
+`coverage.py`, `ingest.py` (bounded single writer), `provider.py` (lifecycle, backfill),
+`databento_sources.py` (SDK wrappers, UNVERIFIED, lazily imported).
+
+Tests need no network and no API key. Async tests use `asyncio.run`, so no extra pytest plugin is needed.
+Historical queries can cost money on the provider side: keep spans small.
+
+Live ingestion also requires point-in-time instrument definitions. Set
+`DATABENTO_HISTORICAL_ENABLED=true` and explicitly configure
+`DATABENTO_DEFINITION_SYMBOLS` (for example `ES.FUT`) so startup can resolve
+provider instrument IDs before accepting OHLCV records. This definitions request
+is an explicit provider-data operation; keep the configured symbol scope narrow.
+Live OHLCV observations do not establish continuous time coverage because
+Databento omits intervals without trades. Only successful historical query
+windows mark per-instrument coverage as complete.

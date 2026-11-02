@@ -141,3 +141,24 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Added atomic snapshot replacement, last-supplied duplicate snapshot semantics, and event-time/sequence stale-revision protection.
 - Added a versioned frontend OHLCV DTO and a read-only snapshot API that reports unavailable while no provider adapter is connected.
 - Added backend unit and API regression tests. Local isolated OHLCV unit checks: 14 passed; full repository CI remains unverified until the latest GitHub Actions run is confirmed.
+
+
+### Phase 2 update — OHLCV provider adapter (working copy of phase-2/market-data-foundation)
+- Added: multi-dimensional bar identity + local `sequence_origin`, point-in-time instrument resolver,
+  Databento OHLCV record adapter (exact fixed-point), tiered UTC aggregation with completeness labels,
+  bounded single-writer ingestion with visible overflow/gap handling, provider lifecycle manager,
+  bounded historical window backfill, retention + `/v1/ohlcv` filters, root allow-list config.
+- Verified by execution (local shim runner, see backend/README): pure-Python unit tests.
+- NOT verified: real FastAPI/pytest run, CI, and every call into the real `databento` SDK
+  (`databento_sources.py` and the duck-typed record attributes are UNKNOWN until exercised with a key).
+- Not done: Databento SymbolMapping ingestion, exchange trading-day sessions, WebSocket broadcast,
+  continuous contracts, persistence, MBO/footprint/heatmap.
+- Overall progress figure above is intentionally left unchanged; it is the project owner's estimate.
+
+### Audit corrections prepared after Claude patch review
+- Databento live close wait uses the documented `block_for_close()` method.
+- Instrument definitions are required before live normalization; startup now attempts an explicitly enabled definitions refresh when the resolver is empty.
+- Coverage is keyed per provider/dataset/publisher/instrument/series/symbol. Live OHLCV observations no longer imply continuous coverage because no-trade intervals produce no record.
+- Overflow gaps are aggregated by instrument identity instead of a bounded 1,024-entry event list; retry budget resets only after a stable session.
+- Snapshot replacement rejects conflicting raw symbols for one instrument identity; undefined timestamp sentinel is rejected.
+- These changes still require native CI and real SDK verification. Overall progress remains unchanged.

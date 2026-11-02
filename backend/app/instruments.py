@@ -18,7 +18,20 @@ SUPPORTED_PRODUCTS: dict[str, str] = {
 }
 
 # CME month codes: F G H J K M N Q U V X Z.
-_CONTRACT_SYMBOL = re.compile(r"^(ES|NQ|GC)[FGHJKMNQUVXZ](?:\d{1,2})$")
+_MONTH_YEAR = r"[FGHJKMNQUVXZ](?:\d{1,2})"
+_CONTRACT_SYMBOL = re.compile(r"^(ES|NQ|GC)" + _MONTH_YEAR + "$")
+
+
+def _symbol_pattern(roots: Iterable[str]) -> re.Pattern[str]:
+    """Build the outright-contract pattern for a configured root allow-list."""
+    ordered = sorted({root.strip().upper() for root in roots if root.strip()}, key=lambda r: (-len(r), r))
+    if not ordered or any(not re.fullmatch(r"[A-Z0-9]{1,6}", root) for root in ordered):
+        raise ValueError("Product roots must be 1-6 alphanumeric characters.")
+    return re.compile(r"^(" + "|".join(re.escape(root) for root in ordered) + ")" + _MONTH_YEAR + "$")
+
+
+def product_name_for(root: str) -> str:
+    return SUPPORTED_PRODUCTS.get(root, root)
 
 
 class InvalidInstrumentDefinition(ValueError):
@@ -53,6 +66,8 @@ class FuturesInstrument:
     currency: str | None
     min_price_increment: str | None
     definition_ts_event_ns: str
+    provider: str = "databento"
+    series_type: str = "contract"
 
     @classmethod
     def from_provider_definition(
@@ -60,9 +75,12 @@ class FuturesInstrument:
         definition: Mapping[str, Any],
         *,
         dataset: str = "GLBX.MDP3",
+        allowed_roots: Iterable[str] | None = None,
+        provider: str = "databento",
     ) -> "FuturesInstrument":
         raw_symbol = str(definition.get("raw_symbol", "")).strip().upper()
-        match = _CONTRACT_SYMBOL.fullmatch(raw_symbol)
+        pattern = _CONTRACT_SYMBOL if allowed_roots is None else _symbol_pattern(allowed_roots)
+        match = pattern.fullmatch(raw_symbol)
         if not match:
             raise InvalidInstrumentDefinition("Unsupported outright futures symbol.")
 
@@ -118,7 +136,7 @@ class FuturesInstrument:
 
         return cls(
             root=root,
-            product_name=SUPPORTED_PRODUCTS[root],
+            product_name=product_name_for(root),
             dataset=dataset,
             raw_symbol=raw_symbol,
             instrument_id=instrument_id,
@@ -128,6 +146,7 @@ class FuturesInstrument:
             currency=str(currency) if currency else None,
             min_price_increment=normalized_increment,
             definition_ts_event_ns=str(ts_event),
+            provider=provider,
         )
 
 
@@ -139,7 +158,11 @@ class InstrumentCatalog:
     newer metadata and to stop delayed upserts from resurrecting deleted rows.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, allowed_roots: Iterable[str] | None = None) -> None:
+        # ES/NQ/GC are only the default configuration, not an architectural limit.
+        roots = tuple(SUPPORTED_PRODUCTS) if allowed_roots is None else tuple(allowed_roots)
+        _symbol_pattern(roots)  # validate eagerly
+        self._allowed_roots = tuple(dict.fromkeys(root.strip().upper() for root in roots))
         self._contracts: dict[tuple[str, int, int], FuturesInstrument] = {}
         self._tombstones: dict[tuple[str, int, int], int] = {}
 
@@ -165,6 +188,7 @@ class InstrumentCatalog:
                 contract = FuturesInstrument.from_provider_definition(
                     definition,
                     dataset=dataset,
+                    allowed_roots=self._allowed_roots,
                 )
             except InvalidInstrumentDefinition:
                 rejected += 1
@@ -194,6 +218,7 @@ class InstrumentCatalog:
         contract = FuturesInstrument.from_provider_definition(
             definition,
             dataset=dataset,
+            allowed_roots=self._allowed_roots,
         )
         key = self._key(contract)
         event_ts = int(contract.definition_ts_event_ns)
@@ -241,7 +266,7 @@ class InstrumentCatalog:
 
     def list_contracts(self, root: str | None = None) -> list[dict[str, Any]]:
         normalized_root = root.upper() if root else None
-        if normalized_root and normalized_root not in SUPPORTED_PRODUCTS:
+        if normalized_root and normalized_root not in self._allowed_roots:
             raise ValueError("Unsupported product root.")
 
         contracts = [
@@ -258,8 +283,8 @@ class InstrumentCatalog:
             "dataset": "GLBX.MDP3",
             "state": "definitions_unavailable" if not contracts else "ready",
             "supported_products": [
-                {"root": root, "product_name": name}
-                for root, name in SUPPORTED_PRODUCTS.items()
+                {"root": root, "product_name": product_name_for(root)}
+                for root in self._allowed_roots
             ],
             "contract_count": len(contracts),
             "contracts": contracts,
