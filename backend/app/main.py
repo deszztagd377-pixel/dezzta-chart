@@ -18,6 +18,7 @@ from app.coverage import CoverageTracker
 from app.databento_sources import DatabentoHistoricalSource, DatabentoLiveSource
 from app.ingest import OhlcvIngestionService
 from app.instruments import InstrumentCatalog
+from app.instrument_registry import SQLiteInstrumentRegistry
 from app.ohlcv import (
     InvalidOhlcvBar,
     OhlcvPipeline,
@@ -45,6 +46,7 @@ def create_app(
 ) -> FastAPI:
     config = settings or Settings.from_environment()
     catalog = InstrumentCatalog(config.allowed_roots)
+    instrument_registry = SQLiteInstrumentRegistry(config.instrument_registry_db_path)
     ohlcv_pipeline = OhlcvPipeline()
     resolver = InstrumentResolver()
     stream_hub = OhlcvStreamHub()
@@ -85,6 +87,9 @@ def create_app(
     application.state.provider = provider
     application.state.resolver = resolver
     application.state.catalog = catalog
+    # Internal persistence adapter only. Public write routes stay disabled until
+    # Firebase identity and per-instrument entitlement checks are implemented.
+    application.state.instrument_registry = instrument_registry
 
     application.add_middleware(
         CORSMiddleware,
