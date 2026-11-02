@@ -28,7 +28,15 @@ export interface OhlcvBarDto {
   /** Provider event and backend receive timestamps are intentionally distinct. */
   tsEventNs: string;
   tsReceivedNs: string;
+  /** LOCAL backend ingest sequence. Never a provider-supplied sequence. */
   sequence: number;
+  /** Additive Phase 2 fields; absent on payloads from older backends. */
+  sequenceOrigin?: 'local' | 'provider';
+  provider?: string;
+  seriesType?: 'contract' | 'continuous';
+  origin?: 'provider' | 'derived';
+  /** 'complete' only when ingestion coverage proves the whole bucket. */
+  completeness?: 'unknown' | 'open' | 'partial' | 'complete';
 }
 
 export type OhlcvSnapshotState = 'ready' | 'unavailable' | 'degraded';
@@ -41,4 +49,8 @@ export interface OhlcvSnapshotMessage {
   priceRepresentation: 'decimal-string';
   bars: OhlcvBarDto[];
   detail: string | null;
+  /** Additive Phase 2 fields. */
+  feedState?: 'connecting' | 'live' | 'recovering' | 'degraded' | 'disconnected';
+  count?: number;
+  truncated?: boolean;
 }
