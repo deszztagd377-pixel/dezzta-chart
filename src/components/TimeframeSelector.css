@@ -1,5 +1,6 @@
 
 .timeframe-selector-wrap {
+  flex: 0 0 auto;
   width: 100%;
   background: var(--color-bg-secondary);
   border-bottom: 1px solid var(--color-border);
