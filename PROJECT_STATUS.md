@@ -7,9 +7,9 @@ Working branch: phase-2/market-data-foundation
 
 ## Overall progress
 
-- Estimated overall progress toward the intended full application: 18.60%.
+- Estimated overall progress toward the intended full application: 18.85%.
 - Progress is a weighted milestone estimate, not a code-line percentage or a claim of scientific measurement. Decimal precision is recorded to two places for consistent tracking.
-- Latest increment: +0.25 percentage points (18.35% → 18.60%) for the tested provider-catalog HTTP client, runtime contract validation, ES/NQ/GC root filtering, searchable verified-contract selection UI, cancellation, timeout, and retry lifecycle. No credit is assigned for chart wiring, backend deployment/configuration, or live provider delivery.
+- Latest increment: +0.25 percentage points (18.60% → 18.85%) for connecting the selected verified contract and selected timeframe to the existing validated OHLCV HTTP client, aborting stale requests, preventing cross-contract candle carryover, and displaying explicit backend/degraded/unavailable/error versus DEMO states. No credit is assigned for a configured backend deployment or live provider delivery.
 - Phase 2 foundation now includes market-data DTOs, transport documentation, Python/FastAPI scaffold, futures instrument catalog, and a pure Databento definition-record adapter. Provider retrieval, live ingestion, persistence, recovery, and chart integration remain unimplemented.
 
 ## Current foundation
@@ -70,7 +70,7 @@ Status: provider and initial instrument scope selected; transport contract, back
 
 - No live or historical provider connection, download, or subscription.
 - No provider adapter currently converts market events or provider OHLCV records into the normalized OHLCV pipeline; the new pipeline is an ingestion boundary, not a live feed.
-- No OHLCV WebSocket broadcast or selected-timeframe chart integration yet. A read-only instrument-catalog HTTP lifecycle and verified-contract selection UI now exist; the frontend requires `VITE_MARKET_DATA_API_BASE_URL` to reach a deployed backend.
+- No OHLCV WebSocket broadcast or continuous streaming update loop yet. The chart now requests a snapshot for the selected verified contract and timeframe, cancels stale requests, and uses validated bars only when present; otherwise it retains clearly labelled DEMO candles. The frontend requires `VITE_MARKET_DATA_API_BASE_URL` to reach a deployed backend.
 - No provider definition refresh scheduler or production population of the catalog.
 - Lifecycle operations are currently in-memory only; no provider event consumer or persistent catalog store is connected.
 - No market-data event broadcast, persistent storage, replay, or recovery.
@@ -216,3 +216,13 @@ Status: provider and initial instrument scope selected; transport contract, back
 - The chart deliberately remains on its clearly labelled DEMO fixture. Contract selection is metadata-only until a backend URL, verified OHLCV series, and chart data lifecycle are connected. No live market data is claimed.
 - Latest code commits: `eade18471527f9fb9e4cff5733c5de7127676398`, `f8b0c9295ad8937b02e14fa1419db25337e4ec69`, `9e601f68026dee400f3b90698335b0094f364e27`, `5616ca598251320c27f644e3f40f3a99c8bfad67`.
 - Final CI and deployment status must be confirmed on the latest documentation commit before this stage is called fully verified.
+
+
+### 2026-11-02 — Selected contract and timeframe chart data lifecycle
+- Connected the selected catalog contract and selected timeframe to the existing validated `fetchOhlcvSnapshot` client.
+- Every request carries dataset, publisher ID, instrument ID, raw symbol, and timeframe from the selected verified contract; the client continues to validate the full response before conversion.
+- Switching contract or timeframe aborts the previous request. The chart first resets to its explicitly labelled DEMO fixture, so bars from the previous contract cannot remain visible while a new request is pending.
+- Validated backend bars replace the demo fixture only when a non-empty exact-series result is available. Degraded feed results are labelled DEGRADED; unavailable and request errors leave the DEMO fixture visible with an explicit reason.
+- Added `src/utils/candlestickSeriesData.ts` and tests to convert adapter epoch-second values into Lightweight Charts UTC timestamps without a milliseconds conversion.
+- Added a non-secret `VITE_MARKET_DATA_API_BASE_URL` configuration path. The value is currently not configured in the deployed frontend, so production will honestly show the API configuration error and keep the DEMO chart until a backend URL is provided.
+- Latest integration commit: `56a265ebc68b72402a3907f0ed644ab8281547b1`. The final branch-head CI and Vercel deployment are being verified.
