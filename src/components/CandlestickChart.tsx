@@ -8,6 +8,7 @@ import type { Timeframe } from '../types';
 import type { FuturesContractDto } from '../types/instrumentCatalogApi';
 import { demoCandles, getDemoCandleValidationErrors } from '../data/demoCandles';
 import { fetchOhlcvSnapshot, OhlcvRequestError } from '../services/ohlcvClient';
+import { publishMarketDataSnapshot, resetMarketDataSnapshot } from '../services/marketDataStore';
 import { toCandlestickSeriesData } from '../utils/candlestickSeriesData';
 import { buildChartOptions } from '../utils/chartOptions';
 import { getMeasurableChartSize } from '../utils/chartViewport';
@@ -152,6 +153,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       setSeriesData(demoCandles);
       setMarketDataStatus('demo');
       setMarketDataDetail('Offline sample candles. No contract is selected.');
+      resetMarketDataSnapshot(null, 'demo', 'Offline sample candles are excluded from indicator calculations.');
       return () => controller.abort();
     }
 
@@ -167,6 +169,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
     setSeriesData(demoCandles);
     setMarketDataStatus('loading');
     setMarketDataDetail(`Requesting ${identity.rawSymbol} · ${timeframe} from the read-only backend.`);
+    resetMarketDataSnapshot({ ...identity, timeframe }, 'loading', 'Waiting for validated backend bars.');
 
     fetchOhlcvSnapshot({
       baseUrl: marketDataApiBaseUrl,
@@ -180,6 +183,12 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
         const candles = toCandlestickSeriesData(result.candles);
         if (candles.length > 0) {
           setSeriesData(candles);
+          publishMarketDataSnapshot({
+            identity: { ...identity, timeframe },
+            status: result.status,
+            bars: result.candles,
+            detail: result.detail ?? null,
+          });
           chartRef.current?.timeScale().fitContent();
           setMarketDataStatus(result.status);
           setMarketDataDetail(result.detail ?? `${candles.length} validated bars · ${timeframe}`);
@@ -188,6 +197,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       }
 
       setSeriesData(demoCandles);
+      resetMarketDataSnapshot({ ...identity, timeframe }, 'unavailable', result.detail ?? 'No validated bars are available.');
       setMarketDataStatus('unavailable');
       setMarketDataDetail(result.detail ?? 'No validated bars are available. Demo candles remain displayed.');
     }).catch((error: unknown) => {
@@ -195,8 +205,10 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
           (error instanceof OhlcvRequestError && error.code === 'cancelled')) return;
 
       setSeriesData(demoCandles);
+      const detail = error instanceof Error ? error.message : 'OHLCV request failed.';
+      resetMarketDataSnapshot({ ...identity, timeframe }, 'error', detail);
       setMarketDataStatus('error');
-      setMarketDataDetail(error instanceof Error ? error.message : 'OHLCV request failed.');
+      setMarketDataDetail(detail);
     });
 
     return () => controller.abort();
