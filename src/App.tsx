@@ -45,7 +45,12 @@ const App: React.FC = () => {
           className={`content-panel ${isChartActive ? 'is-active' : 'is-inactive'}`}
           aria-hidden={!isChartActive}
         >
-          <CandlestickChart timeframe={timeframe} showGrid={showGrid} />
+          <CandlestickChart
+            timeframe={timeframe}
+            showGrid={showGrid}
+            selectedContract={selectedContract}
+            marketDataApiBaseUrl={marketDataApiBaseUrl}
+          />
         </section>
 
         {activeItem === 'watchlist' && (
