@@ -36,3 +36,12 @@ __pycache__/
 .ruff_cache/
 .venv/
 venv/
+
+
+# Local persistent backend state (never commit runtime databases)
+data/
+backend/data/
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
