@@ -251,3 +251,40 @@ def test_mapping_resolution_rejects_timestamp_outside_sqlite_integer_range(regis
             provider="databento", dataset="EQUS.MINI", publisher_id=1,
             instrument_id=9001, timestamp_ns=9_223_372_036_854_775_808,
         )
+
+
+def test_atomic_registration_creates_identity_and_mapping_and_is_idempotent(registry):
+    instrument = stock()
+    provider_mapping = mapping()
+    assert registry.register_instrument_with_mapping(instrument, provider_mapping) == (True, True)
+    assert registry.register_instrument_with_mapping(instrument, provider_mapping) == (False, False)
+    assert registry.get_instrument(INSTRUMENT_ID) == instrument
+    assert registry.list_provider_mappings(INSTRUMENT_ID) == [provider_mapping]
+
+
+def test_atomic_registration_adds_mapping_to_existing_identity(registry):
+    instrument = stock()
+    registry.register_instrument(instrument)
+    assert registry.register_instrument_with_mapping(instrument, mapping()) == (False, True)
+
+
+def test_atomic_registration_rolls_back_new_identity_on_mapping_conflict(registry):
+    registry.register_instrument(stock())
+    registry.add_provider_mapping(mapping())
+
+    second = stock(canonical_id=SECOND_ID, symbol="AAPL2")
+    conflicting = mapping(
+        valid_from_ns=150, valid_to_ns=250,
+        canonical_id=SECOND_ID, raw_symbol="AAPL2",
+    )
+    with pytest.raises(InstrumentMappingConflict):
+        registry.register_instrument_with_mapping(second, conflicting)
+
+    assert registry.get_instrument(SECOND_ID) is None
+    assert registry.list_provider_mappings(INSTRUMENT_ID) == [mapping()]
+
+
+def test_atomic_registration_rejects_mismatched_canonical_ids(registry):
+    with pytest.raises(ValueError, match="must match"):
+        registry.register_instrument_with_mapping(stock(), mapping(canonical_id=SECOND_ID))
+    assert registry.get_instrument(INSTRUMENT_ID) is None
