@@ -6,28 +6,22 @@ import InstrumentCatalogPanel from './components/InstrumentCatalogPanel';
 import SettingsPanel from './components/SettingsPanel';
 import TimeframeSelector from './components/TimeframeSelector';
 import type { Timeframe } from './types';
+import {
+  readBooleanPreference,
+  writeBooleanPreference,
+  SHOW_GRID_STORAGE_KEY,
+} from './utils/preferences';
 import './App.css';
 
 const App: React.FC = () => {
   const [timeframe, setTimeframe] = useState<Timeframe>('1d');
   const [activeItem, setActiveItem] = useState<NavItem>('chart');
-  const [showGrid, setShowGrid] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
-
-    try {
-      const savedPreference = window.localStorage.getItem('dezzta-chart:show-grid');
-      return savedPreference === null ? true : savedPreference === 'true';
-    } catch {
-      return true;
-    }
-  });
+  const [showGrid, setShowGrid] = useState<boolean>(() =>
+    readBooleanPreference(() => window.localStorage, SHOW_GRID_STORAGE_KEY, true),
+  );
 
   useEffect(() => {
-    try {
-      window.localStorage.setItem('dezzta-chart:show-grid', String(showGrid));
-    } catch {
-      // Keep the setting usable for this session when storage is unavailable.
-    }
+    writeBooleanPreference(() => window.localStorage, SHOW_GRID_STORAGE_KEY, showGrid);
   }, [showGrid]);
 
   const isChartActive = activeItem === 'chart';
