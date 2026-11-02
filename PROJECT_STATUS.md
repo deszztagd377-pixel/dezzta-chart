@@ -7,10 +7,10 @@ Working branch: phase-2/market-data-foundation
 
 ## Overall progress
 
-- Estimated overall progress toward the intended full application: 18.85%.
+- Estimated overall progress toward the intended full application: 19.05%.
 - Progress is a weighted milestone estimate, not a code-line percentage or a claim of scientific measurement. Decimal precision is recorded to two places for consistent tracking.
-- Latest increment: +0.25 percentage points (18.60% → 18.85%) for connecting the selected verified contract and selected timeframe to the existing validated OHLCV HTTP client, aborting stale requests, preventing cross-contract candle carryover, and displaying explicit backend/degraded/unavailable/error versus DEMO states. No credit is assigned for a configured backend deployment or live provider delivery.
-- Phase 2 foundation now includes market-data DTOs, transport documentation, Python/FastAPI scaffold, futures instrument catalog, and a pure Databento definition-record adapter. Provider retrieval, live ingestion, persistence, recovery, and chart integration remain unimplemented.
+- Latest increment: +0.20 percentage points (18.85% → 19.05%) for adding a portable non-root backend container, documenting safe deployment and health-check/CORS settings, correcting stale provider-status documentation, and adding container-image build validation to CI. No credit is assigned for a deployed backend, configured provider credentials, live provider delivery, or persistent storage.
+- Phase 2 now includes a FastAPI backend, verified-definition catalog lifecycle, optional Databento SDK source adapters, bounded OHLCV ingestion/provider lifecycle, validated read-only snapshot endpoints, and selected-contract/timeframe frontend snapshot requests. No production provider session or backend deployment is configured; persistence, replay, continuous WebSocket OHLCV broadcast, and verified live delivery remain outstanding.
 
 ## Current foundation
 
@@ -25,7 +25,7 @@ Working branch: phase-2/market-data-foundation
 
 ## Verified limitations
 
-- No live market-data provider session is configured. The repository contains a provider-neutral FastAPI backend scaffold and read-only endpoints, but no provider is currently populating them.
+- No live market-data provider session is configured. Optional Databento source adapters and the provider lifecycle exist behind explicit server-side flags, but the current deployment has no provider credentials/session and no real provider delivery is claimed.
 - The timeframe selector updates React state, but the chart currently only changes the seconds-visible display option; it does not yet load or aggregate data for the selected timeframe.
 - Watchlist now displays an explicitly offline, read-only supported-product catalog fixture for ES/NQ/GC; no expiry-specific contracts are fabricated.
 - The existing sample candles are not real market data.
@@ -68,12 +68,12 @@ Status: provider and initial instrument scope selected; transport contract, back
 
 ### Not implemented
 
-- No live or historical provider connection, download, or subscription.
-- No provider adapter currently converts market events or provider OHLCV records into the normalized OHLCV pipeline; the new pipeline is an ingestion boundary, not a live feed.
-- No OHLCV WebSocket broadcast or continuous streaming update loop yet. The chart now requests a snapshot for the selected verified contract and timeframe, cancels stale requests, and uses validated bars only when present; otherwise it retains clearly labelled DEMO candles. The frontend requires `VITE_MARKET_DATA_API_BASE_URL` to reach a deployed backend.
+- No production live or historical provider session, provider download, or subscription is configured or verified.
+- Databento SDK source adapters and the normalized bounded OHLCV ingestion path are implemented, but provider access is disabled by default and no real account/session has been validated. Do not enable provider flags without a separate review of entitlement, exchange licensing, explicit symbols, historical query costs, and operational limits.
+- No OHLCV WebSocket broadcast or continuous frontend streaming update loop yet. The chart requests a read-only snapshot for the selected verified contract and timeframe, cancels stale requests, and uses validated bars only when present; otherwise it retains clearly labelled DEMO candles. The frontend requires `VITE_MARKET_DATA_API_BASE_URL` to reach a deployed backend.
 - No provider definition refresh scheduler or production population of the catalog.
-- Lifecycle operations are currently in-memory only; no provider event consumer or persistent catalog store is connected.
-- No market-data event broadcast, persistent storage, replay, or recovery.
+- Catalog, OHLCV pipeline, and coverage state are currently in-memory only; a restart clears them. Durable storage, replay, snapshot recovery, and gap recovery are not implemented.
+- The authenticated WebSocket sends status only; it does not broadcast OHLCV or order-book events.
 - No brokerage or order-execution integration.
 - No Footprint, Heatmap, or Liquidation Maps implementation; these three Exclusive Indicators are reserved for one coordinated Claude-assisted workflow after the project owner supplies visual references for each.
 - Mid Tier is planned to contain approximately 10 intermediate/advanced indicators, not just Volume Profile. Volume Profile is one confirmed member; the remaining list will be proposed for owner approval before implementation. Candidate examples for discussion: VWAP, ATR, ADX/DMI, Stochastic, CCI, OBV, MFI, Ichimoku Cloud, Supertrend, and Keltner Channels. These are product categorization candidates, not implementation commitments.
@@ -226,3 +226,13 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Added `src/utils/candlestickSeriesData.ts` and tests to convert adapter epoch-second values into Lightweight Charts UTC timestamps without a milliseconds conversion.
 - Added a non-secret `VITE_MARKET_DATA_API_BASE_URL` configuration path. The value is currently not configured in the deployed frontend, so production will honestly show the API configuration error and keep the DEMO chart until a backend URL is provided.
 - Latest integration commit: `56a265ebc68b72402a3907f0ed644ab8281547b1`. The final branch-head CI and Vercel deployment are being verified.
+
+
+### 2026-11-02 — Portable backend deployment foundation
+- Added `backend/Dockerfile`: Python 3.12 slim image, runtime dependencies installed from the backend manifest, non-root runtime user, platform `PORT` support, and `/health` container health check.
+- Added `docs/BACKEND_DEPLOYMENT.md` with reproducible build/run/smoke-test commands, exact-origin CORS guidance, Vercel API-base configuration, and secret-handling boundaries.
+- Updated backend documentation to accurately distinguish implemented optional Databento source/provider lifecycle code from an actually configured or verified production provider session. Corrected stale claims that provider adapters did not exist.
+- Extended GitHub Actions to build the backend container image after frontend tests/build and backend tests. This validates image construction, not a hosted deployment or external provider connectivity.
+- Provider switches remain off by default; no API key, WebSocket token, or other secret was added to the repository.
+- Hosting provider intentionally not selected: cost, region, availability/sleep behavior, and account controls must be reviewed before deployment.
+- Overall estimated progress: 19.05% (+0.20 percentage points for a reproducible, CI-built backend container foundation; no credit for actual deployment).
