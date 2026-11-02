@@ -283,6 +283,115 @@ class SQLiteInstrumentRegistry:
         finally:
             connection.close()
 
+    def register_instrument_with_mapping(
+        self,
+        instrument: CanonicalInstrument,
+        mapping: ProviderInstrumentMapping,
+    ) -> tuple[bool, bool]:
+        """Atomically register an immutable identity and its first provider mapping.
+
+        Returns (instrument_created, mapping_created). Exact retries are
+        idempotent. If mapping validation or insertion fails, a newly inserted
+        canonical identity is rolled back in the same SQLite transaction.
+        """
+        if not isinstance(instrument, CanonicalInstrument):
+            raise TypeError("instrument must be a CanonicalInstrument.")
+        normalized = _normalize_mapping(mapping)
+        if normalized.canonical_id != instrument.canonical_id:
+            raise ValueError("mapping canonical_id must match the supplied instrument.")
+
+        payload = json.dumps(
+            instrument.to_dict(), sort_keys=True, separators=(",", ":"), ensure_ascii=True
+        )
+        connection = self._connect()
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            existing_instrument = connection.execute(
+                "SELECT payload_json FROM canonical_instruments WHERE canonical_id = ?",
+                (instrument.canonical_id,),
+            ).fetchone()
+            instrument_created = existing_instrument is None
+
+            if existing_instrument is not None:
+                if existing_instrument["payload_json"] != payload:
+                    raise InstrumentRegistryConflict(
+                        "Canonical ID already exists with different immutable metadata."
+                    )
+            else:
+                connection.execute(
+                    """
+                    INSERT INTO canonical_instruments (
+                        canonical_id, asset_class, instrument_type, symbol, venue,
+                        is_active, payload_json
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        instrument.canonical_id,
+                        instrument.asset_class,
+                        instrument.instrument_type,
+                        instrument.symbol,
+                        instrument.venue,
+                        int(instrument.is_active),
+                        payload,
+                    ),
+                )
+
+            mapping_values = (
+                normalized.provider, normalized.dataset, normalized.publisher_id,
+                normalized.instrument_id, normalized.valid_from_ns,
+                normalized.valid_to_ns, normalized.canonical_id,
+                normalized.raw_symbol, normalized.series_type,
+            )
+            exact = connection.execute(
+                """
+                SELECT 1 FROM provider_instrument_mappings
+                WHERE provider = ? AND dataset = ? AND publisher_id = ?
+                  AND instrument_id = ? AND valid_from_ns = ?
+                  AND valid_to_ns IS ? AND canonical_id = ?
+                  AND raw_symbol = ? AND series_type = ?
+                """,
+                mapping_values,
+            ).fetchone()
+            if exact is not None:
+                connection.commit()
+                return instrument_created, False
+
+            try:
+                connection.execute(
+                    """
+                    INSERT INTO provider_instrument_mappings (
+                        provider, dataset, publisher_id, instrument_id, raw_symbol,
+                        valid_from_ns, valid_to_ns, canonical_id, series_type
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        normalized.provider, normalized.dataset, normalized.publisher_id,
+                        normalized.instrument_id, normalized.raw_symbol,
+                        normalized.valid_from_ns, normalized.valid_to_ns,
+                        normalized.canonical_id, normalized.series_type,
+                    ),
+                )
+            except sqlite3.IntegrityError as exc:
+                message = str(exc)
+                if "FOREIGN KEY" in message:
+                    raise UnknownCanonicalInstrument(
+                        "Provider mapping references an unregistered canonical instrument."
+                    ) from exc
+                if "overlapping_provider_mapping" in message or "UNIQUE constraint" in message:
+                    raise InstrumentMappingConflict(
+                        "Provider instrument mapping overlaps an existing validity window."
+                    ) from exc
+                raise
+
+            connection.commit()
+            return instrument_created, True
+        except Exception:
+            if connection.in_transaction:
+                connection.rollback()
+            raise
+        finally:
+            connection.close()
+
     @staticmethod
     def _instrument_from_row(row: sqlite3.Row | None) -> CanonicalInstrument | None:
         if row is None:
