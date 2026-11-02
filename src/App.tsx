@@ -6,6 +6,7 @@ import InstrumentCatalogPanel from './components/InstrumentCatalogPanel';
 import SettingsPanel from './components/SettingsPanel';
 import TimeframeSelector from './components/TimeframeSelector';
 import type { Timeframe } from './types';
+import type { FuturesContractDto } from './types/instrumentCatalogApi';
 import {
   readBooleanPreference,
   writeBooleanPreference,
@@ -19,6 +20,8 @@ const App: React.FC = () => {
   const [showGrid, setShowGrid] = useState<boolean>(() =>
     readBooleanPreference(() => window.localStorage, SHOW_GRID_STORAGE_KEY, true),
   );
+  const [selectedContract, setSelectedContract] = useState<FuturesContractDto | null>(null);
+  const marketDataApiBaseUrl = import.meta.env.VITE_MARKET_DATA_API_BASE_URL ?? '';
 
   useEffect(() => {
     writeBooleanPreference(() => window.localStorage, SHOW_GRID_STORAGE_KEY, showGrid);
@@ -47,7 +50,12 @@ const App: React.FC = () => {
 
         {activeItem === 'watchlist' && (
           <section className="content-panel is-active">
-            <InstrumentCatalogPanel />
+            <InstrumentCatalogPanel
+              apiBaseUrl={marketDataApiBaseUrl}
+              selectedContract={selectedContract}
+              onSelectContract={setSelectedContract}
+              onClearSelection={() => setSelectedContract(null)}
+            />
           </section>
         )}
 

@@ -3,97 +3,48 @@
   height: 100%;
   min-height: 0;
   margin: 0 auto;
-  padding: 20px 16px 28px;
+  padding: 18px 14px calc(28px + env(safe-area-inset-bottom));
   color: #e5e7eb;
   overflow-y: auto;
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
 }
-.instrument-catalog__heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-.instrument-catalog__eyebrow {
-  color: #8b98a9;
-  font-size: 10px;
-  letter-spacing: 1.3px;
-  font-weight: 700;
-  margin-bottom: 5px;
-}
-.instrument-catalog h2 {
-  font-size: 20px;
-  line-height: 1.25;
-  font-weight: 650;
-}
-.instrument-catalog__status {
-  flex: 0 0 auto;
-  border: 1px solid #66502b;
-  border-radius: 999px;
-  color: #e7bd73;
-  padding: 5px 8px;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: .5px;
-}
-.instrument-catalog__note,
-.instrument-catalog__footnote {
-  color: #9ca3af;
-  font-size: 12px;
-  line-height: 1.55;
-}
-.instrument-catalog__list {
-  display: grid;
-  gap: 9px;
-  margin: 16px 0;
-}
-.instrument-catalog__item {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  min-width: 0;
-  padding: 12px;
-  border: 1px solid #29313d;
-  border-radius: 10px;
-  background: #111821;
-}
-.instrument-catalog__symbol {
-  display: grid;
-  place-items: center;
-  flex: 0 0 42px;
-  height: 42px;
-  border-radius: 8px;
-  background: #1d2a36;
-  color: #8bdcf0;
-  font-size: 13px;
-  font-weight: 800;
-}
-.instrument-catalog__details {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-.instrument-catalog__details strong {
-  color: #e5e7eb;
-  font-size: 12px;
-  font-weight: 650;
-}
-.instrument-catalog__details span {
-  color: #8b98a9;
-  font-size: 10px;
-  line-height: 1.4;
-}
-.instrument-catalog__count {
-  flex: 0 0 auto;
-  color: #9ca3af;
-  font-size: 10px;
-  white-space: nowrap;
-}
-.instrument-catalog__footnote {
-  border-left: 2px solid #475569;
-  padding-left: 10px;
-}
+.instrument-catalog__heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+.instrument-catalog__eyebrow { color:#8b98a9; font-size:10px; letter-spacing:1.3px; font-weight:700; margin-bottom:5px; }
+.instrument-catalog h2 { font-size:20px; line-height:1.25; font-weight:650; }
+.instrument-catalog__status { flex:0 0 auto; border:1px solid #394454; border-radius:999px; color:#b8c5d5; padding:5px 8px; font-size:9px; font-weight:700; letter-spacing:.5px; }
+.instrument-catalog__status--ready { border-color:#245c4c; color:#7ee0b8; }
+.instrument-catalog__status--empty { border-color:#66502b; color:#e7bd73; }
+.instrument-catalog__status--error { border-color:#713d45; color:#f4a3a8; }
+.instrument-catalog__root-tabs { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:16px 0 12px; }
+.instrument-catalog__root-tabs button { min-height:42px; border:1px solid #293544; border-radius:9px; background:#111821; color:#9caec0; font-size:13px; font-weight:750; }
+.instrument-catalog__root-tabs button.is-active { border-color:#2d8294; background:linear-gradient(135deg,#163341,#172637); color:#9be7f4; box-shadow:inset 0 0 0 1px #24576a; }
+.instrument-catalog__product-line { display:flex; justify-content:space-between; align-items:center; gap:8px; margin:12px 1px; }
+.instrument-catalog__product-line strong { color:#dbe5ef; font-size:12px; }
+.instrument-catalog__product-line span { color:#8291a2; font-size:10px; white-space:nowrap; }
+.instrument-catalog__search { display:grid; gap:7px; margin:14px 0; }
+.instrument-catalog__search span { color:#8291a2; font-size:10px; }
+.instrument-catalog__search input { width:100%; min-height:42px; border:1px solid #293544; border-radius:9px; outline:none; padding:0 12px; background:#0d141d; color:#e5edf5; font:inherit; font-size:13px; }
+.instrument-catalog__search input:focus { border-color:#3d91a5; box-shadow:0 0 0 2px #1c5260; }
+.instrument-catalog__search input:disabled { opacity:.55; }
+.instrument-catalog__list { display:grid; gap:9px; margin:14px 0; }
+.instrument-catalog__item { display:flex; width:100%; align-items:center; gap:10px; min-width:0; padding:11px; text-align:left; border:1px solid #29313d; border-radius:10px; background:#111821; color:inherit; }
+.instrument-catalog__item.is-selected { border-color:#2c8292; background:linear-gradient(110deg,#142b35,#111b25); }
+.instrument-catalog__symbol { display:grid; place-items:center; flex:0 0 40px; height:40px; border-radius:8px; background:#1d2a36; color:#8bdcf0; font-size:13px; font-weight:800; }
+.instrument-catalog__details { display:flex; flex:1; flex-direction:column; gap:4px; min-width:0; }
+.instrument-catalog__details strong { color:#e5e7eb; font-size:13px; font-weight:700; }
+.instrument-catalog__details span { color:#8b98a9; font-size:10px; line-height:1.4; overflow-wrap:anywhere; }
+.instrument-catalog__choose { flex:0 0 auto; color:#8bdcf0; font-size:9px; font-weight:800; letter-spacing:.3px; }
+.instrument-catalog__selection { display:flex; justify-content:space-between; align-items:center; gap:10px; margin:12px 0; padding:11px; border:1px solid #275e52; border-radius:10px; background:#10241f; }
+.instrument-catalog__selection div { display:grid; gap:4px; }
+.instrument-catalog__selection-label { color:#7ac7aa; font-size:9px; font-weight:800; letter-spacing:.8px; }
+.instrument-catalog__selection strong { color:#e1fff3; font-size:13px; }
+.instrument-catalog__selection small { color:#9db8ae; font-size:10px; }
+.instrument-catalog__selection button, .instrument-catalog__message button { border:1px solid #45635b; border-radius:7px; padding:7px 10px; background:#172d27; color:#b8e6d4; font-size:11px; font-weight:700; }
+.instrument-catalog__message { display:grid; justify-items:start; gap:8px; margin:14px 0; padding:16px 13px; border:1px solid #293544; border-radius:10px; background:#101720; color:#9eacbc; font-size:12px; line-height:1.5; }
+.instrument-catalog__message strong { color:#dce5ee; font-size:13px; }
+.instrument-catalog__message--error { border-color:#623941; background:#21161a; color:#e7b6ba; }
+.instrument-catalog__message--error strong { color:#ffc3c7; }
+.instrument-catalog__spinner { width:17px; height:17px; border:2px solid #334453; border-top-color:#75cfe0; border-radius:50%; animation:catalog-spin .8s linear infinite; }
+@keyframes catalog-spin { to { transform:rotate(360deg); } }
+.instrument-catalog__footnote { margin-top:20px; border-left:2px solid #475569; padding-left:10px; color:#8997a8; font-size:10px; line-height:1.6; }
