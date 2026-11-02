@@ -1,7 +1,7 @@
 """Environment-backed settings for the DEZZTA CHART backend.
 
 All provider credentials come exclusively from backend environment variables.
-``Settings.__repr__`` never includes the Databento key.
+Settings.__repr__ never includes the Databento key.
 """
 
 from dataclasses import dataclass, field
@@ -45,6 +45,7 @@ class Settings:
     allowed_roots: tuple[str, ...] = ("ES", "NQ", "GC")
     ohlcv_queue_max: int = 10_000
     ohlcv_max_response_bars: int = 5_000
+    instrument_registry_db_path: str = "./data/instrument_registry.sqlite3"
 
     @property
     def provider_configured(self) -> bool:
@@ -52,6 +53,12 @@ class Settings:
 
     @classmethod
     def from_environment(cls) -> "Settings":
+        registry_path = os.getenv(
+            "INSTRUMENT_REGISTRY_DB_PATH", "./data/instrument_registry.sqlite3"
+        ).strip()
+        if not registry_path or registry_path == ":memory:":
+            registry_path = "./data/instrument_registry.sqlite3"
+
         return cls(
             app_env=os.getenv("APP_ENV", "development").strip() or "development",
             market_data_ws_token=os.getenv("MARKET_DATA_WS_TOKEN", "").strip(),
@@ -81,4 +88,5 @@ class Settings:
             ohlcv_max_response_bars=_parse_int(
                 os.getenv("OHLCV_MAX_RESPONSE_BARS", "5000"), 5_000
             ),
+            instrument_registry_db_path=registry_path,
         )
