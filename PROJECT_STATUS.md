@@ -251,3 +251,13 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Overall estimated progress: 19.40% (+0.35 percentage points for tested shared data architecture and reusable indicator calculations; no credit for visible indicator features or live streaming).
 
 - Latest audited shared-indicator branch head: `aaed0226b8f55d7526c31b461238b357d05276a0`. Branch comparison: 139 commits ahead of `main`, 0 behind; `main` remains untouched.
+
+### 2026-11-02 — OHLCV stream protocol foundation (not yet connected)
+- Added `src/services/ohlcvStreamProtocol.ts` with a versioned provider-neutral OHLCV update envelope, runtime validation, exact series-to-bar identity checks, and a per-stream sequence guard.
+- Stream delivery sequence is deliberately separate from the nested local OHLCV bar revision sequence; the two counters have different scopes and cannot be substituted.
+- Sequence decisions explicitly distinguish accepted-next, duplicate, stale/out-of-order, gap, wrong stream, and wrong series. A gap does not advance the watermark; only a verified snapshot watermark may reset it.
+- Reuses the existing strict OHLCV snapshot validator so streamed bars inherit decimal-string, nanosecond, timeframe, OHLCV-boundary, and identity checks.
+- Added focused tests for envelope/version validation, invalid identity and OHLCV payloads, duplicate/stale/gap handling, snapshot watermark reset, and stream/series isolation.
+- Added `docs/OHLCV_STREAM_PROTOCOL.md` with the event shape, sequence semantics, atomic snapshot/watermark handshake requirements, bounded-queue policy, and recovery milestones.
+- This is protocol and frontend validation groundwork only. No WebSocket OHLCV broadcast, frontend socket client, atomic snapshot watermark, reconnect loop, or stream-to-store publication is implemented yet. The existing backend WebSocket remains status-only.
+- Overall progress remains 19.40% until the new tests/build and branch-head CI are independently verified; no credit is assigned for a live stream or user-visible indicator feature.
