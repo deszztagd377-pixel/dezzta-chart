@@ -278,7 +278,7 @@ Status: provider and initial instrument scope selected; transport contract, back
 
 
 ### 2026-11-02 — Backend OHLCV WebSocket broadcast and snapshot handoff audit
-- Verified the active working branch is `phase-2/market-data-foundation`; comparison reports 169 commits ahead of `main` and 0 behind. `main` was not modified.
+- Verified the active working branch is `phase-2/market-data-foundation`; comparison reports 172 commits ahead of `main` and 0 behind. `main` was not modified.
 - Verified backend route `/ws/market-data` authenticates, accepts a version 1 exact-series subscription, sends a validated OHLCV snapshot with a stream ID and watermark, and then sends ordered updates.
 - Verified `OhlcvStreamHub` uses bounded per-subscriber queues and forces a reconnect/resnapshot after overflow rather than silently skipping updates. Accepted base and derived timeframe revisions are wired into the hub.
 - Verified frontend protocol parsing and sequence-guard groundwork exists, but no frontend WebSocket client is connected to the chart or shared store.
@@ -286,3 +286,13 @@ Status: provider and initial instrument scope selected; transport contract, back
 - CI status: not verified on the current branch head. The available commit-workflow lookup returned no push-triggered run; no test pass is claimed from this audit.
 - Backend deployment and provider delivery remain unverified. Databento credentials/session are not configured; no real market feed is claimed.
 - Overall progress remains 19.40%; no credit is assigned for frontend streaming, live provider delivery, deployment, or visible indicator UI.
+
+
+### 2026-11-02 — Frontend streaming and authentication security gate review
+- Re-audited the active branch's backend WebSocket route, frontend protocol parser/sequence guard, shared market-data store, HTTP snapshot client, and CI workflow definition.
+- Confirmed the frontend has no WebSocket transport client; only protocol parsing and sequence-guard groundwork exists. No live stream integration or tests are claimed.
+- Identified an additional production security requirement: the current WebSocket route validates series syntax and configured dataset, but does not authorize the authenticated principal for the requested publisher/instrument/raw-symbol/timeframe tuple. A shared static token is not a user identity or a series entitlement.
+- Updated `docs/WEBSOCKET_AUTH_DESIGN.md` to record this authorization gap and require per-subscription entitlement checks backed by verified instrument definitions.
+- The existing CI workflow is configured for pushes to this branch, but this audit did not obtain a verified latest-head run result. CI and tests remain unverified.
+- Branch comparison after the documentation commits: 172 commits ahead of `main`, 0 behind. `main` remains untouched.
+- No overall progress increase: frontend WebSocket transport, secure session/token issuance, per-series authorization, deployment, and live feed are still incomplete.
