@@ -71,6 +71,22 @@ describe('parseInstrumentCatalog', () => {
     expect(() => parseInstrumentCatalog(catalog({ state: 'definitions_unavailable' }))).toThrow(/state/);
   });
 
+  it('accepts an empty root-filtered result when the global catalog is ready', () => {
+    const result = parseInstrumentCatalog(catalog({
+      state: 'ready',
+      contract_count: 0,
+      contracts: [],
+    }));
+    expect(result.state).toBe('ready');
+    expect(result.contracts).toEqual([]);
+  });
+
+  it('rejects impossible calendar dates', () => {
+    expect(() => parseInstrumentCatalog(catalog({
+      contracts: [{ ...contract, expiration: '2026-02-31' }],
+    }))).toThrow(/metadata/);
+  });
+
   it('rejects symbols that do not match their declared product root', () => {
     expect(() => parseInstrumentCatalog(catalog({
       contracts: [{ ...contract, raw_symbol: 'NQZ6' }],
