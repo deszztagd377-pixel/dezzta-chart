@@ -280,11 +280,8 @@ def create_app(
                 "instruments": list(config.allowed_roots),
                 "quality": {
                     "state": provider.state,
-                    "bookSynchronized": False,
-                    "detectedGapCount": 0,
-                    "lastSequence": None,
-                    "lastEventTsNs": ingestion.last_event_ns,
-                    "lastReceiveTsNs": ingestion.last_receive_ns,
+                    "lastEventTsNs": None if ingestion.last_event_ns is None else str(ingestion.last_event_ns),
+                    "lastReceiveTsNs": None if ingestion.last_receive_ns is None else str(ingestion.last_receive_ns),
                     "detail": "Authenticated OHLCV subscription is available; no order-book stream is provided.",
                 },
             }
