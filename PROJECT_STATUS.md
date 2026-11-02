@@ -236,7 +236,7 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Extended GitHub Actions to build the backend container image after frontend tests/build and backend tests. This validates image construction, not a hosted deployment or external provider connectivity.
 - Provider switches remain off by default; no API key, WebSocket token, or other secret was added to the repository.
 - Hosting provider intentionally not selected: cost, region, availability/sleep behavior, and account controls must be reviewed before deployment.
-- Vercel reports success for the latest branch-head deployment. The GitHub Actions workflow now includes a Docker image build; its latest run result is not exposed by the available run-status response and is not claimed as passed here.
+- The latest Vercel status for the shared-indicator commit is failure with the platform message `upgradeToPro=build-rate-limit`; this is a hosting/build-rate limit, not evidence of a source compilation error. The latest GitHub Actions run result is not exposed by the available run-status response and is not claimed as passed here.
 - Overall estimated progress: 19.05% (+0.20 percentage points for a reproducible backend container foundation and CI build step; no credit for actual backend deployment).
 
 
@@ -249,3 +249,5 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Added `docs/INDICATOR_DATA_ARCHITECTURE.md` defining the single-source-of-truth flow and future streaming integration contract.
 - Important limitation: the current frontend still requests HTTP snapshots. Continuous live streaming, visible indicator UI, provider connectivity, and real-time Android validation are not implemented or claimed. The store is the shared integration point for future validated stream updates.
 - Overall estimated progress: 19.40% (+0.35 percentage points for tested shared data architecture and reusable indicator calculations; no credit for visible indicator features or live streaming).
+
+- Latest audited shared-indicator branch head: `aaed0226b8f55d7526c31b461238b357d05276a0`. Branch comparison: 139 commits ahead of `main`, 0 behind; `main` remains untouched.
