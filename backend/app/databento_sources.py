@@ -3,7 +3,7 @@
 *** UNVERIFIED ***  This repository has never executed these wrappers against
 the real SDK (no network/credentials in CI or in the authoring sandbox). The
 calls below follow the SDK's documented client names (``databento.Live`` with
-subscribe/add_callback/start/stop/block_until_stopped and
+subscribe/add_callback/start/stop/block_for_close and
 ``databento.Historical().timeseries.get_range``) but argument types, exact
 signatures and behaviour for the pinned SDK version are UNKNOWN until verified
 by running them. The SDK is imported lazily so the backend (and CI) never need
