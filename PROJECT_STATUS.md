@@ -7,8 +7,9 @@ Working branch: phase-2/market-data-foundation
 
 ## Overall progress
 
-- Estimated overall progress toward the intended full application: 18%.
-- This is a planning estimate based on completed product capabilities, not a measured code-line percentage.
+- Estimated overall progress toward the intended full application: 18.20%.
+- Progress is a weighted milestone estimate, not a code-line percentage or a claim of scientific measurement. Decimal precision is recorded to two places for consistent tracking.
+- Latest increment from the 18.00% baseline: +0.20 percentage points for the tested frontend OHLCV snapshot validator and series-specific chart adapter. No credit is assigned yet for live API fetching, instrument selection UI, chart integration, or a real provider feed.
 - Phase 2 foundation now includes market-data DTOs, transport documentation, Python/FastAPI scaffold, futures instrument catalog, and a pure Databento definition-record adapter. Provider retrieval, live ingestion, persistence, recovery, and chart integration remain unimplemented.
 
 ## Current foundation
@@ -61,6 +62,7 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Pure `databento_definitions.py` adapter that maps DBN-like definition objects into validated plain mappings without networking or credentials.
 - Provider-neutral in-memory OHLCV pipeline with nanosecond timestamps, exact Decimal OHLCV values, timeframe bucket validation, atomic snapshot replacement, duplicate-snapshot replacement, and stale revision protection.
 - Versioned frontend OHLCV transport DTO preserving timestamp and decimal precision as strings.
+- Frontend OHLCV snapshot runtime validator and chart-boundary adapter: validates the versioned envelope, decimal-string values, nanosecond timestamps, OHLCV invariants, and chronological order per instrument series; converts to chart numbers only at the rendering boundary and requires an exact series identity.
 - Read-only `GET /v1/ohlcv` snapshot endpoint; returns an explicit unavailable state while no provider adapter has populated the pipeline.
 - Unit tests for catalog normalization, fixed-point values, nanosecond expirations, adapter field mapping, byte-symbol decoding, required-field checks, ordering, update/delete lifecycle, and stale-event rejection.
 
@@ -68,7 +70,7 @@ Status: provider and initial instrument scope selected; transport contract, back
 
 - No live or historical provider connection, download, or subscription.
 - No provider adapter currently converts market events or provider OHLCV records into the normalized OHLCV pipeline; the new pipeline is an ingestion boundary, not a live feed.
-- No OHLCV WebSocket broadcast, chart-rendering adapter, or selected-timeframe chart integration yet.
+- No OHLCV WebSocket broadcast, HTTP fetch lifecycle, instrument-selection UI, or selected-timeframe chart integration yet. The pure frontend DTO validator/adapter exists but is not wired to the chart.
 - No provider definition refresh scheduler or production population of the catalog.
 - Lifecycle operations are currently in-memory only; no provider event consumer or persistent catalog store is connected.
 - No market-data event broadcast, persistent storage, replay, or recovery.
@@ -102,6 +104,17 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Never fabricate provider data, contract expiry, or feed status.
 
 ## Change log
+
+### 2026-11-02 — Frontend OHLCV contract adapter
+- Added runtime validation for the versioned OHLCV snapshot envelope and every bar; validates decimal strings, nanosecond timestamps, OHLCV boundaries, safe identifiers/sequences, and feed-state values.
+- Chronology is validated per series identity (dataset, publisher, instrument, raw symbol, timeframe), because distinct series may legitimately share a bucket timestamp.
+- Added an exact-identity chart adapter. Decimal and nanosecond strings are converted to JavaScript numbers only at the chart boundary; bars from other instruments/timeframes are excluded.
+- Added regression tests for valid precision-preserving payloads, malformed values, invalid OHLC boundaries, negative volume, duplicate same-series timestamps, mixed-series timestamps, exact identity filtering, and unavailable snapshots.
+- GitHub Actions run #96 passed frontend tests, production build, and backend tests.
+- This is a tested adapter only: no HTTP request lifecycle, instrument picker, live provider connection, or chart data replacement has been enabled.
+- Working branch head for this implementation: `5f8ee7ab78537105d5d51d7c700e41f3ebfcc8a4`.
+- Overall estimated progress: 18.20% (+0.20 percentage points from the documented 18.00% baseline).
+
 
 ### 2026-11-02 — Chart interaction and viewport regression coverage
 - Extracted chart interaction options into `src/utils/chartOptions.ts`; added tests for drag scrolling, pinch/wheel scaling, grid visibility, and second-display configuration.
