@@ -7,9 +7,9 @@ Working branch: phase-2/market-data-foundation
 
 ## Overall progress
 
-- Estimated overall progress toward the intended full application: 19.05%.
+- Estimated overall progress toward the intended full application: 19.40%.
 - Progress is a weighted milestone estimate, not a code-line percentage or a claim of scientific measurement. Decimal precision is recorded to two places for consistent tracking.
-- Latest increment: +0.20 percentage points (18.85% → 19.05%) for adding a portable non-root backend container, documenting safe deployment and health-check/CORS settings, correcting stale provider-status documentation, and adding container-image build validation to CI. No credit is assigned for a deployed backend, configured provider credentials, live provider delivery, or persistent storage.
+- Latest increment: +0.35 percentage points (19.05% → 19.40%) for introducing one immutable, exact-series shared OHLCV store, chart publication/clearing lifecycle, React subscription hooks, a reusable SMA/EMA/RSI/MACD/Bollinger calculation engine, regression tests, and architecture documentation. No credit is assigned for visible indicator UI, continuous streaming, live provider delivery, or deployment.
 - Phase 2 now includes a FastAPI backend, verified-definition catalog lifecycle, optional Databento SDK source adapters, bounded OHLCV ingestion/provider lifecycle, validated read-only snapshot endpoints, and selected-contract/timeframe frontend snapshot requests. No production provider session or backend deployment is configured; persistence, replay, continuous WebSocket OHLCV broadcast, and verified live delivery remain outstanding.
 
 ## Current foundation
@@ -70,7 +70,7 @@ Status: provider and initial instrument scope selected; transport contract, back
 
 - No production live or historical provider session, provider download, or subscription is configured or verified.
 - Databento SDK source adapters and the normalized bounded OHLCV ingestion path are implemented, but provider access is disabled by default and no real account/session has been validated. Do not enable provider flags without a separate review of entitlement, exchange licensing, explicit symbols, historical query costs, and operational limits.
-- No OHLCV WebSocket broadcast or continuous frontend streaming update loop yet. The chart requests a read-only snapshot for the selected verified contract and timeframe, cancels stale requests, and uses validated bars only when present; otherwise it retains clearly labelled DEMO candles. The frontend requires `VITE_MARKET_DATA_API_BASE_URL` to reach a deployed backend.
+- No OHLCV WebSocket broadcast or continuous frontend streaming update loop yet. The chart requests read-only snapshots and publishes validated backend bars into the shared store. The future indicator hook reads only that store; no visible indicator controls/panes have been built yet. The frontend requires `VITE_MARKET_DATA_API_BASE_URL` to reach a deployed backend.
 - No provider definition refresh scheduler or production population of the catalog.
 - Catalog, OHLCV pipeline, and coverage state are currently in-memory only; a restart clears them. Durable storage, replay, snapshot recovery, and gap recovery are not implemented.
 - The authenticated WebSocket sends status only; it does not broadcast OHLCV or order-book events.
@@ -85,12 +85,13 @@ Status: provider and initial instrument scope selected; transport contract, back
 
 ## Planned engineering sequence
 
-1. Keep this stage provider-neutral and validate the adapter against documented record fields and fixtures.
-2. Review the frontend contract and add a read-only instrument metadata display using fixture data.
-3. Add the planned Low Tier / Mid Tier / Exclusive indicator navigation and separate Tools entry point when the chart UI phase begins.
-4. Implement Volume Profile Mid Tier and the compact movable-range Volume Profile Tool after the project owner supplies visual references.
-5. Reserve Footprint, Heatmap, and Liquidation Maps for one Claude-assisted Exclusive Indicators phase after their visual references are supplied.
-6. Continue backend quality, observability, and local test coverage.
+1. Deploy and smoke-test the backend with provider features disabled; connect the frontend to the verified API origin.
+2. Define and test a versioned OHLCV streaming event contract, then implement backend broadcast, frontend reconnect, sequence/gap recovery, and snapshot resynchronization.
+3. Route every accepted live update through the shared market-data store so chart and indicators consume one series.
+4. Build visible indicator controls and overlays/panes on top of `useMarketIndicators`, with timeframe compatibility and performance tests.
+5. Add the planned Low Tier / Mid Tier / Exclusive navigation and separate Tools entry point.
+6. Implement Volume Profile and the compact movable-range Volume Profile Tool after the owner supplies visual references.
+7. Reserve Footprint, Heatmap, and Liquidation Maps for the coordinated Claude-assisted workflow after their visual references are supplied.
 
 ## Non-negotiable product constraints
 
@@ -237,3 +238,14 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Hosting provider intentionally not selected: cost, region, availability/sleep behavior, and account controls must be reviewed before deployment.
 - Vercel reports success for the latest branch-head deployment. The GitHub Actions workflow now includes a Docker image build; its latest run result is not exposed by the available run-status response and is not claimed as passed here.
 - Overall estimated progress: 19.05% (+0.20 percentage points for a reproducible backend container foundation and CI build step; no credit for actual backend deployment).
+
+
+### 2026-11-02 — Shared chart and indicator data foundation
+- Added `src/services/marketDataStore.ts` as the single in-memory source of truth for exact-series OHLCV bars, identity, status, detail, and monotonically increasing revision. Snapshots and bar objects are immutable; invalid identities, chronology, OHLCV boundaries, and non-ready bar publication are rejected.
+- Connected `CandlestickChart` to publish only validated non-empty backend bars. Contract/timeframe switches synchronously clear old indicator input; DEMO candles remain chart-only and are never exposed to indicator calculations.
+- Added `useMarketDataSnapshot()` for React consumers and `useMarketIndicators()` so indicator calculations are derived only from the same backend series selected by the chart.
+- Added a reusable calculation foundation for SMA, EMA, Wilder RSI, MACD, and Bollinger Bands. Outputs align to source bars and retain null warm-up values; input validation is applied even when the available history is shorter than the warm-up period.
+- Added unit tests for shared-store immutability, subscriber notifications, exact identity, stale-series clearing, invalid bars, calculation alignment, warm-up periods, edge cases, and invalid inputs.
+- Added `docs/INDICATOR_DATA_ARCHITECTURE.md` defining the single-source-of-truth flow and future streaming integration contract.
+- Important limitation: the current frontend still requests HTTP snapshots. Continuous live streaming, visible indicator UI, provider connectivity, and real-time Android validation are not implemented or claimed. The store is the shared integration point for future validated stream updates.
+- Overall estimated progress: 19.40% (+0.35 percentage points for tested shared data architecture and reusable indicator calculations; no credit for visible indicator features or live streaming).
