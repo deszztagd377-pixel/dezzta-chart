@@ -89,6 +89,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
 
     let chart: IChartApi | null = null;
     let observer: ResizeObserver | null = null;
+    let removeWindowResizeListener: (() => void) | null = null;
     let isActive = true;
 
     try {
@@ -123,8 +124,17 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
         }
       };
 
-      observer = new ResizeObserver(updateChartSize);
-      observer.observe(container);
+      if (typeof ResizeObserver !== 'undefined') {
+        observer = new ResizeObserver(updateChartSize);
+        observer.observe(container);
+      } else {
+        // Older webviews can still resize the chart through the window event.
+        window.addEventListener('resize', updateChartSize, { passive: true });
+        removeWindowResizeListener = () => {
+          window.removeEventListener('resize', updateChartSize);
+        };
+      }
+
       updateChartSize();
     } catch (error) {
       console.error('DEZZTA CHART initialization failed:', error);
@@ -132,6 +142,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
         setChartError('Chart could not be initialized. Please reload the page.');
       }
       observer?.disconnect();
+      removeWindowResizeListener?.();
       chart?.remove();
       chartRef.current = null;
       return;
@@ -140,6 +151,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
     return () => {
       isActive = false;
       observer?.disconnect();
+      removeWindowResizeListener?.();
       chart?.remove();
       chartRef.current = null;
     };
