@@ -1,13 +1,14 @@
 .bottom-nav {
+  --nav-safe-area: env(safe-area-inset-bottom, 0px);
   display: flex;
-  flex: 0 0 var(--nav-height, 60px);
+  flex: 0 0 calc(var(--nav-height, 60px) + var(--nav-safe-area));
   align-items: center;
   justify-content: space-around;
   width: 100%;
-  height: var(--nav-height, 60px);
+  height: calc(var(--nav-height, 60px) + var(--nav-safe-area));
   background-color: var(--color-bg-secondary);
   border-top: 1px solid var(--color-border);
-  padding: var(--spacing-sm, 8px) 0;
+  padding: var(--spacing-sm, 8px) 0 max(var(--spacing-sm, 8px), var(--nav-safe-area));
   z-index: 10;
 }
 
