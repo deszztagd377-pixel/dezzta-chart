@@ -146,8 +146,9 @@ class CanonicalInstrument:
             )
 
         if instrument_type == "option":
-            if self.option_right not in {"call", "put"}:
+            if not isinstance(self.option_right, str) or self.option_right.lower() not in {"call", "put"}:
                 raise InvalidCanonicalInstrument("Options require option_right 'call' or 'put'.")
+            object.__setattr__(self, "option_right", self.option_right.lower())
             if self.strike_price is None or self.underlying_canonical_id is None:
                 raise InvalidCanonicalInstrument(
                     "Options require strike_price and underlying_canonical_id."
