@@ -90,6 +90,14 @@ export function publishMarketDataSnapshot(input: {
   if (isBackendStatus && !input.identity) {
     throw new Error('Backend market data requires an exact series identity.');
   }
+  if (input.identity && (
+    !input.identity.dataset ||
+    !input.identity.rawSymbol ||
+    !Number.isSafeInteger(input.identity.publisherId) || input.identity.publisherId <= 0 ||
+    !Number.isSafeInteger(input.identity.instrumentId) || input.identity.instrumentId <= 0
+  )) {
+    throw new Error('Market data series identity is incomplete or invalid.');
+  }
   if (isBackendStatus && bars.length === 0) {
     throw new Error('Backend market data cannot be ready without validated bars.');
   }
