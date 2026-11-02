@@ -307,3 +307,11 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Databento coverage is dataset/venue-specific. It documents multiple asset classes, including equities, FX, futures, and options, but this does not establish universal global coverage or all crypto spot pairs. Exact availability, entitlements, and redistribution rights must be verified per product.
 - No progress increase: these commits document approved architecture and do not implement multi-asset canonical IDs, authentication, live feed, persistence, frontend streaming, or deployment. Overall progress remains 19.40%.
 - `main` remains untouched. Latest branch comparison and CI status must be checked separately; no CI pass is claimed by this status note.
+
+
+### 2026-11-02 — Canonical multi-asset identity schema foundation
+- Added an immutable provider-neutral canonical instrument schema for equity, ETF, crypto spot/perpetual, dated futures, options, FX pairs, and indices. The schema validates UUID identity, asset/type compatibility, venue/symbol, currency pairs, expiry, option-underlying relationships, and positive finite decimal metadata.
+- Added matching frontend TypeScript contract and backend validation tests. Existing futures catalog, resolver, API routes, and selected-contract flow are intentionally unchanged in this first compatibility-safe step.
+- Canonical UUIDs are registry-assigned and must be persisted; they are not derived from symbols or provider IDs. Provider mappings remain a separate identity layer.
+- This is schema groundwork only: no durable registry/database, provider coverage, multi-asset catalog endpoint, entitlement system, Firebase integration, or live multi-asset data is implemented.
+- Tests and CI must be run against the resulting branch head before claiming verification. Overall project progress remains 19.40% until implementation and test gates are independently verified.
