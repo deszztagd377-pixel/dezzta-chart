@@ -7,9 +7,9 @@ Working branch: phase-2/market-data-foundation
 
 ## Overall progress
 
-- Estimated overall progress toward the intended full application: 18.35%.
+- Estimated overall progress toward the intended full application: 18.60%.
 - Progress is a weighted milestone estimate, not a code-line percentage or a claim of scientific measurement. Decimal precision is recorded to two places for consistent tracking.
-- Latest increment: +0.15 percentage points (18.20% → 18.35%) for the tested HTTP OHLCV request client, exact-series query construction, timeout/cancellation handling, and explicit transport failure classification. No credit is assigned for chart wiring, selected-contract UI, backend deployment/configuration, or live provider delivery.
+- Latest increment: +0.25 percentage points (18.35% → 18.60%) for the tested provider-catalog HTTP client, runtime contract validation, ES/NQ/GC root filtering, searchable verified-contract selection UI, cancellation, timeout, and retry lifecycle. No credit is assigned for chart wiring, backend deployment/configuration, or live provider delivery.
 - Phase 2 foundation now includes market-data DTOs, transport documentation, Python/FastAPI scaffold, futures instrument catalog, and a pure Databento definition-record adapter. Provider retrieval, live ingestion, persistence, recovery, and chart integration remain unimplemented.
 
 ## Current foundation
@@ -70,7 +70,7 @@ Status: provider and initial instrument scope selected; transport contract, back
 
 - No live or historical provider connection, download, or subscription.
 - No provider adapter currently converts market events or provider OHLCV records into the normalized OHLCV pipeline; the new pipeline is an ingestion boundary, not a live feed.
-- No OHLCV WebSocket broadcast, HTTP fetch lifecycle, instrument-selection UI, or selected-timeframe chart integration yet. The pure frontend DTO validator/adapter exists but is not wired to the chart.
+- No OHLCV WebSocket broadcast or selected-timeframe chart integration yet. A read-only instrument-catalog HTTP lifecycle and verified-contract selection UI now exist; the frontend requires `VITE_MARKET_DATA_API_BASE_URL` to reach a deployed backend.
 - No provider definition refresh scheduler or production population of the catalog.
 - Lifecycle operations are currently in-memory only; no provider event consumer or persistent catalog store is connected.
 - No market-data event broadcast, persistent storage, replay, or recovery.
@@ -203,3 +203,16 @@ Status: provider and initial instrument scope selected; transport contract, back
 - GitHub Actions run #101 initially exposed a test-harness unhandled-rejection timing issue in the timeout test. The test was corrected to attach its rejection assertion before advancing fake timers; the corrected latest run is #102.
 - Latest implementation commit: `1f8f9fc7075902879cbc27363d1bd9fbe2516ba2`; timeout-test correction commit: `945601c2cee56db39956d174b527e8b8150f24b4`.
 - Remaining: no backend base URL or verified selected contract is configured in the frontend; the client is not yet wired into the chart. DEMO candles remain clearly labeled and unchanged. No live data is claimed.
+
+
+### 2026-11-02 — Verified instrument catalog and selection lifecycle
+- Added `src/types/instrumentCatalogApi.ts` for the backend's provider-backed catalog response and outright futures contract metadata.
+- Added `src/services/instrumentCatalogClient.ts` to call the existing read-only `GET /v1/instruments?root=...` endpoint with timeout, cancellation, no-store caching, and explicit configuration/network/HTTP/JSON/schema errors.
+- Added runtime validation for supported roots, outright futures class, raw-symbol/root consistency, positive safe provider identifiers, ISO expiration dates, decimal tick-size strings, dataset consistency, catalog counts, and duplicate contract identities.
+- The catalog validator accounts for backend semantics: `state` describes the global catalog before an optional root filter, so a ready global catalog may legitimately return zero contracts for one selected root.
+- Rebuilt Watchlist as a functional ES/NQ/GC filter with contract search (symbol, expiry, instrument ID), explicit contract selection, selected-metadata display, clear selection, loading/empty/error states, and retry. Requests are cancelled when the selected product changes; the App retains the selected metadata while navigating between tabs.
+- Added `.env.example` with the non-secret `VITE_MARKET_DATA_API_BASE_URL` setting. No API key or provider credential is exposed to the frontend.
+- Added focused parser and HTTP client tests, including invalid calendar dates, state/count consistency, empty root-filtered results, duplicate identities, cancellation, timeout, and request construction.
+- The chart deliberately remains on its clearly labelled DEMO fixture. Contract selection is metadata-only until a backend URL, verified OHLCV series, and chart data lifecycle are connected. No live market data is claimed.
+- Latest code commits: `eade18471527f9fb9e4cff5733c5de7127676398`, `f8b0c9295ad8937b02e14fa1419db25337e4ec69`, `9e601f68026dee400f3b90698335b0094f364e27`, `5616ca598251320c27f644e3f40f3a99c8bfad67`.
+- Final CI and deployment status must be confirmed on the latest documentation commit before this stage is called fully verified.
