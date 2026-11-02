@@ -11,7 +11,7 @@ const series = {
   instrumentId: 123,
   rawSymbol: 'ESZ6',
   timeframe: '1s',
-};
+} as const;
 
 const bar = {
   dataset: 'GLBX.MDP3',
