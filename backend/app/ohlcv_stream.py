@@ -13,7 +13,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any
 
-from app.ohlcv import OhlcvBar, OhlcvPipeline
+from app.ohlcv import OhlcvBar, OhlcvPipeline, decimal_to_string
 
 STREAM_QUEUE_CAPACITY = 256
 
@@ -66,6 +66,8 @@ class OhlcvStreamHub:
             instrument_id=instrument_id,
             raw_symbol=raw_symbol,
             timeframe=timeframe,
+            provider="databento",
+            series_type="contract",
             limit=limit,
         )
         stream_id = uuid.uuid4().hex
@@ -89,11 +91,11 @@ class OhlcvStreamHub:
             "seriesType": bar.series_type,
             "timeframe": bar.timeframe,
             "tsStartNs": str(bar.ts_start_ns),
-            "open": str(bar.open),
-            "high": str(bar.high),
-            "low": str(bar.low),
-            "close": str(bar.close),
-            "volume": str(bar.volume),
+            "open": decimal_to_string(bar.open),
+            "high": decimal_to_string(bar.high),
+            "low": decimal_to_string(bar.low),
+            "close": decimal_to_string(bar.close),
+            "volume": decimal_to_string(bar.volume),
             "tsEventNs": str(bar.ts_event_ns),
             "tsReceivedNs": str(bar.ts_received_ns),
             "sequence": bar.sequence,
