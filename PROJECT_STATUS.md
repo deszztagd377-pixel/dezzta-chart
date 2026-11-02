@@ -26,7 +26,7 @@ Working branch: phase-2/market-data-foundation
 ## Verified limitations
 
 - No live market-data provider session is configured. Optional Databento source adapters and the provider lifecycle exist behind explicit server-side flags, but the current deployment has no provider credentials/session and no real provider delivery is claimed.
-- The timeframe selector updates React state, but the chart currently only changes the seconds-visible display option; it does not yet load or aggregate data for the selected timeframe.
+- The selected timeframe is included in the chart's read-only backend OHLCV snapshot request. The chart displays backend bars only after exact-series validation; until a backend is deployed and trusted bars are available, the clearly labelled DEMO fixture remains visible. Continuous streaming is not implemented.
 - Watchlist now displays an explicitly offline, read-only supported-product catalog fixture for ES/NQ/GC; no expiry-specific contracts are fabricated.
 - The existing sample candles are not real market data.
 - Global indicator requirement: every indicator must be designed for compatibility across all supported chart timeframes, including second-based intervals. This is a target to validate per indicator, not a claim that every calculation is automatically valid on every timeframe.
@@ -235,4 +235,5 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Extended GitHub Actions to build the backend container image after frontend tests/build and backend tests. This validates image construction, not a hosted deployment or external provider connectivity.
 - Provider switches remain off by default; no API key, WebSocket token, or other secret was added to the repository.
 - Hosting provider intentionally not selected: cost, region, availability/sleep behavior, and account controls must be reviewed before deployment.
-- Overall estimated progress: 19.05% (+0.20 percentage points for a reproducible, CI-built backend container foundation; no credit for actual deployment).
+- Vercel reports success for the latest branch-head deployment. The GitHub Actions workflow now includes a Docker image build; its latest run result is not exposed by the available run-status response and is not claimed as passed here.
+- Overall estimated progress: 19.05% (+0.20 percentage points for a reproducible backend container foundation and CI build step; no credit for actual backend deployment).
