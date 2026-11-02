@@ -3,26 +3,45 @@ import {
   createChart,
   CandlestickSeries,
 } from 'lightweight-charts';
-import type { IChartApi } from 'lightweight-charts';
+import type { CandlestickData, IChartApi } from 'lightweight-charts';
 import type { Timeframe } from '../types';
+import type { FuturesContractDto } from '../types/instrumentCatalogApi';
 import { demoCandles, getDemoCandleValidationErrors } from '../data/demoCandles';
+import { fetchOhlcvSnapshot, OhlcvRequestError } from '../services/ohlcvClient';
+import { toCandlestickSeriesData } from '../utils/candlestickSeriesData';
 import { buildChartOptions } from '../utils/chartOptions';
 import { getMeasurableChartSize } from '../utils/chartViewport';
 
 interface CandlestickChartProps {
   timeframe: Timeframe;
   showGrid: boolean;
+  selectedContract: FuturesContractDto | null;
+  marketDataApiBaseUrl: string;
+}
+
+type MarketDataStatus = 'demo' | 'loading' | 'ready' | 'degraded' | 'unavailable' | 'error';
+
+interface SeriesIdentity {
+  dataset: string;
+  publisherId: number;
+  instrumentId: number;
+  rawSymbol: string;
 }
 
 const CandlestickChart: React.FC<CandlestickChartProps> = ({
   timeframe,
   showGrid,
+  selectedContract,
+  marketDataApiBaseUrl,
 }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const setSeriesDataRef = useRef<((data: CandlestickData[]) => void) | null>(null);
 
   const [isChartReady, setIsChartReady] = useState(false);
   const [chartError, setChartError] = useState<string | null>(null);
+  const [marketDataStatus, setMarketDataStatus] = useState<MarketDataStatus>('demo');
+  const [marketDataDetail, setMarketDataDetail] = useState<string | null>(null);
 
   useEffect(() => {
     const container = chartContainerRef.current;
@@ -54,6 +73,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
         wickUpColor: '#26a69a',
       });
 
+      setSeriesDataRef.current = (data) => candleSeries.setData(data);
       candleSeries.setData(demoCandles);
       activeChart.timeScale().fitContent();
 
@@ -71,7 +91,6 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
         observer = new ResizeObserver(updateChartSize);
         observer.observe(container);
       } else {
-        // Older webviews can still resize the chart through the window event.
         window.addEventListener('resize', updateChartSize, { passive: true });
         removeWindowResizeListener = () => {
           window.removeEventListener('resize', updateChartSize);
@@ -88,6 +107,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       removeWindowResizeListener?.();
       chart?.remove();
       chartRef.current = null;
+      setSeriesDataRef.current = null;
       return;
     }
 
@@ -97,6 +117,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       removeWindowResizeListener?.();
       chart?.remove();
       chartRef.current = null;
+      setSeriesDataRef.current = null;
     };
   }, []);
 
@@ -121,11 +142,90 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
     });
   }, [showGrid]);
 
+  useEffect(() => {
+    if (!isChartReady || !setSeriesDataRef.current) return;
+
+    const controller = new AbortController();
+    const setSeriesData = setSeriesDataRef.current;
+
+    if (!selectedContract) {
+      setSeriesData(demoCandles);
+      setMarketDataStatus('demo');
+      setMarketDataDetail('Offline sample candles. No contract is selected.');
+      return () => controller.abort();
+    }
+
+    const identity: SeriesIdentity = {
+      dataset: selectedContract.dataset,
+      publisherId: selectedContract.publisher_id,
+      instrumentId: selectedContract.instrument_id,
+      rawSymbol: selectedContract.raw_symbol,
+    };
+
+    // Never leave the previous contract's candles on screen during a switch.
+    // The explicit DEMO label remains visible until this exact series validates.
+    setSeriesData(demoCandles);
+    setMarketDataStatus('loading');
+    setMarketDataDetail(`Requesting ${identity.rawSymbol} · ${timeframe} from the read-only backend.`);
+
+    fetchOhlcvSnapshot({
+      baseUrl: marketDataApiBaseUrl,
+      identity: { ...identity, timeframe },
+      signal: controller.signal,
+      limit: 2000,
+    }).then((result) => {
+      if (controller.signal.aborted) return;
+
+      if (result.status === 'ready' || result.status === 'degraded') {
+        const candles = toCandlestickSeriesData(result.candles);
+        if (candles.length > 0) {
+          setSeriesData(candles);
+          chartRef.current?.timeScale().fitContent();
+          setMarketDataStatus(result.status);
+          setMarketDataDetail(result.detail ?? `${candles.length} validated bars · ${timeframe}`);
+          return;
+        }
+      }
+
+      setSeriesData(demoCandles);
+      setMarketDataStatus('unavailable');
+      setMarketDataDetail(result.detail ?? 'No validated bars are available. Demo candles remain displayed.');
+    }).catch((error: unknown) => {
+      if (controller.signal.aborted ||
+          (error instanceof OhlcvRequestError && error.code === 'cancelled')) return;
+
+      setSeriesData(demoCandles);
+      setMarketDataStatus('error');
+      setMarketDataDetail(error instanceof Error ? error.message : 'OHLCV request failed.');
+    });
+
+    return () => controller.abort();
+  }, [isChartReady, marketDataApiBaseUrl, selectedContract, timeframe]);
+
+  const selectedSymbol = selectedContract?.raw_symbol;
+  const badgeText = !selectedSymbol
+    ? 'DEMO DATA · SAMPLE OHLC'
+    : marketDataStatus === 'loading'
+      ? `DEMO · REQUESTING ${selectedSymbol}`
+      : marketDataStatus === 'ready'
+        ? `BACKEND DATA · ${selectedSymbol} · READY`
+        : marketDataStatus === 'degraded'
+          ? `BACKEND DATA · ${selectedSymbol} · DEGRADED`
+          : marketDataStatus === 'unavailable'
+            ? `NO VERIFIED BARS · DEMO (${selectedSymbol})`
+            : marketDataStatus === 'error'
+              ? `API ERROR · DEMO (${selectedSymbol})`
+              : 'DEMO DATA · SAMPLE OHLC';
+
+  const isBackendData = marketDataStatus === 'ready' || marketDataStatus === 'degraded';
+
   return (
     <div
       ref={chartContainerRef}
       role="region"
-      aria-label="Chart area showing sample OHLC data"
+      aria-label={selectedSymbol
+        ? `Chart for ${selectedSymbol}; data status ${marketDataStatus}`
+        : 'Chart area showing sample OHLC data'}
       style={{
         width: '100%',
         height: '100%',
@@ -134,25 +234,48 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       }}
     >
       <div
-        aria-label="Sample data, not live market data"
+        aria-label={isBackendData ? 'Validated backend OHLCV data' : 'Sample data, not live market data'}
         style={{
           position: 'absolute',
           top: 10,
           left: 10,
           zIndex: 2,
-          padding: '5px 8px',
-          border: '1px solid #66502b',
+          maxWidth: 'calc(100% - 20px)',
+          padding: '6px 8px',
+          border: `1px solid ${isBackendData ? '#245c4c' : '#66502b'}`,
           borderRadius: 5,
-          background: 'rgba(25, 22, 17, 0.92)',
-          color: '#e7bd73',
+          background: isBackendData ? 'rgba(14, 37, 31, 0.94)' : 'rgba(25, 22, 17, 0.94)',
+          color: isBackendData ? '#8ee0bc' : '#e7bd73',
           fontSize: 9,
           fontWeight: 700,
-          letterSpacing: '0.6px',
+          letterSpacing: '0.4px',
           pointerEvents: 'none',
+          overflowWrap: 'anywhere',
         }}
       >
-        DEMO DATA · SAMPLE OHLC
+        {badgeText}
       </div>
+      {selectedSymbol && marketDataDetail && (
+        <div
+          role="status"
+          style={{
+            position: 'absolute',
+            top: 39,
+            left: 10,
+            zIndex: 2,
+            maxWidth: 'min(340px, calc(100% - 20px))',
+            padding: '5px 7px',
+            borderRadius: 4,
+            background: 'rgba(13, 17, 23, 0.88)',
+            color: '#aab6c5',
+            fontSize: 9,
+            lineHeight: 1.45,
+            pointerEvents: 'none',
+          }}
+        >
+          {marketDataDetail}
+        </div>
+      )}
       {chartError ? (
         <div
           role="alert"
