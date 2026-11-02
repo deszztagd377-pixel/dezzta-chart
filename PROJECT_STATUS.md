@@ -250,7 +250,7 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Important limitation: the current frontend still requests HTTP snapshots. Continuous live streaming, visible indicator UI, provider connectivity, and real-time Android validation are not implemented or claimed. The store is the shared integration point for future validated stream updates.
 - Overall estimated progress: 19.40% (+0.35 percentage points for tested shared data architecture and reusable indicator calculations; no credit for visible indicator features or live streaming).
 
-- Latest audited shared-indicator branch head: `aaed0226b8f55d7526c31b461238b357d05276a0`. Branch comparison: 139 commits ahead of `main`, 0 behind; `main` remains untouched.
+- Latest audited shared-indicator branch head at that earlier checkpoint: `aaed0226b8f55d7526c31b461238b357d05276a0`. The current stream-protocol work is recorded below; `main` remains untouched.
 
 ### 2026-11-02 — OHLCV stream protocol foundation (not yet connected)
 - Added `src/services/ohlcvStreamProtocol.ts` with a versioned provider-neutral OHLCV update envelope, runtime validation, exact series-to-bar identity checks, and a per-stream sequence guard.
@@ -261,3 +261,4 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Added `docs/OHLCV_STREAM_PROTOCOL.md` with the event shape, sequence semantics, atomic snapshot/watermark handshake requirements, bounded-queue policy, and recovery milestones.
 - This is protocol and frontend validation groundwork only. No WebSocket OHLCV broadcast, frontend socket client, atomic snapshot watermark, reconnect loop, or stream-to-store publication is implemented yet. The existing backend WebSocket remains status-only.
 - Overall progress remains 19.40% until the new tests/build and branch-head CI are independently verified; no credit is assigned for a live stream or user-visible indicator feature.
+- Latest protocol-work commit: `3b3cdb8eefbde740f8e44435fde6b9ebc96d6edb`. Branch comparison: 147 commits ahead of `main`, 0 behind. The latest visible Vercel status remains a build-rate-limit failure; the available GitHub workflow-run lookup does not expose push-triggered runs, so CI is not claimed as passed.
