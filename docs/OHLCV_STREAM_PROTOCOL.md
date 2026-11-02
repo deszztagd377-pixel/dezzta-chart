@@ -87,24 +87,36 @@ A detected gap requires a fresh, validated snapshot plus its matching stream
 watermark before the guard is reset. Do not simply jump the watermark to the
 received event: that would silently lose missing updates.
 
-## Server/client lifecycle still required
+## Implemented backend lifecycle
 
-Before this contract can carry production updates, implementation must add:
+The backend now accepts an authenticated `market_data.subscribe` version 1
+message with the exact dataset/publisher/instrument/raw-symbol/timeframe
+identity. It performs the snapshot query and registers a per-series subscriber
+synchronously on the same asyncio event loop, without an await between those
+operations. The returned snapshot carries a per-subscription `streamId` and
+initial `watermark`; subsequent accepted updates are numbered from that
+watermark. This is the atomic handoff boundary for the current single-process,
+single-writer in-memory design.
 
-1. An authenticated subscription message containing the exact series identity.
-2. A server-side subscription manager that filters events to that identity.
-3. A per-subscription stream sequence and an atomic snapshot/watermark handshake,
-   so events cannot be lost between snapshot creation and stream activation.
-4. Bounded per-client queues and explicit slow-consumer handling; never silently
-   discard a bar update.
-5. Heartbeats, disconnect detection, reconnect with a new or resumed stream ID,
-   and bounded retry/backoff.
-6. Snapshot resynchronization after a gap or server restart.
-7. Frontend application of accepted updates through the shared market-data store.
-8. Tests for concurrent subscribe/snapshot ordering, duplicate revisions,
-   out-of-order messages, overflow, reconnect, and server shutdown.
+Accepted base bars and accepted derived-timeframe revisions are published to
+matching subscribers. Each subscriber has a bounded queue. On overflow, the
+subscription is marked and the WebSocket closes with code 1013 so the client
+must reconnect and obtain a fresh snapshot; the server does not silently skip
+an update to keep the socket alive. Client disconnects remove subscriptions.
 
-The current backend WebSocket only authenticates and sends a status message.
-It does not yet implement this OHLCV event stream. The HTTP snapshot endpoint
-also does not yet provide a stream watermark; that handshake must be designed
-and tested before a real client subscribes.
+## Remaining lifecycle work
+
+1. Frontend WebSocket client: authentication, exact-series subscription,
+   snapshot validation, sequence guard initialization, and accepted update
+   publication into the shared market-data store.
+2. Client heartbeat/ping cadence, bounded reconnect/backoff, stale-feed status,
+   and automatic snapshot resynchronization after sequence gaps or close 1013.
+3. Tests for full WebSocket update delivery, disconnect cleanup, overflow close,
+   and concurrent client behavior under a running provider ingestion loop.
+4. Durable replay/recovery across backend restarts is not implemented. Every
+   reconnect currently receives a fresh in-memory snapshot and new stream ID.
+
+The HTTP snapshot endpoint remains independently available and does not yet
+carry a stream watermark; the atomic watermark is currently supplied by the
+WebSocket subscription snapshot response. No production provider connection,
+order-book/MBO stream, or end-to-end live frontend integration is claimed.
