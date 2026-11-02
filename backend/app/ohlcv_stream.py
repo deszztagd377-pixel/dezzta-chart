@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from app.ohlcv import OhlcvBar, OhlcvPipeline, decimal_to_string
