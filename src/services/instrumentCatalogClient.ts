@@ -47,6 +47,12 @@ function isRoot(value: unknown): value is InstrumentRoot {
   return typeof value === 'string' && ROOTS.includes(value as InstrumentRoot);
 }
 
+function isValidIsoDate(value: string): boolean {
+  if (!ISO_DATE.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
 function parseProduct(value: unknown, index: number): SupportedInstrumentProduct {
   if (!isRecord(value) || !isRoot(value.root) ||
       typeof value.product_name !== 'string' || !value.product_name.trim()) {
@@ -64,7 +70,7 @@ function parseContract(value: unknown, index: number): FuturesContractDto {
       !Number.isSafeInteger(value.instrument_id) || Number(value.instrument_id) <= 0 ||
       !Number.isSafeInteger(value.publisher_id) || Number(value.publisher_id) <= 0 ||
       value.instrument_class !== 'F' ||
-      typeof value.expiration !== 'string' || !ISO_DATE.test(value.expiration) ||
+      typeof value.expiration !== 'string' || !isValidIsoDate(value.expiration) ||
       (value.currency !== null && typeof value.currency !== 'string') ||
       (value.min_price_increment !== null &&
         (typeof value.min_price_increment !== 'string' || !DECIMAL.test(value.min_price_increment))) ||
@@ -114,8 +120,13 @@ export function parseInstrumentCatalog(payload: unknown): InstrumentCatalogRespo
   if (Number(payload.contract_count) !== contracts.length) {
     throw new Error('Instrument catalog contract_count does not match contracts length.');
   }
-  if ((contracts.length === 0) !== (payload.state === 'definitions_unavailable')) {
+  // The backend reports global catalog state before applying the optional root
+  // filter. A ready global catalog can therefore return zero rows for one root.
+  if (payload.state === 'definitions_unavailable' && contracts.length > 0) {
     throw new Error('Instrument catalog state does not match the returned contract list.');
+  }
+  if (payload.state === 'ready' && contracts.length === 0 && payload.requested_root === undefined) {
+    throw new Error('A ready unfiltered catalog cannot contain zero contracts.');
   }
 
   const productRoots = new Set<InstrumentRoot>();
