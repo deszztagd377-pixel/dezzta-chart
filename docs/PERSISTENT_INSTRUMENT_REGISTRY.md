@@ -23,7 +23,8 @@ The initial adapter requires a file-backed database and deliberately rejects \`:
 - WAL journaling is enabled for local read/write concurrency.
 - Canonical IDs are primary keys. Re-registering identical metadata is idempotent; reusing an ID for different metadata is rejected.
 - Canonical instrument rows are immutable at the database layer.
-- Provider mappings are scoped by provider, dataset, publisher ID, and provider instrument ID.
+- Provider mappings are scoped by provider, dataset, positive publisher ID, and positive provider instrument ID.
+- Nanosecond timestamps must fit SQLite signed 64-bit integers; invalid overflow is rejected before database access.
 - Mapping validity uses half-open nanosecond windows \`[valid_from_ns, valid_to_ns)\`; adjacent windows are valid.
 - Database triggers reject overlapping mapping windows even if a caller bypasses the Python repository.
 - Foreign keys prevent mappings from referencing unknown canonical instruments.
