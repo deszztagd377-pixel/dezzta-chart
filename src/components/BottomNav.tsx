@@ -17,12 +17,13 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeItem, onSelect }) => {
   ];
 
   return (
-    <nav className="bottom-nav">
+    <nav className="bottom-nav" aria-label="Main navigation">
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = activeItem === item.id;
         return (
           <button
+            type="button"
             key={item.id}
             className={`nav-item ${isActive ? 'active' : ''}`}
             onClick={() => onSelect(item.id)}
