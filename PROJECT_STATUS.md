@@ -1,6 +1,6 @@
 # DEZZTA CHART — Project Status
 
-Last audited: 2026-11-01
+Last audited: 2026-11-02
 Repository: deszztagd377-pixel/dezzta-chart
 Baseline branch: main
 Working branch: phase-2/market-data-foundation
@@ -102,6 +102,15 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Never fabricate provider data, contract expiry, or feed status.
 
 ## Change log
+
+### 2026-11-02 — Mobile layout and chart lifecycle hardening
+- Added a chart initialization error state with an accessible alert and a loading status; cleanup disconnects the resize observer and removes the chart instance.
+- Preserved the lifecycle guard so queued resize callbacks do not update the chart after teardown.
+- Added viewport-fit support and top/bottom device safe-area spacing for the header and bottom navigation.
+- Latest audited working-branch commit: `cce46b07dc1eac5b1b08f907cad56c320f450456`.
+- GitHub Actions and Vercel checks for that commit were verified successful. Direct visual verification on a physical Android device is still outstanding.
+- The overall progress estimate remains 18%; this UI hardening does not justify a material phase-completion increase.
+
 
 ### Timeframe engine audit — 2026-11-01
 - Audited the current timeframe engine, selector, chart component, and app wiring.
