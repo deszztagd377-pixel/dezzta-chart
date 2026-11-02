@@ -202,3 +202,50 @@ def test_lifespan_connects_a_fake_live_source_and_shuts_down_cleanly() -> None:
             time.sleep(0.02)
         assert client.get("/v1/market-data/status").json()["ohlcv"]["state"] == "live"
     assert FakeLive.stopped is True
+
+def test_websocket_authenticates_then_sends_exact_ohlcv_snapshot_with_watermark() -> None:
+    client = TestClient(_app_with_bars())
+    with client.websocket_connect("/ws/market-data") as websocket:
+        websocket.send_json({"type": "auth", "token": "test-secret"})
+        status = websocket.receive_json()
+        assert status["type"] == "market_data.status"
+        assert status["schema"] == "ohlcv"
+        websocket.send_json({
+            "type": "market_data.subscribe",
+            "version": 1,
+            "series": {
+                "dataset": "GLBX.MDP3",
+                "publisherId": 1,
+                "instrumentId": 101,
+                "rawSymbol": "ESZ6",
+                "timeframe": "1s",
+            },
+        })
+        snapshot = websocket.receive_json()
+        assert snapshot["type"] == "market_data.ohlcv.snapshot"
+        assert snapshot["version"] == 1
+        assert snapshot["state"] == "ready"
+        assert snapshot["streamId"]
+        assert snapshot["watermark"] == 0
+        assert snapshot["count"] == 4
+        assert snapshot["bars"][-1]["tsStartNs"] == str(_T0 + 3 * _NS)
+
+
+def test_websocket_rejects_invalid_ohlcv_subscription() -> None:
+    client = TestClient(create_app(make_settings()))
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect("/ws/market-data") as websocket:
+            websocket.send_json({"type": "auth", "token": "test-secret"})
+            assert websocket.receive_json()["type"] == "market_data.status"
+            websocket.send_json({
+                "type": "market_data.subscribe",
+                "version": 1,
+                "series": {
+                    "dataset": "GLBX.MDP3",
+                    "publisherId": 1,
+                    "instrumentId": 101,
+                    "rawSymbol": "ESZ6",
+                    "timeframe": "2m",
+                },
+            })
+            websocket.receive_json()
