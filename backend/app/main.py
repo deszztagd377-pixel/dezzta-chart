@@ -2,8 +2,8 @@
 
 Provider OHLCV ingestion is optional and disabled unless explicitly configured
 (DATABENTO_API_KEY plus feature flags). Without them the backend starts
-normally and reports the provider as disconnected. No market-data broadcast is
-published over the WebSocket in this phase.
+normally and reports the provider as disconnected. Authenticated WebSocket
+clients can subscribe to the in-memory OHLCV pipeline when validated bars exist.
 """
 
 import asyncio
@@ -377,6 +377,7 @@ def create_app(
             })
 
             receive_task = asyncio.create_task(websocket.receive_text())
+            queue_task = None
             try:
                 while True:
                     if subscription.overflowed:
@@ -400,13 +401,21 @@ def create_app(
                             await websocket.close(code=1013, reason="OHLCV client queue overflow; reconnect and resnapshot")
                             return
                         await websocket.send_json(queue_task.result())
+                        queue_task = None
                     else:
                         queue_task.cancel()
                         try:
                             await queue_task
                         except asyncio.CancelledError:
                             pass
+                        queue_task = None
             finally:
+                if queue_task is not None and not queue_task.done():
+                    queue_task.cancel()
+                    try:
+                        await queue_task
+                    except asyncio.CancelledError:
+                        pass
                 receive_task.cancel()
                 try:
                     await receive_task
