@@ -7,6 +7,7 @@ import type { IChartApi } from 'lightweight-charts';
 import type { Timeframe } from '../types';
 import { demoCandles, getDemoCandleValidationErrors } from '../data/demoCandles';
 import { buildChartOptions } from '../utils/chartOptions';
+import { getMeasurableChartSize } from '../utils/chartViewport';
 
 interface CandlestickChartProps {
   timeframe: Timeframe;
@@ -59,9 +60,9 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       const updateChartSize = () => {
         if (!isActive) return;
 
-        const { width, height } = container.getBoundingClientRect();
-        if (width > 0 && height > 0) {
-          activeChart.resize(width, height);
+        const size = getMeasurableChartSize(container.getBoundingClientRect());
+        if (size) {
+          activeChart.resize(size.width, size.height);
           setIsChartReady(true);
         }
       };
