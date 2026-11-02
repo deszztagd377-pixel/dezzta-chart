@@ -48,6 +48,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
   const chartRef = useRef<IChartApi | null>(null);
 
   const [isChartReady, setIsChartReady] = useState(false);
+  const [chartError, setChartError] = useState<string | null>(null);
 
   useEffect(() => {
     const container = chartContainerRef.current;
@@ -110,41 +111,55 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       },
     };
 
-    const chart = createChart(container, chartOptions);
-    chartRef.current = chart;
-
-    const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: '#26a69a',
-      downColor: '#ef5350',
-      borderDownColor: '#ef5350',
-      borderUpColor: '#26a69a',
-      wickDownColor: '#ef5350',
-      wickUpColor: '#26a69a',
-    });
-
-    candleSeries.setData(sampleCandles);
-    chart.timeScale().fitContent();
-
+    let chart: IChartApi | null = null;
+    let observer: ResizeObserver | null = null;
     let isActive = true;
 
-    const updateChartSize = () => {
-      if (!isActive) return;
+    try {
+      const activeChart = createChart(container, chartOptions);
+      chart = activeChart;
+      chartRef.current = activeChart;
 
-      const { width, height } = container.getBoundingClientRect();
-      if (width > 0 && height > 0) {
-        chart.resize(width, height);
-        setIsChartReady(true);
+      const candleSeries = activeChart.addSeries(CandlestickSeries, {
+        upColor: '#26a69a',
+        downColor: '#ef5350',
+        borderDownColor: '#ef5350',
+        borderUpColor: '#26a69a',
+        wickDownColor: '#ef5350',
+        wickUpColor: '#26a69a',
+      });
+
+      candleSeries.setData(sampleCandles);
+      activeChart.timeScale().fitContent();
+
+      const updateChartSize = () => {
+        if (!isActive) return;
+
+        const { width, height } = container.getBoundingClientRect();
+        if (width > 0 && height > 0) {
+          activeChart.resize(width, height);
+          setIsChartReady(true);
+        }
+      };
+
+      observer = new ResizeObserver(updateChartSize);
+      observer.observe(container);
+      updateChartSize();
+    } catch (error) {
+      console.error('DEZZTA CHART initialization failed:', error);
+      if (isActive) {
+        setChartError('Chart could not be initialized. Please reload the page.');
       }
-    };
-
-    const observer = new ResizeObserver(updateChartSize);
-    observer.observe(container);
-    updateChartSize();
+      observer?.disconnect();
+      chart?.remove();
+      chartRef.current = null;
+      return;
+    }
 
     return () => {
       isActive = false;
-      observer.disconnect();
-      chart.remove();
+      observer?.disconnect();
+      chart?.remove();
       chartRef.current = null;
     };
   }, []);
@@ -200,8 +215,26 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       >
         DEMO DATA · SAMPLE OHLC
       </div>
-      {!isChartReady && (
+      {chartError ? (
         <div
+          role="alert"
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 'calc(100% - 32px)',
+            maxWidth: 320,
+            color: '#fca5a5',
+            fontSize: 13,
+            textAlign: 'center',
+          }}
+        >
+          {chartError}
+        </div>
+      ) : !isChartReady ? (
+        <div
+          role="status"
           style={{
             position: 'absolute',
             top: '50%',
@@ -213,7 +246,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
         >
           Loading chart...
         </div>
-      )}
+      ) : null}
     </div>
   );
 };
