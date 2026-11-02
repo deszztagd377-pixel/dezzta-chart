@@ -30,34 +30,43 @@ const App: React.FC = () => {
     }
   }, [showGrid]);
 
+  const isChartActive = activeItem === 'chart';
+
   return (
     <div className="app-container">
       <Header />
 
-      {activeItem === 'chart' && (
-        <>
-          <TimeframeSelector selected={timeframe} onSelect={setTimeframe} />
-          <main className="main-content">
-            <CandlestickChart timeframe={timeframe} showGrid={showGrid} />
-          </main>
-        </>
-      )}
+      <div
+        className={`timeframe-selector-slot ${isChartActive ? '' : 'is-hidden'}`}
+        aria-hidden={!isChartActive}
+      >
+        <TimeframeSelector selected={timeframe} onSelect={setTimeframe} />
+      </div>
 
-      {activeItem === 'watchlist' && (
-        <main className="main-content">
-          <InstrumentCatalogPanel />
-        </main>
-      )}
+      <main className="main-content">
+        <section
+          className={`content-panel ${isChartActive ? 'is-active' : 'is-inactive'}`}
+          aria-hidden={!isChartActive}
+        >
+          <CandlestickChart timeframe={timeframe} showGrid={showGrid} />
+        </section>
 
-      {activeItem === 'settings' && (
-        <main className="main-content">
-          <SettingsPanel
-            showGrid={showGrid}
-            onShowGridChange={setShowGrid}
-            onReset={() => setShowGrid(true)}
-          />
-        </main>
-      )}
+        {activeItem === 'watchlist' && (
+          <section className="content-panel is-active">
+            <InstrumentCatalogPanel />
+          </section>
+        )}
+
+        {activeItem === 'settings' && (
+          <section className="content-panel is-active">
+            <SettingsPanel
+              showGrid={showGrid}
+              onShowGridChange={setShowGrid}
+              onReset={() => setShowGrid(true)}
+            />
+          </section>
+        )}
+      </main>
 
       <BottomNav activeItem={activeItem} onSelect={setActiveItem} />
     </div>
