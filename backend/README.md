@@ -163,3 +163,18 @@ is an explicit provider-data operation; keep the configured symbol scope narrow.
 Live OHLCV observations do not establish continuous time coverage because
 Databento omits intervals without trades. Only successful historical query
 windows mark per-instrument coverage as complete.
+
+
+## Persistent canonical instrument registry
+
+The backend now initializes a file-backed SQLite registry at
+\`INSTRUMENT_REGISTRY_DB_PATH\` (default:
+\`./data/instrument_registry.sqlite3\`). The internal registry stores immutable
+canonical instrument records and provider-scoped, point-in-time mappings.
+It is intentionally not exposed through public write endpoints before Firebase
+authentication and per-instrument entitlements are implemented.
+
+For deployment, mount a persistent volume at the configured database path.
+An ephemeral container filesystem will lose its database when the instance is
+replaced. This adapter is intended for a single backend instance; review
+\`docs/PERSISTENT_INSTRUMENT_REGISTRY.md\` before production deployment.
