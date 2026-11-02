@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Header from './components/Header';
 import BottomNav, { type NavItem } from './components/BottomNav';
 import CandlestickChart from './components/CandlestickChart';
@@ -11,7 +11,24 @@ import './App.css';
 const App: React.FC = () => {
   const [timeframe, setTimeframe] = useState<Timeframe>('1d');
   const [activeItem, setActiveItem] = useState<NavItem>('chart');
-  const [showGrid, setShowGrid] = useState(true);
+  const [showGrid, setShowGrid] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+
+    try {
+      const savedPreference = window.localStorage.getItem('dezzta-chart:show-grid');
+      return savedPreference === null ? true : savedPreference === 'true';
+    } catch {
+      return true;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('dezzta-chart:show-grid', String(showGrid));
+    } catch {
+      // Keep the setting usable for this session when storage is unavailable.
+    }
+  }, [showGrid]);
 
   return (
     <div className="app-container">
