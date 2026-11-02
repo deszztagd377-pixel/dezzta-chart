@@ -2,9 +2,11 @@
 
 ## Scope
 
-This document and the matching frontend parser define the first transport-neutral
-OHLCV update contract. They do not establish a live WebSocket connection or claim
-that the backend currently broadcasts these events.
+This document and the matching frontend parser define the versioned
+transport-neutral OHLCV update contract. The backend now authenticates a
+subscription, sends an atomic snapshot/watermark handoff, and broadcasts accepted
+base and derived OHLCV revisions. The frontend still does not open the socket or
+apply updates to the shared store, so end-to-end live streaming is not available.
 
 ## Event envelope
 
