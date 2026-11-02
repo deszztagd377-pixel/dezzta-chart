@@ -38,6 +38,26 @@ function isSafeInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
 }
 
+function decimalParts(value: string): { coefficient: bigint; scale: number } {
+  const negative = value.startsWith('-');
+  const unsigned = negative ? value.slice(1) : value;
+  const [whole, fraction = ''] = unsigned.split('.');
+  const magnitude = BigInt(`${whole}${fraction}`);
+  return {
+    coefficient: negative ? -magnitude : magnitude,
+    scale: fraction.length,
+  };
+}
+
+function compareDecimals(left: string, right: string): number {
+  const a = decimalParts(left);
+  const b = decimalParts(right);
+  const scale = Math.max(a.scale, b.scale);
+  const leftValue = a.coefficient * (10n ** BigInt(scale - a.scale));
+  const rightValue = b.coefficient * (10n ** BigInt(scale - b.scale));
+  return leftValue < rightValue ? -1 : leftValue > rightValue ? 1 : 0;
+}
+
 function validateBar(value: unknown, index: number): OhlcvBarDto {
   if (!isRecord(value)) throw new Error(`OHLCV bar ${index} must be an object.`);
 
@@ -75,15 +95,20 @@ function validateBar(value: unknown, index: number): OhlcvBarDto {
     }
   }
 
-  const open = Number(value.open);
-  const high = Number(value.high);
-  const low = Number(value.low);
-  const close = Number(value.close);
-  const volume = Number(value.volume);
-  if (![open, high, low, close, volume].every(Number.isFinite)) {
-    throw new Error(`OHLCV bar ${index} exceeds chart numeric range.`);
-  }
-  if (volume < 0 || high < low || high < Math.max(open, close) || low > Math.min(open, close)) {
+  const { open, high, low, close, volume } = value as Record<
+    'open' | 'high' | 'low' | 'close' | 'volume',
+    string
+  >;
+  // Validate decimal relationships with integer arithmetic; never round the
+  // transport values through JavaScript Number before the chart boundary.
+  if (
+    compareDecimals(volume, '0') < 0 ||
+    compareDecimals(high, low) < 0 ||
+    compareDecimals(high, open) < 0 ||
+    compareDecimals(high, close) < 0 ||
+    compareDecimals(low, open) > 0 ||
+    compareDecimals(low, close) > 0
+  ) {
     throw new Error(`OHLCV bar ${index} violates OHLCV boundaries.`);
   }
 
