@@ -16,15 +16,15 @@ Working branch: phase-2/market-data-foundation
 - React 18, TypeScript 5, Vite 4.
 - Lightweight Charts 5 is installed.
 - Existing candlestick chart currently uses hard-coded sample OHLC values from January 2024.
-- Existing chart interaction includes zoom/scroll and crosshair configuration.
+- Existing chart interaction includes zoom/scroll, pinch scaling, drag scrolling, and crosshair configuration. Interaction options have focused unit coverage.
 - A timeframe type and selector exist for second, minute, hour, day, week, and month intervals.
 - An OHLCV aggregation utility and Vitest unit tests exist.
-- GitHub Actions runs unit tests and a production build.
+- GitHub Actions runs frontend unit tests, a production build, and backend tests. The latest branch-head run must pass before a change is called verified.
 - CI must pass on the latest branch head before this change is considered verified.
 
 ## Verified limitations
 
-- No live market-data provider or backend is currently configured in the repository.
+- No live market-data provider session is configured. The repository contains a provider-neutral FastAPI backend scaffold and read-only endpoints, but no provider is currently populating them.
 - The timeframe selector updates React state, but the chart currently only changes the seconds-visible display option; it does not yet load or aggregate data for the selected timeframe.
 - Watchlist now displays an explicitly offline, read-only supported-product catalog fixture for ES/NQ/GC; no expiry-specific contracts are fabricated.
 - The existing sample candles are not real market data.
@@ -32,7 +32,7 @@ Working branch: phase-2/market-data-foundation
 - Performance requirement: minimize avoidable latency, rendering work, memory growth, and UI blocking; test responsiveness under representative data loads. Zero bugs or zero lag cannot be guaranteed, so regression testing and explicit error handling are mandatory.
 - Candle timer requirement: show a remaining-time countdown at the right side of the chart, aligned near the price scale. Derive it from candle interval boundaries and a synchronized clock; never hardcode a countdown or imply exchange-synchronized time when only the device clock is available.
 - Data freshness requirement: clearly distinguish source-event time, receive time, and display time. Do not label sample, delayed, or unsynchronized data as live/real-time. End-to-end freshness depends on provider, network, backend, and device.
-- Watchlist and Settings navigation currently changes only the selected navigation item; there are no implemented pages behind them.
+- Watchlist contains a read-only offline ES/NQ/GC catalog fixture. Settings exposes the grid visibility preference and reset behavior; broader account, chart-layout, and indicator settings are not implemented.
 - Drawing tools, indicator tier navigation, Volume Profile, Footprint, Heatmap, Liquidation Maps, persistence, and Android packaging are not implemented.
 - No package-lock.json was present in the audited repository tree.
 
@@ -103,13 +103,21 @@ Status: provider and initial instrument scope selected; transport contract, back
 
 ## Change log
 
+### 2026-11-02 — Chart interaction and viewport regression coverage
+- Extracted chart interaction options into `src/utils/chartOptions.ts`; added tests for drag scrolling, pinch/wheel scaling, grid visibility, and second-display configuration.
+- Added `getMeasurableChartSize` to reject zero, negative, or non-finite viewport dimensions before calling the chart resize API.
+- Added viewport measurement regression tests. These are pure unit tests; they do not replace physical Android rotation, touch-gesture, or tab-switch validation.
+- Latest working-branch commit at this audit: `51edcd05597eb80054a7cb6b2db245af98c75e9c`.
+- CI run #91 and Vercel status for this change are being verified separately.
+
+
 ### 2026-11-02 — Mobile layout and chart lifecycle hardening
 - Added a chart initialization error state with an accessible alert and a loading status; cleanup disconnects the resize observer and removes the chart instance.
 - Preserved the lifecycle guard so queued resize callbacks do not update the chart after teardown.
 - Added viewport-fit support and top/bottom device safe-area spacing for the header and bottom navigation.
-- Latest audited working-branch commit: `cce46b07dc1eac5b1b08f907cad56c320f450456`.
+- Latest audited working-branch commit: `51edcd05597eb80054a7cb6b2db245af98c75e9c` (viewport measurement guard; CI run #91 is being verified).
 - GitHub Actions and Vercel checks for that commit were verified successful. Direct visual verification on a physical Android device is still outstanding.
-- The overall progress estimate remains 18%; this UI hardening does not justify a material phase-completion increase.
+- The overall progress estimate remains 18%; these reliability guards and tests improve foundation quality but do not yet deliver a major user-facing capability.
 
 
 ### Timeframe engine audit — 2026-11-01
