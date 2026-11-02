@@ -7,9 +7,9 @@ Working branch: phase-2/market-data-foundation
 
 ## Overall progress
 
-- Estimated overall progress toward the intended full application: 18.20%.
+- Estimated overall progress toward the intended full application: 18.35%.
 - Progress is a weighted milestone estimate, not a code-line percentage or a claim of scientific measurement. Decimal precision is recorded to two places for consistent tracking.
-- Latest increment from the 18.00% baseline: +0.20 percentage points for the tested frontend OHLCV snapshot validator and series-specific chart adapter. No credit is assigned yet for live API fetching, instrument selection UI, chart integration, or a real provider feed.
+- Latest increment: +0.15 percentage points (18.20% → 18.35%) for the tested HTTP OHLCV request client, exact-series query construction, timeout/cancellation handling, and explicit transport failure classification. No credit is assigned for chart wiring, selected-contract UI, backend deployment/configuration, or live provider delivery.
 - Phase 2 foundation now includes market-data DTOs, transport documentation, Python/FastAPI scaffold, futures instrument catalog, and a pure Databento definition-record adapter. Provider retrieval, live ingestion, persistence, recovery, and chart integration remain unimplemented.
 
 ## Current foundation
@@ -192,3 +192,14 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Overflow gaps are aggregated by instrument identity instead of a bounded 1,024-entry event list; retry budget resets only after a stable session.
 - Snapshot replacement rejects conflicting raw symbols for one instrument identity; undefined timestamp sentinel is rejected.
 - These changes still require native CI and real SDK verification. Overall progress remains unchanged.
+
+
+### 2026-11-02 — HTTP OHLCV client foundation
+- Added `src/services/ohlcvClient.ts`: read-only GET client for the existing `/v1/ohlcv` endpoint, using the backend's exact snake_case query parameter names.
+- Requests require a complete series identity (dataset, publisher ID, instrument ID, raw symbol, timeframe); no contract identity or API URL is fabricated.
+- Added request timeout, caller cancellation, no-store caching, HTTP/network/JSON/schema/configuration error classification, and validated conversion through the existing OHLCV adapter.
+- Snapshot outcomes distinguish ready, degraded, and unavailable. A non-live feed state is never reported as confirmed ready; a response with no bars matching the exact requested series is unavailable.
+- Added `src/services/ohlcvClient.test.ts` with 13 tests covering query construction, exact series isolation, ready/degraded/unavailable states, malformed responses, HTTP/network failures, timeout, cancellation, and invalid configuration.
+- GitHub Actions run #101 initially exposed a test-harness unhandled-rejection timing issue in the timeout test. The test was corrected to attach its rejection assertion before advancing fake timers; the corrected latest run is #102.
+- Latest implementation commit: `1f8f9fc7075902879cbc27363d1bd9fbe2516ba2`; timeout-test correction commit: `945601c2cee56db39956d174b527e8b8150f24b4`.
+- Remaining: no backend base URL or verified selected contract is configured in the frontend; the client is not yet wired into the chart. DEMO candles remain clearly labeled and unchanged. No live data is claimed.
