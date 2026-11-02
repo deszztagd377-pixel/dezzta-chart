@@ -90,13 +90,13 @@ class OhlcvIngestionService:
         self.pipeline = pipeline
         self.resolver = resolver
         self.coverage = coverage
-        self.aggregator = Aggregator(pipeline, coverage)
+        self._on_bar_applied = on_bar_applied
+        self.aggregator = Aggregator(pipeline, coverage, on_derived_bar=self._notify_bar_applied)
         self.provider = provider
         self.dataset = dataset
         self._buffer = BoundedBuffer(queue_max)
         self._batch = batch_size
         self._clock = clock_ns
-        self._on_bar_applied = on_bar_applied
         self._sequence = itertools.count(1)
         self._event: asyncio.Event | None = None
         self._session_start: int | None = None
@@ -162,6 +162,15 @@ class OhlcvIngestionService:
     def _count(self, key: str) -> None:
         self.counters[key] = self.counters.get(key, 0) + 1
 
+    def _notify_bar_applied(self, bar: OhlcvBar) -> None:
+        if self._on_bar_applied is None:
+            return
+        try:
+            self._on_bar_applied(bar)
+        except Exception:
+            # A client fan-out failure must never stop ingestion/aggregation.
+            self._count("broadcast_callback_error")
+
     def _note_overflow(self, instrument_hint: tuple[int, int] | None,
                        first_ns: int, last_ns: int) -> None:
         start = first_ns // _NS * _NS
@@ -203,13 +212,7 @@ class OhlcvIngestionService:
         # prove continuous coverage. Only successful historical query windows
         # may mark a range covered.
         self.aggregator.on_bar_applied(bar)
-        if self._on_bar_applied is not None:
-            try:
-                self._on_bar_applied(bar)
-            except Exception:
-                # A client fan-out failure must never stop the single-writer
-                # ingestion loop or invalidate the accepted pipeline bar.
-                self._count("broadcast_callback_error")
+        self._notify_bar_applied(bar)
 
     def status(self) -> dict[str, Any]:
         return {
