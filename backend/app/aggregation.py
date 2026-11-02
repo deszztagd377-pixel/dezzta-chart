@@ -16,6 +16,7 @@ below the child series' evicted floor): that skip is counted, never silent.
 from __future__ import annotations
 
 from decimal import Decimal
+from typing import Callable
 
 from app.coverage import CoverageTracker
 from app.ohlcv import (
@@ -75,9 +76,15 @@ def derive_bar(
 class Aggregator:
     """Cascades derived bars into the pipeline after each accepted bar."""
 
-    def __init__(self, pipeline: OhlcvPipeline, coverage: CoverageTracker | None = None) -> None:
+    def __init__(
+        self,
+        pipeline: OhlcvPipeline,
+        coverage: CoverageTracker | None = None,
+        on_derived_bar: Callable[[OhlcvBar], None] | None = None,
+    ) -> None:
         self._pipeline = pipeline
         self._coverage = coverage
+        self._on_derived_bar = on_derived_bar
         self.stats = {"derived_written": 0, "skipped_evicted": 0, "rejected": 0}
 
     def on_bar_applied(self, bar: OhlcvBar) -> int:
@@ -116,6 +123,12 @@ class Aggregator:
         if self._pipeline.apply(derived) in ("inserted", "replaced"):
             self.stats["derived_written"] += 1
             stack.append(derived)
+            if self._on_derived_bar is not None:
+                try:
+                    self._on_derived_bar(derived)
+                except Exception:
+                    # A stream client failure must not interrupt aggregation.
+                    self.stats["broadcast_callback_error"] = self.stats.get("broadcast_callback_error", 0) + 1
             return 1
         return 0
 
