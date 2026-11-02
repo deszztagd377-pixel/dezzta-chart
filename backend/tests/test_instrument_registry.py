@@ -229,9 +229,11 @@ def test_rejects_memory_database_and_newer_schema(tmp_path):
     "overrides",
     [
         {"provider": ""},
-        {"publisher_id": -1},
+        {"publisher_id": 0},
+        {"instrument_id": 0},
         {"instrument_id": True},
         {"valid_from_ns": -1},
+        {"valid_from_ns": 9_223_372_036_854_775_807},
         {"valid_to_ns": 100},
         {"canonical_id": "not-a-uuid"},
     ],
@@ -240,3 +242,12 @@ def test_invalid_provider_mapping_metadata_is_rejected(registry, overrides):
     registry.register_instrument(stock())
     with pytest.raises(ValueError):
         registry.add_provider_mapping(mapping(**overrides))
+
+
+def test_mapping_resolution_rejects_timestamp_outside_sqlite_integer_range(registry):
+    registry.register_instrument(stock())
+    with pytest.raises(ValueError, match="SQLite-range"):
+        registry.resolve_provider_mapping(
+            provider="databento", dataset="EQUS.MINI", publisher_id=1,
+            instrument_id=9001, timestamp_ns=9_223_372_036_854_775_808,
+        )
