@@ -35,6 +35,12 @@
   color: var(--color-accent);
 }
 
+.nav-item:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -3px;
+  border-radius: 8px;
+}
+
 .nav-label {
   margin-top: 2px;
   font-weight: 500;
