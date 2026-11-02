@@ -25,6 +25,7 @@ from app.ohlcv import (
     decimal_to_string,
 )
 from app.provider import ProviderManager
+from app.ohlcv_stream import OhlcvStreamHub
 from app.symbology import InstrumentResolver
 
 
@@ -46,9 +47,11 @@ def create_app(
     catalog = InstrumentCatalog(config.allowed_roots)
     ohlcv_pipeline = OhlcvPipeline()
     resolver = InstrumentResolver()
+    stream_hub = OhlcvStreamHub()
     ingestion = OhlcvIngestionService(
         pipeline=ohlcv_pipeline, resolver=resolver, coverage=CoverageTracker(),
         dataset=config.databento_dataset, queue_max=config.ohlcv_queue_max,
+        on_bar_applied=stream_hub.publish,
     )
     if live_source_factory is None and config.provider_configured:
         live_source_factory = lambda: DatabentoLiveSource(  # noqa: E731
@@ -78,6 +81,7 @@ def create_app(
         lifespan=lifespan,
     )
     application.state.ohlcv_pipeline = ohlcv_pipeline
+    application.state.ohlcv_stream_hub = stream_hub
     application.state.provider = provider
     application.state.resolver = resolver
     application.state.catalog = catalog
@@ -271,26 +275,148 @@ def create_app(
             {
                 "type": "market_data.status",
                 "version": 1,
-                "dataset": "GLBX.MDP3",
-                "schema": "mbo",
+                "dataset": config.databento_dataset,
+                "schema": "ohlcv",
                 "instruments": list(config.allowed_roots),
                 "quality": {
-                    "state": "disconnected",
+                    "state": provider.state,
                     "bookSynchronized": False,
                     "detectedGapCount": 0,
                     "lastSequence": None,
-                    "lastEventTsNs": None,
-                    "lastReceiveTsNs": None,
-                    "detail": "Provider ingestion has not been implemented.",
+                    "lastEventTsNs": ingestion.last_event_ns,
+                    "lastReceiveTsNs": ingestion.last_receive_ns,
+                    "detail": "Authenticated OHLCV subscription is available; no order-book stream is provided.",
                 },
             }
         )
 
+        subscription = None
         try:
-            while True:
-                await websocket.receive_text()
+            try:
+                request = await asyncio.wait_for(websocket.receive_json(), timeout=10.0)
+            except asyncio.TimeoutError:
+                await websocket.close(code=4408, reason="Subscription request timed out")
+                return
+            if not isinstance(request, dict) or request.get("type") != "market_data.subscribe" or request.get("version") != 1:
+                await websocket.close(code=4400, reason="A version 1 OHLCV subscription is required")
+                return
+            identity = request.get("series")
+            if not isinstance(identity, dict):
+                await websocket.close(code=4400, reason="Exact OHLCV series identity is required")
+                return
+            dataset = identity.get("dataset")
+            raw_symbol = identity.get("rawSymbol")
+            timeframe = identity.get("timeframe")
+            publisher_id = identity.get("publisherId")
+            instrument_id = identity.get("instrumentId")
+            if (
+                dataset != config.databento_dataset
+                or not isinstance(raw_symbol, str) or not raw_symbol.strip()
+                or not isinstance(timeframe, str)
+                or not isinstance(publisher_id, int) or isinstance(publisher_id, bool) or publisher_id <= 0
+                or not isinstance(instrument_id, int) or isinstance(instrument_id, bool) or instrument_id <= 0
+            ):
+                await websocket.close(code=4400, reason="Invalid or unsupported OHLCV series identity")
+                return
+            try:
+                bucket_start_ns(0, timeframe)
+            except InvalidOhlcvBar:
+                await websocket.close(code=4400, reason="Unsupported OHLCV timeframe")
+                return
+
+            # No await occurs between snapshot query and stream registration.
+            # Ingestion and fan-out share this event loop, so this watermark is
+            # an atomic boundary: later accepted revisions enter the queue.
+            subscription, snapshot_bars, total = stream_hub.subscribe_snapshot(
+                ohlcv_pipeline,
+                dataset=dataset,
+                publisher_id=publisher_id,
+                instrument_id=instrument_id,
+                raw_symbol=raw_symbol,
+                timeframe=timeframe,
+                limit=config.ohlcv_max_response_bars,
+            )
+            feed_state = provider.state
+            snapshot_state = "ready" if snapshot_bars else "unavailable"
+            await websocket.send_json({
+                "type": "market_data.ohlcv.snapshot",
+                "version": 1,
+                "state": snapshot_state,
+                "feedState": feed_state,
+                "timestampUnit": "nanoseconds",
+                "priceRepresentation": "decimal-string",
+                "count": len(snapshot_bars),
+                "truncated": total > len(snapshot_bars),
+                "detail": None if snapshot_bars else "No validated bars match this exact series yet.",
+                "streamId": subscription.stream_id,
+                "watermark": subscription.watermark,
+                "bars": [
+                    {
+                        "dataset": bar.dataset,
+                        "provider": bar.provider,
+                        "publisherId": bar.publisher_id,
+                        "instrumentId": bar.instrument_id,
+                        "rawSymbol": bar.raw_symbol,
+                        "seriesType": bar.series_type,
+                        "timeframe": bar.timeframe,
+                        "tsStartNs": str(bar.ts_start_ns),
+                        "open": decimal_to_string(bar.open),
+                        "high": decimal_to_string(bar.high),
+                        "low": decimal_to_string(bar.low),
+                        "close": decimal_to_string(bar.close),
+                        "volume": decimal_to_string(bar.volume),
+                        "tsEventNs": str(bar.ts_event_ns),
+                        "tsReceivedNs": str(bar.ts_received_ns),
+                        "sequence": bar.sequence,
+                        "sequenceOrigin": bar.sequence_origin,
+                        "origin": bar.origin,
+                        "completeness": bar.completeness,
+                    }
+                    for bar in snapshot_bars
+                ],
+            })
+
+            receive_task = asyncio.create_task(websocket.receive_text())
+            try:
+                while True:
+                    if subscription.overflowed:
+                        await websocket.close(code=1013, reason="OHLCV client queue overflow; reconnect and resnapshot")
+                        return
+                    queue_task = asyncio.create_task(subscription.queue.get())
+                    done, _ = await asyncio.wait(
+                        {receive_task, queue_task},
+                        return_when=asyncio.FIRST_COMPLETED,
+                    )
+                    if receive_task in done:
+                        try:
+                            client_message = receive_task.result()
+                        except WebSocketDisconnect:
+                            return
+                        if client_message == "ping":
+                            await websocket.send_json({"type": "market_data.pong", "version": 1})
+                        receive_task = asyncio.create_task(websocket.receive_text())
+                    if queue_task in done:
+                        if subscription.overflowed:
+                            await websocket.close(code=1013, reason="OHLCV client queue overflow; reconnect and resnapshot")
+                            return
+                        await websocket.send_json(queue_task.result())
+                    else:
+                        queue_task.cancel()
+                        try:
+                            await queue_task
+                        except asyncio.CancelledError:
+                            pass
+            finally:
+                receive_task.cancel()
+                try:
+                    await receive_task
+                except (asyncio.CancelledError, WebSocketDisconnect):
+                    pass
         except WebSocketDisconnect:
             return
+        finally:
+            if subscription is not None:
+                stream_hub.unsubscribe(subscription.stream_id)
 
     return application
 
