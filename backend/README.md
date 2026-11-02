@@ -22,8 +22,11 @@ Activate the virtual environment, then install dependencies:
 pip install -r requirements-dev.txt
 ```
 
-Copy `.env.example` to `.env` and set a long random `MARKET_DATA_WS_TOKEN`.
-Do not commit `.env` or share the token. The Databento key is not used by this scaffold.
+Copy `.env.example` to `.env` for local configuration. The WebSocket status route
+requires a long random `MARKET_DATA_WS_TOKEN`; the current frontend chart uses
+read-only HTTP and does not need the WebSocket token. Keep provider switches off
+and leave `DATABENTO_API_KEY` empty unless a separate provider-access review has
+been completed. Never commit `.env` or share secrets.
 
 Start the service:
 
@@ -86,13 +89,20 @@ pytest
 
 ## Current limitations
 
-- No Databento connection or subscription is implemented.
-- No provider instrument-definition download or refresh scheduler is implemented.
-- The in-memory catalog is not populated by a provider.
-- No market-data events are broadcast.
-- No persistence, replay, snapshot recovery, or gap recovery is implemented.
-- The status endpoint intentionally reports the feed as disconnected.
-- Configure a production WebSocket authentication mechanism and TLS termination before any public deployment.
+- Optional Databento SDK source adapters and a bounded OHLCV ingestion/provider lifecycle are present, but no production provider key or session is configured or verified for this project.
+- Provider live and historical features remain disabled by default. Enabling them requires a separate review of account entitlements, exchange licensing, explicit symbols, historical query costs, and operational limits.
+- Provider instrument definitions are not automatically refreshed on a schedule. The in-memory catalog is empty until trusted definitions are loaded.
+- The WebSocket sends status only; it does not broadcast OHLCV or order-book events.
+- Catalog, OHLCV pipeline, and coverage state are in-memory. Persistence, replay, snapshot recovery, and gap recovery across restarts are not implemented.
+- With default settings, the status endpoint correctly reports the provider as disconnected; this is not evidence of a working external feed.
+- Review CORS, TLS, hosting access controls, and WebSocket authentication before public deployment.
+
+## Container deployment
+
+A portable, non-root backend image is defined in `backend/Dockerfile`. It reads the
+platform-provided `PORT`, exposes `/health` for liveness checks, and keeps provider
+features off unless explicitly configured. See [`docs/BACKEND_DEPLOYMENT.md`](../docs/BACKEND_DEPLOYMENT.md)
+for container build, smoke-test, CORS, and safe deployment guidance.
 
 
 ## Phase 2 — Databento OHLCV ingestion
