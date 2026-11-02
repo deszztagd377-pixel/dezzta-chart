@@ -71,6 +71,19 @@ describe('parseOhlcvSnapshot', () => {
     expect(() => parseOhlcvSnapshot(payload)).toThrow(/boundaries/);
   });
 
+  it('checks OHLC boundaries without rounding high-precision decimals', () => {
+    const payload = makeSnapshot({
+      bars: [{
+        ...baseBar,
+        open: '6000.125000000000000001',
+        high: '6000.125000000000000000',
+        low: '5999.875',
+        close: '6000.100',
+      }],
+    });
+    expect(() => parseOhlcvSnapshot(payload)).toThrow(/boundaries/);
+  });
+
   it('rejects non-chronological and duplicate timestamps', () => {
     const payload = makeSnapshot({
       bars: [
