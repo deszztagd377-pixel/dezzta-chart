@@ -5,7 +5,6 @@ import {
 } from 'lightweight-charts';
 import type {
   IChartApi,
-  ISeriesApi,
   CandlestickData,
   DeepPartial,
   ChartOptions,
@@ -47,7 +46,6 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
 }) => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
 
   const [isChartReady, setIsChartReady] = useState(false);
 
@@ -124,7 +122,6 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       wickUpColor: '#26a69a',
     });
 
-    candleSeriesRef.current = candleSeries;
     candleSeries.setData(sampleCandles);
     chart.timeScale().fitContent();
 
@@ -144,7 +141,6 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       observer.disconnect();
       chart.remove();
       chartRef.current = null;
-      candleSeriesRef.current = null;
     };
   }, []);
 
