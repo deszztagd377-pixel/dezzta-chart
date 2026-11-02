@@ -325,3 +325,12 @@ Status: provider and initial instrument scope selected; transport contract, back
 - SQLite is a single-backend durable adapter only when deployed on a persistent volume. Multi-instance production requires a planned PostgreSQL adapter/migration and backup/restore validation.
 - No live provider, exchange licensing, Firebase auth, public multi-asset catalog, or end-to-end real data is claimed by this milestone.
 - Project progress remains 19.40% until the new and full regression suites are verified on the resulting branch head.
+
+
+### 2026-11-02 — Provider metadata versioning design gate
+- Audited the canonical identity value object, immutable SQLite registry, futures definition catalog, and in-memory point-in-time resolver before connecting provider refreshes.
+- Identified a critical modeling boundary: the canonical value object contains both stable identity and mutable/provider-correctable trading metadata, while the SQLite canonical row is immutable. Directly persisting provider refreshes would either reject legitimate metadata revisions or weaken identity immutability.
+- Added docs/INSTRUMENT_METADATA_VERSIONING.md defining three layers: stable canonical identity, append-only effective-time metadata revisions, and provider-scoped point-in-time mappings.
+- Defined transaction, idempotency, out-of-order event, authoritative source, venue verification, migration, and unknown-history rules. No provider metadata is inferred and no historical validity is fabricated.
+- This is an architecture gate only; no schema migration or provider ingestion integration is claimed. Existing ES/NQ/GC catalog and resolver remain unchanged.
+- Project progress remains 19.40% until versioned metadata migration, provider integration, and regression tests are implemented and verified.
