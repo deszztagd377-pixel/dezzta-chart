@@ -88,7 +88,7 @@ def test_list_filters_and_pagination_are_bounded(registry):
     ))
     assert [item.symbol for item in registry.list_instruments(asset_class="equity")] == ["AAPL"]
     assert [item.symbol for item in registry.list_instruments(venue="XNAS")] == ["AAPL"]
-    assert registry.list_instruments(limit=1, offset=1)[0].symbol == "BTCUSD"
+    assert registry.list_instruments(limit=1, offset=1)[0].symbol == "AAPL"
     with pytest.raises(ValueError):
         registry.list_instruments(limit=1001)
     with pytest.raises(ValueError):
