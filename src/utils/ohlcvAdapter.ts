@@ -2,7 +2,6 @@ import type { ChartData, Timeframe } from '../types';
 import type {
   OhlcvBarDto,
   OhlcvSnapshotMessage,
-  OhlcvSnapshotState,
   OhlcvTimeframe,
 } from '../types/ohlcv';
 
@@ -120,13 +119,21 @@ export function parseOhlcvSnapshot(payload: unknown): OhlcvSnapshotMessage {
   }
 
   const bars = payload.bars.map(validateBar);
-  let previousTimestamp = -1n;
+  const previousBySeries = new Map<string, bigint>();
   for (const [index, bar] of bars.entries()) {
+    const seriesKey = [
+      bar.dataset,
+      bar.publisherId,
+      bar.instrumentId,
+      bar.rawSymbol,
+      bar.timeframe,
+    ].join('|');
     const timestamp = BigInt(bar.tsStartNs);
-    if (timestamp <= previousTimestamp) {
-      throw new Error(`OHLCV bars are not strictly chronological at index ${index}.`);
+    const previousTimestamp = previousBySeries.get(seriesKey);
+    if (previousTimestamp !== undefined && timestamp <= previousTimestamp) {
+      throw new Error(`OHLCV bars are not strictly chronological within a series at index ${index}.`);
     }
-    previousTimestamp = timestamp;
+    previousBySeries.set(seriesKey, timestamp);
   }
 
   return { ...payload, bars } as unknown as OhlcvSnapshotMessage;
