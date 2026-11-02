@@ -1,0 +1,131 @@
+.settings-panel {
+  width: min(100%, 760px);
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 22px 16px 32px;
+  color: #e5e7eb;
+  overflow-y: auto;
+}
+
+.settings-panel__heading {
+  margin-bottom: 20px;
+}
+
+.settings-panel__eyebrow {
+  margin-bottom: 6px;
+  color: #8b98a9;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.3px;
+}
+
+.settings-panel__heading h2 {
+  margin: 0;
+  font-size: 21px;
+  line-height: 1.25;
+  font-weight: 650;
+}
+
+.settings-panel__intro,
+.settings-panel__note {
+  margin-top: 8px;
+  color: #9ca3af;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.settings-panel__section {
+  margin-top: 12px;
+  padding: 15px;
+  border: 1px solid #29313d;
+  border-radius: 11px;
+  background: linear-gradient(145deg, #121a24, #10151d);
+}
+
+.settings-panel__section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.settings-panel__section-heading h3 {
+  margin: 0;
+  color: #e5e7eb;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.settings-panel__section-heading > span {
+  color: #8b98a9;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .7px;
+}
+
+.settings-panel__section-heading .settings-panel__status {
+  padding: 4px 7px;
+  border: 1px solid #66502b;
+  border-radius: 999px;
+  color: #e7bd73;
+}
+
+.settings-panel__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 48px;
+  cursor: pointer;
+}
+
+.settings-panel__toggle-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.settings-panel__toggle-copy strong {
+  color: #e5e7eb;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.settings-panel__toggle-copy small {
+  color: #8b98a9;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.settings-panel__toggle input {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  accent-color: #00d4ff;
+  cursor: pointer;
+}
+
+.settings-panel__reset {
+  width: 100%;
+  min-height: 46px;
+  margin-top: 18px;
+  padding: 0 14px;
+  border: 1px solid #344253;
+  border-radius: 9px;
+  background: #182330;
+  color: #dbeafe;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.settings-panel__reset:active {
+  background: #223244;
+}
+
+.settings-panel__reset:focus-visible,
+.settings-panel__toggle input:focus-visible {
+  outline: 2px solid #00d4ff;
+  outline-offset: 3px;
+}
