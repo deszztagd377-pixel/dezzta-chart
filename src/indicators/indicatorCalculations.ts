@@ -18,6 +18,12 @@ function validatePeriod(period: number): void {
   }
 }
 
+function validateValues(values: readonly number[]): void {
+  values.forEach((value, index) => {
+    if (!Number.isFinite(value)) throw new Error(`Input ${index} is not finite.`);
+  });
+}
+
 function closes(bars: readonly ChartData[]): number[] {
   return bars.map((bar, index) => {
     if (!Number.isFinite(bar.close)) {
@@ -42,6 +48,7 @@ export function calculateSma(values: readonly number[], period: number): Array<n
 
 export function calculateEma(values: readonly number[], period: number): Array<number | null> {
   validatePeriod(period);
+  validateValues(values);
   const output: Array<number | null> = Array(values.length).fill(null);
   if (values.length < period) return output;
   const seed = values.slice(0, period);
@@ -62,6 +69,7 @@ export function calculateEma(values: readonly number[], period: number): Array<n
 
 export function calculateRsi(values: readonly number[], period = 14): Array<number | null> {
   validatePeriod(period);
+  validateValues(values);
   const output: Array<number | null> = Array(values.length).fill(null);
   if (values.length <= period) return output;
 
@@ -134,6 +142,7 @@ export function calculateBollingerBands(
   standardDeviations = 2,
 ): BollingerPoint[] {
   validatePeriod(period);
+  validateValues(values);
   if (!Number.isFinite(standardDeviations) || standardDeviations < 0) {
     throw new Error('Bollinger standard deviation multiplier must be non-negative.');
   }
