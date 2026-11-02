@@ -249,3 +249,58 @@ def test_websocket_rejects_invalid_ohlcv_subscription() -> None:
                 },
             })
             websocket.receive_json()
+
+def test_authenticated_websocket_receives_validated_live_ohlcv_update() -> None:
+    class FakeLive:
+        callback = None
+        stopped = False
+
+        def start(self, on_record, on_close):
+            FakeLive.callback = on_record
+
+        def stop(self):
+            FakeLive.stopped = True
+
+    settings = Settings(
+        app_env="test",
+        market_data_ws_token="test-secret",
+        cors_allowed_origins=(),
+        databento_api_key="db-FAKEFAKEFAKEFAKEFAKEFAKE1234",
+        databento_live_enabled=True,
+        databento_live_symbols=("ESZ6",),
+    )
+    application = create_app(settings, live_source_factory=FakeLive)
+    application.state.resolver.add(SymbolMapping(
+        provider="databento", dataset="GLBX.MDP3", publisher_id=1,
+        instrument_id=101, raw_symbol="ESZ6", valid_from_ns=0,
+    ))
+
+    with TestClient(application) as client:
+        with client.websocket_connect("/ws/market-data") as websocket:
+            websocket.send_json({"type": "auth", "token": "test-secret"})
+            assert websocket.receive_json()["type"] == "market_data.status"
+            websocket.send_json({
+                "type": "market_data.subscribe",
+                "version": 1,
+                "series": {
+                    "dataset": "GLBX.MDP3",
+                    "publisherId": 1,
+                    "instrumentId": 101,
+                    "rawSymbol": "ESZ6",
+                    "timeframe": "1s",
+                },
+            })
+            snapshot = websocket.receive_json()
+            assert snapshot["state"] == "unavailable"
+            assert snapshot["watermark"] == 0
+
+            assert FakeLive.callback is not None
+            FakeLive.callback(_record(0))
+            update = websocket.receive_json()
+            assert update["type"] == "market_data.ohlcv.update"
+            assert update["sequence"] == 1
+            assert update["series"]["instrumentId"] == 101
+            assert update["bar"]["rawSymbol"] == "ESZ6"
+            assert update["bar"]["timeframe"] == "1s"
+
+    assert FakeLive.stopped is True
