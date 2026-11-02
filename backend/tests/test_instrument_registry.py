@@ -259,7 +259,11 @@ def test_atomic_registration_creates_identity_and_mapping_and_is_idempotent(regi
     assert registry.register_instrument_with_mapping(instrument, provider_mapping) == (True, True)
     assert registry.register_instrument_with_mapping(instrument, provider_mapping) == (False, False)
     assert registry.get_instrument(INSTRUMENT_ID) == instrument
-    assert registry.list_provider_mappings(INSTRUMENT_ID) == [provider_mapping]
+    resolved = registry.list_provider_mappings(INSTRUMENT_ID)
+    assert len(resolved) == 1
+    assert resolved[0].provider == "databento"
+    assert resolved[0].dataset == "EQUS.MINI"
+    assert resolved[0].canonical_id == INSTRUMENT_ID
 
 
 def test_atomic_registration_adds_mapping_to_existing_identity(registry):
@@ -281,7 +285,11 @@ def test_atomic_registration_rolls_back_new_identity_on_mapping_conflict(registr
         registry.register_instrument_with_mapping(second, conflicting)
 
     assert registry.get_instrument(SECOND_ID) is None
-    assert registry.list_provider_mappings(INSTRUMENT_ID) == [mapping()]
+    resolved = registry.list_provider_mappings(INSTRUMENT_ID)
+    assert len(resolved) == 1
+    assert resolved[0].canonical_id == INSTRUMENT_ID
+    assert resolved[0].valid_from_ns == 100
+    assert resolved[0].valid_to_ns == 200
 
 
 def test_atomic_registration_rejects_mismatched_canonical_ids(registry):
