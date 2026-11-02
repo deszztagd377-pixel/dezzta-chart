@@ -157,8 +157,9 @@ describe('fetchOhlcvSnapshot', () => {
       init?.signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')));
     }));
     const pending = fetchOhlcvSnapshot(options(fetchImpl, { timeoutMs: 50 }));
+    const rejection = expect(pending).rejects.toMatchObject({ code: 'timeout' });
     await vi.advanceTimersByTimeAsync(50);
-    await expect(pending).rejects.toMatchObject({ code: 'timeout' });
+    await rejection;
   });
 
   it('rejects an unverified or invalid base URL and unsafe limit', async () => {
