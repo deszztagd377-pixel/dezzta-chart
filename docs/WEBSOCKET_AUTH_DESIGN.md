@@ -8,6 +8,12 @@
 - The static token must never be placed in `VITE_*` variables, frontend source, local storage, a public config endpoint, or an Android package.
 - CORS/Origin validation is defense in depth, not authentication. Native clients may not send an Origin header, so the backend must still require valid credentials.
 
+## Additional security finding from the current backend audit
+
+The current route validates that the requested series identity is syntactically well-formed and uses the configured dataset, but it does not yet prove that the authenticated principal is entitled to the requested publisher/instrument/raw-symbol/timeframe tuple. The current shared static token has no principal identity or per-series claims. Before any production client is connected, authorization must be enforced against verified instrument definitions and the user's granted data entitlements. Do not treat a valid token alone as permission to subscribe to every series.
+
+The current route also accepts a missing Origin header. This is necessary for some native clients and is not itself a defect, but it means Origin checks cannot be treated as a security boundary. Require a valid credential and enforce authorization for every subscription.
+
 ## Required production properties
 
 1. TLS-only WebSocket transport (`wss://`) outside local development.
@@ -44,6 +50,7 @@ The client must validate the server snapshot and its stream ID/watermark before 
 - No managed identity provider has been selected.
 - No user login/session system or token-exchange endpoint exists.
 - No short-lived WebSocket ticket format or signing-key lifecycle exists.
+- No authenticated-principal-to-series authorization check exists in the WebSocket subscription path.
 - No frontend WebSocket client, reconnect loop, or stream-to-store update path exists.
 - No public deployment or real provider feed is verified.
 
