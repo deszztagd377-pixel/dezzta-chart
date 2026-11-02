@@ -315,3 +315,13 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Canonical UUIDs are registry-assigned and must be persisted; they are not derived from symbols or provider IDs. Provider mappings remain a separate identity layer.
 - This is schema groundwork only: no durable registry/database, provider coverage, multi-asset catalog endpoint, entitlement system, Firebase integration, or live multi-asset data is implemented.
 - Tests and CI must be run against the resulting branch head before claiming verification. Overall project progress remains 19.40% until implementation and test gates are independently verified.
+
+
+### 2026-11-02 — Persistent instrument registry (SQLite adapter)
+- Added a file-backed SQLite registry for immutable canonical instrument records and provider-scoped point-in-time mappings.
+- Enabled foreign keys on every connection, WAL, bounded busy timeout, transactional writes with BEGIN IMMEDIATE, canonical-ID idempotency/conflict checks, immutable-row trigger, and database-level overlap triggers for provider mapping validity windows.
+- Added bounded/filterable registry reads, exact timestamp mapping resolution, migration-version guard, and tests for restart durability, identity immutability, mapping scope, half-open validity windows, adjacent windows, overlap rejection, and concurrent writers.
+- Integrated registry initialization into FastAPI application state with a backend-only database path setting. No public registry write endpoints were exposed; Firebase identity and per-series entitlement checks remain prerequisites.
+- SQLite is a single-backend durable adapter only when deployed on a persistent volume. Multi-instance production requires a planned PostgreSQL adapter/migration and backup/restore validation.
+- No live provider, exchange licensing, Firebase auth, public multi-asset catalog, or end-to-end real data is claimed by this milestone.
+- Project progress remains 19.40% until the new and full regression suites are verified on the resulting branch head.
