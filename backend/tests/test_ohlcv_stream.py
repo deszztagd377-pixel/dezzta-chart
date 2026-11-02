@@ -1,6 +1,7 @@
 import asyncio
 from decimal import Decimal
 
+from app.aggregation import Aggregator
 from app.ohlcv import OhlcvBar, OhlcvPipeline
 from app.ohlcv_stream import OhlcvStreamHub
 
@@ -116,3 +117,33 @@ def test_hub_rejects_invalid_queue_capacity() -> None:
         except ValueError:
             continue
         raise AssertionError(f"queue capacity {value!r} should be rejected")
+
+def test_derived_timeframe_revisions_are_streamed_to_the_matching_subscription() -> None:
+    async def scenario() -> None:
+        pipeline = OhlcvPipeline()
+        hub = OhlcvStreamHub()
+        aggregator = Aggregator(pipeline, on_derived_bar=hub.publish)
+
+        for offset in range(4):
+            child = make_bar(offset)
+            assert pipeline.apply(child) == "inserted"
+            aggregator.on_bar_applied(child)
+
+        subscription, snapshot, _ = hub.subscribe_snapshot(
+            pipeline, dataset="GLBX.MDP3", publisher_id=1, instrument_id=101,
+            raw_symbol="ESZ6", timeframe="5s", limit=100,
+        )
+        assert len(snapshot) == 1
+        assert snapshot[0].origin == "derived"
+
+        fifth = make_bar(4)
+        assert pipeline.apply(fifth) == "inserted"
+        aggregator.on_bar_applied(fifth)
+
+        update = subscription.queue.get_nowait()
+        assert update["series"]["timeframe"] == "5s"
+        assert update["bar"]["origin"] == "derived"
+        assert update["sequence"] == 1
+        assert update["isFinal"] is False
+
+    asyncio.run(scenario())
