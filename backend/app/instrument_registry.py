@@ -61,8 +61,8 @@ def _normalize_mapping(
             raise ValueError(f"{name} is required.")
     for name in ("publisher_id", "instrument_id", "valid_from_ns"):
         value = getattr(mapping, name)
-        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
-            raise ValueError(f"{name} must be a non-negative integer.")
+        if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+            raise ValueError(f"{name} must be a positive integer.")
     if mapping.valid_to_ns is not None and (
         not isinstance(mapping.valid_to_ns, int)
         or isinstance(mapping.valid_to_ns, bool)
@@ -170,8 +170,8 @@ class SQLiteInstrumentRegistry:
                     CREATE TABLE provider_instrument_mappings (
                         provider TEXT NOT NULL CHECK (length(provider) > 0),
                         dataset TEXT NOT NULL CHECK (length(dataset) > 0),
-                        publisher_id INTEGER NOT NULL CHECK (publisher_id >= 0),
-                        instrument_id INTEGER NOT NULL CHECK (instrument_id >= 0),
+                        publisher_id INTEGER NOT NULL CHECK (publisher_id > 0),
+                        instrument_id INTEGER NOT NULL CHECK (instrument_id > 0),
                         raw_symbol TEXT NOT NULL CHECK (length(raw_symbol) > 0),
                         valid_from_ns INTEGER NOT NULL CHECK (valid_from_ns >= 0),
                         valid_to_ns INTEGER,
@@ -451,15 +451,20 @@ class SQLiteInstrumentRegistry:
         instrument_id: int,
         timestamp_ns: int,
     ) -> ProviderInstrumentMapping | None:
-        if not isinstance(timestamp_ns, int) or isinstance(timestamp_ns, bool) or timestamp_ns < 0:
-            raise ValueError("timestamp_ns must be a non-negative integer.")
+        if (
+            not isinstance(timestamp_ns, int)
+            or isinstance(timestamp_ns, bool)
+            or timestamp_ns < 0
+            or timestamp_ns > _SQLITE_MAX_INTEGER
+        ):
+            raise ValueError("timestamp_ns must be a non-negative SQLite-range integer.")
         if not isinstance(provider, str) or not provider.strip():
             raise ValueError("provider is required.")
         if not isinstance(dataset, str) or not dataset.strip():
             raise ValueError("dataset is required.")
         for name, value in (("publisher_id", publisher_id), ("instrument_id", instrument_id)):
-            if not isinstance(value, int) or isinstance(value, bool) or value < 0:
-                raise ValueError(f"{name} must be a non-negative integer.")
+            if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+                raise ValueError(f"{name} must be a positive integer.")
 
         connection = self._connect()
         try:
