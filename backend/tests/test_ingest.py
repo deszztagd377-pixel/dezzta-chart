@@ -69,11 +69,11 @@ def test_duplicates_stale_and_bad_records_are_counted_and_do_not_stop_processing
 def test_queue_overflow_marks_gap_and_degraded_instead_of_dropping_silently():
     service, pipeline, _, coverage = make_service(queue_max=2)
     scope = ("databento", "GLBX.MDP3", 1, 101, "contract", "ESZ6")
+    coverage.add_covered(scope, T0, T0 + 5 * NS)
     for i in range(4):
         service.offer(rec(i), "ohlcv-1s")
     service.process_pending()
     status = service.status()
-    coverage.add_covered(scope, T0, T0 + 5 * NS)
     assert status["overflow_count"] == 2 and "ingest_overflow" in status["degraded_reasons"]
     assert len(pipeline.list_bars(timeframe="1s")) == 2
     assert coverage.status(scope, T0 + 2 * NS, T0 + 4 * NS) != "covered"  # instrument-specific gap
