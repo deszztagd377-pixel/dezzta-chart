@@ -1,4 +1,4 @@
-import type { OhlcvBarDto } from '../types/ohlcv';
+import type { OhlcvBarDto, OhlcvTimeframe } from '../types/ohlcv';
 import { parseOhlcvSnapshot } from '../utils/ohlcvAdapter';
 
 export interface OhlcvStreamSeriesIdentity {
@@ -6,7 +6,7 @@ export interface OhlcvStreamSeriesIdentity {
   publisherId: number;
   instrumentId: number;
   rawSymbol: string;
-  timeframe: string;
+  timeframe: OhlcvTimeframe;
 }
 
 /**
@@ -137,17 +137,21 @@ export type OhlcvSequenceDecision =
  * baseline. The gate does not perform network recovery itself.
  */
 export class OhlcvStreamSequenceGuard {
+  private readonly streamId: string;
+  private readonly series: Readonly<OhlcvStreamSeriesIdentity>;
   private lastSequence: number;
 
   constructor(
-    private readonly streamId: string,
-    private readonly series: OhlcvStreamSeriesIdentity,
+    streamId: string,
+    series: OhlcvStreamSeriesIdentity,
     snapshotSequence: number,
   ) {
     if (!isNonEmptyString(streamId)) throw new Error('A streamId is required.');
     if (!Number.isSafeInteger(snapshotSequence) || snapshotSequence < 0) {
       throw new Error('Snapshot sequence must be a non-negative safe integer.');
     }
+    this.streamId = streamId;
+    this.series = Object.freeze({ ...series });
     this.lastSequence = snapshotSequence;
   }
 
