@@ -21,7 +21,7 @@ The identity provider authenticates the account. It does not supply market data,
 
 Firebase Authentication is the leading candidate for the next implementation spike because the application targets both a React web client and a future Android app, while the current backend is Python/FastAPI. Firebase documents first-party Android and web token retrieval, and its Python Admin SDK verifies token signature, issuer, project, expiry, and optionally revocation. The Spark plan currently includes most Authentication options without requiring payment information.
 
-This is a **candidate recommendation, not a final vendor lock**. Before implementation, verify the exact sign-in methods, account recovery, age-appropriate account setup, regional/legal requirements, quotas, billing settings, and the current terms/pricing. Do not enable phone/SMS sign-in by default. Do not add a billing account or paid plan without the project owner's explicit approval.
+The project owner approved Firebase Authentication as the primary provider for the authentication prototype on 2026-11-02. This approves the prototype direction, not production launch, billing, or credential provisioning. Before implementation, verify the exact sign-in methods, account recovery, age-appropriate account setup, regional/legal requirements, quotas, billing settings, and the current terms/pricing. Do not enable phone/SMS sign-in by default. Do not add a billing account or paid plan without the project owner's explicit approval.
 
 Official references:
 - Firebase pricing and Spark/Blaze plans: https://firebase.google.com/pricing
@@ -32,6 +32,12 @@ Official references:
 - Supabase session and access-token lifetime: https://supabase.com/docs/guides/auth/sessions
 - Clerk pricing: https://clerk.com/pricing
 - Clerk JWT templates and token lifetime: https://clerk.com/docs/guides/sessions/jwt-templates
+
+## Approved prototype provider
+
+Use Firebase Authentication for the first prototype behind a provider-neutral `IdentityVerifier` interface. The backend must accept only Firebase client ID tokens, verify them using the Admin SDK with the configured project ID, and resolve a stable Firebase UID. Add tests for malformed, expired, wrong-project/audience, disabled, and revoked identities. Revocation checks should be applied at the appropriate session/token-exchange boundary with an explicit performance policy; do not assume signature validation alone detects revocation.
+
+Do not commit service-account JSON or any Firebase private key. Use a managed secret store or protected backend environment configuration in deployment. Do not add a `VITE_*` secret. Do not configure billing or enable paid services without explicit approval. Keep provider-specific code isolated so a future provider migration does not change the market-data authorization contract.
 
 ## Required token-exchange architecture
 
