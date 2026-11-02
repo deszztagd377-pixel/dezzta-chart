@@ -56,11 +56,14 @@ Verified contract + selected timeframe
 
 ## Live-data boundary — important limitation
 
-The frontend currently obtains read-only OHLCV snapshots over HTTP. The shared
-store is ready to receive subsequent validated updates, but continuous provider
-streaming, WebSocket OHLCV broadcast, reconnect/gap recovery, and incremental
-bar revisions are not yet wired end to end. Therefore this phase does **not**
-claim that the app currently receives live market data.
+The frontend currently obtains read-only OHLCV snapshots over HTTP. A versioned
+stream event parser and per-stream sequence guard are now defined in
+\`src/services/ohlcvStreamProtocol.ts\` and documented in
+\`docs/OHLCV_STREAM_PROTOCOL.md\`. The shared store is ready to receive subsequent
+validated updates, but continuous provider streaming, WebSocket OHLCV broadcast,
+atomic snapshot/watermark handoff, reconnect/gap recovery, and incremental bar
+revisions are not yet wired end to end. Therefore this phase does **not** claim
+that the app currently receives live market data.
 
 A future stream adapter must validate the same exact series identity and bar
 invariants before publishing updates through the same store. The chart and all
@@ -86,8 +89,9 @@ open its own market-data connection.
 1. Deploy and smoke-test the backend without enabling a provider session.
 2. Connect the frontend to the deployed read-only API and verify exact contract
    and timeframe snapshots.
-3. Define a versioned streaming event envelope and implement backend broadcast,
-   frontend reconnect, sequence/gap handling, and snapshot resynchronization.
+3. Implement the documented versioned streaming contract: backend broadcast,
+   atomic snapshot/watermark handoff, frontend reconnect, sequence/gap handling,
+   and snapshot resynchronization.
 4. Route every accepted stream update through the shared store.
 5. Build visible indicator controls and chart panes/overlays on top of the shared
    indicator hook, with per-indicator timeframe and performance tests.
