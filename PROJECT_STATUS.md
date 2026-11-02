@@ -10,7 +10,7 @@ Working branch: phase-2/market-data-foundation
 - Estimated overall progress toward the intended full application: 19.40%.
 - Progress is a weighted milestone estimate, not a code-line percentage or a claim of scientific measurement. Decimal precision is recorded to two places for consistent tracking.
 - Latest increment: +0.35 percentage points (19.05% → 19.40%) for introducing one immutable, exact-series shared OHLCV store, chart publication/clearing lifecycle, React subscription hooks, a reusable SMA/EMA/RSI/MACD/Bollinger calculation engine, regression tests, and architecture documentation. No credit is assigned for visible indicator UI, continuous streaming, live provider delivery, or deployment.
-- Phase 2 now includes a FastAPI backend, verified-definition catalog lifecycle, optional Databento SDK source adapters, bounded OHLCV ingestion/provider lifecycle, validated read-only snapshot endpoints, and selected-contract/timeframe frontend snapshot requests. No production provider session or backend deployment is configured; persistence, replay, frontend WebSocket integration, and verified live provider delivery remain outstanding.
+- Phase 2 includes the FastAPI backend, verified-definition catalog lifecycle, optional Databento SDK source adapters, bounded OHLCV ingestion, validated HTTP snapshots, and an authenticated backend WebSocket broadcaster with atomic snapshot/watermark handoff. The frontend still uses HTTP snapshots; its WebSocket client/authentication/reconnect integration, persistence/replay, backend deployment, and verified live provider delivery remain outstanding.
 
 ## Current foundation
 
@@ -26,7 +26,7 @@ Working branch: phase-2/market-data-foundation
 ## Verified limitations
 
 - No live market-data provider session is configured. Optional Databento source adapters and the provider lifecycle exist behind explicit server-side flags, but the current deployment has no provider credentials/session and no real provider delivery is claimed.
-- The selected timeframe is included in the chart's read-only backend OHLCV snapshot request. The chart displays backend bars only after exact-series validation; until a backend is deployed and trusted bars are available, the clearly labelled DEMO fixture remains visible. Continuous streaming is not implemented.
+- The selected timeframe is included in the chart's read-only backend OHLCV snapshot request. The chart displays backend bars only after exact-series validation; until a backend is deployed and trusted bars are available, the clearly labelled DEMO fixture remains visible. Backend OHLCV WebSocket broadcast is implemented, but the frontend has not connected to it; end-to-end streaming is not implemented.
 - Watchlist now displays an explicitly offline, read-only supported-product catalog fixture for ES/NQ/GC; no expiry-specific contracts are fabricated.
 - The existing sample candles are not real market data.
 - Global indicator requirement: every indicator must be designed for compatibility across all supported chart timeframes, including second-based intervals. This is a target to validate per indicator, not a claim that every calculation is automatically valid on every timeframe.
@@ -70,10 +70,10 @@ Status: provider and initial instrument scope selected; transport contract, back
 
 - No production live or historical provider session, provider download, or subscription is configured or verified.
 - Databento SDK source adapters and the normalized bounded OHLCV ingestion path are implemented, but provider access is disabled by default and no real account/session has been validated. Do not enable provider flags without a separate review of entitlement, exchange licensing, explicit symbols, historical query costs, and operational limits.
-- No OHLCV WebSocket broadcast or continuous frontend streaming update loop yet. The chart requests read-only snapshots and publishes validated backend bars into the shared store. The future indicator hook reads only that store; no visible indicator controls/panes have been built yet. The frontend requires `VITE_MARKET_DATA_API_BASE_URL` to reach a deployed backend.
+- Backend OHLCV WebSocket broadcast and snapshot/watermark handoff are implemented. The frontend still requests HTTP snapshots and publishes validated bars into the shared store; it does not yet authenticate, subscribe, reconnect, resynchronize, or apply stream updates. No visible indicator controls/panes have been built yet. The frontend requires `VITE_MARKET_DATA_API_BASE_URL` to reach a deployed backend.
 - No provider definition refresh scheduler or production population of the catalog.
 - Catalog, OHLCV pipeline, and coverage state are currently in-memory only; a restart clears them. Durable storage, replay, snapshot recovery, and gap recovery are not implemented.
-- The authenticated WebSocket sends status only; it does not broadcast OHLCV or order-book events.
+- The authenticated WebSocket now supports exact-series OHLCV snapshot subscriptions and bounded in-memory updates for accepted base and derived bars. It does not provide order-book/MBO events or durable replay.
 - No brokerage or order-execution integration.
 - No Footprint, Heatmap, or Liquidation Maps implementation; these three Exclusive Indicators are reserved for one coordinated Claude-assisted workflow after the project owner supplies visual references for each.
 - Mid Tier is planned to contain approximately 10 intermediate/advanced indicators, not just Volume Profile. Volume Profile is one confirmed member; the remaining list will be proposed for owner approval before implementation. Candidate examples for discussion: VWAP, ATR, ADX/DMI, Stochastic, CCI, OBV, MFI, Ichimoku Cloud, Supertrend, and Keltner Channels. These are product categorization candidates, not implementation commitments.
@@ -85,9 +85,10 @@ Status: provider and initial instrument scope selected; transport contract, back
 
 ## Planned engineering sequence
 
-1. Deploy and smoke-test the backend with provider features disabled; connect the frontend to the verified API origin.
-2. Define and test a versioned OHLCV streaming event contract, then implement backend broadcast, frontend reconnect, sequence/gap recovery, and snapshot resynchronization.
-3. Route every accepted live update through the shared market-data store so chart and indicators consume one series.
+1. Resolve a secure short-lived WebSocket token-issuance mechanism; do not embed a long-lived token in frontend code or `VITE_` environment variables.
+2. Implement the frontend WebSocket client with exact-series subscription, snapshot validation, sequence guard, heartbeat, bounded reconnect, and fresh-snapshot recovery.
+3. Publish accepted stream updates through the shared market-data store so the chart and all indicators consume one exact instrument/timeframe series.
+4. Deploy and smoke-test the backend with provider features disabled, then connect the frontend to the verified API origin.
 4. Build visible indicator controls and overlays/panes on top of `useMarketIndicators`, with timeframe compatibility and performance tests.
 5. Add the planned Low Tier / Mid Tier / Exclusive navigation and separate Tools entry point.
 6. Implement Volume Profile and the compact movable-range Volume Profile Tool after the owner supplies visual references.
@@ -274,3 +275,14 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Important limitations: frontend WebSocket authentication/subscription/client reconnect is not implemented; the frontend has not yet applied stream updates to `marketDataStore`. Delivery is in-memory only and cannot replay across backend restart. No provider credentials/session or actual market feed are enabled or verified. No MBO/order-book feed is provided.
 - Overall progress remains 19.40% until branch-head CI and the new backend tests are independently verified. No live-data or end-to-end frontend streaming credit is assigned.
 - Latest code/test commit: `d9c9ed67ca52884247fb293d3adefa77ca010924`; final WebSocket status cleanup: `91284c5789ebb540fb09264b32e4f9a521f50eda`. Branch comparison at this status refresh: 168 commits ahead of `main`, 0 behind; `main` remains untouched. Latest visible Vercel status is failure with `upgradeToPro=build-rate-limit` (platform build-rate limit, not proof of a source compile failure). The available GitHub workflow-run lookup exposes no push-triggered run, so CI is not claimed as passed.
+
+
+### 2026-11-02 — Backend OHLCV WebSocket broadcast and snapshot handoff audit
+- Verified the active working branch is `phase-2/market-data-foundation`; comparison reports 169 commits ahead of `main` and 0 behind. `main` was not modified.
+- Verified backend route `/ws/market-data` authenticates, accepts a version 1 exact-series subscription, sends a validated OHLCV snapshot with a stream ID and watermark, and then sends ordered updates.
+- Verified `OhlcvStreamHub` uses bounded per-subscriber queues and forces a reconnect/resnapshot after overflow rather than silently skipping updates. Accepted base and derived timeframe revisions are wired into the hub.
+- Verified frontend protocol parsing and sequence-guard groundwork exists, but no frontend WebSocket client is connected to the chart or shared store.
+- Security gate: the backend currently uses one static server-configured WebSocket token. This is acceptable only as a controlled local/test scaffold; it must not be copied into the browser bundle or Android package. A production client requires a short-lived, narrowly scoped token delivered through a separately authenticated session or server-side gateway. No login/session provider is currently selected.
+- CI status: not verified on the current branch head. The available commit-workflow lookup returned no push-triggered run; no test pass is claimed from this audit.
+- Backend deployment and provider delivery remain unverified. Databento credentials/session are not configured; no real market feed is claimed.
+- Overall progress remains 19.40%; no credit is assigned for frontend streaming, live provider delivery, deployment, or visible indicator UI.
