@@ -105,10 +105,9 @@ def test_live_records_do_not_claim_continuous_coverage():
 
 def test_live_ingestion_latency_is_measured_with_monotonic_clock():
     ticks = iter((100, 600, 3_600))
-    service, pipeline, *_ = make_service(
-        clock_ns=lambda: T0 + 2 * NS,
-        monotonic_ns=lambda: next(ticks),
-    )
+    service, pipeline, *_ = make_service()
+    service._clock = lambda: T0 + 2 * NS
+    service._monotonic = lambda: next(ticks)
     assert service.offer(rec(0), "ohlcv-1s")
     service.process_pending()
     latency = service.status()["live_latency"]
