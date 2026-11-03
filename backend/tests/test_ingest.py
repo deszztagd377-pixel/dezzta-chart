@@ -129,3 +129,25 @@ def test_historical_backfill_does_not_pollute_live_latency_samples():
     assert latency["queue_delay"]["samples"] == 0
     assert latency["processing"]["samples"] == 0
     assert latency["callback_to_apply"]["samples"] == 0
+
+
+def test_late_arrival_preserves_original_one_second_bucket_and_derived_timeframes():
+    """A 2.5s receive delay must not shift event-time candles into newer buckets."""
+    service, pipeline, *_ = make_service()
+    delayed_receive_ns = T0 + 2_500_000_000
+    service._clock = lambda: delayed_receive_ns
+
+    # This record belongs to second 1 even though it arrives 2.5 seconds later.
+    assert service.offer(rec(1, c="101"), "ohlcv-1s")
+    service.process_pending()
+
+    one_second = pipeline.list_bars(timeframe="1s")
+    five_seconds = pipeline.list_bars(timeframe="5s")
+    one_minute = pipeline.list_bars(timeframe="1m")
+
+    assert len(one_second) == 1
+    assert one_second[0].ts_start_ns == T0 + NS
+    assert one_second[0].ts_received_ns == delayed_receive_ns
+    assert len(five_seconds) == 1 and five_seconds[0].ts_start_ns == T0
+    assert len(one_minute) == 1 and one_minute[0].ts_start_ns == T0
+    assert one_second[0].close == five_seconds[0].close == one_minute[0].close
