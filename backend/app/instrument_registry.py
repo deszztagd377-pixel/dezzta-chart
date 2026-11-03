@@ -15,7 +15,7 @@ from uuid import UUID
 
 from app.instrument_identity import CanonicalInstrument
 
-_SCHEMA_VERSION = 2
+_SCHEMA_VERSION = 3
 _SQLITE_MAX_INTEGER = 9_223_372_036_854_775_807
 
 
@@ -235,6 +235,9 @@ class SQLiteInstrumentRegistry:
                 version = 1
             if version == 1:
                 self._migrate_v1_to_v2(connection)
+                version = 2
+            if version == 2:
+                self._migrate_v2_to_v3(connection)
         finally:
             connection.close()
 
@@ -394,6 +397,109 @@ class SQLiteInstrumentRegistry:
                 """
             )
             connection.execute("PRAGMA user_version = 2")
+            connection.commit()
+        except Exception:
+            if connection.in_transaction:
+                connection.rollback()
+            raise
+
+    @staticmethod
+    def _migrate_v2_to_v3(connection: sqlite3.Connection) -> None:
+        """Persist option-underlying links as relational, FK-checked records.
+
+        The canonical payload remains immutable. This table makes its
+        underlying reference enforceable by SQLite, including direct SQL
+        writes that bypass the Python repository.
+        """
+        connection.execute("BEGIN IMMEDIATE")
+        try:
+            connection.execute(
+                """
+                CREATE TABLE canonical_instrument_relationships (
+                    source_canonical_id TEXT NOT NULL,
+                    relationship_type TEXT NOT NULL CHECK (relationship_type = 'underlying'),
+                    target_canonical_id TEXT NOT NULL,
+                    PRIMARY KEY (source_canonical_id, relationship_type),
+                    FOREIGN KEY (source_canonical_id)
+                        REFERENCES canonical_instruments(canonical_id)
+                        ON UPDATE RESTRICT ON DELETE RESTRICT,
+                    FOREIGN KEY (target_canonical_id)
+                        REFERENCES canonical_instruments(canonical_id)
+                        ON UPDATE RESTRICT ON DELETE RESTRICT,
+                    CHECK (source_canonical_id != target_canonical_id)
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX idx_instrument_relationship_target
+                ON canonical_instrument_relationships(target_canonical_id, relationship_type)
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER validate_option_underlying_before_insert
+                BEFORE INSERT ON canonical_instruments
+                WHEN json_extract(NEW.payload_json, '$.instrument_type') = 'option'
+                  AND NOT EXISTS (
+                    SELECT 1 FROM canonical_instruments AS underlying
+                    WHERE underlying.canonical_id = json_extract(
+                        NEW.payload_json, '$.underlying_canonical_id'
+                    )
+                      AND json_extract(underlying.payload_json, '$.instrument_type') != 'option'
+                  )
+                BEGIN
+                    SELECT RAISE(ABORT, 'invalid_option_underlying');
+                END
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER record_option_underlying_after_insert
+                AFTER INSERT ON canonical_instruments
+                WHEN json_extract(NEW.payload_json, '$.instrument_type') = 'option'
+                BEGIN
+                    INSERT INTO canonical_instrument_relationships (
+                        source_canonical_id, relationship_type, target_canonical_id
+                    ) VALUES (
+                        NEW.canonical_id, 'underlying',
+                        json_extract(NEW.payload_json, '$.underlying_canonical_id')
+                    );
+                END
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER instrument_relationships_are_immutable
+                BEFORE UPDATE ON canonical_instrument_relationships
+                BEGIN
+                    SELECT RAISE(ABORT, 'instrument_relationship_is_immutable');
+                END
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER instrument_relationships_no_delete
+                BEFORE DELETE ON canonical_instrument_relationships
+                BEGIN
+                    SELECT RAISE(ABORT, 'instrument_relationship_is_immutable');
+                END
+                """
+            )
+            # Backfill is deliberately strict: a legacy option with a missing
+            # or option-as-underlying target aborts the whole migration.
+            connection.execute(
+                """
+                INSERT INTO canonical_instrument_relationships (
+                    source_canonical_id, relationship_type, target_canonical_id
+                )
+                SELECT option_instrument.canonical_id, 'underlying',
+                       json_extract(option_instrument.payload_json, '$.underlying_canonical_id')
+                FROM canonical_instruments AS option_instrument
+                WHERE json_extract(option_instrument.payload_json, '$.instrument_type') = 'option'
+                """
+            )
+            connection.execute("PRAGMA user_version = 3")
             connection.commit()
         except Exception:
             if connection.in_transaction:
