@@ -550,6 +550,48 @@ class SQLiteInstrumentRegistry:
         """
         connection.execute("BEGIN IMMEDIATE")
         try:
+            incomplete = connection.execute(
+                """
+                SELECT canonical_id
+                FROM canonical_instruments
+                WHERE (
+                    json_extract(payload_json, '$.instrument_type')
+                        IN ('perpetual', 'future', 'option')
+                    AND (
+                        json_extract(payload_json, '$.settlement_currency') IS NULL
+                        OR json_extract(payload_json, '$.contract_multiplier') IS NULL
+                    )
+                )
+                OR (
+                    json_extract(payload_json, '$.instrument_type')
+                        IN ('future', 'option')
+                    AND json_extract(payload_json, '$.expiration_date') IS NULL
+                )
+                OR (
+                    json_extract(payload_json, '$.instrument_type') = 'option'
+                    AND (
+                        json_extract(payload_json, '$.option_right') NOT IN ('call', 'put')
+                        OR json_extract(payload_json, '$.strike_price') IS NULL
+                        OR json_extract(payload_json, '$.underlying_canonical_id') IS NULL
+                    )
+                )
+                OR (
+                    json_extract(payload_json, '$.instrument_type')
+                        IN ('spot', 'perpetual', 'fx_pair')
+                    AND (
+                        json_extract(payload_json, '$.base_currency') IS NULL
+                        OR json_extract(payload_json, '$.quote_currency') IS NULL
+                    )
+                )
+                LIMIT 1
+                """
+            ).fetchone()
+            if incomplete is not None:
+                raise sqlite3.IntegrityError(
+                    "incomplete_canonical_identity: legacy derivative or pair metadata "
+                    "does not contain all required identity fields"
+                )
+
             connection.execute(
                 """
                 ALTER TABLE canonical_instruments
@@ -617,6 +659,46 @@ class SQLiteInstrumentRegistry:
                 """
                 CREATE UNIQUE INDEX ux_canonical_instrument_identity_key
                 ON canonical_instruments(identity_key)
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER validate_canonical_identity_before_insert
+                BEFORE INSERT ON canonical_instruments
+                WHEN (
+                    json_extract(NEW.payload_json, '$.instrument_type')
+                        IN ('spot', 'perpetual', 'fx_pair')
+                    AND (
+                        json_extract(NEW.payload_json, '$.base_currency') IS NULL
+                        OR json_extract(NEW.payload_json, '$.quote_currency') IS NULL
+                        OR json_extract(NEW.payload_json, '$.base_currency')
+                            = json_extract(NEW.payload_json, '$.quote_currency')
+                    )
+                )
+                OR (
+                    json_extract(NEW.payload_json, '$.instrument_type')
+                        IN ('perpetual', 'future', 'option')
+                    AND (
+                        json_extract(NEW.payload_json, '$.settlement_currency') IS NULL
+                        OR json_extract(NEW.payload_json, '$.contract_multiplier') IS NULL
+                    )
+                )
+                OR (
+                    json_extract(NEW.payload_json, '$.instrument_type')
+                        IN ('future', 'option')
+                    AND json_extract(NEW.payload_json, '$.expiration_date') IS NULL
+                )
+                OR (
+                    json_extract(NEW.payload_json, '$.instrument_type') = 'option'
+                    AND (
+                        json_extract(NEW.payload_json, '$.option_right') NOT IN ('call', 'put')
+                        OR json_extract(NEW.payload_json, '$.strike_price') IS NULL
+                        OR json_extract(NEW.payload_json, '$.underlying_canonical_id') IS NULL
+                    )
+                )
+                BEGIN
+                    SELECT RAISE(ABORT, 'incomplete_canonical_identity');
+                END
                 """
             )
             connection.execute("PRAGMA user_version = 4")
