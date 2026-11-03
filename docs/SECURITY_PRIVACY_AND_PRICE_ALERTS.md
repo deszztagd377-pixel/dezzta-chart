@@ -59,7 +59,7 @@ The product must use defense in depth and privacy by design. It must never claim
 ## 3. Price-zone alerts
 
 ### Product behavior
-- User can create up to five active alert zones (scope pending owner confirmation: per account or per instrument).
+- User can create at most **five saved alert zones across the entire account**, shared globally by all instruments/pairs and venues. Example: 2 zones on XAUUSD + 3 zones on BTCUSD = 5 total; a sixth zone on any pair is rejected server-side.
 - A zone is a price interval with lower and upper bounds, associated with one canonical instrument and venue. A point alert can be represented by equal bounds plus a configured tick tolerance, but must not be silently treated as a broad range.
 - Trigger when a verified incoming market price enters the zone. Record the event once per entry; re-arm only after price leaves the zone, with explicit duplicate suppression and cooldown policy.
 - Notify the user on Android through push notifications when the app is backgrounded or closed. In-app/local notifications are supplemental, not the only delivery mechanism.
@@ -72,7 +72,7 @@ The product must use defense in depth and privacy by design. It must never claim
 - Use Firebase Cloud Messaging for Android push delivery after account/device-token registration and explicit notification permission.
 - Validate and deduplicate source events; handle reconnects, delayed/out-of-order data, provider gaps, and stale feeds. Do not trigger from demo candles or stale data.
 - Show alert status such as active, paused, triggered, delivery failed, or data unavailable. If feed freshness is outside the configured threshold, pause evaluation and report the reason rather than silently triggering.
-- Enforce the five-zone limit server-side, not only in the UI. Protect ownership and CRUD operations with authenticated authorization.
+- Enforce the five-zone account-wide limit server-side in the same transaction as zone creation, not only in the UI. Count every non-deleted saved zone regardless of instrument or state (active, paused, triggered, or delivery-failed); only explicit deletion frees a slot. Protect ownership and CRUD operations with authenticated authorization.
 
 ### Server requirement
 A backend is required for dependable alerts while the APK is closed. Push delivery also requires a push service and valid Android app configuration. Local-only alerts cannot guarantee background monitoring or delivery.
@@ -81,7 +81,7 @@ A backend is required for dependable alerts while the APK is closed. Push delive
 
 1. Security baseline: threat model, privacy inventory, dependency/secret checks, secure headers, request limits, rate limiting, and safe production configuration.
 2. Firebase identity verification and provider-neutral principal interface.
-3. Durable user entitlement and alert storage; deny-by-default authorization.
+3. Durable user entitlement and alert storage; enforce the account-wide five-zone quota atomically across all pairs; deny-by-default authorization.
 4. Short-lived scoped WebSocket tickets, revocation policy, per-series authorization, replay protection, and connection limits.
 5. Crosshair OHLC/price-scale readout and horizontal-line drawing controls with interaction tests.
 6. Server-side alert evaluator, event deduplication/re-arm behavior, FCM registration and delivery, and failure-state tests.
