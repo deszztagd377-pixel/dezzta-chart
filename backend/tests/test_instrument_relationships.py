@@ -43,6 +43,7 @@ def downgrade_v3_to_v2(path):
     connection = sqlite3.connect(path)
     try:
         connection.execute("DROP TRIGGER validate_option_underlying_before_insert")
+        connection.execute("DROP TRIGGER validate_instrument_relationship_before_insert")
         connection.execute("DROP TRIGGER record_option_underlying_after_insert")
         connection.execute("DROP TRIGGER instrument_relationships_are_immutable")
         connection.execute("DROP TRIGGER instrument_relationships_no_delete")
@@ -121,6 +122,25 @@ def test_direct_sql_cannot_insert_option_with_missing_underlying(tmp_path):
     finally:
         connection.close()
 
+
+
+def test_relationship_table_rejects_edges_not_declared_by_canonical_payload(tmp_path):
+    registry = SQLiteInstrumentRegistry(str(tmp_path / "registry.sqlite3"))
+    registry.register_instrument(underlying())
+
+    connection = sqlite3.connect(registry.database_path)
+    try:
+        with pytest.raises(sqlite3.IntegrityError, match="invalid_instrument_relationship"):
+            connection.execute(
+                """
+                INSERT INTO canonical_instrument_relationships (
+                    source_canonical_id, relationship_type, target_canonical_id
+                ) VALUES (?, 'underlying', ?)
+                """,
+                (UNDERLYING_ID, MISSING_ID),
+            )
+    finally:
+        connection.close()
 
 def test_v2_migration_backfills_existing_option_relationships(tmp_path):
     path = str(tmp_path / "registry.sqlite3")
