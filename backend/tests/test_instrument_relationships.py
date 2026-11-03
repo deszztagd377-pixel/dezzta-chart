@@ -35,6 +35,8 @@ def option(*, canonical_id=OPTION_ID, underlying_id=UNDERLYING_ID):
         expiration_date="2026-12-18",
         option_right="call",
         strike_price="100",
+        settlement_currency="USD",
+        contract_multiplier="100",
         underlying_canonical_id=underlying_id,
     )
 
