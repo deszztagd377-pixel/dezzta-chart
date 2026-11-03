@@ -236,6 +236,159 @@ class SQLiteInstrumentMetadataRepository:
         finally:
             connection.close()
 
+    def append_revision_transition(
+        self,
+        *,
+        canonical_id: str,
+        source_kind: str,
+        source_name: str,
+        metadata: Mapping[str, Any],
+        effective_from_ns: int,
+        source_dataset: str | None = None,
+        source_event_ts_ns: int | None = None,
+        payload_schema_version: int = 1,
+    ) -> tuple[InstrumentMetadataRevision, bool]:
+        """Atomically supersede the open revision with a strictly newer claim.
+
+        This is the ordered-event path for one canonical instrument and one
+        source identity. Exact retries are idempotent. Older or same-effective-
+        time conflicting events are rejected without changing the current row.
+        The prior interval is closed and the new revision inserted in one
+        SQLite transaction.
+        """
+        normalized_id = _canonical_id(canonical_id)
+        if source_kind not in _SOURCE_KINDS:
+            raise ValueError("source_kind must be 'provider' or 'operator'.")
+        if not isinstance(source_name, str) or not source_name.strip():
+            raise ValueError("source_name is required.")
+        normalized_source = source_name.strip().lower()
+        if source_dataset is not None:
+            if not isinstance(source_dataset, str) or not source_dataset.strip():
+                raise ValueError("source_dataset must be non-empty when supplied.")
+            normalized_dataset = source_dataset.strip().upper()
+        else:
+            normalized_dataset = None
+        _timestamp(source_event_ts_ns, "source_event_ts_ns")
+        _timestamp(effective_from_ns, "effective_from_ns", required=True)
+        if (
+            not isinstance(payload_schema_version, int)
+            or isinstance(payload_schema_version, bool)
+            or payload_schema_version < 1
+        ):
+            raise ValueError("payload_schema_version must be a positive integer.")
+        if not isinstance(metadata, Mapping):
+            raise ValueError("metadata must be a JSON object.")
+        try:
+            metadata_json = json.dumps(
+                dict(metadata), sort_keys=True, separators=(",", ":"),
+                ensure_ascii=True, allow_nan=False,
+            )
+        except (TypeError, ValueError):
+            raise ValueError("metadata must contain finite JSON-compatible values.") from None
+        if not isinstance(json.loads(metadata_json), dict):
+            raise ValueError("metadata must serialize to a JSON object.")
+
+        connection = self._connect()
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            identity_parameters = (
+                normalized_id, source_kind, normalized_source, normalized_dataset,
+            )
+            exact = connection.execute(
+                """
+                SELECT * FROM instrument_metadata_revisions
+                WHERE canonical_id = ? AND source_kind = ? AND source_name = ?
+                  AND source_dataset IS ? AND source_event_ts_ns IS ?
+                  AND effective_from_ns = ? AND effective_to_ns IS NULL
+                  AND validity_status = 'known' AND payload_schema_version = ?
+                  AND metadata_json = ?
+                ORDER BY revision_id LIMIT 1
+                """,
+                (
+                    *identity_parameters, source_event_ts_ns, effective_from_ns,
+                    payload_schema_version, metadata_json,
+                ),
+            ).fetchone()
+            if exact is not None:
+                connection.commit()
+                record = self._record(exact)
+                assert record is not None
+                return record, False
+
+            instrument_exists = connection.execute(
+                "SELECT 1 FROM canonical_instruments WHERE canonical_id = ?",
+                (normalized_id,),
+            ).fetchone()
+            if instrument_exists is None:
+                raise UnknownMetadataInstrument(
+                    "Metadata revision references an unregistered canonical instrument."
+                )
+
+            latest = connection.execute(
+                """
+                SELECT * FROM instrument_metadata_revisions
+                WHERE canonical_id = ? AND source_kind = ? AND source_name = ?
+                  AND source_dataset IS ? AND validity_status = 'known'
+                ORDER BY effective_from_ns DESC, revision_id DESC LIMIT 1
+                """,
+                identity_parameters,
+            ).fetchone()
+            if latest is not None and effective_from_ns <= latest["effective_from_ns"]:
+                raise MetadataRevisionConflict(
+                    "Out-of-order or conflicting metadata event; effective time must increase."
+                )
+
+            if latest is not None and latest["effective_to_ns"] is None:
+                connection.execute(
+                    """
+                    UPDATE instrument_metadata_revisions
+                    SET effective_to_ns = ?
+                    WHERE revision_id = ? AND effective_to_ns IS NULL
+                    """,
+                    (effective_from_ns, latest["revision_id"]),
+                )
+
+            try:
+                cursor = connection.execute(
+                    """
+                    INSERT INTO instrument_metadata_revisions (
+                        canonical_id, source_kind, source_name, source_dataset,
+                        source_event_ts_ns, effective_from_ns, effective_to_ns,
+                        validity_status, payload_schema_version, metadata_json
+                    ) VALUES (?, ?, ?, ?, ?, ?, NULL, 'known', ?, ?)
+                    """,
+                    (
+                        normalized_id, source_kind, normalized_source,
+                        normalized_dataset, source_event_ts_ns, effective_from_ns,
+                        payload_schema_version, metadata_json,
+                    ),
+                )
+            except sqlite3.IntegrityError as exc:
+                message = str(exc)
+                if "overlapping_metadata_revision" in message:
+                    raise MetadataRevisionConflict(
+                        "Metadata revision overlaps an existing claim from the same source."
+                    ) from exc
+                if "FOREIGN KEY" in message:
+                    raise UnknownMetadataInstrument(
+                        "Metadata revision references an unregistered canonical instrument."
+                    ) from exc
+                raise
+            row = connection.execute(
+                "SELECT * FROM instrument_metadata_revisions WHERE revision_id = ?",
+                (cursor.lastrowid,),
+            ).fetchone()
+            connection.commit()
+            record = self._record(row)
+            assert record is not None
+            return record, True
+        except Exception:
+            if connection.in_transaction:
+                connection.rollback()
+            raise
+        finally:
+            connection.close()
+
     def close_open_revision(self, revision_id: int, effective_to_ns: int) -> InstrumentMetadataRevision:
         """Close an open known revision without changing its immutable payload."""
         if (
