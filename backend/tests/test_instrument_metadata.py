@@ -1,3 +1,5 @@
+import sqlite3
+
 import pytest
 
 from app.instrument_identity import CanonicalInstrument
@@ -215,6 +217,20 @@ def test_transition_atomically_closes_previous_revision_and_is_idempotent(reposi
     )
     assert duplicate_created is False
     assert duplicate.revision_id == second.revision_id
+
+    # Replaying the first event after it has been superseded is still idempotent.
+    replayed_first, first_created = metadata.append_revision_transition(
+        canonical_id=CANONICAL_ID,
+        source_kind="provider",
+        source_name="databento",
+        source_dataset="GLBX.MDP3",
+        source_event_ts_ns=1_000,
+        effective_from_ns=1_000,
+        metadata={"tick_size": "0.25"},
+    )
+    assert first_created is False
+    assert replayed_first.revision_id == first.revision_id
+    assert replayed_first.effective_to_ns == 2_000
     assert len(metadata.list_revisions(CANONICAL_ID, source_kind="provider")) == 2
 
 
@@ -254,8 +270,8 @@ def test_transition_rejects_late_and_same_time_conflicting_events_without_mutati
     assert current.effective_to_ns is None
 
 
-def test_transition_rolls_back_previous_close_when_new_revision_cannot_be_inserted(repositories):
-    _, metadata = repositories
+def test_transition_rolls_back_previous_close_when_insert_fails(repositories):
+    registry, metadata = repositories
     first, _ = metadata.append_revision_transition(
         canonical_id=CANONICAL_ID,
         source_kind="provider",
@@ -265,9 +281,25 @@ def test_transition_rolls_back_previous_close_when_new_revision_cannot_be_insert
         effective_from_ns=1_000,
         metadata={"tick_size": "0.25"},
     )
-    with pytest.raises(UnknownMetadataInstrument):
+    connection = sqlite3.connect(registry.database_path)
+    try:
+        connection.execute(
+            """
+            CREATE TRIGGER reject_test_revision
+            BEFORE INSERT ON instrument_metadata_revisions
+            WHEN NEW.metadata_json = '{"tick_size":"0.5"}'
+            BEGIN
+                SELECT RAISE(ABORT, 'forced_insert_failure');
+            END
+            """
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    with pytest.raises(sqlite3.IntegrityError, match="forced_insert_failure"):
         metadata.append_revision_transition(
-            canonical_id=UNKNOWN_ID,
+            canonical_id=CANONICAL_ID,
             source_kind="provider",
             source_name="databento",
             source_dataset="GLBX.MDP3",
@@ -278,7 +310,6 @@ def test_transition_rolls_back_previous_close_when_new_revision_cannot_be_insert
     history = metadata.list_revisions(CANONICAL_ID, source_kind="provider")
     assert history == [first]
     assert history[0].effective_to_ns is None
-
 
 def test_transition_keeps_independent_source_timelines_separate(repositories):
     _, metadata = repositories
