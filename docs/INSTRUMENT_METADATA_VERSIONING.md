@@ -1,6 +1,6 @@
 # Instrument Identity vs. Versioned Metadata — Architecture Decision
 
-**Status:** Accepted; SQLite schema v3 is implemented and its code/test commit passed the complete GitHub Actions pipeline.
+**Status:** Accepted; SQLite schema v4 is implemented; schema-v3 validation passed the complete GitHub Actions pipeline, and schema-v4 validation is pending.
 
 ## Decision
 
@@ -66,6 +66,24 @@ Migration and interval behavior are covered in `backend/tests/test_instrument_re
 ## Validation checkpoint
 
 At commit `dcbde9fbd80dac590faadd89ac68b65d1754e0ee`, the GitHub Actions workflow `DEZZTA CHART - Automated Tests` completed successfully, validating the cross-table provider-definition event implementation. The schema-v3 implementation and tests at commit `6f695f123b39994672d662728c018ca938c1923d` also passed workflow run `41627908763`: frontend unit tests, frontend build, backend tests, and Docker image build all completed successfully. Later commits through `3516e68be0bdb2ddea45d9fd30f390c43a0b52a2` changed documentation only.
+
+## Canonical identity uniqueness (schema v4)
+
+Schema v4 adds a SQLite-generated, virtual `identity_key` column and a unique index. The key is derived from immutable canonical payload fields, not provider symbols or provider instrument IDs. It is venue-scoped: otherwise-identical instruments at different venues remain distinct canonical identities.
+
+Identity components are type-aware:
+
+- Equity, ETF, and index: asset class, instrument type, venue, and normalized symbol.
+- Crypto spot and FX pairs: asset class, instrument type, venue, base currency, and quote currency. Provider-specific pair-symbol formatting does not create a second identity.
+- Crypto perpetual: the pair identity plus settlement currency and contract multiplier when supplied.
+- Dated futures: venue, product/root symbol, expiration date, settlement currency, and contract multiplier when supplied.
+- Options: venue, underlying canonical UUID, expiration date, call/put right, normalized strike, settlement currency, and contract multiplier when supplied. The provider-specific option symbol is not used as identity.
+
+The generated key is indexed uniquely inside SQLite, so concurrent repository writes and direct SQL inserts cannot register a second UUID for the same venue-scoped identity. A different venue creates a different identity. The canonical UUID remains registry-issued and is never computed from the key.
+
+The v3-to-v4 migration adds the generated column and unique index in one transaction. If existing records collide, migration aborts and rolls back; it never selects a winner, deletes a row, or merges histories. Such records require an explicit, audited reconciliation before migration can proceed.
+
+This key is intentionally based only on fields currently modeled by `CanonicalInstrument`. Product-specific deliverables, complex option adjustment terms, FX composite-source definitions, and continuous-futures roll methodology require dedicated typed models and must not be guessed from display symbols.
 
 ## Non-goals
 
