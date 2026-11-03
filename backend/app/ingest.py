@@ -20,6 +20,7 @@ from typing import Any, Callable, Iterable
 from app.aggregation import Aggregator
 from app.coverage import CoverageTracker
 from app.databento_ohlcv import RecordRejected, record_to_bar
+from app.freshness import InstrumentObservationTracker
 from app.ohlcv import OhlcvBar, OhlcvPipeline
 from app.symbology import InstrumentResolver
 
@@ -104,6 +105,7 @@ class OhlcvIngestionService:
         self._processing_samples_ms: deque[float] = deque(maxlen=256)
         self._callback_to_apply_samples_ms: deque[float] = deque(maxlen=256)
         self._clock_skew_samples = 0
+        self.observations = InstrumentObservationTracker(monotonic_ns=self._monotonic)
         self._sequence = itertools.count(1)
         self._event: asyncio.Event | None = None
         self._session_start: int | None = None
@@ -231,6 +233,15 @@ class OhlcvIngestionService:
         if result not in ("inserted", "replaced"):
             return
         if live:
+            self.observations.observe(
+                dataset=bar.dataset,
+                publisher_id=bar.publisher_id,
+                instrument_id=bar.instrument_id,
+                raw_symbol=bar.raw_symbol,
+                event_ns=bar.ts_event_ns,
+                received_ns=bar.ts_received_ns,
+                monotonic_received_ns=recv_monotonic_ns,
+            )
             queue_delay_ms = max(0, process_start_ns - recv_monotonic_ns) / 1_000_000
             processing_ms = max(0, process_end_ns - process_start_ns) / 1_000_000
             self._queue_delay_samples_ms.append(queue_delay_ms)
@@ -258,6 +269,7 @@ class OhlcvIngestionService:
             "pipeline": self.pipeline.stats(),
             "last_event_ts_ns": None if self.last_event_ns is None else str(self.last_event_ns),
             "last_receive_ts_ns": None if self.last_receive_ns is None else str(self.last_receive_ns),
+            "instrument_observations": self.observations.status(),
             "live_latency": {
                 "measurement_window": "last_256_accepted_live_records",
                 "queue_delay": self._distribution(self._queue_delay_samples_ms),
