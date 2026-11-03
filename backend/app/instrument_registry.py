@@ -459,6 +459,27 @@ class SQLiteInstrumentRegistry:
             )
             connection.execute(
                 """
+                CREATE TRIGGER validate_instrument_relationship_before_insert
+                BEFORE INSERT ON canonical_instrument_relationships
+                WHEN NOT EXISTS (
+                    SELECT 1 FROM canonical_instruments AS source
+                    WHERE source.canonical_id = NEW.source_canonical_id
+                      AND json_extract(source.payload_json, '$.instrument_type') = 'option'
+                      AND json_extract(source.payload_json, '$.underlying_canonical_id')
+                          = NEW.target_canonical_id
+                )
+                OR NOT EXISTS (
+                    SELECT 1 FROM canonical_instruments AS target
+                    WHERE target.canonical_id = NEW.target_canonical_id
+                      AND json_extract(target.payload_json, '$.instrument_type') != 'option'
+                )
+                BEGIN
+                    SELECT RAISE(ABORT, 'invalid_instrument_relationship');
+                END
+                """
+            )
+            connection.execute(
+                """
                 CREATE TRIGGER record_option_underlying_after_insert
                 AFTER INSERT ON canonical_instruments
                 WHEN json_extract(NEW.payload_json, '$.instrument_type') = 'option'
