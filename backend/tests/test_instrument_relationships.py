@@ -78,6 +78,21 @@ def test_option_registration_requires_existing_non_option_underlying(tmp_path):
         connection.close()
 
 
+
+def test_option_cannot_use_another_option_as_its_underlying(tmp_path):
+    registry = SQLiteInstrumentRegistry(str(tmp_path / "registry.sqlite3"))
+    registry.register_instrument(underlying())
+    registry.register_instrument(option())
+
+    nested_option = option(
+        canonical_id=MISSING_ID,
+        underlying_id=OPTION_ID,
+    )
+    with pytest.raises(InstrumentRelationshipConflict, match="cannot be another option"):
+        registry.register_instrument(nested_option)
+
+    assert registry.get_instrument(MISSING_ID) is None
+
 def test_option_underlying_relationship_is_database_enforced_and_immutable(tmp_path):
     registry = SQLiteInstrumentRegistry(str(tmp_path / "registry.sqlite3"))
     registry.register_instrument(underlying())
