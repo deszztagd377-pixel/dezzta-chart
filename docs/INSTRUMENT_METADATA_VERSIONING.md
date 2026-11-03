@@ -1,6 +1,6 @@
 # Instrument Identity vs. Versioned Metadata — Architecture Decision
 
-**Status:** Accepted; SQLite schema v2 is implemented and CI-validated.
+**Status:** Accepted; SQLite schema v3 is implemented and CI-validated.
 
 ## Decision
 
@@ -27,6 +27,8 @@ Known intervals use half-open semantics `[effective_from_ns, effective_to_ns)`. 
 A historical-unknown baseline has no fabricated effective timestamps. The migration timestamp records when the legacy payload was copied, not when that metadata became true.
 
 The v2 migration, typed SQLite repository API, and ordered transition path are implemented. The repository supports append, list, as-of resolution, one-time closure of an open revision, and atomic supersession of the current source revision. Exact event replays are idempotent, including replays after a later revision has closed the original interval. Older events and conflicting events at the same effective timestamp are rejected without changing the active revision. Live provider ingestion is not yet connected.
+
+`backend/app/instrument_registry.py` now enforces option-underlying relationships in SQLite. An option can be registered only after its underlying canonical instrument exists, and an option cannot reference another option as its underlying. The database automatically records the relationship on canonical option insertion, including direct SQL insertion attempts; relationship rows are immutable and protected by foreign keys. The v2-to-v3 migration backfills existing options and rolls back entirely if any legacy option references a missing underlying.
 
 `backend/app/instrument_events.py` adds a coordinated provider-definition event repository. One call applies a provider mapping and its matching provider metadata revision in a single `BEGIN IMMEDIATE` transaction. It closes the previous open mapping and metadata intervals, inserts both new rows, and commits only when both succeed. Exact paired replays remain idempotent after supersession; partial replays, stale mapping events, and stale metadata events are rejected. This is an event-level persistence primitive, not a Databento feed adapter or a complete ingestion pipeline.
 
@@ -64,3 +66,17 @@ At commit `edd28e1451de3f896719c2e1ab0c8239bdc09085`, the GitHub Actions workflo
 ## Non-goals
 
 This design does not claim live Databento data, broad multi-asset coverage, exchange licensing, public catalog APIs, Firebase auth, per-series entitlements, frontend WebSocket delivery, or PostgreSQL multi-instance readiness. No live market feed has been integrated by this migration.
+
+
+## Canonical option relationships (schema v3)
+
+Option identity contains `underlying_canonical_id`. Schema v3 materializes this reference in `canonical_instrument_relationships` rather than relying only on JSON payload validation.
+
+- Relationship type is `underlying`.
+- The source must be an option; the target must already exist and must not itself be an option.
+- Both endpoints are protected by foreign keys; self-reference is rejected.
+- Relationship rows are immutable and cannot be deleted.
+- The canonical option payload and its relational edge are created in the same SQLite statement transaction by a database trigger.
+- Migration from v2 backfills existing option payloads. A missing or invalid legacy underlying is treated as a data-integrity fault and causes the complete migration to roll back; it is never silently repaired or guessed.
+
+This relationship layer is intentionally narrow. It does not yet model option chains, corporate actions, futures continuous-contract rolls, or market-data events.
