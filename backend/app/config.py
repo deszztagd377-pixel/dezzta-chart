@@ -46,6 +46,7 @@ class Settings:
     ohlcv_queue_max: int = 10_000
     ohlcv_max_response_bars: int = 5_000
     instrument_registry_db_path: str = "./data/instrument_registry.sqlite3"
+    firebase_project_id: str = field(default="", repr=False)
 
     @property
     def provider_configured(self) -> bool:
@@ -89,4 +90,5 @@ class Settings:
                 os.getenv("OHLCV_MAX_RESPONSE_BARS", "5000"), 5_000
             ),
             instrument_registry_db_path=registry_path,
+            firebase_project_id=os.getenv("FIREBASE_PROJECT_ID", "").strip(),
         )
