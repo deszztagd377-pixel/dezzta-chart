@@ -1,6 +1,6 @@
 # Instrument Identity vs. Versioned Metadata — Architecture Decision
 
-**Status:** Accepted; SQLite schema v3 is implemented and CI-validated.
+**Status:** Accepted; SQLite schema v3 is implemented. Validation of the latest schema-v3 commit is pending.
 
 ## Decision
 
@@ -14,7 +14,7 @@ The current `CanonicalInstrument` model still contains descriptive/trading field
 
 ### Layer B — metadata revisions
 
-The SQLite v2 table `instrument_metadata_revisions` stores versioned metadata payloads with:
+The SQLite `instrument_metadata_revisions` table (introduced in schema v2) stores versioned metadata payloads with:
 
 - canonical ID and source provenance (`source_kind`, `source_name`, optional dataset);
 - source event timestamp (nullable) and backend receive timestamp;
@@ -57,11 +57,15 @@ The migration is implemented in `backend/app/instrument_registry.py` and runs wh
 - Uses a transaction so a failed migration rolls back the schema changes and leaves the database at v1.
 - Sets `PRAGMA user_version = 2` only after successful migration.
 
+## Migration v2 → v3
+
+The v2-to-v3 migration creates `canonical_instrument_relationships`, foreign keys, validation triggers, and immutable relationship protections. It backfills each existing option's `underlying_canonical_id` from its canonical payload. If a legacy option has a missing or invalid underlying, the migration fails and rolls back completely, leaving the database at schema v2. Successful migration sets `PRAGMA user_version = 3`.
+
 Migration and interval behavior are covered in `backend/tests/test_instrument_registry.py`, including data preservation, reopen idempotency, rollback, half-open intervals, overlap rejection, and append-only enforcement. Repository behavior is covered in `backend/tests/test_instrument_metadata.py`, including persistence, exact replay idempotency, atomic interval transitions, out-of-order rejection, same-time conflict rejection, independent source timelines, as-of resolution, and forced insert-failure rollback. Cross-table event behavior is covered in `backend/tests/test_instrument_events.py`, including paired mapping/metadata insertion, paired interval closure, replay after supersession, partial replay rejection, stale-event rejection, and rollback when metadata insertion fails after the previous mapping and metadata intervals have been closed.
 
 ## Validation checkpoint
 
-At commit `edd28e1451de3f896719c2e1ab0c8239bdc09085`, the GitHub Actions workflow `DEZZTA CHART - Automated Tests` completed successfully. Frontend tests/build, backend tests, and Docker build passed in that run. The metadata-repository test run for commit `d9cd0b6c6b90cbad8b08f16e07bee24dc213854b` also completed successfully. The cross-table provider-event implementation and its tests are in a newer workflow run and must not be treated as validated until that exact HEAD run completes successfully.
+At commit `dcbde9fbd80dac590faadd89ac68b65d1754e0ee`, the GitHub Actions workflow `DEZZTA CHART - Automated Tests` completed successfully. Frontend tests/build, backend tests, and Docker image build all passed, validating the cross-table provider-definition event implementation. Schema-v3 option relationship changes are newer; their latest branch-head workflow must complete successfully before schema v3 is marked CI-validated.
 
 ## Non-goals
 
