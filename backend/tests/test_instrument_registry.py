@@ -72,7 +72,7 @@ def test_v1_migration_preserves_data_and_marks_legacy_metadata_unknown(tmp_path)
 
     migrated = SQLiteInstrumentRegistry(path)
     assert migrated.get_instrument(INSTRUMENT_ID) == stock()
-    assert migrated.list_provider_mappings(INSTRUMENT_ID) == [mapping()]
+    assert migrated.list_provider_mappings(INSTRUMENT_ID) == [mapping(provider="databento")]
 
     connection = sqlite3.connect(path)
     connection.row_factory = sqlite3.Row
