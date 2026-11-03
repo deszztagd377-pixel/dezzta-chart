@@ -299,7 +299,7 @@ class SQLiteInstrumentMetadataRepository:
                 SELECT * FROM instrument_metadata_revisions
                 WHERE canonical_id = ? AND source_kind = ? AND source_name = ?
                   AND source_dataset IS ? AND source_event_ts_ns IS ?
-                  AND effective_from_ns = ? AND effective_to_ns IS NULL
+                  AND effective_from_ns = ?
                   AND validity_status = 'known' AND payload_schema_version = ?
                   AND metadata_json = ?
                 ORDER BY revision_id LIMIT 1
