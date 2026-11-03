@@ -16,7 +16,6 @@ from app.instrument_metadata import (
     InstrumentMetadataRevision,
     MetadataRevisionConflict,
     UnknownMetadataInstrument,
-    _record as _unused_record,
 )
 from app.instrument_metadata import _timestamp
 from app.instrument_registry import (
