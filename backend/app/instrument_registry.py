@@ -35,6 +35,10 @@ class UnknownCanonicalInstrument(InstrumentRegistryError):
     """A provider mapping references an unknown canonical instrument."""
 
 
+class InstrumentRelationshipConflict(InstrumentRegistryError):
+    """A canonical instrument has a missing or invalid required relationship."""
+
+
 class UnsupportedRegistrySchema(InstrumentRegistryError):
     """The database schema is newer than this backend understands."""
 
@@ -528,23 +532,30 @@ class SQLiteInstrumentRegistry:
                 connection.commit()
                 return False
 
-            connection.execute(
-                """
-                INSERT INTO canonical_instruments (
-                    canonical_id, asset_class, instrument_type, symbol, venue,
-                    is_active, payload_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    instrument.canonical_id,
-                    instrument.asset_class,
-                    instrument.instrument_type,
-                    instrument.symbol,
-                    instrument.venue,
-                    int(instrument.is_active),
-                    payload,
-                ),
-            )
+            try:
+                connection.execute(
+                    """
+                    INSERT INTO canonical_instruments (
+                        canonical_id, asset_class, instrument_type, symbol, venue,
+                        is_active, payload_json
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        instrument.canonical_id,
+                        instrument.asset_class,
+                        instrument.instrument_type,
+                        instrument.symbol,
+                        instrument.venue,
+                        int(instrument.is_active),
+                        payload,
+                    ),
+                )
+            except sqlite3.IntegrityError as exc:
+                if "invalid_option_underlying" in str(exc):
+                    raise InstrumentRelationshipConflict(
+                        "An option's underlying instrument must already exist and cannot be another option."
+                    ) from exc
+                raise
             connection.commit()
             return True
         except Exception:
@@ -589,23 +600,30 @@ class SQLiteInstrumentRegistry:
                         "Canonical ID already exists with different immutable metadata."
                     )
             else:
-                connection.execute(
-                    """
-                    INSERT INTO canonical_instruments (
-                        canonical_id, asset_class, instrument_type, symbol, venue,
-                        is_active, payload_json
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        instrument.canonical_id,
-                        instrument.asset_class,
-                        instrument.instrument_type,
-                        instrument.symbol,
-                        instrument.venue,
-                        int(instrument.is_active),
-                        payload,
-                    ),
-                )
+                try:
+                    connection.execute(
+                        """
+                        INSERT INTO canonical_instruments (
+                            canonical_id, asset_class, instrument_type, symbol, venue,
+                            is_active, payload_json
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            instrument.canonical_id,
+                            instrument.asset_class,
+                            instrument.instrument_type,
+                            instrument.symbol,
+                            instrument.venue,
+                            int(instrument.is_active),
+                            payload,
+                        ),
+                    )
+                except sqlite3.IntegrityError as exc:
+                    if "invalid_option_underlying" in str(exc):
+                        raise InstrumentRelationshipConflict(
+                            "An option's underlying instrument must already exist and cannot be another option."
+                        ) from exc
+                    raise
 
             mapping_values = (
                 normalized.provider, normalized.dataset, normalized.publisher_id,
