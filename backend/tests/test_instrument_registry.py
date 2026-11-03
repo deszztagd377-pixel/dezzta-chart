@@ -83,7 +83,7 @@ def test_instrument_metadata_is_database_immutable(registry):
 def test_list_filters_and_pagination_are_bounded(registry):
     registry.register_instrument(stock())
     registry.register_instrument(stock(
-        canonical_id=SECOND_ID, symbol="BTCUSD", asset_class="crypto",
+        canonical_id=SECOND_ID, symbol="BTCUSD", asset_class="crypto", venue="XCRY",
         instrument_type="spot", base_currency="BTC", quote_currency="USD",
     ))
     assert [item.symbol for item in registry.list_instruments(asset_class="equity")] == ["AAPL"]
