@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import itertools
+import math
 import threading
 import time
 from collections import deque
@@ -85,6 +86,7 @@ class OhlcvIngestionService:
         queue_max: int = 10_000,
         batch_size: int = 500,
         clock_ns: Callable[[], int] = time.time_ns,
+        monotonic_ns: Callable[[], int] = time.perf_counter_ns,
         on_bar_applied: Callable[[OhlcvBar], None] | None = None,
     ) -> None:
         self.pipeline = pipeline
@@ -97,6 +99,11 @@ class OhlcvIngestionService:
         self._buffer = BoundedBuffer(queue_max)
         self._batch = batch_size
         self._clock = clock_ns
+        self._monotonic = monotonic_ns
+        self._queue_delay_samples_ms: deque[float] = deque(maxlen=256)
+        self._processing_samples_ms: deque[float] = deque(maxlen=256)
+        self._callback_to_apply_samples_ms: deque[float] = deque(maxlen=256)
+        self._clock_skew_samples = 0
         self._sequence = itertools.count(1)
         self._event: asyncio.Event | None = None
         self._session_start: int | None = None
@@ -109,6 +116,7 @@ class OhlcvIngestionService:
     def offer(self, record: Any, schema: str) -> bool:
         """Called from provider callbacks (any thread). Never blocks, never raises."""
         recv_ns = self._clock()
+        recv_monotonic_ns = self._monotonic()
         hint = getattr(record, "ts_event", None)
         hint = hint if isinstance(hint, int) and not isinstance(hint, bool) and hint >= 0 else None
         publisher_id = getattr(record, "publisher_id", None)
@@ -116,7 +124,7 @@ class OhlcvIngestionService:
         valid_ids = all(isinstance(v, int) and not isinstance(v, bool) and v >= 0
                         for v in (publisher_id, instrument_id))
         instrument_hint = (publisher_id, instrument_id) if valid_ids else None
-        return self._buffer.offer((record, schema, recv_ns), hint, recv_ns, instrument_hint)
+        return self._buffer.offer((record, schema, recv_ns, recv_monotonic_ns), hint, recv_ns, instrument_hint)
 
     # ------------------------------------------------------------ loop-side
     def attach_loop(self, loop: asyncio.AbstractEventLoop) -> None:
@@ -139,15 +147,15 @@ class OhlcvIngestionService:
         for instrument_hint, first_ns, last_ns in self._buffer.take_overflows():
             self._note_overflow(instrument_hint, first_ns, last_ns)
         items = self._buffer.drain(self._batch)
-        for record, schema, recv_ns in items:
-            self._process(record, schema, recv_ns, live=True)
+        for record, schema, recv_ns, recv_monotonic_ns in items:
+            self._process(record, schema, recv_ns, recv_monotonic_ns, live=True)
         return len(items)
 
     def ingest_batch(self, records: Iterable[Any], schema: str, *, live: bool = False) -> int:
         """Apply records directly (historical backfill; loop thread only)."""
         count = 0
         for record in records:
-            self._process(record, schema, self._clock(), live=live)
+            self._process(record, schema, self._clock(), self._monotonic(), live=live)
             count += 1
         return count
 
@@ -189,7 +197,22 @@ class OhlcvIngestionService:
         self.degraded_reasons.add("ingest_overflow")
         self._count("overflow_gap")
 
-    def _process(self, record: Any, schema: str, recv_ns: int, *, live: bool) -> None:
+    @staticmethod
+    def _distribution(samples: deque[float]) -> dict[str, float | int | None]:
+        if not samples:
+            return {"samples": 0, "p50_ms": None, "p95_ms": None, "max_ms": None}
+        ordered = sorted(samples)
+        p50_index = math.ceil(0.50 * len(ordered)) - 1
+        p95_index = math.ceil(0.95 * len(ordered)) - 1
+        return {
+            "samples": len(ordered),
+            "p50_ms": round(ordered[max(0, p50_index)], 3),
+            "p95_ms": round(ordered[max(0, p95_index)], 3),
+            "max_ms": round(ordered[-1], 3),
+        }
+
+    def _process(self, record: Any, schema: str, recv_ns: int, recv_monotonic_ns: int, *, live: bool) -> None:
+        process_start_ns = self._monotonic()
         try:
             bar = record_to_bar(
                 record, resolver=self.resolver, provider=self.provider,
@@ -203,9 +226,19 @@ class OhlcvIngestionService:
             self._count("rejected_adapter_error")
             return
         result = self.pipeline.apply(bar)
+        process_end_ns = self._monotonic()
         self._count(result)
         if result not in ("inserted", "replaced"):
             return
+        if live:
+            queue_delay_ms = max(0, process_start_ns - recv_monotonic_ns) / 1_000_000
+            processing_ms = max(0, process_end_ns - process_start_ns) / 1_000_000
+            self._queue_delay_samples_ms.append(queue_delay_ms)
+            self._processing_samples_ms.append(processing_ms)
+            self._callback_to_apply_samples_ms.append(queue_delay_ms + processing_ms)
+            event_to_receive_ns = recv_ns - bar.ts_event_ns
+            if event_to_receive_ns < 0:
+                self._clock_skew_samples += 1
         self.last_event_ns = max(self.last_event_ns or 0, bar.ts_event_ns)
         self.last_receive_ns = max(self.last_receive_ns or 0, bar.ts_received_ns)
         # Live OHLCV omits intervals with no trades, so observed records do NOT
@@ -225,4 +258,12 @@ class OhlcvIngestionService:
             "pipeline": self.pipeline.stats(),
             "last_event_ts_ns": None if self.last_event_ns is None else str(self.last_event_ns),
             "last_receive_ts_ns": None if self.last_receive_ns is None else str(self.last_receive_ns),
+            "live_latency": {
+                "measurement_window": "last_256_accepted_live_records",
+                "queue_delay": self._distribution(self._queue_delay_samples_ms),
+                "processing": self._distribution(self._processing_samples_ms),
+                "callback_to_apply": self._distribution(self._callback_to_apply_samples_ms),
+                "event_timestamp_clock_skew_samples": self._clock_skew_samples,
+                "event_to_receive_note": "Not reported as network latency: event timestamps and backend wall clock may not be synchronized.",
+            },
         }
