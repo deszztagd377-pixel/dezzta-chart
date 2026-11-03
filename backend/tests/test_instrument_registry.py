@@ -5,6 +5,7 @@ import pytest
 
 from app.instrument_identity import CanonicalInstrument
 from app.instrument_registry import (
+    CanonicalIdentityConflict,
     InstrumentMappingConflict,
     InstrumentRegistryConflict,
     ProviderInstrumentMapping,
@@ -56,6 +57,8 @@ def _downgrade_registry_file_to_v1(path):
     """Build a populated v1 fixture without duplicating the production DDL."""
     connection = sqlite3.connect(path)
     try:
+        connection.execute("DROP INDEX IF EXISTS ux_canonical_instrument_identity_key")
+        connection.execute("ALTER TABLE canonical_instruments DROP COLUMN identity_key")
         connection.execute("DROP TABLE instrument_metadata_revisions")
         # A true v1 fixture predates the v2 metadata table and v3
         # relationship table/triggers; remove later-schema artifacts too.
@@ -88,7 +91,7 @@ def test_v1_migration_preserves_data_and_marks_legacy_metadata_unknown(tmp_path)
     connection = sqlite3.connect(path)
     connection.row_factory = sqlite3.Row
     try:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 3
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 4
         rows = connection.execute(
             "SELECT * FROM instrument_metadata_revisions WHERE canonical_id = ?",
             (INSTRUMENT_ID,),
@@ -224,6 +227,118 @@ def test_registration_is_idempotent_but_never_overwrites_identity(registry):
     assert registry.register_instrument(stock()) is False
     with pytest.raises(InstrumentRegistryConflict):
         registry.register_instrument(stock(symbol="MSFT"))
+
+
+def test_venue_scoped_identity_rejects_duplicate_uuid_for_same_instrument(registry):
+    assert registry.register_instrument(stock()) is True
+    with pytest.raises(CanonicalIdentityConflict, match="venue-scoped identity"):
+        registry.register_instrument(stock(canonical_id=SECOND_ID))
+    assert registry.get_instrument(SECOND_ID) is None
+
+
+def test_same_symbol_on_different_venues_has_distinct_canonical_identity(registry):
+    assert registry.register_instrument(stock()) is True
+    assert registry.register_instrument(stock(canonical_id=SECOND_ID, venue="XNAS2")) is True
+    assert registry.get_instrument(SECOND_ID).venue == "XNAS2"
+
+
+def test_currency_pair_identity_ignores_provider_specific_symbol_format(registry):
+    first = CanonicalInstrument(
+        canonical_id=INSTRUMENT_ID, asset_class="crypto", instrument_type="spot",
+        symbol="BTCUSDT", venue="BINANCE", base_currency="BTC", quote_currency="USDT",
+    )
+    second = CanonicalInstrument(
+        canonical_id=SECOND_ID, asset_class="crypto", instrument_type="spot",
+        symbol="BTC/USDT", venue="BINANCE", base_currency="BTC", quote_currency="USDT",
+    )
+    assert registry.register_instrument(first) is True
+    with pytest.raises(CanonicalIdentityConflict):
+        registry.register_instrument(second)
+
+
+def test_currency_pair_identity_is_venue_scoped(registry):
+    first = CanonicalInstrument(
+        canonical_id=INSTRUMENT_ID, asset_class="crypto", instrument_type="spot",
+        symbol="BTCUSDT", venue="BINANCE", base_currency="BTC", quote_currency="USDT",
+    )
+    second = CanonicalInstrument(
+        canonical_id=SECOND_ID, asset_class="crypto", instrument_type="spot",
+        symbol="BTCUSDT", venue="COINBASE", base_currency="BTC", quote_currency="USDT",
+    )
+    assert registry.register_instrument(first) is True
+    assert registry.register_instrument(second) is True
+
+
+def test_direct_sql_cannot_bypass_canonical_identity_uniqueness(registry):
+    registry.register_instrument(stock())
+    duplicate = stock(canonical_id=SECOND_ID).to_dict()
+    payload = __import__("json").dumps(
+        duplicate, sort_keys=True, separators=(",", ":"), ensure_ascii=True
+    )
+    connection = sqlite3.connect(registry.database_path)
+    try:
+        with pytest.raises(sqlite3.IntegrityError, match="ux_canonical_instrument_identity_key"):
+            connection.execute(
+                """
+                INSERT INTO canonical_instruments
+                (canonical_id, asset_class, instrument_type, symbol, venue, is_active, payload_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    duplicate["canonical_id"], duplicate["asset_class"],
+                    duplicate["instrument_type"], duplicate["symbol"],
+                    duplicate["venue"], int(duplicate["is_active"]), payload,
+                ),
+            )
+    finally:
+        connection.close()
+
+
+def test_v3_to_v4_migration_rolls_back_when_legacy_identities_are_duplicated(tmp_path):
+    path = str(tmp_path / "duplicate-v3.sqlite3")
+    registry = SQLiteInstrumentRegistry(path)
+    registry.register_instrument(stock())
+    duplicate = stock(canonical_id=SECOND_ID).to_dict()
+    payload = __import__("json").dumps(
+        duplicate, sort_keys=True, separators=(",", ":"), ensure_ascii=True
+    )
+    connection = sqlite3.connect(path)
+    try:
+        connection.execute("DROP INDEX ux_canonical_instrument_identity_key")
+        connection.execute("ALTER TABLE canonical_instruments DROP COLUMN identity_key")
+        connection.execute("PRAGMA user_version = 3")
+        connection.execute(
+            """
+            INSERT INTO canonical_instruments
+            (canonical_id, asset_class, instrument_type, symbol, venue, is_active, payload_json)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                duplicate["canonical_id"], duplicate["asset_class"],
+                duplicate["instrument_type"], duplicate["symbol"],
+                duplicate["venue"], int(duplicate["is_active"]), payload,
+            ),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    with pytest.raises(sqlite3.IntegrityError, match="UNIQUE constraint failed"):
+        SQLiteInstrumentRegistry(path)
+
+    connection = sqlite3.connect(path)
+    try:
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 3
+        columns = {
+            row[1] for row in connection.execute("PRAGMA table_info(canonical_instruments)")
+        }
+        assert "identity_key" not in columns
+        assert connection.execute(
+            "SELECT COUNT(*) FROM canonical_instruments WHERE canonical_id IN (?, ?)",
+            (INSTRUMENT_ID, SECOND_ID),
+        ).fetchone()[0] == 2
+    finally:
+        connection.close()
 
 
 def test_instrument_metadata_is_database_immutable(registry):
