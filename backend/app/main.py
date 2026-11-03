@@ -20,6 +20,7 @@ from app.ingest import OhlcvIngestionService
 from app.instruments import InstrumentCatalog
 from app.instrument_registry import SQLiteInstrumentRegistry
 from app.alert_store import SQLitePriceAlertStore
+from app.identity import FirebaseIdentityVerifier
 from app.ohlcv import (
     InvalidOhlcvBar,
     OhlcvPipeline,
@@ -51,6 +52,7 @@ def create_app(
     # Durable alert storage is initialized, but no public alert routes are
     # enabled until Firebase identity and instrument entitlements are verified.
     price_alert_store = SQLitePriceAlertStore(config.instrument_registry_db_path)
+    identity_verifier = FirebaseIdentityVerifier(config.firebase_project_id)
     ohlcv_pipeline = OhlcvPipeline()
     resolver = InstrumentResolver()
     stream_hub = OhlcvStreamHub()
@@ -95,6 +97,7 @@ def create_app(
     # Firebase identity and per-instrument entitlement checks are implemented.
     application.state.instrument_registry = instrument_registry
     application.state.price_alert_store = price_alert_store
+    application.state.identity_verifier = identity_verifier
 
     application.add_middleware(
         CORSMiddleware,
