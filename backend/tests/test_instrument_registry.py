@@ -437,11 +437,12 @@ def test_v3_to_v4_migration_rolls_back_when_legacy_identities_are_duplicated(tmp
     registry = SQLiteInstrumentRegistry(path)
     registry.register_instrument(stock())
     duplicate = stock(canonical_id=SECOND_ID).to_dict()
-    payload = __import__("json").dumps(
+    payload = json.dumps(
         duplicate, sort_keys=True, separators=(",", ":"), ensure_ascii=True
     )
     connection = sqlite3.connect(path)
     try:
+        connection.execute("DROP TRIGGER validate_canonical_identity_before_insert")
         connection.execute("DROP INDEX ux_canonical_instrument_identity_key")
         connection.execute("ALTER TABLE canonical_instruments DROP COLUMN identity_key")
         connection.execute("PRAGMA user_version = 3")
