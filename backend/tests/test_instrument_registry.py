@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
+import json
 import sqlite3
 
 import pytest
@@ -113,7 +114,7 @@ def test_v1_migration_preserves_data_and_marks_legacy_metadata_unknown(tmp_path)
     finally:
         connection.close()
 
-    # Reopening a v2 database must not duplicate the migration baseline.
+    # Reopening a migrated database must not duplicate the migration baseline.
     SQLiteInstrumentRegistry(path)
     connection = sqlite3.connect(path)
     try:
@@ -325,7 +326,7 @@ def test_concurrent_duplicate_identity_registration_has_one_winner(registry):
 def test_direct_sql_cannot_bypass_canonical_identity_uniqueness(registry):
     registry.register_instrument(stock())
     duplicate = stock(canonical_id=SECOND_ID).to_dict()
-    payload = __import__("json").dumps(
+    payload = json.dumps(
         duplicate, sort_keys=True, separators=(",", ":"), ensure_ascii=True
     )
     connection = sqlite3.connect(registry.database_path)
