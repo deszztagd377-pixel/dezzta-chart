@@ -52,6 +52,154 @@ def registry(tmp_path):
     return SQLiteInstrumentRegistry(str(tmp_path / "data" / "registry.sqlite3"))
 
 
+def _downgrade_registry_file_to_v1(path):
+    """Build a populated v1 fixture without duplicating the production DDL."""
+    connection = sqlite3.connect(path)
+    try:
+        connection.execute("DROP TABLE instrument_metadata_revisions")
+        connection.execute("PRAGMA user_version = 1")
+        connection.commit()
+    finally:
+        connection.close()
+
+
+def test_v1_migration_preserves_data_and_marks_legacy_metadata_unknown(tmp_path):
+    path = str(tmp_path / "registry.sqlite3")
+    original = SQLiteInstrumentRegistry(path)
+    original.register_instrument(stock())
+    original.add_provider_mapping(mapping())
+    _downgrade_registry_file_to_v1(path)
+
+    migrated = SQLiteInstrumentRegistry(path)
+    assert migrated.get_instrument(INSTRUMENT_ID) == stock()
+    assert migrated.list_provider_mappings(INSTRUMENT_ID) == [mapping()]
+
+    connection = sqlite3.connect(path)
+    connection.row_factory = sqlite3.Row
+    try:
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 2
+        rows = connection.execute(
+            "SELECT * FROM instrument_metadata_revisions WHERE canonical_id = ?",
+            (INSTRUMENT_ID,),
+        ).fetchall()
+        assert len(rows) == 1
+        row = rows[0]
+        assert row["source_kind"] == "legacy_migration"
+        assert row["source_name"] == "sqlite_registry_v1"
+        assert row["source_event_ts_ns"] is None
+        assert row["effective_from_ns"] is None
+        assert row["effective_to_ns"] is None
+        assert row["validity_status"] == "historical_unknown"
+        assert row["payload_schema_version"] == 1
+        assert row["metadata_json"] == connection.execute(
+            "SELECT payload_json FROM canonical_instruments WHERE canonical_id = ?",
+            (INSTRUMENT_ID,),
+        ).fetchone()[0]
+        assert row["received_at_utc"]
+    finally:
+        connection.close()
+
+    # Reopening a v2 database must not duplicate the migration baseline.
+    SQLiteInstrumentRegistry(path)
+    connection = sqlite3.connect(path)
+    try:
+        assert connection.execute(
+            "SELECT COUNT(*) FROM instrument_metadata_revisions WHERE canonical_id = ?",
+            (INSTRUMENT_ID,),
+        ).fetchone()[0] == 1
+    finally:
+        connection.close()
+
+
+def test_v1_migration_rolls_back_schema_changes_on_failure(tmp_path):
+    path = str(tmp_path / "registry.sqlite3")
+    original = SQLiteInstrumentRegistry(path)
+    original.register_instrument(stock())
+    _downgrade_registry_file_to_v1(path)
+
+    connection = sqlite3.connect(path)
+    try:
+        # Force a late DDL collision after the migration has created its table
+        # and indexes; the transaction must remove those partial changes.
+        connection.execute(
+            """
+            CREATE TRIGGER prevent_metadata_revision_overlap_insert
+            BEFORE INSERT ON canonical_instruments
+            BEGIN
+                SELECT 1;
+            END
+            """
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    with pytest.raises(sqlite3.OperationalError, match="already exists"):
+        SQLiteInstrumentRegistry(path)
+
+    connection = sqlite3.connect(path)
+    try:
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 1
+        table = connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+            "AND name = 'instrument_metadata_revisions'"
+        ).fetchone()
+        assert table is None
+        assert connection.execute(
+            "SELECT COUNT(*) FROM canonical_instruments WHERE canonical_id = ?",
+            (INSTRUMENT_ID,),
+        ).fetchone()[0] == 1
+    finally:
+        connection.close()
+
+
+def test_metadata_revision_intervals_are_half_open_and_append_only(tmp_path):
+    path = str(tmp_path / "registry.sqlite3")
+    registry = SQLiteInstrumentRegistry(path)
+    registry.register_instrument(stock())
+    connection = sqlite3.connect(path)
+    try:
+        insert = """
+            INSERT INTO instrument_metadata_revisions (
+                canonical_id, source_kind, source_name, source_dataset,
+                effective_from_ns, effective_to_ns, validity_status,
+                payload_schema_version, metadata_json
+            ) VALUES (?, 'provider', 'databento', 'EQUS.MINI', ?, ?, 'known', 1, '{}')
+        """
+        connection.execute(insert, (INSTRUMENT_ID, 100, 200))
+        with pytest.raises(sqlite3.IntegrityError, match="overlapping_metadata_revision"):
+            connection.execute(insert, (INSTRUMENT_ID, 150, 250))
+        connection.execute(insert, (INSTRUMENT_ID, 200, 300))
+        connection.execute(insert, (INSTRUMENT_ID, 300, None))
+
+        open_revision = connection.execute(
+            """
+            SELECT revision_id FROM instrument_metadata_revisions
+            WHERE canonical_id = ? AND effective_from_ns = 300
+            """,
+            (INSTRUMENT_ID,),
+        ).fetchone()[0]
+        connection.execute(
+            "UPDATE instrument_metadata_revisions SET effective_to_ns = 400 "
+            "WHERE revision_id = ?",
+            (open_revision,),
+        )
+        with pytest.raises(sqlite3.IntegrityError, match="metadata_revision_is_append_only"):
+            connection.execute(
+                "UPDATE instrument_metadata_revisions SET metadata_json = '{\"changed\":true}' "
+                "WHERE revision_id = ?",
+                (open_revision,),
+            )
+        with pytest.raises(sqlite3.IntegrityError, match="metadata_revision_is_append_only"):
+            connection.execute(
+                "DELETE FROM instrument_metadata_revisions WHERE revision_id = ?",
+                (open_revision,),
+            )
+        connection.commit()
+    finally:
+        connection.close()
+
+
 def test_file_backed_registry_survives_reopen(tmp_path):
     path = str(tmp_path / "registry.sqlite3")
     first = SQLiteInstrumentRegistry(path)
