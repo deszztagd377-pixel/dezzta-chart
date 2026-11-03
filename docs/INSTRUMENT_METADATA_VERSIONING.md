@@ -1,6 +1,6 @@
 # Instrument Identity vs. Versioned Metadata — Architecture Decision
 
-**Status:** Accepted; SQLite schema v3 is implemented. Validation of the latest schema-v3 commit is pending.
+**Status:** Accepted; SQLite schema v3 is implemented and its code/test commit passed the complete GitHub Actions pipeline.
 
 ## Decision
 
@@ -65,7 +65,7 @@ Migration and interval behavior are covered in `backend/tests/test_instrument_re
 
 ## Validation checkpoint
 
-At commit `dcbde9fbd80dac590faadd89ac68b65d1754e0ee`, the GitHub Actions workflow `DEZZTA CHART - Automated Tests` completed successfully. Frontend tests/build, backend tests, and Docker image build all passed, validating the cross-table provider-definition event implementation. Schema-v3 option relationship changes are newer; their latest branch-head workflow must complete successfully before schema v3 is marked CI-validated.
+At commit `dcbde9fbd80dac590faadd89ac68b65d1754e0ee`, the GitHub Actions workflow `DEZZTA CHART - Automated Tests` completed successfully, validating the cross-table provider-definition event implementation. The schema-v3 implementation and tests at commit `6f695f123b39994672d662728c018ca938c1923d` also passed workflow run `41627908763`: frontend unit tests, frontend build, backend tests, and Docker image build all completed successfully. Later commits through `3516e68be0bdb2ddea45d9fd30f390c43a0b52a2` changed documentation only.
 
 ## Non-goals
 
