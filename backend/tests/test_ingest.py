@@ -101,3 +101,32 @@ def test_live_records_do_not_claim_continuous_coverage():
     service.ingest_batch([rec(0), rec(5)], "ohlcv-1s", live=True)
     assert coverage.status(scope, T0, T0 + 6 * NS) == "unknown"
 
+
+
+def test_live_ingestion_latency_is_measured_with_monotonic_clock():
+    ticks = iter((100, 600, 3_600))
+    service, pipeline, *_ = make_service(
+        clock_ns=lambda: T0 + 2 * NS,
+        monotonic_ns=lambda: next(ticks),
+    )
+    assert service.offer(rec(0), "ohlcv-1s")
+    service.process_pending()
+    latency = service.status()["live_latency"]
+    assert latency["measurement_window"] == "last_256_accepted_live_records"
+    assert latency["queue_delay"] == {
+        "samples": 1, "p50_ms": 0.001, "p95_ms": 0.001, "max_ms": 0.001
+    }
+    assert latency["processing"] == {
+        "samples": 1, "p50_ms": 0.003, "p95_ms": 0.003, "max_ms": 0.003
+    }
+    assert latency["callback_to_apply"]["p50_ms"] == 0.004
+    assert latency["event_timestamp_clock_skew_samples"] == 0
+
+
+def test_historical_backfill_does_not_pollute_live_latency_samples():
+    service, *_ = make_service()
+    service.ingest_batch([rec(0), rec(1)], "ohlcv-1s", live=False)
+    latency = service.status()["live_latency"]
+    assert latency["queue_delay"]["samples"] == 0
+    assert latency["processing"]["samples"] == 0
+    assert latency["callback_to_apply"]["samples"] == 0
