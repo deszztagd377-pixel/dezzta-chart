@@ -10,7 +10,7 @@ import asyncio
 import hmac
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import Settings
@@ -20,7 +20,12 @@ from app.ingest import OhlcvIngestionService
 from app.instruments import InstrumentCatalog
 from app.instrument_registry import SQLiteInstrumentRegistry
 from app.alert_store import SQLitePriceAlertStore
-from app.identity import FirebaseIdentityVerifier
+from app.identity import (
+    FirebaseIdentityVerifier,
+    IdentityProviderUnavailable,
+    IdentityVerificationError,
+    VerifiedPrincipal,
+)
 from app.ohlcv import (
     InvalidOhlcvBar,
     OhlcvPipeline,
@@ -104,8 +109,51 @@ def create_app(
         allow_origins=list(config.cors_allowed_origins),
         allow_credentials=False,
         allow_methods=["GET"],
-        allow_headers=["Content-Type"],
+        allow_headers=["Content-Type", "Authorization"],
     )
+
+    async def require_verified_principal(
+        authorization: str | None = Header(default=None),
+    ) -> VerifiedPrincipal:
+        """Resolve account identity exclusively from a verified Bearer token."""
+        if not isinstance(authorization, str) or not authorization.startswith("Bearer "):
+            raise HTTPException(
+                status_code=401,
+                detail="Bearer authentication is required.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        token = authorization[7:].strip()
+        if not token or " " in token:
+            raise HTTPException(
+                status_code=401,
+                detail="Bearer authentication is required.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        try:
+            return identity_verifier.verify(token)
+        except IdentityProviderUnavailable as exc:
+            raise HTTPException(
+                status_code=503,
+                detail="Identity verification is temporarily unavailable.",
+            ) from exc
+        except IdentityVerificationError as exc:
+            raise HTTPException(
+                status_code=401,
+                detail="Identity token is invalid or expired.",
+                headers={"WWW-Authenticate": "Bearer"},
+            ) from exc
+
+    @application.get("/v1/auth/session", tags=["authentication"])
+    async def auth_session(
+        principal: VerifiedPrincipal = Depends(require_verified_principal),
+    ) -> dict[str, object]:
+        """Return the authenticated account subject; never accept client owner IDs."""
+        return {
+            "authenticated": True,
+            "subject": principal.subject,
+            "issuer": principal.issuer,
+            "audience": principal.audience,
+        }
 
     @application.get("/health", tags=["operations"])
     async def health() -> dict[str, str]:
