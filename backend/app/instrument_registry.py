@@ -570,7 +570,8 @@ class SQLiteInstrumentRegistry:
                 OR (
                     json_extract(payload_json, '$.instrument_type') = 'option'
                     AND (
-                        json_extract(payload_json, '$.option_right') NOT IN ('call', 'put')
+                        json_extract(payload_json, '$.option_right') IS NULL
+                        OR json_extract(payload_json, '$.option_right') NOT IN ('call', 'put')
                         OR json_extract(payload_json, '$.strike_price') IS NULL
                         OR json_extract(payload_json, '$.underlying_canonical_id') IS NULL
                     )
@@ -581,6 +582,8 @@ class SQLiteInstrumentRegistry:
                     AND (
                         json_extract(payload_json, '$.base_currency') IS NULL
                         OR json_extract(payload_json, '$.quote_currency') IS NULL
+                        OR json_extract(payload_json, '$.base_currency')
+                            = json_extract(payload_json, '$.quote_currency')
                     )
                 )
                 LIMIT 1
