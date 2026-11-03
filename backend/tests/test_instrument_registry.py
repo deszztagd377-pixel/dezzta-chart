@@ -57,6 +57,16 @@ def _downgrade_registry_file_to_v1(path):
     connection = sqlite3.connect(path)
     try:
         connection.execute("DROP TABLE instrument_metadata_revisions")
+        # A true v1 fixture predates the v2 metadata table and v3
+        # relationship table/triggers; remove later-schema artifacts too.
+        for trigger in (
+            "validate_option_underlying_before_insert",
+            "record_option_underlying_after_insert",
+            "instrument_relationships_are_immutable",
+            "instrument_relationships_no_delete",
+        ):
+            connection.execute(f"DROP TRIGGER IF EXISTS {trigger}")
+        connection.execute("DROP TABLE IF EXISTS canonical_instrument_relationships")
         connection.execute("PRAGMA user_version = 1")
         connection.commit()
     finally:
