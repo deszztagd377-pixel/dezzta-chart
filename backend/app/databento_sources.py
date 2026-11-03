@@ -32,7 +32,9 @@ class DatabentoLiveSource:
     def start(self, on_record: Callable[[Any], None], on_close: Callable[[BaseException | None], None]) -> None:
         import databento  # lazy: UNVERIFIED API surface
 
-        client = databento.Live(key=self._key)
+        # ts_out is a documented Live option: preserve the gateway-send timestamp
+        # for downstream diagnostics. It does not by itself prove end-to-end latency.
+        client = databento.Live(key=self._key, ts_out=True)
         client.subscribe(
             dataset=self._dataset, schema=self._schema,
             symbols=list(self._symbols), stype_in="raw_symbol",
