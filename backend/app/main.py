@@ -130,7 +130,7 @@ def create_app(
                 headers={"WWW-Authenticate": "Bearer"},
             )
         try:
-            return identity_verifier.verify(token)
+            return application.state.identity_verifier.verify(token)
         except IdentityProviderUnavailable as exc:
             raise HTTPException(
                 status_code=503,
