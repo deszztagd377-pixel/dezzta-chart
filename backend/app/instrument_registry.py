@@ -15,7 +15,7 @@ from uuid import UUID
 
 from app.instrument_identity import CanonicalInstrument
 
-_SCHEMA_VERSION = 3
+_SCHEMA_VERSION = 4
 _SQLITE_MAX_INTEGER = 9_223_372_036_854_775_807
 
 
@@ -29,6 +29,10 @@ class InstrumentRegistryConflict(InstrumentRegistryError):
 
 class InstrumentMappingConflict(InstrumentRegistryError):
     """A provider instrument ID has an overlapping validity mapping."""
+
+
+class CanonicalIdentityConflict(InstrumentRegistryError):
+    """A different canonical ID already represents the same venue-scoped instrument."""
 
 
 class UnknownCanonicalInstrument(InstrumentRegistryError):
@@ -242,6 +246,9 @@ class SQLiteInstrumentRegistry:
                 version = 2
             if version == 2:
                 self._migrate_v2_to_v3(connection)
+                version = 3
+            if version == 3:
+                self._migrate_v3_to_v4(connection)
         finally:
             connection.close()
 
@@ -531,6 +538,84 @@ class SQLiteInstrumentRegistry:
                 connection.rollback()
             raise
 
+    @staticmethod
+    def _migrate_v3_to_v4(connection: sqlite3.Connection) -> None:
+        """Enforce deterministic venue-scoped canonical identity uniqueness.
+
+        The generated key is derived from immutable canonical payload fields,
+        not provider symbols or provider IDs. A virtual generated column keeps
+        the source of truth in payload_json while a unique index enforces the
+        rule for repository and direct-SQL writes alike. Existing duplicates
+        abort and roll back the entire migration; no row is merged or deleted.
+        """
+        connection.execute("BEGIN IMMEDIATE")
+        try:
+            connection.execute(
+                """
+                ALTER TABLE canonical_instruments
+                ADD COLUMN identity_key TEXT GENERATED ALWAYS AS (
+                    json_array(
+                        json_extract(payload_json, '$.asset_class'),
+                        json_extract(payload_json, '$.instrument_type'),
+                        json_extract(payload_json, '$.venue'),
+                        CASE
+                            WHEN json_extract(payload_json, '$.instrument_type')
+                                IN ('spot', 'perpetual', 'fx_pair')
+                            THEN json_extract(payload_json, '$.base_currency')
+                            ELSE NULL
+                        END,
+                        CASE
+                            WHEN json_extract(payload_json, '$.instrument_type')
+                                IN ('spot', 'perpetual', 'fx_pair')
+                            THEN json_extract(payload_json, '$.quote_currency')
+                            ELSE NULL
+                        END,
+                        CASE
+                            WHEN json_extract(payload_json, '$.instrument_type')
+                                IN ('stock', 'etf', 'future', 'index')
+                            THEN json_extract(payload_json, '$.symbol')
+                            ELSE NULL
+                        END,
+                        CASE
+                            WHEN json_extract(payload_json, '$.instrument_type')
+                                IN ('future', 'option')
+                            THEN json_extract(payload_json, '$.expiration_date')
+                            ELSE NULL
+                        END,
+                        json_extract(payload_json, '$.settlement_currency'),
+                        json_extract(payload_json, '$.contract_multiplier'),
+                        CASE
+                            WHEN json_extract(payload_json, '$.instrument_type') = 'option'
+                            THEN json_extract(payload_json, '$.option_right')
+                            ELSE NULL
+                        END,
+                        CASE
+                            WHEN json_extract(payload_json, '$.instrument_type') = 'option'
+                            THEN json_extract(payload_json, '$.strike_price')
+                            ELSE NULL
+                        END,
+                        CASE
+                            WHEN json_extract(payload_json, '$.instrument_type') = 'option'
+                            THEN json_extract(payload_json, '$.underlying_canonical_id')
+                            ELSE NULL
+                        END
+                    )
+                ) VIRTUAL
+                """
+            )
+            connection.execute(
+                """
+                CREATE UNIQUE INDEX ux_canonical_instrument_identity_key
+                ON canonical_instruments(identity_key)
+                """
+            )
+            connection.execute("PRAGMA user_version = 4")
+            connection.commit()
+        except Exception:
+            if connection.in_transaction:
+                connection.rollback()
+            raise
+
     def register_instrument(self, instrument: CanonicalInstrument) -> bool:
         """Insert an immutable instrument. Identical repeats are idempotent."""
         if not isinstance(instrument, CanonicalInstrument):
@@ -572,9 +657,14 @@ class SQLiteInstrumentRegistry:
                     ),
                 )
             except sqlite3.IntegrityError as exc:
-                if "invalid_option_underlying" in str(exc):
+                message = str(exc)
+                if "invalid_option_underlying" in message:
                     raise InstrumentRelationshipConflict(
                         "An option's underlying instrument must already exist and cannot be another option."
+                    ) from exc
+                if "canonical_instruments.identity_key" in message:
+                    raise CanonicalIdentityConflict(
+                        "A canonical instrument with the same venue-scoped identity already exists."
                     ) from exc
                 raise
             connection.commit()
@@ -640,9 +730,14 @@ class SQLiteInstrumentRegistry:
                         ),
                     )
                 except sqlite3.IntegrityError as exc:
-                    if "invalid_option_underlying" in str(exc):
+                    message = str(exc)
+                    if "invalid_option_underlying" in message:
                         raise InstrumentRelationshipConflict(
                             "An option's underlying instrument must already exist and cannot be another option."
+                        ) from exc
+                    if "canonical_instruments.identity_key" in message:
+                        raise CanonicalIdentityConflict(
+                            "A canonical instrument with the same venue-scoped identity already exists."
                         ) from exc
                     raise
 
