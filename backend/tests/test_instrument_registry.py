@@ -348,6 +348,88 @@ def test_direct_sql_cannot_bypass_canonical_identity_uniqueness(registry):
         connection.close()
 
 
+def test_direct_sql_rejects_derivative_without_contract_identity_terms(registry):
+    payload = stock(canonical_id=SECOND_ID).to_dict()
+    payload.update({
+        "asset_class": "future",
+        "instrument_type": "future",
+        "symbol": "ES",
+        "venue": "XCME",
+        "expiration_date": "2026-12-18",
+        "settlement_currency": None,
+        "contract_multiplier": None,
+    })
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    connection = sqlite3.connect(registry.database_path)
+    try:
+        with pytest.raises(sqlite3.IntegrityError, match="incomplete_canonical_identity"):
+            connection.execute(
+                """
+                INSERT INTO canonical_instruments
+                (canonical_id, asset_class, instrument_type, symbol, venue, is_active, payload_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    SECOND_ID, "future", "future", "ES", "XCME", 1, encoded,
+                ),
+            )
+    finally:
+        connection.close()
+
+
+def test_v3_to_v4_migration_rolls_back_when_legacy_derivative_terms_are_missing(tmp_path):
+    path = str(tmp_path / "incomplete-v3.sqlite3")
+    registry = SQLiteInstrumentRegistry(path)
+    registry.register_instrument(stock())
+    payload = stock(canonical_id=SECOND_ID).to_dict()
+    payload.update({
+        "asset_class": "future",
+        "instrument_type": "future",
+        "symbol": "ES",
+        "venue": "XCME",
+        "expiration_date": "2026-12-18",
+        "settlement_currency": None,
+        "contract_multiplier": None,
+    })
+    connection = sqlite3.connect(path)
+    try:
+        connection.execute("DROP INDEX ux_canonical_instrument_identity_key")
+        connection.execute("ALTER TABLE canonical_instruments DROP COLUMN identity_key")
+        connection.execute("DROP TRIGGER canonical_instruments_are_immutable")
+        connection.execute("PRAGMA user_version = 3")
+        connection.execute(
+            """
+            INSERT INTO canonical_instruments
+            (canonical_id, asset_class, instrument_type, symbol, venue, is_active, payload_json)
+            VALUES (?, 'future', 'future', 'ES', 'XCME', 1, ?)
+            """,
+            (
+                SECOND_ID,
+                json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True),
+            ),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    with pytest.raises(sqlite3.IntegrityError, match="incomplete_canonical_identity"):
+        SQLiteInstrumentRegistry(path)
+
+    connection = sqlite3.connect(path)
+    try:
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 3
+        columns = {
+            row[1] for row in connection.execute("PRAGMA table_xinfo(canonical_instruments)")
+        }
+        assert "identity_key" not in columns
+        assert connection.execute(
+            "SELECT COUNT(*) FROM canonical_instruments WHERE canonical_id = ?",
+            (SECOND_ID,),
+        ).fetchone()[0] == 1
+    finally:
+        connection.close()
+
+
 def test_v3_to_v4_migration_rolls_back_when_legacy_identities_are_duplicated(tmp_path):
     path = str(tmp_path / "duplicate-v3.sqlite3")
     registry = SQLiteInstrumentRegistry(path)
