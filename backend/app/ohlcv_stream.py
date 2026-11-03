@@ -98,6 +98,7 @@ class OhlcvStreamHub:
             "volume": decimal_to_string(bar.volume),
             "tsEventNs": str(bar.ts_event_ns),
             "tsReceivedNs": str(bar.ts_received_ns),
+            "tsProviderOutNs": None if bar.ts_provider_out_ns is None else str(bar.ts_provider_out_ns),
             "sequence": bar.sequence,
             "sequenceOrigin": bar.sequence_origin,
             "origin": bar.origin,
