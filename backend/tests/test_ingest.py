@@ -154,7 +154,13 @@ def test_late_arrival_preserves_original_one_second_bucket_and_derived_timeframe
 
 def test_per_instrument_observations_are_separate_and_quiet_is_not_called_stale():
     ticks = iter((10_000_000, 20_000_000, 30_000_000, 40_000_000))
-    service, pipeline, *_ = make_service()
+    from app.symbology import SymbolMapping
+
+    service, pipeline, resolver, _ = make_service()
+    resolver.add(SymbolMapping(
+        provider="databento", dataset="GLBX.MDP3", publisher_id=1,
+        instrument_id=202, raw_symbol="ESZ6B", valid_from_ns=0, valid_to_ns=None,
+    ))
     service._monotonic = lambda: next(ticks)
     assert service.offer(rec(0, instrument_id=101), "ohlcv-1s")
     assert service.offer(rec(1, instrument_id=202), "ohlcv-1s")
