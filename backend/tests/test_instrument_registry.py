@@ -384,7 +384,7 @@ def test_v3_to_v4_migration_rolls_back_when_legacy_identities_are_duplicated(tmp
     try:
         assert connection.execute("PRAGMA user_version").fetchone()[0] == 3
         columns = {
-            row[1] for row in connection.execute("PRAGMA table_info(canonical_instruments)")
+            row[1] for row in connection.execute("PRAGMA table_xinfo(canonical_instruments)")
         }
         assert "identity_key" not in columns
         assert connection.execute(
