@@ -38,8 +38,8 @@ def test_canonical_identity_is_immutable():
     ("asset_class", "instrument_type", "extra"),
     [
         ("crypto", "spot", {"base_currency": "BTC", "quote_currency": "USD"}),
-        ("crypto", "perpetual", {"base_currency": "ETH", "quote_currency": "USDT"}),
-        ("future", "future", {"expiration_date": "2026-12-18"}),
+        ("crypto", "perpetual", {"base_currency": "ETH", "quote_currency": "USDT", "settlement_currency": "USDT", "contract_multiplier": "1"}),
+        ("future", "future", {"expiration_date": "2026-12-18", "settlement_currency": "USD", "contract_multiplier": "50"}),
         ("fx", "fx_pair", {"base_currency": "EUR", "quote_currency": "USD"}),
         ("index", "index", {}),
         ("etf", "etf", {}),
@@ -85,13 +85,13 @@ def test_options_require_expiry_strike_right_and_valid_underlying():
     with pytest.raises(InvalidCanonicalInstrument, match="option_right"):
         make_instrument(
             asset_class="option", instrument_type="option",
-            expiration_date="2026-12-18", strike_price="100",
-            underlying_canonical_id="0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a12",
+            expiration_date="2026-12-18", strike_price="100", settlement_currency="USD",
+            contract_multiplier="100", underlying_canonical_id="0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a12",
         )
     option = make_instrument(
         asset_class="option", instrument_type="option",
         expiration_date="2026-12-18", option_right="call", strike_price="100.00",
-        underlying_canonical_id="0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a12",
+        settlement_currency="USD", contract_multiplier="100", underlying_canonical_id="0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a12",
     )
     assert option.strike_price == "100"
     assert option.option_right == "call"
@@ -102,10 +102,18 @@ def test_option_cannot_reference_itself_and_non_options_reject_option_fields():
         make_instrument(
             asset_class="option", instrument_type="option",
             expiration_date="2026-12-18", option_right="put", strike_price="100",
-            underlying_canonical_id="0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+            settlement_currency="USD", contract_multiplier="100", underlying_canonical_id="0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
         )
     with pytest.raises(InvalidCanonicalInstrument, match="Option-only"):
         make_instrument(option_right="call")
+
+
+def test_derivatives_require_authoritative_settlement_and_multiplier():
+    with pytest.raises(InvalidCanonicalInstrument, match="settlement_currency and contract_multiplier"):
+        make_instrument(
+            asset_class="crypto", instrument_type="perpetual",
+            base_currency="BTC", quote_currency="USDT",
+        )
 
 
 def test_serialization_keeps_decimal_fields_as_strings():
