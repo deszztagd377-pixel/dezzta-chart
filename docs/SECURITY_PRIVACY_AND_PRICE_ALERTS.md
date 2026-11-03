@@ -1,6 +1,6 @@
 # DEZZTA CHART — Security, Privacy, Drawing Tools, and Price Alerts
 
-Status: approved product requirements; implementation not yet started
+Status: approved requirements; implementation is incremental and not production-complete
 Working branch: `phase-2/market-data-foundation`
 Baseline commit audited: `7709f49ce526b37585df88410c5c10b4aac3fe6e`
 
@@ -35,11 +35,23 @@ The product must use defense in depth and privacy by design. It must never claim
 
 ### Current gaps from audit
 - WebSocket authentication currently uses one shared static backend token; it is not a user session and has no user/series entitlement scope.
-- A Firebase Admin verifier abstraction now exists and requests revoked-token checking, but production credentials/project configuration and live Firebase integration have not been verified. There is still no user entitlement store, scoped ticket issuer, or rate-limit layer.
+- A Firebase Admin verifier abstraction and durable SQLite per-account canonical-instrument entitlement store now exist. Production Firebase credentials/project configuration, trusted entitlement provisioning, scoped WebSocket tickets, and rate limiting have not been verified or completed.
 - Existing backend storage and market-data stream state are not yet a complete multi-instance durable production system.
 - The current APK/web build must not be described as hardened or production-secure until these controls are implemented and tested.
 
-### Identity verifier implementation checkpoint\n- `backend/app/identity.py` implements a provider-neutral verified principal and Firebase Admin ID-token verifier. It fails closed when the project is not configured, requests revocation checking, validates issuer/audience/subject/auth_time claims, and normalizes SDK failures.\n- The verifier is initialized in backend application state and exposed through `GET /v1/auth/session`, which accepts a Bearer token and returns only the verified subject/issuer/audience. The endpoint fails closed with 401 for invalid tokens and 503 when Firebase is not configured. Alert CRUD routes remain disabled; no client-supplied owner ID is trusted.\n- Firebase Admin uses Application Default Credentials in the backend environment. Never commit a service-account JSON file or embed Firebase Admin credentials in the frontend/APK.\n- Before enabling endpoints, configure the correct Firebase project and workload identity/ADC, verify a real token in a controlled environment, and add endpoint-level authorization tests.\n\n## 2. Chart interaction and horizontal drawing tool
+
+### Canonical instrument entitlement checkpoint
+- `backend/app/entitlements.py` stores explicit account-subject to canonical-instrument grants in the same file-backed SQLite database as the canonical registry. Foreign keys prevent grants for unknown instruments; active/revoked state is persisted and survives restarts.
+- Access is deny-by-default and requires an exact verified account subject plus canonical instrument UUID. Revocation removes access immediately; re-grant reactivates the existing record. No client-facing grant endpoint exists: provisioning remains a trusted internal/admin operation only.
+- The store is initialized in application state for the next authorization integration step. This is not yet connected to WebSocket subscription authorization or HTTP market-data authorization; those remain blocked until scoped ticket exchange and series-to-canonical resolution are implemented and tested.
+
+### Identity verifier implementation checkpoint
+- `backend/app/identity.py` implements a provider-neutral verified principal and Firebase Admin ID-token verifier. It fails closed when the project is not configured, requests revocation checking, validates issuer/audience/subject/auth_time claims, and normalizes SDK failures.
+- The verifier is initialized in backend application state and exposed through `GET /v1/auth/session`, which accepts a Bearer token and returns only the verified subject/issuer/audience. The endpoint fails closed with 401 for invalid tokens and 503 when Firebase is not configured. Alert CRUD routes remain disabled; no client-supplied owner ID is trusted.
+- Firebase Admin uses Application Default Credentials in the backend environment. Never commit a service-account JSON file or embed Firebase Admin credentials in the frontend/APK.
+- Before enabling endpoints, configure the correct Firebase project and workload identity/ADC, verify a real token in a controlled environment, and add endpoint-level authorization tests.
+
+## 2. Chart interaction and horizontal drawing tool
 
 ### Interaction
 - Crosshair/touch interaction displays the selected candle's time and OHLC values, with the selected price clearly aligned to the right price scale.
