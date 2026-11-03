@@ -151,6 +151,8 @@ class OhlcvBar:
     series_type: str = SERIES_CONTRACT
     origin: str = ORIGIN_PROVIDER
     completeness: str = "unknown"
+    # Databento gateway-send timestamp; None for historical/derived or when absent.
+    ts_provider_out_ns: int | None = None
 
     def __post_init__(self) -> None:
         if not self.dataset.strip() or not self.raw_symbol.strip():
@@ -172,6 +174,12 @@ class OhlcvBar:
             raise InvalidOhlcvBar("Unsupported bar origin.")
         if self.completeness not in COMPLETENESS_VALUES:
             raise InvalidOhlcvBar("Unsupported completeness value.")
+        if self.ts_provider_out_ns is not None and (
+            not isinstance(self.ts_provider_out_ns, int)
+            or isinstance(self.ts_provider_out_ns, bool)
+            or self.ts_provider_out_ns < 0
+        ):
+            raise InvalidOhlcvBar("ts_provider_out_ns must be a non-negative integer or None.")
         if bucket_start_ns(self.ts_start_ns, self.timeframe) != self.ts_start_ns:
             raise InvalidOhlcvBar("Bar start timestamp is not aligned to its timeframe.")
 
