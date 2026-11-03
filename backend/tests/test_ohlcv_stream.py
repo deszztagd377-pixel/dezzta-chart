@@ -30,6 +30,7 @@ def make_bar(offset: int, *, raw_symbol: str = "ESZ6", instrument_id: int = 101)
         series_type="contract",
         origin="provider",
         completeness="complete",
+        ts_provider_out_ns=start + 925_000_000,
     )
 
 
@@ -61,6 +62,7 @@ def test_snapshot_registration_is_atomic_boundary_for_following_updates() -> Non
         assert update["streamId"] == subscription.stream_id
         assert update["sequence"] == 1
         assert update["bar"]["tsStartNs"] == str(_T0 + _NS)
+        assert update["bar"]["tsProviderOutNs"] == str(_T0 + _NS + 925_000_000)
         assert update["isFinal"] is True
         assert subscription.watermark == 1
         hub.unsubscribe(subscription.stream_id)
