@@ -26,7 +26,7 @@ Known intervals use half-open semantics `[effective_from_ns, effective_to_ns)`. 
 
 A historical-unknown baseline has no fabricated effective timestamps. The migration timestamp records when the legacy payload was copied, not when that metadata became true.
 
-The current v2 migration creates the storage constraints and baseline rows. A typed repository API for inserting, listing, and resolving revisions is the next implementation stage; live provider ingestion is not yet connected.
+The v2 migration, typed SQLite repository API, and ordered transition path are implemented. The repository supports append, list, as-of resolution, one-time closure of an open revision, and atomic supersession of the current source revision. Exact event replays are idempotent, including replays after a later revision has closed the original interval. Older events and conflicting events at the same effective timestamp are rejected without changing the active revision. Live provider ingestion is not yet connected.
 
 ### Layer C — provider mappings
 
@@ -53,11 +53,11 @@ The migration is implemented in `backend/app/instrument_registry.py` and runs wh
 - Uses a transaction so a failed migration rolls back the schema changes and leaves the database at v1.
 - Sets `PRAGMA user_version = 2` only after successful migration.
 
-Migration and interval behavior are covered in `backend/tests/test_instrument_registry.py`, including data preservation, reopen idempotency, rollback, half-open intervals, overlap rejection, and append-only enforcement.
+Migration and interval behavior are covered in `backend/tests/test_instrument_registry.py`, including data preservation, reopen idempotency, rollback, half-open intervals, overlap rejection, and append-only enforcement. Repository behavior is covered in `backend/tests/test_instrument_metadata.py`, including persistence, exact replay idempotency, atomic interval transitions, out-of-order rejection, same-time conflict rejection, independent source timelines, as-of resolution, and forced insert-failure rollback.
 
 ## Validation checkpoint
 
-At commit `116d995a8ac554e021a42790d4d13b46994e85c8`, the GitHub Actions workflow `DEZZTA CHART - Automated Tests` completed successfully. Frontend tests/build, backend tests, and Docker build passed in that run. The Vercel check for the same commit was also successful.
+At commit `edd28e1451de3f896719c2e1ab0c8239bdc09085`, the GitHub Actions workflow `DEZZTA CHART - Automated Tests` completed successfully. Frontend tests/build, backend tests, and Docker build passed in that run. Subsequent repository API and transition changes are subject to their own CI run; do not treat the earlier green run as validation of later commits.
 
 ## Non-goals
 
