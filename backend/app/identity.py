@@ -89,7 +89,7 @@ class FirebaseIdentityVerifier:
 
         if not isinstance(claims, dict):
             raise IdentityVerificationError("Identity token claims are invalid.")
-        subject = claims.get("uid") or claims.get("sub")
+        subject = claims.get("uid") if "uid" in claims else claims.get("sub")
         issuer = claims.get("iss")
         audience = claims.get("aud")
         auth_time = claims.get("auth_time")
