@@ -184,7 +184,7 @@ def test_v2_migration_rolls_back_when_legacy_option_underlying_is_missing(tmp_pa
     finally:
         connection.close()
 
-    with pytest.raises(sqlite3.IntegrityError, match="FOREIGN KEY"):
+    with pytest.raises(sqlite3.IntegrityError, match="invalid_instrument_relationship"):
         SQLiteInstrumentRegistry(path)
 
     connection = sqlite3.connect(path)
