@@ -68,7 +68,9 @@ At the time this contract was added:
 - `backend/app/ingest.py` measures backend queue delay, processing time, and callback-to-apply duration with a monotonic clock.
 - It deliberately does not call event-time-to-receive delay network latency because clock synchronization has not been established.
 - `backend/app/freshness.py` reports last accepted live OHLCV observations and explicitly avoids treating quiet intervals as stale.
-- `backend/app/databento_sources.py` is marked UNVERIFIED against the real SDK and does not yet enable/record gateway `ts_out`, implement documented replay recovery, or expose provider system-message lifecycle signals.
+- `backend/app/databento_sources.py` remains UNVERIFIED against a real SDK/network session, but now requests the documented `ts_out=True` Live option.
+- The normalized OHLCV bar, HTTP snapshots, and WebSocket updates now preserve optional `ts_provider_out_ns` as `tsProviderOutNs`. Historical/derived bars and records without that field remain explicitly null.
+- A fake-SDK unit test verifies the `ts_out=True` constructor option and the existing explicit raw-symbol subscription arguments. This verifies our wrapper contract only; it does NOT verify a real Databento connection or actual `ts_out` payloads.
 - `backend/app/ohlcv_stream.py` has a bounded server fan-out queue and disconnects slow consumers, but client receive-to-render timing is not yet instrumented.
 - No live credentials/network integration test or end-to-end client-render latency certification has been completed.
 
