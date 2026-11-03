@@ -75,13 +75,13 @@ Identity components are type-aware:
 
 - Equity, ETF, and index: asset class, instrument type, venue, and normalized symbol.
 - Crypto spot and FX pairs: asset class, instrument type, venue, base currency, and quote currency. Provider-specific pair-symbol formatting does not create a second identity.
-- Crypto perpetual: the pair identity plus settlement currency and contract multiplier when supplied.
-- Dated futures: venue, product/root symbol, expiration date, settlement currency, and contract multiplier when supplied.
-- Options: venue, underlying canonical UUID, expiration date, call/put right, normalized strike, settlement currency, and contract multiplier when supplied. The provider-specific option symbol is not used as identity.
+- Crypto perpetual: the pair identity plus required authoritative settlement currency and contract multiplier.
+- Dated futures: venue, product/root symbol, expiration date, and required authoritative settlement currency and contract multiplier.
+- Options: venue, underlying canonical UUID, expiration date, call/put right, normalized strike, and required authoritative settlement currency and contract multiplier. The provider-specific option symbol is not used as identity.
 
 The generated key is indexed uniquely inside SQLite, so concurrent repository writes and direct SQL inserts cannot register a second UUID for the same venue-scoped identity. A different venue creates a different identity. The canonical UUID remains registry-issued and is never computed from the key.
 
-The v3-to-v4 migration adds the generated column and unique index in one transaction. If existing records collide, migration aborts and rolls back; it never selects a winner, deletes a row, or merges histories. Such records require an explicit, audited reconciliation before migration can proceed.
+The v3-to-v4 migration validates required identity fields, then adds the generated column, unique index, and direct-SQL validation trigger in one transaction. A legacy derivative missing settlement currency or contract multiplier, an incomplete pair, or a duplicate identity causes migration to abort and roll back; it never selects a winner, deletes a row, or merges histories. Such records require authoritative enrichment or explicit, audited reconciliation before migration can proceed. New perpetual, future, and option records require authoritative settlement currency and contract multiplier.
 
 This key is intentionally based only on fields currently modeled by `CanonicalInstrument`. Product-specific deliverables, complex option adjustment terms, FX composite-source definitions, and continuous-futures roll methodology require dedicated typed models and must not be guessed from display symbols.
 
