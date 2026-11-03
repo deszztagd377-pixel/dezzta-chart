@@ -61,6 +61,7 @@ def _downgrade_registry_file_to_v1(path):
         # relationship table/triggers; remove later-schema artifacts too.
         for trigger in (
             "validate_option_underlying_before_insert",
+            "validate_instrument_relationship_before_insert",
             "record_option_underlying_after_insert",
             "instrument_relationships_are_immutable",
             "instrument_relationships_no_delete",
