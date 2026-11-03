@@ -188,7 +188,7 @@ class SQLiteProviderDefinitionEventRepository:
 
             latest_mapping = connection.execute(
                 """
-                SELECT * FROM provider_instrument_mappings
+                SELECT rowid AS mapping_rowid, * FROM provider_instrument_mappings
                 WHERE provider = ? AND dataset = ? AND publisher_id = ?
                   AND instrument_id = ?
                 ORDER BY valid_from_ns DESC LIMIT 1
@@ -227,7 +227,7 @@ class SQLiteProviderDefinitionEventRepository:
                     UPDATE provider_instrument_mappings SET valid_to_ns = ?
                     WHERE rowid = ? AND valid_to_ns IS NULL
                     """,
-                    (normalized.valid_from_ns, latest_mapping["rowid"]),
+                    (normalized.valid_from_ns, latest_mapping["mapping_rowid"]),
                 )
             if latest_metadata is not None and latest_metadata["effective_to_ns"] is None:
                 connection.execute(
