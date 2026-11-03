@@ -37,6 +37,24 @@ def test_record_normalizes_prices_volume_and_timestamps():
     assert bar.origin == "provider" and bar.series_type == "contract"
 
 
+def test_gateway_send_timestamp_is_preserved_without_claiming_latency():
+    gateway_ns = T0 + 8 * NS
+    bar = convert(rec(3, ts_out=gateway_ns))
+    assert bar.ts_provider_out_ns == gateway_ns
+    assert bar.ts_received_ns == T0 + 9 * NS
+
+
+def test_missing_gateway_send_timestamp_remains_unknown():
+    bar = convert(rec(3))
+    assert bar.ts_provider_out_ns is None
+
+
+def test_malformed_gateway_send_timestamp_is_rejected():
+    with pytest.raises(RecordRejected) as info:
+        convert(rec(3, ts_out=1.25))
+    assert info.value.reason == "malformed"
+
+
 def test_volume_beyond_float_precision_is_preserved():
     big = 2**63 + 1
     assert convert(rec(0, v=big)).volume == Decimal(big)
