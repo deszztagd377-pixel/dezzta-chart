@@ -42,6 +42,8 @@ def option(*, canonical_id=OPTION_ID, underlying_id=UNDERLYING_ID):
 def downgrade_v3_to_v2(path):
     connection = sqlite3.connect(path)
     try:
+        connection.execute("DROP INDEX IF EXISTS ux_canonical_instrument_identity_key")
+        connection.execute("ALTER TABLE canonical_instruments DROP COLUMN identity_key")
         connection.execute("DROP TRIGGER validate_option_underlying_before_insert")
         connection.execute("DROP TRIGGER validate_instrument_relationship_before_insert")
         connection.execute("DROP TRIGGER record_option_underlying_after_insert")
@@ -169,7 +171,7 @@ def test_v2_migration_backfills_existing_option_relationships(tmp_path):
 
     connection = sqlite3.connect(path)
     try:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 3
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 4
         assert connection.execute(
             """
             SELECT source_canonical_id, relationship_type, target_canonical_id
