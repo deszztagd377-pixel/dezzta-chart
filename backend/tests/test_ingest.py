@@ -104,7 +104,7 @@ def test_live_records_do_not_claim_continuous_coverage():
 
 
 def test_live_ingestion_latency_is_measured_with_monotonic_clock():
-    ticks = iter((100, 600, 3_600))
+    ticks = iter((100, 600, 3_600, 4_000))
     service, pipeline, *_ = make_service()
     service._clock = lambda: T0 + 2 * NS
     service._monotonic = lambda: next(ticks)
@@ -151,3 +151,33 @@ def test_late_arrival_preserves_original_one_second_bucket_and_derived_timeframe
     assert len(five_seconds) == 1 and five_seconds[0].ts_start_ns == T0
     assert len(one_minute) == 1 and one_minute[0].ts_start_ns == T0
     assert one_second[0].close == five_seconds[0].close == one_minute[0].close
+
+def test_per_instrument_observations_are_separate_and_quiet_is_not_called_stale():
+    ticks = iter((10_000_000, 20_000_000, 30_000_000, 40_000_000))
+    service, pipeline, *_ = make_service()
+    service._monotonic = lambda: next(ticks)
+    assert service.offer(rec(0, instrument_id=101), "ohlcv-1s")
+    assert service.offer(rec(1, instrument_id=202), "ohlcv-1s")
+    service.process_pending()
+    observations = service.status()["instrument_observations"]
+    assert observations["tracked_instruments"] == 2
+    assert {item["instrument_id"] for item in observations["instruments"]} == {101, 202}
+    assert all(item["health"] == "observed" for item in observations["instruments"])
+    assert observations["staleness_classification"] == "not_inferred_from_OHLCV_silence"
+    assert "No trade/no OHLCV update" in observations["quiet_instrument_note"]
+
+
+def test_per_instrument_observations_are_bounded():
+    from app.freshness import InstrumentObservationTracker
+
+    tracker = InstrumentObservationTracker(max_instruments=2, monotonic_ns=lambda: 100)
+    for instrument_id in (1, 2, 3):
+        tracker.observe(
+            dataset="GLBX.MDP3", publisher_id=1, instrument_id=instrument_id,
+            raw_symbol=f"ES{instrument_id}", event_ns=instrument_id,
+            received_ns=instrument_id, monotonic_received_ns=instrument_id,
+        )
+    status = tracker.status()
+    assert status["tracked_instruments"] == 2
+    assert status["evicted_instrument_counters"] == 1
+    assert {item["instrument_id"] for item in status["instruments"]} == {2, 3}
