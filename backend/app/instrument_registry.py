@@ -15,7 +15,7 @@ from uuid import UUID
 
 from app.instrument_identity import CanonicalInstrument
 
-_SCHEMA_VERSION = 1
+_SCHEMA_VERSION = 2
 _SQLITE_MAX_INTEGER = 9_223_372_036_854_775_807
 
 
@@ -232,8 +232,173 @@ class SQLiteInstrumentRegistry:
                     COMMIT;
                     """
                 )
+                version = 1
+            if version == 1:
+                self._migrate_v1_to_v2(connection)
         finally:
             connection.close()
+
+    @staticmethod
+    def _migrate_v1_to_v2(connection: sqlite3.Connection) -> None:
+        """Add versioned metadata storage without inventing legacy effective times.
+
+        Existing v1 payloads are copied as historical-unknown baselines. The
+        migration timestamp records when the copy occurred, not when the
+        metadata became effective.
+        """
+        connection.execute("BEGIN IMMEDIATE")
+        try:
+            connection.execute(
+                """
+                CREATE TABLE instrument_metadata_revisions (
+                    revision_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    canonical_id TEXT NOT NULL,
+                    source_kind TEXT NOT NULL CHECK (
+                        source_kind IN ('legacy_migration', 'provider', 'operator')
+                    ),
+                    source_name TEXT NOT NULL CHECK (length(source_name) > 0),
+                    source_dataset TEXT,
+                    source_event_ts_ns INTEGER CHECK (
+                        source_event_ts_ns IS NULL OR source_event_ts_ns >= 0
+                    ),
+                    received_at_utc TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    effective_from_ns INTEGER,
+                    effective_to_ns INTEGER,
+                    validity_status TEXT NOT NULL CHECK (
+                        validity_status IN ('historical_unknown', 'known')
+                    ),
+                    payload_schema_version INTEGER NOT NULL CHECK (
+                        payload_schema_version >= 1
+                    ),
+                    metadata_json TEXT NOT NULL CHECK (json_valid(metadata_json)),
+                    FOREIGN KEY (canonical_id) REFERENCES canonical_instruments(canonical_id)
+                        ON UPDATE RESTRICT ON DELETE RESTRICT,
+                    CHECK (
+                        (validity_status = 'historical_unknown'
+                            AND effective_from_ns IS NULL AND effective_to_ns IS NULL)
+                        OR
+                        (validity_status = 'known'
+                            AND effective_from_ns IS NOT NULL
+                            AND effective_from_ns >= 0
+                            AND (effective_to_ns IS NULL OR effective_to_ns > effective_from_ns))
+                    )
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX idx_metadata_revision_canonical_effective
+                ON instrument_metadata_revisions(
+                    canonical_id, validity_status, effective_from_ns, effective_to_ns
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX idx_metadata_revision_source_effective
+                ON instrument_metadata_revisions(
+                    source_kind, source_name, source_dataset, canonical_id, effective_from_ns
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER prevent_metadata_revision_overlap_insert
+                BEFORE INSERT ON instrument_metadata_revisions
+                WHEN NEW.validity_status = 'known' AND EXISTS (
+                    SELECT 1 FROM instrument_metadata_revisions AS existing
+                    WHERE existing.canonical_id = NEW.canonical_id
+                      AND existing.source_kind = NEW.source_kind
+                      AND existing.source_name = NEW.source_name
+                      AND existing.source_dataset IS NEW.source_dataset
+                      AND existing.validity_status = 'known'
+                      AND NEW.effective_from_ns < COALESCE(
+                          existing.effective_to_ns, 9223372036854775807
+                      )
+                      AND COALESCE(NEW.effective_to_ns, 9223372036854775807)
+                          > existing.effective_from_ns
+                )
+                BEGIN
+                    SELECT RAISE(ABORT, 'overlapping_metadata_revision');
+                END
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER prevent_metadata_revision_overlap_update
+                BEFORE UPDATE ON instrument_metadata_revisions
+                WHEN NEW.validity_status = 'known' AND EXISTS (
+                    SELECT 1 FROM instrument_metadata_revisions AS existing
+                    WHERE existing.revision_id != OLD.revision_id
+                      AND existing.canonical_id = NEW.canonical_id
+                      AND existing.source_kind = NEW.source_kind
+                      AND existing.source_name = NEW.source_name
+                      AND existing.source_dataset IS NEW.source_dataset
+                      AND existing.validity_status = 'known'
+                      AND NEW.effective_from_ns < COALESCE(
+                          existing.effective_to_ns, 9223372036854775807
+                      )
+                      AND COALESCE(NEW.effective_to_ns, 9223372036854775807)
+                          > existing.effective_from_ns
+                )
+                BEGIN
+                    SELECT RAISE(ABORT, 'overlapping_metadata_revision');
+                END
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER metadata_revision_is_append_only
+                BEFORE UPDATE ON instrument_metadata_revisions
+                WHEN NOT (
+                    OLD.validity_status = 'known'
+                    AND OLD.effective_to_ns IS NULL
+                    AND NEW.effective_to_ns IS NOT NULL
+                    AND NEW.effective_to_ns > OLD.effective_from_ns
+                    AND NEW.revision_id = OLD.revision_id
+                    AND NEW.canonical_id = OLD.canonical_id
+                    AND NEW.source_kind = OLD.source_kind
+                    AND NEW.source_name = OLD.source_name
+                    AND NEW.source_dataset IS OLD.source_dataset
+                    AND NEW.source_event_ts_ns IS OLD.source_event_ts_ns
+                    AND NEW.received_at_utc = OLD.received_at_utc
+                    AND NEW.effective_from_ns = OLD.effective_from_ns
+                    AND NEW.validity_status = OLD.validity_status
+                    AND NEW.payload_schema_version = OLD.payload_schema_version
+                    AND NEW.metadata_json = OLD.metadata_json
+                )
+                BEGIN
+                    SELECT RAISE(ABORT, 'metadata_revision_is_append_only');
+                END
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER metadata_revision_no_delete
+                BEFORE DELETE ON instrument_metadata_revisions
+                BEGIN
+                    SELECT RAISE(ABORT, 'metadata_revision_is_append_only');
+                END
+                """
+            )
+            connection.execute(
+                """
+                INSERT INTO instrument_metadata_revisions (
+                    canonical_id, source_kind, source_name, source_dataset,
+                    source_event_ts_ns, validity_status, payload_schema_version,
+                    metadata_json
+                )
+                SELECT canonical_id, 'legacy_migration', 'sqlite_registry_v1',
+                       NULL, NULL, 'historical_unknown', 1, payload_json
+                FROM canonical_instruments
+                """
+            )
+            connection.execute("PRAGMA user_version = 2")
+            connection.commit()
+        except Exception:
+            if connection.in_transaction:
+                connection.rollback()
+            raise
 
     def register_instrument(self, instrument: CanonicalInstrument) -> bool:
         """Insert an immutable instrument. Identical repeats are idempotent."""
