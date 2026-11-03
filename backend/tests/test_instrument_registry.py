@@ -269,6 +269,59 @@ def test_currency_pair_identity_is_venue_scoped(registry):
     assert registry.register_instrument(second) is True
 
 
+def test_dated_futures_use_product_and_expiry_as_identity(registry):
+    first = CanonicalInstrument(
+        canonical_id=INSTRUMENT_ID, asset_class="future", instrument_type="future",
+        symbol="ES", venue="XCME", expiration_date="2026-12-18",
+        settlement_currency="USD", contract_multiplier="50",
+    )
+    next_expiry = CanonicalInstrument(
+        canonical_id=SECOND_ID, asset_class="future", instrument_type="future",
+        symbol="ES", venue="XCME", expiration_date="2027-03-19",
+        settlement_currency="USD", contract_multiplier="50",
+    )
+    assert registry.register_instrument(first) is True
+    assert registry.register_instrument(next_expiry) is True
+
+
+def test_options_use_underlying_expiry_right_and_strike_as_identity(registry):
+    underlying_id = "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a13"
+    registry.register_instrument(stock(canonical_id=underlying_id, symbol="SPY", venue="ARCX"))
+    call = CanonicalInstrument(
+        canonical_id=INSTRUMENT_ID, asset_class="option", instrument_type="option",
+        symbol="SPY261218C00500000", venue="ARCX", expiration_date="2026-12-18",
+        option_right="call", strike_price="500", underlying_canonical_id=underlying_id,
+        settlement_currency="USD", contract_multiplier="100",
+    )
+    same_contract_different_vendor_symbol = CanonicalInstrument(
+        canonical_id=SECOND_ID, asset_class="option", instrument_type="option",
+        symbol="SPY-20261218-C-500", venue="ARCX", expiration_date="2026-12-18",
+        option_right="call", strike_price="500.00", underlying_canonical_id=underlying_id,
+        settlement_currency="USD", contract_multiplier="100",
+    )
+    assert registry.register_instrument(call) is True
+    with pytest.raises(CanonicalIdentityConflict):
+        registry.register_instrument(same_contract_different_vendor_symbol)
+
+
+def test_concurrent_duplicate_identity_registration_has_one_winner(registry):
+    candidates = [
+        stock(canonical_id=INSTRUMENT_ID),
+        stock(canonical_id=SECOND_ID),
+    ]
+
+    def insert(candidate):
+        try:
+            return registry.register_instrument(candidate)
+        except CanonicalIdentityConflict:
+            return False
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(executor.map(insert, candidates))
+    assert sum(results) == 1
+    assert len(registry.list_instruments(active_only=False)) == 1
+
+
 def test_direct_sql_cannot_bypass_canonical_identity_uniqueness(registry):
     registry.register_instrument(stock())
     duplicate = stock(canonical_id=SECOND_ID).to_dict()
@@ -277,7 +330,7 @@ def test_direct_sql_cannot_bypass_canonical_identity_uniqueness(registry):
     )
     connection = sqlite3.connect(registry.database_path)
     try:
-        with pytest.raises(sqlite3.IntegrityError, match="ux_canonical_instrument_identity_key"):
+        with pytest.raises(sqlite3.IntegrityError, match="canonical_instruments.identity_key"):
             connection.execute(
                 """
                 INSERT INTO canonical_instruments
