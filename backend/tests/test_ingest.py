@@ -153,7 +153,7 @@ def test_late_arrival_preserves_original_one_second_bucket_and_derived_timeframe
     assert one_second[0].close == five_seconds[0].close == one_minute[0].close
 
 def test_per_instrument_observations_are_separate_and_quiet_is_not_called_stale():
-    ticks = iter((10_000_000, 20_000_000, 30_000_000, 40_000_000))
+    ticks = iter((10_000_000, 20_000_000, 30_000_000, 40_000_000, 50_000_000, 60_000_000))
     from app.symbology import SymbolMapping
 
     service, pipeline, resolver, _ = make_service()
