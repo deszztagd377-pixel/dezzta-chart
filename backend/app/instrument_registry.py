@@ -582,8 +582,18 @@ class SQLiteInstrumentRegistry:
                             THEN json_extract(payload_json, '$.expiration_date')
                             ELSE NULL
                         END,
-                        json_extract(payload_json, '$.settlement_currency'),
-                        json_extract(payload_json, '$.contract_multiplier'),
+                        CASE
+                            WHEN json_extract(payload_json, '$.instrument_type')
+                                IN ('perpetual', 'future', 'option')
+                            THEN json_extract(payload_json, '$.settlement_currency')
+                            ELSE NULL
+                        END,
+                        CASE
+                            WHEN json_extract(payload_json, '$.instrument_type')
+                                IN ('perpetual', 'future', 'option')
+                            THEN json_extract(payload_json, '$.contract_multiplier')
+                            ELSE NULL
+                        END,
                         CASE
                             WHEN json_extract(payload_json, '$.instrument_type') = 'option'
                             THEN json_extract(payload_json, '$.option_right')
