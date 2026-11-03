@@ -7,7 +7,7 @@ from app.instrument_events import (
     SQLiteProviderDefinitionEventRepository,
 )
 from app.instrument_identity import CanonicalInstrument
-from app.instrument_metadata import MetadataRevisionConflict
+from app.instrument_metadata import SQLiteInstrumentMetadataRepository
 from app.instrument_registry import (
     ProviderInstrumentMapping,
     SQLiteInstrumentRegistry,
@@ -79,7 +79,7 @@ def test_provider_event_transition_closes_both_timelines_and_replay_is_idempoten
     event_repository,
 ):
     registry, events = event_repository
-    first_mapping, first_metadata, first_created = events.apply_event(
+    _, first_metadata, first_created = events.apply_event(
         provider_mapping(valid_from_ns=1_000),
         source_event_ts_ns=1_000,
         metadata={"tick_size": "0.25"},
@@ -100,9 +100,7 @@ def test_provider_event_transition_closes_both_timelines_and_replay_is_idempoten
     assert first_metadata.effective_to_ns is None  # Returned immutable insertion snapshot.
     assert second_metadata.effective_to_ns is None
 
-    metadata_repository = __import__(
-        "app.instrument_metadata", fromlist=["SQLiteInstrumentMetadataRepository"]
-    ).SQLiteInstrumentMetadataRepository(registry.database_path)
+    metadata_repository = SQLiteInstrumentMetadataRepository(registry.database_path)
     revisions = metadata_repository.list_revisions(
         CANONICAL_ID, source_kind="provider", source_name="databento"
     )
@@ -188,7 +186,6 @@ def test_metadata_insert_failure_rolls_back_mapping_and_metadata_closures(
     assert mappings[0].valid_from_ns == 1_000
     assert mappings[0].valid_to_ns is None
 
-    from app.instrument_metadata import SQLiteInstrumentMetadataRepository
     revisions = SQLiteInstrumentMetadataRepository(
         registry.database_path
     ).list_revisions(CANONICAL_ID, source_kind="provider")
