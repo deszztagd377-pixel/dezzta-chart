@@ -691,7 +691,8 @@ class SQLiteInstrumentRegistry:
                 OR (
                     json_extract(NEW.payload_json, '$.instrument_type') = 'option'
                     AND (
-                        json_extract(NEW.payload_json, '$.option_right') NOT IN ('call', 'put')
+                        json_extract(NEW.payload_json, '$.option_right') IS NULL
+                        OR json_extract(NEW.payload_json, '$.option_right') NOT IN ('call', 'put')
                         OR json_extract(NEW.payload_json, '$.strike_price') IS NULL
                         OR json_extract(NEW.payload_json, '$.underlying_canonical_id') IS NULL
                     )
