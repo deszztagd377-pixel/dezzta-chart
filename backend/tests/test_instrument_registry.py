@@ -58,6 +58,7 @@ def _downgrade_registry_file_to_v1(path):
     """Build a populated v1 fixture without duplicating the production DDL."""
     connection = sqlite3.connect(path)
     try:
+        connection.execute("DROP TRIGGER IF EXISTS validate_canonical_identity_before_insert")
         connection.execute("DROP INDEX IF EXISTS ux_canonical_instrument_identity_key")
         connection.execute("ALTER TABLE canonical_instruments DROP COLUMN identity_key")
         connection.execute("DROP TABLE instrument_metadata_revisions")
@@ -393,6 +394,7 @@ def test_v3_to_v4_migration_rolls_back_when_legacy_derivative_terms_are_missing(
     })
     connection = sqlite3.connect(path)
     try:
+        connection.execute("DROP TRIGGER validate_canonical_identity_before_insert")
         connection.execute("DROP INDEX ux_canonical_instrument_identity_key")
         connection.execute("ALTER TABLE canonical_instruments DROP COLUMN identity_key")
         connection.execute("DROP TRIGGER canonical_instruments_are_immutable")
