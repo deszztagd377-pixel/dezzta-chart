@@ -59,6 +59,23 @@ def _integer(record: Any, name: str) -> int:
         raise RecordRejected("malformed", f"{name} is not an integer") from exc
 
 
+def _optional_timestamp(record: Any, name: str) -> int | None:
+    value = getattr(record, name, _MISSING)
+    if value is _MISSING or value is None:
+        return None
+    if isinstance(value, bool):
+        raise RecordRejected("malformed", f"{name} is not an integer")
+    try:
+        parsed = operator.index(value)
+    except TypeError as exc:
+        raise RecordRejected("malformed", f"{name} is not an integer") from exc
+    if parsed < 0:
+        raise RecordRejected("malformed", f"{name} is negative")
+    if parsed == UNDEF_TIMESTAMP:
+        return None
+    return parsed
+
+
 def record_to_bar(
     record: Any,
     *,
@@ -88,6 +105,7 @@ def record_to_bar(
     instrument_id = _integer(record, "instrument_id")
     publisher_id = _integer(record, "publisher_id")
     ts_event = _integer(record, "ts_event")
+    ts_provider_out = _optional_timestamp(record, "ts_out")
     if min(instrument_id, publisher_id, ts_event) < 0 or ts_event == UNDEF_TIMESTAMP:
         raise RecordRejected("malformed", "negative or undefined identifier/timestamp")
 
@@ -102,6 +120,7 @@ def record_to_bar(
             ts_event_ns=ts_event, ts_received_ns=ts_received_ns,
             sequence=sequence, sequence_origin="local", provider=provider,
             series_type=mapping.series_type, origin="provider",
+            ts_provider_out_ns=ts_provider_out,
             **prices,
         )
     except InvalidOhlcvBar as exc:
