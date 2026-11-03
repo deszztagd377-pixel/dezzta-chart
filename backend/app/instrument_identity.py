@@ -145,6 +145,13 @@ class CanonicalInstrument:
                 self, field_name, _positive_decimal(getattr(self, field_name), field_name)
             )
 
+        if instrument_type in {"perpetual", "future", "option"}:
+            if self.settlement_currency is None or self.contract_multiplier is None:
+                raise InvalidCanonicalInstrument(
+                    "Perpetuals, futures, and options require authoritative "
+                    "settlement_currency and contract_multiplier for stable identity."
+                )
+
         if instrument_type == "option":
             if not isinstance(self.option_right, str) or self.option_right.lower() not in {"call", "put"}:
                 raise InvalidCanonicalInstrument("Options require option_right 'call' or 'put'.")
