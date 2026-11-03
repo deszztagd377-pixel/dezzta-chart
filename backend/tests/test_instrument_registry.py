@@ -88,7 +88,7 @@ def test_v1_migration_preserves_data_and_marks_legacy_metadata_unknown(tmp_path)
     connection = sqlite3.connect(path)
     connection.row_factory = sqlite3.Row
     try:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 3
         rows = connection.execute(
             "SELECT * FROM instrument_metadata_revisions WHERE canonical_id = ?",
             (INSTRUMENT_ID,),
