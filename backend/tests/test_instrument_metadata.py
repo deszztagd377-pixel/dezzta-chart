@@ -165,6 +165,145 @@ def test_open_revision_can_be_closed_once_without_changing_payload(repositories)
         metadata.close_open_revision(revision.revision_id, 300)
 
 
+
+def test_transition_atomically_closes_previous_revision_and_is_idempotent(repositories):
+    _, metadata = repositories
+    first, created = metadata.append_revision_transition(
+        canonical_id=CANONICAL_ID,
+        source_kind="provider",
+        source_name="databento",
+        source_dataset="GLBX.MDP3",
+        source_event_ts_ns=1_000,
+        effective_from_ns=1_000,
+        metadata={"tick_size": "0.25"},
+    )
+    assert created is True
+    second, second_created = metadata.append_revision_transition(
+        canonical_id=CANONICAL_ID,
+        source_kind="provider",
+        source_name="databento",
+        source_dataset="GLBX.MDP3",
+        source_event_ts_ns=2_000,
+        effective_from_ns=2_000,
+        metadata={"tick_size": "0.5"},
+    )
+    assert second_created is True
+    assert second.effective_to_ns is None
+
+    history = metadata.list_revisions(
+        CANONICAL_ID, source_kind="provider", source_name="databento"
+    )
+    assert len(history) == 2
+    assert history[0].revision_id == first.revision_id
+    assert history[0].effective_to_ns == 2_000
+    assert history[1] == second
+    assert metadata.resolve_as_of(
+        CANONICAL_ID, 1_999, source_kind="provider", source_name="databento"
+    ) == history[0]
+    assert metadata.resolve_as_of(
+        CANONICAL_ID, 2_000, source_kind="provider", source_name="databento"
+    ) == second
+
+    duplicate, duplicate_created = metadata.append_revision_transition(
+        canonical_id=CANONICAL_ID,
+        source_kind="provider",
+        source_name="databento",
+        source_dataset="GLBX.MDP3",
+        source_event_ts_ns=2_000,
+        effective_from_ns=2_000,
+        metadata={"tick_size": "0.5"},
+    )
+    assert duplicate_created is False
+    assert duplicate.revision_id == second.revision_id
+    assert len(metadata.list_revisions(CANONICAL_ID, source_kind="provider")) == 2
+
+
+def test_transition_rejects_late_and_same_time_conflicting_events_without_mutation(repositories):
+    _, metadata = repositories
+    current, _ = metadata.append_revision_transition(
+        canonical_id=CANONICAL_ID,
+        source_kind="provider",
+        source_name="databento",
+        source_dataset="GLBX.MDP3",
+        source_event_ts_ns=2_000,
+        effective_from_ns=2_000,
+        metadata={"tick_size": "0.5"},
+    )
+    with pytest.raises(MetadataRevisionConflict, match="Out-of-order"):
+        metadata.append_revision_transition(
+            canonical_id=CANONICAL_ID,
+            source_kind="provider",
+            source_name="databento",
+            source_dataset="GLBX.MDP3",
+            source_event_ts_ns=1_500,
+            effective_from_ns=1_500,
+            metadata={"tick_size": "0.25"},
+        )
+    with pytest.raises(MetadataRevisionConflict, match="Out-of-order"):
+        metadata.append_revision_transition(
+            canonical_id=CANONICAL_ID,
+            source_kind="provider",
+            source_name="databento",
+            source_dataset="GLBX.MDP3",
+            source_event_ts_ns=2_000,
+            effective_from_ns=2_000,
+            metadata={"tick_size": "0.75"},
+        )
+    history = metadata.list_revisions(CANONICAL_ID, source_kind="provider")
+    assert history == [current]
+    assert current.effective_to_ns is None
+
+
+def test_transition_rolls_back_previous_close_when_new_revision_cannot_be_inserted(repositories):
+    _, metadata = repositories
+    first, _ = metadata.append_revision_transition(
+        canonical_id=CANONICAL_ID,
+        source_kind="provider",
+        source_name="databento",
+        source_dataset="GLBX.MDP3",
+        source_event_ts_ns=1_000,
+        effective_from_ns=1_000,
+        metadata={"tick_size": "0.25"},
+    )
+    with pytest.raises(UnknownMetadataInstrument):
+        metadata.append_revision_transition(
+            canonical_id=UNKNOWN_ID,
+            source_kind="provider",
+            source_name="databento",
+            source_dataset="GLBX.MDP3",
+            source_event_ts_ns=2_000,
+            effective_from_ns=2_000,
+            metadata={"tick_size": "0.5"},
+        )
+    history = metadata.list_revisions(CANONICAL_ID, source_kind="provider")
+    assert history == [first]
+    assert history[0].effective_to_ns is None
+
+
+def test_transition_keeps_independent_source_timelines_separate(repositories):
+    _, metadata = repositories
+    provider, _ = metadata.append_revision_transition(
+        canonical_id=CANONICAL_ID,
+        source_kind="provider",
+        source_name="databento",
+        source_dataset="GLBX.MDP3",
+        source_event_ts_ns=1_000,
+        effective_from_ns=1_000,
+        metadata={"tick_size": "0.25"},
+    )
+    operator, _ = metadata.append_revision_transition(
+        canonical_id=CANONICAL_ID,
+        source_kind="operator",
+        source_name="manual-review",
+        source_event_ts_ns=1_500,
+        effective_from_ns=1_500,
+        metadata={"tick_size": "0.5"},
+    )
+    assert provider.effective_to_ns is None
+    assert operator.effective_to_ns is None
+    with pytest.raises(MetadataRevisionConflict, match="Multiple source claims"):
+        metadata.resolve_as_of(CANONICAL_ID, 1_600)
+
 def test_unknown_canonical_instrument_and_invalid_payloads_are_rejected(repositories):
     _, metadata = repositories
     with pytest.raises(UnknownMetadataInstrument):
