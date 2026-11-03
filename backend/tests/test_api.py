@@ -308,3 +308,67 @@ def test_authenticated_websocket_receives_validated_live_ohlcv_update() -> None:
             assert update["bar"]["timeframe"] == "1s"
 
     assert FakeLive.stopped is True
+
+def test_auth_session_requires_bearer_token():
+    client = TestClient(create_app(make_settings()))
+    response = client.get("/v1/auth/session")
+    assert response.status_code == 401
+    assert response.headers["www-authenticate"] == "Bearer"
+
+
+def test_auth_session_returns_only_verified_principal():
+    from app.identity import VerifiedPrincipal
+
+    application = create_app(make_settings())
+
+    class FakeVerifier:
+        def verify(self, token):
+            assert token == "valid-firebase-token"
+            return VerifiedPrincipal(
+                subject="firebase-user-123",
+                issuer="https://securetoken.google.com/test-project",
+                audience="test-project",
+                auth_time=1_798_000_000,
+            )
+
+    application.state.identity_verifier = FakeVerifier()
+    client = TestClient(application)
+    response = client.get(
+        "/v1/auth/session",
+        headers={"Authorization": "Bearer valid-firebase-token"},
+    )
+    assert response.status_code == 200
+    assert response.json() == {
+        "authenticated": True,
+        "subject": "firebase-user-123",
+        "issuer": "https://securetoken.google.com/test-project",
+        "audience": "test-project",
+    }
+
+
+def test_auth_session_rejects_invalid_firebase_token():
+    from app.identity import IdentityVerificationError
+
+    application = create_app(make_settings())
+
+    class FakeVerifier:
+        def verify(self, token):
+            raise IdentityVerificationError("bad token")
+
+    application.state.identity_verifier = FakeVerifier()
+    client = TestClient(application)
+    response = client.get(
+        "/v1/auth/session",
+        headers={"Authorization": "Bearer invalid-token"},
+    )
+    assert response.status_code == 401
+    assert response.headers["www-authenticate"] == "Bearer"
+
+
+def test_auth_session_fails_closed_when_firebase_is_not_configured():
+    client = TestClient(create_app(make_settings()))
+    response = client.get(
+        "/v1/auth/session",
+        headers={"Authorization": "Bearer token"},
+    )
+    assert response.status_code == 503
