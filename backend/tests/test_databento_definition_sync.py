@@ -148,3 +148,24 @@ def test_equal_timestamp_same_instrument_second_transition_is_quarantined(tmp_pa
     assert len(registry.list_provider_mappings(
         registry.list_instruments(active_only=False)[0].canonical_id
     )) == 1
+
+
+def test_replay_drains_more_than_one_pending_page(tmp_path):
+    path, registry, catalog, resolver, sync = setup_sync(tmp_path)
+    t0 = 1_790_000_000_000_000_000
+    rows = [
+        definition(t0),
+        definition(
+            t0 + 1, instrument_id=902, raw_symbol="NQZ6", asset="NQ"
+        ),
+    ]
+    for index, row in enumerate(rows):
+        sync._journal.append_event(
+            provider="databento", dataset="GLBX.MDP3",
+            publisher_id=1, instrument_id=row["instrument_id"],
+            source_event_ts_ns=row["ts_event"], source_order=0,
+            action="A", raw_symbol=row["raw_symbol"], payload=row,
+        )
+    assert sync.replay_pending(limit=1) == (2, 0)
+    assert sync._journal.list_pending() == []
+    assert len(registry.list_instruments(active_only=False)) == 2
