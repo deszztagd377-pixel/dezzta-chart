@@ -391,6 +391,9 @@ class ProviderManager:
                         gap_end,
                         mapping.valid_to_ns if mapping.valid_to_ns is not None else gap_end,
                     )
+                    if end <= start:
+                        continue
+                    overlap_found = True
                     cursor = start
                     while cursor < end:
                         upper = min(cursor + max_span_ns, end)
