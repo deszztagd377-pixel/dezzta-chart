@@ -83,7 +83,7 @@ For each selected gap, it:
 5. Removes gap portions only when a historical window completes successfully and its coverage is persisted.
 6. Leaves unresolved gaps intact and reports them as skipped/remaining.
 
-The operation is bounded by `max_gaps`, the configured maximum historical span, and the existing per-query window size. It must only be invoked after valid provider credentials, exchange/data entitlements, and historical-access settings have been separately reviewed.
+The operation is bounded by `max_gaps`, a total-span budget (defaulting to the configured historical maximum), the configured maximum span of each request, and the existing per-query window size. When the total budget is exhausted, unresolved gap intervals remain persisted for a later recovery run. It must only be invoked after valid provider credentials, exchange/data entitlements, and historical-access settings have been separately reviewed.
 
 ### Remaining recovery work
 
