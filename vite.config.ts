@@ -10,6 +10,8 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true
+    // Do not publish production source maps. Frontend bundles are public by
+    // design; provider credentials must never be placed in VITE_* variables.
+    sourcemap: false
   }
 });
