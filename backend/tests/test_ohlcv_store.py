@@ -136,12 +136,12 @@ def test_late_bar_older_than_persisted_retention_window_is_expired(tmp_path):
     )
     for i in range(5):
         assert store.apply(make_bar(
-            start=i * 60 * NS, event=100 + i, sequence=i + 1
+            start=(i + 1) * 60 * NS, event=100 + i, sequence=i + 1
         )) == "inserted"
     assert store.apply(make_bar(
-        start=0, event=999, sequence=999, close="102"
+        start=60 * NS, event=999, sequence=999, close="102"
     )) == "replaced"  # existing identity can still receive a valid revision
     assert store.apply(make_bar(
-        start=-60 * NS, event=1_000, sequence=1_000, close="102"
+        start=0, event=1_000, sequence=1_000, close="102"
     )) == "expired"
     assert len(store.load_bars()) == 5
