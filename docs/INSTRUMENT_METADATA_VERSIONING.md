@@ -102,3 +102,23 @@ Option identity contains `underlying_canonical_id`. Schema v3 materializes this 
 - Migration from v2 backfills existing option payloads. A missing or invalid legacy underlying is treated as a data-integrity fault and causes the complete migration to roll back; it is never silently repaired or guessed.
 
 This relationship layer is intentionally narrow. It does not yet model option chains, corporate actions, futures continuous-contract rolls, or market-data events.
+
+
+## Databento definition field capture (2026-11-04)
+
+The record adapter captures the following additional provider fields without assigning semantics beyond the documented schema:
+
+- Venue and product descriptors: `exchange`, `asset`, `security_type`, and `underlying`.
+- Contract-size and currency descriptors: `unit_of_measure_qty`, `unit_of_measure`, `currency`, `settl_currency`, and `contract_multiplier`.
+- Lifecycle and effective-time context: `security_update_action`, `activation`, and `ts_event`.
+- Price/lot metadata: `display_factor`, `min_price_increment`, `min_lot_size`, and `min_lot_size_round_lot`.
+
+Character fields are decoded from null-padded ASCII bytes. Numeric values are preserved in their original DBN representation; in particular, fixed-point fields such as `unit_of_measure_qty`, `display_factor`, and `min_price_increment` are not converted in this low-level adapter. Conversion must apply the documented 1e-9 scale exactly once.
+
+Databento documents `unit_of_measure_qty` together with `unit_of_measure` as the contract size, `settl_currency` as the settlement currency when it differs from `currency`, and `exchange` as the exchange identifier. Definitions are point-in-time events. The adapter therefore retains action and timestamp fields for the next ingestion layer; it does not infer an activation timestamp, close a mapping, or create a canonical identity itself.
+
+Sources:
+- https://www.databento.com/docs/schemas-and-data-formats/instrument-definitions
+- https://www.databento.tech/blog/definition-schema-updates-may
+
+This adapter expansion is not the provider-to-registry integration milestone. Persistent canonical registration and atomic mapping/metadata event application remain pending. A contract must be quarantined if required identity or contract metadata is absent or ambiguous; no multiplier, venue, settlement currency, or validity interval may be inferred from its ticker or dataset name.
