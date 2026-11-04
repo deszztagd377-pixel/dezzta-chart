@@ -108,8 +108,16 @@ def test_option_cannot_reference_itself_and_non_options_reject_option_fields():
         make_instrument(option_right="call")
 
 
-def test_derivatives_require_authoritative_settlement_and_multiplier():
-    with pytest.raises(InvalidCanonicalInstrument, match="settlement_currency and contract_multiplier"):
+def test_dated_future_does_not_require_legacy_contract_multiplier():
+    future = make_instrument(
+        asset_class="future", instrument_type="future",
+        expiration_date="2026-12-18", settlement_currency="USD",
+    )
+    assert future.contract_multiplier is None
+
+
+def test_perpetuals_require_authoritative_settlement_and_multiplier():
+    with pytest.raises(InvalidCanonicalInstrument, match="settlement_currency"):
         make_instrument(
             asset_class="crypto", instrument_type="perpetual",
             base_currency="BTC", quote_currency="USDT",
