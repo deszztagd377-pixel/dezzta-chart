@@ -414,7 +414,7 @@ def create_app(
 
             try:
                 authorized = await asyncio.to_thread(has_series_access)
-            except (ValueError, RuntimeError):
+            except Exception:
                 authorized = False
             if not authorized:
                 await websocket.close(code=4403, reason="Instrument access denied")
@@ -487,9 +487,16 @@ def create_app(
                         return_when=asyncio.FIRST_COMPLETED,
                     )
                     if not done:
+                        if queue_task is not None and not queue_task.done():
+                            queue_task.cancel()
+                            try:
+                                await queue_task
+                            except asyncio.CancelledError:
+                                pass
+                            queue_task = None
                         try:
                             still_authorized = await asyncio.to_thread(has_series_access)
-                        except (ValueError, RuntimeError):
+                        except Exception:
                             still_authorized = False
                         if not still_authorized:
                             await websocket.close(code=4403, reason="Instrument access revoked")
