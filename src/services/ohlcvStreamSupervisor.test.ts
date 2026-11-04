@@ -61,8 +61,8 @@ describe('OHLCV stream supervisor', () => {
       webSocketFactory: () => socket as unknown as WebSocket,
       random: () => 0,
     });
-    await Promise.resolve();
-    expect(getIdToken).toHaveBeenCalledOnce();
+    await vi.waitFor(() => expect(getIdToken).toHaveBeenCalledOnce());
+    await vi.waitFor(() => expect(socket.listeners.has('open')).toBe(true));
     socket.readyState = 1;
     socket.emit('open', new Event('open'));
     expect(JSON.parse(socket.sent[0])).toEqual({ type: 'auth', token: 'fresh-id-token' });
@@ -95,8 +95,7 @@ describe('OHLCV stream supervisor', () => {
       maxReconnectDelayMs: 400,
       random: () => 0,
     });
-    await Promise.resolve();
-    expect(sockets).toHaveLength(1);
+    await vi.waitFor(() => expect(sockets).toHaveLength(1));
     sockets[0].readyState = 1;
     sockets[0].emit('open', new Event('open'));
     sockets[0].message({ type: 'market_data.status', version: 1 });
@@ -108,10 +107,10 @@ describe('OHLCV stream supervisor', () => {
       bar: { ...bar, sequence: 9 },
     });
     expect(supervisor.status).toBe('reconnecting');
-    await vi.advanceTimersByTimeAsync(50);
+    await vi.advanceTimersByTimeAsync(49);
     expect(sockets).toHaveLength(1);
-    await vi.advanceTimersByTimeAsync(50);
-    await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(1);
+    await vi.waitFor(() => expect(sockets).toHaveLength(2));
     expect(sockets).toHaveLength(2);
     expect(tokenCount).toBe(2);
     supervisor.stop();
@@ -129,7 +128,7 @@ describe('OHLCV stream supervisor', () => {
       minReconnectDelayMs: 10,
       random: () => 0,
     });
-    await Promise.resolve();
+    await vi.waitFor(() => expect(factory).toHaveBeenCalledOnce());
     supervisor.stop();
     await vi.runOnlyPendingTimersAsync();
     expect(factory).toHaveBeenCalledOnce();
