@@ -119,16 +119,20 @@ class DatabentoDefinitionSynchronizer:
     def replay_pending(self, *, limit: int = 1000) -> tuple[int, int]:
         """Replay a bounded, deterministically ordered pending journal page."""
         applied = rejected = 0
-        for record in self._journal.list_pending(limit=limit):
-            try:
-                canonical_id = self._apply_record(record)
-                self._journal.mark_applied(record.event_id, canonical_id)
-                applied += 1
-            except (InvalidDatabentoDefinition, ProviderDefinitionEventConflict,
-                    CanonicalIdentityConflict, KeyError, TypeError, ValueError) as exc:
-                code = self._error_code(exc)
-                self._journal.mark_quarantined(record.event_id, code)
-                rejected += 1
+        while True:
+            batch = self._journal.list_pending(limit=limit)
+            if not batch:
+                break
+            for record in batch:
+                try:
+                    canonical_id = self._apply_record(record)
+                    self._journal.mark_applied(record.event_id, canonical_id)
+                    applied += 1
+                except (InvalidDatabentoDefinition, ProviderDefinitionEventConflict,
+                        CanonicalIdentityConflict, KeyError, TypeError, ValueError) as exc:
+                    code = self._error_code(exc)
+                    self._journal.mark_quarantined(record.event_id, code)
+                    rejected += 1
         return applied, rejected
 
     @staticmethod
