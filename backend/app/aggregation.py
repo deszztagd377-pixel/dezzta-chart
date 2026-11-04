@@ -81,10 +81,12 @@ class Aggregator:
         pipeline: OhlcvPipeline,
         coverage: CoverageTracker | None = None,
         on_derived_bar: Callable[[OhlcvBar], None] | None = None,
+        before_derived_apply: Callable[[OhlcvBar], bool] | None = None,
     ) -> None:
         self._pipeline = pipeline
         self._coverage = coverage
         self._on_derived_bar = on_derived_bar
+        self._before_derived_apply = before_derived_apply
         self.stats = {"derived_written": 0, "skipped_evicted": 0, "rejected": 0}
 
     def on_bar_applied(self, bar: OhlcvBar) -> int:
@@ -120,6 +122,14 @@ class Aggregator:
         except InvalidOhlcvBar:
             self.stats["rejected"] += 1
             return 0
+        if self._before_derived_apply is not None:
+            try:
+                if not self._before_derived_apply(derived):
+                    self.stats["persistence_rejected"] = self.stats.get("persistence_rejected", 0) + 1
+                    return 0
+            except Exception:
+                self.stats["persistence_error"] = self.stats.get("persistence_error", 0) + 1
+                return 0
         if self._pipeline.apply(derived) in ("inserted", "replaced"):
             self.stats["derived_written"] += 1
             stack.append(derived)
