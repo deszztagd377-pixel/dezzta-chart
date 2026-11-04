@@ -503,3 +503,34 @@ def test_coverage_intervals_and_gaps_restore_with_application_restart():
     restarted = create_app(settings)
     assert restarted.state.coverage_tracker.intervals(scope) == [(0, 30), (40, 100)]
     assert restarted.state.coverage_tracker.gaps(scope) == [(30, 40)]
+
+
+def test_websocket_normalizes_raw_symbol_for_snapshot_and_live_stream_identity() -> None:
+    application = _app_with_bars()
+    client = TestClient(application)
+    with client.websocket_connect("/ws/market-data") as websocket:
+        websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+        assert websocket.receive_json()["type"] == "market_data.status"
+        websocket.send_json({
+            "type": "market_data.subscribe",
+            "version": 1,
+            "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+            "series": {
+                "dataset": "GLBX.MDP3",
+                "publisherId": 1,
+                "instrumentId": 101,
+                "rawSymbol": "  esz6  ",
+                "timeframe": "1s",
+            },
+        })
+        snapshot = websocket.receive_json()
+        assert snapshot["type"] == "market_data.ohlcv.snapshot"
+        assert snapshot["count"] == 4
+        assert snapshot["bars"][-1]["rawSymbol"] == "ESZ6"
+
+        application.state.provider._ingest.ingest_batch([_record(4)], "ohlcv-1s")
+        update = websocket.receive_json()
+        assert update["type"] == "market_data.ohlcv.update"
+        assert update["series"]["rawSymbol"] == "ESZ6"
+        assert update["bar"]["rawSymbol"] == "ESZ6"
+        assert update["sequence"] == 1
