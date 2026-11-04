@@ -56,7 +56,7 @@ class InvalidDatabentoRecord(ValueError):
 def _normalize_text(value: Any, field_name: str) -> str:
     if isinstance(value, bytes):
         try:
-            return value.decode("ascii").strip("\\x00 ")
+            return value.decode("ascii").strip("\x00 ")
         except UnicodeDecodeError as exc:
             raise InvalidDatabentoRecord(
                 f"Definition {field_name} is not ASCII."
