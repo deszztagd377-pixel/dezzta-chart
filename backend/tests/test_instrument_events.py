@@ -192,3 +192,109 @@ def test_metadata_insert_failure_rolls_back_mapping_and_metadata_closures(
     assert len(revisions) == 1
     assert revisions[0].effective_from_ns == 1_000
     assert revisions[0].effective_to_ns is None
+
+
+def test_delete_event_closes_mapping_and_metadata_atomically_and_replays_idempotently(
+    event_repository,
+):
+    registry, events = event_repository
+    events.apply_event(
+        provider_mapping(valid_from_ns=1_000),
+        source_event_ts_ns=1_000,
+        metadata={"tick_size": "0.25"},
+    )
+
+    closed_mapping, closed_metadata, created = events.apply_delete_event(
+        provider="Databento",
+        dataset="GLBX.MDP3",
+        publisher_id=1,
+        instrument_id=9001,
+        effective_to_ns=2_000,
+    )
+    assert created is True
+    assert closed_mapping.valid_from_ns == 1_000
+    assert closed_mapping.valid_to_ns == 2_000
+    assert closed_metadata.effective_from_ns == 1_000
+    assert closed_metadata.effective_to_ns == 2_000
+
+    replay_mapping, replay_metadata, replay_created = events.apply_delete_event(
+        provider="databento",
+        dataset="GLBX.MDP3",
+        publisher_id=1,
+        instrument_id=9001,
+        effective_to_ns=2_000,
+    )
+    assert replay_created is False
+    assert replay_mapping == closed_mapping
+    assert replay_metadata == closed_metadata
+    assert registry.list_provider_mappings(CANONICAL_ID)[0].valid_to_ns == 2_000
+    revisions = SQLiteInstrumentMetadataRepository(
+        registry.database_path
+    ).list_revisions(CANONICAL_ID, source_kind="provider")
+    assert len(revisions) == 1
+    assert revisions[0].effective_to_ns == 2_000
+
+
+def test_delete_event_rejects_stale_timestamp_without_mutation(event_repository):
+    registry, events = event_repository
+    events.apply_event(
+        provider_mapping(valid_from_ns=1_000),
+        source_event_ts_ns=1_000,
+        metadata={"tick_size": "0.25"},
+    )
+
+    with pytest.raises(ProviderDefinitionEventConflict, match="later than"):
+        events.apply_delete_event(
+            provider="databento",
+            dataset="GLBX.MDP3",
+            publisher_id=1,
+            instrument_id=9001,
+            effective_to_ns=1_000,
+        )
+
+    mapping = registry.list_provider_mappings(CANONICAL_ID)[0]
+    revision = SQLiteInstrumentMetadataRepository(
+        registry.database_path
+    ).list_revisions(CANONICAL_ID, source_kind="provider")[0]
+    assert mapping.valid_to_ns is None
+    assert revision.effective_to_ns is None
+
+
+def test_delete_metadata_close_failure_rolls_back_mapping_close(event_repository):
+    registry, events = event_repository
+    events.apply_event(
+        provider_mapping(valid_from_ns=1_000),
+        source_event_ts_ns=1_000,
+        metadata={"tick_size": "0.25"},
+    )
+    connection = sqlite3.connect(registry.database_path)
+    try:
+        connection.execute(
+            """
+            CREATE TRIGGER reject_provider_event_metadata_close
+            BEFORE UPDATE ON instrument_metadata_revisions
+            WHEN NEW.effective_to_ns = 2_000
+            BEGIN
+                SELECT RAISE(ABORT, 'forced_provider_metadata_close_failure');
+            END
+            """
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    with pytest.raises(sqlite3.IntegrityError, match="forced_provider_metadata_close_failure"):
+        events.apply_delete_event(
+            provider="databento",
+            dataset="GLBX.MDP3",
+            publisher_id=1,
+            instrument_id=9001,
+            effective_to_ns=2_000,
+        )
+
+    mapping = registry.list_provider_mappings(CANONICAL_ID)[0]
+    revision = SQLiteInstrumentMetadataRepository(
+        registry.database_path
+    ).list_revisions(CANONICAL_ID, source_kind="provider")[0]
+    assert mapping.valid_to_ns is None
+    assert revision.effective_to_ns is None
