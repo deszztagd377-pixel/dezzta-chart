@@ -148,6 +148,20 @@ class SQLiteOhlcvStore:
                 (bar.provider, bar.dataset, bar.publisher_id, bar.instrument_id,
                  bar.series_type, bar.timeframe, bar.ts_start_ns),
             ).fetchone()
+            if row is None:
+                oldest = db.execute(
+                    """SELECT MIN(ts_start_ns) AS oldest, COUNT(*) AS amount
+                    FROM ohlcv_bars WHERE provider=? AND dataset=?
+                    AND publisher_id=? AND instrument_id=? AND series_type=?
+                    AND raw_symbol=? AND timeframe=?""",
+                    (bar.provider, bar.dataset, bar.publisher_id, bar.instrument_id,
+                     bar.series_type, bar.raw_symbol, bar.timeframe),
+                ).fetchone()
+                if int(oldest["amount"]) >= self.retention[bar.timeframe] and (
+                    oldest["oldest"] is not None and bar.ts_start_ns < int(oldest["oldest"])
+                ):
+                    db.execute("ROLLBACK")
+                    return "expired"
             if row is not None:
                 current = self._from_row(row)
                 if current.raw_symbol != bar.raw_symbol:
@@ -265,7 +279,7 @@ class SQLiteOhlcvStore:
             total = int(db.execute(
                 "SELECT COUNT(*) FROM ohlcv_bars" + where, params
             ).fetchone()[0])
-            sql = "SELECT * FROM ohlcv_bars" + where + " ORDER BY ts_start_ns DESC"
+            sql = "SELECT * FROM ohlcv_bars" + where + " ORDER BY ts_start_ns DESC, provider DESC, dataset DESC, publisher_id DESC, instrument_id DESC, series_type DESC, raw_symbol DESC, timeframe DESC"
             query_params = list(params)
             if limit is not None:
                 if not isinstance(limit, int) or isinstance(limit, bool) or limit < 1:
