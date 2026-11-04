@@ -93,7 +93,7 @@ def test_v1_migration_preserves_data_and_marks_legacy_metadata_unknown(tmp_path)
     connection = sqlite3.connect(path)
     connection.row_factory = sqlite3.Row
     try:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 4
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 5
         rows = connection.execute(
             "SELECT * FROM instrument_metadata_revisions WHERE canonical_id = ?",
             (INSTRUMENT_ID,),
@@ -275,15 +275,31 @@ def test_dated_futures_use_product_and_expiry_as_identity(registry):
     first = CanonicalInstrument(
         canonical_id=INSTRUMENT_ID, asset_class="future", instrument_type="future",
         symbol="ES", venue="XCME", expiration_date="2026-12-18",
-        settlement_currency="USD", contract_multiplier="50",
+        settlement_currency="USD",
     )
     next_expiry = CanonicalInstrument(
         canonical_id=SECOND_ID, asset_class="future", instrument_type="future",
         symbol="ES", venue="XCME", expiration_date="2027-03-19",
-        settlement_currency="USD", contract_multiplier="50",
+        settlement_currency="USD",
     )
     assert registry.register_instrument(first) is True
     assert registry.register_instrument(next_expiry) is True
+
+
+def test_future_identity_is_independent_of_provider_contract_multiplier(registry):
+    first = CanonicalInstrument(
+        canonical_id=INSTRUMENT_ID, asset_class="future", instrument_type="future",
+        symbol="ES", venue="XCME", expiration_date="2026-12-18",
+        settlement_currency="USD",
+    )
+    second = CanonicalInstrument(
+        canonical_id=SECOND_ID, asset_class="future", instrument_type="future",
+        symbol="ES", venue="XCME", expiration_date="2026-12-18",
+        settlement_currency="USD", contract_multiplier="50",
+    )
+    assert registry.register_instrument(first) is True
+    with pytest.raises(CanonicalIdentityConflict):
+        registry.register_instrument(second)
 
 
 def test_options_use_underlying_expiry_right_and_strike_as_identity(registry):
