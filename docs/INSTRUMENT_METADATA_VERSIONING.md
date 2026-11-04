@@ -1,6 +1,6 @@
 # Instrument Identity vs. Versioned Metadata — Architecture Decision
 
-**Status:** Accepted; SQLite schema v5 implementation and regression tests are committed on the working branch. Latest CI validation is pending.
+**Status:** Accepted; SQLite schema v5, durable Databento definition synchronization, and regression tests are committed on the working branch. Latest synchronization CI validation passed.
 
 ## Decision
 
@@ -148,7 +148,7 @@ Schema v5 makes a deliberate distinction between a dated futures instrument's st
 
 Schema v5 also adds `provider_definition_events`, an append-only SQLite journal for source Add (`A`), Modify (`M`), and Delete (`D`) records. Each record stores the provider/dataset/publisher/instrument key, source event timestamp, explicit source order for equal timestamps, action, raw symbol, exact JSON payload, payload SHA-256, receive timestamp, processing state, and optional canonical UUID or quarantine error.
 
-`SQLiteProviderDefinitionJournal` supports exact idempotent replays, rejects conflicting payloads at the same source-order key, preserves raw DBN fixed-point integers, lists pending records in deterministic order, and allows only a one-way pending → applied/quarantined state transition. Journal payloads are retained when a record is quarantined. The journal is a durable ingestion/replay primitive; it is **not yet** wired into the live Databento session or the canonical mapping/metadata transition pipeline. Marking a record applied must occur only after the corresponding registry transition succeeds.
+`SQLiteProviderDefinitionJournal` supports exact idempotent replays, rejects conflicting payloads at the same source-order key, preserves raw DBN fixed-point integers, lists pending records in deterministic order, and allows only a one-way pending → applied/quarantined state transition. Journal payloads are retained when a record is quarantined. The journal is wired into the historical Databento definition refresh path through `DatabentoDefinitionSynchronizer`. Marking a record applied occurs only after the corresponding mapping/metadata registry transaction succeeds. This integration does not establish that a live Databento session has been configured or validated.
 
 Databento fields such as `unit_of_measure_qty`, `unit_of_measure`, `contract_multiplier`, `contract_multiplier_unit`, `currency`, and `settl_currency` remain distinct source fields. Fixed-point integers remain raw in the journal and adapter; any conversion must use the documented scale exactly once. Missing or ambiguous authoritative fields must be quarantined rather than inferred from a ticker or dataset name.
 
@@ -162,4 +162,30 @@ Provider-native contract terms are retained independently in versioned metadata:
 
 Delete records are normalized with their minimal lifecycle key and do not require contract identity fields. Unsupported instrument classes, malformed timestamps, and missing authoritative identity values fail closed so the caller can persist and quarantine the original event.
 
-The adapter is intentionally not yet wired into `ProviderManager.refresh_definitions`. The current provider lifecycle still updates only the in-memory catalog/resolver. Persistent canonical UUID allocation, atomic Add/Modify mapping+metadata writes, Delete closure, and journal processing-state transitions remain the next synchronizer milestone.
+The adapter is wired into `ProviderManager.refresh_definitions` through `DatabentoDefinitionSynchronizer`. The synchronizer journals original source payloads, allocates/reuses canonical UUIDs by the registry identity key, applies Add/Modify mapping and metadata transitions atomically, closes Delete intervals atomically, and marks journal events applied only after successful persistence. Pending records can be replayed after a restart, and the in-memory resolver can be rebuilt from persisted provider mappings.
+
+
+## Durable Databento definition synchronization — implemented foundation (2026-11-04)
+
+`backend/app/databento_definition_sync.py` is the orchestration boundary between provider records and the persistent instrument model.
+
+Processing order:
+
+1. Historical definition records are converted to plain mappings by the low-level adapter and appended to `provider_definition_events` before canonical resolution.
+2. Pending journal records are replayed in deterministic event-time/source-order order.
+3. Add/Modify records are strictly normalized. Existing point-in-time mappings are reused where appropriate; otherwise the registry identity key is searched and a registry-issued UUID is created only when no matching identity exists.
+4. Canonical identity fields are checked against the immutable registered instrument. A provider Modify cannot silently rewrite canonical identity.
+5. `SQLiteProviderDefinitionEventRepository.apply_event` commits the new provider mapping and matching metadata revision, including closure of prior intervals, in one SQLite transaction.
+6. Delete records close the active mapping and its corresponding provider metadata interval in one SQLite transaction.
+7. The resolver/catalog projections are updated, then the journal record is marked applied. If the process stops after the database transaction but before the journal state update, replay recognizes the exact persisted transition and completes the journal state idempotently.
+8. At provider startup, the point-in-time resolver can be restored from canonical instruments and their persisted provider mappings.
+
+Failure behavior:
+- Missing or unsupported authoritative identity fields, stale transitions, unknown Modify/Delete keys, and conflicting canonical identity changes are quarantined; the original event payload remains in the append-only journal.
+- SQLite operational failures are not converted into permanent quarantine decisions; they propagate so the pending event can be retried.
+- Equal event timestamps retain the stable input iteration order in the journal. The current mapping/metadata interval model requires strictly increasing effective timestamps for successive transitions of the same provider key. A second conflicting transition at the same timestamp is quarantined rather than assigned a fabricated timestamp or silently reordered.
+- The adapter currently derives a per-key ordinal from stable provider record iteration for equal timestamps because it does not yet consume a universal provider sequence field. This ordinal is deterministic for an identical fetched batch; it must not be described as an exchange-provided sequence number.
+
+Validation: GitHub Actions run [41826984399](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/41826984399) passed frontend unit tests, frontend production build, backend tests, and backend container image build at commit `329be1f7df926fadea6a56d24ef2fba502229cdd`.
+
+Scope boundary: this milestone persists instrument definitions, canonical identities, provider mappings, and metadata revisions. It does not persist OHLCV bars or coverage state, configure a real Databento account, prove live delivery, add a periodic definition refresh scheduler, or deploy/validate the backend in production.
