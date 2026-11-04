@@ -457,3 +457,26 @@ def test_auth_session_fails_closed_when_firebase_is_not_configured():
         headers={"Authorization": "Bearer token"},
     )
     assert response.status_code == 503
+
+
+def test_ohlcv_snapshot_recovers_from_shared_sqlite_database_after_app_restart():
+    settings = make_settings()
+    first_app = create_app(settings)
+    _install_test_identity(first_app)
+    _seed_stream_entitlement(first_app)
+    first_app.state.resolver.add(SymbolMapping(
+        provider="databento", dataset="GLBX.MDP3", publisher_id=1,
+        instrument_id=101, raw_symbol="ESZ6", valid_from_ns=0,
+    ))
+    first_app.state.provider._ingest.ingest_batch(
+        [_record(0), _record(1)], "ohlcv-1s"
+    )
+    assert first_app.state.ohlcv_store.stats()["bars"] >= 3  # base + derived
+
+    restarted_app = create_app(settings)
+    payload = TestClient(restarted_app).get("/v1/ohlcv?timeframe=1s").json()
+    assert payload["state"] == "ready"
+    assert payload["count"] == 2
+    assert payload["bars"][0]["tsStartNs"] == str(_T0)
+    assert payload["bars"][1]["tsStartNs"] == str(_T0 + _NS)
+    assert restarted_app.state.ohlcv_store.stats()["bars"] == first_app.state.ohlcv_store.stats()["bars"]
