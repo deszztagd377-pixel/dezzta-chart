@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   getMarketDataSnapshot,
   publishMarketDataSnapshot,
+  publishMarketDataUpdate,
   resetMarketDataSnapshot,
   subscribeMarketData,
 } from './marketDataStore';
@@ -58,6 +59,55 @@ describe('shared market data store', () => {
     expect(() => publishMarketDataSnapshot({
       identity, status: 'ready', bars: [{ ...bars[0], volume: -1 }],
     })).toThrow();
+  });
+
+
+  it('applies an incremental candle revision by timestamp and notifies subscribers', () => {
+    publishMarketDataSnapshot({ identity, status: 'ready', bars });
+    let notifications = 0;
+    const unsubscribe = subscribeMarketData(() => { notifications += 1; });
+    const revisionBeforeUpdate = getMarketDataSnapshot().revision;
+
+    publishMarketDataUpdate({
+      identity,
+      bar: { ...bars[1], close: 102.5, high: 103, volume: 15 },
+    });
+    const revised = getMarketDataSnapshot();
+    expect(revised.bars).toHaveLength(2);
+    expect(revised.bars[1].close).toBe(102.5);
+    expect(revised.revision).toBe(revisionBeforeUpdate + 1);
+    expect(notifications).toBe(1);
+
+    publishMarketDataUpdate({
+      identity,
+      bar: { timestamp: 1_800_000_030, open: 100.5, high: 102, low: 100, close: 101.5, volume: 5 },
+    });
+    expect(getMarketDataSnapshot().bars.map((bar) => bar.timestamp)).toEqual([
+      1_800_000_000, 1_800_000_030, 1_800_000_060,
+    ]);
+    expect(notifications).toBe(2);
+    unsubscribe();
+  });
+
+  it('rejects incremental updates for another series or a non-backend state', () => {
+    publishMarketDataSnapshot({ identity, status: 'ready', bars });
+    expect(() => publishMarketDataUpdate({
+      identity: { ...identity, rawSymbol: 'ESZ6' },
+      bar: bars[0],
+    })).toThrow(/identity/);
+
+    resetMarketDataSnapshot(identity, 'loading', 'switching');
+    expect(() => publishMarketDataUpdate({ identity, bar: bars[0] })).toThrow(/active backend snapshot/);
+  });
+
+  it('rejects invalid OHLCV updates without mutating the current snapshot', () => {
+    publishMarketDataSnapshot({ identity, status: 'ready', bars });
+    const before = getMarketDataSnapshot();
+    expect(() => publishMarketDataUpdate({
+      identity,
+      bar: { ...bars[1], low: 105 },
+    })).toThrow(/OHLCV boundaries/);
+    expect(getMarketDataSnapshot()).toBe(before);
   });
 
   it('increments revision and notifies subscribers on each publication', () => {

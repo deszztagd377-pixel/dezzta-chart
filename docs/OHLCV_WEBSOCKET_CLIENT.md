@@ -30,3 +30,14 @@
 - End-to-end browser/device verification against a deployed backend with configured Firebase identity, instrument entitlement, and live Databento data.
 
 The transport and its unit tests do not claim that the frontend is receiving live market data today.
+
+
+## Shared-store incremental update boundary
+
+`src/services/marketDataStore.ts` now exposes `publishMarketDataUpdate({ identity, bar })` as the application-state boundary for one validated candle update.
+
+- Call it only after `connectOhlcvStream` has validated the event and its per-stream sequence guard has accepted the next sequence.
+- It requires the exact currently active backend series identity. Updates are rejected while the store is in DEMO, loading, unavailable, or error state.
+- A candle with an existing UTC timestamp replaces that candle (supporting open-candle revisions); a new timestamp is inserted in chronological order.
+- The resulting full series is revalidated before the immutable snapshot is published to subscribers.
+- This is a tested store capability, not yet a claim that the WebSocket transport is wired into the chart or Firebase authentication.

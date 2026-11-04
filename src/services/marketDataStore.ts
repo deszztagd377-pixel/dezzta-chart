@@ -122,6 +122,70 @@ export function publishMarketDataSnapshot(input: {
   emit();
 }
 
+
+function sameIdentity(left: MarketSeriesIdentity, right: MarketSeriesIdentity): boolean {
+  return left.dataset === right.dataset &&
+    left.publisherId === right.publisherId &&
+    left.instrumentId === right.instrumentId &&
+    left.rawSymbol === right.rawSymbol &&
+    left.timeframe === right.timeframe;
+}
+
+/**
+ * Apply one already transport-validated backend candle revision to the shared
+ * series. The WebSocket sequence guard must run before this function; this
+ * store independently enforces exact-series ownership and candle invariants.
+ *
+ * Existing timestamps are replaced (including an open-candle revision).
+ * Previously unseen timestamps are inserted chronologically, so late
+ * corrections cannot corrupt ordering or leak across contract/timeframe
+ * switches. DEMO/loading/unavailable snapshots are never update targets.
+ */
+export function publishMarketDataUpdate(input: {
+  identity: MarketSeriesIdentity;
+  bar: ChartData;
+}): void {
+  const current = currentSnapshot;
+  if (
+    current.source !== 'backend' ||
+    (current.status !== 'ready' && current.status !== 'degraded') ||
+    current.identity === null
+  ) {
+    throw new Error('Incremental market updates require an active backend snapshot.');
+  }
+  if (!sameIdentity(current.identity, input.identity)) {
+    throw new Error('Incremental market update does not match the active series identity.');
+  }
+
+  validateBars([input.bar]);
+
+  const nextBars = [...current.bars];
+  let low = 0;
+  let high = nextBars.length;
+  while (low < high) {
+    const middle = low + Math.floor((high - low) / 2);
+    if (nextBars[middle].timestamp < input.bar.timestamp) low = middle + 1;
+    else high = middle;
+  }
+
+  if (low < nextBars.length && nextBars[low].timestamp === input.bar.timestamp) {
+    nextBars[low] = input.bar;
+  } else {
+    nextBars.splice(low, 0, input.bar);
+  }
+
+  validateBars(nextBars);
+  const immutableBars = Object.freeze(
+    nextBars.map((bar) => Object.freeze({ ...bar })),
+  );
+  currentSnapshot = Object.freeze({
+    ...current,
+    bars: immutableBars,
+    revision: current.revision + 1,
+  });
+  emit();
+}
+
 /** Clear series data immediately when the selected contract/timeframe changes. */
 export function resetMarketDataSnapshot(
   identity: MarketSeriesIdentity | null,
