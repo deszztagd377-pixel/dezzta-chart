@@ -18,6 +18,7 @@ from app.config import Settings
 from app.databento_definitions import iter_definition_mappings
 from app.ingest import OhlcvIngestionService
 from app.instruments import InstrumentCatalog
+from app.databento_definition_sync import DatabentoDefinitionSynchronizer
 
 _NS = 1_000_000_000
 _KEY_PATTERN = re.compile(r"db-[A-Za-z0-9]{8,}")
@@ -66,6 +67,7 @@ class ProviderManager:
         *,
         live_factory: Callable[[], LiveSource] | None = None,
         historical_factory: Callable[[], HistoricalSource] | None = None,
+        definition_sync: DatabentoDefinitionSynchronizer | None = None,
         sleep: Callable[[float], Any] = asyncio.sleep,
         clock_ns: Callable[[], int] = time.time_ns,
         backoff_seconds: tuple[float, ...] = (1, 2, 4, 8, 16, 32, 60),
@@ -74,6 +76,7 @@ class ProviderManager:
         self._s = settings
         self._ingest = ingestion
         self._catalog = catalog
+        self._definition_sync = definition_sync
         self._live_factory = live_factory
         self._hist_factory = historical_factory
         self._sleep = sleep
@@ -132,6 +135,8 @@ class ProviderManager:
             return
         self._loop = asyncio.get_running_loop()
         self._ingest.attach_loop(self._loop)
+        if self._definition_sync is not None:
+            self._definition_sync.restore_resolver()
         self._tasks.append(asyncio.create_task(self._ingest.run(), name="ohlcv-consumer"))
         if not self._s.provider_configured:
             self._detail = "not_configured: DATABENTO_API_KEY is not set"
@@ -254,8 +259,11 @@ class ProviderManager:
             "definition", self._s.databento_definition_symbols, "parent", start_ns, end_ns
         )
         rows = list(iter_definition_mappings(records))
-        # Historical definition records are lifecycle events, not a flat
-        # snapshot. Stable sorting preserves provider order for equal ts_event.
+        # Journal-first synchronization makes definition history durable and
+        # keeps mapping + metadata transitions atomic across process restarts.
+        if self._definition_sync is not None:
+            return self._definition_sync.ingest_rows(rows)
+        # Compatibility path for isolated provider tests without persistence.
         rows.sort(key=lambda row: int(row["ts_event"]))
         registered = rejected = 0
         for row in rows:
