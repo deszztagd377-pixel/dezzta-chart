@@ -1,0 +1,76 @@
+from app.coverage_store import SQLiteCoverageTracker
+
+
+def test_covered_intervals_and_explicit_gaps_survive_restart(tmp_path):
+    path = str(tmp_path / "coverage.sqlite3")
+    scope = ("databento", "GLBX.MDP3", 1, 101, "contract", "ESZ6")
+    tracker = SQLiteCoverageTracker(path)
+    tracker.add_covered(scope, 0, 100)
+    tracker.add_gap(scope, 30, 50)
+
+    assert tracker.status(scope, 0, 30) == "covered"
+    assert tracker.status(scope, 30, 50) == "unknown"
+    assert tracker.status(scope, 50, 100) == "covered"
+    assert tracker.gaps(scope) == [(30, 50)]
+
+    restored = SQLiteCoverageTracker(path)
+    assert restored.intervals(scope) == [(0, 30), (50, 100)]
+    assert restored.gaps(scope) == [(30, 50)]
+    assert restored.status(scope, 0, 100) == "partial"
+
+
+def test_successful_backfill_fills_and_removes_overlapping_gap(tmp_path):
+    path = str(tmp_path / "coverage.sqlite3")
+    scope = ("databento", "GLBX.MDP3", 1, 101, "contract", "ESZ6")
+    tracker = SQLiteCoverageTracker(path)
+    tracker.add_covered(scope, 0, 100)
+    tracker.add_gap(scope, 30, 70)
+    tracker.add_covered(scope, 40, 60)
+
+    assert tracker.gaps(scope) == [(30, 40), (60, 70)]
+    assert tracker.intervals(scope) == [(0, 30), (40, 60), (70, 100)]
+    assert tracker.status(scope, 40, 60) == "covered"
+
+    restarted = SQLiteCoverageTracker(path)
+    assert restarted.gaps(scope) == [(30, 40), (60, 70)]
+    assert restarted.intervals(scope) == [(0, 30), (40, 60), (70, 100)]
+
+
+def test_gap_is_recorded_even_when_no_covered_interval_exists(tmp_path):
+    scope = ("databento", "GLBX.MDP3", 1, 101, "contract", "ESZ6")
+    tracker = SQLiteCoverageTracker(str(tmp_path / "coverage.sqlite3"))
+    tracker.add_gap(scope, 100, 200)
+    assert tracker.gaps(scope) == [(100, 200)]
+    assert tracker.intervals(scope) == []
+    assert tracker.status(scope, 100, 200) == "unknown"
+
+
+def test_gap_interval_count_is_bounded_and_truncation_survives_restart(tmp_path):
+    path = str(tmp_path / "coverage.sqlite3")
+    scope = ("databento", "GLBX.MDP3", 1, 101, "contract", "ESZ6")
+    tracker = SQLiteCoverageTracker(path, max_intervals=2)
+    tracker.add_gap(scope, 0, 1)
+    tracker.add_gap(scope, 3, 4)
+    tracker.add_gap(scope, 6, 7)
+    assert tracker.gaps(scope) == [(3, 4), (6, 7)]
+    assert tracker.truncated == 1
+
+    restarted = SQLiteCoverageTracker(path, max_intervals=2)
+    assert restarted.gaps(scope) == [(3, 4), (6, 7)]
+    assert restarted.truncated == 1
+
+
+def test_failed_coverage_persistence_rolls_back_in_memory_state(tmp_path):
+    class FailingTracker(SQLiteCoverageTracker):
+        def _persist_scope(self, scope):
+            raise OSError("disk unavailable")
+
+    scope = ("databento", "GLBX.MDP3", 1, 101, "contract", "ESZ6")
+    tracker = FailingTracker(str(tmp_path / "coverage.sqlite3"))
+    import pytest
+    with pytest.raises(OSError):
+        tracker.add_covered(scope, 0, 100)
+    assert tracker.intervals(scope) == []
+    with pytest.raises(OSError):
+        tracker.add_gap(scope, 100, 200)
+    assert tracker.gaps(scope) == []
