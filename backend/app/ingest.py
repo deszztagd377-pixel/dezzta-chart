@@ -97,7 +97,10 @@ class OhlcvIngestionService:
         self.coverage = coverage
         self._on_bar_applied = on_bar_applied
         self.persistence = persistence
-        self.aggregator = Aggregator(pipeline, coverage, on_derived_bar=self._persist_derived_and_notify)
+        self.aggregator = Aggregator(
+            pipeline, coverage, on_derived_bar=self._notify_bar_applied,
+            before_derived_apply=self._persist_derived,
+        )
         if self.persistence is not None:
             self.pipeline.replace_snapshot(self.persistence.load_bars())
         self.provider = provider
@@ -190,19 +193,20 @@ class OhlcvIngestionService:
             # A client fan-out failure must never stop ingestion/aggregation.
             self._count("broadcast_callback_error")
 
-    def _persist_derived_and_notify(self, bar: OhlcvBar) -> None:
-        if self.persistence is not None:
-            try:
-                result = self.persistence.apply(bar)
-                if result not in ("inserted", "replaced", "duplicate"):
-                    self._count(f"persistence_{result}")
-                    self.degraded_reasons.add("ohlcv_persistence_conflict")
-                    return
-            except Exception:
-                self._count("persistence_error")
-                self.degraded_reasons.add("ohlcv_persistence_error")
-                return
-        self._notify_bar_applied(bar)
+    def _persist_derived(self, bar: OhlcvBar) -> bool:
+        if self.persistence is None:
+            return True
+        try:
+            result = self.persistence.apply(bar)
+        except Exception:
+            self._count("persistence_error")
+            self.degraded_reasons.add("ohlcv_persistence_error")
+            return False
+        if result in ("inserted", "replaced", "duplicate"):
+            return True
+        self._count(f"persistence_{result}")
+        self.degraded_reasons.add("ohlcv_persistence_conflict")
+        return False
 
     def _note_overflow(self, instrument_hint: tuple[int, int] | None,
                        first_ns: int, last_ns: int) -> None:
