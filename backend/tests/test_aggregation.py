@@ -151,3 +151,23 @@ def test_retention_below_the_tier_minimum_is_refused():
     import pytest
     with pytest.raises(ValueError):
         OhlcvPipeline({"1d": 5})
+
+def test_derived_bar_durability_gate_runs_before_pipeline_mutation():
+    pipeline = OhlcvPipeline()
+    seen = []
+
+    def persist_before_apply(derived):
+        assert pipeline.list_bars(timeframe=derived.timeframe) == []
+        seen.append(derived.timeframe)
+        return False
+
+    aggregator = Aggregator(
+        pipeline, before_derived_apply=persist_before_apply
+    )
+    feed(pipeline, aggregator, base_bar(
+        0, "100", "101", "99", "100", 1, 1
+    ))
+    assert seen  # attempted durable writes for derived intervals
+    assert pipeline.list_bars(timeframe="1s")
+    assert pipeline.list_bars(timeframe="5s") == []
+    assert aggregator.stats["persistence_rejected"] == len(seen)
