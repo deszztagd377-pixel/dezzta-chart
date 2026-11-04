@@ -76,23 +76,23 @@ Status: provider and initial instrument scope selected; transport contract, back
 - The authenticated WebSocket now supports exact-series OHLCV snapshot subscriptions and bounded in-memory updates for accepted base and derived bars. It does not provide order-book/MBO events or durable replay.
 - No brokerage or order-execution integration.
 - No Footprint, Heatmap, or Liquidation Maps implementation; these three Exclusive Indicators are reserved for one coordinated Claude-assisted workflow after the project owner supplies visual references for each.
-- Mid Tier is planned to contain approximately 10 intermediate/advanced indicators, not just Volume Profile. Volume Profile is one confirmed member; the remaining list will be proposed for owner approval before implementation. Candidate examples for discussion: VWAP, ATR, ADX/DMI, Stochastic, CCI, OBV, MFI, Ichimoku Cloud, Supertrend, and Keltner Channels. These are product categorization candidates, not implementation commitments.
-- Low Tier is for common/general indicators such as RSI, MACD, Bollinger Bands, Moving Averages, and similar widely available studies.
+- Mid Tier is undecided. Earlier candidates such as VWAP, ATR, ADX/DMI, Stochastic, CCI, OBV, MFI, Ichimoku Cloud, Supertrend, and Keltner Channels are discussion-only and are not approved members. Volume Profile is not in Mid Tier.
+- Low Tier must contain exactly 15 common/popular TradingView-style indicators. RSI, MACD, and Bollinger Bands are the only exact names recovered from prior approval; the other 12 names must be confirmed before their implementation. Do not leave the category empty or invent a claimed owner-approved list.
 - A separate Tools-menu Volume Profile tool is also planned: it displays a compact profile visualization at the chart side, without the full indicator's data-value presentation; users can move/resize its selected chart range and the profile recalculates for that range.
-- Indicator navigation is planned as three categories: Low Tier (general indicators), Mid Tier (Volume Profile), and Exclusive (Footprint, Heatmap, Liquidation Maps). Tools are a separate entry point, not another indicator category.
+- Indicator navigation is planned as three categories: Low Tier (exactly 15 common indicators), Mid Tier (owner selection pending), and Exclusive Indicator Pro (Footprint PRO 2GD, Heatmap, Liquidation Maps, and full Volume Profile with detailed values). Tools are a separate entry point, not another indicator category.
 - Exclusive Indicators remain owner-controlled: only the project owner can add new members to this tier.
 - These are recorded product requirements only; no indicator or Tools UI implementation has started.
 
 ## Planned engineering sequence
 
-1. Resolve a secure short-lived WebSocket token-issuance mechanism; do not embed a long-lived token in frontend code or `VITE_` environment variables.
-2. Implement the frontend WebSocket client with exact-series subscription, snapshot validation, sequence guard, heartbeat, bounded reconnect, and fresh-snapshot recovery.
-3. Publish accepted stream updates through the shared market-data store so the chart and all indicators consume one exact instrument/timeframe series.
-4. Deploy and smoke-test the backend with provider features disabled, then connect the frontend to the verified API origin.
-4. Build visible indicator controls and overlays/panes on top of `useMarketIndicators`, with timeframe compatibility and performance tests.
-5. Add the planned Low Tier / Mid Tier / Exclusive navigation and separate Tools entry point.
-6. Implement Volume Profile and the compact movable-range Volume Profile Tool after the owner supplies visual references.
-7. Reserve Footprint, Heatmap, and Liquidation Maps for the coordinated Claude-assisted workflow after their visual references are supplied.
+1. Populate the durable canonical instrument registry and point-in-time provider mappings from verified provider definitions; never infer contract metadata or expiry.
+2. Define a trusted, admin-only entitlement grant process for canonical instruments; keep client-facing grant endpoints disabled.
+3. Connect the approved Firebase app sign-in/session flow so the frontend can obtain and refresh Firebase ID tokens. The exact sign-in methods and public Firebase app configuration must be supplied/approved before UI integration.
+4. Implement the frontend WebSocket client with the verified ID-token provider, canonical instrument ID, exact-series subscription, snapshot validation, sequence guard, heartbeat, bounded reconnect, and fresh-snapshot recovery.
+5. Publish accepted stream updates through the shared market-data store so the chart and all indicators consume one exact instrument/timeframe series; then smoke-test the backend and frontend against a deployed API origin with provider features disabled.
+6. Build the three indicator-tier navigation categories and visible indicator controls/overlays/panes on top of `useMarketIndicators`, with timeframe compatibility and performance tests. Low Tier requires the approved 15-item list; Mid Tier remains pending owner selection.
+7. Implement the full Exclusive Volume Profile and the separate compact movable-range Volume Profile Tool as distinct features.
+8. Integrate Footprint PRO 2GD, Heatmap, and Liquidation Maps in the coordinated Claude-assisted workflow after the owner supplies the required visual references and the complete source/reference package is available.
 
 ## Non-negotiable product constraints
 
