@@ -151,3 +151,15 @@ Schema v5 also adds `provider_definition_events`, an append-only SQLite journal 
 `SQLiteProviderDefinitionJournal` supports exact idempotent replays, rejects conflicting payloads at the same source-order key, preserves raw DBN fixed-point integers, lists pending records in deterministic order, and allows only a one-way pending → applied/quarantined state transition. Journal payloads are retained when a record is quarantined. The journal is a durable ingestion/replay primitive; it is **not yet** wired into the live Databento session or the canonical mapping/metadata transition pipeline. Marking a record applied must occur only after the corresponding registry transition succeeds.
 
 Databento fields such as `unit_of_measure_qty`, `unit_of_measure`, `contract_multiplier`, `contract_multiplier_unit`, `currency`, and `settl_currency` remain distinct source fields. Fixed-point integers remain raw in the journal and adapter; any conversion must use the documented scale exactly once. Missing or ambiguous authoritative fields must be quarantined rather than inferred from a ticker or dataset name.
+
+## Databento definition normalization — first strict futures adapter
+
+`backend/app/databento_definition_normalizer.py` now provides a pure, strict adapter for dated futures definitions in the initial CME scope. It requires the provider's explicit `asset` root, `exchange`, instrument class, expiration, currency, publisher/instrument IDs, action, and event timestamp. It never parses a futures root from the ticker when the authoritative root is absent.
+
+Settlement currency follows Databento's documented override semantics: use `settl_currency` when supplied, otherwise use `currency`. Expiration is converted from Unix nanoseconds to a UTC calendar date using integer arithmetic, without floating-point timestamp conversion.
+
+Provider-native contract terms are retained independently in versioned metadata: raw `unit_of_measure_qty` plus its 1e-9 scale, raw `contract_multiplier` in provider-native integer units, raw tick increment plus its scale and display factor, unit, currency, lot-size fields, and source timestamps. No floating-point conversion or assumption that contract size equals multiplier is performed.
+
+Delete records are normalized with their minimal lifecycle key and do not require contract identity fields. Unsupported instrument classes, malformed timestamps, and missing authoritative identity values fail closed so the caller can persist and quarantine the original event.
+
+The adapter is intentionally not yet wired into `ProviderManager.refresh_definitions`. The current provider lifecycle still updates only the in-memory catalog/resolver. Persistent canonical UUID allocation, atomic Add/Modify mapping+metadata writes, Delete closure, and journal processing-state transitions remain the next synchronizer milestone.
