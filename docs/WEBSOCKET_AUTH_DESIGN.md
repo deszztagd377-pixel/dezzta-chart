@@ -55,3 +55,20 @@ The client must validate the server snapshot and its stream ID/watermark before 
 - No public deployment or real provider feed is verified.
 
 Do not enable production frontend streaming until the authentication decision and its tests are complete.
+
+
+## 2026-11-04 implementation update — Firebase WebSocket authentication
+
+- The first `auth` frame now carries a Firebase ID token. The backend verifies it through the approved `FirebaseIdentityVerifier` (including Firebase Admin's revoked-token check) in a worker thread. Invalid tokens close with 4401; unavailable identity verification fails closed with 1013.
+- Each subscription must include `canonicalInstrumentId` as well as the exact provider series identity.
+- Before taking a snapshot, the server resolves the provider/dataset/publisher/instrument mapping at the current time, checks the mapped raw symbol and canonical ID, confirms that the canonical instrument is active, and checks the verified principal's explicit entitlement. Missing, expired, mismatched, inactive, or ungranted mappings are denied with 4403.
+- Mapping and entitlement are rechecked every 60 seconds during an active subscription. Revoked access or a mapping change closes the connection; the client must authenticate and subscribe again.
+- The snapshot/watermark handoff and bounded stream queue remain unchanged after authorization succeeds.
+- The legacy `MARKET_DATA_WS_TOKEN` setting remains for configuration compatibility, but the WebSocket route no longer reads or accepts it.
+
+## Remaining integration gates
+
+- The frontend still has no Firebase sign-in/session UI and no WebSocket client. It must obtain a Firebase ID token through the approved app-auth flow, then send that token in the initial auth frame and include the verified canonical instrument ID in each subscription.
+- Verified futures-definition ingestion must populate canonical instruments and point-in-time provider mappings before a user can be granted access to a contract. The offline ES/NQ/GC fixture is not sufficient to authorize a live subscription.
+- No production Firebase project credentials, real user session, provider feed, deployed backend, or end-to-end client connection has been validated in this change.
+- A long-lived connection is rechecked for instrument entitlement and mapping every 60 seconds. Firebase token expiry/revocation during an established connection still requires a bounded connection-lifetime/re-authentication policy before production deployment.
