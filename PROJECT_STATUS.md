@@ -359,3 +359,13 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Remaining gates: frontend Firebase sign-in/session integration, frontend WebSocket client and reconnect/resnapshot logic, canonical identity population from verified provider definitions, token-expiry/re-authentication policy for long-lived connections, backend deployment, and real provider delivery.
 - Overall progress: 19.60%. No visible indicator UI, Footprint, Heatmap, Liquidation Maps, full Volume Profile, or Android packaging credit is assigned.
 - At this audit checkpoint, `phase-2/market-data-foundation` compared 311 commits ahead of `main` and 0 behind. `main` remains untouched.
+
+
+### 2026-11-04 — Databento definition metadata capture groundwork
+
+- Expanded `backend/app/databento_definitions.py` to retain authoritative definition fields needed by the upcoming registry synchronizer: exchange, asset/security type, settlement currency, unit-of-measure quantity and unit, contract multiplier fields, activation, security update action, display factor, lot-size metadata, and underlying.
+- Null-padded ASCII text fields are normalized; numeric provider values remain unchanged in this low-level adapter so fixed-point scaling is applied exactly once by a typed domain layer.
+- Added focused tests for provider metadata preservation, byte decoding, invalid non-ASCII text, and existing record-order behavior.
+- Databento's documented schema identifies `unit_of_measure_qty` + `unit_of_measure` as contract-size metadata, `exchange` as the exchange identifier, and definitions as point-in-time records. The adapter now captures these fields but does not yet interpret lifecycle actions or write to SQLite.
+- Existing atomic provider-event persistence primitives (`SQLiteProviderDefinitionEventRepository`) remain the intended transaction boundary. Canonical UUID assignment, authoritative metadata normalization, event ordering/action processing, and provider-to-registry synchronization are still pending.
+- No overall progress increase: this is metadata-capture groundwork, not durable provider integration or live-feed verification. Overall progress remains 19.60%. GitHub Actions runs for the two code commits are in progress; no pass is claimed yet. `main` remains untouched.
