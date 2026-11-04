@@ -88,13 +88,11 @@ Status: provider and initial instrument scope selected; transport contract, back
 1. **Completed foundation:** populate the durable canonical instrument registry, point-in-time provider mappings, and versioned metadata from strictly normalized provider definitions; journal source events before processing and recover pending events after restart. Live credentials, provider delivery, and scheduled refresh remain separate validations.
 2. Define a trusted, admin-only entitlement grant process for canonical instruments; keep client-facing grant endpoints disabled.
 3. Connect the approved Firebase app sign-in/session flow so the frontend can obtain and refresh Firebase ID tokens. The exact sign-in methods and public Firebase app configuration must be supplied/approved before UI integration.
-4. Connect the approved Firebase app sign-in/session flow so the frontend can obtain and refresh Firebase ID tokens. The exact sign-in methods and public Firebase app configuration must be supplied/approved before UI integration.
-5. Wire the tested frontend WebSocket transport into the chart lifecycle and shared market-data store; add bounded reconnect, heartbeat/timeout handling, visibility/network awareness, and fresh-snapshot recovery after sequence gaps.
-6. Smoke-test the integrated client against a deployed backend with Firebase auth and entitlement configured, with provider features disabled until separately approved and verified.
-7. Publish accepted stream updates through the shared market-data store so the chart and all indicators consume one exact instrument/timeframe series; then smoke-test the backend and frontend against a deployed API origin with provider features disabled.
-8. Build the three indicator-tier navigation categories and visible indicator controls/overlays/panes on top of `useMarketIndicators`, with timeframe compatibility and performance tests. Low Tier requires the approved 15-item list; Mid Tier remains pending owner selection.
-9. Implement the full Exclusive Volume Profile and the separate compact movable-range Volume Profile Tool as distinct features.
-10. Integrate Footprint PRO 2GD, Heatmap, and Liquidation Maps in the coordinated Claude-assisted workflow after the owner supplies the required visual references and the complete source/reference package is available.
+4. Wire the tested frontend WebSocket transport into the chart lifecycle and shared market-data store; add bounded reconnect, heartbeat/timeout handling, visibility/network awareness, and fresh-snapshot recovery after sequence gaps.
+5. Smoke-test the integrated client against a deployed backend with Firebase auth and entitlement configured, with provider features disabled until separately approved and verified.
+6. Build the three indicator-tier navigation categories and visible indicator controls/overlays/panes on top of `useMarketIndicators`, with timeframe compatibility and performance tests. Low Tier requires the approved 15-item list; Mid Tier remains pending owner selection.
+7. Implement the full Exclusive Volume Profile and the separate compact movable-range Volume Profile Tool as distinct features.
+8. Integrate Footprint PRO 2GD, Heatmap, and Liquidation Maps in the coordinated Claude-assisted workflow after the owner supplies the required visual references and the complete source/reference package is available.
 
 ## Non-negotiable product constraints
 
