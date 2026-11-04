@@ -36,6 +36,7 @@ from app.ohlcv import (
 from app.provider import ProviderManager
 from app.databento_definition_sync import DatabentoDefinitionSynchronizer
 from app.ohlcv_stream import OhlcvStreamHub
+from app.ohlcv_store import SQLiteOhlcvStore
 from app.symbology import InstrumentResolver
 
 
@@ -64,10 +65,12 @@ def create_app(
     ohlcv_pipeline = OhlcvPipeline()
     resolver = InstrumentResolver()
     stream_hub = OhlcvStreamHub()
+    ohlcv_store = SQLiteOhlcvStore(config.instrument_registry_db_path)
     ingestion = OhlcvIngestionService(
         pipeline=ohlcv_pipeline, resolver=resolver, coverage=CoverageTracker(),
         dataset=config.databento_dataset, queue_max=config.ohlcv_queue_max,
         on_bar_applied=stream_hub.publish,
+        persistence=ohlcv_store,
     )
     if live_source_factory is None and config.provider_configured:
         live_source_factory = lambda: DatabentoLiveSource(  # noqa: E731
@@ -108,6 +111,7 @@ def create_app(
     )
     application.state.ohlcv_pipeline = ohlcv_pipeline
     application.state.ohlcv_stream_hub = stream_hub
+    application.state.ohlcv_store = ohlcv_store
     application.state.provider = provider
     application.state.definition_sync = definition_sync
     application.state.resolver = resolver
