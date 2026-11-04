@@ -115,3 +115,16 @@ def test_pipeline_can_be_restored_from_persisted_store(tmp_path):
     pipeline = OhlcvPipeline()
     assert pipeline.replace_snapshot(store.load_bars()) == 0
     assert pipeline.list_bars() == expected
+
+
+def test_local_sequence_high_water_mark_survives_bar_retention_and_restart(tmp_path):
+    path = str(tmp_path / "market.sqlite3")
+    store = SQLiteOhlcvStore(path, retention={"1m": 5})
+    for i in range(7):
+        assert store.apply(make_bar(
+            start=i * 60 * NS, event=100 + i, sequence=i + 1
+        )) == "inserted"
+    assert len(store.load_bars()) == 5
+    assert store.max_local_sequence() == 7
+    restarted = SQLiteOhlcvStore(path, retention={"1m": 5})
+    assert restarted.max_local_sequence() == 7
