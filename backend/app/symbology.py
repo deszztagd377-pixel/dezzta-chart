@@ -109,6 +109,49 @@ class InstrumentResolver:
             staged.add(mapping)
         self._by_key = staged._by_key
 
+    def close_mapping(
+        self,
+        *,
+        provider: str,
+        dataset: str,
+        publisher_id: int,
+        instrument_id: int,
+        effective_to_ns: int,
+    ) -> bool:
+        """Close active point-in-time mappings at an exclusive event timestamp."""
+        if (
+            not isinstance(effective_to_ns, int)
+            or isinstance(effective_to_ns, bool)
+            or effective_to_ns < 0
+        ):
+            raise ValueError("effective_to_ns must be a non-negative integer.")
+        key = (provider.strip().lower(), dataset.strip().upper(), publisher_id, instrument_id)
+        existing = self._by_key.get(key, [])
+        changed = False
+        updated: list[SymbolMapping] = []
+        for item in existing:
+            if (
+                item.valid_from_ns < effective_to_ns
+                and (item.valid_to_ns is None or item.valid_to_ns > effective_to_ns)
+            ):
+                updated.append(SymbolMapping(
+                    provider=item.provider,
+                    dataset=item.dataset,
+                    publisher_id=item.publisher_id,
+                    instrument_id=item.instrument_id,
+                    raw_symbol=item.raw_symbol,
+                    valid_from_ns=item.valid_from_ns,
+                    valid_to_ns=effective_to_ns,
+                    series_type=item.series_type,
+                    asset_class=item.asset_class,
+                ))
+                changed = True
+            else:
+                updated.append(item)
+        if changed:
+            self._by_key[key] = updated
+        return changed
+
     def mappings_for_symbol(
         self, provider: str, dataset: str, raw_symbol: str
     ) -> tuple[SymbolMapping, ...]:
@@ -146,13 +189,21 @@ class InstrumentResolver:
                 valid_to = int(
                     (expiry - date(1970, 1, 1)).days * _SECONDS_PER_DAY * _NS
                 )
-                self.add(SymbolMapping(
+                mapping = SymbolMapping(
                     provider=provider, dataset=str(row["dataset"]),
                     publisher_id=int(row["publisher_id"]),
                     instrument_id=int(row["instrument_id"]),
                     raw_symbol=str(row["raw_symbol"]),
                     valid_from_ns=valid_from, valid_to_ns=valid_to,
-                ))
+                )
+                self.close_mapping(
+                    provider=mapping.provider,
+                    dataset=mapping.dataset,
+                    publisher_id=mapping.publisher_id,
+                    instrument_id=mapping.instrument_id,
+                    effective_to_ns=mapping.valid_from_ns,
+                )
+                self.add(mapping)
                 registered += 1
             except (KeyError, TypeError, ValueError):
                 rejected += 1
