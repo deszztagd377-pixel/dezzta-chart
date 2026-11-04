@@ -47,7 +47,7 @@ def test_duplicate_revision_stale_and_provider_precedence_match_pipeline(tmp_pat
     derived = make_bar(origin="derived", completeness="open")
     assert store.apply(derived) == "inserted"
     assert store.apply(derived) == "duplicate"
-    assert store.apply(make_bar(event=99, sequence=99, close="99")) == "stale"
+    assert store.apply(make_bar(event=99, sequence=99, close="99", origin="derived")) == "stale"
     provider = make_bar(event=101, sequence=2, close="102", origin="provider")
     assert store.apply(provider) == "replaced"
     assert store.apply(make_bar(event=102, sequence=3, close="103", origin="derived")) == "provider_precedence"
