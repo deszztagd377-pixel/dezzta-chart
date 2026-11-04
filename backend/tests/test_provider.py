@@ -174,6 +174,7 @@ class FakeHistorical:
         if schema == "definition":
             return [SimpleNamespace(
                 raw_symbol="ESZ6", instrument_id=101, publisher_id=1, instrument_class="F",
+                security_update_action="A",
                 expiration=1_797_638_400 * NS - NS, ts_event=T0 - 10 * NS,
                 min_price_increment=250_000_000, currency="USD")]
         return [rec(int((start_ns - T0) // NS) + i) for i in range(2)]
@@ -217,6 +218,62 @@ def test_definitions_populate_catalog_and_resolver_for_ohlcv_normalization():
     result, pipeline = asyncio.run(go())
     assert result == (1, 0)
     assert pipeline.list_bars()[0].raw_symbol == "ESZ6"
+
+
+class DefinitionEventHistorical:
+    def __init__(self, records):
+        self.records = records
+
+    def fetch(self, *, schema, symbols, stype_in, start_ns, end_ns):
+        if schema == "definition":
+            return self.records
+        return []
+
+
+def test_refresh_definitions_applies_ordered_add_modify_delete_events():
+    records = [
+        SimpleNamespace(
+            raw_symbol="ESZ6", instrument_id=101, publisher_id=1,
+            instrument_class="F", security_update_action="A",
+            expiration=1_797_638_400 * NS, currency="USD",
+            min_price_increment=250_000_000, ts_event=T0 + 100,
+        ),
+        SimpleNamespace(
+            raw_symbol="ESU6", instrument_id=101, publisher_id=1,
+            instrument_class="F", security_update_action="M",
+            expiration=1_789_948_800 * NS, currency="USD",
+            min_price_increment=250_000_000, ts_event=T0 + 200,
+        ),
+        SimpleNamespace(
+            raw_symbol="ESU6", instrument_id=101, publisher_id=1,
+            instrument_class="F", security_update_action="D",
+            ts_event=T0 + 300,
+        ),
+    ]
+    hist = DefinitionEventHistorical(records)
+
+    async def go():
+        m, service, _ = manager(
+            hist=lambda: hist,
+            databento_historical_enabled=True,
+            databento_definition_symbols=("ES.FUT",),
+        )
+        result = await m.refresh_definitions(T0, T0 + 400)
+        return result, service, m
+
+    result, service, manager_instance = asyncio.run(go())
+    assert result == (3, 0)
+    assert manager_instance._catalog.list_contracts() == []
+    resolver = service.resolver
+    assert resolver.resolve(
+        "databento", "GLBX.MDP3", 1, 101, T0 + 150
+    ).raw_symbol == "ESZ6"
+    assert resolver.resolve(
+        "databento", "GLBX.MDP3", 1, 101, T0 + 250
+    ).raw_symbol == "ESU6"
+    assert resolver.resolve(
+        "databento", "GLBX.MDP3", 1, 101, T0 + 350
+    ) is None
 
 
 def test_without_definitions_records_are_rejected_not_invented():
