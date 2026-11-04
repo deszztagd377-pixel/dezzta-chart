@@ -111,7 +111,11 @@ class OhlcvIngestionService:
         self._callback_to_apply_samples_ms: deque[float] = deque(maxlen=256)
         self._clock_skew_samples = 0
         self.observations = InstrumentObservationTracker(monotonic_ns=self._monotonic)
-        self._sequence = itertools.count(1)
+        sequence_start = (
+            self.persistence.max_local_sequence() + 1
+            if self.persistence is not None else 1
+        )
+        self._sequence = itertools.count(sequence_start)
         self._event: asyncio.Event | None = None
         self._session_start: int | None = None
         self.counters: dict[str, int] = {}
