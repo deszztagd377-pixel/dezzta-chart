@@ -4,6 +4,9 @@ from starlette.websockets import WebSocketDisconnect
 
 from app.config import Settings
 from app.main import create_app
+from app.identity import IdentityVerificationError, VerifiedPrincipal
+from app.instrument_identity import CanonicalInstrument
+from app.instrument_registry import ProviderInstrumentMapping
 
 
 def make_settings(token: str = "test-secret") -> Settings:
@@ -62,8 +65,43 @@ def test_instrument_catalog_rejects_unknown_root() -> None:
     assert client.get("/v1/instruments?root=MES").status_code == 404
 
 
+def _install_test_identity(application, *, valid_token="valid-firebase-token", subject="firebase-user-123"):
+    class FakeVerifier:
+        def verify(self, token):
+            if token != valid_token:
+                raise IdentityVerificationError("invalid token")
+            return VerifiedPrincipal(
+                subject=subject,
+                issuer="https://securetoken.google.com/test-project",
+                audience="test-project",
+                auth_time=1_798_000_000,
+            )
+    application.state.identity_verifier = FakeVerifier()
+
+
+def _seed_stream_entitlement(application, *, grant=True):
+    canonical_id = "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11"
+    instrument = CanonicalInstrument(
+        canonical_id=canonical_id, asset_class="future", instrument_type="future",
+        symbol="ESZ6", venue="XCME", expiration_date="2026-12-18",
+        settlement_currency="USD", contract_multiplier="50", tick_size="0.25",
+    )
+    mapping = ProviderInstrumentMapping(
+        provider="databento", dataset="GLBX.MDP3", publisher_id=1, instrument_id=101,
+        raw_symbol="ESZ6", valid_from_ns=1, valid_to_ns=None, canonical_id=canonical_id,
+    )
+    application.state.instrument_registry.register_instrument_with_mapping(instrument, mapping)
+    if grant:
+        application.state.instrument_entitlements.grant(
+            subject="firebase-user-123", canonical_instrument_id=canonical_id,
+        )
+    return canonical_id
+
+
 def test_websocket_requires_authentication() -> None:
-    client = TestClient(create_app(make_settings()))
+    application = create_app(make_settings())
+    _install_test_identity(application)
+    client = TestClient(application)
     with pytest.raises(WebSocketDisconnect):
         with client.websocket_connect("/ws/market-data") as websocket:
             websocket.send_json({"type": "auth", "token": "wrong-token"})
@@ -71,9 +109,11 @@ def test_websocket_requires_authentication() -> None:
 
 
 def test_websocket_sends_status_after_authentication() -> None:
-    client = TestClient(create_app(make_settings()))
+    application = create_app(make_settings())
+    _install_test_identity(application)
+    client = TestClient(application)
     with client.websocket_connect("/ws/market-data") as websocket:
-        websocket.send_json({"type": "auth", "token": "test-secret"})
+        websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
         message = websocket.receive_json()
     assert message["type"] == "market_data.status"
     assert message["quality"]["state"] == "disconnected"
@@ -131,6 +171,8 @@ def _record(offset: int, volume: int = 10):
 
 def _app_with_bars(count: int = 4):
     application = create_app(make_settings())
+    _install_test_identity(application)
+    _seed_stream_entitlement(application)
     application.state.resolver.add(SymbolMapping(
         provider="databento", dataset="GLBX.MDP3", publisher_id=1, instrument_id=101,
         raw_symbol="ESZ6", valid_from_ns=0))
@@ -192,6 +234,8 @@ def test_lifespan_connects_a_fake_live_source_and_shuts_down_cleanly() -> None:
         databento_live_symbols=("ESZ6",),
     )
     application = create_app(settings, live_source_factory=FakeLive)
+    _install_test_identity(application)
+    _seed_stream_entitlement(application)
     application.state.resolver.add(SymbolMapping(
         provider="databento", dataset="GLBX.MDP3", publisher_id=1, instrument_id=101,
         raw_symbol="ESZ6", valid_from_ns=0))
@@ -206,13 +250,14 @@ def test_lifespan_connects_a_fake_live_source_and_shuts_down_cleanly() -> None:
 def test_websocket_authenticates_then_sends_exact_ohlcv_snapshot_with_watermark() -> None:
     client = TestClient(_app_with_bars())
     with client.websocket_connect("/ws/market-data") as websocket:
-        websocket.send_json({"type": "auth", "token": "test-secret"})
+        websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
         status = websocket.receive_json()
         assert status["type"] == "market_data.status"
         assert status["schema"] == "ohlcv"
         websocket.send_json({
             "type": "market_data.subscribe",
             "version": 1,
+            "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
             "series": {
                 "dataset": "GLBX.MDP3",
                 "publisherId": 1,
@@ -235,11 +280,12 @@ def test_websocket_rejects_invalid_ohlcv_subscription() -> None:
     client = TestClient(create_app(make_settings()))
     with pytest.raises(WebSocketDisconnect):
         with client.websocket_connect("/ws/market-data") as websocket:
-            websocket.send_json({"type": "auth", "token": "test-secret"})
+            websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
             assert websocket.receive_json()["type"] == "market_data.status"
             websocket.send_json({
                 "type": "market_data.subscribe",
                 "version": 1,
+                "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
                 "series": {
                     "dataset": "GLBX.MDP3",
                     "publisherId": 1,
@@ -277,11 +323,12 @@ def test_authenticated_websocket_receives_validated_live_ohlcv_update() -> None:
 
     with TestClient(application) as client:
         with client.websocket_connect("/ws/market-data") as websocket:
-            websocket.send_json({"type": "auth", "token": "test-secret"})
+            websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
             assert websocket.receive_json()["type"] == "market_data.status"
             websocket.send_json({
                 "type": "market_data.subscribe",
                 "version": 1,
+                "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
                 "series": {
                     "dataset": "GLBX.MDP3",
                     "publisherId": 1,
