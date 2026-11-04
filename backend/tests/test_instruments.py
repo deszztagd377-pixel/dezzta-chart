@@ -11,6 +11,7 @@ def definition(**overrides):
         "instrument_id": 123,
         "publisher_id": 1,
         "instrument_class": "F",
+        "security_update_action": "A",
         "expiration": date(2026, 12, 18),
         "currency": "USD",
         # Databento definition prices use a signed integer scaled by 1e-9.
@@ -157,6 +158,42 @@ def test_stale_delete_cannot_remove_newer_definition():
         event_ts_ns=200,
     ) is False
     assert catalog.list_contracts()[0]["definition_ts_event_ns"] == "300"
+
+
+def test_catalog_applies_add_modify_delete_and_tombstone_events():
+    catalog = InstrumentCatalog()
+    added = definition(security_update_action="A", ts_event=100)
+    modified = definition(
+        security_update_action="M",
+        raw_symbol="ESU6",
+        expiration=date(2026, 9, 18),
+        ts_event=200,
+    )
+    deleted = {
+        "security_update_action": "D",
+        "publisher_id": 1,
+        "instrument_id": 123,
+        "ts_event": 300,
+    }
+
+    assert catalog.apply_definition_event(added) is True
+    assert catalog.apply_definition_event(modified) is True
+    assert catalog.list_contracts()[0]["raw_symbol"] == "ESU6"
+    assert catalog.apply_definition_event(deleted) is True
+    assert catalog.list_contracts() == []
+    assert catalog.apply_definition_event(added) is False
+    assert catalog.apply_definition_event(
+        definition(security_update_action="A", ts_event=400)
+    ) is True
+
+
+def test_catalog_rejects_unknown_definition_action():
+    catalog = InstrumentCatalog()
+
+    with pytest.raises(InvalidInstrumentDefinition, match="security_update_action"):
+        catalog.apply_definition_event(
+            definition(security_update_action="X")
+        )
 
 
 def test_delete_requires_non_negative_identity_and_timestamp():
