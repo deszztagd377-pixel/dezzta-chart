@@ -369,3 +369,11 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Databento's documented schema identifies `unit_of_measure_qty` + `unit_of_measure` as contract-size metadata, `exchange` as the exchange identifier, and definitions as point-in-time records. The adapter now captures these fields but does not yet interpret lifecycle actions or write to SQLite.
 - Existing atomic provider-event persistence primitives (`SQLiteProviderDefinitionEventRepository`) remain the intended transaction boundary. Canonical UUID assignment, authoritative metadata normalization, event ordering/action processing, and provider-to-registry synchronization are still pending.
 - No overall progress increase: this is metadata-capture groundwork, not durable provider integration or live-feed verification. Overall progress remains 19.60%. GitHub Actions runs for the two code commits are in progress; no pass is claimed yet. `main` remains untouched.
+
+
+### 2026-11-04 — Databento adapter CI correction
+
+- The first adapter test run failed because the new byte fixtures contained escaped text rather than actual NUL/non-ASCII bytes; the two negative tests therefore did not exercise invalid byte input.
+- Corrected the adapter's null-byte trimming and corrected the test fixtures to contain actual binary byte values. The correction is committed in `0cfc3eed15bad9e03a1291345d29efff73652e37` and `d56a39e0b8c911a38a7a3c86e56a2a929357c071`.
+- The branch-head workflow run `41819590174` for `d56a39e0b8c911a38a7a3c86e56a2a929357c071` has passed frontend unit tests and the frontend production build. Backend dependency installation is still running; backend tests and Docker build are not yet verified.
+- No overall progress increase: Databento provider definitions are not yet synchronized into the persistent canonical registry. Overall progress remains 19.60%. `main` remains untouched.
