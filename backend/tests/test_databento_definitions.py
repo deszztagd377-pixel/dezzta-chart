@@ -15,6 +15,7 @@ def dbn_record(**overrides):
         "instrument_id": 101,
         "publisher_id": 1,
         "instrument_class": "F",
+        "security_update_action": "A",
         "expiration": 1_798_588_800_000_000_000,
         "currency": "USD",
         "min_price_increment": 250_000_000,
@@ -77,6 +78,16 @@ def test_preserves_authoritative_contract_metadata_and_lifecycle_action():
 def test_rejects_non_ascii_optional_character_fields():
     with pytest.raises(InvalidDatabentoRecord, match="exchange is not ASCII"):
         definition_record_to_mapping(dbn_record(exchange=b"X\xff"))
+
+
+def test_delete_definition_does_not_require_expiration():
+    record = dbn_record(security_update_action=b"D")
+    del record.expiration
+
+    result = definition_record_to_mapping(record)
+
+    assert result["security_update_action"] == "D"
+    assert "expiration" not in result
 
 
 def test_iter_preserves_record_order():
