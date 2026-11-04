@@ -184,7 +184,11 @@ class SQLiteCoverageTracker(CoverageTracker):
         old_covered = list(self._covered.get(scope, []))
         old_gaps = list(self._gaps.get(scope, []))
         super().add_gap(scope, start_ns, end_ns)
-        self._gaps[scope] = self._merge(old_gaps, start_ns, end_ns)
+        merged_gaps = self._merge(old_gaps, start_ns, end_ns)
+        if len(merged_gaps) > self._max:
+            self.truncated += len(merged_gaps) - self._max
+            merged_gaps = merged_gaps[-self._max:]
+        self._gaps[scope] = merged_gaps
         try:
             self._persist_scope(scope)
         except Exception:
