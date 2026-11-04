@@ -70,6 +70,49 @@ def test_register_from_catalog_uses_definition_time_and_expiry_window():
     assert resolver.resolve("databento", "GLBX.MDP3", 1, 5, expiry_end) is None
 
 
+def test_close_mapping_creates_exclusive_event_time_boundary():
+    resolver = InstrumentResolver()
+    resolver.add(mapping("ESZ6", 100, None))
+
+    assert resolver.close_mapping(
+        provider="databento",
+        dataset="GLBX.MDP3",
+        publisher_id=1,
+        instrument_id=1,
+        effective_to_ns=200,
+    ) is True
+    assert resolver.resolve("databento", "GLBX.MDP3", 1, 1, 199).raw_symbol == "ESZ6"
+    assert resolver.resolve("databento", "GLBX.MDP3", 1, 1, 200) is None
+    assert resolver.close_mapping(
+        provider="databento",
+        dataset="GLBX.MDP3",
+        publisher_id=1,
+        instrument_id=1,
+        effective_to_ns=200,
+    ) is False
+
+
+def test_catalog_mapping_transition_closes_previous_symbol_before_new_one():
+    catalog = InstrumentCatalog()
+    catalog.replace_definitions([{
+        "raw_symbol": "ESZ6", "instrument_id": 5, "publisher_id": 1,
+        "instrument_class": "F", "expiration": "2026-12-18", "currency": "USD",
+        "min_price_increment": 250_000_000, "ts_event": 100,
+    }])
+    resolver = InstrumentResolver()
+    assert resolver.register_catalog_contracts(catalog.list_contracts()) == (1, 0)
+
+    catalog.upsert_definition({
+        "raw_symbol": "ESU6", "instrument_id": 5, "publisher_id": 1,
+        "instrument_class": "F", "expiration": "2026-09-18", "currency": "USD",
+        "min_price_increment": 250_000_000, "ts_event": 200,
+    })
+    assert resolver.register_catalog_contracts(catalog.list_contracts()) == (1, 0)
+
+    assert resolver.resolve("databento", "GLBX.MDP3", 1, 5, 150).raw_symbol == "ESZ6"
+    assert resolver.resolve("databento", "GLBX.MDP3", 1, 5, 200).raw_symbol == "ESU6"
+
+
 def test_catalog_root_allow_list_is_configurable_beyond_es_nq_gc():
     catalog = InstrumentCatalog(allowed_roots=("CL", "ES"))
     rows = [
