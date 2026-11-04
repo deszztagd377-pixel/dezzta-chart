@@ -365,3 +365,46 @@ def test_recover_gaps_skips_unresolvable_scope_without_erasing_gap(tmp_path):
     assert result["gaps_skipped"] == 1
     assert result["gaps_remaining"] == 1
     assert coverage.gaps(scope) == [(T0, T0 + NS)]
+
+
+def test_gap_recovery_enforces_total_historical_span_budget(tmp_path):
+    from app.coverage_store import SQLiteCoverageTracker
+    from app.ohlcv import OhlcvPipeline
+    from app.ingest import OhlcvIngestionService
+    from app.symbology import InstrumentResolver, SymbolMapping
+
+    async def go():
+        scope = ("databento", "GLBX.MDP3", 1, 101, "contract", "ESZ6")
+        coverage = SQLiteCoverageTracker(str(tmp_path / "coverage.sqlite3"))
+        coverage.add_gap(scope, T0, T0 + 2 * 3600 * NS)
+        resolver = InstrumentResolver()
+        resolver.add(SymbolMapping(
+            provider="databento", dataset="GLBX.MDP3",
+            publisher_id=1, instrument_id=101, raw_symbol="ESZ6",
+            valid_from_ns=T0, valid_to_ns=T0 + 2 * 3600 * NS,
+        ))
+        service = OhlcvIngestionService(
+            pipeline=OhlcvPipeline(), resolver=resolver, coverage=coverage
+        )
+        hist = FakeHistorical()
+        cfg = settings(
+            databento_api_key=SECRET,
+            databento_historical_enabled=True,
+            historical_window_minutes=60,
+            historical_max_span_hours=2,
+        )
+        manager = ProviderManager(
+            cfg, service, InstrumentCatalog(), historical_factory=lambda: hist
+        )
+        result = await manager.recover_gaps(max_total_span_hours=1)
+        return result, hist, coverage, scope
+
+    result, hist, coverage, scope = asyncio.run(go())
+    assert result["gaps_attempted"] == 1
+    assert result["gaps_recovered"] == 0
+    assert result["gaps_remaining"] == 1
+    assert result["windows_done"] == 1
+    assert len(hist.calls) == 1
+    assert hist.calls[0][4] - hist.calls[0][3] == 3600 * NS
+    assert coverage.intervals(scope) == [(T0, T0 + 3600 * NS)]
+    assert coverage.gaps(scope) == [(T0 + 3600 * NS, T0 + 2 * 3600 * NS)]
