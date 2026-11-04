@@ -48,6 +48,10 @@ CREATE TABLE IF NOT EXISTS ohlcv_bars (
 CREATE INDEX IF NOT EXISTS idx_ohlcv_series_time
 ON ohlcv_bars(provider, dataset, publisher_id, instrument_id,
               series_type, raw_symbol, timeframe, ts_start_ns);
+CREATE TABLE IF NOT EXISTS ohlcv_store_state (
+    state_key TEXT PRIMARY KEY NOT NULL,
+    int_value INTEGER NOT NULL
+);
 """
 
 
@@ -168,6 +172,14 @@ class SQLiteOhlcvStore:
             else:
                 result = "inserted"
 
+            if bar.sequence_origin == "local":
+                db.execute(
+                    """INSERT INTO ohlcv_store_state(state_key, int_value)
+                    VALUES ('max_local_sequence', ?)
+                    ON CONFLICT(state_key) DO UPDATE SET
+                    int_value=MAX(int_value, excluded.int_value)""",
+                    (bar.sequence,),
+                )
             db.execute(
                 """INSERT INTO ohlcv_bars (
                     provider,dataset,publisher_id,instrument_id,series_type,
@@ -263,6 +275,17 @@ class SQLiteOhlcvStore:
             rows = db.execute(sql, query_params).fetchall()
             bars = [self._from_row(row) for row in reversed(rows)]
             return bars, total
+        finally:
+            db.close()
+
+    def max_local_sequence(self) -> int:
+        """High-water mark survives retention pruning and process restarts."""
+        db = self._connect()
+        try:
+            row = db.execute(
+                "SELECT int_value FROM ohlcv_store_state WHERE state_key='max_local_sequence'"
+            ).fetchone()
+            return 0 if row is None else int(row["int_value"])
         finally:
             db.close()
 
