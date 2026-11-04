@@ -343,6 +343,88 @@ class ProviderManager:
         self.backfill["state"] = "done"
         return total
 
+    async def recover_gaps(self, *, max_gaps: int = 100) -> dict[str, int]:
+        """Backfill a bounded number of durable gaps using exact provider mappings.
+
+        This is an explicit operator/service action, not an automatic startup
+        network request. Each query is clipped to the mapping's validity range
+        and split by the configured maximum historical span.
+        """
+        if not self.historical_allowed:
+            raise RuntimeError("Historical ingestion is not enabled/configured.")
+        if not isinstance(max_gaps, int) or isinstance(max_gaps, bool) or max_gaps < 1:
+            raise ValueError("max_gaps must be a positive integer.")
+        coverage = self._ingest.coverage
+        if not hasattr(coverage, "gap_scopes") or not hasattr(coverage, "gaps"):
+            raise RuntimeError("Durable gap tracking is not available.")
+        attempted = recovered = skipped = bars_ingested = windows_done = 0
+        max_span_ns = self._s.historical_max_span_hours * 3600 * _NS
+
+        for scope in coverage.gap_scopes():
+            if attempted >= max_gaps:
+                break
+            if (
+                not isinstance(scope, tuple) or len(scope) != 6
+                or scope[0] != self._ingest.provider
+                or scope[1] != self._s.databento_dataset
+            ):
+                skipped += 1
+                continue
+            raw_symbol = scope[5]
+            mappings = [
+                item for item in self._ingest.resolver.mappings_for_symbol(
+                    self._ingest.provider, self._s.databento_dataset, raw_symbol
+                )
+                if item.coverage_scope == scope
+            ]
+            for gap_start, gap_end in coverage.gaps(scope):
+                if attempted >= max_gaps:
+                    break
+                attempted += 1
+                if not mappings:
+                    skipped += 1
+                    continue
+                for mapping in mappings:
+                    start = max(gap_start, mapping.valid_from_ns)
+                    end = min(
+                        gap_end,
+                        mapping.valid_to_ns if mapping.valid_to_ns is not None else gap_end,
+                    )
+                    cursor = start
+                    while cursor < end:
+                        upper = min(cursor + max_span_ns, end)
+                        bars_ingested += await self.backfill_ohlcv(
+                            (raw_symbol,), cursor, upper, schema="ohlcv-1s"
+                        )
+                        windows_done += int(self.backfill.get("windows_done", 0))
+                        cursor = upper
+                still_missing = any(
+                    left < gap_end and right > gap_start
+                    for left, right in coverage.gaps(scope)
+                )
+                if not still_missing:
+                    recovered += 1
+
+        remaining = sum(
+            len(coverage.gaps(scope)) for scope in coverage.gap_scopes()
+        )
+        self.backfill.update(
+            state="done",
+            gaps_attempted=attempted,
+            gaps_recovered=recovered,
+            gaps_skipped=skipped,
+            gaps_remaining=remaining,
+            recovery_windows_done=windows_done,
+        )
+        return {
+            "gaps_attempted": attempted,
+            "gaps_recovered": recovered,
+            "gaps_skipped": skipped,
+            "gaps_remaining": remaining,
+            "bars_ingested": bars_ingested,
+            "windows_done": windows_done,
+        }
+
     def _validate_span(self, start_ns: int, end_ns: int) -> None:
         if not (0 <= start_ns < end_ns):
             raise ValueError("start must be before end.")
