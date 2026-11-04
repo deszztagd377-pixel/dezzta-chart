@@ -15,7 +15,7 @@ from uuid import UUID
 
 from app.instrument_identity import CanonicalInstrument
 
-_SCHEMA_VERSION = 4
+_SCHEMA_VERSION = 5
 _SQLITE_MAX_INTEGER = 9_223_372_036_854_775_807
 
 
@@ -249,6 +249,9 @@ class SQLiteInstrumentRegistry:
                 version = 3
             if version == 3:
                 self._migrate_v3_to_v4(connection)
+                version = 4
+            if version == 4:
+                self._migrate_v4_to_v5(connection)
         finally:
             connection.close()
 
@@ -706,6 +709,233 @@ class SQLiteInstrumentRegistry:
                 """
             )
             connection.execute("PRAGMA user_version = 4")
+            connection.commit()
+        except Exception:
+            if connection.in_transaction:
+                connection.rollback()
+            raise
+
+
+    @staticmethod
+    def _migrate_v4_to_v5(connection: sqlite3.Connection) -> None:
+        """Separate dated-futures identity from provider contract-size terms.
+
+        Futures remain venue/product/expiry/settlement scoped, but a provider's
+        deliverable multiplier is not used as a substitute for contract size.
+        Existing v4 payloads are preserved byte-for-byte. The migration also
+        adds a durable, append-only provider-definition event journal.
+        """
+        connection.execute("BEGIN IMMEDIATE")
+        try:
+            connection.execute("DROP TRIGGER IF EXISTS validate_canonical_identity_before_insert")
+            connection.execute("DROP INDEX IF EXISTS ux_canonical_instrument_identity_key")
+            connection.execute("ALTER TABLE canonical_instruments DROP COLUMN identity_key")
+            connection.execute(
+                """
+                ALTER TABLE canonical_instruments
+                ADD COLUMN identity_key TEXT GENERATED ALWAYS AS (
+                    json_array(
+                        json_extract(payload_json, '$.asset_class'),
+                        json_extract(payload_json, '$.instrument_type'),
+                        json_extract(payload_json, '$.venue'),
+                        CASE
+                            WHEN json_extract(payload_json, '$.instrument_type')
+                                IN ('spot', 'perpetual', 'fx_pair')
+                            THEN json_extract(payload_json, '$.base_currency')
+                            ELSE NULL
+                        END,
+                        CASE
+                            WHEN json_extract(payload_json, '$.instrument_type')
+                                IN ('spot', 'perpetual', 'fx_pair')
+                            THEN json_extract(payload_json, '$.quote_currency')
+                            ELSE NULL
+                        END,
+                        CASE
+                            WHEN json_extract(payload_json, '$.instrument_type')
+                                IN ('stock', 'etf', 'future', 'index')
+                            THEN json_extract(payload_json, '$.symbol')
+                            ELSE NULL
+                        END,
+                        CASE
+                            WHEN json_extract(payload_json, '$.instrument_type')
+                                IN ('future', 'option')
+                            THEN json_extract(payload_json, '$.expiration_date')
+                            ELSE NULL
+                        END,
+                        CASE
+                            WHEN json_extract(payload_json, '$.instrument_type')
+                                IN ('perpetual', 'future', 'option')
+                            THEN json_extract(payload_json, '$.settlement_currency')
+                            ELSE NULL
+                        END,
+                        CASE
+                            WHEN json_extract(payload_json, '$.instrument_type')
+                                IN ('perpetual', 'option')
+                            THEN json_extract(payload_json, '$.contract_multiplier')
+                            ELSE NULL
+                        END,
+                        CASE
+                            WHEN json_extract(payload_json, '$.instrument_type') = 'option'
+                            THEN json_extract(payload_json, '$.option_right')
+                            ELSE NULL
+                        END,
+                        CASE
+                            WHEN json_extract(payload_json, '$.instrument_type') = 'option'
+                            THEN json_extract(payload_json, '$.strike_price')
+                            ELSE NULL
+                        END,
+                        CASE
+                            WHEN json_extract(payload_json, '$.instrument_type') = 'option'
+                            THEN json_extract(payload_json, '$.underlying_canonical_id')
+                            ELSE NULL
+                        END
+                    )
+                ) VIRTUAL
+                """
+            )
+            duplicate = connection.execute(
+                """
+                SELECT identity_key
+                FROM canonical_instruments
+                GROUP BY identity_key
+                HAVING COUNT(*) > 1
+                LIMIT 1
+                """
+            ).fetchone()
+            if duplicate is not None:
+                raise sqlite3.IntegrityError(
+                    "duplicate_canonical_identity_after_v5_futures_key_change"
+                )
+            connection.execute(
+                """
+                CREATE UNIQUE INDEX ux_canonical_instrument_identity_key
+                ON canonical_instruments(identity_key)
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER validate_canonical_identity_before_insert
+                BEFORE INSERT ON canonical_instruments
+                WHEN (
+                    json_extract(NEW.payload_json, '$.instrument_type')
+                        IN ('spot', 'perpetual', 'fx_pair')
+                    AND (
+                        json_extract(NEW.payload_json, '$.base_currency') IS NULL
+                        OR json_extract(NEW.payload_json, '$.quote_currency') IS NULL
+                        OR json_extract(NEW.payload_json, '$.base_currency')
+                            = json_extract(NEW.payload_json, '$.quote_currency')
+                    )
+                )
+                OR (
+                    json_extract(NEW.payload_json, '$.instrument_type')
+                        IN ('perpetual', 'future', 'option')
+                    AND json_extract(NEW.payload_json, '$.settlement_currency') IS NULL
+                )
+                OR (
+                    json_extract(NEW.payload_json, '$.instrument_type')
+                        IN ('perpetual', 'option')
+                    AND json_extract(NEW.payload_json, '$.contract_multiplier') IS NULL
+                )
+                OR (
+                    json_extract(NEW.payload_json, '$.instrument_type')
+                        IN ('future', 'option')
+                    AND json_extract(NEW.payload_json, '$.expiration_date') IS NULL
+                )
+                OR (
+                    json_extract(NEW.payload_json, '$.instrument_type') = 'option'
+                    AND (
+                        json_extract(NEW.payload_json, '$.option_right') IS NULL
+                        OR json_extract(NEW.payload_json, '$.option_right') NOT IN ('call', 'put')
+                        OR json_extract(NEW.payload_json, '$.strike_price') IS NULL
+                        OR json_extract(NEW.payload_json, '$.underlying_canonical_id') IS NULL
+                    )
+                )
+                BEGIN
+                    SELECT RAISE(ABORT, 'incomplete_canonical_identity');
+                END
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE provider_definition_events (
+                    event_id TEXT PRIMARY KEY NOT NULL CHECK (length(event_id) = 64),
+                    provider TEXT NOT NULL CHECK (length(provider) > 0),
+                    dataset TEXT NOT NULL CHECK (length(dataset) > 0),
+                    publisher_id INTEGER NOT NULL CHECK (publisher_id > 0),
+                    instrument_id INTEGER NOT NULL CHECK (instrument_id > 0),
+                    source_event_ts_ns INTEGER NOT NULL CHECK (source_event_ts_ns >= 0),
+                    source_order INTEGER NOT NULL CHECK (source_order >= 0),
+                    action TEXT NOT NULL CHECK (action IN ('A', 'M', 'D')),
+                    raw_symbol TEXT NOT NULL CHECK (length(raw_symbol) > 0),
+                    payload_sha256 TEXT NOT NULL CHECK (length(payload_sha256) = 64),
+                    payload_json TEXT NOT NULL CHECK (json_valid(payload_json)),
+                    received_at_utc TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    processing_status TEXT NOT NULL DEFAULT 'pending'
+                        CHECK (processing_status IN ('pending', 'applied', 'quarantined')),
+                    canonical_id TEXT,
+                    error_code TEXT,
+                    UNIQUE (
+                        provider, dataset, publisher_id, instrument_id,
+                        source_event_ts_ns, source_order
+                    ),
+                    FOREIGN KEY (canonical_id)
+                        REFERENCES canonical_instruments(canonical_id)
+                        ON UPDATE RESTRICT ON DELETE RESTRICT
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX idx_provider_definition_events_pending
+                ON provider_definition_events(processing_status, source_event_ts_ns, source_order)
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX idx_provider_definition_events_instrument
+                ON provider_definition_events(
+                    provider, dataset, publisher_id, instrument_id,
+                    source_event_ts_ns, source_order
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER provider_definition_events_immutable
+                BEFORE UPDATE ON provider_definition_events
+                WHEN NOT (
+                    OLD.processing_status = 'pending'
+                    AND NEW.processing_status IN ('applied', 'quarantined')
+                    AND NEW.event_id = OLD.event_id
+                    AND NEW.provider = OLD.provider
+                    AND NEW.dataset = OLD.dataset
+                    AND NEW.publisher_id = OLD.publisher_id
+                    AND NEW.instrument_id = OLD.instrument_id
+                    AND NEW.source_event_ts_ns = OLD.source_event_ts_ns
+                    AND NEW.source_order = OLD.source_order
+                    AND NEW.action = OLD.action
+                    AND NEW.raw_symbol = OLD.raw_symbol
+                    AND NEW.payload_sha256 = OLD.payload_sha256
+                    AND NEW.payload_json = OLD.payload_json
+                    AND NEW.received_at_utc = OLD.received_at_utc
+                    AND NEW.canonical_id IS OLD.canonical_id
+                    AND NEW.error_code IS NOT OLD.error_code
+                )
+                BEGIN
+                    SELECT RAISE(ABORT, 'provider_definition_event_is_immutable');
+                END
+                """
+            )
+            connection.execute(
+                """
+                CREATE TRIGGER provider_definition_events_no_delete
+                BEFORE DELETE ON provider_definition_events
+                BEGIN
+                    SELECT RAISE(ABORT, 'provider_definition_event_is_immutable');
+                END
+                """
+            )
+            connection.execute("PRAGMA user_version = 5")
             connection.commit()
         except Exception:
             if connection.in_transaction:
