@@ -277,7 +277,9 @@ def test_websocket_authenticates_then_sends_exact_ohlcv_snapshot_with_watermark(
 
 
 def test_websocket_rejects_invalid_ohlcv_subscription() -> None:
-    client = TestClient(create_app(make_settings()))
+    application = create_app(make_settings())
+    _install_test_identity(application)
+    client = TestClient(application)
     with pytest.raises(WebSocketDisconnect):
         with client.websocket_connect("/ws/market-data") as websocket:
             websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
@@ -316,6 +318,8 @@ def test_authenticated_websocket_receives_validated_live_ohlcv_update() -> None:
         databento_live_symbols=("ESZ6",),
     )
     application = create_app(settings, live_source_factory=FakeLive)
+    _install_test_identity(application)
+    _seed_stream_entitlement(application)
     application.state.resolver.add(SymbolMapping(
         provider="databento", dataset="GLBX.MDP3", publisher_id=1,
         instrument_id=101, raw_symbol="ESZ6", valid_from_ns=0,
