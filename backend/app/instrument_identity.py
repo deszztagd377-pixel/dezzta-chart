@@ -146,10 +146,13 @@ class CanonicalInstrument:
             )
 
         if instrument_type in {"perpetual", "future", "option"}:
-            if self.settlement_currency is None or self.contract_multiplier is None:
+            if self.settlement_currency is None:
                 raise InvalidCanonicalInstrument(
-                    "Perpetuals, futures, and options require authoritative "
-                    "settlement_currency and contract_multiplier for stable identity."
+                    "Perpetuals, futures, and options require authoritative settlement_currency."
+                )
+            if instrument_type in {"perpetual", "option"} and self.contract_multiplier is None:
+                raise InvalidCanonicalInstrument(
+                    "Perpetuals and options require authoritative contract_multiplier."
                 )
 
         if instrument_type == "option":
