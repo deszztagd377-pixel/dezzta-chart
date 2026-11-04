@@ -400,3 +400,11 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Added regression coverage for futures identity separation and journal durability, idempotency, conflict rejection, equal-timestamp source ordering, quarantine, and immutable payloads.
 - This is persistence groundwork only. The journal is not yet connected to the live Databento session or the atomic provider mapping + metadata revision pipeline. No live market data, Footprint readiness, or latency claim is implied.
 - Overall progress remains 19.60% until the new migrations and tests pass CI and the provider-to-registry synchronizer is integrated and verified.
+
+### 2026-11-04 — strict Databento definition normalizer
+
+- Added `backend/app/databento_definition_normalizer.py` and focused tests for dated futures definitions, UTC expiry conversion, required authoritative fields, Delete handling, and lossless provider-term preservation.
+- Root symbol and venue must come from explicit provider fields; no ticker parsing is used to fill missing identity data.
+- Settlement currency uses the provider's explicit settlement override when present and otherwise the provider currency field. Fixed-point source values remain raw with explicit scales; provider-native contract multiplier remains separate from unit-of-measure quantity.
+- This adapter is not yet wired to the live provider lifecycle or SQLite synchronizer. Footprint source modules are not present in the current GitHub branch, so no Footprint integration or completion is claimed.
+- Overall progress remains 19.60%; CI for the latest branch head and the complete synchronizer are still pending.
