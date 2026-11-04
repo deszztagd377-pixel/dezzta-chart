@@ -34,14 +34,14 @@ def test_maps_dbn_record_attributes_without_changing_numeric_units():
 
 
 def test_decodes_null_padded_ascii_symbol():
-    result = definition_record_to_mapping(dbn_record(raw_symbol=b"NQZ6\\x00"))
+    result = definition_record_to_mapping(dbn_record(raw_symbol=b"NQZ6\x00"))
 
     assert result["raw_symbol"] == "NQZ6"
 
 
 def test_rejects_non_ascii_symbol():
     with pytest.raises(InvalidDatabentoRecord, match="not ASCII"):
-        definition_record_to_mapping(dbn_record(raw_symbol=b"GC\\xff"))
+        definition_record_to_mapping(dbn_record(raw_symbol=b"GC\xff"))
 
 
 def test_rejects_record_missing_required_field():
@@ -55,10 +55,10 @@ def test_rejects_record_missing_required_field():
 def test_preserves_authoritative_contract_metadata_and_lifecycle_action():
     result = definition_record_to_mapping(
         dbn_record(
-            exchange=b"XCME\\x00",
-            unit_of_measure=b"USD\\x00",
+            exchange=b"XCME\x00",
+            unit_of_measure=b"USD\x00",
             unit_of_measure_qty=50_000_000_000,
-            settl_currency=b"USD\\x00",
+            settl_currency=b"USD\x00",
             security_update_action=b"M",
             activation=1_789_000_000_000_000_000,
             contract_multiplier=1,
@@ -76,7 +76,7 @@ def test_preserves_authoritative_contract_metadata_and_lifecycle_action():
 
 def test_rejects_non_ascii_optional_character_fields():
     with pytest.raises(InvalidDatabentoRecord, match="exchange is not ASCII"):
-        definition_record_to_mapping(dbn_record(exchange=b"X\\xff"))
+        definition_record_to_mapping(dbn_record(exchange=b"X\xff"))
 
 
 def test_iter_preserves_record_order():
