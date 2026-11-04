@@ -880,7 +880,17 @@ class SQLiteInstrumentRegistry:
                     ),
                     FOREIGN KEY (canonical_id)
                         REFERENCES canonical_instruments(canonical_id)
-                        ON UPDATE RESTRICT ON DELETE RESTRICT
+                        ON UPDATE RESTRICT ON DELETE RESTRICT,
+                    CHECK (
+                        (processing_status = 'pending'
+                            AND canonical_id IS NULL AND error_code IS NULL)
+                        OR
+                        (processing_status = 'applied'
+                            AND canonical_id IS NOT NULL AND error_code IS NULL)
+                        OR
+                        (processing_status = 'quarantined'
+                            AND canonical_id IS NULL AND error_code IS NOT NULL)
+                    )
                 )
                 """
             )
