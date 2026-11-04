@@ -480,3 +480,14 @@ def test_ohlcv_snapshot_recovers_from_shared_sqlite_database_after_app_restart()
     assert payload["bars"][0]["tsStartNs"] == str(_T0)
     assert payload["bars"][1]["tsStartNs"] == str(_T0 + _NS)
     assert restarted_app.state.ohlcv_store.stats()["bars"] == first_app.state.ohlcv_store.stats()["bars"]
+    restarted_app.state.resolver.add(SymbolMapping(
+        provider="databento", dataset="GLBX.MDP3", publisher_id=1,
+        instrument_id=101, raw_symbol="ESZ6", valid_from_ns=0,
+    ))
+    restarted_app.state.provider._ingest.ingest_batch(
+        [_record(2)], "ohlcv-1s"
+    )
+    resumed = restarted_app.state.ohlcv_pipeline.list_bars(
+        timeframe="1s", instrument_id=101
+    )
+    assert resumed[-1].sequence == 3
