@@ -918,8 +918,14 @@ class SQLiteInstrumentRegistry:
                     AND NEW.payload_sha256 = OLD.payload_sha256
                     AND NEW.payload_json = OLD.payload_json
                     AND NEW.received_at_utc = OLD.received_at_utc
-                    AND NEW.canonical_id IS OLD.canonical_id
-                    AND NEW.error_code IS NOT OLD.error_code
+                    AND (
+                        (NEW.processing_status = 'applied'
+                            AND NEW.canonical_id IS NOT NULL AND NEW.error_code IS NULL)
+                        OR
+                        (NEW.processing_status = 'quarantined'
+                            AND NEW.canonical_id IS OLD.canonical_id
+                            AND NEW.error_code IS NOT NULL)
+                    )
                 )
                 BEGIN
                     SELECT RAISE(ABORT, 'provider_definition_event_is_immutable');
