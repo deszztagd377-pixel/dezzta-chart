@@ -343,7 +343,10 @@ class ProviderManager:
         self.backfill["state"] = "done"
         return total
 
-    async def recover_gaps(self, *, max_gaps: int = 100) -> dict[str, int]:
+    async def recover_gaps(
+        self, *, max_gaps: int = 100,
+        max_total_span_hours: int | None = None,
+    ) -> dict[str, int]:
         """Backfill a bounded number of durable gaps using exact provider mappings.
 
         This is an explicit operator/service action, not an automatic startup
@@ -357,8 +360,21 @@ class ProviderManager:
         coverage = self._ingest.coverage
         if not hasattr(coverage, "gap_scopes") or not hasattr(coverage, "gaps"):
             raise RuntimeError("Durable gap tracking is not available.")
+        total_span_hours = (
+            self._s.historical_max_span_hours
+            if max_total_span_hours is None else max_total_span_hours
+        )
+        if (
+            not isinstance(total_span_hours, int) or isinstance(total_span_hours, bool)
+            or total_span_hours < 1
+            or total_span_hours > self._s.historical_max_span_hours
+        ):
+            raise ValueError(
+                "max_total_span_hours must be between 1 and the configured historical maximum."
+            )
         attempted = recovered = skipped = bars_ingested = windows_done = 0
         max_span_ns = self._s.historical_max_span_hours * 3600 * _NS
+        remaining_budget_ns = total_span_hours * 3600 * _NS
 
         for scope in coverage.gap_scopes():
             if attempted >= max_gaps:
@@ -395,12 +411,17 @@ class ProviderManager:
                         continue
                     overlap_found = True
                     cursor = start
-                    while cursor < end:
-                        upper = min(cursor + max_span_ns, end)
+                    while cursor < end and remaining_budget_ns > 0:
+                        upper = min(
+                            cursor + max_span_ns,
+                            end,
+                            cursor + remaining_budget_ns,
+                        )
                         bars_ingested += await self.backfill_ohlcv(
                             (raw_symbol,), cursor, upper, schema="ohlcv-1s"
                         )
                         windows_done += int(self.backfill.get("windows_done", 0))
+                        remaining_budget_ns -= upper - cursor
                         cursor = upper
                 if not overlap_found:
                     skipped += 1
