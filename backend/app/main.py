@@ -7,7 +7,7 @@ clients can subscribe to the in-memory OHLCV pipeline when validated bars exist.
 """
 
 import asyncio
-import hmac
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, WebSocket, WebSocketDisconnect
@@ -304,13 +304,6 @@ def create_app(
 
         await websocket.accept()
 
-        if not config.market_data_ws_token:
-            await websocket.close(
-                code=1013,
-                reason="WebSocket authentication is not configured",
-            )
-            return
-
         try:
             auth_message = await asyncio.wait_for(
                 websocket.receive_json(),
@@ -329,10 +322,19 @@ def create_app(
             else None
         )
 
-        if not isinstance(supplied_token, str) or not hmac.compare_digest(
-            supplied_token,
-            config.market_data_ws_token,
-        ):
+        if not isinstance(supplied_token, str) or not supplied_token:
+            await websocket.close(code=4401, reason="Authentication failed")
+            return
+
+        try:
+            principal = await asyncio.to_thread(
+                application.state.identity_verifier.verify,
+                supplied_token,
+            )
+        except IdentityProviderUnavailable:
+            await websocket.close(code=1013, reason="Identity verification unavailable")
+            return
+        except IdentityVerificationError:
             await websocket.close(code=4401, reason="Authentication failed")
             return
 
@@ -371,12 +373,14 @@ def create_app(
             timeframe = identity.get("timeframe")
             publisher_id = identity.get("publisherId")
             instrument_id = identity.get("instrumentId")
+            canonical_id = request.get("canonicalInstrumentId")
             if (
                 dataset != config.databento_dataset
                 or not isinstance(raw_symbol, str) or not raw_symbol.strip()
                 or not isinstance(timeframe, str)
                 or not isinstance(publisher_id, int) or isinstance(publisher_id, bool) or publisher_id <= 0
                 or not isinstance(instrument_id, int) or isinstance(instrument_id, bool) or instrument_id <= 0
+                or not isinstance(canonical_id, str) or not canonical_id.strip()
             ):
                 await websocket.close(code=4400, reason="Invalid or unsupported OHLCV series identity")
                 return
@@ -384,6 +388,36 @@ def create_app(
                 bucket_start_ns(0, timeframe)
             except InvalidOhlcvBar:
                 await websocket.close(code=4400, reason="Unsupported OHLCV timeframe")
+                return
+
+            def has_series_access() -> bool:
+                mapping = application.state.instrument_registry.resolve_provider_mapping(
+                    provider="databento",
+                    dataset=dataset,
+                    publisher_id=publisher_id,
+                    instrument_id=instrument_id,
+                    timestamp_ns=time.time_ns(),
+                )
+                if (
+                    mapping is None
+                    or mapping.raw_symbol != raw_symbol.strip().upper()
+                    or mapping.canonical_id != canonical_id.strip()
+                ):
+                    return False
+                instrument = application.state.instrument_registry.get_instrument(canonical_id)
+                if instrument is None or not instrument.is_active:
+                    return False
+                return application.state.instrument_entitlements.has_access(
+                    subject=principal.subject,
+                    canonical_instrument_id=canonical_id,
+                )
+
+            try:
+                authorized = await asyncio.to_thread(has_series_access)
+            except (ValueError, RuntimeError):
+                authorized = False
+            if not authorized:
+                await websocket.close(code=4403, reason="Instrument access denied")
                 return
 
             # No await occurs between snapshot query and stream registration.
@@ -449,8 +483,18 @@ def create_app(
                     queue_task = asyncio.create_task(subscription.queue.get())
                     done, _ = await asyncio.wait(
                         {receive_task, queue_task},
+                        timeout=60.0,
                         return_when=asyncio.FIRST_COMPLETED,
                     )
+                    if not done:
+                        try:
+                            still_authorized = await asyncio.to_thread(has_series_access)
+                        except (ValueError, RuntimeError):
+                            still_authorized = False
+                        if not still_authorized:
+                            await websocket.close(code=4403, reason="Instrument access revoked")
+                            return
+                        continue
                     if receive_task in done:
                         try:
                             client_message = receive_task.result()
