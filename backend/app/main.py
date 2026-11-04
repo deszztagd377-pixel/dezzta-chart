@@ -34,6 +34,7 @@ from app.ohlcv import (
     decimal_to_string,
 )
 from app.provider import ProviderManager
+from app.databento_definition_sync import DatabentoDefinitionSynchronizer
 from app.ohlcv_stream import OhlcvStreamHub
 from app.symbology import InstrumentResolver
 
@@ -76,9 +77,19 @@ def create_app(
         historical_source_factory = lambda: DatabentoHistoricalSource(  # noqa: E731
             config.databento_api_key, config.databento_dataset
         )
+    definition_sync = DatabentoDefinitionSynchronizer(
+        config.instrument_registry_db_path,
+        instrument_registry,
+        catalog,
+        resolver,
+        provider="databento",
+        dataset=config.databento_dataset,
+    )
     provider = ProviderManager(
         config, ingestion, catalog,
-        live_factory=live_source_factory, historical_factory=historical_source_factory,
+        live_factory=live_source_factory,
+        historical_factory=historical_source_factory,
+        definition_sync=definition_sync,
     )
 
     @asynccontextmanager
@@ -98,6 +109,7 @@ def create_app(
     application.state.ohlcv_pipeline = ohlcv_pipeline
     application.state.ohlcv_stream_hub = stream_hub
     application.state.provider = provider
+    application.state.definition_sync = definition_sync
     application.state.resolver = resolver
     application.state.catalog = catalog
     # Internal persistence adapter only. Public write routes stay disabled until
