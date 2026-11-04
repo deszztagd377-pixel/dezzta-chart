@@ -389,3 +389,14 @@ Status: provider and initial instrument scope selected; transport contract, back
 - GitHub Actions run `41820405604` on commit `5338c0df0265515606e8bf942f65b537672d92df` passed frontend unit tests, frontend production build, backend tests, and backend Docker image build.
 - This is an in-memory lifecycle-processing milestone only. Canonical UUID assignment and atomic SQLite persistence of provider mappings + metadata revisions remain pending. The canonical model also needs a deliberate distinction between Databento `unit_of_measure_qty` (contract size) and Databento `contract_multiplier` (deliverable multiplier); no field is being overloaded.
 - Overall project progress remains 19.60% because durable provider-to-registry synchronization and production verification are not complete. At this checkpoint the branch was 328 commits ahead of `main` and 0 behind. `main` remains untouched.
+
+### 2026-11-04 — SQLite schema v5 foundation (implementation pending CI)
+
+- Working branch only: `phase-2/market-data-foundation`; `main` remains untouched.
+- Added schema v5 migration to separate dated-futures identity from the legacy `contract_multiplier` field. Futures identity now uses venue/product, expiry, and settlement currency; perpetuals/options retain their prior multiplier requirements.
+- The v5 migration rebuilds the generated identity key and unique index transactionally. Duplicate identities exposed by the revised rule abort and roll back the migration; no UUIDs or histories are merged.
+- Added an append-only `provider_definition_events` journal with explicit source ordering, exact payload hash, durable pending/applied/quarantined states, and foreign-key linkage for applied canonical IDs.
+- Added `SQLiteProviderDefinitionJournal` for idempotent append, conflict detection, deterministic pending replay, and one-way processing-state transitions. Raw Databento fixed-point values are preserved as received.
+- Added regression coverage for futures identity separation and journal durability, idempotency, conflict rejection, equal-timestamp source ordering, quarantine, and immutable payloads.
+- This is persistence groundwork only. The journal is not yet connected to the live Databento session or the atomic provider mapping + metadata revision pipeline. No live market data, Footprint readiness, or latency claim is implied.
+- Overall progress remains 19.60% until the new migrations and tests pass CI and the provider-to-registry synchronizer is integrated and verified.
