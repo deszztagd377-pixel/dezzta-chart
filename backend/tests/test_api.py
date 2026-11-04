@@ -1,4 +1,7 @@
 import pytest
+import tempfile
+from pathlib import Path
+from uuid import uuid4
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
@@ -9,11 +12,16 @@ from app.instrument_identity import CanonicalInstrument
 from app.instrument_registry import ProviderInstrumentMapping
 
 
+def _test_database_path() -> str:
+    return str(Path(tempfile.gettempdir()) / f"dezzta-chart-test-{uuid4().hex}.sqlite3")
+
+
 def make_settings(token: str = "test-secret") -> Settings:
     return Settings(
         app_env="test",
         market_data_ws_token=token,
         cors_allowed_origins=("http://localhost:5173",),
+        instrument_registry_db_path=_test_database_path(),
     )
 
 
@@ -232,6 +240,7 @@ def test_lifespan_connects_a_fake_live_source_and_shuts_down_cleanly() -> None:
         app_env="test", market_data_ws_token="t", cors_allowed_origins=(),
         databento_api_key="db-FAKEFAKEFAKEFAKEFAKEFAKE1234", databento_live_enabled=True,
         databento_live_symbols=("ESZ6",),
+        instrument_registry_db_path=_test_database_path(),
     )
     application = create_app(settings, live_source_factory=FakeLive)
     _install_test_identity(application)
@@ -274,6 +283,31 @@ def test_websocket_authenticates_then_sends_exact_ohlcv_snapshot_with_watermark(
         assert snapshot["watermark"] == 0
         assert snapshot["count"] == 4
         assert snapshot["bars"][-1]["tsStartNs"] == str(_T0 + 3 * _NS)
+
+
+def test_websocket_denies_series_without_account_entitlement() -> None:
+    application = create_app(make_settings())
+    _install_test_identity(application)
+    canonical_id = _seed_stream_entitlement(application, grant=False)
+    client = TestClient(application)
+    with pytest.raises(WebSocketDisconnect) as disconnected:
+        with client.websocket_connect("/ws/market-data") as websocket:
+            websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+            assert websocket.receive_json()["type"] == "market_data.status"
+            websocket.send_json({
+                "type": "market_data.subscribe",
+                "version": 1,
+                "canonicalInstrumentId": canonical_id,
+                "series": {
+                    "dataset": "GLBX.MDP3",
+                    "publisherId": 1,
+                    "instrumentId": 101,
+                    "rawSymbol": "ESZ6",
+                    "timeframe": "1s",
+                },
+            })
+            websocket.receive_json()
+    assert disconnected.value.code == 4403
 
 
 def test_websocket_rejects_invalid_ohlcv_subscription() -> None:
