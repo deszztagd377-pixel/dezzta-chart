@@ -8,7 +8,12 @@ import type { Timeframe } from '../types';
 import type { FuturesContractDto } from '../types/instrumentCatalogApi';
 import { demoCandles, getDemoCandleValidationErrors } from '../data/demoCandles';
 import { fetchOhlcvSnapshot, OhlcvRequestError } from '../services/ohlcvClient';
-import { publishMarketDataSnapshot, resetMarketDataSnapshot } from '../services/marketDataStore';
+import {
+  getMarketDataSnapshot,
+  publishMarketDataSnapshot,
+  resetMarketDataSnapshot,
+  subscribeMarketData,
+} from '../services/marketDataStore';
 import { toCandlestickSeriesData } from '../utils/candlestickSeriesData';
 import { buildChartOptions } from '../utils/chartOptions';
 import { getMeasurableChartSize } from '../utils/chartViewport';
@@ -143,6 +148,54 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
     });
   }, [showGrid]);
 
+  // The shared store is the single update path for both HTTP snapshots and
+  // authenticated WebSocket revisions. This keeps the chart current without
+  // coupling chart rendering to the transport implementation.
+  useEffect(() => {
+    if (!isChartReady || !selectedContract) return;
+
+    const syncFromStore = () => {
+      const snapshot = getMarketDataSnapshot();
+      const identity = snapshot.identity;
+      if (
+        !identity ||
+        identity.dataset !== selectedContract.dataset ||
+        identity.publisherId !== selectedContract.publisher_id ||
+        identity.instrumentId !== selectedContract.instrument_id ||
+        identity.rawSymbol !== selectedContract.raw_symbol ||
+        identity.timeframe !== timeframe
+      ) {
+        return;
+      }
+
+      if (snapshot.status === 'loading') {
+        setSeriesDataRef.current?.(demoCandles);
+        setMarketDataStatus('loading');
+        setMarketDataDetail(snapshot.detail ?? 'Waiting for a fresh validated snapshot.');
+        return;
+      }
+
+      if (snapshot.status === 'unavailable' || snapshot.status === 'error') {
+        setSeriesDataRef.current?.(demoCandles);
+        setMarketDataStatus(snapshot.status);
+        setMarketDataDetail(snapshot.detail ?? 'No verified backend bars are available.');
+        return;
+      }
+
+      if (snapshot.source !== 'backend' ||
+          (snapshot.status !== 'ready' && snapshot.status !== 'degraded')) return;
+      const candles = toCandlestickSeriesData(snapshot.bars);
+      if (candles.length === 0) return;
+      setSeriesDataRef.current?.(candles);
+      setMarketDataStatus(snapshot.status);
+      setMarketDataDetail(snapshot.detail ?? `${candles.length} validated bars · ${timeframe}`);
+    };
+
+    const unsubscribe = subscribeMarketData(syncFromStore);
+    syncFromStore();
+    return unsubscribe;
+  }, [isChartReady, selectedContract, timeframe]);
+
   useEffect(() => {
     if (!isChartReady || !setSeriesDataRef.current) return;
 
@@ -180,9 +233,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       if (controller.signal.aborted) return;
 
       if (result.status === 'ready' || result.status === 'degraded') {
-        const candles = toCandlestickSeriesData(result.candles);
-        if (candles.length > 0) {
-          setSeriesData(candles);
+        if (result.candles.length > 0) {
           publishMarketDataSnapshot({
             identity: { ...identity, timeframe },
             status: result.status,
@@ -190,8 +241,6 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
             detail: result.detail ?? null,
           });
           chartRef.current?.timeScale().fitContent();
-          setMarketDataStatus(result.status);
-          setMarketDataDetail(result.detail ?? `${candles.length} validated bars · ${timeframe}`);
           return;
         }
       }
