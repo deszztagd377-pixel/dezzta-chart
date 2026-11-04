@@ -202,28 +202,66 @@ def create_app(
 
     @application.get("/v1/ohlcv", tags=["market-data"])
     async def ohlcv_snapshot(
-        dataset: str | None = None,
-        publisher_id: int | None = None,
-        instrument_id: int | None = None,
-        timeframe: str | None = None,
+        dataset: str,
+        publisher_id: int,
+        instrument_id: int,
+        timeframe: str,
+        raw_symbol: str,
         provider_name: str | None = Query(default=None, alias="provider"),
-        raw_symbol: str | None = None,
         series_type: str | None = None,
         start_ns: str | None = None,
         end_ns: str | None = None,
         limit: int | None = Query(default=None, ge=1),
+        principal: VerifiedPrincipal = Depends(require_verified_principal),
     ) -> dict[str, object]:
-        """Return normalized OHLCV bars without inventing missing market data.
+        """Return an exact OHLCV series after Firebase identity and entitlement checks.
 
-        New optional filters keep the old call shape valid. With ``limit`` (or
-        the server cap) the NEWEST matching bars are returned chronologically
-        and ``truncated`` tells whether more matched.
+        The account subject is derived only from a verified Bearer token. The
+        server resolves the provider mapping and checks the active canonical
+        instrument plus the account's explicit entitlement before querying bars.
         """
-        if timeframe is not None:
-            try:
-                bucket_start_ns(0, timeframe)
-            except InvalidOhlcvBar as exc:
-                raise HTTPException(status_code=422, detail=str(exc)) from exc
+        # Require one exact provider series and authorize it against the
+        # verified account before reading any licensed market-data bars.
+        if dataset.strip().upper() != config.databento_dataset.strip().upper():
+            raise HTTPException(status_code=403, detail="Instrument access denied.")
+        if provider_name is not None and provider_name.strip().lower() != "databento":
+            raise HTTPException(status_code=403, detail="Instrument access denied.")
+
+        normalized_symbol = raw_symbol.strip().upper()
+        if not normalized_symbol:
+            raise HTTPException(status_code=422, detail="raw_symbol is required.")
+
+        def has_series_access() -> bool:
+            mapping = application.state.instrument_registry.resolve_provider_mapping(
+                provider="databento",
+                dataset=dataset,
+                publisher_id=publisher_id,
+                instrument_id=instrument_id,
+                timestamp_ns=time.time_ns(),
+            )
+            if mapping is None or mapping.raw_symbol != normalized_symbol:
+                return False
+            if series_type is not None and mapping.series_type != series_type:
+                return False
+            instrument = application.state.instrument_registry.get_instrument(mapping.canonical_id)
+            if instrument is None or not instrument.is_active:
+                return False
+            return application.state.instrument_entitlements.has_access(
+                subject=principal.subject,
+                canonical_instrument_id=mapping.canonical_id,
+            )
+
+        try:
+            authorized = await asyncio.to_thread(has_series_access)
+        except Exception:
+            authorized = False
+        if not authorized:
+            raise HTTPException(status_code=403, detail="Instrument access denied.")
+
+        try:
+            bucket_start_ns(0, timeframe)
+        except InvalidOhlcvBar as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
         start_value = _parse_ns(start_ns, "start_ns")
         end_value = _parse_ns(end_ns, "end_ns")
         if start_value is not None and end_value is not None and start_value >= end_value:

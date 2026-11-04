@@ -128,22 +128,20 @@ def test_websocket_sends_status_after_authentication() -> None:
     assert message["instruments"] == ["ES", "NQ", "GC"]
 
 
-def test_ohlcv_endpoint_starts_empty_and_does_not_fabricate_bars() -> None:
+def test_ohlcv_endpoint_requires_bearer_authentication() -> None:
     client = TestClient(create_app(make_settings()))
-    response = client.get("/v1/ohlcv")
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["type"] == "market_data.ohlcv.snapshot"
-    assert payload["state"] == "unavailable"
-    assert payload["timestampUnit"] == "nanoseconds"
-    assert payload["priceRepresentation"] == "decimal-string"
-    assert payload["bars"] == []
-    assert "provider ingestion is not connected" in payload["detail"]
+    response = client.get(
+        "/v1/ohlcv?dataset=GLBX.MDP3&publisher_id=1&instrument_id=101&raw_symbol=ESZ6&timeframe=1s"
+    )
+    assert response.status_code == 401
 
 
 def test_ohlcv_endpoint_rejects_unsupported_timeframe() -> None:
-    client = TestClient(create_app(make_settings()))
-    response = client.get("/v1/ohlcv?timeframe=2m")
+    client = TestClient(_app_with_bars())
+    response = client.get(
+        "/v1/ohlcv?dataset=GLBX.MDP3&publisher_id=1&instrument_id=101&raw_symbol=ESZ6&timeframe=2m",
+        headers={"Authorization": "Bearer valid-firebase-token"},
+    )
     assert response.status_code == 422
 
 
@@ -207,22 +205,46 @@ def test_status_exposes_ohlcv_block_and_never_a_credential() -> None:
 
 def test_ohlcv_endpoint_returns_ingested_bars_with_local_sequence_and_limit() -> None:
     client = TestClient(_app_with_bars())
-    payload = client.get("/v1/ohlcv?timeframe=1s").json()
+    headers = {"Authorization": "Bearer valid-firebase-token"}
+    exact = "dataset=GLBX.MDP3&publisher_id=1&instrument_id=101&raw_symbol=ESZ6"
+    payload = client.get(f"/v1/ohlcv?{exact}&timeframe=1s", headers=headers).json()
     assert payload["state"] == "ready" and payload["count"] == 4 and payload["truncated"] is False
     assert payload["bars"][0]["sequenceOrigin"] == "local"
-    limited = client.get("/v1/ohlcv?timeframe=1s&limit=2").json()
+    limited = client.get(f"/v1/ohlcv?{exact}&timeframe=1s&limit=2", headers=headers).json()
     assert limited["count"] == 2 and limited["truncated"] is True
     assert limited["bars"][-1]["tsStartNs"] == str(_T0 + 3 * _NS)
-    derived = client.get("/v1/ohlcv?timeframe=1m").json()
+    derived = client.get(f"/v1/ohlcv?{exact}&timeframe=1m", headers=headers).json()
     assert derived["bars"][0]["volume"] == "40" and derived["bars"][0]["origin"] == "derived"
-    ranged = client.get(f"/v1/ohlcv?timeframe=1s&start_ns={_T0 + _NS}&end_ns={_T0 + 3 * _NS}").json()
+    ranged = client.get(
+        f"/v1/ohlcv?{exact}&timeframe=1s&start_ns={_T0 + _NS}&end_ns={_T0 + 3 * _NS}",
+        headers=headers,
+    ).json()
     assert ranged["count"] == 2
+
+
+def test_ohlcv_endpoint_denies_accounts_without_instrument_entitlement() -> None:
+    application = _app_with_bars()
+    application.state.instrument_entitlements.revoke(
+        subject="firebase-user-123",
+        canonical_instrument_id="0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+    )
+    client = TestClient(application)
+    response = client.get(
+        "/v1/ohlcv?dataset=GLBX.MDP3&publisher_id=1&instrument_id=101&raw_symbol=ESZ6&timeframe=1s",
+        headers={"Authorization": "Bearer valid-firebase-token"},
+    )
+    assert response.status_code == 403
 
 
 @pytest.mark.parametrize("query", ["timeframe=2m", "start_ns=abc", "start_ns=10&end_ns=5", "limit=0"])
 def test_ohlcv_endpoint_rejects_invalid_query_parameters(query: str) -> None:
-    client = TestClient(create_app(make_settings()))
-    assert client.get(f"/v1/ohlcv?{query}").status_code == 422
+    client = TestClient(_app_with_bars())
+    exact = "dataset=GLBX.MDP3&publisher_id=1&instrument_id=101&raw_symbol=ESZ6&timeframe=1s"
+    response = client.get(
+        f"/v1/ohlcv?{exact}&{query}",
+        headers={"Authorization": "Bearer valid-firebase-token"},
+    )
+    assert response.status_code == 422
 
 
 def test_lifespan_connects_a_fake_live_source_and_shuts_down_cleanly() -> None:
