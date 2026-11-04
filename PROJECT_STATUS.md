@@ -1,15 +1,15 @@
 # DEZZTA CHART — Project Status
 
-Last audited: 2026-11-02
+Last audited: 2026-11-04
 Repository: deszztagd377-pixel/dezzta-chart
 Baseline branch: main
 Working branch: phase-2/market-data-foundation
 
 ## Overall progress
 
-- Estimated overall progress toward the intended full application: 19.40%.
+- Estimated overall progress toward the intended full application: 19.60%.
 - Progress is a weighted milestone estimate, not a code-line percentage or a claim of scientific measurement. Decimal precision is recorded to two places for consistent tracking.
-- Latest increment: +0.35 percentage points (19.05% → 19.40%) for introducing one immutable, exact-series shared OHLCV store, chart publication/clearing lifecycle, React subscription hooks, a reusable SMA/EMA/RSI/MACD/Bollinger calculation engine, regression tests, and architecture documentation. No credit is assigned for visible indicator UI, continuous streaming, live provider delivery, or deployment.
+- Latest increment: +0.20 percentage points (19.40% → 19.60%) for Firebase ID-token verification on the backend WebSocket route, exact canonical-instrument/provider-mapping validation, deny-by-default per-account entitlement checks, 60-second authorization rechecks, regression coverage, and security documentation. This is backend security groundwork only; no frontend WebSocket client, sign-in UI, live provider delivery, or deployment credit is included.
 - Phase 2 includes the FastAPI backend, verified-definition catalog lifecycle, optional Databento SDK source adapters, bounded OHLCV ingestion, validated HTTP snapshots, and an authenticated backend WebSocket broadcaster with atomic snapshot/watermark handoff. The frontend still uses HTTP snapshots; its WebSocket client/authentication/reconnect integration, persistence/replay, backend deployment, and verified live provider delivery remain outstanding.
 
 ## Current foundation
@@ -346,3 +346,16 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Preserve the chart-layout invariant: normal candles and ordinary spacing remain unchanged while Footprint is OFF; only Footprint ON may activate the spaced-candle/cluster layout.
 - Overall estimated progress remains 19.40%. No progress credit is assigned for the Footprint engine, visible 15-indicator Low Tier, tier navigation, full Volume Profile, Heatmap, Liquidation Maps, Android packaging, live provider delivery, or on-device verification until those deliverables are implemented and independently tested.
 - Next engineering gate: safely persist and integrate the complete Footprint source modules, run its dedicated regression suite alongside existing frontend/backend tests, then implement the indicator-tier UI without disturbing the shared market-data foundation.
+
+### 2026-11-04 — Firebase-authenticated WebSocket and per-instrument authorization
+
+- Replaced the WebSocket route's shared static-token comparison with Firebase ID-token verification through the approved `FirebaseIdentityVerifier`. Verification runs in a worker thread; invalid credentials are rejected and unavailable identity verification fails closed.
+- Each subscription now requires a canonical instrument UUID in addition to the exact provider series identity.
+- Before snapshot/watermark registration, the backend resolves the current provider/dataset/publisher/instrument mapping, verifies the raw symbol and canonical UUID match, checks that the canonical instrument is active, and checks the verified Firebase principal's explicit SQLite entitlement. Missing or mismatched mapping, inactive instrument, or absent/revoked entitlement is denied by default.
+- Active subscriptions recheck the mapping and entitlement every 60 seconds; revoked or changed access closes the connection.
+- Added isolated SQLite test fixtures and regression coverage for Firebase authentication, exact-series subscription, deny-by-default entitlement behavior, and authenticated live-update delivery.
+- GitHub Actions run #301 on commit `d1a7c9602e59477bcb1e7fc77da58348d9a981aa` passed frontend tests, frontend production build, backend tests (277 passed), and backend Docker image build. The documentation-only follow-up run is checked separately.
+- The legacy `MARKET_DATA_WS_TOKEN` setting remains for compatibility but is no longer read by the WebSocket route.
+- Remaining gates: frontend Firebase sign-in/session integration, frontend WebSocket client and reconnect/resnapshot logic, canonical identity population from verified provider definitions, token-expiry/re-authentication policy for long-lived connections, backend deployment, and real provider delivery.
+- Overall progress: 19.60%. No visible indicator UI, Footprint, Heatmap, Liquidation Maps, full Volume Profile, or Android packaging credit is assigned.
+- At this audit checkpoint, `phase-2/market-data-foundation` compared 311 commits ahead of `main` and 0 behind. `main` remains untouched.
