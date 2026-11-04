@@ -201,6 +201,9 @@ class SQLiteCoverageTracker(CoverageTracker):
     def gaps(self, scope: Hashable) -> list[tuple[int, int]]:
         return list(self._gaps.get(scope, []))
 
+    def gap_scopes(self) -> list[Hashable]:
+        return [scope for scope, intervals in self._gaps.items() if intervals]
+
     def stats(self) -> dict[str, int]:
         return {
             "scopes": len(set(self._covered) | set(self._gaps)),
