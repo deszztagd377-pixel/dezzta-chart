@@ -254,10 +254,45 @@ class ProviderManager:
             "definition", self._s.databento_definition_symbols, "parent", start_ns, end_ns
         )
         rows = list(iter_definition_mappings(records))
-        self._catalog.replace_definitions(rows, dataset=self._s.databento_dataset)
-        return self._ingest.resolver.register_catalog_contracts(
-            self._catalog.list_contracts(), provider=self._ingest.provider
-        )
+        # Historical definition records are lifecycle events, not a flat
+        # snapshot. Stable sorting preserves provider order for equal ts_event.
+        rows.sort(key=lambda row: int(row["ts_event"]))
+        registered = rejected = 0
+        for row in rows:
+            try:
+                action = str(row["security_update_action"]).strip().upper()
+                applied = self._catalog.apply_definition_event(
+                    row, dataset=self._s.databento_dataset
+                )
+                if not applied:
+                    rejected += 1
+                    continue
+
+                if action == "D":
+                    self._ingest.resolver.close_mapping(
+                        provider=self._ingest.provider,
+                        dataset=self._s.databento_dataset,
+                        publisher_id=int(row["publisher_id"]),
+                        instrument_id=int(row["instrument_id"]),
+                        effective_to_ns=int(row["ts_event"]),
+                    )
+                    registered += 1
+                    continue
+
+                contract = next(
+                    item for item in self._catalog.list_contracts()
+                    if item["dataset"] == self._s.databento_dataset
+                    and item["publisher_id"] == int(row["publisher_id"])
+                    and item["instrument_id"] == int(row["instrument_id"])
+                )
+                added, invalid = self._ingest.resolver.register_catalog_contracts(
+                    [contract], provider=self._ingest.provider
+                )
+                registered += added
+                rejected += invalid
+            except (KeyError, TypeError, ValueError, StopIteration):
+                rejected += 1
+        return registered, rejected
 
     async def backfill_ohlcv(
         self, symbols: Iterable[str], start_ns: int, end_ns: int, schema: str = "ohlcv-1s"
