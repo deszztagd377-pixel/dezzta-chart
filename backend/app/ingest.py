@@ -309,6 +309,7 @@ class OhlcvIngestionService:
             "aggregation": dict(self.aggregator.stats),
             "pipeline": self.pipeline.stats(),
             "persistence": None if self.persistence is None else self.persistence.stats(),
+            "coverage": self.coverage.stats() if hasattr(self.coverage, "stats") else None,
             "last_event_ts_ns": None if self.last_event_ns is None else str(self.last_event_ns),
             "last_receive_ts_ns": None if self.last_receive_ns is None else str(self.last_receive_ns),
             "instrument_observations": self.observations.status(),
