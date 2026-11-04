@@ -308,3 +308,143 @@ class SQLiteProviderDefinitionEventRepository:
             raise
         finally:
             connection.close()
+
+
+    def apply_delete_event(
+        self,
+        *,
+        provider: str,
+        dataset: str,
+        publisher_id: int,
+        instrument_id: int,
+        effective_to_ns: int,
+    ) -> tuple[ProviderInstrumentMapping, InstrumentMetadataRevision, bool]:
+        """Close the active provider mapping and metadata claim atomically.
+
+        Delete events do not create a new metadata revision. They close the
+        currently open mapping and its matching provider metadata interval at
+        the provider event timestamp. Exact replays are idempotent.
+        """
+        if not isinstance(provider, str) or not provider.strip():
+            raise ValueError("provider is required.")
+        if not isinstance(dataset, str) or not dataset.strip():
+            raise ValueError("dataset is required.")
+        for name, value in {
+            "publisher_id": publisher_id,
+            "instrument_id": instrument_id,
+        }.items():
+            if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
+                raise ValueError(f"{name} must be a positive integer.")
+        _timestamp(effective_to_ns, "effective_to_ns")
+
+        normalized_provider = provider.strip().lower()
+        normalized_dataset = dataset.strip().upper()
+        key = (normalized_provider, normalized_dataset, publisher_id, instrument_id)
+        connection = self._connect()
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            mapping_row = connection.execute(
+                """
+                SELECT rowid AS mapping_rowid, * FROM provider_instrument_mappings
+                WHERE provider = ? AND dataset = ? AND publisher_id = ?
+                  AND instrument_id = ?
+                ORDER BY valid_from_ns DESC LIMIT 1
+                """,
+                key,
+            ).fetchone()
+            if mapping_row is None:
+                raise ProviderDefinitionEventConflict(
+                    "Delete event has no previously registered provider mapping."
+                )
+
+            if mapping_row["valid_to_ns"] is not None:
+                if mapping_row["valid_to_ns"] != effective_to_ns:
+                    raise ProviderDefinitionEventConflict(
+                        "Delete event is stale or conflicts with an existing mapping closure."
+                    )
+                metadata_row = connection.execute(
+                    """
+                    SELECT * FROM instrument_metadata_revisions
+                    WHERE canonical_id = ? AND source_kind = 'provider'
+                      AND source_name = ? AND source_dataset IS ?
+                      AND effective_to_ns = ? AND validity_status = 'known'
+                    ORDER BY effective_from_ns DESC, revision_id DESC LIMIT 1
+                    """,
+                    (
+                        mapping_row["canonical_id"], normalized_provider,
+                        normalized_dataset, effective_to_ns,
+                    ),
+                ).fetchone()
+                if metadata_row is None:
+                    raise ProviderDefinitionEventConflict(
+                        "Delete replay found a closed mapping without its matching metadata closure."
+                    )
+                connection.commit()
+                return (
+                    self._mapping_record(mapping_row),
+                    self._metadata_record(metadata_row),
+                    False,
+                )
+
+            if effective_to_ns <= mapping_row["valid_from_ns"]:
+                raise ProviderDefinitionEventConflict(
+                    "Delete event timestamp must be later than the active mapping start."
+                )
+
+            metadata_row = connection.execute(
+                """
+                SELECT * FROM instrument_metadata_revisions
+                WHERE canonical_id = ? AND source_kind = 'provider'
+                  AND source_name = ? AND source_dataset IS ?
+                  AND validity_status = 'known' AND effective_to_ns IS NULL
+                ORDER BY effective_from_ns DESC, revision_id DESC LIMIT 1
+                """,
+                (
+                    mapping_row["canonical_id"], normalized_provider,
+                    normalized_dataset,
+                ),
+            ).fetchone()
+            if metadata_row is None:
+                raise ProviderDefinitionEventConflict(
+                    "Delete event has no matching open provider metadata revision."
+                )
+            if effective_to_ns <= metadata_row["effective_from_ns"]:
+                raise ProviderDefinitionEventConflict(
+                    "Delete event timestamp must be later than the metadata revision start."
+                )
+
+            connection.execute(
+                """
+                UPDATE provider_instrument_mappings SET valid_to_ns = ?
+                WHERE rowid = ? AND valid_to_ns IS NULL
+                """,
+                (effective_to_ns, mapping_row["mapping_rowid"]),
+            )
+            connection.execute(
+                """
+                UPDATE instrument_metadata_revisions SET effective_to_ns = ?
+                WHERE revision_id = ? AND effective_to_ns IS NULL
+                """,
+                (effective_to_ns, metadata_row["revision_id"]),
+            )
+            closed_mapping = connection.execute(
+                "SELECT * FROM provider_instrument_mappings WHERE rowid = ?",
+                (mapping_row["mapping_rowid"],),
+            ).fetchone()
+            closed_metadata = connection.execute(
+                "SELECT * FROM instrument_metadata_revisions WHERE revision_id = ?",
+                (metadata_row["revision_id"],),
+            ).fetchone()
+            connection.commit()
+            assert closed_mapping is not None and closed_metadata is not None
+            return (
+                self._mapping_record(closed_mapping),
+                self._metadata_record(closed_metadata),
+                True,
+            )
+        except Exception:
+            if connection.in_transaction:
+                connection.rollback()
+            raise
+        finally:
+            connection.close()
