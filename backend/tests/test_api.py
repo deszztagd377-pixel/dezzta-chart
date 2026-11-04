@@ -491,3 +491,15 @@ def test_ohlcv_snapshot_recovers_from_shared_sqlite_database_after_app_restart()
         timeframe="1s", instrument_id=101
     )
     assert resumed[-1].sequence == 3
+
+
+def test_coverage_intervals_and_gaps_restore_with_application_restart():
+    settings = make_settings()
+    scope = ("databento", "GLBX.MDP3", 1, 101, "contract", "ESZ6")
+    first = create_app(settings)
+    first.state.coverage_tracker.add_covered(scope, 0, 100)
+    first.state.coverage_tracker.add_gap(scope, 30, 40)
+
+    restarted = create_app(settings)
+    assert restarted.state.coverage_tracker.intervals(scope) == [(0, 30), (40, 100)]
+    assert restarted.state.coverage_tracker.gaps(scope) == [(30, 40)]
