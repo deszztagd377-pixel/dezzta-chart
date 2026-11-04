@@ -71,8 +71,8 @@ Status: provider and initial instrument scope selected; transport contract, back
 - No production live or historical provider session, provider download, or subscription is configured or verified.
 - Databento SDK source adapters and the normalized bounded OHLCV ingestion path are implemented, but provider access is disabled by default and no real account/session has been validated. Do not enable provider flags without a separate review of entitlement, exchange licensing, explicit symbols, historical query costs, and operational limits.
 - Backend OHLCV WebSocket broadcast and snapshot/watermark handoff are implemented. The frontend still requests HTTP snapshots and publishes validated bars into the shared store; it does not yet authenticate, subscribe, reconnect, resynchronize, or apply stream updates. No visible indicator controls/panes have been built yet. The frontend requires `VITE_MARKET_DATA_API_BASE_URL` to reach a deployed backend.
-- No provider definition refresh scheduler or production population of the catalog.
-- Catalog, OHLCV pipeline, and coverage state are currently in-memory only; a restart clears them. Durable storage, replay, snapshot recovery, and gap recovery are not implemented.
+- Historical provider definition refresh now feeds the durable journal/synchronizer when explicitly invoked by the provider lifecycle. There is no periodic refresh scheduler, and no real provider account/session has been validated.
+- Databento definition events are now journaled durably, and canonical instruments, point-in-time provider mappings, and metadata revisions are persisted in SQLite with replay-safe transitions. The in-memory catalog, OHLCV pipeline, and coverage state are still process-local; OHLCV bar persistence, snapshot recovery, and gap recovery remain unimplemented.
 - The authenticated WebSocket now supports exact-series OHLCV snapshot subscriptions and bounded in-memory updates for accepted base and derived bars. It does not provide order-book/MBO events or durable replay.
 - No brokerage or order-execution integration.
 - No Footprint, Heatmap, or Liquidation Maps implementation; these three Exclusive Indicators are reserved for one coordinated Claude-assisted workflow after the project owner supplies visual references for each.
@@ -85,7 +85,7 @@ Status: provider and initial instrument scope selected; transport contract, back
 
 ## Planned engineering sequence
 
-1. Populate the durable canonical instrument registry and point-in-time provider mappings from verified provider definitions; never infer contract metadata or expiry.
+1. **Completed foundation:** populate the durable canonical instrument registry, point-in-time provider mappings, and versioned metadata from strictly normalized provider definitions; journal source events before processing and recover pending events after restart. Live credentials, provider delivery, and scheduled refresh remain separate validations.
 2. Define a trusted, admin-only entitlement grant process for canonical instruments; keep client-facing grant endpoints disabled.
 3. Connect the approved Firebase app sign-in/session flow so the frontend can obtain and refresh Firebase ID tokens. The exact sign-in methods and public Firebase app configuration must be supplied/approved before UI integration.
 4. Implement the frontend WebSocket client with the verified ID-token provider, canonical instrument ID, exact-series subscription, snapshot validation, sequence guard, heartbeat, bounded reconnect, and fresh-snapshot recovery.
@@ -408,3 +408,15 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Settlement currency uses the provider's explicit settlement override when present and otherwise the provider currency field. Fixed-point source values remain raw with explicit scales; provider-native contract multiplier remains separate from unit-of-measure quantity.
 - This adapter is not yet wired to the live provider lifecycle or SQLite synchronizer. Footprint source modules are not present in the current GitHub branch, so no Footprint integration or completion is claimed.
 - Overall progress remains 19.60%; CI for the latest branch head and the complete synchronizer are still pending.
+
+
+### 2026-11-04 — Durable Databento definition synchronization
+- Added `backend/app/databento_definition_sync.py` to connect the append-only SQLite provider-definition journal, strict Databento normalizer, canonical instrument registry, atomic mapping/metadata event repository, in-memory catalog, and point-in-time resolver.
+- Wired the synchronizer into `ProviderManager.refresh_definitions` and application construction using the same SQLite database as the canonical registry.
+- Add/Modify events resolve or allocate a persistent canonical UUID, validate immutable identity, then commit provider mapping and metadata revision together. Delete events close the active mapping and matching metadata interval atomically.
+- Journal records are marked applied only after the registry event succeeds. Invalid, stale, unsupported, or ambiguous events are quarantined with the original payload retained. Exact event replay is idempotent.
+- Added resolver restoration from persisted canonical instruments and provider mappings so provider identity mapping can survive backend restarts.
+- Added integration tests for Add → Modify → Delete point-in-time behavior, exact replay, pending-event recovery, resolver restoration, invalid-event quarantine, and equal-timestamp transition rejection.
+- GitHub Actions run [#41826984399](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/41826984399) passed frontend unit tests, frontend production build, backend tests, and backend container image build.
+- Working branch head: `329be1f7df926fadea6a56d24ef2fba502229cdd`; branch is 356 commits ahead of `main` and 0 behind. `main` was not modified.
+- Limitations: provider source order is derived from stable record iteration within equal timestamps because the current adapter does not expose a universal sequence field. Multiple lifecycle transitions for the same provider instrument at the exact same event timestamp cannot form positive-length half-open intervals; later conflicting transitions are quarantined rather than reordered or silently collapsed. No live Databento delivery, scheduled refresh, OHLCV persistence, or deployment validation is claimed.
