@@ -193,8 +193,14 @@ class DatabentoDefinitionSynchronizer:
         if normalized.action == "M" and previous is None:
             raise ProviderDefinitionEventConflict("modify_without_active_mapping")
 
+        identity_candidate = normalize_databento_definition(
+            row,
+            canonical_id=str(uuid4()),
+            dataset=self._dataset,
+            provider=self._provider,
+        ).instrument
         canonical_id = previous.canonical_id if previous else self._find_or_create_identity(
-            normalized.instrument
+            identity_candidate
         )
         existing = self._registry.get_instrument(canonical_id)
         candidate = normalize_databento_definition(
