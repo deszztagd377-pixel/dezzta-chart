@@ -23,6 +23,7 @@ from app.databento_ohlcv import RecordRejected, record_to_bar
 from app.freshness import InstrumentObservationTracker
 from app.ohlcv import OhlcvBar, OhlcvPipeline
 from app.symbology import InstrumentResolver
+from app.ohlcv_store import SQLiteOhlcvStore
 
 _NS = 1_000_000_000
 
@@ -89,12 +90,16 @@ class OhlcvIngestionService:
         clock_ns: Callable[[], int] = time.time_ns,
         monotonic_ns: Callable[[], int] = time.perf_counter_ns,
         on_bar_applied: Callable[[OhlcvBar], None] | None = None,
+        persistence: SQLiteOhlcvStore | None = None,
     ) -> None:
         self.pipeline = pipeline
         self.resolver = resolver
         self.coverage = coverage
         self._on_bar_applied = on_bar_applied
-        self.aggregator = Aggregator(pipeline, coverage, on_derived_bar=self._notify_bar_applied)
+        self.persistence = persistence
+        self.aggregator = Aggregator(pipeline, coverage, on_derived_bar=self._persist_derived_and_notify)
+        if self.persistence is not None:
+            self.pipeline.replace_snapshot(self.persistence.load_bars())
         self.provider = provider
         self.dataset = dataset
         self._buffer = BoundedBuffer(queue_max)
@@ -181,6 +186,20 @@ class OhlcvIngestionService:
             # A client fan-out failure must never stop ingestion/aggregation.
             self._count("broadcast_callback_error")
 
+    def _persist_derived_and_notify(self, bar: OhlcvBar) -> None:
+        if self.persistence is not None:
+            try:
+                result = self.persistence.apply(bar)
+                if result not in ("inserted", "replaced", "duplicate"):
+                    self._count(f"persistence_{result}")
+                    self.degraded_reasons.add("ohlcv_persistence_conflict")
+                    return
+            except Exception:
+                self._count("persistence_error")
+                self.degraded_reasons.add("ohlcv_persistence_error")
+                return
+        self._notify_bar_applied(bar)
+
     def _note_overflow(self, instrument_hint: tuple[int, int] | None,
                        first_ns: int, last_ns: int) -> None:
         start = first_ns // _NS * _NS
@@ -227,10 +246,24 @@ class OhlcvIngestionService:
         except Exception:  # defensive: a bad record must never stop the consumer
             self._count("rejected_adapter_error")
             return
+        if self.persistence is not None:
+            try:
+                persisted = self.persistence.apply(bar)
+            except Exception:
+                self._count("persistence_error")
+                self.degraded_reasons.add("ohlcv_persistence_error")
+                return
+            if persisted not in ("inserted", "replaced"):
+                self._count(f"persistence_{persisted}")
+                if persisted not in ("duplicate", "stale", "expired", "provider_precedence"):
+                    self.degraded_reasons.add("ohlcv_persistence_conflict")
+                return
         result = self.pipeline.apply(bar)
         process_end_ns = self._monotonic()
         self._count(result)
         if result not in ("inserted", "replaced"):
+            if self.persistence is not None:
+                self.degraded_reasons.add("ohlcv_persistence_memory_divergence")
             return
         if live:
             self.observations.observe(
@@ -267,6 +300,7 @@ class OhlcvIngestionService:
             "counters": dict(sorted(self.counters.items())),
             "aggregation": dict(self.aggregator.stats),
             "pipeline": self.pipeline.stats(),
+            "persistence": None if self.persistence is None else self.persistence.stats(),
             "last_event_ts_ns": None if self.last_event_ns is None else str(self.last_event_ns),
             "last_receive_ts_ns": None if self.last_receive_ns is None else str(self.last_receive_ns),
             "instrument_observations": self.observations.status(),
