@@ -496,7 +496,17 @@ def test_ohlcv_snapshot_recovers_from_shared_sqlite_database_after_app_restart()
     assert first_app.state.ohlcv_store.stats()["bars"] >= 3  # base + derived
 
     restarted_app = create_app(settings)
-    payload = TestClient(restarted_app).get("/v1/ohlcv?timeframe=1s").json()
+    _install_test_identity(restarted_app)
+    exact_series = (
+        "dataset=GLBX.MDP3&publisher_id=1&instrument_id=101"
+        "&raw_symbol=ESZ6&timeframe=1s"
+    )
+    response = TestClient(restarted_app).get(
+        f"/v1/ohlcv?{exact_series}",
+        headers={"Authorization": "Bearer valid-firebase-token"},
+    )
+    assert response.status_code == 200, response.text
+    payload = response.json()
     assert payload["state"] == "ready"
     assert payload["count"] == 2
     assert payload["bars"][0]["tsStartNs"] == str(_T0)
