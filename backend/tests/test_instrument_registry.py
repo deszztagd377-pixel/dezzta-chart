@@ -73,6 +73,7 @@ def _downgrade_registry_file_to_v1(path):
         ):
             connection.execute(f"DROP TRIGGER IF EXISTS {trigger}")
         connection.execute("DROP TABLE IF EXISTS canonical_instrument_relationships")
+        connection.execute("DROP TABLE IF EXISTS provider_definition_events")
         connection.execute("PRAGMA user_version = 1")
         connection.commit()
     finally:
@@ -414,6 +415,7 @@ def test_v3_to_v4_migration_rolls_back_when_legacy_derivative_terms_are_missing(
         connection.execute("DROP INDEX ux_canonical_instrument_identity_key")
         connection.execute("ALTER TABLE canonical_instruments DROP COLUMN identity_key")
         connection.execute("DROP TRIGGER canonical_instruments_are_immutable")
+        connection.execute("DROP TABLE IF EXISTS provider_definition_events")
         connection.execute("PRAGMA user_version = 3")
         connection.execute(
             """
@@ -461,6 +463,7 @@ def test_v3_to_v4_migration_rolls_back_when_legacy_identities_are_duplicated(tmp
         connection.execute("DROP TRIGGER validate_canonical_identity_before_insert")
         connection.execute("DROP INDEX ux_canonical_instrument_identity_key")
         connection.execute("ALTER TABLE canonical_instruments DROP COLUMN identity_key")
+        connection.execute("DROP TABLE IF EXISTS provider_definition_events")
         connection.execute("PRAGMA user_version = 3")
         connection.execute(
             """
