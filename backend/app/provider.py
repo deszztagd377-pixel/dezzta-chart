@@ -384,6 +384,7 @@ class ProviderManager:
                 if not mappings:
                     skipped += 1
                     continue
+                overlap_found = False
                 for mapping in mappings:
                     start = max(gap_start, mapping.valid_from_ns)
                     end = min(
@@ -398,6 +399,8 @@ class ProviderManager:
                         )
                         windows_done += int(self.backfill.get("windows_done", 0))
                         cursor = upper
+                if not overlap_found:
+                    skipped += 1
                 still_missing = any(
                     left < gap_end and right > gap_start
                     for left, right in coverage.gaps(scope)
