@@ -1,6 +1,6 @@
 # Instrument Identity vs. Versioned Metadata — Architecture Decision
 
-**Status:** Accepted; SQLite schema v4 is implemented; schema-v3 validation passed the complete GitHub Actions pipeline, and schema-v4 validation is pending.
+**Status:** Accepted; SQLite schema v5 implementation and regression tests are committed on the working branch. Latest CI validation is pending.
 
 ## Decision
 
@@ -135,3 +135,19 @@ This adapter expansion is not the provider-to-registry integration milestone. Pe
 
 Additional source:
 - https://databento.com/docs/schemas-and-data-formats/instrument-definitions
+
+## Schema v5 — futures identity, contract terms, and durable definition journal
+
+Schema v5 makes a deliberate distinction between a dated futures instrument's stable identity and provider-specific contract terms:
+
+- A dated future is identified by verified venue, product/root, expiry, and settlement currency. Its identity key no longer includes `contract_multiplier`.
+- Futures may therefore be registered without populating the legacy `CanonicalInstrument.contract_multiplier` field. That field remains available for compatibility, but Databento contract-size and deliverable-multiplier values must not be copied into it by assumption.
+- Perpetuals and options retain their existing authoritative settlement-currency and multiplier requirements. Option identity continues to include its contract terms.
+- The migration rebuilds the generated identity key and unique index inside one transaction. If removing futures multiplier from the key reveals duplicate canonical identities, the migration aborts and rolls back; it never merges UUIDs or histories.
+- Existing v4 canonical payloads are preserved. The migration does not rewrite legacy metadata or fabricate missing terms.
+
+Schema v5 also adds `provider_definition_events`, an append-only SQLite journal for source Add (`A`), Modify (`M`), and Delete (`D`) records. Each record stores the provider/dataset/publisher/instrument key, source event timestamp, explicit source order for equal timestamps, action, raw symbol, exact JSON payload, payload SHA-256, receive timestamp, processing state, and optional canonical UUID or quarantine error.
+
+`SQLiteProviderDefinitionJournal` supports exact idempotent replays, rejects conflicting payloads at the same source-order key, preserves raw DBN fixed-point integers, lists pending records in deterministic order, and allows only a one-way pending → applied/quarantined state transition. Journal payloads are retained when a record is quarantined. The journal is a durable ingestion/replay primitive; it is **not yet** wired into the live Databento session or the canonical mapping/metadata transition pipeline. Marking a record applied must occur only after the corresponding registry transition succeeds.
+
+Databento fields such as `unit_of_measure_qty`, `unit_of_measure`, `contract_multiplier`, `contract_multiplier_unit`, `currency`, and `settl_currency` remain distinct source fields. Fixed-point integers remain raw in the journal and adapter; any conversion must use the documented scale exactly once. Missing or ambiguous authoritative fields must be quarantined rather than inferred from a ticker or dataset name.
