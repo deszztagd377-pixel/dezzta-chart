@@ -59,3 +59,34 @@ The current storage limits are in `backend/app/ohlcv.py` (`DEFAULT_RETENTION` an
 ## Tests
 
 See `backend/tests/test_ohlcv_store.py`, `backend/tests/test_api.py`, and `backend/tests/test_aggregation.py` for exact-value round-trip, revision precedence, retention, late-event rejection, shared-schema compatibility, sequence recovery, application restart restoration, and the derived-bar persistence gate.
+
+
+## Durable coverage and explicit gaps
+
+`SQLiteCoverageTracker` adds `ohlcv_coverage_intervals` and `ohlcv_coverage_meta` tables to the same SQLite file. The existing instrument-registry schema version is unchanged.
+
+- Covered intervals and explicit gap intervals are half-open nanosecond ranges scoped to the exact provider/dataset/publisher/instrument/series/raw-symbol identity.
+- A successful historical query window adds covered time and removes only the overlapping portion of gap intervals.
+- Ingestion queue overflow carves the affected range out of covered time and records an explicit gap, including when no earlier coverage interval exists.
+- Covered and gap interval counts are bounded. Truncation counts are durable. A failed SQLite write restores the prior in-memory interval state.
+- Coverage is restored when the application is constructed, before provider ingestion begins.
+
+### Bounded gap recovery
+
+`ProviderManager.recover_gaps(max_gaps=...)` is an explicit service operation. It does not make an automatic network request during application startup and is not exposed as a public API route.
+
+For each selected gap, it:
+1. Requires a matching resolver mapping for the exact provider coverage scope.
+2. Intersects the gap with the mapping's validity interval.
+3. Splits the request into spans no larger than `historical_max_span_hours`.
+4. Uses the existing bounded historical query windows and explicit raw-symbol symbology.
+5. Removes gap portions only when a historical window completes successfully and its coverage is persisted.
+6. Leaves unresolved gaps intact and reports them as skipped/remaining.
+
+The operation is bounded by `max_gaps`, the configured maximum historical span, and the existing per-query window size. It must only be invoked after valid provider credentials, exchange/data entitlements, and historical-access settings have been separately reviewed.
+
+### Remaining recovery work
+
+- Automatic scheduling/triggering of gap recovery is not implemented.
+- The WebSocket stream still has no durable event outbox or replay cursor. Clients must resnapshot after reconnect.
+- Coverage and gap persistence has regression tests but no sustained write-rate or multi-process benchmark.
