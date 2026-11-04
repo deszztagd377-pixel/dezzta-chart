@@ -285,3 +285,83 @@ def test_without_definitions_records_are_rejected_not_invented():
                                     coverage=CoverageTracker())
     service.ingest_batch([rec(0)], "ohlcv-1s")
     assert service.counters == {"rejected_unknown_instrument": 1}
+
+def test_recover_gaps_uses_valid_mapping_and_bounded_historical_windows(tmp_path):
+    from app.coverage_store import SQLiteCoverageTracker
+    from app.ohlcv import OhlcvPipeline
+    from app.ingest import OhlcvIngestionService
+    from app.symbology import InstrumentResolver, SymbolMapping
+
+    class EmptyHistorical:
+        def __init__(self):
+            self.calls = []
+
+        def fetch(self, *, schema, symbols, stype_in, start_ns, end_ns):
+            self.calls.append((schema, symbols, stype_in, start_ns, end_ns))
+            return []
+
+    async def go():
+        scope = ("databento", "GLBX.MDP3", 1, 101, "contract", "ESZ6")
+        coverage = SQLiteCoverageTracker(str(tmp_path / "coverage.sqlite3"))
+        coverage.add_gap(scope, T0, T0 + 120 * NS)
+        resolver = InstrumentResolver()
+        resolver.add(SymbolMapping(
+            provider="databento", dataset="GLBX.MDP3",
+            publisher_id=1, instrument_id=101, raw_symbol="ESZ6",
+            valid_from_ns=T0, valid_to_ns=T0 + 120 * NS,
+        ))
+        service = OhlcvIngestionService(
+            pipeline=OhlcvPipeline(), resolver=resolver, coverage=coverage
+        )
+        hist = EmptyHistorical()
+        cfg = settings(
+            databento_api_key=SECRET,
+            databento_historical_enabled=True,
+            historical_window_minutes=1,
+            historical_max_span_hours=1,
+        )
+        manager = ProviderManager(
+            cfg, service, InstrumentCatalog(), historical_factory=lambda: hist
+        )
+        result = await manager.recover_gaps()
+        return result, hist, coverage, scope
+
+    result, hist, coverage, scope = asyncio.run(go())
+    assert result == {
+        "gaps_attempted": 1, "gaps_recovered": 1, "gaps_skipped": 0,
+        "gaps_remaining": 0, "bars_ingested": 0, "windows_done": 2,
+    }
+    assert [call[4] - call[3] for call in hist.calls] == [60 * NS, 60 * NS]
+    assert all(call[1] == ("ESZ6",) and call[2] == "raw_symbol" for call in hist.calls)
+    assert coverage.gaps(scope) == []
+    assert coverage.intervals(scope) == [(T0, T0 + 120 * NS)]
+
+
+def test_recover_gaps_skips_unresolvable_scope_without_erasing_gap(tmp_path):
+    from app.coverage_store import SQLiteCoverageTracker
+    from app.ohlcv import OhlcvPipeline
+    from app.ingest import OhlcvIngestionService
+    from app.symbology import InstrumentResolver
+
+    async def go():
+        scope = ("databento", "GLBX.MDP3", 1, 101, "contract", "ESZ6")
+        coverage = SQLiteCoverageTracker(str(tmp_path / "coverage.sqlite3"))
+        coverage.add_gap(scope, T0, T0 + NS)
+        service = OhlcvIngestionService(
+            pipeline=OhlcvPipeline(), resolver=InstrumentResolver(), coverage=coverage
+        )
+        cfg = settings(
+            databento_api_key=SECRET, databento_historical_enabled=True
+        )
+        manager = ProviderManager(
+            cfg, service, InstrumentCatalog(), historical_factory=lambda: FakeHistorical()
+        )
+        result = await manager.recover_gaps()
+        return result, coverage, scope
+
+    result, coverage, scope = asyncio.run(go())
+    assert result["gaps_attempted"] == 1
+    assert result["gaps_recovered"] == 0
+    assert result["gaps_skipped"] == 1
+    assert result["gaps_remaining"] == 1
+    assert coverage.gaps(scope) == [(T0, T0 + NS)]
