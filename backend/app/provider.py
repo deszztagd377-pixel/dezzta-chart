@@ -245,8 +245,8 @@ class ProviderManager:
 
     # ------------------------------------------------------ definitions/backfill
     async def refresh_definitions(self, start_ns: int, end_ns: int) -> tuple[int, int]:
-        """Load instrument definitions for [start,end) into catalog + resolver.
-        Returns (registered, rejected). Requires historical access."""
+        """Apply ordered Databento definition events to catalog + resolver.
+        Returns (events_applied, events_rejected). Requires historical access."""
         if not self.historical_allowed or not self._s.databento_definition_symbols:
             raise RuntimeError("Historical definitions are not enabled/configured.")
         self._validate_span(start_ns, end_ns)
