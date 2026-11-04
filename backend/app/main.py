@@ -402,6 +402,14 @@ def create_app(
             ):
                 await websocket.close(code=4400, reason="Invalid or unsupported OHLCV series identity")
                 return
+            # Use the canonical resolver spelling for both the snapshot
+            # query and the live fan-out identity. Authorization already
+            # compares normalized symbols; leaving the request spelling here
+            # would otherwise authorize lowercase/whitespace variants but
+            # silently subscribe them to a different stream key.
+            raw_symbol = raw_symbol.strip().upper()
+            canonical_id = canonical_id.strip()
+
             try:
                 bucket_start_ns(0, timeframe)
             except InvalidOhlcvBar:
