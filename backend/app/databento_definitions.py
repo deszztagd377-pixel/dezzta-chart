@@ -88,7 +88,7 @@ def definition_record_to_mapping(record: Any) -> dict[str, Any]:
         "instrument_id",
         "publisher_id",
         "instrument_class",
-        "expiration",
+        "security_update_action",
         "ts_event",
     ):
         if required not in values:
