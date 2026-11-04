@@ -234,6 +234,50 @@ class InstrumentCatalog:
         self._tombstones.pop(key, None)
         return True
 
+    def apply_definition_event(
+        self,
+        definition: Mapping[str, Any],
+        *,
+        dataset: str = "GLBX.MDP3",
+    ) -> bool:
+        """Apply one Databento Add, Modify, or Delete event in event-time order.
+
+        Add and Modify both carry a complete supported contract definition.
+        Delete needs only the provider identity and event timestamp; no expiry
+        or other contract terms are inferred from a deletion record.
+        """
+        action_value = definition.get("security_update_action")
+        if isinstance(action_value, bytes):
+            try:
+                action = action_value.decode("ascii").strip().upper()
+            except UnicodeDecodeError as exc:
+                raise InvalidInstrumentDefinition(
+                    "Invalid definition security_update_action."
+                ) from exc
+        else:
+            action = str(action_value or "").strip().upper()
+
+        if action in {"A", "M"}:
+            return self.upsert_definition(definition, dataset=dataset)
+        if action == "D":
+            try:
+                publisher_id = int(definition["publisher_id"])
+                instrument_id = int(definition["instrument_id"])
+                event_ts_ns = int(definition["ts_event"])
+            except (KeyError, TypeError, ValueError, OverflowError) as exc:
+                raise InvalidInstrumentDefinition(
+                    "Delete events require publisher_id, instrument_id, and ts_event."
+                ) from exc
+            return self.delete_definition(
+                publisher_id=publisher_id,
+                instrument_id=instrument_id,
+                event_ts_ns=event_ts_ns,
+                dataset=dataset,
+            )
+        raise InvalidInstrumentDefinition(
+            "Unsupported or missing Databento security_update_action."
+        )
+
     def delete_definition(
         self,
         *,
@@ -247,8 +291,13 @@ class InstrumentCatalog:
         Tombstones are retained so a delayed older upsert cannot resurrect a
         contract after its deletion event.
         """
-        if publisher_id < 0 or instrument_id < 0 or event_ts_ns < 0:
-            raise ValueError("Deletion identifiers and timestamp must be non-negative.")
+        for name, value in (
+            ("publisher_id", publisher_id),
+            ("instrument_id", instrument_id),
+            ("event_ts_ns", event_ts_ns),
+        ):
+            if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+                raise ValueError(f"{name} must be a non-negative integer.")
 
         key = (dataset, publisher_id, instrument_id)
         current = self._contracts.get(key)
@@ -257,7 +306,7 @@ class InstrumentCatalog:
             int(current.definition_ts_event_ns) if current else -1,
             previous_tombstone if previous_tombstone is not None else -1,
         )
-        if event_ts_ns < newest_known:
+        if event_ts_ns <= newest_known:
             return False
 
         self._contracts.pop(key, None)
