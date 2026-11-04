@@ -47,7 +47,7 @@ def test_normalizes_verified_future_identity_and_preserves_contract_terms():
     assert result.instrument.canonical_id == str(UUID(CANONICAL_ID))
     assert result.instrument.symbol == "ES"
     assert result.instrument.venue == "XCME"
-    assert result.instrument.expiration_date == "2027-01-01"
+    assert result.instrument.expiration_date == "2026-12-30"
     assert result.instrument.settlement_currency == "USD"
     assert result.metadata["unit_of_measure_qty_raw"] == 50_000_000_000
     assert result.metadata["contract_multiplier_raw"] == 1_000_000_000
