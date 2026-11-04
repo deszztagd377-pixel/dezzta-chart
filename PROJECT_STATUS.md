@@ -377,3 +377,15 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Corrected the adapter's null-byte trimming and corrected the test fixtures to contain actual binary byte values. The correction is committed in `0cfc3eed15bad9e03a1291345d29efff73652e37` and `d56a39e0b8c911a38a7a3c86e56a2a929357c071`.
 - The branch-head workflow run `41819590174` for `d56a39e0b8c911a38a7a3c86e56a2a929357c071` has passed frontend unit tests and the frontend production build. Backend dependency installation is still running; backend tests and Docker build are not yet verified.
 - No overall progress increase: Databento provider definitions are not yet synchronized into the persistent canonical registry. Overall progress remains 19.60%. `main` remains untouched.
+
+
+### 2026-11-04 — Databento definition lifecycle event processing
+
+- Added `InstrumentCatalog.apply_definition_event` for Databento Add (`A`), Modify (`M`), and Delete (`D`) records. Delete records require only provider identity and event timestamp; they no longer depend on expiry metadata.
+- The adapter now requires the provider lifecycle action and retains exact provider timestamps/integers.
+- `ProviderManager.refresh_definitions` now applies historical definition events in stable ascending `ts_event` order instead of treating a point-in-time event stream as a flat complete snapshot.
+- Added exclusive event-time closure to `InstrumentResolver`. Modify transitions close the prior mapping before opening the new one; Delete closes the active mapping. Existing tombstones prevent delayed older Add/Modify events from resurrecting deleted instruments.
+- Added regression tests for Add/Modify/Delete ordering, Delete without expiration, stale resurrection prevention, resolver mapping boundaries, and provider refresh integration.
+- GitHub Actions run `41820405604` on commit `5338c0df0265515606e8bf942f65b537672d92df` passed frontend unit tests, frontend production build, backend tests, and backend Docker image build.
+- This is an in-memory lifecycle-processing milestone only. Canonical UUID assignment and atomic SQLite persistence of provider mappings + metadata revisions remain pending. The canonical model also needs a deliberate distinction between Databento `unit_of_measure_qty` (contract size) and Databento `contract_multiplier` (deliverable multiplier); no field is being overloaded.
+- Overall project progress remains 19.60% because durable provider-to-registry synchronization and production verification are not complete. At this checkpoint the branch was 328 commits ahead of `main` and 0 behind. `main` remains untouched.
