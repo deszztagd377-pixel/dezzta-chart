@@ -95,7 +95,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
   const fail = (error: Error) => {
     clearTimer();
     options.onError?.(error);
-    if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+    if (socket.readyState === 1 || socket.readyState === 0) {
       socket.close(1011, 'OHLCV stream protocol error');
     }
     setState('closed');
@@ -125,6 +125,9 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
     try {
       if (value.type === 'market_data.status' && state === 'connecting') {
         clearTimer();
+        timer = setTimeout(() => {
+          fail(new Error('OHLCV WebSocket snapshot handshake timed out.'));
+        }, timeoutMs);
         setState('authenticated');
         socket.send(JSON.stringify({
           type: 'market_data.subscribe',
@@ -205,7 +208,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
   return {
     close() {
       clearTimer();
-      if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+      if (socket.readyState === 1 || socket.readyState === 0) {
         socket.close(1000, 'Client closed OHLCV stream');
       }
       setState('closed');
