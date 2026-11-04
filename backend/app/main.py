@@ -14,7 +14,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException, Query, WebSocket, W
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import Settings
-from app.coverage import CoverageTracker
+from app.coverage_store import SQLiteCoverageTracker
 from app.databento_sources import DatabentoHistoricalSource, DatabentoLiveSource
 from app.ingest import OhlcvIngestionService
 from app.instruments import InstrumentCatalog
@@ -66,8 +66,9 @@ def create_app(
     resolver = InstrumentResolver()
     stream_hub = OhlcvStreamHub()
     ohlcv_store = SQLiteOhlcvStore(config.instrument_registry_db_path)
+    coverage_tracker = SQLiteCoverageTracker(config.instrument_registry_db_path)
     ingestion = OhlcvIngestionService(
-        pipeline=ohlcv_pipeline, resolver=resolver, coverage=CoverageTracker(),
+        pipeline=ohlcv_pipeline, resolver=resolver, coverage=coverage_tracker,
         dataset=config.databento_dataset, queue_max=config.ohlcv_queue_max,
         on_bar_applied=stream_hub.publish,
         persistence=ohlcv_store,
@@ -112,6 +113,7 @@ def create_app(
     application.state.ohlcv_pipeline = ohlcv_pipeline
     application.state.ohlcv_stream_hub = stream_hub
     application.state.ohlcv_store = ohlcv_store
+    application.state.coverage_tracker = coverage_tracker
     application.state.provider = provider
     application.state.definition_sync = definition_sync
     application.state.resolver = resolver
