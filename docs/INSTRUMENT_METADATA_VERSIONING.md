@@ -115,10 +115,23 @@ The record adapter captures the following additional provider fields without ass
 
 Character fields are decoded from null-padded ASCII bytes. Numeric values are preserved in their original DBN representation; in particular, fixed-point fields such as `unit_of_measure_qty`, `display_factor`, and `min_price_increment` are not converted in this low-level adapter. Conversion must apply the documented 1e-9 scale exactly once.
 
-Databento documents `unit_of_measure_qty` together with `unit_of_measure` as the contract size, `settl_currency` as the settlement currency when it differs from `currency`, and `exchange` as the exchange identifier. Definitions are point-in-time events. The adapter therefore retains action and timestamp fields for the next ingestion layer; it does not infer an activation timestamp, close a mapping, or create a canonical identity itself.
+Databento documents `unit_of_measure_qty` together with `unit_of_measure` as the contract size, `settl_currency` as the settlement currency when it differs from `currency`, and `exchange` as the exchange identifier. Definitions are point-in-time events. The adapter retains action and timestamp fields. The in-memory event path now processes Add (`A`), Modify (`M`), and Delete (`D`) in stable event-time order, closes resolver mapping windows at exclusive event timestamps, and retains delete tombstones to prevent stale resurrection.
 
 Sources:
 - https://www.databento.com/docs/schemas-and-data-formats/instrument-definitions
 - https://www.databento.tech/blog/definition-schema-updates-may
 
 This adapter expansion is not the provider-to-registry integration milestone. Persistent canonical registration and atomic mapping/metadata event application remain pending. A contract must be quarantined if required identity or contract metadata is absent or ambiguous; no multiplier, venue, settlement currency, or validity interval may be inferred from its ticker or dataset name.
+
+
+## Lifecycle event processing milestone (2026-11-04)
+
+- `security_update_action` is now required by the low-level Databento adapter; deletion records do not need an expiration field.
+- `InstrumentCatalog.apply_definition_event` handles Add, Modify, and Delete records. Delete events only require publisher ID, instrument ID, and event timestamp.
+- Provider refresh applies historical records in stable ascending `ts_event` order. Equal-timestamp records preserve provider order.
+- Resolver mapping intervals close at the event timestamp (exclusive). A subsequent Modify can open a new mapping for the same provider identity, and Delete closes the current mapping. Duplicate/stale events do not mutate the catalog.
+- This milestone is still in-memory catalog/resolver processing. It does **not** yet create canonical UUIDs or persist the Databento mappings and metadata revisions in SQLite.
+- A later persistent synchronizer must reconcile the canonical model's `contract_multiplier` field with Databento's distinct `unit_of_measure_qty` (contract size) and `contract_multiplier` (deliverable multiplier). Do not overload one field or infer missing terms without an explicit model decision.
+
+Additional source:
+- https://databento.com/docs/schemas-and-data-formats/instrument-definitions
