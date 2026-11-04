@@ -377,7 +377,7 @@ class ProviderManager:
         remaining_budget_ns = total_span_hours * 3600 * _NS
 
         for scope in coverage.gap_scopes():
-            if attempted >= max_gaps:
+            if attempted >= max_gaps or remaining_budget_ns <= 0:
                 break
             if (
                 not isinstance(scope, tuple) or len(scope) != 6
@@ -394,7 +394,7 @@ class ProviderManager:
                 if item.coverage_scope == scope
             ]
             for gap_start, gap_end in coverage.gaps(scope):
-                if attempted >= max_gaps:
+                if attempted >= max_gaps or remaining_budget_ns <= 0:
                     break
                 attempted += 1
                 if not mappings:
