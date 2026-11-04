@@ -52,6 +52,12 @@ def downgrade_v3_to_v2(path):
         connection.execute("DROP TRIGGER record_option_underlying_after_insert")
         connection.execute("DROP TRIGGER instrument_relationships_are_immutable")
         connection.execute("DROP TRIGGER instrument_relationships_no_delete")
+        # Remove schema-v5 journal objects so this fixture is a genuine v2 database.
+        connection.execute("DROP TRIGGER IF EXISTS provider_definition_events_immutable")
+        connection.execute("DROP TRIGGER IF EXISTS provider_definition_events_no_delete")
+        connection.execute("DROP INDEX IF EXISTS idx_provider_definition_events_pending")
+        connection.execute("DROP INDEX IF EXISTS idx_provider_definition_events_instrument")
+        connection.execute("DROP TABLE IF EXISTS provider_definition_events")
         connection.execute("DROP TABLE canonical_instrument_relationships")
         connection.execute("PRAGMA user_version = 2")
         connection.commit()
@@ -174,7 +180,7 @@ def test_v2_migration_backfills_existing_option_relationships(tmp_path):
 
     connection = sqlite3.connect(path)
     try:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 4
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 5
         assert connection.execute(
             """
             SELECT source_canonical_id, relationship_type, target_canonical_id
