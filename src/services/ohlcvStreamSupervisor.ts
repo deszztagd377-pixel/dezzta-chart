@@ -1,5 +1,6 @@
 import type { MarketSeriesIdentity } from './marketDataStore';
 import {
+  getMarketDataSnapshot,
   publishMarketDataSnapshot,
   publishMarketDataUpdate,
   resetMarketDataSnapshot,
@@ -31,6 +32,15 @@ export interface OhlcvStreamSupervisorOptions
 export interface OhlcvStreamSupervisor {
   stop(): void;
   readonly status: OhlcvSupervisorStatus;
+}
+
+function sameIdentity(left: MarketSeriesIdentity | null, right: MarketSeriesIdentity): boolean {
+  return left !== null &&
+    left.dataset === right.dataset &&
+    left.publisherId === right.publisherId &&
+    left.instrumentId === right.instrumentId &&
+    left.rawSymbol === right.rawSymbol &&
+    left.timeframe === right.timeframe;
 }
 
 /**
@@ -69,6 +79,7 @@ export function startOhlcvStreamSupervisor(
     const jitter = 0.5 + Math.min(1, Math.max(0, random())) * 0.5;
     const delay = Math.max(1, Math.floor(exponential * jitter));
     attempt += 1;
+    resetMarketDataSnapshot(options.identity, 'loading', 'Stream interrupted; obtaining a fresh authenticated snapshot.');
     setStatus('reconnecting');
     reconnectTimer = setTimeout(() => {
       reconnectTimer = null;
@@ -106,11 +117,23 @@ export function startOhlcvStreamSupervisor(
             });
           }
           attempt = 0;
-          options.onStatus?.('subscribed');
+          setStatus('subscribed');
         },
         onUpdate: (_event, candle) => {
           if (stopped) return;
-          publishMarketDataUpdate({ identity: options.identity, bar: candle });
+          const current = getMarketDataSnapshot();
+          if (current.source === 'backend' && sameIdentity(current.identity, options.identity)) {
+            publishMarketDataUpdate({ identity: options.identity, bar: candle });
+          } else {
+            // A valid stream may produce its first bar after an empty snapshot.
+            // Seed the store with that validated event rather than rejecting it.
+            publishMarketDataSnapshot({
+              identity: options.identity,
+              status: 'degraded',
+              bars: [candle],
+              detail: 'Streaming bars received; awaiting a complete snapshot window.',
+            });
+          }
         },
         onStatus: (status) => {
           if (stopped) return;
