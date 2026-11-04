@@ -183,6 +183,7 @@ class SQLiteCoverageTracker(CoverageTracker):
             return
         old_covered = list(self._covered.get(scope, []))
         old_gaps = list(self._gaps.get(scope, []))
+        old_truncated = self.truncated
         super().add_gap(scope, start_ns, end_ns)
         merged_gaps = self._merge(old_gaps, start_ns, end_ns)
         if len(merged_gaps) > self._max:
@@ -194,6 +195,7 @@ class SQLiteCoverageTracker(CoverageTracker):
         except Exception:
             self._covered[scope] = old_covered
             self._gaps[scope] = old_gaps
+            self.truncated = old_truncated
             raise
 
     def gaps(self, scope: Hashable) -> list[tuple[int, int]]:
