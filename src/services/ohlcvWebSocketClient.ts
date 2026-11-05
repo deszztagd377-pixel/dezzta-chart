@@ -161,6 +161,10 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
           },
           parsed.watermark,
         );
+        // The timeout protects only the auth + initial snapshot handshake.
+        // Once the atomic snapshot is accepted, a healthy long-lived stream
+        // must not be closed by the expired handshake timer.
+        clearTimer();
         options.onSnapshot(parsed.snapshot, candles);
         setState('subscribed');
         return;
