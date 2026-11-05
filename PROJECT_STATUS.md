@@ -1,6 +1,6 @@
 # DEZZTA CHART — Project Status
 
-Last audited: 2026-11-04
+Last audited: 2026-11-05
 Repository: deszztagd377-pixel/dezzta-chart
 Baseline branch: main
 Working branch: phase-2/market-data-foundation
@@ -9,8 +9,8 @@ Working branch: phase-2/market-data-foundation
 
 - Estimated overall progress toward the intended full application: 19.60%.
 - Progress is a weighted milestone estimate, not a code-line percentage or a claim of scientific measurement. Decimal precision is recorded to two places for consistent tracking.
-- Latest weighted progress increment remains +0.20 percentage points (19.40% → 19.60%) for backend WebSocket authorization and entitlement hardening. A frontend authenticated WebSocket transport has since been added and CI-verified, but it is not yet wired to Firebase token lifecycle or chart state; no live provider delivery or deployment credit is included.
-- Phase 2 includes the FastAPI backend, verified-definition catalog lifecycle, optional Databento SDK source adapters, bounded OHLCV ingestion, validated HTTP snapshots, and an authenticated backend WebSocket broadcaster with atomic snapshot/watermark handoff. The frontend still uses HTTP snapshots; its WebSocket client authentication/reconnect integration, automatic recovery scheduling, backend deployment, and verified live provider delivery remain outstanding. Instrument definitions, normalized OHLCV base/derived bars, and coverage/gap intervals now have durable SQLite storage and restart restoration; a bounded explicit historical gap-recovery operation is implemented.
+- Latest weighted progress increment formally recorded remains +0.20 percentage points (19.40% → 19.60%) for backend WebSocket authorization and entitlement hardening. The frontend stream integration was subsequently wired into the chart and Firebase token lifecycle, but no new overall-progress increment is assigned until the milestone ledger is reconciled. No live provider delivery or deployment credit is included.
+- Phase 2 includes the FastAPI backend, verified-definition catalog lifecycle, optional provider adapters, bounded OHLCV ingestion, validated snapshots, and an authenticated backend WebSocket broadcaster with atomic snapshot/watermark handoff. The frontend now starts/stops an authenticated stream supervisor for an eligible selected contract, obtains Firebase ID tokens through the auth provider, validates stream snapshots and sequence-guarded updates, and applies accepted data through the shared market-data store. This is code-level integration only; backend deployment, live provider delivery, synchronized exchange timing, and production freshness remain unverified. Instrument definitions, normalized OHLCV bars, and coverage/gap intervals have durable SQLite storage; bounded explicit historical gap recovery is implemented.
 
 ## Current foundation
 
@@ -20,13 +20,12 @@ Working branch: phase-2/market-data-foundation
 - Existing chart interaction includes zoom/scroll, pinch scaling, drag scrolling, and crosshair configuration. Interaction options have focused unit coverage.
 - A timeframe type and selector exist for second, minute, hour, day, week, and month intervals.
 - An OHLCV aggregation utility and Vitest unit tests exist.
-- GitHub Actions runs frontend unit tests, a production build, and backend tests. The latest branch-head run must pass before a change is called verified.
-- CI must pass on the latest branch head before this change is considered verified.
+- GitHub Actions runs frontend unit tests, a frontend production build, backend tests, and a backend container-image build. Run `42052645145` passed all four stages on exact branch HEAD `274d7f536e33b0b4745eaff76fbfe134a6a237f2` (2026-11-05).
 
 ## Verified limitations
 
 - No live market-data provider session is configured. Optional Databento source adapters and the provider lifecycle exist behind explicit server-side flags, but the current deployment has no provider credentials/session and no real provider delivery is claimed.
-- The selected timeframe is included in the chart's read-only backend OHLCV snapshot request. The chart displays backend bars only after exact-series validation; until a backend is deployed and trusted bars are available, the clearly labelled DEMO fixture remains visible. Backend OHLCV WebSocket broadcast is implemented, but the frontend has not connected to it; end-to-end streaming is not implemented.
+- The selected timeframe is included in the chart's data-series identity. The chart accepts backend bars only after exact-series and payload validation; otherwise the clearly labelled DEMO fixture remains visible. The frontend stream path is wired at code level, but end-to-end operation against a deployed backend/provider has not been verified.
 - Watchlist now displays an explicitly offline, read-only supported-product catalog fixture for ES/NQ/GC; no expiry-specific contracts are fabricated.
 - The existing sample candles are not real market data.
 - Global indicator requirement: every indicator must be designed for compatibility across all supported chart timeframes, including second-based intervals. This is a target to validate per indicator, not a claim that every calculation is automatically valid on every timeframe.
