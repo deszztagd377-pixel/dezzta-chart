@@ -31,6 +31,8 @@ export interface FetchOhlcvOptions {
   signal?: AbortSignal;
   timeoutMs?: number;
   limit?: number;
+  /** Fresh Firebase ID token; never persist or place it in the URL. */
+  getIdToken: () => Promise<string>;
   fetchImpl?: typeof fetch;
 }
 
@@ -114,9 +116,21 @@ export async function fetchOhlcvSnapshot(options: FetchOhlcvOptions): Promise<Oh
   }, timeoutMs);
 
   try {
+    let token: string;
+    try {
+      token = await options.getIdToken();
+    } catch {
+      throw new OhlcvRequestError('http', 'A signed-in Firebase session is required to request OHLCV data.');
+    }
+    if (typeof token !== 'string' || token.trim() === '') {
+      throw new OhlcvRequestError('http', 'Firebase returned an empty identity token.');
+    }
+    if (options.signal?.aborted) {
+      throw new OhlcvRequestError('cancelled', 'OHLCV request was cancelled.');
+    }
     const response = await requestFetch(url, {
       method: 'GET',
-      headers: { Accept: 'application/json' },
+      headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
       cache: 'no-store',
       signal: controller.signal,
     });
