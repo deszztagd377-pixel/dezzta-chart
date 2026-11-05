@@ -23,6 +23,7 @@ export interface MarketDataSnapshot {
   readonly bars: readonly Readonly<ChartData>[];
   readonly detail: string | null;
   readonly revision: number;
+  readonly lastChange: Readonly<{ type: 'snapshot' } | { type: 'update'; bar: Readonly<ChartData> }>;
 }
 
 const EMPTY_SNAPSHOT: MarketDataSnapshot = Object.freeze({
@@ -32,6 +33,7 @@ const EMPTY_SNAPSHOT: MarketDataSnapshot = Object.freeze({
   bars: Object.freeze([]),
   detail: 'No verified backend series is selected.',
   revision: 0,
+  lastChange: Object.freeze({ type: 'snapshot' }),
 });
 
 let currentSnapshot = EMPTY_SNAPSHOT;
@@ -118,6 +120,7 @@ export function publishMarketDataSnapshot(input: {
     bars: immutableBars,
     detail: input.detail ?? null,
     revision: currentSnapshot.revision + 1,
+    lastChange: Object.freeze({ type: 'snapshot' }),
   });
   emit();
 }
@@ -182,6 +185,7 @@ export function publishMarketDataUpdate(input: {
     ...current,
     bars: immutableBars,
     revision: current.revision + 1,
+    lastChange: Object.freeze({ type: 'update', bar: Object.freeze({ ...input.bar }) }),
   });
   emit();
 }
