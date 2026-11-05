@@ -55,6 +55,7 @@ const options = (fetchImpl: typeof fetch, overrides: Record<string, unknown> = {
   baseUrl: 'https://market.example.test/api/',
   identity,
   fetchImpl,
+  getIdToken: async () => 'test-firebase-id-token',
   ...overrides,
 });
 
@@ -78,6 +79,14 @@ describe('fetchOhlcvSnapshot', () => {
     expect(url.searchParams.get('limit')).toBe('250');
     expect(init?.method).toBe('GET');
     expect(init?.cache).toBe('no-store');
+    expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer test-firebase-id-token');
+  });
+
+  it('does not make a request when Firebase token retrieval fails', async () => {
+    const fetchImpl = vi.fn<typeof fetch>();
+    await expect(fetchOhlcvSnapshot(options(fetchImpl, { getIdToken: async () => { throw new Error('signed out'); } })))
+      .rejects.toMatchObject({ code: 'http' });
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 
   it('returns validated chart candles for an exact live series', async () => {
