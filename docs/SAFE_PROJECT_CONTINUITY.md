@@ -3,7 +3,7 @@
 Checkpoint date: 2026-11-05
 Repository: https://github.com/deszztagd377-pixel/dezzta-chart
 Working branch: `phase-2/market-data-foundation`
-Last verified working-branch HEAD at checkpoint: `4ca3243957991a9da4d22b2c8674b661dd456c55`
+Last verified working-branch HEAD before this documentation update: `8ae99f5c5a11cdfb8b5d52acc1455a47259f194b`
 Main branch HEAD at checkpoint: `e3841681bc69b73619058deaf939df82ae5116a1`
 
 ## Why this file exists
@@ -30,13 +30,13 @@ Preserve the verified project state and safe next steps across chat changes. Thi
 - The backend broadcaster is not a durable event log and does not replay missed updates.
 - No live provider session, real provider delivery, synchronized exchange clock, or production feed freshness has been verified.
 - CI workflow runs frontend tests, frontend production build, backend pytest, and backend container image build.
-- Latest verified successful run before this documentation update: run `42051868901`, commit `551ae8da92175ca96d8a947fe35fcf782a698a87`; frontend tests/build, backend tests, and backend container-image build all passed.
+- Latest verified successful run before this documentation update: run `42053572558`, exact commit `8ae99f5c5a11cdfb8b5d52acc1455a47259f194b`; frontend dependency installation, frontend tests/build, backend dependency installation/tests, and backend container-image build all passed.
 - CME session calendar document is an accepted design only. Calendar implementation and related migrations have not started.
 
 ## Progress accounting discrepancy — do not silently overwrite
 
 - The user recalls the latest conversational checkpoint as **20.9%**.
-- `PROJECT_STATUS.md` currently records **19.60%**, with last audited date 2026-11-04.
+- `PROJECT_STATUS.md` records **19.60%** as the last formally weighted historical estimate; the dedicated `docs/PROJECT_PROGRESS.md` now preserves this alongside the owner's recalled **20.9%** and explains why no fresh reconciled percentage is yet justified.
 - These are inconsistent records. Do not state either as a freshly verified current percentage until the milestone weights and completed deliverables are reconciled.
 - Do not reduce the user's remembered checkpoint merely because the status file is stale; equally, do not inflate the official estimate without evidence.
 - Next progress audit must compare milestone definitions, verified commits, test evidence, and actual user-visible deliverables, then update the canonical status document with an explanation of the discrepancy.
@@ -90,11 +90,11 @@ Do not implement or activate live futures market feeds, real-time order-flow fea
 
 ## UI and feature expansion gate — owner clarification (2026-11-05)
 
-The major UI reconstruction and broad feature-expansion phase is intentionally scheduled for the **50% overall-progress milestone**, not the current foundation stage.
+The owner has revised the major UI reconstruction and broad feature-expansion gate to **40% overall project progress**. Do not begin the large phase before that checkpoint.
 
-At the 50% gate, first prepare a scoped UI/feature blueprint and review it with the owner before large implementation. The target direction is a polished, mobile-first educational chart application with compact DEZZTA branding, dark palette, restrained gradients, chart prominence, compact navigation/toolbars, and genuinely working controls. Feature work must be incremental, testable, and based on the verified capabilities of the existing code.
+At the 40% gate, first prepare a scoped UI/feature blueprint and review it with the owner before large implementation. The target direction is a polished, mobile-first educational chart application with compact DEZZTA branding, dark palette, restrained gradients, chart prominence, compact navigation/toolbars, and genuinely working controls. Feature work must be incremental, testable, and based on the verified capabilities of the existing code.
 
-The current stage must not prematurely redesign the whole UI or add a large indicator catalogue. It should establish a reliable, clearly labelled demo/educational foundation, audit existing modules, close regressions, and improve maintainability. The 50% milestone is a project planning gate, not a promise that every feature will be complete at that percentage.
+The current stage must not prematurely redesign the whole UI or add a large indicator catalogue. It should establish a reliable, clearly labelled demo/educational foundation, audit existing modules, close regressions, and improve maintainability. The 40% milestone is a project planning gate, not a promise that every feature will be complete at that percentage.
 
 Existing-code audit findings from branch HEAD 7d6b8bac58a8e344055cc9605199bca998c84ae8:
 
@@ -115,13 +115,13 @@ Safe indicator/UI direction: any later educational indicator display must be exp
 - CI run `42051373564` completed successfully on the exact working-branch HEAD. Its Test and Build job passed frontend unit tests, frontend production build, backend tests, and backend container-image build.
 - No source-code files were changed during this audit.
 - Progress remains unreconciled: the status file's 19.60% and the owner's remembered 20.9% remain historical claims until the weighted milestone ledger is checked against actual commits and deliverables. Do not invent a new percentage from this audit alone.
-- Next work: reconcile milestone accounting and audit frontend behavior/tests; make one small, reversible educational-chart improvement only after selecting a clearly testable issue. Preserve the 50% gate for the major UI/feature expansion.
+- Next work: reconcile milestone accounting and audit frontend behavior/tests; make one small, reversible educational-chart improvement only after selecting a clearly testable issue. Preserve the revised 40% gate for the major UI/feature expansion.
 
 
 ## Stage audit — 2026-11-05 (10-minute focused work cadence)
 
 - User preference: organize work into focused stages of approximately 10 minutes. Before each stage, explain the intended work; afterward report changed files, evidence, commit, CI, limitations, and any decisions requiring owner input. Do not claim exact elapsed time if not measured.
-- User clarified that major UI reconstruction and broad feature expansion should begin at the 50% project-progress gate. Until then, focus on foundation quality, security, dependency hygiene, tests, performance, accessibility, Android responsiveness, architecture, error handling, and documentation.
+- User clarified that major UI reconstruction and broad feature expansion may begin at the 40% project-progress gate. Until then, focus on foundation quality, security, dependency hygiene, tests, performance, accessibility, Android responsiveness, architecture, error handling, and documentation.
 - Source audit found that the old status statement saying frontend WebSocket was not connected had become stale. Current `CandlestickChart` integrates Firebase token retrieval, `startOhlcvStreamSupervisor`, shared `marketDataStore`, validated snapshot/update handling, and effect cleanup.
 - `ohlcvStreamSupervisor` obtains a fresh token on reconnect and routes validated stream events into the store; `ohlcvWebSocketClient` validates the snapshot/watermark handshake and stream sequence.
 - CI run `42051868901` passed on commit `551ae8da92175ca96d8a947fe35fcf782a698a87`. It passed frontend unit tests, frontend production build, backend tests, and backend container-image build.
@@ -129,4 +129,12 @@ Safe indicator/UI direction: any later educational indicator display must be exp
 - Progress discrepancy remains open: repository's last formally weighted estimate is 19.60%; the user recalls 20.9%. The repository does not yet expose a reproducible milestone-weight ledger to justify either as a newly verified current percentage. Do not change the percentage until deliverables and weights are reconciled.
 - No source-code or runtime behavior changed in this audit. No live provider, production deployment, real-time freshness, synchronized exchange clock, or zero-latency claim is verified.
 - Current working branch after the status update: `1cb643d98818651c3a0adb1fc19fe113f8a18465`; `main` remains `e3841681bc69b73619058deaf939df82ae5116a1`.
-- Next stage: reconcile the weighted progress ledger and review the frontend regression-test inventory. Select a small, safe educational-chart quality improvement only after identifying a concrete gap. Preserve the 50% gate.
+- Next stage: reconcile the weighted progress ledger and review the frontend regression-test inventory. Select a small, safe educational-chart quality improvement only after identifying a concrete gap. Preserve the revised 40% gate.
+
+
+## Focused-stage cadence update — 2026-11-05
+- User expects each work stage to contain approximately 5–10 minutes of focused, substantive work, rather than stopping after one tiny action. Do not claim exact elapsed time unless measured.
+- Before each stage, explain the objective and intended scope. Afterward, report the verified result, changed paths, commit SHA, exact CI status, remaining limitations, and progress-accounting impact.
+- Latest confirmed CI at the previous HEAD: run `42053572558` passed on `8ae99f5c5a11cdfb8b5d52acc1455a47259f194b`.
+- A dedicated progress record is now being added at `docs/PROJECT_PROGRESS.md`; it preserves 19.60% as the last formal historical estimate and 20.9% as the owner's recalled conversational checkpoint until a reproducible ledger is reconciled.
+- The owner-approved major UI/feature expansion gate is now 40%, subject to a scoped blueprint and owner review.
