@@ -343,8 +343,30 @@ def create_app(
                 if product["root"] == normalized_root
             ]
             snapshot["requested_root"] = normalized_root
-        snapshot["contracts"] = contracts
-        snapshot["contract_count"] = len(contracts)
+        # Expose a canonical ID only when the durable registry has an
+        # active provider mapping for this exact Databento contract at the
+        # current time. Never derive IDs from symbols or provider integers.
+        enriched_contracts = []
+        for contract in contracts:
+            mapping = instrument_registry.resolve_provider_mapping(
+                provider="databento",
+                dataset=contract["dataset"],
+                publisher_id=contract["publisher_id"],
+                instrument_id=contract["instrument_id"],
+                timestamp_ns=time.time_ns(),
+            )
+            canonical_id = None
+            if mapping is not None and mapping.raw_symbol == contract["raw_symbol"]:
+                instrument = instrument_registry.get_instrument(mapping.canonical_id)
+                if instrument is not None and instrument.is_active:
+                    canonical_id = instrument.canonical_id
+            enriched_contracts.append({
+                **contract,
+                "canonical_instrument_id": canonical_id,
+            })
+
+        snapshot["contracts"] = enriched_contracts
+        snapshot["contract_count"] = len(enriched_contracts)
         return snapshot
 
     @application.websocket("/ws/market-data")
