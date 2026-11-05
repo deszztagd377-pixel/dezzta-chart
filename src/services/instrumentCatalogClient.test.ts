@@ -19,6 +19,7 @@ const contract = {
   definition_ts_event_ns: '1793577600000000000',
   provider: 'databento',
   series_type: 'contract',
+  canonical_instrument_id: null,
 };
 
 const catalog = (overrides: Record<string, unknown> = {}) => ({
@@ -54,6 +55,17 @@ describe('parseInstrumentCatalog', () => {
     expect(result.contracts[0].raw_symbol).toBe('ESZ6');
     expect(result.contracts[0].instrument_id).toBe(123);
     expect(result.contracts[0].min_price_increment).toBe('0.25');
+  });
+
+  it('preserves a valid canonical registry ID and rejects malformed IDs', () => {
+    const canonicalId = '0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11';
+    const result = parseInstrumentCatalog(catalog({
+      contracts: [{ ...contract, canonical_instrument_id: canonicalId }],
+    }));
+    expect(result.contracts[0].canonical_instrument_id).toBe(canonicalId);
+    expect(() => parseInstrumentCatalog(catalog({
+      contracts: [{ ...contract, canonical_instrument_id: 'ESZ6' }],
+    }))).toThrow(/metadata/);
   });
 
   it('accepts an honest empty catalog state', () => {
