@@ -16,6 +16,7 @@ export interface OhlcvStreamOptions {
   onUpdate: (event: OhlcvStreamUpdateMessage, candle: ChartData) => void;
   onStatus?: (status: 'connecting' | 'authenticated' | 'subscribed' | 'closed') => void;
   onError?: (error: Error) => void;
+  onClose?: (code: number, reason: string) => void;
   webSocketFactory?: (url: string) => WebSocket;
   timeoutMs?: number;
 }
@@ -200,8 +201,10 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
   socket.addEventListener('error', () => {
     if (state !== 'closed') fail(new Error('OHLCV WebSocket transport error.'));
   });
-  socket.addEventListener('close', () => {
+  socket.addEventListener('close', (event) => {
     clearTimer();
+    const closeEvent = event as CloseEvent;
+    options.onClose?.(closeEvent.code, closeEvent.reason);
     if (state !== 'closed') setState('closed');
   });
 
