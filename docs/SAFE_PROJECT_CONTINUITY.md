@@ -35,6 +35,8 @@ Preserve the verified project state and safe next steps across chat changes. Thi
 
 ## Progress accounting discrepancy — do not silently overwrite
 
+**Owner correction (2026-11-05):** The historical conversational sequence was **20.3% → 20.9%**. Preserve 20.9% as the latest owner-confirmed conversational checkpoint; 19.60% is an older formally documented estimate, not proof of a regression. No reproducible formula for the 20.3%/20.9% sequence has yet been recovered. 19.9% is not verified and must not be used as a current figure.
+
 - The user recalls the latest conversational checkpoint as **20.9%**.
 - `PROJECT_STATUS.md` records **19.60%** as the last formally weighted historical estimate; the dedicated `docs/PROJECT_PROGRESS.md` now preserves this alongside the owner's recalled **20.9%** and explains why no fresh reconciled percentage is yet justified.
 - These are inconsistent records. Do not state either as a freshly verified current percentage until the milestone weights and completed deliverables are reconciled.
