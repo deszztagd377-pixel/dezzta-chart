@@ -86,8 +86,8 @@ Status: provider and initial instrument scope selected; transport contract, back
 
 1. **Completed foundation:** populate the durable canonical instrument registry, point-in-time provider mappings, and versioned metadata from strictly normalized provider definitions; journal source events before processing and recover pending events after restart. Live credentials, provider delivery, and scheduled refresh remain separate validations.
 2. Define a trusted, admin-only entitlement grant process for canonical instruments; keep client-facing grant endpoints disabled.
-3. Connect the approved Firebase app sign-in/session flow so the frontend can obtain and refresh Firebase ID tokens. The exact sign-in methods and public Firebase app configuration must be supplied/approved before UI integration.
-4. Wire the tested frontend WebSocket transport into the chart lifecycle and shared market-data store; add bounded reconnect, heartbeat/timeout handling, visibility/network awareness, and fresh-snapshot recovery after sequence gaps.
+3. Review and verify the approved Firebase app configuration and sign-in/session behavior in a deployed test environment; confirm ID-token refresh and entitlement behavior without exposing credentials or enabling provider delivery.
+4. Harden and validate the already-integrated frontend stream lifecycle using controlled test fixtures: reconnect/backoff, heartbeat/timeout behavior, visibility/network transitions, and fresh-snapshot recovery after sequence gaps.
 5. Smoke-test the integrated client against a deployed backend with Firebase auth and entitlement configured, with provider features disabled until separately approved and verified.
 6. Build the three indicator-tier navigation categories and visible indicator controls/overlays/panes on top of `useMarketIndicators`, with timeframe compatibility and performance tests. Low Tier requires the approved 15-item list; Mid Tier remains pending owner selection.
 7. Implement the full Exclusive Volume Profile and the separate compact movable-range Volume Profile Tool as distinct features.
