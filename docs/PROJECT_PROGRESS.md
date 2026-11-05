@@ -3,7 +3,7 @@
 Last verified snapshot: 2026-11-05  
 Repository: https://github.com/deszztagd377-pixel/dezzta-chart  
 Working branch: `phase-2/market-data-foundation`  
-Snapshot HEAD before this documentation update: `8ae99f5c5a11cdfb8b5d52acc1455a47259f194b`  
+Snapshot HEAD before this progress-history correction: `89a1738e29ad4291299a4552e7056886e0e5c4bf`  
 Main HEAD: `e3841681bc69b73619058deaf939df82ae5116a1`
 
 
