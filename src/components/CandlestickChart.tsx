@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useAuth } from '../auth/AuthProvider';
 import {
   createChart,
   CandlestickSeries,
@@ -40,6 +41,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
   selectedContract,
   marketDataApiBaseUrl,
 }) => {
+  const { user, getIdToken } = useAuth();
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const setSeriesDataRef = useRef<((data: CandlestickData[]) => void) | null>(null);
@@ -217,6 +219,15 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       rawSymbol: selectedContract.raw_symbol,
     };
 
+    // A Firebase session is required by the authenticated OHLCV endpoint.
+    if (!user) {
+      setSeriesData(demoCandles);
+      setMarketDataStatus('unavailable');
+      setMarketDataDetail('Sign in with Firebase to request authenticated backend data.');
+      resetMarketDataSnapshot({ ...identity, timeframe }, 'unavailable', 'Firebase sign-in is required.');
+      return () => controller.abort();
+    }
+
     // Never leave the previous contract's candles on screen during a switch.
     // The explicit DEMO label remains visible until this exact series validates.
     setSeriesData(demoCandles);
@@ -227,6 +238,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
     fetchOhlcvSnapshot({
       baseUrl: marketDataApiBaseUrl,
       identity: { ...identity, timeframe },
+      getIdToken,
       signal: controller.signal,
       limit: 2000,
     }).then((result) => {
@@ -261,7 +273,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
     });
 
     return () => controller.abort();
-  }, [isChartReady, marketDataApiBaseUrl, selectedContract, timeframe]);
+  }, [isChartReady, marketDataApiBaseUrl, selectedContract, timeframe, user, getIdToken]);
 
   const selectedSymbol = selectedContract?.raw_symbol;
   const badgeText = !selectedSymbol
