@@ -476,3 +476,14 @@ Status: provider and initial instrument scope selected; transport contract, back
 - At the 50% checkpoint, begin a separate design and implementation phase for safe, non-transactional chart-learning features: chart presentation options, drawing/annotation tools (trend/horizontal/vertical lines, rectangles/zones, labels, Fibonacci as an educational measurement tool), undo/redo, persistence, and educational mathematical visualizations. Each feature still requires design review, implementation, tests, and owner acceptance.
 - Scope boundary: no brokerage/order execution, buy/sell signals, or speculative order-flow/liquidation features are included. This gate is a planning requirement, not a claim that the future features are already implemented.
 - Documentation-only update; weighted overall progress remains 19.60%. No application code changed. The exact branch-head CI run #42043081654 for commit `6a3a27cb127c0b20825a7cdc0224a6ebc9fdc320` subsequently completed successfully: frontend unit tests, frontend production build, backend tests, and backend container image build all passed. This verifies the configured checks for this documentation commit only; it is not a production-security certification. `main` remains untouched.
+
+
+### 2026-11-05 — CME session-calendar architecture decision
+
+- Added `docs/CME_SESSION_CALENDAR_DESIGN.md` as an accepted design contract for ES/NQ (CME Equity Index) and GC (COMEX Gold).
+- Explicitly separated `UTC_LEGACY`, `UTC_FIXED_V1`, and `CME_SESSION_V1`; the design requires additive SQLite migration and policy/calendar-version-aware bar identity so legacy data is preserved and cannot collide with new session bars.
+- Specified Chicago timezone/DST handling, Sunday reopen trading-date assignment, daily maintenance, product-specific official schedule provenance, special-session overrides, and fail-closed behavior when schedule data is unknown.
+- Defined the intended aggregation contract: 1D from session-contained 1H children (not 4H), with 1W/1M/3M grouped by CME trading dates and no synthetic candles.
+- Recorded required migration, rollback, DST, holiday, completeness, API, and intraday-regression tests.
+- This is a documentation/design milestone only. No application code, database schema, calendar ingestion, or aggregation behavior changed. No live Databento delivery, real-time latency, raw tick/MBO, or production readiness is claimed.
+- Weighted overall progress remains 19.60%; this design document does not justify a code-completion percentage increase. `main` remains untouched.
