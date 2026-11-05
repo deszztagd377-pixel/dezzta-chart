@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { connectOhlcvStream } from './ohlcvWebSocketClient';
 
 class FakeSocket {
@@ -101,6 +101,10 @@ function setup() {
   return { socket, onSnapshot, onUpdate, onError, connection };
 }
 
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe('connectOhlcvStream', () => {
   it('authenticates, requests an exact series, then applies snapshot and next update', () => {
     const { socket, onSnapshot, onUpdate, connection } = setup();
@@ -133,6 +137,23 @@ describe('connectOhlcvStream', () => {
     expect(onUpdate).toHaveBeenCalledOnce();
     expect(onUpdate.mock.calls[0][0].sequence).toBe(8);
     expect(onUpdate.mock.calls[0][1].close).toBe(6001);
+  });
+
+  it('does not let the handshake timeout close a stream after its snapshot is accepted', () => {
+    vi.useFakeTimers();
+    const { socket, onError, connection } = setup();
+    socket.readyState = 1;
+    socket.emit('open', new Event('open'));
+    socket.message({ type: 'market_data.status', version: 1 });
+    socket.message(snapshot);
+
+    expect(connection.state).toBe('subscribed');
+    vi.advanceTimersByTime(10_000);
+
+    expect(connection.state).toBe('subscribed');
+    expect(onError).not.toHaveBeenCalled();
+    expect(socket.closed).toHaveLength(0);
+    connection.close();
   });
 
   it('rejects a sequence gap and closes instead of silently skipping data', () => {
