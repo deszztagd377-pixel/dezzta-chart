@@ -19,7 +19,7 @@ export type OhlcvSupervisorStatus =
   | 'stopped';
 
 export interface OhlcvStreamSupervisorOptions
-  extends Omit<OhlcvStreamOptions, 'token' | 'onSnapshot' | 'onUpdate' | 'onStatus' | 'onError'> {
+  extends Omit<OhlcvStreamOptions, 'token' | 'onSnapshot' | 'onUpdate' | 'onStatus' | 'onError' | 'onClose'> {
   /** Must return a fresh Firebase ID token; called again for every reconnect. */
   getIdToken: () => Promise<string>;
   minReconnectDelayMs?: number;
@@ -139,14 +139,40 @@ export function startOhlcvStreamSupervisor(
           if (stopped) return;
           if (status === 'authenticated') setStatus('authenticated');
           if (status === 'subscribed') setStatus('subscribed');
-          if (status === 'closed') {
-            connection = null;
-            scheduleReconnect();
-          }
+          if (status === 'closed') connection = null;
         },
         onError: (error) => {
           if (stopped) return;
           options.onError?.(error);
+          scheduleReconnect();
+        },
+        onClose: (code, reason) => {
+          if (stopped) return;
+          connection = null;
+          // Authentication, authorization, and malformed-subscription closes
+          // are terminal until the user/session/selection changes. Retrying
+          // these codes would create a needless reconnect loop.
+          if (code === 4400 || code === 4401 || code === 4403) {
+            stopped = true;
+            if (reconnectTimer !== null) clearTimeout(reconnectTimer);
+            reconnectTimer = null;
+            resetMarketDataSnapshot(
+              options.identity,
+              'unavailable',
+              code === 4401
+                ? 'Firebase authentication was rejected. Sign in again to restore access.'
+                : code === 4403
+                  ? 'The account is not entitled to this instrument or its access was revoked.'
+                  : 'The server rejected the subscription request. Check the selected instrument and timeframe.',
+            );
+            setStatus('stopped');
+            options.onError?.(new Error(
+              code === 4401 ? 'Market-data authentication rejected (4401).' :
+              code === 4403 ? 'Market-data entitlement denied (4403).' :
+              'Market-data subscription rejected (4400).',
+            ));
+            return;
+          }
           scheduleReconnect();
         },
       });
