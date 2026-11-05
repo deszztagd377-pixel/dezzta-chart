@@ -463,8 +463,8 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Added `src/services/ohlcvWebSocketClient.test.ts` covering authentication/subscription/snapshot/update flow, sequence-gap rejection and socket closure, invalid backend URL rejection, and clean close behavior.
 - Added `docs/OHLCV_WEBSOCKET_CLIENT.md` describing the handshake, exact-series validation, recovery boundary, and remaining integration work.
 - GitHub Actions workflow [#41841139463](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/41841139463) completed successfully: frontend unit tests, frontend production build, backend tests, and backend container image build all passed.
-- The client transport is not yet connected to Firebase SDK/token refresh, `CandlestickChart`, or `marketDataStore`. There is no reconnect loop, heartbeat scheduler, deployed end-to-end validation, or real Databento stream claim.
-- Overall weighted progress remains 19.60%; this transport is a tested integration component, not a completed end-to-end live-data milestone. `main` remains untouched.
+- At the 2026-11-05 branch-head audit, this earlier limitation was superseded: `CandlestickChart` now starts and stops `startOhlcvStreamSupervisor` for the selected catalog contract, obtains Firebase ID tokens through `AuthProvider`, and consumes validated snapshots/updates through `marketDataStore`. The supervisor requests a fresh token on reconnect and the WebSocket client rejects invalid handshakes and sequence gaps. This is code-level frontend integration, not proof of a deployed backend or live provider delivery.
+- Remaining limitations: no deployed end-to-end environment, verified live Databento session, synchronized exchange clock, durable WebSocket event replay, or sustained-load production validation is claimed. The last formally weighted estimate is 19.60%; newly integrated work must be assigned milestone weight through a reconciled ledger before changing the overall percentage. `main` remains untouched.
 
 
 ### 2026-11-05 — Security baseline correction and 50% product checkpoint gate
@@ -487,3 +487,16 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Recorded required migration, rollback, DST, holiday, completeness, API, and intraday-regression tests.
 - This is a documentation/design milestone only. No application code, database schema, calendar ingestion, or aggregation behavior changed. No live Databento delivery, real-time latency, raw tick/MBO, or production readiness is claimed.
 - Weighted overall progress remains 19.60%; this design document does not justify a code-completion percentage increase. `main` remains untouched.
+
+
+### 2026-11-05 — Authenticated frontend stream integration audit
+
+- Branch-head source audit confirms `src/components/CandlestickChart.tsx` now starts `startOhlcvStreamSupervisor` when a selected catalog contract has a canonical instrument ID and the user is signed in.
+- The chart obtains Firebase ID tokens from `AuthProvider`, handles connecting/authenticated/subscribed/reconnecting/stopped/error states, and stops the supervisor during effect cleanup.
+- `src/services/ohlcvStreamSupervisor.ts` owns reconnect lifecycle, requests a fresh ID token for each connection, and bridges validated snapshots/updates into `marketDataStore`.
+- `src/services/ohlcvWebSocketClient.ts` performs the authenticated snapshot-plus-watermark handshake, validates stream sequencing, and requires reconnection/resnapshot on sequence gaps.
+- `CandlestickChart` consumes the shared store and applies validated snapshots or incremental updates. DEMO candles remain clearly distinguished and are not admitted into the backend market-data store.
+- Branch-head CI run [#42051868901](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42051868901) passed frontend unit tests, frontend production build, backend tests, and backend container-image build on commit `551ae8da92175ca96d8a947fe35fcf782a698a87`.
+- This verifies the configured automated checks only. It does not verify a deployed backend, Firebase production configuration, provider credentials/session, real provider delivery, exchange-synchronized timestamps, end-to-end latency, or sustained-load behavior.
+- Progress accounting: the last formally weighted estimate remains 19.60%; the user recalls a 20.9% conversational checkpoint. The available repository ledger does not yet define a reproducible weight calculation that reconciles these values or assigns credit to the newly completed frontend integration. Keep both as historical references and do not publish a new overall percentage until the milestone ledger is rebuilt and reviewed.
+- `main` remains at `e3841681bc69b73619058deaf939df82ae5116a1`; all work remains on `phase-2/market-data-foundation`.
