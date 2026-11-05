@@ -28,13 +28,6 @@ interface CandlestickChartProps {
 
 type MarketDataStatus = 'demo' | 'loading' | 'ready' | 'degraded' | 'unavailable' | 'error';
 
-interface SeriesIdentity {
-  dataset: string;
-  publisherId: number;
-  instrumentId: number;
-  rawSymbol: string;
-}
-
 const CandlestickChart: React.FC<CandlestickChartProps> = ({
   timeframe,
   showGrid,
