@@ -6,12 +6,25 @@ Working branch: `phase-2/market-data-foundation`
 Snapshot HEAD before this documentation update: `8ae99f5c5a11cdfb8b5d52acc1455a47259f194b`  
 Main HEAD: `e3841681bc69b73619058deaf939df82ae5116a1`
 
+
+
+## Owner correction — historical conversational checkpoints (2026-11-05)
+
+The owner clarifies the sequence of previously communicated conversational progress checkpoints: **20.3% first, then 20.9%**. The 20.9% checkpoint was celebrated as having crossed 20%; it must not be erased or silently replaced by the older 19.60% figure.
+
+Interpretation and accounting safeguards:
+- **20.3% → 20.9%** is the owner's correction of the historical conversation sequence. Preserve both values and their order.
+- **19.60%** remains the older value formally recorded in PROJECT_STATUS.md; it is not evidence that the project later regressed.
+- **19.9%** has no verified calculation in the current repository record and must not be presented as a valid current percentage.
+- The exact milestone formula behind the conversational 20.3% and 20.9% checkpoints has not yet been recovered. Therefore 20.9% is the latest owner-confirmed conversational checkpoint, while a newly recalculated weighted percentage remains pending a reproducible ledger.
+- Do not lower, raise, or average these values to manufacture a current percentage. Reconcile the milestone weights and verified deliverables first, then document any correction transparently.
+
 ## Current percentage record
 
 | Record | Value | Meaning |
 |---|---:|---|
 | Last formally weighted estimate in `PROJECT_STATUS.md` | **19.60%** | Historical formal estimate; last documented increment was +0.20 percentage points from 19.40% |
-| Owner-recalled conversational checkpoint | **20.9%** | Preserved as the owner's recollection; no matching reproducible weight calculation has been located |
+| Owner-confirmed conversational sequence | **20.3% → 20.9%** | Earlier then later checkpoint, clarified by the owner; formula/evidence ledger still needs reconstruction |
 | Freshly reconciled overall percentage | **Not yet established** | Do not present either historical value as a newly recalculated current percentage |
 
 The project percentage is a weighted milestone estimate toward the intended full application. It is **not** the percentage of files written, lines of code, commits, or CI jobs completed. A documentation-only commit or a passing CI run does not automatically increase overall project completion.
