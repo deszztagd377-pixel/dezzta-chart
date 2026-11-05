@@ -15,7 +15,7 @@ class FakeSocket {
   send(value: string) { this.sent.push(value); }
   close(code = 1000, reason = '') {
     this.readyState = 3;
-    this.emit('close', new CloseEvent('close', { code, reason }));
+    this.emit('close', Object.assign(new Event('close'), { code, reason }));
   }
   serverClose(code: number, reason = '') { this.close(code, reason); }
   emit(type: string, event: Event) {
