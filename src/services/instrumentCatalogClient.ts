@@ -76,7 +76,10 @@ function parseContract(value: unknown, index: number): FuturesContractDto {
         (typeof value.min_price_increment !== 'string' || !DECIMAL.test(value.min_price_increment))) ||
       typeof value.definition_ts_event_ns !== 'string' || !UNSIGNED.test(value.definition_ts_event_ns) ||
       typeof value.provider !== 'string' || !value.provider ||
-      value.series_type !== 'contract') {
+      value.series_type !== 'contract' ||
+      (value.canonical_instrument_id !== null &&
+        (typeof value.canonical_instrument_id !== 'string' ||
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value.canonical_instrument_id)))) {
     throw new Error(`Contract ${index} has invalid or incomplete provider metadata.`);
   }
 
@@ -100,6 +103,7 @@ function parseContract(value: unknown, index: number): FuturesContractDto {
     definition_ts_event_ns: value.definition_ts_event_ns,
     provider: value.provider,
     series_type: 'contract',
+    canonical_instrument_id: value.canonical_instrument_id as string | null,
   };
 }
 
