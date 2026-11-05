@@ -13,7 +13,11 @@ class FakeSocket {
     this.listeners.set(type, [...(this.listeners.get(type) ?? []), callback]);
   }
   send(value: string) { this.sent.push(value); }
-  close() { this.readyState = 3; this.emit('close', new Event('close')); }
+  close(code = 1000, reason = '') {
+    this.readyState = 3;
+    this.emit('close', new CloseEvent('close', { code, reason }));
+  }
+  serverClose(code: number, reason = '') { this.close(code, reason); }
   emit(type: string, event: Event) {
     for (const listener of this.listeners.get(type) ?? []) listener(event);
   }
@@ -114,6 +118,31 @@ describe('OHLCV stream supervisor', () => {
     expect(sockets).toHaveLength(2);
     expect(tokenCount).toBe(2);
     supervisor.stop();
+  });
+
+  it('does not retry after the server rejects authentication or entitlement', async () => {
+    vi.useFakeTimers();
+    const sockets: FakeSocket[] = [];
+    const factory = vi.fn(() => {
+      const socket = new FakeSocket();
+      sockets.push(socket);
+      return socket as unknown as WebSocket;
+    });
+    const supervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: 'canonical-esz6',
+      getIdToken: async () => 'fresh-token',
+      webSocketFactory: factory,
+      minReconnectDelayMs: 10,
+      random: () => 0,
+    });
+    await vi.waitFor(() => expect(sockets).toHaveLength(1));
+    sockets[0].serverClose(4403, 'Instrument access denied');
+    expect(supervisor.status).toBe('stopped');
+    await vi.runOnlyPendingTimersAsync();
+    expect(factory).toHaveBeenCalledOnce();
+    expect(getMarketDataSnapshot().status).toBe('unavailable');
   });
 
   it('does not reconnect after an explicit stop', async () => {
