@@ -468,7 +468,7 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Remaining limitations: no deployed end-to-end environment, verified live Databento session, synchronized exchange clock, durable WebSocket event replay, or sustained-load production validation is claimed. The last formally weighted estimate is 19.60%; newly integrated work must be assigned milestone weight through a reconciled ledger before changing the overall percentage. `main` remains untouched.
 
 
-### 2026-11-05 — Security baseline correction and 50% product checkpoint gate
+### 2026-11-05 — Security baseline correction and 40% product checkpoint gate
 
 - Corrected `docs/SECURITY_CONFIGURATION.md` to match the inspected implementation: `GET /v1/ohlcv` requires a verified Firebase Bearer identity and per-instrument entitlement checks; the authenticated WebSocket also verifies identity and instrument entitlement.
 - Documented the remaining public endpoint classification decision for `/health`, `/v1/market-data/status`, and `/v1/instruments`.
@@ -499,13 +499,13 @@ Status: provider and initial instrument scope selected; transport contract, back
 - `CandlestickChart` consumes the shared store and applies validated snapshots or incremental updates. DEMO candles remain clearly distinguished and are not admitted into the backend market-data store.
 - Branch-head CI run [#42051868901](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42051868901) passed frontend unit tests, frontend production build, backend tests, and backend container-image build on commit `551ae8da92175ca96d8a947fe35fcf782a698a87`.
 - This verifies the configured automated checks only. It does not verify a deployed backend, Firebase production configuration, provider credentials/session, real provider delivery, exchange-synchronized timestamps, end-to-end latency, or sustained-load behavior.
-- Progress accounting: the last formally weighted estimate remains 19.60%; the user recalls a 20.9% conversational checkpoint. The available repository ledger does not yet define a reproducible weight calculation that reconciles these values or assigns credit to the newly completed frontend integration. Keep both as historical references and do not publish a new overall percentage until the milestone ledger is rebuilt and reviewed.
+- Progress accounting: the last formally weighted estimate remains 19.60%; the user recalls a 20.9% conversational checkpoint. A proposed eight-group 100%-weighted ledger is now recorded in docs/PROJECT_MILESTONE_LEDGER.md. Its weights and criterion scoring still require owner review; keep 19.60% and 20.90% as historical references until that review and scoring are complete.
 - `main` remains at `e3841681bc69b73619058deaf939df82ae5116a1`; all work remains on `phase-2/market-data-foundation`.
 
 
 ### 2026-11-05 — Progress record and 40% expansion gate
 - Added `docs/PROJECT_PROGRESS.md` as the dedicated progress-accounting record.
-- Preserved the last formally weighted estimate of 19.60% and the owner's recalled 20.9% checkpoint as historical values; neither is relabelled as a newly recalculated current percentage.
+- Preserved the 19.60% historical formal estimate and owner-confirmed 20.30% → 20.90% conversational sequence. Added the proposed weighted ledger; no new current percentage is claimed.
 - Documented why the values cannot yet be reconciled: no consolidated 100%-weighted milestone ledger with non-duplicated acceptance criteria and evidence links exists.
 - Updated the major UI/feature expansion gate from 50% to 40%, following the owner's clarification. A scoped blueprint and owner review remain required at that gate.
 - Corrected stale frontend WebSocket integration wording and recorded the exact successful CI run for branch HEAD `8ae99f5c5a11cdfb8b5d52acc1455a47259f194b`.
