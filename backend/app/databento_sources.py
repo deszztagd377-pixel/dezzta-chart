@@ -19,7 +19,18 @@ _NS = 1_000_000_000
 
 
 def _iso(ns: int) -> str:
-    return datetime.fromtimestamp(ns // _NS, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+    """Format Unix nanoseconds as an exact UTC ISO-8601 timestamp.
+
+    Databento accepts nanosecond-precision ISO-8601 strings. Do not truncate
+    historical query boundaries to whole seconds: that can create overlap or
+    gaps between adjacent backfill windows.
+    """
+    if not isinstance(ns, int) or isinstance(ns, bool) or ns < 0:
+        raise ValueError("timestamp must be a non-negative integer of nanoseconds")
+    seconds, fraction_ns = divmod(ns, _NS)
+    whole = datetime.fromtimestamp(seconds, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+    suffix = f".{fraction_ns:09d}" if fraction_ns else ""
+    return f"{whole}{suffix}Z"
 
 
 class DatabentoLiveSource:
