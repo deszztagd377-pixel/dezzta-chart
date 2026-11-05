@@ -57,6 +57,49 @@ def test_instrument_catalog_starts_empty_without_provider_definitions() -> None:
     assert payload["contracts"] == []
 
 
+def test_instrument_catalog_exposes_only_registered_canonical_identity() -> None:
+    application = create_app(make_settings())
+    application.state.catalog.replace_definitions([{
+        "raw_symbol": "ESZ6",
+        "instrument_id": 101,
+        "publisher_id": 1,
+        "instrument_class": "F",
+        "expiration": "2026-12-18",
+        "currency": "USD",
+        "min_price_increment": 250_000_000,
+        "ts_event": 1_790_000_000_000_000_000,
+    }])
+    canonical_id = "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11"
+    application.state.instrument_registry.register_instrument_with_mapping(
+        CanonicalInstrument(
+            canonical_id=canonical_id, asset_class="future", instrument_type="future",
+            symbol="ESZ6", venue="XCME", expiration_date="2026-12-18",
+            settlement_currency="USD", contract_multiplier="50", tick_size="0.25",
+        ),
+        ProviderInstrumentMapping(
+            provider="databento", dataset="GLBX.MDP3", publisher_id=1,
+            instrument_id=101, raw_symbol="ESZ6", valid_from_ns=1,
+            valid_to_ns=None, canonical_id=canonical_id,
+        ),
+    )
+
+    response = TestClient(application).get("/v1/instruments?root=ES")
+    assert response.status_code == 200
+    contract = response.json()["contracts"][0]
+    assert contract["canonical_instrument_id"] == canonical_id
+
+    # A provider definition without a durable active registry mapping must not
+    # receive a fabricated identity.
+    application.state.instrument_registry = type(
+        "EmptyRegistry", (), {
+            "resolve_provider_mapping": lambda *args, **kwargs: None,
+            "get_instrument": lambda *args, **kwargs: None,
+        }
+    )()
+    unmapped = TestClient(application).get("/v1/instruments?root=ES")
+    assert unmapped.json()["contracts"][0]["canonical_instrument_id"] is None
+
+
 def test_instrument_catalog_can_be_filtered_by_supported_root() -> None:
     client = TestClient(create_app(make_settings()))
     response = client.get("/v1/instruments?root=es")
