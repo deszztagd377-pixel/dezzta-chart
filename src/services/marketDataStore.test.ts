@@ -33,6 +33,7 @@ describe('shared market data store', () => {
     expect(snapshot.status).toBe('ready');
     expect(snapshot.source).toBe('backend');
     expect(snapshot.bars).toEqual(bars);
+    expect(snapshot.lastChange).toEqual({ type: 'snapshot' });
     expect(Object.isFrozen(snapshot)).toBe(true);
     expect(Object.isFrozen(snapshot.bars)).toBe(true);
     expect(notifications).toBe(1);
@@ -76,6 +77,7 @@ describe('shared market data store', () => {
     expect(revised.bars).toHaveLength(2);
     expect(revised.bars[1].close).toBe(102.5);
     expect(revised.revision).toBe(revisionBeforeUpdate + 1);
+    expect(revised.lastChange).toEqual({ type: 'update', bar: { ...bars[1], close: 102.5, high: 103, volume: 15 } });
     expect(notifications).toBe(1);
 
     publishMarketDataUpdate({
