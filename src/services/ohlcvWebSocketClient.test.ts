@@ -91,7 +91,7 @@ function setup() {
   const connection = connectOhlcvStream({
     baseUrl: 'https://market.example.test/api/',
     identity,
-    canonicalInstrumentId: 'canonical-esz6',
+    canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
     token: 'verified-token',
     webSocketFactory: () => socket as unknown as WebSocket,
     onSnapshot,
@@ -120,7 +120,7 @@ describe('connectOhlcvStream', () => {
     expect(JSON.parse(socket.sent[1])).toMatchObject({
       type: 'market_data.subscribe',
       version: 1,
-      canonicalInstrumentId: 'canonical-esz6',
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
       series: identity,
     });
 
@@ -154,7 +154,7 @@ describe('connectOhlcvStream', () => {
     expect(() => connectOhlcvStream({
       baseUrl: 'file:///tmp',
       identity,
-      canonicalInstrumentId: 'canonical-esz6',
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
       token: 'token',
       webSocketFactory: factory,
       onSnapshot: vi.fn(),
