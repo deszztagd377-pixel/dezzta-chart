@@ -19,6 +19,8 @@ export interface FuturesContractDto {
   definition_ts_event_ns: string;
   provider: string;
   series_type: 'contract';
+  /** Null until an exact active provider mapping exists in the durable registry. */
+  canonical_instrument_id: string | null;
 }
 
 export interface InstrumentCatalogResponse {
