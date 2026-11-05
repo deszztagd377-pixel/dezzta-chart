@@ -36,13 +36,13 @@ Overall progress is the sum of earned points across all groups. Each group must 
 | Group | Verified evidence | Missing / not yet accepted | Ledger treatment |
 |---|---|---|---|
 | M1 | React/TypeScript/Vite shell; Lightweight Charts v5; Chart/Watchlist/Settings navigation; labelled demo candles; chart lifecycle and interaction configuration | Full user-facing chart workflow and broader visual acceptance | Partial; criterion-level score not assigned |
-| M2 | Versioned OHLCV DTOs; exact-series validation; backend snapshot and stream contracts; SQLite instrument/metadata/OHLCV/coverage persistence; restart and gap-recovery tests | Deployed end-to-end operation and external source delivery are not verified; protocol documentation contains stale wording to correct | Partial; count implemented contracts and persistence only |
+| M2 | Versioned OHLCV DTOs; exact-series validation; backend snapshot and stream contracts; SQLite instrument/metadata/OHLCV/coverage persistence; restart and gap-recovery tests; protocol documentation reconciled with the verified frontend integration boundary | Deployed end-to-end operation and external source delivery are not verified | Partial; count implemented contracts and persistence only |
 | M3 | Firebase token flow in frontend; server-side identity and entitlement checks; authenticated stream integration at code level | Deployed auth configuration, operational security review, and production behavior not verified | Partial |
 | M4 | Zoom/scroll/pinch/crosshair behavior; timeframe selector; component-level selector tests | Most intervals are disabled because current visible fixture is daily; drawing/measurement tools not implemented | Early partial |
 | M5 | Pure SMA, EMA, RSI, MACD, and Bollinger calculation functions with tests | Indicator hook is not wired to visible chart UI; no approved visible educational indicator panel | Calculation groundwork only |
 | M6 | Responsive chart lifecycle and some viewport/touch foundations | Physical Android device acceptance, complete accessibility review, and final visual redesign | Partial / unverified |
 | M7 | Offline read-only ES/NQ/GC catalog fixture; grid preference and reset behavior | Persistent layouts, expanded settings, editable watchlist behavior | Partial |
-| M8 | GitHub Actions frontend tests/build, backend tests, container build; CI passing on multiple exact commits | Root package lockfile and clean-install migration; dependency/security scanning; Android packaging and release validation | Partial |
+| M8 | GitHub Actions frontend tests/build, backend tests, and container build; latest audited commit `e19a3e3a8f926bdb68f0b2eb2fa59be5a5318c19` passed workflow run [#42056143166](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42056143166) | Root package lockfile and clean-install migration; dependency/security scanning; Android packaging and release validation | Partial |
 
 ## Non-duplication rules
 
