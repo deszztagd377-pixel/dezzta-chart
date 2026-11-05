@@ -11,7 +11,6 @@ import { demoCandles, getDemoCandleValidationErrors } from '../data/demoCandles'
 import { startOhlcvStreamSupervisor } from '../services/ohlcvStreamSupervisor';
 import {
   getMarketDataSnapshot,
-  publishMarketDataSnapshot,
   resetMarketDataSnapshot,
   subscribeMarketData,
 } from '../services/marketDataStore';
