@@ -7,7 +7,7 @@ Working branch: phase-2/market-data-foundation
 
 ## Overall progress
 
-- Estimated overall progress toward the intended full application: 19.60%.
+- Last formally weighted estimate toward the intended full application: 19.60% (historical; not freshly recalculated). The owner also recalls a 20.9% conversational checkpoint; both are preserved pending a reproducible milestone-weight reconciliation. See [docs/PROJECT_PROGRESS.md](docs/PROJECT_PROGRESS.md).
 - Progress is a weighted milestone estimate, not a code-line percentage or a claim of scientific measurement. Decimal precision is recorded to two places for consistent tracking.
 - Latest weighted progress increment formally recorded remains +0.20 percentage points (19.40% → 19.60%) for backend WebSocket authorization and entitlement hardening. The frontend stream integration was subsequently wired into the chart and Firebase token lifecycle, but no new overall-progress increment is assigned until the milestone ledger is reconciled. No live provider delivery or deployment credit is included.
 - Phase 2 includes the FastAPI backend, verified-definition catalog lifecycle, optional provider adapters, bounded OHLCV ingestion, validated snapshots, and an authenticated backend WebSocket broadcaster with atomic snapshot/watermark handoff. The frontend now starts/stops an authenticated stream supervisor for an eligible selected contract, obtains Firebase ID tokens through the auth provider, validates stream snapshots and sequence-guarded updates, and applies accepted data through the shared market-data store. This is code-level integration only; backend deployment, live provider delivery, synchronized exchange timing, and production freshness remain unverified. Instrument definitions, normalized OHLCV bars, and coverage/gap intervals have durable SQLite storage; bounded explicit historical gap recovery is implemented.
@@ -20,7 +20,7 @@ Working branch: phase-2/market-data-foundation
 - Existing chart interaction includes zoom/scroll, pinch scaling, drag scrolling, and crosshair configuration. Interaction options have focused unit coverage.
 - A timeframe type and selector exist for second, minute, hour, day, week, and month intervals.
 - An OHLCV aggregation utility and Vitest unit tests exist.
-- GitHub Actions runs frontend unit tests, a frontend production build, backend tests, and a backend container-image build. Run `42052645145` passed all four stages on exact branch HEAD `274d7f536e33b0b4745eaff76fbfe134a6a237f2` (2026-11-05).
+- GitHub Actions runs frontend unit tests, a frontend production build, backend tests, and a backend container-image build. Run [`42053572558`](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42053572558) passed all six substantive steps on exact branch HEAD `8ae99f5c5a11cdfb8b5d52acc1455a47259f194b` (2026-11-05).
 
 ## Verified limitations
 
@@ -34,7 +34,7 @@ Working branch: phase-2/market-data-foundation
 - Data freshness requirement: clearly distinguish source-event time, receive time, and display time. Do not label sample, delayed, or unsynchronized data as live/real-time. End-to-end freshness depends on provider, network, backend, and device.
 - Watchlist contains a read-only offline ES/NQ/GC catalog fixture. Settings exposes the grid visibility preference and reset behavior; broader account, chart-layout, and indicator settings are not implemented.
 - Drawing tools, indicator tier navigation, Volume Profile, Footprint, Heatmap, Liquidation Maps, chart-layout/settings persistence, and Android packaging are not implemented.
-- No package-lock.json was present in the audited repository tree.
+- No root `package-lock.json` was present in the audited repository tree; CI currently uses `npm install`. A lockfile/clean-install migration remains unimplemented and must be verified before switching to `npm ci`.
 
 ## Phase 2 — Market Data Foundation
 
@@ -69,7 +69,7 @@ Status: provider and initial instrument scope selected; transport contract, back
 
 - No production live or historical provider session, provider download, or subscription is configured or verified.
 - Databento SDK source adapters and the normalized bounded OHLCV ingestion path are implemented, but provider access is disabled by default and no real account/session has been validated. Do not enable provider flags without a separate review of entitlement, exchange licensing, explicit symbols, historical query costs, and operational limits.
-- Backend OHLCV WebSocket broadcast and atomic snapshot/watermark handoff are implemented. The frontend now has a separately tested authenticated WebSocket transport that obtains a token from its caller, authenticates, subscribes to an exact series, validates the snapshot and sequence-guarded updates, and rejects gaps. It is not yet wired to a Firebase ID-token lifecycle, chart lifecycle, or shared market-data store; reconnect/backoff, heartbeat policy, visibility/network awareness, and connection-state UI remain outstanding. The frontend still loads HTTP snapshots and requires `VITE_MARKET_DATA_API_BASE_URL` to reach a deployed backend.
+- Backend OHLCV WebSocket broadcast and atomic snapshot/watermark handoff are implemented. The frontend transport is now wired at code level into the chart lifecycle and shared market-data store: `CandlestickChart` obtains Firebase ID tokens through `AuthProvider`, starts/stops the stream supervisor, validates snapshots and sequence-guarded updates, and consumes accepted events. This does not verify a deployed backend or live provider delivery. Further operational checks such as deployed end-to-end validation, reconnect behavior under real network transitions, heartbeat policy, and sustained-load performance remain outstanding.
 - Historical provider definition refresh now feeds the durable journal/synchronizer when explicitly invoked by the provider lifecycle. There is no periodic refresh scheduler, and no real provider account/session has been validated.
 - Databento definition events, canonical instruments, point-in-time provider mappings, and metadata revisions are persisted in SQLite with replay-safe transitions. OHLCV base/derived bars and coverage/gap intervals are also persisted. Bounded manual historical gap recovery is implemented using exact resolver mappings and configured query windows. The instrument catalog and WebSocket event delivery remain process-local; automatic gap-recovery scheduling and frontend stream replay remain unimplemented.
 - The authenticated WebSocket supports exact-series OHLCV snapshot subscriptions and bounded in-memory updates for accepted base and derived bars. The underlying bars now survive backend restart in SQLite, but the WebSocket event stream itself is not a durable event log and does not replay missed client updates. It does not provide order-book/MBO events.
@@ -471,8 +471,8 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Corrected `docs/SECURITY_CONFIGURATION.md` to match the inspected implementation: `GET /v1/ohlcv` requires a verified Firebase Bearer identity and per-instrument entitlement checks; the authenticated WebSocket also verifies identity and instrument entitlement.
 - Documented the remaining public endpoint classification decision for `/health`, `/v1/market-data/status`, and `/v1/instruments`.
 - Recorded release follow-ups for HTTPS/WSS deployment verification, rate limiting, dependency/secret/container scanning, reproducible frontend dependency installation, and operational recovery review.
-- Added a firm product-planning gate: before the overall project reaches 50%, prioritize foundation work only—security review, dependency hygiene, tests, performance, accessibility, Android responsiveness, architecture, error handling, and documentation. Do not start the major UI/feature expansion before a formal 50% checkpoint review.
-- At the 50% checkpoint, begin a separate design and implementation phase for safe, non-transactional chart-learning features: chart presentation options, drawing/annotation tools (trend/horizontal/vertical lines, rectangles/zones, labels, Fibonacci as an educational measurement tool), undo/redo, persistence, and educational mathematical visualizations. Each feature still requires design review, implementation, tests, and owner acceptance.
+- Added a firm product-planning gate: before the overall project reaches 50%, prioritize foundation work only—security review, dependency hygiene, tests, performance, accessibility, Android responsiveness, architecture, error handling, and documentation. Do not start the major UI/feature expansion before a formal 40% checkpoint review.
+- At the 40% checkpoint, begin a separate design and implementation phase for safe, non-transactional chart-learning features: chart presentation options, drawing/annotation tools (trend/horizontal/vertical lines, rectangles/zones, labels, Fibonacci as an educational measurement tool), undo/redo, persistence, and educational mathematical visualizations. Each feature still requires design review, implementation, tests, and owner acceptance.
 - Scope boundary: no brokerage/order execution, buy/sell signals, or speculative order-flow/liquidation features are included. This gate is a planning requirement, not a claim that the future features are already implemented.
 - Documentation-only update; weighted overall progress remains 19.60%. No application code changed. The exact branch-head CI run #42043081654 for commit `6a3a27cb127c0b20825a7cdc0224a6ebc9fdc320` subsequently completed successfully: frontend unit tests, frontend production build, backend tests, and backend container image build all passed. This verifies the configured checks for this documentation commit only; it is not a production-security certification. `main` remains untouched.
 
@@ -499,3 +499,12 @@ Status: provider and initial instrument scope selected; transport contract, back
 - This verifies the configured automated checks only. It does not verify a deployed backend, Firebase production configuration, provider credentials/session, real provider delivery, exchange-synchronized timestamps, end-to-end latency, or sustained-load behavior.
 - Progress accounting: the last formally weighted estimate remains 19.60%; the user recalls a 20.9% conversational checkpoint. The available repository ledger does not yet define a reproducible weight calculation that reconciles these values or assigns credit to the newly completed frontend integration. Keep both as historical references and do not publish a new overall percentage until the milestone ledger is rebuilt and reviewed.
 - `main` remains at `e3841681bc69b73619058deaf939df82ae5116a1`; all work remains on `phase-2/market-data-foundation`.
+
+
+### 2026-11-05 — Progress record and 40% expansion gate
+- Added `docs/PROJECT_PROGRESS.md` as the dedicated progress-accounting record.
+- Preserved the last formally weighted estimate of 19.60% and the owner's recalled 20.9% checkpoint as historical values; neither is relabelled as a newly recalculated current percentage.
+- Documented why the values cannot yet be reconciled: no consolidated 100%-weighted milestone ledger with non-duplicated acceptance criteria and evidence links exists.
+- Updated the major UI/feature expansion gate from 50% to 40%, following the owner's clarification. A scoped blueprint and owner review remain required at that gate.
+- Corrected stale frontend WebSocket integration wording and recorded the exact successful CI run for branch HEAD `8ae99f5c5a11cdfb8b5d52acc1455a47259f194b`.
+- This is a documentation/accounting update only; no application runtime code changed and no new overall percentage is claimed.
