@@ -26,11 +26,11 @@ Preserve the verified project state and safe next steps across chat changes. Thi
 - Frontend: React 18, TypeScript 5, Vite 4, Lightweight Charts 5.
 - Backend: FastAPI/Python 3.12 CI, SQLite persistence, OHLCV pipeline and authenticated transport components.
 - Existing chart uses a clearly labelled local DEMO fixture unless a trusted backend snapshot is available.
-- The frontend has an authenticated WebSocket transport module, but it is not yet connected end-to-end to Firebase token lifecycle, chart lifecycle, and shared chart state.
+- The frontend authenticated WebSocket path is now integrated at code level: `CandlestickChart` starts/stops `startOhlcvStreamSupervisor`, obtains Firebase ID tokens through `AuthProvider`, and consumes validated snapshots/updates from `marketDataStore`. This does not prove a deployed backend or live provider delivery.
 - The backend broadcaster is not a durable event log and does not replay missed updates.
 - No live provider session, real provider delivery, synchronized exchange clock, or production feed freshness has been verified.
 - CI workflow runs frontend tests, frontend production build, backend pytest, and backend container image build.
-- Last known successful run on the current branch head: run 42050582571, commit `4ca3243957991a9da4d22b2c8674b661dd456c55`.
+- Latest verified successful run before this documentation update: run `42051868901`, commit `551ae8da92175ca96d8a947fe35fcf782a698a87`; frontend tests/build, backend tests, and backend container-image build all passed.
 - CME session calendar document is an accepted design only. Calendar implementation and related migrations have not started.
 
 ## Progress accounting discrepancy — do not silently overwrite
@@ -116,3 +116,17 @@ Safe indicator/UI direction: any later educational indicator display must be exp
 - No source-code files were changed during this audit.
 - Progress remains unreconciled: the status file's 19.60% and the owner's remembered 20.9% remain historical claims until the weighted milestone ledger is checked against actual commits and deliverables. Do not invent a new percentage from this audit alone.
 - Next work: reconcile milestone accounting and audit frontend behavior/tests; make one small, reversible educational-chart improvement only after selecting a clearly testable issue. Preserve the 50% gate for the major UI/feature expansion.
+
+
+## Stage audit — 2026-11-05 (10-minute focused work cadence)
+
+- User preference: organize work into focused stages of approximately 10 minutes. Before each stage, explain the intended work; afterward report changed files, evidence, commit, CI, limitations, and any decisions requiring owner input. Do not claim exact elapsed time if not measured.
+- User clarified that major UI reconstruction and broad feature expansion should begin at the 50% project-progress gate. Until then, focus on foundation quality, security, dependency hygiene, tests, performance, accessibility, Android responsiveness, architecture, error handling, and documentation.
+- Source audit found that the old status statement saying frontend WebSocket was not connected had become stale. Current `CandlestickChart` integrates Firebase token retrieval, `startOhlcvStreamSupervisor`, shared `marketDataStore`, validated snapshot/update handling, and effect cleanup.
+- `ohlcvStreamSupervisor` obtains a fresh token on reconnect and routes validated stream events into the store; `ohlcvWebSocketClient` validates the snapshot/watermark handshake and stream sequence.
+- CI run `42051868901` passed on commit `551ae8da92175ca96d8a947fe35fcf782a698a87`. It passed frontend unit tests, frontend production build, backend tests, and backend container-image build.
+- Updated `PROJECT_STATUS.md` in commit `1cb643d98818651c3a0adb1fc19fe113f8a18465` to correct the stale integration statement and record the verification boundary.
+- Progress discrepancy remains open: repository's last formally weighted estimate is 19.60%; the user recalls 20.9%. The repository does not yet expose a reproducible milestone-weight ledger to justify either as a newly verified current percentage. Do not change the percentage until deliverables and weights are reconciled.
+- No source-code or runtime behavior changed in this audit. No live provider, production deployment, real-time freshness, synchronized exchange clock, or zero-latency claim is verified.
+- Current working branch after the status update: `1cb643d98818651c3a0adb1fc19fe113f8a18465`; `main` remains `e3841681bc69b73619058deaf939df82ae5116a1`.
+- Next stage: reconcile the weighted progress ledger and review the frontend regression-test inventory. Select a small, safe educational-chart quality improvement only after identifying a concrete gap. Preserve the 50% gate.
