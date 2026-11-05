@@ -29,16 +29,20 @@ Interpretation and accounting safeguards:
 
 The project percentage is a weighted milestone estimate toward the intended full application. It is **not** the percentage of files written, lines of code, commits, or CI jobs completed. A documentation-only commit or a passing CI run does not automatically increase overall project completion.
 
+## Proposed weighted ledger
+
+A proposed eight-group, 100%-total milestone model is now available in [PROJECT_MILESTONE_LEDGER.md](PROJECT_MILESTONE_LEDGER.md). It separates visible chart capability, data contracts/persistence, security, interaction tools, educational indicators, responsive UX, settings/watchlist, and release quality. The weights are a proposal only; criterion-level scoring and owner review are still required before calculating a new overall percentage.
+
 ## Why the discrepancy remains open
 
-The repository contains milestone and change-history notes, but does not yet contain a consolidated, reproducible ledger that:
+The repository now contains a proposed consolidated ledger, but it has not yet been approved or scored. A reproducible final calculation still requires:
 1. Defines the complete project milestone groups and their total weights (100%).
 2. Defines objective acceptance criteria for each milestone.
 3. Assigns completion credit only to verified deliverables, avoiding duplicate credit for the same capability across commits.
 4. Separates implemented code, automated tests, user-visible behavior, deployment verification, and owner-approved design.
 5. Records evidence links and the calculation used for each percentage change.
 
-Until that ledger is built and reviewed, **19.60% and 20.9% remain historical references**, not competing freshly verified measurements. Do not choose one by guesswork and do not increase the percentage merely because more commits exist.
+Until the proposed ledger is reviewed and scored, **19.60% and 20.9% remain historical references**, not competing freshly verified measurements. Do not choose one by guesswork and do not increase the percentage merely because more commits exist.
 
 ## Verified evidence at this snapshot
 
