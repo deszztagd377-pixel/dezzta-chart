@@ -160,7 +160,8 @@ const InstrumentCatalogPanel: React.FC<InstrumentCatalogPanelProps> = ({
               <span className="instrument-catalog__details">
                 <strong>{contract.raw_symbol}</strong>
                 <span>Expires {contract.expiration} · {contract.currency ?? 'Currency n/a'}</span>
-                <span>Min tick {contract.min_price_increment ?? 'n/a'} · ID {contract.instrument_id}</span>
+                <span>Min tick {contract.min_price_increment ?? 'n/a'} · Provider ID {contract.instrument_id}</span>
+                <span>{contract.canonical_instrument_id ? 'Canonical registry mapping verified' : 'Canonical mapping not registered'}</span>
               </span>
               <span className="instrument-catalog__choose">{isSelected(contract) ? 'SELECTED' : 'SELECT'}</span>
             </button>
@@ -169,7 +170,7 @@ const InstrumentCatalogPanel: React.FC<InstrumentCatalogPanelProps> = ({
       )}
 
       <div className="instrument-catalog__footnote">
-        Contract selection uses verified backend definitions only. Selection stores metadata; it does not imply that OHLCV data is available or that the chart has switched from DEMO.
+        Contract selection uses verified backend definitions only. Canonical identity is shown only when an active durable provider mapping exists. Selection does not imply entitlement, OHLCV availability, or live data.
       </div>
     </section>
   );
