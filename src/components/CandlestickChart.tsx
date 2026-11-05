@@ -8,7 +8,7 @@ import type { CandlestickData, IChartApi } from 'lightweight-charts';
 import type { Timeframe } from '../types';
 import type { FuturesContractDto } from '../types/instrumentCatalogApi';
 import { demoCandles, getDemoCandleValidationErrors } from '../data/demoCandles';
-import { fetchOhlcvSnapshot, OhlcvRequestError } from '../services/ohlcvClient';
+import { startOhlcvStreamSupervisor } from '../services/ohlcvStreamSupervisor';
 import {
   getMarketDataSnapshot,
   publishMarketDataSnapshot,
@@ -201,79 +201,85 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
   useEffect(() => {
     if (!isChartReady || !setSeriesDataRef.current) return;
 
-    const controller = new AbortController();
-    const setSeriesData = setSeriesDataRef.current;
-
     if (!selectedContract) {
-      setSeriesData(demoCandles);
+      setSeriesDataRef.current(demoCandles);
       setMarketDataStatus('demo');
       setMarketDataDetail('Offline sample candles. No contract is selected.');
       resetMarketDataSnapshot(null, 'demo', 'Offline sample candles are excluded from indicator calculations.');
-      return () => controller.abort();
+      return;
     }
 
-    const identity: SeriesIdentity = {
+    const identity = {
       dataset: selectedContract.dataset,
       publisherId: selectedContract.publisher_id,
       instrumentId: selectedContract.instrument_id,
       rawSymbol: selectedContract.raw_symbol,
+      timeframe,
     };
 
-    // A Firebase session is required by the authenticated OHLCV endpoint.
-    if (!user) {
-      setSeriesData(demoCandles);
+    // A canonical ID must come from the validated instrument catalog. Never
+    // derive it from raw_symbol or provider instrument identifiers.
+    if (!selectedContract.canonical_instrument_id) {
+      setSeriesDataRef.current(demoCandles);
       setMarketDataStatus('unavailable');
-      setMarketDataDetail('Sign in with Firebase to request authenticated backend data.');
-      resetMarketDataSnapshot({ ...identity, timeframe }, 'unavailable', 'Firebase sign-in is required.');
-      return () => controller.abort();
+      setMarketDataDetail('This contract has no active canonical registry mapping; authenticated streaming is disabled.');
+      resetMarketDataSnapshot(identity, 'unavailable', 'No active canonical instrument mapping exists.');
+      return;
     }
 
-    // Never leave the previous contract's candles on screen during a switch.
-    // The explicit DEMO label remains visible until this exact series validates.
-    setSeriesData(demoCandles);
-    setMarketDataStatus('loading');
-    setMarketDataDetail(`Requesting ${identity.rawSymbol} · ${timeframe} from the read-only backend.`);
-    resetMarketDataSnapshot({ ...identity, timeframe }, 'loading', 'Waiting for validated backend bars.');
-
-    fetchOhlcvSnapshot({
-      baseUrl: marketDataApiBaseUrl,
-      identity: { ...identity, timeframe },
-      getIdToken,
-      signal: controller.signal,
-      limit: 2000,
-    }).then((result) => {
-      if (controller.signal.aborted) return;
-
-      if (result.status === 'ready' || result.status === 'degraded') {
-        if (result.candles.length > 0) {
-          publishMarketDataSnapshot({
-            identity: { ...identity, timeframe },
-            status: result.status,
-            bars: result.candles,
-            detail: result.detail ?? null,
-          });
-          chartRef.current?.timeScale().fitContent();
-          return;
-        }
-      }
-
-      setSeriesData(demoCandles);
-      resetMarketDataSnapshot({ ...identity, timeframe }, 'unavailable', result.detail ?? 'No validated bars are available.');
+    if (!user) {
+      setSeriesDataRef.current(demoCandles);
       setMarketDataStatus('unavailable');
-      setMarketDataDetail(result.detail ?? 'No validated bars are available. Demo candles remain displayed.');
-    }).catch((error: unknown) => {
-      if (controller.signal.aborted ||
-          (error instanceof OhlcvRequestError && error.code === 'cancelled')) return;
+      setMarketDataDetail('Sign in with Firebase to request authenticated backend data.');
+      resetMarketDataSnapshot(identity, 'unavailable', 'Firebase sign-in is required.');
+      return;
+    }
 
-      setSeriesData(demoCandles);
-      const detail = error instanceof Error ? error.message : 'OHLCV request failed.';
-      resetMarketDataSnapshot({ ...identity, timeframe }, 'error', detail);
-      setMarketDataStatus('error');
-      setMarketDataDetail(detail);
+    // Clear prior series immediately. The supervisor owns the only live
+    // transport and obtains an atomic snapshot + watermark before updates.
+    setSeriesDataRef.current(demoCandles);
+    setMarketDataStatus('loading');
+    setMarketDataDetail(`Authenticating WebSocket stream for ${identity.rawSymbol} · ${timeframe}.`);
+    resetMarketDataSnapshot(identity, 'loading', 'Waiting for an authenticated WebSocket snapshot.');
+
+    const supervisor = startOhlcvStreamSupervisor({
+      baseUrl: marketDataApiBaseUrl,
+      identity,
+      canonicalInstrumentId: selectedContract.canonical_instrument_id,
+      getIdToken,
+      onStatus: (status) => {
+        if (status === 'connecting' || status === 'reconnecting') {
+          setMarketDataStatus('loading');
+          setMarketDataDetail(status === 'reconnecting'
+            ? 'Stream interrupted; requesting a fresh token and snapshot.'
+            : 'Connecting to authenticated market-data WebSocket.');
+        } else if (status === 'authenticated') {
+          setMarketDataStatus('loading');
+          setMarketDataDetail('Firebase identity verified; subscribing to the canonical instrument.');
+        } else if (status === 'subscribed') {
+          const snapshot = getMarketDataSnapshot();
+          setMarketDataStatus(snapshot.status === 'degraded' ? 'degraded' : 'ready');
+          setMarketDataDetail(snapshot.detail ?? `Authenticated WebSocket · ${identity.rawSymbol} · ${timeframe}`);
+        } else if (status === 'stopped') {
+          setMarketDataStatus('unavailable');
+          setMarketDataDetail('Authenticated market-data stream stopped.');
+        }
+      },
+      onError: (error) => {
+        setMarketDataStatus('error');
+        setMarketDataDetail(error.message);
+      },
     });
 
-    return () => controller.abort();
-  }, [isChartReady, marketDataApiBaseUrl, selectedContract, timeframe, user, getIdToken]);
+    return () => supervisor.stop();
+  }, [
+    isChartReady,
+    marketDataApiBaseUrl,
+    selectedContract,
+    timeframe,
+    user,
+    getIdToken,
+  ]);
 
   const selectedSymbol = selectedContract?.raw_symbol;
   const badgeText = !selectedSymbol
