@@ -1,6 +1,6 @@
-# DEZZTA CHART
+# DEZZTA CHART — Project Status
 
-> **Progress-history correction (2026-11-05):** The owner clarifies that conversational checkpoints progressed from **20.3% to 20.9%**. The older **19.60%** remains a historical formal estimate, not a later regression. **19.9% is not a verified calculation.** Do not publish a fresh overall percentage until the milestone ledger reconciles these records. — Project Status
+> **Progress-history correction (2026-11-05):** The owner clarifies that conversational checkpoints progressed from **20.3% to 20.9%**. The older **19.60%** remains a historical formal estimate, not a later regression. **19.9% is not a verified calculation.** Do not publish a fresh overall percentage until the milestone ledger reconciles these records.
 
 Last audited: 2026-11-05
 Repository: deszztagd377-pixel/dezzta-chart
