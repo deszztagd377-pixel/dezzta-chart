@@ -37,8 +37,8 @@ Preserve the verified project state and safe next steps across chat changes. Thi
 
 **Owner correction (2026-11-05):** The historical conversational sequence was **20.3% → 20.9%**. Preserve 20.9% as the latest owner-confirmed conversational checkpoint; 19.60% is an older formally documented estimate, not proof of a regression. No reproducible formula for the 20.3%/20.9% sequence has yet been recovered. 19.9% is not verified and must not be used as a current figure.
 
-- The user recalls the latest conversational checkpoint as **20.9%**.
-- `PROJECT_STATUS.md` records **19.60%** as the last formally weighted historical estimate; the dedicated `docs/PROJECT_PROGRESS.md` now preserves this alongside the owner's recalled **20.9%** and explains why no fresh reconciled percentage is yet justified.
+- The owner confirms the conversational checkpoint sequence as **20.3% → 20.9%**; 20.9% is the latest historical conversational checkpoint.
+- `PROJECT_STATUS.md` records **19.60%** as the older formally weighted historical estimate; `docs/PROJECT_PROGRESS.md` preserves the owner's confirmed **20.3% → 20.9%** sequence. `docs/PROJECT_MILESTONE_LEDGER.md` now contains a proposed 100%-weighted model pending owner review and criterion-level scoring.
 - These are inconsistent records. Do not state either as a freshly verified current percentage until the milestone weights and completed deliverables are reconciled.
 - Do not reduce the user's remembered checkpoint merely because the status file is stale; equally, do not inflate the official estimate without evidence.
 - Next progress audit must compare milestone definitions, verified commits, test evidence, and actual user-visible deliverables, then update the canonical status document with an explanation of the discrepancy.
@@ -92,7 +92,7 @@ Do not implement or activate live futures market feeds, real-time order-flow fea
 
 ## UI and feature expansion gate — owner clarification (2026-11-05)
 
-The owner has revised the major UI reconstruction and broad feature-expansion gate to **40% overall project progress**. Do not begin the large phase before that checkpoint.
+The owner has revised the major UI reconstruction and broad feature-expansion gate to **40% overall project progress**. At 40%, prepare a scoped blueprint and obtain owner review before major implementation.
 
 At the 40% gate, first prepare a scoped UI/feature blueprint and review it with the owner before large implementation. The target direction is a polished, mobile-first educational chart application with compact DEZZTA branding, dark palette, restrained gradients, chart prominence, compact navigation/toolbars, and genuinely working controls. Feature work must be incremental, testable, and based on the verified capabilities of the existing code.
 
@@ -128,7 +128,7 @@ Safe indicator/UI direction: any later educational indicator display must be exp
 - `ohlcvStreamSupervisor` obtains a fresh token on reconnect and routes validated stream events into the store; `ohlcvWebSocketClient` validates the snapshot/watermark handshake and stream sequence.
 - CI run `42051868901` passed on commit `551ae8da92175ca96d8a947fe35fcf782a698a87`. It passed frontend unit tests, frontend production build, backend tests, and backend container-image build.
 - Updated `PROJECT_STATUS.md` in commit `1cb643d98818651c3a0adb1fc19fe113f8a18465` to correct the stale integration statement and record the verification boundary.
-- Progress discrepancy remains open: repository's last formally weighted estimate is 19.60%; the user recalls 20.9%. The repository does not yet expose a reproducible milestone-weight ledger to justify either as a newly verified current percentage. Do not change the percentage until deliverables and weights are reconciled.
+- Progress discrepancy remains open: repository's last formally weighted estimate is 19.60%; the user recalls 20.9%. The proposed ledger is not yet approved or scored, so no new current percentage is published. Do not change the percentage until deliverables and weights are reconciled.
 - No source-code or runtime behavior changed in this audit. No live provider, production deployment, real-time freshness, synchronized exchange clock, or zero-latency claim is verified.
 - Current working branch after the status update: `1cb643d98818651c3a0adb1fc19fe113f8a18465`; `main` remains `e3841681bc69b73619058deaf939df82ae5116a1`.
 - Next stage: reconcile the weighted progress ledger and review the frontend regression-test inventory. Select a small, safe educational-chart quality improvement only after identifying a concrete gap. Preserve the revised 40% gate.
