@@ -90,13 +90,18 @@ def test_instrument_catalog_exposes_only_registered_canonical_identity() -> None
 
     # A provider definition without a durable active registry mapping must not
     # receive a fabricated identity.
-    application.state.instrument_registry = type(
-        "EmptyRegistry", (), {
-            "resolve_provider_mapping": lambda *args, **kwargs: None,
-            "get_instrument": lambda *args, **kwargs: None,
-        }
-    )()
-    unmapped = TestClient(application).get("/v1/instruments?root=ES")
+    unmapped_app = create_app(make_settings())
+    unmapped_app.state.catalog.replace_definitions([{
+        "raw_symbol": "ESZ6",
+        "instrument_id": 101,
+        "publisher_id": 1,
+        "instrument_class": "F",
+        "expiration": "2026-12-18",
+        "currency": "USD",
+        "min_price_increment": 250_000_000,
+        "ts_event": 1_790_000_000_000_000_000,
+    }])
+    unmapped = TestClient(unmapped_app).get("/v1/instruments?root=ES")
     assert unmapped.json()["contracts"][0]["canonical_instrument_id"] is None
 
 
