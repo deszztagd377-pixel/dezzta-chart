@@ -249,6 +249,9 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
           setMarketDataStatus('loading');
           setMarketDataDetail('Firebase identity verified; subscribing to the canonical instrument.');
         } else if (status === 'subscribed') {
+          // The validated snapshot replaces demo candles with a different time
+          // range; fit once at snapshot arrival, not on every streaming tick.
+          chartRef.current?.timeScale().fitContent();
           const snapshot = getMarketDataSnapshot();
           setMarketDataStatus(snapshot.status === 'unavailable'
             ? 'unavailable'
