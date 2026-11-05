@@ -5,8 +5,7 @@
 This document and the matching frontend parser define the versioned
 transport-neutral OHLCV update contract. The backend now authenticates a
 subscription, sends an atomic snapshot/watermark handoff, and broadcasts accepted
-base and derived OHLCV revisions. The frontend still does not open the socket or
-apply updates to the shared store, so end-to-end live streaming is not available.
+base and derived OHLCV revisions. The frontend now opens the authenticated socket through the chart lifecycle, validates the snapshot/watermark handshake and sequence-guarded updates, and publishes accepted data into the shared market-data store. This is code-level integration only; deployed end-to-end operation and external provider delivery are not verified.
 
 ## Event envelope
 
@@ -108,15 +107,9 @@ an update to keep the socket alive. Client disconnects remove subscriptions.
 
 ## Remaining lifecycle work
 
-1. Frontend WebSocket client: authentication, exact-series subscription,
-   snapshot validation, sequence guard initialization, and accepted update
-   publication into the shared market-data store.
-2. Client heartbeat/ping cadence, bounded reconnect/backoff, stale-feed status,
-   and automatic snapshot resynchronization after sequence gaps or close 1013.
-3. Tests for full WebSocket update delivery, disconnect cleanup, overflow close,
-   and concurrent client behavior under a running provider ingestion loop.
-4. Durable replay/recovery across backend restarts is not implemented. Every
-   reconnect currently receives a fresh in-memory snapshot and new stream ID.
+1. Validate reconnect/backoff, heartbeat/timeout behavior, visibility/network transitions, and snapshot recovery with controlled test fixtures.
+2. Verify the integrated client against a deployed test backend with authentication configured, without enabling external provider delivery.
+3. Durable replay/recovery across backend restarts is not implemented. Every reconnect currently receives a fresh in-memory snapshot and new stream ID.
 
 The HTTP snapshot endpoint remains independently available and does not yet
 carry a stream watermark; the atomic watermark is currently supplied by the
