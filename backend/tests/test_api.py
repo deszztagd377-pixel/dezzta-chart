@@ -614,3 +614,47 @@ def test_websocket_normalizes_raw_symbol_for_snapshot_and_live_stream_identity()
         assert update["series"]["rawSymbol"] == "ESZ6"
         assert update["bar"]["rawSymbol"] == "ESZ6"
         assert update["sequence"] == 1
+
+
+def test_websocket_rechecks_revoked_entitlement_during_continuous_updates(monkeypatch) -> None:
+    monkeypatch.setattr("app.main.WEBSOCKET_ENTITLEMENT_RECHECK_SECONDS", 0.03)
+    application = _app_with_bars()
+    client = TestClient(application)
+
+    with client.websocket_connect("/ws/market-data") as websocket:
+        websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+        assert websocket.receive_json()["type"] == "market_data.status"
+        websocket.send_json({
+            "type": "market_data.subscribe",
+            "version": 1,
+            "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+            "series": {
+                "dataset": "GLBX.MDP3",
+                "publisherId": 1,
+                "instrumentId": 101,
+                "rawSymbol": "ESZ6",
+                "timeframe": "1s",
+            },
+        })
+        assert websocket.receive_json()["type"] == "market_data.ohlcv.snapshot"
+
+        application.state.instrument_entitlements.revoke(
+            subject="firebase-user-123",
+            canonical_instrument_id="0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+        )
+
+        # Keep the stream busy: access revalidation must still run on its own
+        # deadline rather than only after an idle websocket timeout.
+        disconnected = None
+        for offset in range(4, 20):
+            application.state.provider._ingest.ingest_batch([_record(offset)], "ohlcv-1s")
+            try:
+                message = websocket.receive_json()
+            except WebSocketDisconnect as exc:
+                disconnected = exc
+                break
+            assert message["type"] == "market_data.ohlcv.update"
+            time.sleep(0.01)
+
+        assert disconnected is not None, "revoked subscription remained active during continuous updates"
+        assert disconnected.code == 4403
