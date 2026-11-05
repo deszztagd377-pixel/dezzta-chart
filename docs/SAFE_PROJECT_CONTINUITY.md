@@ -86,3 +86,33 @@ Do not implement or activate live futures market feeds, real-time order-flow fea
 - Verified behavior added or corrected
 - Known limitations and unverified assumptions
 - Progress estimate and explicit evidence for any change
+
+
+## UI and feature expansion gate — owner clarification (2026-11-05)
+
+The major UI reconstruction and broad feature-expansion phase is intentionally scheduled for the **50% overall-progress milestone**, not the current foundation stage.
+
+At the 50% gate, first prepare a scoped UI/feature blueprint and review it with the owner before large implementation. The target direction is a polished, mobile-first educational chart application with compact DEZZTA branding, dark palette, restrained gradients, chart prominence, compact navigation/toolbars, and genuinely working controls. Feature work must be incremental, testable, and based on the verified capabilities of the existing code.
+
+The current stage must not prematurely redesign the whole UI or add a large indicator catalogue. It should establish a reliable, clearly labelled demo/educational foundation, audit existing modules, close regressions, and improve maintainability. The 50% milestone is a project planning gate, not a promise that every feature will be complete at that percentage.
+
+Existing-code audit findings from branch HEAD 7d6b8bac58a8e344055cc9605199bca998c84ae8:
+
+- `src/App.tsx` currently wires Chart, Watchlist, and Settings navigation; timeframe state; and the grid-visibility preference.
+- `src/components/TimeframeSelector.tsx` intentionally enables only the daily sample interval. Other displayed intervals are disabled because matching verified datasets are unavailable.
+- `src/indicators/indicatorCalculations.ts` contains tested SMA, EMA, RSI, MACD, and Bollinger calculations. These calculations are not evidence of a completed indicator UI.
+- `src/indicators/useMarketIndicators.ts` returns no indicator series for DEMO/loading/unavailable/error states and only calculates when a validated backend snapshot is ready/degraded. It is not currently wired into `src/App.tsx` or the visible chart component.
+- `src/components/CandlestickChart.tsx` creates the Lightweight Charts candlestick chart and preserves chart lifecycle/resize handling; the visible default dataset remains a labelled demo fixture unless a validated backend snapshot is accepted.
+- `src/components/BottomNav.tsx` provides Watchlist, Chart, and Settings navigation.
+- The current verified CI workflow has one combined job covering frontend unit tests, frontend production build, backend tests, and backend container-image build.
+
+Safe indicator/UI direction: any later educational indicator display must be explicitly identified as an educational visualization, use clearly labelled sample/demo data unless a separately reviewed safe data source is available, include explanatory context, and avoid buy/sell signals, trade recommendations, brokerage execution, or claims of predictive accuracy. Do not activate live speculative futures/order-flow feeds or implement Footprint/Heatmap/Liquidation Maps as trading tools.
+
+## Latest audit checkpoint — 2026-11-05
+
+- Working branch HEAD: `7d6b8bac58a8e344055cc9605199bca998c84ae8`.
+- Main HEAD: `e3841681bc69b73619058deaf939df82ae5116a1` (unchanged).
+- CI run `42051373564` completed successfully on the exact working-branch HEAD. Its Test and Build job passed frontend unit tests, frontend production build, backend tests, and backend container-image build.
+- No source-code files were changed during this audit.
+- Progress remains unreconciled: the status file's 19.60% and the owner's remembered 20.9% remain historical claims until the weighted milestone ledger is checked against actual commits and deliverables. Do not invent a new percentage from this audit alone.
+- Next work: reconcile milestone accounting and audit frontend behavior/tests; make one small, reversible educational-chart improvement only after selecting a clearly testable issue. Preserve the 50% gate for the major UI/feature expansion.
