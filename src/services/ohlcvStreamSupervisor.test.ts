@@ -86,6 +86,57 @@ describe('OHLCV stream supervisor', () => {
     expect(getMarketDataSnapshot().bars).toHaveLength(0);
   });
 
+  it('seeds the backend store from the first validated update after an empty snapshot', async () => {
+    const socket = new FakeSocket();
+    const supervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken: async () => 'fresh-id-token',
+      webSocketFactory: () => socket as unknown as WebSocket,
+      random: () => 0,
+    });
+    await vi.waitFor(() => expect(socket.listeners.has('open')).toBe(true));
+    socket.readyState = 1;
+    socket.emit('open', new Event('open'));
+    socket.message({ type: 'market_data.status', version: 1 });
+    socket.message({
+      type: 'market_data.ohlcv.snapshot',
+      version: 1,
+      state: 'unavailable',
+      feedState: 'live',
+      timestampUnit: 'nanoseconds',
+      priceRepresentation: 'decimal-string',
+      count: 0,
+      truncated: false,
+      bars: [],
+      detail: 'No bars yet.',
+      streamId: 'stream-a',
+      watermark: 0,
+    });
+    expect(getMarketDataSnapshot().status).toBe('unavailable');
+    expect(getMarketDataSnapshot().bars).toHaveLength(0);
+
+    socket.message({
+      type: 'market_data.ohlcv.update',
+      version: 1,
+      streamId: 'stream-a',
+      eventId: 'first-event',
+      sequence: 1,
+      emittedAtNs: '1793577601000000000',
+      operation: 'upsert',
+      isFinal: true,
+      series: identity,
+      bar: { ...bar, sequence: 1 },
+    });
+
+    expect(getMarketDataSnapshot().source).toBe('backend');
+    expect(getMarketDataSnapshot().status).toBe('degraded');
+    expect(getMarketDataSnapshot().bars).toHaveLength(1);
+    expect(getMarketDataSnapshot().bars[0].close).toBe(6000.75);
+    supervisor.stop();
+  });
+
   it('uses bounded exponential reconnect and requests a fresh token for the next attempt', async () => {
     vi.useFakeTimers();
     const sockets: FakeSocket[] = [];
