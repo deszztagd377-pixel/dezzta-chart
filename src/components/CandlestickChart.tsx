@@ -198,15 +198,15 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       if (candles.length === 0) return;
 
       const lastChange = snapshot.lastChange;
-      const canApplyIncrementally =
+      if (
         lastChange.type === 'update' &&
         lastRenderedRevisionRef.current === snapshot.revision - 1 &&
         lastRenderedTimestampRef.current !== null &&
-        lastChange.bar.timestamp >= lastRenderedTimestampRef.current;
-
-      if (canApplyIncrementally) {
+        lastChange.bar.timestamp >= lastRenderedTimestampRef.current &&
+        updateSeriesRef.current
+      ) {
         const updateCandle = toCandlestickSeriesData([lastChange.bar])[0];
-        if (updateCandle) updateSeriesRef.current?.(updateCandle);
+        if (updateCandle) updateSeriesRef.current(updateCandle);
         else setSeriesDataRef.current?.(candles);
       } else {
         // Snapshot replacements, missed revisions, and historical corrections
