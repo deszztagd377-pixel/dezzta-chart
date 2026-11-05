@@ -60,7 +60,7 @@ describe('OHLCV stream supervisor', () => {
     const supervisor = startOhlcvStreamSupervisor({
       baseUrl: 'https://market.example.test',
       identity,
-      canonicalInstrumentId: 'canonical-esz6',
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
       getIdToken,
       webSocketFactory: () => socket as unknown as WebSocket,
       random: () => 0,
@@ -71,6 +71,11 @@ describe('OHLCV stream supervisor', () => {
     socket.emit('open', new Event('open'));
     expect(JSON.parse(socket.sent[0])).toEqual({ type: 'auth', token: 'fresh-id-token' });
     socket.message({ type: 'market_data.status', version: 1 });
+    expect(JSON.parse(socket.sent[1])).toMatchObject({
+      type: 'market_data.subscribe',
+      version: 1,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+    });
     socket.message(snapshot);
 
     expect(supervisor.status).toBe('subscribed');
@@ -88,7 +93,7 @@ describe('OHLCV stream supervisor', () => {
     const supervisor = startOhlcvStreamSupervisor({
       baseUrl: 'https://market.example.test',
       identity,
-      canonicalInstrumentId: 'canonical-esz6',
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
       getIdToken: async () => `token-${++tokenCount}`,
       webSocketFactory: () => {
         const socket = new FakeSocket();
@@ -131,7 +136,7 @@ describe('OHLCV stream supervisor', () => {
     const supervisor = startOhlcvStreamSupervisor({
       baseUrl: 'https://market.example.test',
       identity,
-      canonicalInstrumentId: 'canonical-esz6',
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
       getIdToken: async () => 'fresh-token',
       webSocketFactory: factory,
       minReconnectDelayMs: 10,
@@ -151,7 +156,7 @@ describe('OHLCV stream supervisor', () => {
     const supervisor = startOhlcvStreamSupervisor({
       baseUrl: 'https://market.example.test',
       identity,
-      canonicalInstrumentId: 'canonical-esz6',
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
       getIdToken: async () => 'token',
       webSocketFactory: factory,
       minReconnectDelayMs: 10,
