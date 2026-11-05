@@ -143,8 +143,8 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
     });
   }, [showGrid]);
 
-  // The shared store is the single update path for both HTTP snapshots and
-  // authenticated WebSocket revisions. This keeps the chart current without
+  // The shared store is the single update path for authenticated WebSocket
+  // snapshots and validated revisions. This keeps the chart current without
   // coupling chart rendering to the transport implementation.
   useEffect(() => {
     if (!isChartReady || !selectedContract) return;
@@ -251,7 +251,9 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
           setMarketDataDetail('Firebase identity verified; subscribing to the canonical instrument.');
         } else if (status === 'subscribed') {
           const snapshot = getMarketDataSnapshot();
-          setMarketDataStatus(snapshot.status === 'degraded' ? 'degraded' : 'ready');
+          setMarketDataStatus(snapshot.status === 'unavailable'
+            ? 'unavailable'
+            : snapshot.status === 'degraded' ? 'degraded' : 'ready');
           setMarketDataDetail(snapshot.detail ?? `Authenticated WebSocket · ${identity.rawSymbol} · ${timeframe}`);
         } else if (status === 'stopped') {
           setMarketDataStatus('unavailable');
