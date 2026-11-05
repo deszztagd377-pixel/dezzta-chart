@@ -40,6 +40,9 @@ from app.ohlcv_store import SQLiteOhlcvStore
 from app.symbology import InstrumentResolver
 
 
+WEBSOCKET_ENTITLEMENT_RECHECK_SECONDS = 60.0
+
+
 def _parse_ns(value: str | None, name: str) -> int | None:
     if value is None:
         return None
@@ -561,6 +564,8 @@ def create_app(
 
             receive_task = asyncio.create_task(websocket.receive_text())
             queue_task = None
+            loop = asyncio.get_running_loop()
+            next_entitlement_check = loop.time() + WEBSOCKET_ENTITLEMENT_RECHECK_SECONDS
             try:
                 while True:
                     if subscription.overflowed:
@@ -569,9 +574,21 @@ def create_app(
                     queue_task = asyncio.create_task(subscription.queue.get())
                     done, _ = await asyncio.wait(
                         {receive_task, queue_task},
-                        timeout=60.0,
+                        timeout=max(0.0, next_entitlement_check - loop.time()),
                         return_when=asyncio.FIRST_COMPLETED,
                     )
+                    # Revalidate on a monotonic deadline independent of market
+                    # update frequency. A busy stream must not postpone access
+                    # revocation checks indefinitely.
+                    if loop.time() >= next_entitlement_check:
+                        try:
+                            still_authorized = await asyncio.to_thread(has_series_access)
+                        except Exception:
+                            still_authorized = False
+                        if not still_authorized:
+                            await websocket.close(code=4403, reason="Instrument access revoked")
+                            return
+                        next_entitlement_check = loop.time() + WEBSOCKET_ENTITLEMENT_RECHECK_SECONDS
                     if not done:
                         if queue_task is not None and not queue_task.done():
                             queue_task.cancel()
@@ -580,13 +597,6 @@ def create_app(
                             except asyncio.CancelledError:
                                 pass
                             queue_task = None
-                        try:
-                            still_authorized = await asyncio.to_thread(has_series_access)
-                        except Exception:
-                            still_authorized = False
-                        if not still_authorized:
-                            await websocket.close(code=4403, reason="Instrument access revoked")
-                            return
                         continue
                     if receive_task in done:
                         try:
