@@ -1,0 +1,113 @@
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import {
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signInWithRedirect,
+  signOut,
+  type User,
+} from 'firebase/auth';
+import { createGoogleProvider, getFirebaseAuth, isFirebaseConfigured } from '../services/firebase';
+
+type AuthStatus = 'unconfigured' | 'loading' | 'signed-out' | 'signed-in' | 'error';
+
+interface AuthContextValue {
+  user: User | null;
+  status: AuthStatus;
+  error: string | null;
+  signInEmail(email: string, password: string): Promise<void>;
+  registerEmail(email: string, password: string): Promise<void>;
+  signInGoogle(): Promise<void>;
+  signOutUser(): Promise<void>;
+  getIdToken(): Promise<string>;
+  clearError(): void;
+}
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+function readableAuthError(error: unknown): string {
+  const code = typeof error === 'object' && error !== null && 'code' in error
+    ? String((error as { code: unknown }).code)
+    : '';
+  const messages: Record<string, string> = {
+    'auth/invalid-email': 'Format email tidak valid.',
+    'auth/user-disabled': 'Akun ini dinonaktifkan.',
+    'auth/user-not-found': 'Akun tidak ditemukan.',
+    'auth/wrong-password': 'Email atau password tidak cocok.',
+    'auth/invalid-credential': 'Email atau password tidak cocok.',
+    'auth/email-already-in-use': 'Email sudah digunakan.',
+    'auth/weak-password': 'Password terlalu lemah. Gunakan minimal 6 karakter.',
+    'auth/network-request-failed': 'Koneksi jaringan bermasalah.',
+    'auth/too-many-requests': 'Terlalu banyak percobaan. Coba lagi nanti.',
+    'auth/unauthorized-domain': 'Domain aplikasi belum diizinkan di Firebase Authentication.',
+  };
+  return messages[code] ?? 'Autentikasi gagal. Periksa konfigurasi Firebase dan coba lagi.';
+}
+
+export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [status, setStatus] = useState<AuthStatus>(
+    isFirebaseConfigured() ? 'loading' : 'unconfigured',
+  );
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const auth = getFirebaseAuth();
+    if (!auth) return;
+    return onAuthStateChanged(auth, (nextUser) => {
+      setUser(nextUser);
+      setStatus(nextUser ? 'signed-in' : 'signed-out');
+    }, (reason) => {
+      setError(readableAuthError(reason));
+      setStatus('error');
+    });
+  }, []);
+
+  const runAuthAction = useCallback(async (action: (auth: NonNullable<ReturnType<typeof getFirebaseAuth>>) => Promise<unknown>) => {
+    const auth = getFirebaseAuth();
+    if (!auth) {
+      setError('Firebase belum dikonfigurasi. Lengkapi environment VITE_FIREBASE_* terlebih dahulu.');
+      return;
+    }
+    setError(null);
+    try {
+      await action(auth);
+    } catch (reason) {
+      setError(readableAuthError(reason));
+    }
+  }, []);
+
+  const signInEmail = useCallback((email: string, password: string) =>
+    runAuthAction((auth) => signInWithEmailAndPassword(auth, email.trim(), password)), [runAuthAction]);
+  const registerEmail = useCallback((email: string, password: string) =>
+    runAuthAction((auth) => createUserWithEmailAndPassword(auth, email.trim(), password)), [runAuthAction]);
+  const signInGoogle = useCallback(() =>
+    runAuthAction((auth) => signInWithRedirect(auth, createGoogleProvider())), [runAuthAction]);
+  const signOutUser = useCallback(() =>
+    runAuthAction((auth) => signOut(auth)), [runAuthAction]);
+  const getIdToken = useCallback(async () => {
+    const auth = getFirebaseAuth();
+    if (!auth?.currentUser) throw new Error('Pengguna belum login ke Firebase.');
+    return auth.currentUser.getIdToken();
+  }, []);
+  const clearError = useCallback(() => setError(null), []);
+
+  const value = useMemo(() => ({
+    user, status, error, signInEmail, registerEmail, signInGoogle, signOutUser, getIdToken, clearError,
+  }), [user, status, error, signInEmail, registerEmail, signInGoogle, signOutUser, getIdToken, clearError]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+export function useAuth(): AuthContextValue {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used inside AuthProvider.');
+  return context;
+}
