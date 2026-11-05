@@ -71,7 +71,9 @@ function snapshotFromSocket(payload: unknown): {
  */
 export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConnection {
   if (!options.token.trim()) throw new Error('A verified identity token is required.');
-  if (!options.canonicalInstrumentId.trim()) throw new Error('A canonical instrument ID is required.');
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(options.canonicalInstrumentId)) {
+    throw new Error('A validated canonical instrument UUID is required.');
+  }
   const timeoutMs = options.timeoutMs ?? 10_000;
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
     throw new Error('WebSocket handshake timeout must be positive.');
