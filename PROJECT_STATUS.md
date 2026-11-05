@@ -465,3 +465,14 @@ Status: provider and initial instrument scope selected; transport contract, back
 - GitHub Actions workflow [#41841139463](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/41841139463) completed successfully: frontend unit tests, frontend production build, backend tests, and backend container image build all passed.
 - The client transport is not yet connected to Firebase SDK/token refresh, `CandlestickChart`, or `marketDataStore`. There is no reconnect loop, heartbeat scheduler, deployed end-to-end validation, or real Databento stream claim.
 - Overall weighted progress remains 19.60%; this transport is a tested integration component, not a completed end-to-end live-data milestone. `main` remains untouched.
+
+
+### 2026-11-05 — Security baseline correction and 50% product checkpoint gate
+
+- Corrected `docs/SECURITY_CONFIGURATION.md` to match the inspected implementation: `GET /v1/ohlcv` requires a verified Firebase Bearer identity and per-instrument entitlement checks; the authenticated WebSocket also verifies identity and instrument entitlement.
+- Documented the remaining public endpoint classification decision for `/health`, `/v1/market-data/status`, and `/v1/instruments`.
+- Recorded release follow-ups for HTTPS/WSS deployment verification, rate limiting, dependency/secret/container scanning, reproducible frontend dependency installation, and operational recovery review.
+- Added a firm product-planning gate: before the overall project reaches 50%, prioritize foundation work only—security review, dependency hygiene, tests, performance, accessibility, Android responsiveness, architecture, error handling, and documentation. Do not start the major UI/feature expansion before a formal 50% checkpoint review.
+- At the 50% checkpoint, begin a separate design and implementation phase for safe, non-transactional chart-learning features: chart presentation options, drawing/annotation tools (trend/horizontal/vertical lines, rectangles/zones, labels, Fibonacci as an educational measurement tool), undo/redo, persistence, and educational mathematical visualizations. Each feature still requires design review, implementation, tests, and owner acceptance.
+- Scope boundary: no brokerage/order execution, buy/sell signals, or speculative order-flow/liquidation features are included. This gate is a planning requirement, not a claim that the future features are already implemented.
+- Documentation-only update; weighted overall progress remains 19.60%. No application code changed. Latest branch-head CI for this documentation commit was queued at the time of recording; do not mark this commit verified until that exact run completes successfully. `main` remains untouched.
