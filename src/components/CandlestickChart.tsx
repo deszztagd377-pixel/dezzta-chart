@@ -37,6 +37,9 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const setSeriesDataRef = useRef<((data: CandlestickData[]) => void) | null>(null);
+  const updateSeriesRef = useRef<((data: CandlestickData) => void) | null>(null);
+  const lastRenderedRevisionRef = useRef<number | null>(null);
+  const lastRenderedTimestampRef = useRef<number | null>(null);
 
   const [isChartReady, setIsChartReady] = useState(false);
   const [chartError, setChartError] = useState<string | null>(null);
@@ -74,6 +77,9 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       });
 
       setSeriesDataRef.current = (data) => candleSeries.setData(data);
+      updateSeriesRef.current = (data) => candleSeries.update(data);
+      lastRenderedRevisionRef.current = null;
+      lastRenderedTimestampRef.current = null;
       candleSeries.setData(demoCandles);
       activeChart.timeScale().fitContent();
 
@@ -108,6 +114,9 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       chart?.remove();
       chartRef.current = null;
       setSeriesDataRef.current = null;
+      updateSeriesRef.current = null;
+      lastRenderedRevisionRef.current = null;
+      lastRenderedTimestampRef.current = null;
       return;
     }
 
@@ -118,6 +127,9 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       chart?.remove();
       chartRef.current = null;
       setSeriesDataRef.current = null;
+      updateSeriesRef.current = null;
+      lastRenderedRevisionRef.current = null;
+      lastRenderedTimestampRef.current = null;
     };
   }, []);
 
@@ -164,6 +176,8 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
 
       if (snapshot.status === 'loading') {
         setSeriesDataRef.current?.(demoCandles);
+        lastRenderedRevisionRef.current = null;
+        lastRenderedTimestampRef.current = null;
         setMarketDataStatus('loading');
         setMarketDataDetail(snapshot.detail ?? 'Waiting for a fresh validated snapshot.');
         return;
@@ -171,6 +185,8 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
 
       if (snapshot.status === 'unavailable' || snapshot.status === 'error') {
         setSeriesDataRef.current?.(demoCandles);
+        lastRenderedRevisionRef.current = null;
+        lastRenderedTimestampRef.current = null;
         setMarketDataStatus(snapshot.status);
         setMarketDataDetail(snapshot.detail ?? 'No verified backend bars are available.');
         return;
@@ -180,7 +196,27 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
           (snapshot.status !== 'ready' && snapshot.status !== 'degraded')) return;
       const candles = toCandlestickSeriesData(snapshot.bars);
       if (candles.length === 0) return;
-      setSeriesDataRef.current?.(candles);
+
+      const lastChange = snapshot.lastChange;
+      const canApplyIncrementally =
+        lastChange.type === 'update' &&
+        lastRenderedRevisionRef.current === snapshot.revision - 1 &&
+        lastRenderedTimestampRef.current !== null &&
+        lastChange.bar.timestamp >= lastRenderedTimestampRef.current;
+
+      if (canApplyIncrementally) {
+        const updateCandle = toCandlestickSeriesData([lastChange.bar])[0];
+        if (updateCandle) updateSeriesRef.current?.(updateCandle);
+        else setSeriesDataRef.current?.(candles);
+      } else {
+        // Snapshot replacements, missed revisions, and historical corrections
+        // require a full ordered setData. Normal newest-candle updates use the
+        // Lightweight Charts incremental API to avoid redrawing the full series.
+        setSeriesDataRef.current?.(candles);
+      }
+
+      lastRenderedRevisionRef.current = snapshot.revision;
+      lastRenderedTimestampRef.current = snapshot.bars[snapshot.bars.length - 1].timestamp;
       setMarketDataStatus(snapshot.status);
       setMarketDataDetail(snapshot.detail ?? `${candles.length} validated bars · ${timeframe}`);
     };
