@@ -86,6 +86,13 @@ function validateBar(value: unknown, index: number): OhlcvBarDto {
   if (!TIMEFRAMES.includes(value.timeframe as OhlcvTimeframe)) {
     throw new Error(`OHLCV bar ${index} has an unsupported timeframe.`);
   }
+  if (value.bucketPolicy !== undefined && !['UTC_LEGACY', 'UTC_FIXED_V1'].includes(String(value.bucketPolicy))) {
+    throw new Error(`OHLCV bar ${index} has an unsupported bucketPolicy.`);
+  }
+  if ((value.calendarId !== undefined && value.calendarId !== '') ||
+      (value.calendarVersion !== undefined && value.calendarVersion !== '')) {
+    throw new Error(`OHLCV bar ${index} has unsupported calendar identity.`);
+  }
   if (!isNanosecondString(value.tsStartNs) ||
       !isNanosecondString(value.tsEventNs) ||
       !isNanosecondString(value.tsReceivedNs)) {
@@ -155,6 +162,9 @@ export function parseOhlcvSnapshot(payload: unknown): OhlcvSnapshotMessage {
       bar.instrumentId,
       bar.rawSymbol,
       bar.timeframe,
+      bar.bucketPolicy ?? 'UTC_LEGACY',
+      bar.calendarId ?? '',
+      bar.calendarVersion ?? '',
     ].join('|');
     const timestamp = BigInt(bar.tsStartNs);
     const previousTimestamp = previousBySeries.get(seriesKey);

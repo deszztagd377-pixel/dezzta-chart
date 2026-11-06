@@ -258,6 +258,14 @@ def test_ohlcv_endpoint_returns_ingested_bars_with_local_sequence_and_limit() ->
     payload = client.get(f"/v1/ohlcv?{exact}&timeframe=1s", headers=headers).json()
     assert payload["state"] == "ready" and payload["count"] == 4 and payload["truncated"] is False
     assert payload["bars"][0]["sequenceOrigin"] == "local"
+    assert payload["bars"][0]["bucketPolicy"] == "UTC_LEGACY"
+    assert payload["bars"][0]["calendarId"] == ""
+    assert payload["bars"][0]["calendarVersion"] == ""
+    fixed_policy = client.get(
+        f"/v1/ohlcv?{exact}&timeframe=1s&bucket_policy=UTC_FIXED_V1",
+        headers=headers,
+    ).json()
+    assert fixed_policy["count"] == 0 and fixed_policy["state"] == "unavailable"
     limited = client.get(f"/v1/ohlcv?{exact}&timeframe=1s&limit=2", headers=headers).json()
     assert limited["count"] == 2 and limited["truncated"] is True
     assert limited["bars"][-1]["tsStartNs"] == str(_T0 + 3 * _NS)
