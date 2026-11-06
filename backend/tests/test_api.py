@@ -319,6 +319,49 @@ def test_rest_and_websocket_snapshots_return_identical_ohlcv_bars() -> None:
 
 
 
+@pytest.mark.parametrize(
+    ("connection_state", "mark_degraded"),
+    [("live", True), ("recovering", False)],
+)
+def test_rest_and_websocket_report_degraded_feed_state_consistently(
+    connection_state: str,
+    mark_degraded: bool,
+) -> None:
+    application = _app_with_bars()
+    application.state.provider._connection = connection_state
+    if mark_degraded:
+        application.state.provider._ingest.degraded_reasons.add("ingest_overflow")
+    client = TestClient(application)
+    headers = {"Authorization": "Bearer valid-firebase-token"}
+    exact = "dataset=GLBX.MDP3&publisher_id=1&instrument_id=101&raw_symbol=ESZ6&timeframe=1s"
+
+    rest_response = client.get(f"/v1/ohlcv?{exact}", headers=headers)
+    assert rest_response.status_code == 200
+    rest_snapshot = rest_response.json()
+    assert rest_snapshot["state"] == "degraded"
+
+    with client.websocket_connect("/ws/market-data") as websocket:
+        websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+        assert websocket.receive_json()["type"] == "market_data.status"
+        websocket.send_json({
+            "type": "market_data.subscribe",
+            "version": 1,
+            "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+            "series": {
+                "dataset": "GLBX.MDP3",
+                "publisherId": 1,
+                "instrumentId": 101,
+                "rawSymbol": "ESZ6",
+                "timeframe": "1s",
+            },
+        })
+        websocket_snapshot = websocket.receive_json()
+
+    assert websocket_snapshot["feedState"] == rest_snapshot["feedState"]
+    assert websocket_snapshot["state"] == rest_snapshot["state"] == "degraded"
+
+
+
 def test_ohlcv_endpoint_denies_accounts_without_instrument_entitlement() -> None:
     application = _app_with_bars()
     application.state.instrument_entitlements.revoke(
