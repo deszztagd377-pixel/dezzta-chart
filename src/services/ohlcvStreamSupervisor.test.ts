@@ -159,7 +159,9 @@ describe('OHLCV stream supervisor', () => {
     });
 
     expect(getIdToken).toHaveBeenCalledOnce();
-    // Flush the rejected-token microtask without advancing the reconnect timer.
+    // Flush the nested async rejection/finally continuations without advancing fake time.
+    await Promise.resolve();
+    await Promise.resolve();
     await Promise.resolve();
     expect(supervisor.status).toBe('reconnecting');
     expect(sockets).toHaveLength(0);
