@@ -13,7 +13,9 @@ import uuid
 from dataclasses import dataclass
 from typing import Any
 
-from app.ohlcv import OhlcvBar, OhlcvPipeline, decimal_to_string
+from app.ohlcv import (
+    BUCKET_POLICY_UTC_LEGACY, OhlcvBar, OhlcvPipeline, decimal_to_string,
+)
 
 STREAM_QUEUE_CAPACITY = 256
 
@@ -21,7 +23,7 @@ STREAM_QUEUE_CAPACITY = 256
 @dataclass(slots=True)
 class OhlcvStreamSubscription:
     stream_id: str
-    identity: tuple[str, int, int, str, str]
+    identity: tuple[str, int, int, str, str, str, str, str]
     queue: asyncio.Queue[dict[str, Any]]
     watermark: int = 0
     overflowed: bool = False
@@ -40,8 +42,11 @@ class OhlcvStreamHub:
         self._subscriptions: dict[str, OhlcvStreamSubscription] = {}
 
     @staticmethod
-    def identity_for(bar: OhlcvBar) -> tuple[str, int, int, str, str]:
-        return (bar.dataset, bar.publisher_id, bar.instrument_id, bar.raw_symbol, bar.timeframe)
+    def identity_for(bar: OhlcvBar) -> tuple[str, int, int, str, str, str, str, str]:
+        return (
+            bar.dataset, bar.publisher_id, bar.instrument_id, bar.raw_symbol,
+            bar.timeframe, bar.bucket_policy, bar.calendar_id, bar.calendar_version,
+        )
 
     def subscribe_snapshot(
         self,
@@ -53,19 +58,28 @@ class OhlcvStreamHub:
         raw_symbol: str,
         timeframe: str,
         limit: int,
+        bucket_policy: str = BUCKET_POLICY_UTC_LEGACY,
+        calendar_id: str = "",
+        calendar_version: str = "",
     ) -> tuple[OhlcvStreamSubscription, list[OhlcvBar], int]:
         """Take the initial snapshot and register its stream without an await.
 
         The event loop cannot run ingestion.publish() between the query and
         registration, so the returned watermark is a valid atomic boundary.
         """
-        identity = (dataset, publisher_id, instrument_id, raw_symbol, timeframe)
+        identity = (
+            dataset, publisher_id, instrument_id, raw_symbol, timeframe,
+            bucket_policy, calendar_id, calendar_version,
+        )
         bars, total = pipeline.query(
             dataset=dataset,
             publisher_id=publisher_id,
             instrument_id=instrument_id,
             raw_symbol=raw_symbol,
             timeframe=timeframe,
+            bucket_policy=bucket_policy,
+            calendar_id=calendar_id,
+            calendar_version=calendar_version,
             provider="databento",
             series_type="contract",
             limit=limit,
@@ -90,6 +104,9 @@ class OhlcvStreamHub:
             "rawSymbol": bar.raw_symbol,
             "seriesType": bar.series_type,
             "timeframe": bar.timeframe,
+            "bucketPolicy": bar.bucket_policy,
+            "calendarId": bar.calendar_id,
+            "calendarVersion": bar.calendar_version,
             "tsStartNs": str(bar.ts_start_ns),
             "open": decimal_to_string(bar.open),
             "high": decimal_to_string(bar.high),
@@ -123,6 +140,9 @@ class OhlcvStreamHub:
                     "instrumentId": bar.instrument_id,
                     "rawSymbol": bar.raw_symbol,
                     "timeframe": bar.timeframe,
+                    "bucketPolicy": bar.bucket_policy,
+                    "calendarId": bar.calendar_id,
+                    "calendarVersion": bar.calendar_version,
                 },
                 "bar": payload_bar,
             }

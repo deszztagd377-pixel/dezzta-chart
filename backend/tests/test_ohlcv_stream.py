@@ -9,7 +9,10 @@ _NS = 1_000_000_000
 _T0 = 1_704_067_200 * _NS
 
 
-def make_bar(offset: int, *, raw_symbol: str = "ESZ6", instrument_id: int = 101) -> OhlcvBar:
+def make_bar(
+    offset: int, *, raw_symbol: str = "ESZ6", instrument_id: int = 101,
+    bucket_policy: str = "UTC_LEGACY",
+) -> OhlcvBar:
     start = _T0 + offset * _NS
     return OhlcvBar(
         dataset="GLBX.MDP3",
@@ -31,6 +34,7 @@ def make_bar(offset: int, *, raw_symbol: str = "ESZ6", instrument_id: int = 101)
         origin="provider",
         completeness="complete",
         ts_provider_out_ns=start + 925_000_000,
+        bucket_policy=bucket_policy,
     )
 
 
@@ -86,6 +90,40 @@ def test_stream_hub_filters_exact_series_identity() -> None:
         assert subscription.queue.empty()
         assert subscription.watermark == 0
 
+    asyncio.run(scenario())
+
+
+def test_stream_hub_keeps_bucket_policies_isolated_for_snapshots_and_updates() -> None:
+    async def scenario() -> None:
+        pipeline = OhlcvPipeline()
+        legacy = make_bar(0, bucket_policy="UTC_LEGACY")
+        fixed = make_bar(0, bucket_policy="UTC_FIXED_V1")
+        assert pipeline.apply(legacy) == "inserted"
+        assert pipeline.apply(fixed) == "inserted"
+        hub = OhlcvStreamHub()
+        legacy_sub, legacy_snapshot, _ = hub.subscribe_snapshot(
+            pipeline, dataset="GLBX.MDP3", publisher_id=1, instrument_id=101,
+            raw_symbol="ESZ6", timeframe="1s", limit=100, bucket_policy="UTC_LEGACY",
+        )
+        fixed_sub, fixed_snapshot, _ = hub.subscribe_snapshot(
+            pipeline, dataset="GLBX.MDP3", publisher_id=1, instrument_id=101,
+            raw_symbol="ESZ6", timeframe="1s", limit=100, bucket_policy="UTC_FIXED_V1",
+        )
+        assert [bar.bucket_policy for bar in legacy_snapshot] == ["UTC_LEGACY"]
+        assert [bar.bucket_policy for bar in fixed_snapshot] == ["UTC_FIXED_V1"]
+        legacy_revision = make_bar(1, bucket_policy="UTC_LEGACY")
+        fixed_revision = make_bar(1, bucket_policy="UTC_FIXED_V1")
+        assert pipeline.apply(legacy_revision) == "inserted"
+        assert pipeline.apply(fixed_revision) == "inserted"
+        hub.publish(legacy_revision)
+        hub.publish(fixed_revision)
+        legacy_update = legacy_sub.queue.get_nowait()
+        fixed_update = fixed_sub.queue.get_nowait()
+        assert legacy_update["series"]["bucketPolicy"] == "UTC_LEGACY"
+        assert legacy_update["bar"]["bucketPolicy"] == "UTC_LEGACY"
+        assert fixed_update["series"]["bucketPolicy"] == "UTC_FIXED_V1"
+        assert fixed_update["bar"]["bucketPolicy"] == "UTC_FIXED_V1"
+        assert legacy_sub.queue.empty() and fixed_sub.queue.empty()
     asyncio.run(scenario())
 
 
