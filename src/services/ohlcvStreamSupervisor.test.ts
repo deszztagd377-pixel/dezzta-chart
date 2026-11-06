@@ -137,6 +137,37 @@ describe('OHLCV stream supervisor', () => {
     supervisor.stop();
   });
 
+  it('retries after a transient identity-token acquisition failure', async () => {
+    vi.useFakeTimers();
+    const sockets: FakeSocket[] = [];
+    const getIdToken = vi.fn()
+      .mockRejectedValueOnce(new Error('temporary token service failure'))
+      .mockResolvedValue('fresh-token-after-retry');
+    const supervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken,
+      webSocketFactory: () => {
+        const socket = new FakeSocket();
+        sockets.push(socket);
+        return socket as unknown as WebSocket;
+      },
+      minReconnectDelayMs: 100,
+      maxReconnectDelayMs: 400,
+      random: () => 0,
+    });
+
+    await vi.waitFor(() => expect(supervisor.status).toBe('reconnecting'));
+    expect(getIdToken).toHaveBeenCalledOnce();
+    expect(sockets).toHaveLength(0);
+
+    await vi.advanceTimersByTimeAsync(50);
+    await vi.waitFor(() => expect(sockets).toHaveLength(1));
+    expect(getIdToken).toHaveBeenCalledTimes(2);
+    supervisor.stop();
+  });
+
   it('uses bounded exponential reconnect and requests a fresh token for the next attempt', async () => {
     vi.useFakeTimers();
     const sockets: FakeSocket[] = [];
