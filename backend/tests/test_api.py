@@ -278,6 +278,47 @@ def test_ohlcv_endpoint_returns_ingested_bars_with_local_sequence_and_limit() ->
     assert ranged["count"] == 2
 
 
+def test_rest_and_websocket_snapshots_return_identical_ohlcv_bars() -> None:
+    """REST and WebSocket bootstrap must serialize the same exact pipeline snapshot."""
+    client = TestClient(_app_with_bars())
+    headers = {"Authorization": "Bearer valid-firebase-token"}
+    exact = "dataset=GLBX.MDP3&publisher_id=1&instrument_id=101&raw_symbol=ESZ6"
+
+    for timeframe in ("1s", "1m"):
+        rest_response = client.get(
+            f"/v1/ohlcv?{exact}&timeframe={timeframe}",
+            headers=headers,
+        )
+        assert rest_response.status_code == 200
+        rest_snapshot = rest_response.json()
+
+        with client.websocket_connect("/ws/market-data") as websocket:
+            websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+            status = websocket.receive_json()
+            assert status["type"] == "market_data.status"
+            websocket.send_json({
+                "type": "market_data.subscribe",
+                "version": 1,
+                "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+                "series": {
+                    "dataset": "GLBX.MDP3",
+                    "publisherId": 1,
+                    "instrumentId": 101,
+                    "rawSymbol": "ESZ6",
+                    "timeframe": timeframe,
+                },
+            })
+            websocket_snapshot = websocket.receive_json()
+
+        assert websocket_snapshot["type"] == rest_snapshot["type"]
+        assert websocket_snapshot["version"] == rest_snapshot["version"]
+        assert websocket_snapshot["state"] == rest_snapshot["state"]
+        assert websocket_snapshot["feedState"] == rest_snapshot["feedState"]
+        assert websocket_snapshot["count"] == rest_snapshot["count"]
+        assert websocket_snapshot["bars"] == rest_snapshot["bars"]
+
+
+
 def test_ohlcv_endpoint_denies_accounts_without_instrument_entitlement() -> None:
     application = _app_with_bars()
     application.state.instrument_entitlements.revoke(
