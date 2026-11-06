@@ -541,7 +541,11 @@ def create_app(
                 limit=config.ohlcv_max_response_bars,
             )
             feed_state = provider.state
-            snapshot_state = "ready" if snapshot_bars else "unavailable"
+            snapshot_state = (
+                "unavailable" if not snapshot_bars
+                else "degraded" if feed_state in ("degraded", "recovering")
+                else "ready"
+            )
             await websocket.send_json({
                 "type": "market_data.ohlcv.snapshot",
                 "version": 1,
