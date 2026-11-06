@@ -130,3 +130,19 @@ def test_clear_only_clears_pipeline_memory():
     pipeline.upsert(bar())
     pipeline.clear()
     assert pipeline.list_bars() == []
+
+
+def test_bucket_policy_is_part_of_pipeline_identity_and_query_filter():
+    legacy = bar(start=0)
+    fixed = bar(start=0, bucket_policy="UTC_FIXED_V1")
+    pipeline = OhlcvPipeline()
+    assert pipeline.apply(legacy) == "inserted"
+    assert pipeline.apply(fixed) == "inserted"
+    assert len(pipeline.list_bars()) == 2
+    assert pipeline.list_bars(bucket_policy="UTC_LEGACY") == [legacy]
+    assert pipeline.list_bars(bucket_policy="UTC_FIXED_V1") == [fixed]
+
+
+def test_exchange_calendar_policy_is_rejected_until_calendar_is_verified():
+    with pytest.raises(InvalidOhlcvBar, match="not-yet-enabled"):
+        bar(bucket_policy="CME_SESSION_V1", calendar_id="CME", calendar_version="2026.1")

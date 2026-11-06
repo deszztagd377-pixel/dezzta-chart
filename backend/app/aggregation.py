@@ -70,6 +70,9 @@ def derive_bar(
         sequence=max(b.sequence for b in ordered), sequence_origin="local",
         provider=first.provider, series_type=first.series_type,
         origin=ORIGIN_DERIVED, completeness=completeness,
+        bucket_policy=first.bucket_policy,
+        calendar_id=first.calendar_id,
+        calendar_version=first.calendar_version,
     )
 
 
@@ -96,13 +99,17 @@ class Aggregator:
         while stack:
             current = stack.pop()
             for child_tf in CHILDREN.get(current.timeframe, ()):
+                # CME session-derived daily/weekly/monthly bars remain disabled
+                # until an authoritative versioned CME calendar is integrated.
+                if current.bucket_policy == "UTC_FIXED_V1" and child_tf in ("1d", "1w", "1M", "3M"):
+                    continue
                 start = bucket_start_ns(current.ts_start_ns, child_tf)
                 written += self._rebuild(current.series_key, child_tf, start, stack)
                 written += self._close_previous(current.series_key, child_tf, start, stack)
         return written
 
     def _close_previous(self, parent_series, child_tf, start, stack) -> int:
-        child_series = parent_series[:-1] + (child_tf,)
+        child_series = parent_series[:6] + (child_tf,) + parent_series[7:]
         previous = self._pipeline.previous_bar(child_series, start)
         if previous is None or previous.origin != ORIGIN_DERIVED or previous.completeness != "open":
             return 0

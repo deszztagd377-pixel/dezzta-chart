@@ -171,3 +171,15 @@ def test_derived_bar_durability_gate_runs_before_pipeline_mutation():
     assert pipeline.list_bars(timeframe="1s")
     assert pipeline.list_bars(timeframe="5s") == []
     assert aggregator.stats["persistence_rejected"] == len(seen)
+
+
+def test_derived_intraday_bars_inherit_fixed_utc_policy_and_stop_before_daily():
+    _, pipeline, *_ = make_service()
+    aggregator = Aggregator(pipeline)
+    child = base_bar(0, "100", "101", "99", "100", 2, 1,
+                     bucket_policy="UTC_FIXED_V1")
+    feed(pipeline, aggregator, child)
+    five = pipeline.list_bars(timeframe="5s", bucket_policy="UTC_FIXED_V1")
+    assert len(five) == 1
+    assert five[0].bucket_policy == "UTC_FIXED_V1"
+    assert pipeline.list_bars(timeframe="1d", bucket_policy="UTC_FIXED_V1") == []

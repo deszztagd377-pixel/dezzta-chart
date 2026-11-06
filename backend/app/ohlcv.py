@@ -61,8 +61,11 @@ MIN_RETENTION: dict[str, int] = {
     "1w": 1, "1M": 3, "3M": 1,
 }
 
-SeriesKey = tuple[str, str, int, int, str, str, str]
-Identity = tuple[str, str, int, int, str, str, int]
+BUCKET_POLICY_UTC_LEGACY = "UTC_LEGACY"
+BUCKET_POLICY_UTC_FIXED_V1 = "UTC_FIXED_V1"
+SUPPORTED_BUCKET_POLICIES = frozenset((BUCKET_POLICY_UTC_LEGACY, BUCKET_POLICY_UTC_FIXED_V1))
+SeriesKey = tuple[str, str, int, int, str, str, str, str, str, str]
+Identity = tuple[str, str, int, int, str, str, int, str, str, str]
 
 
 class InvalidOhlcvBar(ValueError):
@@ -153,6 +156,10 @@ class OhlcvBar:
     completeness: str = "unknown"
     # Databento gateway-send timestamp; None for historical/derived or when absent.
     ts_provider_out_ns: int | None = None
+    # Bucket identity is explicit; legacy constructors remain UTC_LEGACY.
+    bucket_policy: str = BUCKET_POLICY_UTC_LEGACY
+    calendar_id: str = ""
+    calendar_version: str = ""
 
     def __post_init__(self) -> None:
         if not self.dataset.strip() or not self.raw_symbol.strip():
@@ -174,6 +181,10 @@ class OhlcvBar:
             raise InvalidOhlcvBar("Unsupported bar origin.")
         if self.completeness not in COMPLETENESS_VALUES:
             raise InvalidOhlcvBar("Unsupported completeness value.")
+        if self.bucket_policy not in SUPPORTED_BUCKET_POLICIES:
+            raise InvalidOhlcvBar("Unsupported or not-yet-enabled bucket policy.")
+        if self.calendar_id or self.calendar_version:
+            raise InvalidOhlcvBar("UTC bucket policies must not carry exchange calendar metadata.")
         if self.ts_provider_out_ns is not None and (
             not isinstance(self.ts_provider_out_ns, int)
             or isinstance(self.ts_provider_out_ns, bool)
@@ -205,6 +216,7 @@ class OhlcvBar:
         return (
             self.provider, self.dataset, self.publisher_id, self.instrument_id,
             self.series_type, self.timeframe, self.ts_start_ns,
+            self.bucket_policy, self.calendar_id, self.calendar_version,
         )
 
     @property
@@ -212,12 +224,15 @@ class OhlcvBar:
         return (
             self.provider, self.dataset, self.publisher_id, self.instrument_id,
             self.series_type, self.raw_symbol, self.timeframe,
+            self.bucket_policy, self.calendar_id, self.calendar_version,
         )
 
 
 def _identity_for(series: SeriesKey, ts_start_ns: int) -> Identity:
-    provider, dataset, publisher_id, instrument_id, series_type, _symbol, timeframe = series
-    return (provider, dataset, publisher_id, instrument_id, series_type, timeframe, ts_start_ns)
+    (provider, dataset, publisher_id, instrument_id, series_type, _symbol,
+     timeframe, bucket_policy, calendar_id, calendar_version) = series
+    return (provider, dataset, publisher_id, instrument_id, series_type,
+            timeframe, ts_start_ns, bucket_policy, calendar_id, calendar_version)
 
 
 def _same_payload(a: OhlcvBar, b: OhlcvBar) -> bool:
@@ -388,6 +403,9 @@ class OhlcvPipeline:
         provider: str | None = None,
         raw_symbol: str | None = None,
         series_type: str | None = None,
+        bucket_policy: str | None = None,
+        calendar_id: str | None = None,
+        calendar_version: str | None = None,
         start_ns: int | None = None,
         end_ns: int | None = None,
         limit: int | None = None,
@@ -399,7 +417,8 @@ class OhlcvPipeline:
         selected: list[OhlcvBar] = []
         total = 0
         for series, timestamps in self._series.items():
-            s_provider, s_dataset, s_pub, s_inst, s_type, s_symbol, s_tf = series
+            (s_provider, s_dataset, s_pub, s_inst, s_type, s_symbol, s_tf,
+             s_policy, s_calendar, s_calendar_version) = series
             if (
                 (provider is not None and s_provider != provider)
                 or (dataset is not None and s_dataset != dataset)
@@ -408,6 +427,9 @@ class OhlcvPipeline:
                 or (series_type is not None and s_type != series_type)
                 or (raw_symbol is not None and s_symbol != raw_symbol)
                 or (timeframe is not None and s_tf != timeframe)
+                or (bucket_policy is not None and s_policy != bucket_policy)
+                or (calendar_id is not None and s_calendar != calendar_id)
+                or (calendar_version is not None and s_calendar_version != calendar_version)
             ):
                 continue
             lo = 0 if start_ns is None else bisect_left(timestamps, start_ns)
@@ -420,7 +442,8 @@ class OhlcvPipeline:
             selected.extend(self._bars[_identity_for(series, ts)] for ts in timestamps[lo:hi])
         selected.sort(key=lambda b: (
             b.ts_start_ns, b.provider, b.dataset, b.publisher_id, b.instrument_id,
-            b.series_type, b.raw_symbol, b.timeframe,
+            b.series_type, b.raw_symbol, b.timeframe, b.bucket_policy,
+            b.calendar_id, b.calendar_version,
         ))
         if limit is not None and len(selected) > limit:
             selected = selected[-limit:]
@@ -436,6 +459,9 @@ class OhlcvPipeline:
         provider: str | None = None,
         raw_symbol: str | None = None,
         series_type: str | None = None,
+        bucket_policy: str | None = None,
+        calendar_id: str | None = None,
+        calendar_version: str | None = None,
         start_ns: int | None = None,
         end_ns: int | None = None,
         limit: int | None = None,
@@ -444,7 +470,9 @@ class OhlcvPipeline:
         return self.query(
             dataset=dataset, publisher_id=publisher_id, instrument_id=instrument_id,
             timeframe=timeframe, provider=provider, raw_symbol=raw_symbol,
-            series_type=series_type, start_ns=start_ns, end_ns=end_ns, limit=limit,
+            series_type=series_type, bucket_policy=bucket_policy,
+            calendar_id=calendar_id, calendar_version=calendar_version,
+            start_ns=start_ns, end_ns=end_ns, limit=limit,
         )[0]
 
     def stats(self) -> dict[str, int]:
