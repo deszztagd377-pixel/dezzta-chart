@@ -11,6 +11,9 @@ export interface OhlcvSeriesIdentity {
   instrumentId: number;
   rawSymbol: string;
   timeframe: Timeframe;
+  bucketPolicy?: 'UTC_LEGACY' | 'UTC_FIXED_V1';
+  calendarId?: string;
+  calendarVersion?: string;
 }
 
 const TIMEFRAMES: readonly OhlcvTimeframe[] = [
@@ -179,7 +182,10 @@ export function toChartCandles(
     bar.publisherId === identity.publisherId &&
     bar.instrumentId === identity.instrumentId &&
     bar.rawSymbol === identity.rawSymbol &&
-    bar.timeframe === identity.timeframe
+    bar.timeframe === identity.timeframe &&
+    (bar.bucketPolicy ?? 'UTC_LEGACY') === (identity.bucketPolicy ?? 'UTC_LEGACY') &&
+    (bar.calendarId ?? '') === (identity.calendarId ?? '') &&
+    (bar.calendarVersion ?? '') === (identity.calendarVersion ?? '')
   );
 
   return matchingBars.map((bar, index) => {

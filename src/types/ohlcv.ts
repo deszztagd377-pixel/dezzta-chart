@@ -6,6 +6,9 @@
  * never in the ingestion or transport layer.
  */
 
+export type OhlcvBucketPolicy = 'UTC_LEGACY' | 'UTC_FIXED_V1';
+export const DEFAULT_OHLCV_BUCKET_POLICY: OhlcvBucketPolicy = 'UTC_LEGACY';
+
 export type OhlcvTimeframe =
   | '1s' | '5s' | '15s' | '30s' | '45s'
   | '1m' | '3m' | '5m' | '15m' | '30m' | '45m'
@@ -17,6 +20,9 @@ export interface OhlcvBarDto {
   instrumentId: number;
   rawSymbol: string;
   timeframe: OhlcvTimeframe;
+  bucketPolicy?: OhlcvBucketPolicy;
+  calendarId?: string;
+  calendarVersion?: string;
   /** UTC bucket start, Unix nanoseconds encoded as a decimal string. */
   tsStartNs: string;
   /** Exact decimal strings; do not parse to Number in the transport layer. */

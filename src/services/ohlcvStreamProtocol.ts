@@ -7,6 +7,9 @@ export interface OhlcvStreamSeriesIdentity {
   instrumentId: number;
   rawSymbol: string;
   timeframe: OhlcvTimeframe;
+  bucketPolicy?: 'UTC_LEGACY' | 'UTC_FIXED_V1';
+  calendarId?: string;
+  calendarVersion?: string;
 }
 
 /**
@@ -51,7 +54,10 @@ function sameSeries(
     left.publisherId === right.publisherId &&
     left.instrumentId === right.instrumentId &&
     left.rawSymbol === right.rawSymbol &&
-    left.timeframe === right.timeframe;
+    left.timeframe === right.timeframe &&
+    (left.bucketPolicy ?? 'UTC_LEGACY') === (right.bucketPolicy ?? 'UTC_LEGACY') &&
+    (left.calendarId ?? '') === (right.calendarId ?? '') &&
+    (left.calendarVersion ?? '') === (right.calendarVersion ?? '');
 }
 
 /** Validate an untrusted WebSocket JSON payload before it reaches application state. */
@@ -83,7 +89,10 @@ export function parseOhlcvStreamUpdate(payload: unknown): OhlcvStreamUpdateMessa
     !isPositiveSafeInteger(series.publisherId) ||
     !isPositiveSafeInteger(series.instrumentId) ||
     !isNonEmptyString(series.rawSymbol) ||
-    !isNonEmptyString(series.timeframe)
+    !isNonEmptyString(series.timeframe) ||
+    (series.bucketPolicy !== undefined && !['UTC_LEGACY', 'UTC_FIXED_V1'].includes(String(series.bucketPolicy))) ||
+    (series.calendarId !== undefined && series.calendarId !== '') ||
+    (series.calendarVersion !== undefined && series.calendarVersion !== '')
   ) {
     throw new Error('OHLCV stream series identity is invalid.');
   }
@@ -109,6 +118,9 @@ export function parseOhlcvStreamUpdate(payload: unknown): OhlcvStreamUpdateMessa
     instrumentId: bar.instrumentId,
     rawSymbol: bar.rawSymbol,
     timeframe: bar.timeframe,
+    bucketPolicy: bar.bucketPolicy ?? 'UTC_LEGACY',
+    calendarId: bar.calendarId ?? '',
+    calendarVersion: bar.calendarVersion ?? '',
   })) {
     throw new Error('OHLCV stream bar does not match its declared series identity.');
   }

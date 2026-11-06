@@ -40,7 +40,10 @@ function sameIdentity(left: MarketSeriesIdentity | null, right: MarketSeriesIden
     left.publisherId === right.publisherId &&
     left.instrumentId === right.instrumentId &&
     left.rawSymbol === right.rawSymbol &&
-    left.timeframe === right.timeframe;
+    left.timeframe === right.timeframe &&
+    (left.bucketPolicy ?? 'UTC_LEGACY') === (right.bucketPolicy ?? 'UTC_LEGACY') &&
+    (left.calendarId ?? '') === (right.calendarId ?? '') &&
+    (left.calendarVersion ?? '') === (right.calendarVersion ?? '');
 }
 
 /**

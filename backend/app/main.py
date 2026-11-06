@@ -28,6 +28,7 @@ from app.identity import (
     VerifiedPrincipal,
 )
 from app.ohlcv import (
+    BUCKET_POLICY_UTC_LEGACY, SUPPORTED_BUCKET_POLICIES,
     InvalidOhlcvBar,
     OhlcvPipeline,
     bucket_start_ns,
@@ -215,6 +216,9 @@ def create_app(
         start_ns: str | None = None,
         end_ns: str | None = None,
         limit: int | None = Query(default=None, ge=1),
+        bucket_policy: str = Query(default=BUCKET_POLICY_UTC_LEGACY),
+        calendar_id: str = "",
+        calendar_version: str = "",
         principal: VerifiedPrincipal = Depends(require_verified_principal),
     ) -> dict[str, object]:
         """Return an exact OHLCV series after Firebase identity and entitlement checks.
@@ -265,6 +269,8 @@ def create_app(
             bucket_start_ns(0, timeframe)
         except InvalidOhlcvBar as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
+        if bucket_policy not in SUPPORTED_BUCKET_POLICIES or calendar_id or calendar_version:
+            raise HTTPException(status_code=422, detail="Unsupported OHLCV bucket identity.")
         start_value = _parse_ns(start_ns, "start_ns")
         end_value = _parse_ns(end_ns, "end_ns")
         if start_value is not None and end_value is not None and start_value >= end_value:
@@ -274,8 +280,9 @@ def create_app(
         bars, total = ohlcv_pipeline.query(
             dataset=dataset, publisher_id=publisher_id, instrument_id=instrument_id,
             timeframe=timeframe, provider=provider_name, raw_symbol=raw_symbol,
-            series_type=series_type, start_ns=start_value, end_ns=end_value,
-            limit=effective_limit,
+            series_type=series_type, bucket_policy=bucket_policy,
+            calendar_id=calendar_id, calendar_version=calendar_version,
+            start_ns=start_value, end_ns=end_value, limit=effective_limit,
         )
         feed_state = provider.state
         if not bars:
@@ -306,6 +313,9 @@ def create_app(
                     "rawSymbol": bar.raw_symbol,
                     "seriesType": bar.series_type,
                     "timeframe": bar.timeframe,
+                    "bucketPolicy": bar.bucket_policy,
+                    "calendarId": bar.calendar_id,
+                    "calendarVersion": bar.calendar_version,
                     "tsStartNs": str(bar.ts_start_ns),
                     "open": decimal_to_string(bar.open),
                     "high": decimal_to_string(bar.high),
@@ -452,6 +462,9 @@ def create_app(
             dataset = identity.get("dataset")
             raw_symbol = identity.get("rawSymbol")
             timeframe = identity.get("timeframe")
+            bucket_policy = identity.get("bucketPolicy", BUCKET_POLICY_UTC_LEGACY)
+            calendar_id = identity.get("calendarId", "")
+            calendar_version = identity.get("calendarVersion", "")
             publisher_id = identity.get("publisherId")
             instrument_id = identity.get("instrumentId")
             canonical_id = request.get("canonicalInstrumentId")
@@ -459,6 +472,8 @@ def create_app(
                 dataset != config.databento_dataset
                 or not isinstance(raw_symbol, str) or not raw_symbol.strip()
                 or not isinstance(timeframe, str)
+                or bucket_policy not in SUPPORTED_BUCKET_POLICIES
+                or calendar_id != "" or calendar_version != ""
                 or not isinstance(publisher_id, int) or isinstance(publisher_id, bool) or publisher_id <= 0
                 or not isinstance(instrument_id, int) or isinstance(instrument_id, bool) or instrument_id <= 0
                 or not isinstance(canonical_id, str) or not canonical_id.strip()
@@ -519,6 +534,9 @@ def create_app(
                 instrument_id=instrument_id,
                 raw_symbol=raw_symbol,
                 timeframe=timeframe,
+                bucket_policy=bucket_policy,
+                calendar_id=calendar_id,
+                calendar_version=calendar_version,
                 limit=config.ohlcv_max_response_bars,
             )
             feed_state = provider.state
@@ -544,6 +562,9 @@ def create_app(
                         "rawSymbol": bar.raw_symbol,
                         "seriesType": bar.series_type,
                         "timeframe": bar.timeframe,
+                        "bucketPolicy": bar.bucket_policy,
+                        "calendarId": bar.calendar_id,
+                        "calendarVersion": bar.calendar_version,
                         "tsStartNs": str(bar.ts_start_ns),
                         "open": decimal_to_string(bar.open),
                         "high": decimal_to_string(bar.high),
