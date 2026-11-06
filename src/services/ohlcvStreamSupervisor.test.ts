@@ -158,12 +158,16 @@ describe('OHLCV stream supervisor', () => {
       random: () => 0,
     });
 
-    await vi.waitFor(() => expect(supervisor.status).toBe('reconnecting'));
     expect(getIdToken).toHaveBeenCalledOnce();
+    // Flush the rejected-token microtask without advancing the reconnect timer.
+    await Promise.resolve();
+    expect(supervisor.status).toBe('reconnecting');
     expect(sockets).toHaveLength(0);
 
-    await vi.advanceTimersByTimeAsync(50);
-    await vi.waitFor(() => expect(sockets).toHaveLength(1));
+    await vi.advanceTimersByTimeAsync(49);
+    expect(sockets).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(sockets).toHaveLength(1);
     expect(getIdToken).toHaveBeenCalledTimes(2);
     supervisor.stop();
   });
