@@ -201,8 +201,8 @@ describe('OHLCV stream supervisor', () => {
     expect(supervisor.status).toBe('reconnecting');
     expect(sockets).toHaveLength(0);
 
-    await vi.advanceTimersByTimeAsync(50);
-    expect(sockets).toHaveLength(0);
+    // random() is 0, so the supervisor applies its 0.5 jitter floor:
+    // 100ms minimum delay becomes exactly 50ms.
     await vi.advanceTimersByTimeAsync(50);
     expect(sockets).toHaveLength(1);
     expect(getIdToken).toHaveBeenCalledTimes(2);
