@@ -102,6 +102,17 @@ describe('shared market data store', () => {
     expect(() => publishMarketDataUpdate({ identity, bar: bars[0] })).toThrow(/active backend snapshot/);
   });
 
+  it('rejects updates that cross bucket-policy identity boundaries', () => {
+    const fixedIdentity = { ...identity, bucketPolicy: 'UTC_FIXED_V1' as const };
+    const legacyIdentity = { ...identity, bucketPolicy: 'UTC_LEGACY' as const };
+    publishMarketDataSnapshot({ identity: fixedIdentity, status: 'ready', bars });
+    expect(() => publishMarketDataUpdate({
+      identity: legacyIdentity,
+      bar: bars[0],
+    })).toThrow(/identity/);
+    expect(getMarketDataSnapshot().identity?.bucketPolicy).toBe('UTC_FIXED_V1');
+  });
+
   it('rejects invalid OHLCV updates without mutating the current snapshot', () => {
     publishMarketDataSnapshot({ identity, status: 'ready', bars });
     const before = getMarketDataSnapshot();

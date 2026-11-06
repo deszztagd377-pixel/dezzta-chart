@@ -64,6 +64,21 @@ MIN_RETENTION: dict[str, int] = {
 BUCKET_POLICY_UTC_LEGACY = "UTC_LEGACY"
 BUCKET_POLICY_UTC_FIXED_V1 = "UTC_FIXED_V1"
 SUPPORTED_BUCKET_POLICIES = frozenset((BUCKET_POLICY_UTC_LEGACY, BUCKET_POLICY_UTC_FIXED_V1))
+
+
+def bucket_policy_for_timeframe(timeframe: str) -> str:
+    """Select bucket identity for newly ingested OHLCV records.
+
+    Intraday bars use UTC_FIXED_V1. Daily and larger bars retain UTC_LEGACY
+    until an authoritative exchange-session calendar is available. Existing
+    persisted rows are not rewritten by this selector.
+    """
+    if timeframe not in SUPPORTED_TIMEFRAMES:
+        raise InvalidOhlcvBar(f"Unsupported OHLCV timeframe: {timeframe}")
+    if timeframe in FIXED_INTERVAL_SECONDS and timeframe != "1d":
+        return BUCKET_POLICY_UTC_FIXED_V1
+    return BUCKET_POLICY_UTC_LEGACY
+
 SeriesKey = tuple[str, str, int, int, str, str, str, str, str, str]
 Identity = tuple[str, str, int, int, str, str, int, str, str, str]
 

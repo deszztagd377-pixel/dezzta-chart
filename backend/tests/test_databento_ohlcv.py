@@ -35,6 +35,7 @@ def test_record_normalizes_prices_volume_and_timestamps():
     assert bar.timeframe == "1s" and bar.raw_symbol == "ESZ6"
     assert bar.sequence == 7 and bar.sequence_origin == "local"
     assert bar.origin == "provider" and bar.series_type == "contract"
+    assert bar.bucket_policy == "UTC_FIXED_V1"
 
 
 def test_gateway_send_timestamp_is_preserved_without_claiming_latency():
@@ -118,3 +119,5 @@ def test_instrument_id_reuse_resolves_by_validity_window():
 def test_other_ohlcv_schemas_map_to_their_timeframes():
     assert convert(rec(0), schema="ohlcv-1m").timeframe == "1m"
     assert convert(rec(0), schema="ohlcv-1d").timeframe == "1d"
+    assert convert(rec(0), schema="ohlcv-1d").bucket_policy == "UTC_LEGACY"
+    assert convert(rec(0), schema="ohlcv-1m").bucket_policy == "UTC_FIXED_V1"

@@ -17,6 +17,7 @@ import {
 import { toCandlestickSeriesData } from '../utils/candlestickSeriesData';
 import { buildChartOptions } from '../utils/chartOptions';
 import { getMeasurableChartSize } from '../utils/chartViewport';
+import { getBucketPolicyForTimeframe } from '../utils/ohlcvBucketPolicy';
 
 interface CandlestickChartProps {
   timeframe: Timeframe;
@@ -169,7 +170,10 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
         identity.publisherId !== selectedContract.publisher_id ||
         identity.instrumentId !== selectedContract.instrument_id ||
         identity.rawSymbol !== selectedContract.raw_symbol ||
-        identity.timeframe !== timeframe
+        identity.timeframe !== timeframe ||
+        (identity.bucketPolicy ?? 'UTC_LEGACY') !== getBucketPolicyForTimeframe(timeframe) ||
+        (identity.calendarId ?? '') !== '' ||
+        (identity.calendarVersion ?? '') !== ''
       ) {
         return;
       }
@@ -243,6 +247,9 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       instrumentId: selectedContract.instrument_id,
       rawSymbol: selectedContract.raw_symbol,
       timeframe,
+      bucketPolicy: getBucketPolicyForTimeframe(timeframe),
+      calendarId: '',
+      calendarVersion: '',
     };
 
     // A canonical ID must come from the validated instrument catalog. Never

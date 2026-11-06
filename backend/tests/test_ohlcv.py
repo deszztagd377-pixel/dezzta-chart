@@ -38,6 +38,18 @@ def test_fixed_interval_bucket_alignment_uses_nanoseconds():
     assert bucket_start_ns(300 * NS, "5m") == 300 * NS
 
 
+def test_new_intraday_timeframes_use_fixed_policy_and_higher_timeframes_keep_legacy():
+    from app.ohlcv import bucket_policy_for_timeframe
+
+    for timeframe in (
+        "1s", "5s", "15s", "30s", "45s", "1m", "3m", "5m",
+        "15m", "30m", "45m", "1h", "2h", "4h",
+    ):
+        assert bucket_policy_for_timeframe(timeframe) == "UTC_FIXED_V1"
+    for timeframe in ("1d", "1w", "1M", "3M"):
+        assert bucket_policy_for_timeframe(timeframe) == "UTC_LEGACY"
+
+
 def test_weekly_bucket_starts_on_monday_utc():
     # 2024-01-04 Thursday 12:00 UTC belongs to Monday 2024-01-01.
     thursday = 1_704_365_600 * NS

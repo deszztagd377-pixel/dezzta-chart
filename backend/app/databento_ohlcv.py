@@ -14,7 +14,7 @@ import operator
 from decimal import Decimal
 from typing import Any
 
-from app.ohlcv import InvalidOhlcvBar, OhlcvBar
+from app.ohlcv import InvalidOhlcvBar, OhlcvBar, bucket_policy_for_timeframe
 from app.symbology import InstrumentResolver
 
 UNDEF_PRICE = 9_223_372_036_854_775_807  # INT64_MAX sentinel for "no price"
@@ -121,6 +121,7 @@ def record_to_bar(
             sequence=sequence, sequence_origin="local", provider=provider,
             series_type=mapping.series_type, origin="provider",
             ts_provider_out_ns=ts_provider_out,
+            bucket_policy=bucket_policy_for_timeframe(timeframe),
             **prices,
         )
     except InvalidOhlcvBar as exc:
