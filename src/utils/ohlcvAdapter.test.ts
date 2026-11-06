@@ -121,6 +121,16 @@ describe('toChartCandles', () => {
     expect(toChartCandles(snapshot, identity)).toHaveLength(1);
   });
 
+  it('keeps identical timestamps isolated across bucket policies', () => {
+    const fixedBar = { ...baseBar, bucketPolicy: 'UTC_FIXED_V1' };
+    const legacyBar = { ...baseBar, bucketPolicy: 'UTC_LEGACY' };
+    const snapshot = parseOhlcvSnapshot(makeSnapshot({
+      bars: [legacyBar, fixedBar],
+    }));
+    expect(toChartCandles(snapshot, identity)).toHaveLength(1);
+    expect(toChartCandles(snapshot, { ...identity, bucketPolicy: 'UTC_FIXED_V1' })).toHaveLength(1);
+  });
+
   it('returns no candles for an unavailable snapshot', () => {
     const snapshot = parseOhlcvSnapshot(makeSnapshot({
       state: 'unavailable',

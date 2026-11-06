@@ -74,6 +74,14 @@ describe('parseOhlcvStreamUpdate', () => {
     expect(() => event({ isFinal: 'true' })).toThrow(/operation/i);
   });
 
+  it('keeps fixed and legacy bucket policies isolated in stream events', () => {
+    const fixedSeries = { ...series, bucketPolicy: 'UTC_FIXED_V1' };
+    const fixedBar = { ...bar, bucketPolicy: 'UTC_FIXED_V1' };
+    const parsed = event({ series: fixedSeries, bar: fixedBar });
+    expect(parsed.series.bucketPolicy).toBe('UTC_FIXED_V1');
+    expect(() => event({ series: fixedSeries, bar })).toThrow(/does not match/i);
+  });
+
   it('rejects a bar whose identity differs from the declared stream series', () => {
     expect(() => event({ bar: { ...bar, instrumentId: 999 } })).toThrow(/does not match/i);
   });

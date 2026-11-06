@@ -472,6 +472,7 @@ def create_app(
                 dataset != config.databento_dataset
                 or not isinstance(raw_symbol, str) or not raw_symbol.strip()
                 or not isinstance(timeframe, str)
+                or not isinstance(bucket_policy, str)
                 or bucket_policy not in SUPPORTED_BUCKET_POLICIES
                 or calendar_id != "" or calendar_version != ""
                 or not isinstance(publisher_id, int) or isinstance(publisher_id, bool) or publisher_id <= 0
