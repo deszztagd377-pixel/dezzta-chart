@@ -150,7 +150,7 @@ class Aggregator:
         return 0
 
     def _completeness(self, parent_series, children: list[OhlcvBar], start: int, end: int) -> str:
-        parent_tf = parent_series[-1]
+        parent_tf = parent_series[6]
         latest = self._pipeline.latest_ts(parent_series)
         if latest is None or end > bucket_end_ns(latest, parent_tf):
             return "open"
@@ -158,5 +158,5 @@ class Aggregator:
             return "partial"
         if any(c.origin == ORIGIN_DERIVED and c.completeness != "complete" for c in children):
             return "partial"
-        scope = parent_series[:-1]
+        scope = parent_series[:6]
         return "complete" if self._coverage.status(scope, start, end) == "covered" else "partial"

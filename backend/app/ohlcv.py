@@ -353,7 +353,7 @@ class OhlcvPipeline:
         evicted = 0
         for series, timestamps in grouped.items():
             timestamps.sort()
-            cap = self._retention[series[-1]]
+            cap = self._retention[series[6]]
             if len(timestamps) > cap:
                 dropped, timestamps = timestamps[:-cap], timestamps[-cap:]
                 for ts in dropped:
