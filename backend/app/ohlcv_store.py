@@ -16,6 +16,8 @@ from app.ohlcv import (
     MIN_RETENTION,
     OhlcvBar,
     SUPPORTED_TIMEFRAMES,
+    BUCKET_POLICY_UTC_LEGACY,
+    BUCKET_POLICY_UTC_FIXED_V1,
 )
 
 _SCHEMA = """
@@ -59,9 +61,6 @@ CREATE TABLE IF NOT EXISTS ohlcv_store_state (
 );
 """
 
-_BUCKET_POLICY = "UTC_LEGACY"
-_CALENDAR_ID = ""
-_CALENDAR_VERSION = ""
 _OHLCV_SCHEMA_VERSION = 2
 
 
@@ -200,14 +199,6 @@ class SQLiteOhlcvStore:
 
     @staticmethod
     def _from_row(row: sqlite3.Row) -> OhlcvBar:
-        if (
-            row["bucket_policy"] != _BUCKET_POLICY
-            or row["calendar_id"] != _CALENDAR_ID
-            or row["calendar_version"] != _CALENDAR_VERSION
-        ):
-            raise ValueError(
-                "Policy-aware OHLCV rows cannot be decoded by the legacy OhlcvBar model."
-            )
         return OhlcvBar(
             provider=row["provider"], dataset=row["dataset"],
             publisher_id=row["publisher_id"], instrument_id=row["instrument_id"],
@@ -220,6 +211,9 @@ class SQLiteOhlcvStore:
             sequence_origin=row["sequence_origin"], origin=row["origin"],
             completeness=row["completeness"],
             ts_provider_out_ns=row["ts_provider_out_ns"],
+            bucket_policy=row["bucket_policy"],
+            calendar_id=row["calendar_id"],
+            calendar_version=row["calendar_version"],
         )
 
     @staticmethod
@@ -239,7 +233,7 @@ class SQLiteOhlcvStore:
             format(bar.close, "f"), format(bar.volume, "f"), bar.ts_event_ns,
             bar.ts_received_ns, bar.sequence, bar.sequence_origin, bar.origin,
             bar.completeness, bar.ts_provider_out_ns,
-            _BUCKET_POLICY, _CALENDAR_ID, _CALENDAR_VERSION,
+            bar.bucket_policy, bar.calendar_id, bar.calendar_version,
         )
 
     def apply(self, bar: OhlcvBar) -> str:
@@ -256,7 +250,7 @@ class SQLiteOhlcvStore:
                 AND calendar_id=? AND calendar_version=?""",
                 (bar.provider, bar.dataset, bar.publisher_id, bar.instrument_id,
                  bar.series_type, bar.timeframe, bar.ts_start_ns,
-                 _BUCKET_POLICY, _CALENDAR_ID, _CALENDAR_VERSION),
+                 bar.bucket_policy, bar.calendar_id, bar.calendar_version),
             ).fetchone()
             if row is None:
                 oldest = db.execute(
@@ -267,7 +261,7 @@ class SQLiteOhlcvStore:
                     AND calendar_id=? AND calendar_version=?""",
                     (bar.provider, bar.dataset, bar.publisher_id, bar.instrument_id,
                      bar.series_type, bar.raw_symbol, bar.timeframe,
-                     _BUCKET_POLICY, _CALENDAR_ID, _CALENDAR_VERSION),
+                     bar.bucket_policy, bar.calendar_id, bar.calendar_version),
                 ).fetchone()
                 if int(oldest["amount"]) >= self.retention[bar.timeframe] and (
                     oldest["oldest"] is not None and bar.ts_start_ns < int(oldest["oldest"])
@@ -341,10 +335,10 @@ class SQLiteOhlcvStore:
                 )""",
                 (bar.provider, bar.dataset, bar.publisher_id, bar.instrument_id,
                  bar.series_type, bar.raw_symbol, bar.timeframe,
-                 _BUCKET_POLICY, _CALENDAR_ID, _CALENDAR_VERSION,
+                 bar.bucket_policy, bar.calendar_id, bar.calendar_version,
                  bar.provider, bar.dataset, bar.publisher_id, bar.instrument_id,
                  bar.series_type, bar.raw_symbol, bar.timeframe,
-                 _BUCKET_POLICY, _CALENDAR_ID, _CALENDAR_VERSION, cap),
+                 bar.bucket_policy, bar.calendar_id, bar.calendar_version, cap),
             )
             db.execute("COMMIT")
             return result
@@ -361,10 +355,10 @@ class SQLiteOhlcvStore:
         try:
             rows = db.execute(
                 """SELECT * FROM ohlcv_bars
-                WHERE bucket_policy=? AND calendar_id=? AND calendar_version=?
+                WHERE bucket_policy IN (?,?) AND calendar_id='' AND calendar_version=''
                 ORDER BY ts_start_ns, provider, dataset, publisher_id,
                 instrument_id, series_type, timeframe""",
-                (_BUCKET_POLICY, _CALENDAR_ID, _CALENDAR_VERSION)
+                (BUCKET_POLICY_UTC_LEGACY, BUCKET_POLICY_UTC_FIXED_V1)
             ).fetchall()
             return [self._from_row(row) for row in rows]
         finally:
@@ -374,15 +368,29 @@ class SQLiteOhlcvStore:
         self, *, dataset: str | None = None, publisher_id: int | None = None,
         instrument_id: int | None = None, timeframe: str | None = None,
         provider: str | None = None, raw_symbol: str | None = None,
-        series_type: str | None = None, start_ns: int | None = None,
-        end_ns: int | None = None, limit: int | None = None,
+        series_type: str | None = None, bucket_policy: str | None = None,
+        calendar_id: str | None = None, calendar_version: str | None = None,
+        start_ns: int | None = None, end_ns: int | None = None,
+        limit: int | None = None,
     ) -> tuple[list[OhlcvBar], int]:
         clauses: list[str] = []
         params: list[object] = []
-        clauses.extend([
-            "bucket_policy=?", "calendar_id=?", "calendar_version=?"
-        ])
-        params.extend([_BUCKET_POLICY, _CALENDAR_ID, _CALENDAR_VERSION])
+        if bucket_policy is None:
+            clauses.append("bucket_policy IN (?,?)")
+            params.extend([BUCKET_POLICY_UTC_LEGACY, BUCKET_POLICY_UTC_FIXED_V1])
+        else:
+            clauses.append("bucket_policy=?")
+            params.append(bucket_policy)
+        if calendar_id is not None:
+            clauses.append("calendar_id=?")
+            params.append(calendar_id)
+        else:
+            clauses.append("calendar_id=''")
+        if calendar_version is not None:
+            clauses.append("calendar_version=?")
+            params.append(calendar_version)
+        else:
+            clauses.append("calendar_version=''")
         for column, value in (
             ("dataset", dataset), ("publisher_id", publisher_id),
             ("instrument_id", instrument_id), ("timeframe", timeframe),

@@ -13,6 +13,7 @@ def make_bar(
     *, start=0, event=100, sequence=1, close="101", volume="12.500",
     origin="provider", completeness="unknown", timeframe="1m",
     instrument_id=123, publisher_id=1, raw_symbol="ESZ6",
+    bucket_policy="UTC_LEGACY",
 ):
     return OhlcvBar(
         provider="databento", dataset="GLBX.MDP3",
@@ -22,6 +23,7 @@ def make_bar(
         low=Decimal("99"), close=Decimal(close), volume=Decimal(volume),
         ts_event_ns=event, ts_received_ns=event + 10, sequence=sequence,
         sequence_origin="local", origin=origin, completeness=completeness,
+        bucket_policy=bucket_policy,
     )
 
 
@@ -260,3 +262,16 @@ def test_unknown_future_ohlcv_schema_version_is_rejected_without_rewriting(tmp_p
         assert db.execute(
             "SELECT schema_version FROM ohlcv_schema_meta WHERE schema_key='ohlcv'"
         ).fetchone()[0] == 999
+
+
+def test_bucket_policy_is_persisted_and_never_overwrites_other_policy(tmp_path):
+    store = SQLiteOhlcvStore(str(tmp_path / "policy.sqlite3"))
+    legacy = make_bar(start=0, bucket_policy="UTC_LEGACY")
+    fixed = make_bar(start=0, bucket_policy="UTC_FIXED_V1")
+    assert store.apply(legacy) == "inserted"
+    assert store.apply(fixed) == "inserted"
+    assert store.load_bars() == [legacy, fixed]
+    legacy_rows, legacy_total = store.query(bucket_policy="UTC_LEGACY")
+    fixed_rows, fixed_total = store.query(bucket_policy="UTC_FIXED_V1")
+    assert legacy_rows == [legacy] and legacy_total == 1
+    assert fixed_rows == [fixed] and fixed_total == 1
