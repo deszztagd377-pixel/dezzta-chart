@@ -94,6 +94,66 @@ def test_live_is_reported_only_after_a_real_record_arrives():
     assert FakeLive.instances[0].stopped is True  # graceful shutdown stops the source
 
 
+def test_system_message_does_not_mark_live_before_a_valid_bar_is_applied():
+    async def go():
+        system = SimpleNamespace(msg="heartbeat", code=0)
+        m, service, pipeline = manager(lambda: FakeLive(records=[system, rec(0)]))
+        await m.start()
+        assert await wait_for(lambda: m.state == "live")
+        assert await wait_for(lambda: len(pipeline.list_bars(timeframe="1s")) == 1)
+        status = m.status()
+        await m.stop()
+        return status, service
+    status, service = asyncio.run(go())
+    assert status["state"] == "live"
+    assert service.counters["rejected_unsupported_record"] == 1
+
+
+def test_error_message_alone_does_not_mark_live():
+    async def go():
+        error = SimpleNamespace(err="invalid subscription", code=5, is_last=True)
+        m, service, _ = manager(lambda: FakeLive(records=[error]))
+        await m.start()
+        await asyncio.sleep(0.1)
+        state = m.state
+        counters = dict(service.counters)
+        await m.stop()
+        return state, counters
+    state, counters = asyncio.run(go())
+    assert state == "connecting"
+    assert counters["rejected_unsupported_record"] == 1
+
+
+def test_unknown_instrument_record_does_not_mark_live():
+    async def go():
+        m, service, _ = manager(lambda: FakeLive(records=[rec(0, instrument_id=999)]))
+        await m.start()
+        await asyncio.sleep(0.1)
+        state = m.state
+        counters = dict(service.counters)
+        await m.stop()
+        return state, counters
+    state, counters = asyncio.run(go())
+    assert state == "connecting"
+    assert counters["rejected_unknown_instrument"] == 1
+
+
+def test_provider_callback_failures_are_counted_not_silently_swallowed():
+    async def go():
+        m, service, _ = manager(lambda: FakeLive(records=[rec(0)]))
+        def broken_offer(record, schema):
+            raise RuntimeError("synthetic callback failure")
+        service.offer = broken_offer
+        await m.start()
+        assert await wait_for(lambda: service.status()["provider_callback_errors"] == 1)
+        state = m.state
+        await m.stop()
+        return state, service.status()
+    state, status = asyncio.run(go())
+    assert state == "connecting"
+    assert status["provider_callback_errors"] == 1
+
+
 def test_silent_connection_is_never_reported_live():
     async def go():
         m, *_ = manager(lambda: FakeLive(records=[]))

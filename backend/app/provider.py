@@ -1,10 +1,11 @@
 """Provider lifecycle manager (connection state is separate from pipeline).
 
 States reported: connecting | live | recovering | degraded | disconnected.
-``live`` is reported ONLY after a real provider record has been received on
-the current connection (never merely because a client object exists).
-Without credentials or with the feature flags off, the manager stays
-``disconnected`` and starts nothing. Credentials are never logged or returned.
+``live`` is reported ONLY after a valid 1s OHLCV bar is accepted by persistence
+and the pipeline on the current connection (never for system/error messages or
+merely because a client object exists). Without credentials or with the feature
+flags off, the manager stays ``disconnected`` and starts nothing. Credentials
+are never logged or returned.
 """
 from __future__ import annotations
 
@@ -193,16 +194,25 @@ class ProviderManager:
             first, closed = self._first_record, self._closed
             outcome: dict[str, BaseException | None] = {}
 
-            signalled = [False]  # signal the loop once, not per record (bounded callbacks)
+            signalled = [False]  # first successfully applied 1s OHLCV bar only
+
+            def on_live_bar_applied(bar: Any) -> None:
+                if bar.timeframe != "1s" or signalled[0]:
+                    return
+                signalled[0] = True
+                try:
+                    loop.call_soon_threadsafe(first.set)
+                except RuntimeError:
+                    pass  # event loop is already shutting down
+
+            self._ingest.add_live_bar_applied_callback(on_live_bar_applied)
 
             def on_record(record: Any) -> None:
                 try:
                     self._ingest.offer(record, "ohlcv-1s")
-                    if not signalled[0]:
-                        signalled[0] = True
-                        loop.call_soon_threadsafe(first.set)
                 except Exception:
-                    pass  # callbacks must never raise into SDK threads
+                    # Keep SDK callbacks non-blocking, but never hide callback failures.
+                    self._ingest.note_provider_callback_error()
 
             def on_close(error: BaseException | None) -> None:
                 outcome["error"] = error
@@ -237,6 +247,8 @@ class ProviderManager:
             except Exception as exc:
                 self.last_error = safe_error(exc, self._s.databento_api_key)
                 self._detail = "connection_error"
+            finally:
+                self._ingest.remove_live_bar_applied_callback(on_live_bar_applied)
             failures += 1
             self._ingest.end_live_session()
             await self._stop_source()

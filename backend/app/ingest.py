@@ -96,6 +96,9 @@ class OhlcvIngestionService:
         self.resolver = resolver
         self.coverage = coverage
         self._on_bar_applied = on_bar_applied
+        self._live_bar_applied_callbacks: set[Callable[[OhlcvBar], None]] = set()
+        self._provider_callback_error_lock = threading.Lock()
+        self._provider_callback_errors = 0
         self.persistence = persistence
         self.aggregator = Aggregator(
             pipeline, coverage, on_derived_bar=self._notify_bar_applied,
@@ -139,6 +142,19 @@ class OhlcvIngestionService:
                         for v in (publisher_id, instrument_id))
         instrument_hint = (publisher_id, instrument_id) if valid_ids else None
         return self._buffer.offer((record, schema, recv_ns, recv_monotonic_ns), hint, recv_ns, instrument_hint)
+
+    def add_live_bar_applied_callback(self, callback: Callable[[OhlcvBar], None]) -> None:
+        """Observe only live bars accepted by persistence and the pipeline."""
+        self._live_bar_applied_callbacks.add(callback)
+
+    def remove_live_bar_applied_callback(self, callback: Callable[[OhlcvBar], None]) -> None:
+        """Remove a live-bar observer when its provider session ends."""
+        self._live_bar_applied_callbacks.discard(callback)
+
+    def note_provider_callback_error(self) -> None:
+        """Count an unexpected SDK callback failure without mutating loop state."""
+        with self._provider_callback_error_lock:
+            self._provider_callback_errors += 1
 
     # ------------------------------------------------------------ loop-side
     def attach_loop(self, loop: asyncio.AbstractEventLoop) -> None:
@@ -192,6 +208,13 @@ class OhlcvIngestionService:
         except Exception:
             # A client fan-out failure must never stop ingestion/aggregation.
             self._count("broadcast_callback_error")
+
+    def _notify_live_bar_applied(self, bar: OhlcvBar) -> None:
+        for callback in tuple(self._live_bar_applied_callbacks):
+            try:
+                callback(bar)
+            except Exception:
+                self._count("live_bar_callback_error")
 
     def _persist_derived(self, bar: OhlcvBar) -> bool:
         if self.persistence is None:
@@ -298,12 +321,15 @@ class OhlcvIngestionService:
         # may mark a range covered.
         self.aggregator.on_bar_applied(bar)
         self._notify_bar_applied(bar)
+        if live:
+            self._notify_live_bar_applied(bar)
 
     def status(self) -> dict[str, Any]:
         return {
             "queue_depth": len(self._buffer),
             "queue_capacity": self._buffer._max,
             "overflow_count": self._buffer.overflow_count,
+            "provider_callback_errors": self._provider_callback_errors,
             "degraded_reasons": sorted(self.degraded_reasons),
             "counters": dict(sorted(self.counters.items())),
             "aggregation": dict(self.aggregator.stats),
