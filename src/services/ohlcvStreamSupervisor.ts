@@ -93,6 +93,7 @@ export function startOhlcvStreamSupervisor(
   const connect = async (): Promise<void> => {
     if (stopped || connecting) return;
     connecting = true;
+    let reconnectAfterAttempt = false;
     setStatus('connecting');
     try {
       const token = await options.getIdToken();
@@ -182,10 +183,14 @@ export function startOhlcvStreamSupervisor(
     } catch (error) {
       if (!stopped) {
         options.onError?.(error instanceof Error ? error : new Error('OHLCV connection failed.'));
-        scheduleReconnect();
+        reconnectAfterAttempt = true;
       }
     } finally {
       connecting = false;
+      // scheduleReconnect() intentionally refuses to run while a connection
+      // attempt is active. Defer this failure path until the attempt releases
+      // that lock, otherwise token-provider/network setup failures stall forever.
+      if (reconnectAfterAttempt) scheduleReconnect();
     }
   };
 
