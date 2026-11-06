@@ -2,7 +2,7 @@
 
 ## Current scope
 
-`src/services/ohlcvWebSocketClient.ts` implements the authenticated client-side transport for the backend `/ws/market-data` endpoint. It is deliberately a transport service, not yet wired into `CandlestickChart`: the current application does not yet provide a verified Firebase identity-token lifecycle to this component. Do not pass a placeholder token or enable unauthenticated subscriptions.
+`src/services/ohlcvWebSocketClient.ts` implements the authenticated client-side transport for the backend `/ws/market-data` endpoint. It is wired into the chart lifecycle through `src/services/ohlcvStreamSupervisor.ts` and `CandlestickChart.tsx`. The supervisor obtains a Firebase ID token through the authenticated app session for each connection attempt. This is code-level integration only; deployed end-to-end operation and external provider delivery are not verified.
 
 ## Handshake
 
@@ -24,12 +24,11 @@
 
 ## Not yet complete
 
-- Firebase client SDK integration and verified token refresh.
-- Wiring the transport into the chart lifecycle and merging updates by candle timestamp.
-- Reconnect backoff, visibility/network awareness, and UI connection-state presentation.
-- End-to-end browser/device verification against a deployed backend with configured Firebase identity, instrument entitlement, and live Databento data.
+- Deployed browser/device verification against a test backend with Firebase identity and instrument entitlement configured.
+- Network/visibility transition behavior and operational heartbeat/timeout validation.
+- External provider credentials, exchange entitlements, and actual provider delivery remain unverified and are not enabled by this client integration.
 
-The transport and its unit tests do not claim that the frontend is receiving live market data today.
+The transport and its unit tests establish code-level integration only; they do not prove that the deployed frontend is receiving live exchange market data.
 
 
 ## Shared-store incremental update boundary
