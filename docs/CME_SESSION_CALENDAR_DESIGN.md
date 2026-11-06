@@ -34,18 +34,16 @@ The calendar implementation must verify the exact product family and effective d
 
 ## 3. Time and identity policies
 
-Three distinct bucket policies are required:
+Four distinct bucket policies are required:
 
 - `UTC_LEGACY`: existing persisted bars. Preserve their current UTC interpretation and identity.
 - `UTC_FIXED_V1`: newly accepted intraday bars from 1s through 4h. Fixed intervals remain UTC-aligned as currently specified.
-- `CME_SESSION_V1`: 1D, 1W, 1M, and 3M bars assigned using the applicable versioned CME trading calendar.
+- `UTC_PROVIDER_DAILY_V1`: provider-sourced 1D bars whose source defines a UTC calendar-day bucket. Preserve the vendor's UTC day semantics; never relabel these as CME sessions.
+- `CME_SESSION_V1`: newly derived 1D, 1W, 1M, and 3M bars assigned using the applicable versioned CME trading calendar. This policy is not valid for an unverified provider UTC daily bar.
 
-Every persisted bar and API representation using the new model must carry enough identity to distinguish:
-- `bucket_policy`
-- `calendar_id` (nullable only for UTC policies)
-- `calendar_version` (nullable only for UTC policies)
+Every persisted bar and API representation using the new model must carry enough identity to distinguish `bucket_policy`, `calendar_id`, and `calendar_version`. The calendar fields are null for all UTC policies and required for `CME_SESSION_V1`.
 
-The durable bar key must include these policy fields. A calendar-version change must never silently overwrite bars generated under a prior version. Existing rows must be migrated additively to `UTC_LEGACY`; no history deletion, silent relabeling as CME, or mixed-policy aggregation is allowed.
+The durable bar key must include all three policy fields. A calendar-version change must never silently overwrite bars generated under a prior version. Existing rows must be assigned `UTC_LEGACY` only; no history deletion, silent relabeling as CME, or mixed-policy aggregation is allowed. Provider daily bars accepted after rollout must be explicitly assigned `UTC_PROVIDER_DAILY_V1` when their source contract confirms UTC calendar-day semantics.
 
 ## 4. Trading-session semantics
 
@@ -71,7 +69,7 @@ A session lookup must return an explicit result such as open, maintenance, close
 
 For weekly/monthly/quarterly bars, store an explicit half-open UTC bucket interval and its trading-date range. Calendar periods with no source records must not create synthetic candles. The precise weekly period boundary and period-label convention must be represented in tests and API metadata before code rollout.
 
-Provider-sourced daily data that uses a vendor's UTC calendar-day semantics must remain separately identified. It must not be silently relabeled as `CME_SESSION_V1` or merged into a CME-session daily bar.
+Provider-sourced daily data that uses a vendor's UTC calendar-day semantics must use `UTC_PROVIDER_DAILY_V1`. It must not be silently relabeled as `CME_SESSION_V1` or merged into a CME-session daily bar. If the provider's daily bucket semantics are unknown, reject or quarantine that bar from policy-aware aggregation rather than guessing.
 
 ## 6. Aggregation and completeness
 
@@ -100,16 +98,17 @@ If official schedule data is unavailable, malformed, stale beyond the configured
 
 ## 8. Migration sequence
 
-1. Add policy/calendar identity fields using an additive, restart-safe SQLite migration.
-2. Backfill existing rows to `UTC_LEGACY` only; preserve all original timestamps and OHLCV values.
-3. Add uniqueness constraints/indexes that include bucket policy and calendar identity.
-4. Add calendar data storage and validation without changing the active aggregation policy.
-5. Add pure calendar boundary functions and DST/holiday tests.
-6. Add calendar-aware 1D aggregation from 1H, initially behind a disabled feature flag.
-7. Add 1W/1M/3M aggregation only after their trading-period boundaries and API semantics are tested.
-8. Enable the policy only after database migration, rollback, restart, and regression checks pass.
+1. Add a dedicated OHLCV schema-version table (for example `ohlcv_schema_meta`); do not change SQLite `PRAGMA user_version`, which is owned by the shared instrument registry.
+2. Rebuild the OHLCV bar table transactionally where required to change its primary key; SQLite cannot add the required policy-aware primary-key columns with a simple `ALTER TABLE`.
+3. Backfill every pre-existing row to `UTC_LEGACY` with null calendar fields; preserve all original timestamps, symbols, and OHLCV values exactly.
+4. Add uniqueness constraints/indexes whose identity includes bucket policy, calendar ID, and calendar version. Ensure reads, writes, retention, revisions, and queries use the expanded identity consistently.
+5. Add calendar data storage and validation without changing the active aggregation policy.
+6. Add pure calendar boundary functions and DST/holiday tests.
+7. Add calendar-aware 1D aggregation from session-contained 1H bars, initially behind a disabled feature flag.
+8. Add 1W/1M/3M aggregation only after their trading-period boundaries and API semantics are tested.
+9. Enable the policy only after migration, rollback, restart, legacy-data preservation, and full regression checks pass.
 
-Each migration must be idempotent, transactional where SQLite permits, tested against a copy of a pre-migration database, and must preserve the existing schema-version contract used by the shared instrument registry.
+Each migration must be idempotent, transactional where SQLite permits, tested against a copy of a pre-migration database, and must preserve the shared instrument registry's `PRAGMA user_version` contract. A failed migration must leave the prior OHLCV table and all rows intact.
 
 ## 9. Required test matrix
 
@@ -121,7 +120,8 @@ Each migration must be idempotent, transactional where SQLite permits, tested ag
 - ES/NQ mapping to the equity-index calendar and GC mapping to COMEX Gold.
 - Daily 1H child selection, including rejection of any child crossing the session boundary.
 - Weekly/monthly/quarterly trading-date membership and period boundary semantics.
-- Vendor UTC daily isolation from CME-session daily.
+- Vendor UTC daily isolation using `UTC_PROVIDER_DAILY_V1` from CME-session daily using `CME_SESSION_V1`.
+- Reopening a shared database confirms the OHLCV migration does not alter the instrument registry's `PRAGMA user_version`.
 - No synthetic bars for empty intervals.
 - Coverage completeness with maintenance and scheduled closures excluded from expected-open time.
 - SQLite migration, restart restoration, rollback, legacy row preservation, and policy-version coexistence.

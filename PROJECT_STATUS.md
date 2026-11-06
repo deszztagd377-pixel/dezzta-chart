@@ -510,3 +510,14 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Updated the major UI/feature expansion gate from 50% to 40%, following the owner's clarification. A scoped blueprint and owner review remain required at that gate.
 - Corrected stale frontend WebSocket integration wording and recorded the exact successful CI run for branch HEAD `8ae99f5c5a11cdfb8b5d52acc1455a47259f194b`.
 - This is a documentation/accounting update only; no application runtime code changed and no new overall percentage is claimed.
+
+
+### 2026-11-06 — CME bucket-policy and SQLite migration audit
+
+- Audited the accepted CME session-calendar ADR against the current OHLCV model, SQLite store, and shared instrument registry.
+- Found an ambiguity: the ADR distinguished vendor UTC daily bars from CME-session daily bars in prose but did not assign vendor daily bars their own bucket-policy identifier. Added `UTC_PROVIDER_DAILY_V1` so source-defined UTC daily bars cannot collide with or be relabeled as CME-session bars.
+- Corrected the migration plan: the OHLCV primary key must be rebuilt transactionally because SQLite cannot add policy identity columns to an existing primary key with a simple additive column migration. The OHLCV store must use its own schema-version table and must not change the shared instrument registry's `PRAGMA user_version`.
+- Added explicit acceptance checks for exact legacy-row preservation, rollback, policy-version coexistence, and registry schema-version isolation.
+- Documentation-only checkpoint. No runtime code, stored data, provider configuration, calendar behavior, or aggregation policy changed. The next implementation step remains the isolated OHLCV schema migration; calendar aggregation stays disabled until the migration and tests pass.
+- Branch base audited: `ca2eca02b857a3d955b4aefbda167efa1db7909c`. The prior provider LIVE-state regression fix is commit `ca2eca02b857a3d955b4aefbda167efa1db7909c`; GitHub Actions run #486 passed the configured frontend and backend checks. This does not verify live provider delivery, real-time latency, or production deployment.
+- No new overall progress percentage is assigned; the progress ledger still requires reconciliation. `main` remains untouched.
