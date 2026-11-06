@@ -49,7 +49,7 @@ The current storage limits are in `backend/app/ohlcv.py` (`DEFAULT_RETENTION` an
 
 ## Current limitations
 
-- Coverage intervals and known data gaps are not yet persisted.
+- Coverage intervals and explicit known data gaps are persisted by `SQLiteCoverageTracker` in the same SQLite database; see “Durable coverage and explicit gaps” below. This does not provide durable WebSocket event replay.
 - No durable outbox/event log exists for WebSocket client update replay. Clients still need snapshot/resubscription recovery after disconnect.
 - Historical gap detection and bounded automatic backfill orchestration are not yet implemented.
 - SQLite persistence has unit/integration coverage but has not yet been benchmarked under sustained high-rate market data or multi-process write load.
