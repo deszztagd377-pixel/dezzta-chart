@@ -174,6 +174,41 @@ describe('OHLCV stream supervisor', () => {
     supervisor.stop();
   });
 
+  it('retries when the identity provider resolves with an empty token', async () => {
+    vi.useFakeTimers();
+    const sockets: FakeSocket[] = [];
+    const getIdToken = vi.fn()
+      .mockResolvedValueOnce('   ')
+      .mockResolvedValue('valid-token-after-empty-response');
+    const supervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken,
+      webSocketFactory: () => {
+        const socket = new FakeSocket();
+        sockets.push(socket);
+        return socket as unknown as WebSocket;
+      },
+      minReconnectDelayMs: 100,
+      maxReconnectDelayMs: 400,
+      random: () => 0,
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(supervisor.status).toBe('reconnecting');
+    expect(sockets).toHaveLength(0);
+
+    await vi.advanceTimersByTimeAsync(50);
+    expect(sockets).toHaveLength(0);
+    await vi.advanceTimersByTimeAsync(50);
+    expect(sockets).toHaveLength(1);
+    expect(getIdToken).toHaveBeenCalledTimes(2);
+    supervisor.stop();
+  });
+
   it('uses bounded exponential reconnect and requests a fresh token for the next attempt', async () => {
     vi.useFakeTimers();
     const sockets: FakeSocket[] = [];
