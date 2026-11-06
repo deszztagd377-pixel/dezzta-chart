@@ -40,19 +40,29 @@ CREATE TABLE IF NOT EXISTS ohlcv_bars (
     origin TEXT NOT NULL,
     completeness TEXT NOT NULL,
     ts_provider_out_ns INTEGER,
+    bucket_policy TEXT NOT NULL DEFAULT 'UTC_LEGACY',
+    calendar_id TEXT NOT NULL DEFAULT '',
+    calendar_version TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (
         provider, dataset, publisher_id, instrument_id,
-        series_type, timeframe, ts_start_ns
+        series_type, timeframe, ts_start_ns, bucket_policy,
+        calendar_id, calendar_version
     )
 );
 CREATE INDEX IF NOT EXISTS idx_ohlcv_series_time
 ON ohlcv_bars(provider, dataset, publisher_id, instrument_id,
-              series_type, raw_symbol, timeframe, ts_start_ns);
+              series_type, raw_symbol, timeframe, bucket_policy,
+              calendar_id, calendar_version, ts_start_ns);
 CREATE TABLE IF NOT EXISTS ohlcv_store_state (
     state_key TEXT PRIMARY KEY NOT NULL,
     int_value INTEGER NOT NULL
 );
 """
+
+_BUCKET_POLICY = "UTC_LEGACY"
+_CALENDAR_ID = ""
+_CALENDAR_VERSION = ""
+_OHLCV_SCHEMA_VERSION = 2
 
 
 class SQLiteOhlcvStore:
@@ -92,10 +102,99 @@ class SQLiteOhlcvStore:
         return db
 
     def _initialize(self) -> None:
+        """Create or transactionally migrate the OHLCV schema.
+
+        This schema version is independent from PRAGMA user_version, which is
+        owned by the shared instrument registry.
+        """
         db = self._connect()
         try:
             db.execute("PRAGMA journal_mode = WAL")
-            db.executescript(_SCHEMA)
+            db.execute("BEGIN IMMEDIATE")
+            db.execute(
+                """CREATE TABLE IF NOT EXISTS ohlcv_schema_meta (
+                    schema_key TEXT PRIMARY KEY NOT NULL,
+                    schema_version INTEGER NOT NULL
+                )"""
+            )
+            meta = db.execute(
+                "SELECT schema_version FROM ohlcv_schema_meta WHERE schema_key='ohlcv'"
+            ).fetchone()
+            version = 0 if meta is None else int(meta["schema_version"])
+            if version > _OHLCV_SCHEMA_VERSION:
+                raise RuntimeError(
+                    f"OHLCV schema version {version} is newer than supported "
+                    f"{_OHLCV_SCHEMA_VERSION}."
+                )
+
+            table = db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='ohlcv_bars'"
+            ).fetchone()
+            create_bars_sql = _SCHEMA.split("CREATE INDEX")[0].strip()
+            if table is None:
+                db.execute(create_bars_sql)
+            else:
+                columns = {
+                    row["name"] for row in db.execute("PRAGMA table_info(ohlcv_bars)")
+                }
+                policy_columns = {"bucket_policy", "calendar_id", "calendar_version"}
+                if not policy_columns.issubset(columns):
+                    legacy_columns = {
+                        "provider", "dataset", "publisher_id", "instrument_id",
+                        "series_type", "timeframe", "ts_start_ns", "raw_symbol",
+                        "open", "high", "low", "close", "volume", "ts_event_ns",
+                        "ts_received_ns", "sequence", "sequence_origin", "origin",
+                        "completeness", "ts_provider_out_ns",
+                    }
+                    missing = legacy_columns - columns
+                    if missing:
+                        raise RuntimeError(
+                            "Cannot migrate OHLCV table; missing legacy columns: "
+                            + ", ".join(sorted(missing))
+                        )
+                    db.execute("DROP INDEX IF EXISTS idx_ohlcv_series_time")
+                    db.execute("ALTER TABLE ohlcv_bars RENAME TO ohlcv_bars_legacy_v1")
+                    db.execute(create_bars_sql)
+                    db.execute(
+                        """INSERT INTO ohlcv_bars (
+                            provider,dataset,publisher_id,instrument_id,series_type,
+                            timeframe,ts_start_ns,raw_symbol,open,high,low,close,volume,
+                            ts_event_ns,ts_received_ns,sequence,sequence_origin,origin,
+                            completeness,ts_provider_out_ns,bucket_policy,calendar_id,
+                            calendar_version
+                        )
+                        SELECT provider,dataset,publisher_id,instrument_id,series_type,
+                            timeframe,ts_start_ns,raw_symbol,open,high,low,close,volume,
+                            ts_event_ns,ts_received_ns,sequence,sequence_origin,origin,
+                            completeness,ts_provider_out_ns,'UTC_LEGACY','',''
+                        FROM ohlcv_bars_legacy_v1"""
+                    )
+                    db.execute("DROP TABLE ohlcv_bars_legacy_v1")
+
+            db.execute(
+                """CREATE INDEX IF NOT EXISTS idx_ohlcv_series_time
+                ON ohlcv_bars(provider, dataset, publisher_id, instrument_id,
+                    series_type, raw_symbol, timeframe, bucket_policy,
+                    calendar_id, calendar_version, ts_start_ns)"""
+            )
+            db.execute(
+                """CREATE TABLE IF NOT EXISTS ohlcv_store_state (
+                    state_key TEXT PRIMARY KEY NOT NULL,
+                    int_value INTEGER NOT NULL
+                )"""
+            )
+            db.execute(
+                """INSERT INTO ohlcv_schema_meta(schema_key, schema_version)
+                VALUES ('ohlcv', ?)
+                ON CONFLICT(schema_key) DO UPDATE SET
+                    schema_version=excluded.schema_version""",
+                (_OHLCV_SCHEMA_VERSION,),
+            )
+            db.execute("COMMIT")
+        except Exception:
+            if db.in_transaction:
+                db.execute("ROLLBACK")
+            raise
         finally:
             db.close()
 
@@ -132,6 +231,7 @@ class SQLiteOhlcvStore:
             format(bar.close, "f"), format(bar.volume, "f"), bar.ts_event_ns,
             bar.ts_received_ns, bar.sequence, bar.sequence_origin, bar.origin,
             bar.completeness, bar.ts_provider_out_ns,
+            _BUCKET_POLICY, _CALENDAR_ID, _CALENDAR_VERSION,
         )
 
     def apply(self, bar: OhlcvBar) -> str:
@@ -144,18 +244,22 @@ class SQLiteOhlcvStore:
             row = db.execute(
                 """SELECT * FROM ohlcv_bars WHERE provider=? AND dataset=?
                 AND publisher_id=? AND instrument_id=? AND series_type=?
-                AND timeframe=? AND ts_start_ns=?""",
+                AND timeframe=? AND ts_start_ns=? AND bucket_policy=?
+                AND calendar_id=? AND calendar_version=?""",
                 (bar.provider, bar.dataset, bar.publisher_id, bar.instrument_id,
-                 bar.series_type, bar.timeframe, bar.ts_start_ns),
+                 bar.series_type, bar.timeframe, bar.ts_start_ns,
+                 _BUCKET_POLICY, _CALENDAR_ID, _CALENDAR_VERSION),
             ).fetchone()
             if row is None:
                 oldest = db.execute(
                     """SELECT MIN(ts_start_ns) AS oldest, COUNT(*) AS amount
                     FROM ohlcv_bars WHERE provider=? AND dataset=?
                     AND publisher_id=? AND instrument_id=? AND series_type=?
-                    AND raw_symbol=? AND timeframe=?""",
+                    AND raw_symbol=? AND timeframe=? AND bucket_policy=?
+                    AND calendar_id=? AND calendar_version=?""",
                     (bar.provider, bar.dataset, bar.publisher_id, bar.instrument_id,
-                     bar.series_type, bar.raw_symbol, bar.timeframe),
+                     bar.series_type, bar.raw_symbol, bar.timeframe,
+                     _BUCKET_POLICY, _CALENDAR_ID, _CALENDAR_VERSION),
                 ).fetchone()
                 if int(oldest["amount"]) >= self.retention[bar.timeframe] and (
                     oldest["oldest"] is not None and bar.ts_start_ns < int(oldest["oldest"])
@@ -199,10 +303,12 @@ class SQLiteOhlcvStore:
                     provider,dataset,publisher_id,instrument_id,series_type,
                     timeframe,ts_start_ns,raw_symbol,open,high,low,close,volume,
                     ts_event_ns,ts_received_ns,sequence,sequence_origin,origin,
-                    completeness,ts_provider_out_ns
-                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                    completeness,ts_provider_out_ns,bucket_policy,calendar_id,
+                    calendar_version
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT(provider,dataset,publisher_id,instrument_id,
-                            series_type,timeframe,ts_start_ns)
+                            series_type,timeframe,ts_start_ns,bucket_policy,
+                            calendar_id,calendar_version)
                 DO UPDATE SET
                     raw_symbol=excluded.raw_symbol, open=excluded.open,
                     high=excluded.high, low=excluded.low, close=excluded.close,
@@ -217,16 +323,20 @@ class SQLiteOhlcvStore:
             db.execute(
                 """DELETE FROM ohlcv_bars WHERE provider=? AND dataset=?
                 AND publisher_id=? AND instrument_id=? AND series_type=?
-                AND raw_symbol=? AND timeframe=? AND ts_start_ns NOT IN (
+                AND raw_symbol=? AND timeframe=? AND bucket_policy=?
+                AND calendar_id=? AND calendar_version=? AND ts_start_ns NOT IN (
                     SELECT ts_start_ns FROM ohlcv_bars
                     WHERE provider=? AND dataset=? AND publisher_id=?
                     AND instrument_id=? AND series_type=? AND raw_symbol=?
-                    AND timeframe=? ORDER BY ts_start_ns DESC LIMIT ?
+                    AND timeframe=? AND bucket_policy=? AND calendar_id=?
+                    AND calendar_version=? ORDER BY ts_start_ns DESC LIMIT ?
                 )""",
                 (bar.provider, bar.dataset, bar.publisher_id, bar.instrument_id,
                  bar.series_type, bar.raw_symbol, bar.timeframe,
+                 _BUCKET_POLICY, _CALENDAR_ID, _CALENDAR_VERSION,
                  bar.provider, bar.dataset, bar.publisher_id, bar.instrument_id,
-                 bar.series_type, bar.raw_symbol, bar.timeframe, cap),
+                 bar.series_type, bar.raw_symbol, bar.timeframe,
+                 _BUCKET_POLICY, _CALENDAR_ID, _CALENDAR_VERSION, cap),
             )
             db.execute("COMMIT")
             return result
@@ -243,7 +353,8 @@ class SQLiteOhlcvStore:
         try:
             rows = db.execute(
                 """SELECT * FROM ohlcv_bars ORDER BY ts_start_ns, provider,
-                dataset, publisher_id, instrument_id, series_type, timeframe"""
+                dataset, publisher_id, instrument_id, series_type, timeframe,
+                bucket_policy, calendar_id, calendar_version"""
             ).fetchall()
             return [self._from_row(row) for row in rows]
         finally:
@@ -307,7 +418,7 @@ class SQLiteOhlcvStore:
         db = self._connect()
         try:
             row = db.execute(
-                "SELECT COUNT(*) AS bars, COUNT(DISTINCT provider || ':' || dataset || ':' || publisher_id || ':' || instrument_id || ':' || series_type || ':' || raw_symbol || ':' || timeframe) AS series FROM ohlcv_bars"
+                "SELECT COUNT(*) AS bars, COUNT(DISTINCT provider || ':' || dataset || ':' || publisher_id || ':' || instrument_id || ':' || series_type || ':' || raw_symbol || ':' || timeframe || ':' || bucket_policy || ':' || calendar_id || ':' || calendar_version) AS series FROM ohlcv_bars"
             ).fetchone()
             return {"bars": int(row["bars"]), "series": int(row["series"])}
         finally:

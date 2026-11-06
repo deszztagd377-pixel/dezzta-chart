@@ -41,7 +41,7 @@ Four distinct bucket policies are required:
 - `UTC_PROVIDER_DAILY_V1`: provider-sourced 1D bars whose source defines a UTC calendar-day bucket. Preserve the vendor's UTC day semantics; never relabel these as CME sessions.
 - `CME_SESSION_V1`: newly derived 1D, 1W, 1M, and 3M bars assigned using the applicable versioned CME trading calendar. This policy is not valid for an unverified provider UTC daily bar.
 
-Every persisted bar and API representation using the new model must carry enough identity to distinguish `bucket_policy`, `calendar_id`, and `calendar_version`. The calendar fields are null for all UTC policies and required for `CME_SESSION_V1`.
+Every persisted bar and API representation using the new model must carry enough identity to distinguish `bucket_policy`, `calendar_id`, and `calendar_version`. For SQLite key stability, calendar identity fields are stored as empty strings for UTC policies and non-empty values for `CME_SESSION_V1`. API DTOs may expose the UTC calendar identity as null, but persistence uses empty strings because nullable columns do not provide the required uniqueness semantics in an ordinary SQLite composite primary key.
 
 The durable bar key must include all three policy fields. A calendar-version change must never silently overwrite bars generated under a prior version. Existing rows must be assigned `UTC_LEGACY` only; no history deletion, silent relabeling as CME, or mixed-policy aggregation is allowed. Provider daily bars accepted after rollout must be explicitly assigned `UTC_PROVIDER_DAILY_V1` when their source contract confirms UTC calendar-day semantics.
 
@@ -100,8 +100,8 @@ If official schedule data is unavailable, malformed, stale beyond the configured
 
 1. Add a dedicated OHLCV schema-version table (for example `ohlcv_schema_meta`); do not change SQLite `PRAGMA user_version`, which is owned by the shared instrument registry.
 2. Rebuild the OHLCV bar table transactionally where required to change its primary key; SQLite cannot add the required policy-aware primary-key columns with a simple `ALTER TABLE`.
-3. Backfill every pre-existing row to `UTC_LEGACY` with null calendar fields; preserve all original timestamps, symbols, and OHLCV values exactly.
-4. Add uniqueness constraints/indexes whose identity includes bucket policy, calendar ID, and calendar version. Ensure reads, writes, retention, revisions, and queries use the expanded identity consistently.
+3. Backfill every pre-existing row to `UTC_LEGACY` with empty-string calendar identity sentinels; preserve all original timestamps, symbols, and OHLCV values exactly.
+4. Add a primary key and indexes whose identity includes bucket policy, calendar ID, and calendar version. Persist the no-calendar case with empty strings, not SQL NULL. Ensure reads, writes, retention, revisions, and queries use the expanded identity consistently.
 5. Add calendar data storage and validation without changing the active aggregation policy.
 6. Add pure calendar boundary functions and DST/holiday tests.
 7. Add calendar-aware 1D aggregation from session-contained 1H bars, initially behind a disabled feature flag.
