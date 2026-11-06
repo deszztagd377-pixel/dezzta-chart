@@ -2,7 +2,7 @@
 
 > **Progress-history correction (2026-11-05):** The owner clarifies that conversational checkpoints progressed from **20.3% to 20.9%**. The older **19.60%** remains a historical formal estimate, not a later regression. **19.9% is not a verified calculation.** Do not publish a fresh overall percentage until the milestone ledger reconciles these records.
 
-Last audited: 2026-11-05
+Last audited: 2026-11-06
 Repository: deszztagd377-pixel/dezzta-chart
 Baseline branch: main
 Working branch: phase-2/market-data-foundation
@@ -532,3 +532,12 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Added regression coverage for exact legacy-row restoration, policy-key coexistence, migration idempotency, rejection of unknown future schema versions, and isolation of policy-aware rows from the legacy OhlcvBar read path.
 - This migration does not enable CME session aggregation, change provider configuration, or establish live feed delivery. Full end-to-end live 1S and every-indicator support remain unverified.
 - No overall progress increase is assigned until branch-head CI and acceptance criteria pass. main remains untouched.
+
+### 2026-11-06 — OHLCV bucket identity transport audit
+
+- Confirmed branch-head CI run [#499](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42215355212) passed all configured checks on `157a6e3ecd2eeeb8dc4e9e45b6b406399f786b66`; Vercel deployment status for the same commit is success.
+- Audited REST snapshots, WebSocket snapshot bars, stream update series metadata, stream-hub subscription identity, frontend protocol validation, sequence guard, supervisor identity checks, and shared-store identity checks. Bucket policy/calendar identity is carried in each snapshot bar and update series and is part of backend fan-out and frontend exact-series matching.
+- Confirmed the currently enabled policies are `UTC_LEGACY` and `UTC_FIXED_V1`. Calendar identifiers remain rejected; CME session calendar aggregation remains disabled pending authoritative calendar and DST/holiday/early-close validation.
+- Corrected backend README statements that incorrectly described the frontend as HTTP-only and OHLCV/coverage persistence as entirely in-memory. The frontend stream path is code-integrated, but deployed backend/provider end-to-end delivery, live freshness, durable WebSocket replay, and sustained-load behavior remain unverified.
+- Added explicit bucket identity documentation to the WebSocket subscription example and REST query contract.
+- No runtime code changed in this documentation checkpoint. No new overall progress percentage is assigned; the milestone ledger remains unreconciled. All changes remain on `phase-2/market-data-foundation`; `main` remains untouched.

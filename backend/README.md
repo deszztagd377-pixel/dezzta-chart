@@ -22,11 +22,13 @@ Activate the virtual environment, then install dependencies:
 pip install -r requirements-dev.txt
 ```
 
-Copy `.env.example` to `.env` for local configuration. The WebSocket status route
-requires a long random `MARKET_DATA_WS_TOKEN`; the current frontend chart uses
-read-only HTTP and does not need the WebSocket token. Keep provider switches off
-and leave `DATABENTO_API_KEY` empty unless a separate provider-access review has
-been completed. Never commit `.env` or share secrets.
+Copy `.env.example` to `.env` for local configuration. The authenticated
+OHLCV WebSocket and REST snapshot routes require a verified Firebase ID token
+and an active per-instrument entitlement. The frontend obtains the ID token from
+its authentication provider; do not put a static WebSocket token or provider
+secret in the browser bundle. Keep provider switches off and leave
+`DATABENTO_API_KEY` empty unless a separate provider-access review has been
+completed. Never commit `.env` or share secrets.
 
 Start the service:
 
@@ -90,7 +92,10 @@ one version 1 subscription with the exact verified series identity:
     "publisherId": 1,
     "instrumentId": 123,
     "rawSymbol": "ESZ6",
-    "timeframe": "1s"
+    "timeframe": "1s",
+    "bucketPolicy": "UTC_LEGACY",
+    "calendarId": "",
+    "calendarVersion": ""
   }
 }
 ```
@@ -104,7 +109,11 @@ Snapshot query and subscription registration occur synchronously on the same
 asyncio event loop, with no await between them. This creates an atomic
 snapshot/watermark boundary relative to the single-writer ingestion loop.
 Accepted base and derived bar revisions are fanned out only to exact matching
-series subscriptions.
+series subscriptions. Bucket identity is part of the exact series key: omitted
+`bucketPolicy` defaults to `UTC_LEGACY`; `UTC_FIXED_V1` is a separate UTC-aligned
+intraday series. Calendar identifiers are currently rejected because no
+calendar-based policy is enabled. REST snapshots accept the corresponding
+`bucket_policy`, `calendar_id`, and `calendar_version` query parameters.
 
 Each client has a bounded queue. If it fills, the server closes that connection
 with code 1013; the client must reconnect and request a new snapshot. Updates
@@ -125,8 +134,8 @@ pytest
 - Optional Databento SDK source adapters and a bounded OHLCV ingestion/provider lifecycle are present, but no production provider key or session is configured or verified for this project.
 - Provider live and historical features remain disabled by default. Enabling them requires a separate review of account entitlements, exchange licensing, explicit symbols, historical query costs, and operational limits.
 - Provider instrument definitions are not automatically refreshed on a schedule. The in-memory catalog is empty until trusted definitions are loaded.
-- The authenticated WebSocket now supports exact-series OHLCV snapshots and bounded in-memory OHLCV updates. It does not provide order-book/MBO events, durable replay, or cross-process delivery.
-- Catalog, OHLCV pipeline, and coverage state are in-memory. Persistence, replay, snapshot recovery, and gap recovery across restarts are not implemented.
+- The authenticated WebSocket supports exact-series OHLCV snapshots and bounded in-memory updates. Subscription identity includes bucket policy and calendar identity; the currently enabled policies are `UTC_LEGACY` and `UTC_FIXED_V1`, while calendar-based CME session aggregation remains disabled. It does not provide order-book/MBO events, durable event replay, or cross-process delivery.
+- Normalized OHLCV bars and coverage intervals are persisted in SQLite, and bounded explicit historical gap recovery is implemented. The in-memory pipeline/catalog and WebSocket queues are process-local; the WebSocket event stream has no durable outbox or replay after disconnect/restart. Provider definitions are not automatically refreshed on a schedule.
 - With default settings, the status endpoint correctly reports the provider as disconnected; this is not evidence of a working external feed.
 - Review CORS, TLS, hosting access controls, and WebSocket authentication before public deployment.
 
