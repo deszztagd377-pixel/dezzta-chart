@@ -200,6 +200,14 @@ class SQLiteOhlcvStore:
 
     @staticmethod
     def _from_row(row: sqlite3.Row) -> OhlcvBar:
+        if (
+            row["bucket_policy"] != _BUCKET_POLICY
+            or row["calendar_id"] != _CALENDAR_ID
+            or row["calendar_version"] != _CALENDAR_VERSION
+        ):
+            raise ValueError(
+                "Policy-aware OHLCV rows cannot be decoded by the legacy OhlcvBar model."
+            )
         return OhlcvBar(
             provider=row["provider"], dataset=row["dataset"],
             publisher_id=row["publisher_id"], instrument_id=row["instrument_id"],
@@ -352,9 +360,11 @@ class SQLiteOhlcvStore:
         db = self._connect()
         try:
             rows = db.execute(
-                """SELECT * FROM ohlcv_bars ORDER BY ts_start_ns, provider,
-                dataset, publisher_id, instrument_id, series_type, timeframe,
-                bucket_policy, calendar_id, calendar_version"""
+                """SELECT * FROM ohlcv_bars
+                WHERE bucket_policy=? AND calendar_id=? AND calendar_version=?
+                ORDER BY ts_start_ns, provider, dataset, publisher_id,
+                instrument_id, series_type, timeframe""",
+                (_BUCKET_POLICY, _CALENDAR_ID, _CALENDAR_VERSION)
             ).fetchall()
             return [self._from_row(row) for row in rows]
         finally:
@@ -369,6 +379,10 @@ class SQLiteOhlcvStore:
     ) -> tuple[list[OhlcvBar], int]:
         clauses: list[str] = []
         params: list[object] = []
+        clauses.extend([
+            "bucket_policy=?", "calendar_id=?", "calendar_version=?"
+        ])
+        params.extend([_BUCKET_POLICY, _CALENDAR_ID, _CALENDAR_VERSION])
         for column, value in (
             ("dataset", dataset), ("publisher_id", publisher_id),
             ("instrument_id", instrument_id), ("timeframe", timeframe),

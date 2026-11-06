@@ -529,6 +529,6 @@ Status: provider and initial instrument scope selected; transport contract, back
 - Added bucket_policy, calendar_id, and calendar_version to the durable OHLCV primary key and series index. The current OhlcvBar contract writes only UTC_LEGACY; policy-aware model and aggregation support remain a later stage.
 - Legacy-table migration runs inside BEGIN IMMEDIATE / COMMIT, copies every legacy OHLCV field exactly, assigns UTC_LEGACY with empty-string calendar sentinels, and drops the old table only after the copy succeeds. Exceptions roll the transaction back.
 - Used empty strings rather than SQL NULL for no-calendar identity in SQLite: nullable composite-key members do not provide the intended uniqueness guarantee in an ordinary rowid table. API DTOs may translate the sentinel to null in a later contract change.
-- Added regression coverage for exact legacy-row restoration, policy-key coexistence, migration idempotency, and rejection of unknown future schema versions.
+- Added regression coverage for exact legacy-row restoration, policy-key coexistence, migration idempotency, rejection of unknown future schema versions, and isolation of policy-aware rows from the legacy OhlcvBar read path.
 - This migration does not enable CME session aggregation, change provider configuration, or establish live feed delivery. Full end-to-end live 1S and every-indicator support remain unverified.
 - No overall progress increase is assigned until branch-head CI and acceptance criteria pass. main remains untouched.

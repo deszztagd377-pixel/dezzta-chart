@@ -231,6 +231,12 @@ def test_legacy_schema_migrates_and_preserves_exact_rows(tmp_path):
         assert db.execute("SELECT COUNT(*) FROM ohlcv_bars").fetchone()[0] == 2
         assert db.execute("PRAGMA user_version").fetchone()[0] == 5
 
+    # The legacy model must not silently merge a future policy row into UTC data.
+    assert migrated.load_bars() == [original]
+    visible, total = migrated.query(timeframe="1m")
+    assert visible == [original]
+    assert total == 1
+
     SQLiteOhlcvStore(path)
     with sqlite3.connect(path) as db:
         assert db.execute(
