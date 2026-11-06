@@ -73,8 +73,23 @@ uses read-only HTTP snapshots and does not need that token.
   this deployment-preparation milestone.
 - Never place secrets in source files, frontend variables, build arguments,
   Docker image layers, logs, screenshots, or chat messages.
-- The current catalog, OHLCV pipeline, and coverage tracker are in-memory.
-  Restarts clear them; this is not a persistent production data service.
+- The active OHLCV pipeline and instrument catalog are in-memory working
+  snapshots, but normalized OHLCV bars, the instrument registry, coverage/gap
+  intervals, price alerts, and instrument entitlements have SQLite-backed
+  persistence. The ingestion service restores retained OHLCV bars and the
+  durable local-sequence high-water mark before its consumer starts.
+- SQLite durability across container replacement exists only when
+  `INSTRUMENT_REGISTRY_DB_PATH` points to a persistent writable volume. The
+  default `./data/instrument_registry.sqlite3` is inside the container
+  filesystem and must be treated as ephemeral unless the hosting platform
+  mounts persistent storage there.
+- The container runs as UID/GID `10001:10001`; a mounted database directory
+  must be writable by that user. Back up the database and test restore before
+  treating it as production-grade storage.
+- SQLite persistence does not provide a durable WebSocket event outbox or
+  replay cursor. After a disconnect or backend restart, clients still need a
+  fresh authenticated snapshot/resubscription. Sustained write-rate and
+  multi-process contention benchmarks are still pending.
 - A successful container health check proves process liveness only. It does
   not prove provider connectivity, contract-definition availability, OHLCV
   completeness, or market-data freshness.
