@@ -236,6 +236,65 @@ describe('OHLCV stream supervisor', () => {
     expect(getMarketDataSnapshot().status).toBe('unavailable');
   });
 
+  it('does not open a socket when stop occurs while ID-token acquisition is pending', async () => {
+    vi.useFakeTimers();
+    let resolveToken!: (token: string) => void;
+    const tokenPromise = new Promise<string>((resolve) => {
+      resolveToken = resolve;
+    });
+    const getIdToken = vi.fn(() => tokenPromise);
+    const factory = vi.fn(() => new FakeSocket() as unknown as WebSocket);
+    const supervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken,
+      webSocketFactory: factory,
+      minReconnectDelayMs: 10,
+      random: () => 0,
+    });
+
+    expect(getIdToken).toHaveBeenCalledOnce();
+    supervisor.stop();
+    resolveToken('late-token');
+    await Promise.resolve();
+    await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(1_000);
+
+    expect(factory).not.toHaveBeenCalled();
+    expect(getIdToken).toHaveBeenCalledOnce();
+    expect(supervisor.status).toBe('stopped');
+  });
+
+  it('does not schedule a retry when a pending token request rejects after stop', async () => {
+    vi.useFakeTimers();
+    let rejectToken!: (error: Error) => void;
+    const tokenPromise = new Promise<string>((_resolve, reject) => {
+      rejectToken = reject;
+    });
+    const getIdToken = vi.fn(() => tokenPromise);
+    const factory = vi.fn(() => new FakeSocket() as unknown as WebSocket);
+    const supervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken,
+      webSocketFactory: factory,
+      minReconnectDelayMs: 10,
+      random: () => 0,
+    });
+
+    supervisor.stop();
+    rejectToken(new Error('token request completed after stop'));
+    await Promise.resolve();
+    await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(1_000);
+
+    expect(factory).not.toHaveBeenCalled();
+    expect(getIdToken).toHaveBeenCalledOnce();
+    expect(supervisor.status).toBe('stopped');
+  });
+
   it('does not reconnect after an explicit stop', async () => {
     vi.useFakeTimers();
     const factory = vi.fn(() => new FakeSocket() as unknown as WebSocket);
