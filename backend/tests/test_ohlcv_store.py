@@ -145,3 +145,112 @@ def test_late_bar_older_than_persisted_retention_window_is_expired(tmp_path):
         start=0, event=1_000, sequence=1_000, close="102"
     )) == "expired"
     assert len(store.load_bars()) == 5
+
+
+def test_legacy_schema_migrates_and_preserves_exact_rows(tmp_path):
+    import sqlite3
+
+    path = str(tmp_path / "legacy.sqlite3")
+    original = make_bar(
+        start=60 * NS, event=1_790_000_000_123_456_789,
+        close="101.000000000000000001", volume="12.500000000000000009",
+    )
+    with sqlite3.connect(path) as db:
+        db.execute(
+            """CREATE TABLE ohlcv_bars (
+                provider TEXT NOT NULL, dataset TEXT NOT NULL,
+                publisher_id INTEGER NOT NULL, instrument_id INTEGER NOT NULL,
+                series_type TEXT NOT NULL, timeframe TEXT NOT NULL,
+                ts_start_ns INTEGER NOT NULL, raw_symbol TEXT NOT NULL,
+                open TEXT NOT NULL, high TEXT NOT NULL, low TEXT NOT NULL,
+                close TEXT NOT NULL, volume TEXT NOT NULL, ts_event_ns INTEGER NOT NULL,
+                ts_received_ns INTEGER NOT NULL, sequence INTEGER NOT NULL,
+                sequence_origin TEXT NOT NULL, origin TEXT NOT NULL,
+                completeness TEXT NOT NULL, ts_provider_out_ns INTEGER,
+                PRIMARY KEY(provider,dataset,publisher_id,instrument_id,
+                    series_type,timeframe,ts_start_ns)
+            )"""
+        )
+        db.execute(
+            "INSERT INTO ohlcv_bars VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                original.provider, original.dataset, original.publisher_id,
+                original.instrument_id, original.series_type, original.timeframe,
+                original.ts_start_ns, original.raw_symbol, str(original.open),
+                str(original.high), str(original.low), str(original.close),
+                str(original.volume), original.ts_event_ns, original.ts_received_ns,
+                original.sequence, original.sequence_origin, original.origin,
+                original.completeness, original.ts_provider_out_ns,
+            ),
+        )
+        db.execute(
+            """CREATE INDEX idx_ohlcv_series_time ON ohlcv_bars(
+                provider,dataset,publisher_id,instrument_id,series_type,
+                raw_symbol,timeframe,ts_start_ns
+            )"""
+        )
+        db.execute(
+            """CREATE TABLE ohlcv_store_state (
+                state_key TEXT PRIMARY KEY NOT NULL, int_value INTEGER NOT NULL
+            )"""
+        )
+        db.execute("PRAGMA user_version = 5")
+
+    migrated = SQLiteOhlcvStore(path)
+    assert migrated.load_bars() == [original]
+    with sqlite3.connect(path) as db:
+        db.row_factory = sqlite3.Row
+        policy_row = db.execute(
+            "SELECT bucket_policy,calendar_id,calendar_version FROM ohlcv_bars"
+        ).fetchone()
+        assert tuple(policy_row) == ("UTC_LEGACY", "", "")
+        meta = db.execute(
+            "SELECT schema_version FROM ohlcv_schema_meta WHERE schema_key='ohlcv'"
+        ).fetchone()
+        assert meta["schema_version"] == 2
+        primary_key_columns = [
+            row["name"] for row in db.execute("PRAGMA table_info(ohlcv_bars)")
+            if row["pk"]
+        ]
+        assert primary_key_columns[-3:] == [
+            "bucket_policy", "calendar_id", "calendar_version"
+        ]
+        db.execute(
+            """INSERT INTO ohlcv_bars (
+                provider,dataset,publisher_id,instrument_id,series_type,timeframe,
+                ts_start_ns,raw_symbol,open,high,low,close,volume,ts_event_ns,
+                ts_received_ns,sequence,sequence_origin,origin,completeness,
+                ts_provider_out_ns,bucket_policy,calendar_id,calendar_version
+            )
+            SELECT provider,dataset,publisher_id,instrument_id,series_type,timeframe,
+                ts_start_ns,raw_symbol,open,high,low,close,volume,ts_event_ns,
+                ts_received_ns,sequence,sequence_origin,origin,completeness,
+                ts_provider_out_ns,'CME_SESSION_V1','CME_EQUITY_INDEX','2026-test'
+            FROM ohlcv_bars WHERE bucket_policy='UTC_LEGACY'"""
+        )
+        assert db.execute("SELECT COUNT(*) FROM ohlcv_bars").fetchone()[0] == 2
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 5
+
+    SQLiteOhlcvStore(path)
+    with sqlite3.connect(path) as db:
+        assert db.execute(
+            "SELECT schema_version FROM ohlcv_schema_meta WHERE schema_key='ohlcv'"
+        ).fetchone()[0] == 2
+        assert db.execute("SELECT COUNT(*) FROM ohlcv_bars").fetchone()[0] == 2
+
+
+def test_unknown_future_ohlcv_schema_version_is_rejected_without_rewriting(tmp_path):
+    import sqlite3
+
+    path = str(tmp_path / "future.sqlite3")
+    SQLiteOhlcvStore(path)
+    with sqlite3.connect(path) as db:
+        db.execute(
+            "UPDATE ohlcv_schema_meta SET schema_version=999 WHERE schema_key='ohlcv'"
+        )
+    with pytest.raises(RuntimeError, match="newer than supported"):
+        SQLiteOhlcvStore(path)
+    with sqlite3.connect(path) as db:
+        assert db.execute(
+            "SELECT schema_version FROM ohlcv_schema_meta WHERE schema_key='ohlcv'"
+        ).fetchone()[0] == 999
