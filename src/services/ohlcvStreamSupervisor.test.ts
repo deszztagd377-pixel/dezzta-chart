@@ -248,6 +248,81 @@ describe('OHLCV stream supervisor', () => {
     supervisor.stop();
   });
 
+  it('recovers from a sequence gap only after a fresh snapshot establishes the new watermark', async () => {
+    vi.useFakeTimers();
+    const sockets: FakeSocket[] = [];
+    const getIdToken = vi.fn()
+      .mockResolvedValueOnce('token-before-gap')
+      .mockResolvedValue('token-after-gap');
+    const supervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken,
+      webSocketFactory: () => {
+        const socket = new FakeSocket();
+        sockets.push(socket);
+        return socket as unknown as WebSocket;
+      },
+      minReconnectDelayMs: 100,
+      maxReconnectDelayMs: 400,
+      random: () => 0,
+    });
+
+    await vi.waitFor(() => expect(sockets).toHaveLength(1));
+    sockets[0].readyState = 1;
+    sockets[0].emit('open', new Event('open'));
+    sockets[0].message({ type: 'market_data.status', version: 1 });
+    sockets[0].message(snapshot);
+    expect(getMarketDataSnapshot().bars).toHaveLength(1);
+
+    sockets[0].message({
+      type: 'market_data.ohlcv.update',
+      version: 1,
+      streamId: 'stream-a',
+      eventId: 'gap-event',
+      sequence: 9,
+      emittedAtNs: '1793577601000000000',
+      operation: 'upsert',
+      isFinal: true,
+      series: identity,
+      bar: { ...bar, sequence: 9 },
+    });
+    expect(supervisor.status).toBe('reconnecting');
+
+    await vi.advanceTimersByTimeAsync(50);
+    await vi.waitFor(() => expect(sockets).toHaveLength(2));
+    sockets[1].readyState = 1;
+    sockets[1].emit('open', new Event('open'));
+    sockets[1].message({ type: 'market_data.status', version: 1 });
+    sockets[1].message({
+      ...snapshot,
+      streamId: 'stream-b',
+      watermark: 20,
+      bars: [{ ...bar, sequence: 20, close: '6001.000' }],
+    });
+
+    sockets[1].message({
+      type: 'market_data.ohlcv.update',
+      version: 1,
+      streamId: 'stream-b',
+      eventId: 'recovered-event',
+      sequence: 21,
+      emittedAtNs: '1793577602000000000',
+      operation: 'upsert',
+      isFinal: true,
+      series: identity,
+      bar: { ...bar, sequence: 21, close: '6002.000' },
+    });
+
+    expect(supervisor.status).toBe('subscribed');
+    expect(getIdToken).toHaveBeenCalledTimes(2);
+    expect(getMarketDataSnapshot().source).toBe('backend');
+    expect(getMarketDataSnapshot().bars).toHaveLength(1);
+    expect(getMarketDataSnapshot().bars[0].close).toBe(6002);
+    supervisor.stop();
+  });
+
   it('does not retry after the server rejects authentication or entitlement', async () => {
     vi.useFakeTimers();
     const sockets: FakeSocket[] = [];
