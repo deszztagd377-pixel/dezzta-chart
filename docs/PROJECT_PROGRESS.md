@@ -233,3 +233,41 @@ The loader was tightened after static review:
 Latest branch comparison against the handoff checkpoint `aae7bd331a34033548be4974bfe5198f273e57dd` reports exactly six commits ahead and zero behind. Latest branch HEAD at this documentation update: `8f4fb0c8e701054ff757f089e380aee37be96dc7`. The connected status surface exposes Vercel as pending and no Actions check result for this HEAD; no successful CI claim is made. Run the full Actions workflow and inspect the backend test result before treating this loader slice as verified.
 
 This follow-up does not change the project percentage. The loader remains a parser/validator only; no official CME calendar release is supplied, authenticated, registered, or activated.
+
+
+### CI-verified calendar artifact loader and canonical instrument resolver — 2026-11-07
+
+#### CI verification of the loader slice
+
+GitHub Actions run [42353541813](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42353541813) completed successfully on exact HEAD `e0b8c42ae58af296a27278f8857a3ce41ae501a6`. Its single `Test and Build` job passed all reported steps: frontend dependency installation, frontend unit tests, frontend production build, backend dependency installation, backend tests, and backend container-image build. The prior run for `8f4fb0c` was cancelled; it is not the verification source for the loader.
+
+#### Canonical instrument calendar resolution slice
+
+The canonical instrument model already carries an explicit `session_calendar_id`. The OHLCV adapter currently resolves provider records to canonical mapping data, but does not yet apply a CME calendar. Rather than infer a calendar from raw provider symbols or add a guessed product-family mapping, the registry now exposes a narrow explicit resolver:
+
+- `SessionCalendarRegistry.for_instrument(instrument, version=...)` accepts only a `CanonicalInstrument` future.
+- It reads `session_calendar_id` from canonical instrument metadata.
+- It requires a non-empty explicit release version and performs an exact (calendar ID, version) lookup.
+- Missing/unsupported calendar IDs, non-futures, and unavailable versions return no calendar (fail closed).
+- It does not inspect the canonical symbol, raw symbol, provider instrument ID, or publisher ID to infer the calendar.
+- No adapter, ingestion, OHLCV timestamp validation, or aggregation path has been enabled by this method.
+
+Added regression tests for successful explicit resolution, symbol-independence, missing/unsupported calendar metadata, non-futures, required version, and no version fallback.
+
+Files changed in this resolver slice:
+- `backend/app/session_calendar.py`
+- `backend/tests/test_session_calendar.py`
+
+The latest code change has triggered a new CI run; its result must be checked against the exact resulting HEAD before this resolver slice is marked verified. The earlier loader is CI-verified on `e0b8c42`; the newly added resolver is not yet CI-verified.
+
+#### Current integration boundary
+
+- Canonical instrument metadata can explicitly identify a session calendar.
+- Versioned schedule loading and digest validation exist and passed CI on `e0b8c42`.
+- The in-memory registry can resolve an exact calendar release from canonical metadata.
+- No authoritative CME schedule artifact has been supplied or independently authenticated.
+- No Databento adapter currently validates each bar timestamp against a resolved calendar.
+- Session-aligned OHLCV aggregation remains disabled. UTC aggregation behavior remains unchanged.
+- SQLite remains unchanged; its existing schema already persists the CME bucket identity fields needed for future integration.
+
+Progress remains at the owner-confirmed historical conversational checkpoint of **20.9%** for continuity. This is not a newly recalculated weighted score. The new resolver does not receive percentage credit until its acceptance tests pass and the weighted ledger has been reconciled and approved.
