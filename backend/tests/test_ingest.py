@@ -3,6 +3,7 @@ from decimal import Decimal
 from types import SimpleNamespace
 
 from app.ingest import BoundedBuffer
+from app.session_bar_validation import SessionBarRejected
 from helpers import NS, T0, make_service, rec
 
 
@@ -480,3 +481,29 @@ def test_ingestion_restart_restores_pipeline_and_resumes_local_sequence(tmp_path
     assert rebuilt_one_minute[0].close == Decimal("102")
     assert rebuilt_one_minute[0].volume == Decimal(40)
 
+
+
+
+def test_optional_bar_validator_rejects_before_persistence_or_pipeline_apply():
+    def reject_closed_session(_bar):
+        raise SessionBarRejected("outside_trading_session")
+
+    service, pipeline, _, _ = make_service(bar_validator=reject_closed_session)
+    assert service.ingest_batch([rec(0)], "ohlcv-1s") == 1
+
+    assert pipeline.list_bars() == []
+    assert service.counters["rejected_validation_outside_trading_session"] == 1
+    assert service.counters.get("inserted", 0) == 0
+
+
+def test_optional_bar_validator_allows_only_records_it_accepts():
+    validated = []
+
+    def accept(_bar):
+        validated.append(_bar.ts_start_ns)
+
+    service, pipeline, _, _ = make_service(bar_validator=accept)
+    service.ingest_batch([rec(0), rec(1)], "ohlcv-1s")
+
+    assert validated == [T0, T0 + NS]
+    assert len(pipeline.list_bars(timeframe="1s")) == 2
