@@ -1,0 +1,204 @@
+from datetime import date, datetime, timezone
+from decimal import Decimal
+
+import pytest
+
+from app.instrument_identity import CanonicalInstrument
+from app.ohlcv import BUCKET_POLICY_UTC_FIXED_V1, OhlcvBar
+from app.session_calendar import (
+    CHICAGO,
+    SessionCalendar,
+    SessionCalendarRegistry,
+    SessionRecord,
+    datetime_to_epoch_ns,
+)
+from app.session_bar_validation import (
+    SessionBarRejected,
+    validate_intraday_bar_session,
+)
+
+
+def future(calendar_id="CME_EQUITY_INDEX", *, active=True):
+    return CanonicalInstrument(
+        canonical_id="12345678-1234-5678-1234-567812345678",
+        asset_class="future",
+        instrument_type="future",
+        symbol="ES",
+        venue="CME",
+        settlement_currency="USD",
+        expiration_date="2024-12-20",
+        session_calendar_id=calendar_id,
+        is_active=active,
+    )
+
+
+def record(day, opened, closed, kind="regular"):
+    return SessionRecord(
+        trading_date=day,
+        kind=kind,
+        open_local=datetime.fromisoformat(opened).replace(tzinfo=CHICAGO)
+        if opened else None,
+        close_local=datetime.fromisoformat(closed).replace(tzinfo=CHICAGO)
+        if closed else None,
+    )
+
+
+def calendar(records, *, start=date(2024, 3, 11), end=date(2024, 3, 12)):
+    return SessionCalendar(
+        calendar_id="CME_EQUITY_INDEX",
+        version="2024.03.1",
+        product_family="ES",
+        effective_start=start,
+        effective_end=end,
+        source_id="test-fixture-only",
+        source_url="https://www.cmegroup.com/trading-hours.html",
+        published_at_utc=datetime(2024, 2, 1, tzinfo=timezone.utc),
+        checksum="sha256:test-fixture",
+        records={item.trading_date: item for item in records},
+    )
+
+
+def bar(start_ns, *, timeframe="1m", policy=BUCKET_POLICY_UTC_FIXED_V1):
+    return OhlcvBar(
+        dataset="GLBX.MDP3",
+        publisher_id=1,
+        instrument_id=10,
+        raw_symbol="ESZ6",
+        timeframe=timeframe,
+        ts_start_ns=start_ns,
+        open=Decimal("5000"),
+        high=Decimal("5001"),
+        low=Decimal("4999"),
+        close=Decimal("5000.5"),
+        volume=Decimal("10"),
+        ts_event_ns=start_ns,
+        ts_received_ns=start_ns,
+        sequence=1,
+        bucket_policy=policy,
+    )
+
+
+def validator_for(records, *, start=date(2024, 3, 11), end=date(2024, 3, 12)):
+    release = calendar(records, start=start, end=end)
+    registry = SessionCalendarRegistry((release,))
+    return lambda item, instrument=None, version="2024.03.1": (
+        validate_intraday_bar_session(
+            item, instrument or future(), registry, calendar_version=version
+        )
+    )
+
+
+def test_accepts_complete_regular_session_bar_and_returns_release_identity():
+    monday = record(date(2024, 3, 11), "2024-03-10T17:00:00", "2024-03-11T16:00:00")
+    start = datetime_to_epoch_ns(datetime(2024, 3, 11, 15, 0, tzinfo=timezone.utc))
+    result = validator_for([monday])(bar(start))
+    assert result.calendar_id == "CME_EQUITY_INDEX"
+    assert result.calendar_version == "2024.03.1"
+    assert result.trading_date == "2024-03-11"
+    assert result.interval_end_ns == start + 60_000_000_000
+
+
+def test_accepts_bar_inside_explicit_early_close_session():
+    early = record(
+        date(2024, 3, 11), "2024-03-10T17:00:00", "2024-03-11T12:00:00",
+        kind="early_close",
+    )
+    start = datetime_to_epoch_ns(datetime(2024, 3, 11, 16, 59, tzinfo=timezone.utc))
+    result = validator_for([early])(bar(start))
+    assert result.session_state == "special-session"
+
+
+def test_rejects_bar_interval_that_crosses_early_session_close():
+    early = record(
+        date(2024, 3, 11), "2024-03-10T17:00:00", "2024-03-11T12:00:00",
+        kind="early_close",
+    )
+    start = datetime_to_epoch_ns(datetime(2024, 3, 11, 16, 59, 30, tzinfo=timezone.utc))
+    with pytest.raises(SessionBarRejected) as error:
+        validator_for([early])(bar(start, timeframe="1m"))
+    assert error.value.reason == "bar_crosses_session_close"
+
+
+def test_rejects_maintenance_interval():
+    monday = record(date(2024, 3, 11), "2024-03-10T17:00:00", "2024-03-11T16:00:00")
+    tuesday = record(date(2024, 3, 12), "2024-03-11T17:00:00", "2024-03-12T16:00:00")
+    start = datetime_to_epoch_ns(datetime(2024, 3, 11, 21, 30, tzinfo=timezone.utc))
+    with pytest.raises(SessionBarRejected) as error:
+        validator_for([monday, tuesday])(bar(start))
+    assert error.value.reason == "outside_trading_session"
+
+
+def test_rejects_explicitly_closed_date():
+    closed = record(date(2024, 3, 11), None, None, kind="closed")
+    start = datetime_to_epoch_ns(datetime(2024, 3, 11, 15, 0, tzinfo=timezone.utc))
+    with pytest.raises(SessionBarRejected) as error:
+        validator_for([closed])(bar(start))
+    assert error.value.reason == "outside_trading_session"
+
+
+def test_missing_date_coverage_is_unknown_and_fails_closed():
+    start = datetime_to_epoch_ns(datetime(2024, 3, 11, 15, 0, tzinfo=timezone.utc))
+    with pytest.raises(SessionBarRejected) as error:
+        validator_for([])(bar(start))
+    assert error.value.reason == "unknown_calendar_coverage"
+
+
+def test_rejects_calendar_id_not_assigned_to_canonical_instrument():
+    monday = record(date(2024, 3, 11), "2024-03-10T17:00:00", "2024-03-11T16:00:00")
+    start = datetime_to_epoch_ns(datetime(2024, 3, 11, 15, 0, tzinfo=timezone.utc))
+    with pytest.raises(SessionBarRejected) as error:
+        validator_for([monday])(bar(start), instrument=future("COMEX_GOLD"))
+    assert error.value.reason == "calendar_unavailable"
+
+
+def test_rejects_missing_or_unavailable_explicit_release_version():
+    monday = record(date(2024, 3, 11), "2024-03-10T17:00:00", "2024-03-11T16:00:00")
+    start = datetime_to_epoch_ns(datetime(2024, 3, 11, 15, 0, tzinfo=timezone.utc))
+    validate = validator_for([monday])
+    with pytest.raises(SessionBarRejected) as error:
+        validate(bar(start), version="")
+    assert error.value.reason == "calendar_version_required"
+    with pytest.raises(SessionBarRejected) as error:
+        validate(bar(start), version="unavailable")
+    assert error.value.reason == "calendar_unavailable"
+
+
+def test_rejects_inactive_or_non_future_instrument():
+    monday = record(date(2024, 3, 11), "2024-03-10T17:00:00", "2024-03-11T16:00:00")
+    start = datetime_to_epoch_ns(datetime(2024, 3, 11, 15, 0, tzinfo=timezone.utc))
+    validate = validator_for([monday])
+    with pytest.raises(SessionBarRejected) as error:
+        validate(bar(start), instrument=future(active=False))
+    assert error.value.reason == "inactive_instrument"
+    stock = CanonicalInstrument(
+        canonical_id="12345678-1234-5678-1234-567812345678",
+        asset_class="equity",
+        instrument_type="stock",
+        symbol="ES",
+        venue="NASDAQ",
+    )
+    with pytest.raises(SessionBarRejected) as error:
+        validate(bar(start), instrument=stock)
+    assert error.value.reason == "unsupported_instrument"
+
+
+def test_rejects_non_utc_intraday_policy_and_non_intraday_timeframe():
+    monday = record(date(2024, 3, 11), "2024-03-10T17:00:00", "2024-03-11T16:00:00")
+    validate = validator_for([monday])
+    start = datetime_to_epoch_ns(datetime(2024, 3, 11, 15, 0, tzinfo=timezone.utc))
+    with pytest.raises(SessionBarRejected) as error:
+        validate(bar(start, policy="UTC_LEGACY"))
+    assert error.value.reason == "unsupported_bucket_policy"
+    with pytest.raises(SessionBarRejected) as error:
+        validate(bar(start, timeframe="1d", policy="UTC_LEGACY"))
+    assert error.value.reason == "unsupported_bucket_policy"
+
+
+def test_rejects_sub_microsecond_timestamp_precision_in_calendar_boundary():
+    monday = record(date(2024, 3, 11), "2024-03-10T17:00:00", "2024-03-11T16:00:00")
+    start = datetime_to_epoch_ns(datetime(2024, 3, 11, 15, 0, tzinfo=timezone.utc)) + 1
+    # Build a valid bar with the one-nanosecond offset using a 1s-aligned fixture
+    # is intentionally impossible; timestamp alignment is enforced by OhlcvBar.
+    # This assertion documents that malformed bar construction is rejected first.
+    with pytest.raises(Exception):
+        bar(start)
