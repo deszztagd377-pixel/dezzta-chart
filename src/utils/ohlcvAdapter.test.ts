@@ -131,6 +131,19 @@ describe('toChartCandles', () => {
     expect(toChartCandles(snapshot, { ...identity, bucketPolicy: 'UTC_FIXED_V1' })).toHaveLength(1);
   });
 
+  it('rejects nanosecond timestamps outside the chart engine safe-integer range', () => {
+    const snapshot = parseOhlcvSnapshot(makeSnapshot({
+      bars: [{
+        ...baseBar,
+        tsStartNs: '9007199254740992000000000',
+        tsEventNs: '9007199254740992000000000',
+        tsReceivedNs: '9007199254740992000000000',
+      }],
+    }));
+
+    expect(() => toChartCandles(snapshot, identity)).toThrow(/outside chart range/i);
+  });
+
   it('returns no candles for an unavailable snapshot', () => {
     const snapshot = parseOhlcvSnapshot(makeSnapshot({
       state: 'unavailable',
