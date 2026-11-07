@@ -112,3 +112,29 @@ SQLite is considered complete for the current foundation scope. No SQLite rework
 ### Follow-up persistence audit — 2026-11-07
 
 A targeted audit of `backend/app/ohlcv_store.py` and `backend/tests/test_ohlcv_store.py` confirmed that OHLCV SQLite schema version 2 already persists calendar identity fields (`bucket_policy`, `calendar_id`, `calendar_version`) and includes them in the composite primary key and series index. Existing policy-isolation and legacy migration tests are present. **No SQLite schema change is currently required for the next calendar integration step.** The remaining enablement work is in the OHLCV model/adapter/aggregation contract; this is not a reason to reopen completed SQLite work.
+
+
+## Indicator progress tracker — audited 2026-11-07
+
+This tracker is intentionally separate from the CME calendar work so indicator progress is never omitted from a project checkpoint.
+
+| Indicator / layer | Verified repository state | User-visible completion |
+|---|---|---|
+| SMA 20 | Calculation function and unit tests exist | Not integrated into visible chart UI |
+| EMA 20 | Calculation function and unit tests exist | Not integrated into visible chart UI |
+| RSI 14 (Wilder) | Calculation function and unit tests exist | Not integrated into visible chart UI |
+| MACD | Calculation function and unit tests exist | Not integrated into visible chart UI |
+| Bollinger Bands | Calculation function and unit tests exist | Not integrated into visible chart UI |
+| Shared indicator hook | `useMarketIndicators()` consumes only validated backend data from the shared market-data store; DEMO/loading/unavailable/error states yield no values | Hook exists; no visible indicator controls/panes |
+| Footprint | Offline deterministic simulated aggregation engine and fixtures exist; buy/sell/unknown are kept separate and duplicate event IDs are rejected | Not visually implemented; must remain clearly SIMULATED; wait for owner's Footprint reference image |
+| Heatmap | No implementation verified in this audit | Pending owner reference image and later scoped implementation |
+| Liquidation Maps | No implementation verified in this audit | Pending owner reference image and later scoped implementation |
+
+### Indicator constraints and next gates
+
+- Every indicator must use the exact validated chart series for the currently selected canonical instrument and timeframe; no separate price source or sample-candle substitution.
+- Calculation helpers and tests are groundwork only. They are not counted as visible, usable indicator features.
+- Do not begin Footprint visual layout before the owner supplies its reference image. Ordinary candles and spacing must remain unchanged when Footprint is OFF; only explicit Footprint ON may activate the dedicated spaced cluster layout.
+- Heatmap and Liquidation Maps visual work likewise waits for their respective owner reference images.
+- The project expansion gate is 40% overall. Before that gate, retain the calculation/data-integrity foundations and tests; prepare a scoped blueprint and obtain owner review at the gate before major UI implementation.
+- No indicator may be presented as predictive or as buy/sell advice. Simulated Footprint data must retain a visible SIMULATED label and must never be confused with market observations.
