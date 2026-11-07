@@ -8,6 +8,7 @@ clients can subscribe to the in-memory OHLCV pipeline when validated bars exist.
 
 import asyncio
 import time
+from collections import deque
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, WebSocket, WebSocketDisconnect
@@ -43,7 +44,19 @@ from app.symbology import InstrumentResolver
 
 
 WEBSOCKET_AUTHORIZATION_RECHECK_SECONDS = 60.0
+WEBSOCKET_PING_WINDOW_SECONDS = 10.0
+WEBSOCKET_MAX_PINGS_PER_WINDOW = 20
 MAX_OHLCV_RESPONSE_BARS = 5_000
+
+
+def _allow_websocket_ping(ping_timestamps: deque[float], now: float) -> bool:
+    cutoff = now - WEBSOCKET_PING_WINDOW_SECONDS
+    while ping_timestamps and ping_timestamps[0] <= cutoff:
+        ping_timestamps.popleft()
+    if len(ping_timestamps) >= WEBSOCKET_MAX_PINGS_PER_WINDOW:
+        return False
+    ping_timestamps.append(now)
+    return True
 
 
 def _parse_ns(value: str | None, name: str) -> int | None:
@@ -600,6 +613,7 @@ def create_app(
 
             receive_task = asyncio.create_task(websocket.receive_text())
             queue_task = None
+            ping_timestamps: deque[float] = deque()
             loop = asyncio.get_running_loop()
             next_entitlement_check = loop.time() + WEBSOCKET_AUTHORIZATION_RECHECK_SECONDS
             try:
@@ -657,8 +671,13 @@ def create_app(
                             client_message = receive_task.result()
                         except WebSocketDisconnect:
                             return
-                        if client_message == "ping":
-                            await websocket.send_json({"type": "market_data.pong", "version": 1})
+                        if client_message != "ping":
+                            await websocket.close(code=1008, reason="Unsupported client message")
+                            return
+                        if not _allow_websocket_ping(ping_timestamps, loop.time()):
+                            await websocket.close(code=1008, reason="WebSocket ping rate limit exceeded")
+                            return
+                        await websocket.send_json({"type": "market_data.pong", "version": 1})
                         receive_task = asyncio.create_task(websocket.receive_text())
                     if queue_task in done:
                         if subscription.overflowed:
