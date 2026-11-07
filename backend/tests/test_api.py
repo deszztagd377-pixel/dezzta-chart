@@ -80,6 +80,13 @@ def test_market_data_status_is_honest_about_unimplemented_feed() -> None:
     assert payload["ingestion_implemented"] is False
 
 
+def test_market_data_status_uses_configured_dataset() -> None:
+    settings = replace(make_settings(), databento_dataset="GLBX.TEST")
+    response = TestClient(create_app(settings)).get("/v1/market-data/status")
+    assert response.status_code == 200
+    assert response.json()["dataset"] == "GLBX.TEST"
+
+
 def test_instrument_catalog_starts_empty_without_provider_definitions() -> None:
     client = TestClient(create_app(make_settings()))
     response = client.get("/v1/instruments")

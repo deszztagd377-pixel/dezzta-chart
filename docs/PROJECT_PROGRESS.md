@@ -697,3 +697,11 @@ Main HEAD at audit: `e3841681bc69b73619058deaf939df82ae5116a1` (unchanged).
 - Complete deployment-specific Firebase, HTTPS/WSS, Origin, rate-limit, and monitoring checks.
 
 This verification does not change the owner-confirmed overall progress percentage. Passing CI validates only the configured checks on this commit.
+
+
+## Configured provider dataset status consistency — 2026-11-07
+
+- Corrected `GET /v1/market-data/status` to report the configured `databento_dataset` instead of a hard-coded `GLBX.MDP3` label. This keeps the unauthenticated status metadata aligned with the provider configuration actually used by ingestion and historical-source adapters.
+- Added an API regression test that configures a non-default dataset (`GLBX.TEST`) and asserts that the status endpoint reports that exact value.
+- This does not enable provider connectivity, certify a dataset entitlement, or change the current historical/educational-only development boundary.
+- Exact-HEAD CI and CodeQL validation are required before treating this fix as verified. No progress percentage is changed by the code edit alone.

@@ -238,7 +238,7 @@ def create_app(
         ohlcv_status = provider.status()
         return {
             "provider": "databento",
-            "dataset": "GLBX.MDP3",
+            "dataset": config.databento_dataset,
             "schema": "mbo",
             "state": "disconnected",
             "connected": False,
