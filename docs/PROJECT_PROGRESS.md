@@ -182,3 +182,15 @@ Files changed in this slice:
 This is a deterministic in-memory registry only. It does not fetch, parse, certify, or activate any official CME schedule release. The adapter is not yet wired to this registry, and CME OHLCV ingestion/aggregation remains disabled until canonical product-family metadata and verified calendar source loading are connected.
 
 Indicator tracker unchanged: SMA/EMA/RSI/MACD/Bollinger calculations exist but are not chart-integrated; Footprint is simulated-only; Heatmap and Liquidation Maps remain pending their visual references.
+
+
+### Targeted CI regression repair — 2026-11-07
+
+The CI run for commit `5d5b049` exposed two failures in the new CME session-bar tests. Both had the same cause: `OhlcvBar.__post_init__` correctly bypassed UTC alignment inside the policy-specific branch, but a second unconditional UTC-alignment check remained later in the method.
+
+Only that duplicate check was removed in commit `8f559e9`. The policy-specific validation remains authoritative:
+- UTC policies still require UTC bucket alignment.
+- CME session policy still requires an allowed session timeframe and both calendar identity fields.
+- Actual CME session-bound validation remains pending the calendar-aware ingestion integration.
+
+No unrelated test or SQLite code was changed for this repair. CI for the repair commit must complete before the change is marked verified.
