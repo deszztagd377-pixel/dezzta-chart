@@ -168,17 +168,29 @@ class OhlcvIngestionService:
         """Consumer loop (single writer). Cancel to stop."""
         if self._event is None:
             raise RuntimeError("attach_loop() must be called first")
+        retry_delay = 0.25
+        max_retry_delay = 5.0
         while True:
-            await self._event.wait()
+            if self._pending_overflow_gaps:
+                # Wait for either fresh provider work or the next retry deadline.
+                # Provider events interrupt the backoff so ingestion is not held
+                # behind a coverage-store outage.
+                try:
+                    await asyncio.wait_for(
+                        self._event.wait(), timeout=retry_delay
+                    )
+                except asyncio.TimeoutError:
+                    pass
+            else:
+                await self._event.wait()
             self._event.clear()
             while self.process_pending():
                 await asyncio.sleep(0)  # yield to the loop between batches
             if self._pending_overflow_gaps:
-                # No provider event is guaranteed after an overflow. Schedule a
-                # bounded retry wakeup so transient coverage-store failures can
-                # recover even when the input queue is empty.
-                await asyncio.sleep(0.25)
-                self._event.set()
+                # Repeated SQLite failures must not cause a tight retry loop.
+                retry_delay = min(retry_delay * 2, max_retry_delay)
+            else:
+                retry_delay = 0.25
 
     def process_pending(self) -> int:
         """Apply buffered records (loop thread only). Returns records handled."""
