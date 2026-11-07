@@ -74,3 +74,38 @@ def test_failed_coverage_persistence_rolls_back_in_memory_state(tmp_path):
     with pytest.raises(OSError):
         tracker.add_gap(scope, 100, 200)
     assert tracker.gaps(scope) == []
+
+
+
+def test_overflow_journal_is_idempotent_and_survives_restart(tmp_path):
+    path = str(tmp_path / "coverage.sqlite3")
+    tracker = SQLiteCoverageTracker(path)
+    hint = (7, 101)
+
+    first_id = tracker.journal_overflow(hint, 1_000, 2_000, 10)
+    duplicate_id = tracker.journal_overflow(hint, 1_000, 2_000, 11)
+
+    assert duplicate_id == first_id
+    restored = SQLiteCoverageTracker(path)
+    assert restored.pending_overflows() == [{
+        "id": first_id,
+        "instrument_hint": hint,
+        "start_ns": 1_000,
+        "end_ns": 2_000,
+        "created_at_ns": 10,
+    }]
+
+    restored.resolve_overflow(first_id)
+    assert SQLiteCoverageTracker(path).pending_overflows() == []
+
+
+def test_unscoped_overflow_journal_survives_restart_until_resolved(tmp_path):
+    path = str(tmp_path / "coverage.sqlite3")
+    tracker = SQLiteCoverageTracker(path)
+    journal_id = tracker.journal_overflow(None, 3_000, 4_000, 20)
+
+    restarted = SQLiteCoverageTracker(path)
+    pending = restarted.pending_overflows()
+    assert len(pending) == 1
+    assert pending[0]["id"] == journal_id
+    assert pending[0]["instrument_hint"] is None

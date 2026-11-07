@@ -122,8 +122,6 @@ class OhlcvIngestionService:
                  int(item["start_ns"]), int(item["end_ns"]))
                 for item in self._overflow_journal.pending_overflows()
             )
-            if self._pending_overflow_gaps:
-                self.degraded_reasons.add("ingest_overflow")
         self._batch = batch_size
         self._clock = clock_ns
         self._monotonic = monotonic_ns
@@ -141,6 +139,8 @@ class OhlcvIngestionService:
         self._session_start: int | None = None
         self.counters: dict[str, int] = {}
         self.degraded_reasons: set[str] = set()
+        if self._pending_overflow_gaps:
+            self.degraded_reasons.add("ingest_overflow")
         self.last_event_ns: int | None = None
         self.last_receive_ns: int | None = None
 
