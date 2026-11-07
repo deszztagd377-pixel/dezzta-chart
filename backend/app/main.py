@@ -159,6 +159,21 @@ def create_app(
         allow_headers=["Content-Type", "Authorization"],
     )
 
+    @application.middleware("http")
+    async def api_security_headers(request, call_next):
+        response = await call_next(request)
+        if request.url.path == "/health" or request.url.path.startswith("/v1/"):
+            response.headers["X-Content-Type-Options"] = "nosniff"
+            response.headers["X-Frame-Options"] = "DENY"
+            response.headers["Referrer-Policy"] = "no-referrer"
+            response.headers["Permissions-Policy"] = (
+                "camera=(), microphone=(), geolocation=()"
+            )
+            response.headers["Cache-Control"] = "private, no-store, max-age=0"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
+
     async def require_verified_principal(
         authorization: str | None = Header(default=None),
     ) -> VerifiedPrincipal:
