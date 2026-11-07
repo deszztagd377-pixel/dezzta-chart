@@ -729,3 +729,15 @@ The experiment was reverted on commit `1034d9f`:
 - Next remediation work must inspect the exact base-image digest, package origins, fixed-version metadata, Debian security update availability, and whether a supported newer base image removes the findings. Any exception requires explicit risk acceptance; the CI gate must not be weakened merely to obtain a green run.
 
 This correction is an incident record, not a progress increase. The strict scan will continue to block CI until findings are remediated or a separately reviewed, evidence-backed policy is approved.
+
+
+## Container vulnerability diagnostic artifacts and base-image comparison — 2026-11-07
+
+- Preserved the required Trivy gate unchanged: the production candidate image is still scanned for OS and library HIGH/CRITICAL findings, including unfixed findings, and any match still fails the CI job.
+- Added an always-run JSON export of the current image scan so the full package/CVE/fixed-version metadata remains available even when the strict table scan fails.
+- Added a feature-branch-only diagnostic build using the same backend Dockerfile and build context, changing only the Python base tag from `python:3.12-slim` to `python:3.12-slim-bookworm`. This candidate is diagnostic only and is not selected for deployment or production.
+- Added a JSON scan for that candidate and a Markdown comparison summary. Diagnostic build/scan steps are explicitly non-gating; they cannot turn a failed strict scan green.
+- Uploaded the reports as a 14-day GitHub Actions artifact using the immutable `actions/upload-artifact` v4 commit SHA `ea165f8d65b6e75b540449e92b4886f43607fa02`. Trivy remains pinned to the already reviewed action SHA and scanner version.
+- The comparison counts unique vulnerability/package/installed-version tuples and separates HIGH from CRITICAL. A missing report is explicitly represented as unavailable rather than as zero findings.
+- This is an observability and evidence-gathering improvement, not a vulnerability fix. The Bookworm image must still be built, scanned, checked for package compatibility, and reviewed before any base-image change. The strict current-image scan remains the required CI gate.
+- Exact-HEAD CI and artifact contents are pending. No progress percentage is changed by adding diagnostics alone.
