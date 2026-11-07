@@ -203,8 +203,13 @@ def test_ingestion_restart_restores_pipeline_and_resumes_local_sequence(tmp_path
         persistence=SQLiteOhlcvStore(database_path),
     )
     first.ingest_batch([rec(0), rec(1)], "ohlcv-1s", live=False)
+    original_snapshot = first.pipeline.list_bars()
     original_bars = first.pipeline.list_bars(timeframe="1s")
     assert [bar.sequence for bar in original_bars] == [1, 2]
+    original_one_minute = first.pipeline.list_bars(timeframe="1m")
+    assert len(original_one_minute) == 1
+    assert original_one_minute[0].origin == "derived"
+    assert original_one_minute[0].volume == Decimal(20)
 
     # A fresh service models process startup: persisted bars must be loaded
     # before new provider records are accepted.
@@ -214,11 +219,23 @@ def test_ingestion_restart_restores_pipeline_and_resumes_local_sequence(tmp_path
         coverage=CoverageTracker(),
         persistence=SQLiteOhlcvStore(database_path),
     )
-    restored = restarted.pipeline.list_bars(timeframe="1s")
-    assert restored == original_bars
+    restored = restarted.pipeline.list_bars()
+    assert restored == original_snapshot
 
-    restarted.ingest_batch([rec(2)], "ohlcv-1s", live=False)
+    # The next child must rebuild the same persisted parent buckets from the
+    # complete restored child range, not just from post-restart arrivals.
+    restarted.ingest_batch(
+        [rec(2, c="102", h="103", v=20)], "ohlcv-1s", live=False
+    )
     after_restart = restarted.pipeline.list_bars(timeframe="1s")
     assert [bar.sequence for bar in after_restart] == [1, 2, 3]
     assert after_restart[-1].ts_start_ns == T0 + 2 * NS
+
+    rebuilt_one_minute = restarted.pipeline.list_bars(timeframe="1m")
+    assert len(rebuilt_one_minute) == 1
+    assert rebuilt_one_minute[0].origin == "derived"
+    assert rebuilt_one_minute[0].open == Decimal("100")
+    assert rebuilt_one_minute[0].high == Decimal("103")
+    assert rebuilt_one_minute[0].close == Decimal("102")
+    assert rebuilt_one_minute[0].volume == Decimal(40)
 
