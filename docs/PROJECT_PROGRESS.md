@@ -588,3 +588,15 @@ Verification boundary at documentation time:
 - The temporary lockfile generator is no longer part of the branch. The `GITHUB_TOKEN`-pushed lockfile commit did not itself trigger CI, so a normal branch commit was used to trigger validation.
 
 No overall or Stage 1 percentage increase is claimed by this dependency-hygiene task alone. The acceptance criterion for reproducible frontend dependency installation remains pending until `npm ci` and all downstream CI stages pass on the final branch HEAD. Python dependency ranges remain unlocked.
+
+
+## Verified deterministic frontend install and security-doc reconciliation — 2026-11-07
+
+The frontend dependency lockfile task is now verified on branch HEAD `033ec5f6865f2cae121ddab362674336d0e4649c`:
+- CI run [42363936097](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42363936097) completed successfully on that exact SHA. The job completed the `npm ci` install, `npm audit --audit-level=high`, frontend unit tests, frontend build, Python dependency install, backend tests, `pip-audit`, and backend Docker image build.
+- CodeQL run [42363936028](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42363936028) completed successfully on the same SHA for both JavaScript/TypeScript and Python analysis.
+- Lockfile structural validation found 237 non-root package entries, each with a resolved registry location and integrity hash; root dependency declarations matched `package.json` without mismatch.
+
+A stale security-baseline document was corrected so it no longer claims that the lockfile is absent or that dependency audits and CodeQL are missing. The documentation now distinguishes implemented CI checks from remaining repository secret scanning, container-image scanning, and runtime controls. This documentation correction does not itself increase the project progress score.
+
+Verification scope: successful CI and CodeQL runs prove those configured jobs passed on the exact SHA above; they do not prove deployed Firebase configuration, production security, zero CodeQL alerts, or completion of all Stage 1 acceptance criteria.
