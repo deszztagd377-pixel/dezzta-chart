@@ -72,3 +72,37 @@ Before 40%, prioritize foundation quality, reliability, documentation, secure co
 - Separate completed, partial, blocked, planned, and unverified work.
 - Reconcile the historical 19.60% and owner-recalled 20.9% values with evidence.
 - Publish a new percentage only after the calculation is reproducible and the owner has reviewed the model.
+
+---
+
+## Verified checkpoint — CME session-calendar foundation (2026-11-07)
+
+Working branch: `phase-2/market-data-foundation`  
+Audited HEAD: `001299360b038b1b85fdbf8c9e2cdda47afe7b5c`  
+CI run: [#42340030836](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42340030836) — **success**.
+
+### Verified completed in this checkpoint
+
+- Added `backend/app/session_calendar.py` with immutable calendar/session records, Chicago timezone-aware boundaries, explicit provenance metadata, calendar/product-family validation, and integer nanosecond conversion.
+- Added fail-closed lookup semantics: missing schedule coverage is `unknown`, not an assumed regular session or holiday.
+- Added Sunday reopen / adjacent trading-date resolution, DST-aware timezone handling, regular maintenance classification, and special/early-close handling.
+- Added daily, weekly, monthly, and quarterly session-bucket-bound resolution. A period is returned only when every trading-date record in its full date range is explicitly covered; closed dates must also be represented.
+- Added calendar tests in `backend/tests/test_session_calendar.py` for DST, reopen, maintenance, missing dates, explicit closures, special sessions, validation, and higher-timeframe bounds.
+
+### CI evidence
+
+The exact HEAD above passed all steps in the single GitHub Actions job: frontend dependency installation, frontend unit tests, frontend production build, Python setup, backend dependency installation, backend tests, and backend container-image build.
+
+### Current integration boundary — not yet complete
+
+- `backend/app/aggregation.py` still deliberately skips UTC-fixed child bars when deriving `1d`, `1w`, `1M`, and `3M`.
+- `backend/app/ohlcv.py` currently supports only `UTC_LEGACY` and `UTC_FIXED_V1` bucket policies; `OhlcvBar` rejects calendar metadata under those policies.
+- Therefore the new calendar primitives are **not yet connected to production aggregation**, and no CME session-aligned OHLCV should be claimed as active.
+- No authoritative CME schedule release has been loaded. Tests use constructed fixtures only; they are not exchange-calendar data.
+- Next implementation must introduce and validate an explicit calendar bucket identity, preserve calendar ID/version in bar identity and persistence, and gate aggregation on a matching, fully covered calendar release. Existing UTC intraday behavior must remain unchanged.
+
+### Progress accounting
+
+The prior owner-confirmed conversational checkpoints remain **20.3% then 20.9%**. A newly reconciled weighted overall percentage is still **not established** because the proposed milestone ledger has not been approved and scored criterion-by-criterion. This calendar work is recorded as verified foundation work, not converted into an invented percentage increase.
+
+SQLite is considered complete for the current foundation scope. No SQLite rework is scheduled unless a concrete regression or missing acceptance criterion is found.
