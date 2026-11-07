@@ -686,8 +686,7 @@ def test_reconciliation_and_explicit_gap_recovery_are_serialized():
     )
     assert results == [{"ok": "reconcile"}, {"ok": "recover"}]
 
-
-def test_startup_reconciliation_resumes_after_partial_historical_failure(tmp_path):
+def test_startup_reconciliation_resumes_after_partial_failure_and_process_restart(tmp_path):
     from app.coverage_store import SQLiteCoverageTracker
     from app.ohlcv import OhlcvPipeline
     from app.ohlcv_store import SQLiteOhlcvStore
@@ -707,37 +706,46 @@ def test_startup_reconciliation_resumes_after_partial_historical_failure(tmp_pat
             return [rec(int((start_ns - T0) // NS) + i) for i in range(2)]
 
     async def go():
+        coverage_path = str(tmp_path / "coverage.sqlite3")
+        ohlcv_path = str(tmp_path / "ohlcv.sqlite3")
         scope = ("databento", "GLBX.MDP3", 1, 101, "contract", "ESZ6")
-        coverage = SQLiteCoverageTracker(str(tmp_path / "coverage.sqlite3"))
-        store = SQLiteOhlcvStore(str(tmp_path / "ohlcv.sqlite3"))
-        resolver = InstrumentResolver()
-        resolver.add(SymbolMapping(
-            provider="databento", dataset="GLBX.MDP3", publisher_id=1,
-            instrument_id=101, raw_symbol="ESZ6", valid_from_ns=T0,
-        ))
-        service = OhlcvIngestionService(
-            pipeline=OhlcvPipeline(), resolver=resolver, coverage=coverage,
-            persistence=store, clock_ns=lambda: T0 + 150 * NS,
-        )
         hist = FailOnceHistorical()
-        cfg = settings(
-            databento_api_key=SECRET, databento_live_enabled=True,
-            databento_live_symbols=("ESZ6",), databento_historical_enabled=True,
-            historical_window_minutes=1, historical_max_span_hours=1,
-        )
-        manager_instance = ProviderManager(
-            cfg, service, InstrumentCatalog(), historical_factory=lambda: hist,
-            clock_ns=lambda: T0 + 150 * NS,
-        )
 
+        def build_manager():
+            coverage = SQLiteCoverageTracker(coverage_path)
+            store = SQLiteOhlcvStore(ohlcv_path)
+            resolver = InstrumentResolver()
+            resolver.add(SymbolMapping(
+                provider="databento", dataset="GLBX.MDP3", publisher_id=1,
+                instrument_id=101, raw_symbol="ESZ6", valid_from_ns=T0,
+            ))
+            service = OhlcvIngestionService(
+                pipeline=OhlcvPipeline(), resolver=resolver, coverage=coverage,
+                persistence=store, clock_ns=lambda: T0 + 150 * NS,
+            )
+            cfg = settings(
+                databento_api_key=SECRET, databento_live_enabled=True,
+                databento_live_symbols=("ESZ6",), databento_historical_enabled=True,
+                historical_window_minutes=1, historical_max_span_hours=1,
+            )
+            manager_instance = ProviderManager(
+                cfg, service, InstrumentCatalog(), historical_factory=lambda: hist,
+                clock_ns=lambda: T0 + 150 * NS,
+            )
+            return manager_instance, coverage
+
+        first_manager, first_coverage = build_manager()
         with pytest.raises(RuntimeError, match="temporary historical outage"):
-            await manager_instance.reconcile_live_history()
-        first_coverage = coverage.intervals(scope)
-        resumed = await manager_instance.reconcile_live_history()
-        return hist.calls, first_coverage, resumed, coverage, scope
+            await first_manager.reconcile_live_history()
+        durable_after_failure = first_coverage.intervals(scope)
 
-    calls, first_coverage, resumed, coverage, scope = asyncio.run(go())
-    assert first_coverage == [(T0, T0 + 60 * NS)]
+        # Rebuild the service and manager as if the process had restarted.
+        restarted_manager, restarted_coverage = build_manager()
+        resumed = await restarted_manager.reconcile_live_history()
+        return hist.calls, durable_after_failure, resumed, restarted_coverage, scope
+
+    calls, durable_after_failure, resumed, coverage, scope = asyncio.run(go())
+    assert durable_after_failure == [(T0, T0 + 60 * NS)]
     assert [(call[3], call[4]) for call in calls] == [
         (T0, T0 + 60 * NS),
         (T0 + 60 * NS, T0 + 120 * NS),
