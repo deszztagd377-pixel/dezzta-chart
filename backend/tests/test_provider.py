@@ -641,3 +641,47 @@ def test_gap_recovery_enforces_total_historical_span_budget(tmp_path):
     assert hist.calls[0][4] - hist.calls[0][3] == 3600 * NS
     assert coverage.intervals(scope) == [(T0, T0 + 3600 * NS)]
     assert coverage.gaps(scope) == [(T0 + 3600 * NS, T0 + 2 * 3600 * NS)]
+
+
+
+def test_reconciliation_and_explicit_gap_recovery_are_serialized():
+    async def go():
+        m, *_ = manager(hist=lambda: FakeHistorical(),
+                        databento_historical_enabled=True)
+        active = 0
+        max_active = 0
+        calls = []
+
+        async def operation(name, result):
+            nonlocal active, max_active
+            active += 1
+            max_active = max(max_active, active)
+            calls.append((name, "start"))
+            await asyncio.sleep(0.01)
+            calls.append((name, "end"))
+            active -= 1
+            return result
+
+        async def reconcile():
+            return await operation("reconcile", {"ok": "reconcile"})
+
+        async def recover(*, max_gaps=100, max_total_span_hours=None):
+            return await operation("recover", {"ok": "recover"})
+
+        m._reconcile_live_history_locked = reconcile
+        m._recover_gaps_locked = recover
+        results = await asyncio.gather(
+            m.reconcile_live_history(),
+            m.recover_gaps(max_gaps=5, max_total_span_hours=1),
+        )
+        return max_active, calls, results
+
+    max_active, calls, results = asyncio.run(go())
+    assert max_active == 1
+    assert calls in (
+        [("reconcile", "start"), ("reconcile", "end"),
+         ("recover", "start"), ("recover", "end")],
+        [("recover", "start"), ("recover", "end"),
+         ("reconcile", "start"), ("reconcile", "end")],
+    )
+    assert results == [{"ok": "reconcile"}, {"ok": "recover"}]
