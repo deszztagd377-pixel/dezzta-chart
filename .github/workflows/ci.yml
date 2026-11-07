@@ -78,3 +78,101 @@ jobs:
           exit-code: '1'
           version: v0.76.2
           timeout: 10m0s
+
+      - name: Export current image vulnerability report
+        if: always()
+        continue-on-error: true
+        run: |
+          if command -v trivy >/dev/null 2>&1 && docker image inspect dezzta-chart-backend:ci >/dev/null 2>&1; then
+            trivy image --format json --output trivy-current.json --severity HIGH,CRITICAL --vuln-type os,library dezzta-chart-backend:ci
+          else
+            echo "Current image or Trivy binary unavailable; JSON report not produced."
+          fi
+
+      - name: Build Debian Bookworm comparison image
+        if: always() && github.ref == 'refs/heads/phase-2/market-data-foundation'
+        continue-on-error: true
+        run: |
+          awk '
+            BEGIN { replaced = 0 }
+            /^FROM python:3\.12-slim$/ {
+              print "FROM python:3.12-slim-bookworm"
+              replaced++
+              next
+            }
+            { print }
+            END { if (replaced != 1) exit 42 }
+          ' backend/Dockerfile > "$RUNNER_TEMP/Dockerfile.bookworm"
+          docker build -f "$RUNNER_TEMP/Dockerfile.bookworm" -t dezzta-chart-backend:bookworm-comparison backend
+
+      - name: Export Debian Bookworm comparison report
+        if: always() && github.ref == 'refs/heads/phase-2/market-data-foundation'
+        continue-on-error: true
+        run: |
+          if command -v trivy >/dev/null 2>&1 && docker image inspect dezzta-chart-backend:bookworm-comparison >/dev/null 2>&1; then
+            trivy image --format json --output trivy-bookworm.json --severity HIGH,CRITICAL --vuln-type os,library dezzta-chart-backend:bookworm-comparison
+          else
+            echo "Comparison image or Trivy binary unavailable; comparison report not produced."
+          fi
+
+      - name: Summarize container vulnerability comparison
+        if: always() && github.ref == 'refs/heads/phase-2/market-data-foundation'
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          def load(path):
+              if not Path(path).is_file():
+                  return None
+              return json.loads(Path(path).read_text())
+
+          def findings(report):
+              result = {}
+              if report is None:
+                  return result
+              for target in report.get("Results") or []:
+                  for item in target.get("Vulnerabilities") or []:
+                      key = (item.get("VulnerabilityID"), item.get("PkgName"), item.get("InstalledVersion"))
+                      result[key] = {
+                          "severity": item.get("Severity", "UNKNOWN"),
+                          "fixed": item.get("FixedVersion") or "",
+                          "target": target.get("Target", ""),
+                      }
+              return result
+
+          current = findings(load("trivy-current.json"))
+          bookworm = findings(load("trivy-bookworm.json"))
+          lines = [
+              "# Backend container vulnerability comparison",
+              "",
+              "| Image | HIGH/CRITICAL findings | HIGH | CRITICAL |",
+              "|---|---:|---:|---:|",
+          ]
+          for name, data in (("Current python:3.12-slim", current), ("Comparison python:3.12-slim-bookworm", bookworm)):
+              high = sum(v["severity"] == "HIGH" for v in data.values())
+              critical = sum(v["severity"] == "CRITICAL" for v in data.values())
+              lines.append(f"| {name} | {len(data)} | {high} | {critical} |")
+          lines += [
+              "",
+              "Counts are unique vulnerability/package/installed-version tuples, not Trivy's raw occurrence total.",
+              "A missing report means the corresponding diagnostic build or scan did not complete.",
+              "This comparison is diagnostic only; it does not change the strict required scan policy.",
+              "",
+          ]
+          Path("container-vulnerability-comparison.md").write_text("\n".join(lines))
+          print("\n".join(lines))
+          PY
+
+      - name: Upload container vulnerability reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: container-vulnerability-reports
+          path: |
+            trivy-current.json
+            trivy-bookworm.json
+            container-vulnerability-comparison.md
+          if-no-files-found: warn
+          retention-days: 14
