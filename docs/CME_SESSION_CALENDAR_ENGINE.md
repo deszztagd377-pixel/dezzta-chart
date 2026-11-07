@@ -28,8 +28,9 @@ Verified repository constraints at HEAD `001299360b038b1b85fdbf8c9e2cdda47afe7b5
 
 1. `backend/app/aggregation.py` intentionally skips UTC-fixed derivation from intraday bars to `1d`, `1w`, `1M`, and `3M`.
 2. `backend/app/ohlcv.py` currently permits only `UTC_LEGACY` and `UTC_FIXED_V1` bucket policies.
-3. `OhlcvBar` currently rejects calendar ID/version metadata under those UTC policies.
-4. No authoritative, versioned CME schedule has been loaded.
+3. `OhlcvBar` currently rejects calendar ID/version metadata under the two enabled UTC policies, so the calendar-aware policy is not yet accepted by the model.
+4. The SQLite OHLCV store is already prepared to persist calendar identity: schema version 2 has `bucket_policy`, `calendar_id`, and `calendar_version` columns, and the composite primary key/index include them. Existing legacy migration and policy-isolation tests cover this storage contract. No new SQLite migration is currently indicated.
+5. No authoritative, versioned CME schedule has been loaded.
 
 Consequently, the existence of calendar primitives must not be described as active CME session aggregation.
 
@@ -37,11 +38,12 @@ Consequently, the existence of calendar primitives must not be described as acti
 
 1. Define a distinct session bucket policy (for example, `CME_SESSION_V1`) and its validation rules. Intraday UTC-fixed bars must retain their current behavior.
 2. Permit calendar metadata only for the session policy; require a non-empty calendar ID and version, and reject mixed/mismatched identities.
-3. Audit every persistence and serialization boundary for `bucket_policy`, `calendar_id`, and `calendar_version` before changing the bar contract. Preserve existing rows and identities; do not silently reinterpret legacy UTC bars.
-4. Extend aggregation so child event times are mapped through a matching calendar release. Only fully covered sessions may create daily or higher bars. Unknown coverage must produce no derived bar.
-5. Define higher-timeframe grouping and retention behavior around exchange trading dates, including holiday/early-close weeks and calendar-version changes.
-6. Add deterministic tests for calendar-aware daily/weekly/monthly/quarterly aggregation, out-of-order revisions, provider-bar precedence, incomplete schedule coverage, and no synthetic candles.
-7. Load production schedules only from an authoritative source release. Record the exact source URL, publication/version, effective range, and cryptographic checksum. Do not use test fixtures as production data.
+3. Enable a distinct session bucket policy in `OhlcvBar` and validate its required calendar ID/version. Preserve current UTC policies and legacy bar identities.
+4. Verify adapter/stream serialization retains the calendar identity fields; the SQLite OHLCV store already persists them, so do not add an unnecessary migration.
+5. Extend aggregation so child event times are mapped through a matching calendar release. Only fully covered sessions may create daily or higher bars. Unknown coverage must produce no derived bar.
+6. Define higher-timeframe grouping and retention behavior around exchange trading dates, including holiday/early-close weeks and calendar-version changes.
+7. Add deterministic tests for calendar-aware daily/weekly/monthly/quarterly aggregation, out-of-order revisions, provider-bar precedence, incomplete schedule coverage, and no synthetic candles.
+8. Load production schedules only from an authoritative source release. Record the exact source URL, publication/version, effective range, and cryptographic checksum. Do not use test fixtures as production data.
 
 ## Acceptance conditions
 
