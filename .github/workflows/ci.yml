@@ -84,7 +84,7 @@ jobs:
         continue-on-error: true
         run: |
           if command -v trivy >/dev/null 2>&1 && docker image inspect dezzta-chart-backend:ci >/dev/null 2>&1; then
-            trivy image --format json --output trivy-current.json --severity HIGH,CRITICAL --vuln-type os,library dezzta-chart-backend:ci
+            trivy image --format json --output trivy-current.json --severity HIGH,CRITICAL --pkg-types os,library dezzta-chart-backend:ci
           else
             echo "Current image or Trivy binary unavailable; JSON report not produced."
           fi
@@ -110,7 +110,7 @@ jobs:
         continue-on-error: true
         run: |
           if command -v trivy >/dev/null 2>&1 && docker image inspect dezzta-chart-backend:bookworm-comparison >/dev/null 2>&1; then
-            trivy image --format json --output trivy-bookworm.json --severity HIGH,CRITICAL --vuln-type os,library dezzta-chart-backend:bookworm-comparison
+            trivy image --format json --output trivy-bookworm.json --severity HIGH,CRITICAL --pkg-types os,library dezzta-chart-backend:bookworm-comparison
           else
             echo "Comparison image or Trivy binary unavailable; comparison report not produced."
           fi
