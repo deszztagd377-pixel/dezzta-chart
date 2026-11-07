@@ -4,11 +4,11 @@ import { pathToFileURL } from 'node:url';
 
 const SECRET_PATTERNS = [
   { name: 'private-key PEM block', expression: /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/ },
-  { name: 'service-account private_key field', expression: /"private_key"\\s*:\\s*"-----BEGIN/ },
-  { name: 'AWS access key identifier', expression: /\\bAKIA[0-9A-Z]{16}\\b/ },
-  { name: 'GitHub personal access token', expression: /\\bgh[pousr]_[A-Za-z0-9]{20,}\\b/ },
-  { name: 'Stripe live secret key', expression: /\\b(?:sk|rk)_live_[A-Za-z0-9]{16,}\\b/ },
-  { name: 'backend-only credential identifier', expression: /\\b(?:DATABENTO_API_KEY|MARKET_DATA_WS_TOKEN|FIREBASE_PRIVATE_KEY|GOOGLE_APPLICATION_CREDENTIALS)\\b/ },
+  { name: 'service-account private_key field', expression: /"private_key"\s*:\s*"-----BEGIN/ },
+  { name: 'AWS access key identifier', expression: /\bAKIA[0-9A-Z]{16}\b/ },
+  { name: 'GitHub personal access token', expression: /\bgh[pousr]_[A-Za-z0-9]{20,}\b/ },
+  { name: 'Stripe live secret key', expression: /\b(?:sk|rk)_live_[A-Za-z0-9]{16,}\b/ },
+  { name: 'backend-only credential identifier', expression: /\b(?:DATABENTO_API_KEY|MARKET_DATA_WS_TOKEN|FIREBASE_PRIVATE_KEY|GOOGLE_APPLICATION_CREDENTIALS)\b/ },
 ];
 
 const SCANNED_EXTENSIONS = new Set(['.js', '.mjs', '.cjs', '.html', '.css', '.json']);
@@ -45,19 +45,19 @@ async function main() {
   try {
     findings = await scanFrontendBundle(directory);
   } catch (error) {
-    process.stderr.write(`Frontend bundle scan failed: ${error.message}\\n`);
+    process.stderr.write(\`Frontend bundle scan failed: \${error.message}\n\`);
     process.exitCode = 1;
     return;
   }
   if (findings.length > 0) {
-    process.stderr.write('Potential server-side credential material found in frontend bundle:\\n');
+    process.stderr.write('Potential server-side credential material found in frontend bundle:\n');
     for (const finding of findings) {
-      process.stderr.write(`- ${finding.file}: ${finding.pattern}\\n`);
+      process.stderr.write(\`- \${finding.file}: \${finding.pattern}\n\`);
     }
     process.exitCode = 1;
     return;
   }
-  process.stdout.write(`Frontend bundle secret scan passed (${(await collectFiles(directory)).length} files checked).\\n`);
+  process.stdout.write(\`Frontend bundle secret scan passed (\${(await collectFiles(directory)).length} files checked).\n\`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
