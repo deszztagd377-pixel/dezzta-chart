@@ -129,9 +129,9 @@ jobs:
               return json.loads(Path(path).read_text())
 
           def findings(report):
-              result = {}
               if report is None:
-                  return result
+                  return None
+              result = {}
               for target in report.get("Results") or []:
                   for item in target.get("Vulnerabilities") or []:
                       key = (item.get("VulnerabilityID"), item.get("PkgName"), item.get("InstalledVersion"))
@@ -142,6 +142,10 @@ jobs:
                       }
               return result
 
+          # Missing reports must remain distinguishable from a completed clean scan.
+          assert findings(None) is None
+          assert findings({"Results": []}) == {}
+
           current = findings(load("trivy-current.json"))
           bookworm = findings(load("trivy-bookworm.json"))
           lines = [
@@ -151,6 +155,9 @@ jobs:
               "|---|---:|---:|---:|",
           ]
           for name, data in (("Current python:3.12-slim", current), ("Comparison python:3.12-slim-bookworm", bookworm)):
+              if data is None:
+                  lines.append(f"| {name} | NOT AVAILABLE | NOT AVAILABLE | NOT AVAILABLE |")
+                  continue
               high = sum(v["severity"] == "HIGH" for v in data.values())
               critical = sum(v["severity"] == "CRITICAL" for v in data.values())
               lines.append(f"| {name} | {len(data)} | {high} | {critical} |")
