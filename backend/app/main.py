@@ -388,11 +388,7 @@ def create_app(
     @application.websocket("/ws/market-data")
     async def market_data_socket(websocket: WebSocket) -> None:
         origin = websocket.headers.get("origin")
-        if (
-            origin
-            and config.cors_allowed_origins
-            and origin not in config.cors_allowed_origins
-        ):
+        if origin and origin not in config.cors_allowed_origins:
             await websocket.close(code=4403, reason="Origin not allowed")
             return
 
