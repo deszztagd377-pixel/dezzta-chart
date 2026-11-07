@@ -427,3 +427,19 @@ Scope and limitations:
 - GitHub Actions third-party action pinning, secret scanning, container image scanning, and repository-level Dependabot security-alert settings remain outstanding.
 - The audit step has been committed but has not yet run successfully on this exact HEAD. No security-clean claim is made until the workflow completes.
 - Overall progress remains unchanged pending exact-HEAD CI evidence and acceptance-ledger review.
+
+
+## Stage 1 CI supply-chain hardening — immutable GitHub Actions references (2026-11-07)
+
+Updated the three external GitHub Actions used by `.github/workflows/ci.yml` from movable major-version tags to immutable commit references:
+
+- `actions/checkout` → `11bd71901bbe5b1630ceea73d27597364c9af683` (tag `v4.2.2`)
+- `actions/setup-node` → `49933ea5288caeca8642d1e84afbd3f7d6820020` (tag `v4.4.0`)
+- `actions/setup-python` → `a26af69be951a213d495a4c3e4e4022e16d87065` (tag `v5.6.0`)
+
+Each SHA was resolved from the corresponding action repository's Git tag reference before being written to the workflow. The version comment is for human readability; GitHub Actions executes the immutable SHA.
+
+Verification boundary:
+- This removes automatic tag movement for these three action dependencies; future action updates must deliberately verify and change the commit SHA.
+- This does not pin dependencies installed by npm/pip, does not add lockfiles, and does not replace action-code review or a broader supply-chain policy.
+- The updated workflow must pass on its resulting exact HEAD before this CI hardening is counted as verified. No overall or Stage 1 percentage increase is claimed from the edit alone.
