@@ -29,6 +29,8 @@ class FakeSocket {
 }
 
 const identity = {
+  provider: 'databento',
+  seriesType: 'contract',
   dataset: 'GLBX.MDP3',
   publisherId: 1,
   instrumentId: 123,
