@@ -271,3 +271,26 @@ The latest code change has triggered a new CI run; its result must be checked ag
 - SQLite remains unchanged; its existing schema already persists the CME bucket identity fields needed for future integration.
 
 Progress remains at the owner-confirmed historical conversational checkpoint of **20.9%** for continuity. This is not a newly recalculated weighted score. The new resolver does not receive percentage credit until its acceptance tests pass and the weighted ledger has been reconciled and approved.
+
+
+### CME intraday bar/session validation boundary — 2026-11-07
+
+Added a pure, fail-closed validation component for intraday OHLCV bars:
+
+- `backend/app/session_bar_validation.py` validates the complete half-open bar interval `[ts_start_ns, ts_start_ns + timeframe)` against an explicitly versioned calendar release.
+- Calendar selection is performed only through `SessionCalendarRegistry.for_instrument()` using the supplied `CanonicalInstrument.session_calendar_id`; it never parses canonical/raw symbols or guesses from provider identifiers.
+- Only active futures and `UTC_FIXED_V1` intraday bars are accepted by this validator. Daily/session-aligned bars remain outside this contract.
+- Regular and explicit special sessions (including early-close schedules) may pass. Maintenance, explicit closure, unknown calendar coverage, unavailable release versions, inactive/non-futures instruments, and intervals extending past session close are rejected with stable reason keys.
+- Timestamp conversion refuses sub-microsecond precision rather than silently rounding. Current Databento OHLCV schemas in this repository are second/minute/hour granularity; no precision truncation is performed.
+
+Added `backend/tests/test_session_bar_validation.py` with 11 deterministic tests covering regular sessions, special/early-close sessions, a bar crossing the early close, maintenance, explicit closure, missing coverage, canonical calendar identity, explicit version selection, inactive/non-futures instruments, unsupported bucket policy/timeframe, and timestamp precision.
+
+**Important integration boundary:** this validator is not yet wired into `record_to_bar()` or the production ingestion pipeline. The caller must first resolve the point-in-time provider mapping with `SQLiteInstrumentRegistry.resolve_provider_mapping(..., timestamp_ns=...)`, load the corresponding canonical object with `get_instrument(canonical_id)`, and supply the approved calendar release/version. That adapter integration is the next engineering slice; until then no claim is made that every ingested Databento bar is session-validated.
+
+No production CME calendar artifact has been supplied or authenticated. Test records are synthetic fixtures only. No session-aligned aggregation is enabled. Existing UTC ingestion/aggregation and SQLite schema are unchanged.
+
+Files added:
+- `backend/app/session_bar_validation.py`
+- `backend/tests/test_session_bar_validation.py`
+
+Progress remains at the owner-confirmed historical checkpoint **20.9%**; no weighted percentage increase is awarded for this isolated validation component before CI and the project milestone ledger are reconciled.
