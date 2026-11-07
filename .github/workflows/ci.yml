@@ -115,6 +115,59 @@ jobs:
             echo "Comparison image or Trivy binary unavailable; comparison report not produced."
           fi
 
+      - name: Build Debian Trixie security-updated comparison image
+        if: always() && github.ref == 'refs/heads/phase-2/market-data-foundation'
+        continue-on-error: true
+        run: |
+          awk '
+            BEGIN { injected = 0 }
+            /^FROM python:3\\.12-slim$/ {
+              print
+              print "RUN apt-get update && apt-get upgrade -y --no-install-recommends && rm -rf /var/lib/apt/lists/*"
+              injected++
+              next
+            }
+            { print }
+            END { if (injected != 1) exit 42 }
+          ' backend/Dockerfile > "$RUNNER_TEMP/Dockerfile.trixie-updated"
+          docker build -f "$RUNNER_TEMP/Dockerfile.trixie-updated" -t dezzta-chart-backend:trixie-updated backend
+
+      - name: Smoke-test Debian Trixie security-updated image
+        if: always() && github.ref == 'refs/heads/phase-2/market-data-foundation'
+        continue-on-error: true
+        run: |
+          if ! docker image inspect dezzta-chart-backend:trixie-updated >/dev/null 2>&1; then
+            echo "Security-updated comparison image unavailable; runtime smoke test not run."
+            exit 0
+          fi
+          docker run -d --name dezzta-chart-trixie-smoke \
+            -p 127.0.0.1:18000:8000 \
+            -e APP_ENV=production \
+            -e CORS_ALLOWED_ORIGINS=https://dezzta-chart.vercel.app \
+            -e INSTRUMENT_REGISTRY_DB_PATH=/tmp/dezzta-chart-smoke.sqlite3 \
+            dezzta-chart-backend:trixie-updated
+          cleanup() { docker logs dezzta-chart-trixie-smoke || true; docker rm -f dezzta-chart-trixie-smoke || true; }
+          trap cleanup EXIT
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:18000/health; then
+              echo "Runtime health smoke test passed."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Runtime health smoke test failed."
+          exit 1
+
+      - name: Export Debian Trixie security-updated vulnerability report
+        if: always() && github.ref == 'refs/heads/phase-2/market-data-foundation'
+        continue-on-error: true
+        run: |
+          if command -v trivy >/dev/null 2>&1 && docker image inspect dezzta-chart-backend:trixie-updated >/dev/null 2>&1; then
+            trivy image --format json --output trivy-trixie-updated.json --severity HIGH,CRITICAL --pkg-types os,library dezzta-chart-backend:trixie-updated
+          else
+            echo "Security-updated comparison image or Trivy binary unavailable; report not produced."
+          fi
+
       - name: Summarize container vulnerability comparison
         if: always() && github.ref == 'refs/heads/phase-2/market-data-foundation'
         continue-on-error: true
@@ -148,13 +201,18 @@ jobs:
 
           current = findings(load("trivy-current.json"))
           bookworm = findings(load("trivy-bookworm.json"))
+          trixie_updated = findings(load("trivy-trixie-updated.json"))
           lines = [
               "# Backend container vulnerability comparison",
               "",
               "| Image | HIGH/CRITICAL findings | HIGH | CRITICAL |",
               "|---|---:|---:|---:|",
           ]
-          for name, data in (("Current python:3.12-slim", current), ("Comparison python:3.12-slim-bookworm", bookworm)):
+          for name, data in (
+              ("Current python:3.12-slim", current),
+              ("Comparison python:3.12-slim-bookworm", bookworm),
+              ("Comparison Trixie + apt-get upgrade", trixie_updated),
+          ):
               if data is None:
                   lines.append(f"| {name} | NOT AVAILABLE | NOT AVAILABLE | NOT AVAILABLE |")
                   continue
@@ -180,6 +238,7 @@ jobs:
           path: |
             trivy-current.json
             trivy-bookworm.json
+            trivy-trixie-updated.json
             container-vulnerability-comparison.md
           if-no-files-found: warn
           retention-days: 14
