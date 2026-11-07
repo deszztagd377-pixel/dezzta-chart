@@ -87,9 +87,14 @@ requires verified identity and instrument entitlement.
 - CodeQL runs for JavaScript/TypeScript and Python on pushes to the project
   branches, pull requests to `main`, and a weekly schedule.
 - These checks are verified on individual commits; they do not replace
-  repository secret scanning, container image vulnerability scanning, or
-  runtime monitoring. The Python dependency inputs are still range-based and
-  do not yet have a committed fully resolved lockfile.
+  container image vulnerability scanning or runtime monitoring. The repository
+  is public, user-owned, and was created after GitHub's default rollout for
+  secret scanning and push protection on new public repositories. Those
+  controls are expected to be enabled by default, but repository administrators
+  can disable them; their current settings and alert inventory have not been
+  independently verified through the repository settings interface.
+- The Python dependency inputs are still range-based and do not yet have a
+  committed fully resolved lockfile.
 
 ## 6. Remaining release checklist
 
@@ -103,7 +108,8 @@ requires verified identity and instrument entitlement.
 - [ ] Add and test rate limits, request-size bounds, and abuse monitoring.
 - [x] Add frontend and backend dependency vulnerability audits to CI.
 - [x] Add CodeQL analysis for JavaScript/TypeScript and Python.
-- [ ] Add repository secret scanning and container-image vulnerability scanning.
+- [ ] Verify current repository secret-scanning and push-protection settings and review alert inventory; public-repository defaults are not proof of current state.
+- [ ] Add container-image vulnerability scanning.
 - [ ] Review SQLite file permissions, backup encryption, retention, and recovery.
 - [ ] Verify monitoring and incident-response procedures before production use.
 
