@@ -88,6 +88,20 @@ def test_special_and_early_close_records_are_labelled_as_special_sessions():
     assert result.state == "special-session"
 
 
+
+def test_early_close_does_not_mislabel_later_closed_time_as_daily_maintenance():
+    wednesday = session(
+        date(2024, 3, 13), "2024-03-12T17:00:00", "2024-03-13T12:00:00",
+        kind="early_close",
+    )
+    thursday = session(
+        date(2024, 3, 14), "2024-03-13T17:00:00", "2024-03-14T16:00:00",
+    )
+    calendar = make_calendar([wednesday, thursday])
+    result = lookup_instant(calendar, datetime(2024, 3, 13, 21, 30, tzinfo=timezone.utc))
+    assert result.state == "closed"
+
+
 def test_calendar_rejects_naive_or_wrong_timezone_boundaries():
     with pytest.raises(InvalidSessionCalendar):
         SessionRecord(
