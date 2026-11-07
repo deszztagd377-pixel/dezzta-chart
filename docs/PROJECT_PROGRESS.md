@@ -764,3 +764,13 @@ The exact-HEAD Trivy artifact from run [42369053094](https://github.com/deszztag
 A further **diagnostic-only** candidate has been added to CI: retain the current Trixie base, apply Debian repository updates with `apt-get update && apt-get upgrade`, then build, runtime-smoke-test `/health`, and scan it with Trivy. The comparison report now includes this third candidate. This experiment does not alter `backend/Dockerfile`, does not change the strict required scan, and does not make any production base-image decision. It must pass the runtime smoke test and demonstrate a materially improved scan before it can be considered for a separately reviewed remediation.
 
 The diagnostic workflow addition is not a completed security remediation or a Stage 1 acceptance. The exact final-HEAD CI result and artifact are pending. Overall progress remains unchanged.
+
+
+## Alpine container base diagnostic — 2026-11-07
+
+- The exact-HEAD diagnostic artifact from run [42369443589](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42369443589) shows that a Trixie image rebuilt with `apt-get update && apt-get upgrade` retains the same **49 HIGH / 0 CRITICAL** unique vulnerability/package/version tuples as the current image. The update-only candidate is therefore not a remediation and must not be promoted.
+- The Debian Bookworm comparison remains worse at **40 HIGH / 2 CRITICAL** and is rejected.
+- The current run's Trixie+upgrade candidate passed its `/health` runtime smoke test, but its vulnerability count did not improve. The strict current-image Trivy gate still fails as designed.
+- Added a feature-branch-only diagnostic for `python:3.12-alpine`: build the same backend Dockerfile against Alpine, run an isolated `/health` smoke test, and export a Trivy JSON report for comparison. The candidate is diagnostic only; no production Dockerfile or base-image change is made. Build/runtime incompatibility or a missing report must remain visible as unavailable, not be treated as zero findings.
+- This diagnostic experiment is not a security fix or Stage 1 acceptance. A production base-image change requires successful full dependency installation, backend test coverage, runtime smoke testing, vulnerability review, and a separate explicit decision.
+- Overall progress remains unchanged; no Stage 1 acceptance criterion is awarded by adding a comparison job.
