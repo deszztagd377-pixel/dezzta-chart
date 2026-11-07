@@ -11,6 +11,7 @@ from app.session_calendar import (
     datetime_to_epoch_ns,
     lookup_instant,
     resolve_trading_date,
+    session_bucket_bounds,
 )
 
 
@@ -120,3 +121,37 @@ def test_calendar_rejects_product_family_calendar_mismatch():
             published_at_utc=datetime(2024, 2, 1, tzinfo=timezone.utc),
             checksum="sha256:test", records={},
         )
+
+
+def test_weekly_session_bucket_uses_first_open_and_last_close_only_with_full_coverage():
+    records = []
+    for offset in range(7):
+        day = date(2024, 3, 11) + __import__("datetime").timedelta(days=offset)
+        if offset < 5:
+            open_day = day - __import__("datetime").timedelta(days=1)
+            records.append(session(
+                day, f"{open_day.isoformat()}T17:00:00",
+                f"{day.isoformat()}T16:00:00",
+            ))
+        else:
+            records.append(session(day, None, None, kind="closed"))
+    calendar = make_calendar(records, start=date(2024, 3, 11), end=date(2024, 3, 17))
+    bounds = session_bucket_bounds(calendar, date(2024, 3, 13), "1w")
+    assert bounds is not None
+    assert bounds.trading_period_start == date(2024, 3, 11)
+    assert bounds.trading_period_end == date(2024, 3, 17)
+    assert bounds.start_ns == datetime_to_epoch_ns(records[0].open_local)
+    assert bounds.end_ns == datetime_to_epoch_ns(records[4].close_local)
+    assert bounds.calendar_version == calendar.version
+
+
+def test_weekly_session_bucket_refuses_partial_schedule_coverage():
+    monday = session(date(2024, 3, 11), "2024-03-10T17:00:00", "2024-03-11T16:00:00")
+    calendar = make_calendar([monday], start=date(2024, 3, 11), end=date(2024, 3, 17))
+    assert session_bucket_bounds(calendar, date(2024, 3, 11), "1w") is None
+
+
+def test_session_bucket_rejects_intraday_timeframes():
+    calendar = make_calendar([], start=date(2024, 3, 11), end=date(2024, 3, 17))
+    with pytest.raises(ValueError):
+        session_bucket_bounds(calendar, date(2024, 3, 11), "1h")
