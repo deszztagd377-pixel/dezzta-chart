@@ -168,6 +168,58 @@ jobs:
             echo "Security-updated comparison image or Trivy binary unavailable; report not produced."
           fi
 
+      - name: Build Alpine comparison image
+        if: always() && github.ref == 'refs/heads/phase-2/market-data-foundation'
+        continue-on-error: true
+        run: |
+          awk '
+            BEGIN { replaced = 0 }
+            /^FROM python:3\\.12-slim$/ {
+              print "FROM python:3.12-alpine"
+              replaced++
+              next
+            }
+            { print }
+            END { if (replaced != 1) exit 42 }
+          ' backend/Dockerfile > "$RUNNER_TEMP/Dockerfile.alpine"
+          docker build -f "$RUNNER_TEMP/Dockerfile.alpine" -t dezzta-chart-backend:alpine-comparison backend
+
+      - name: Smoke-test Alpine comparison image
+        if: always() && github.ref == 'refs/heads/phase-2/market-data-foundation'
+        continue-on-error: true
+        run: |
+          if ! docker image inspect dezzta-chart-backend:alpine-comparison >/dev/null 2>&1; then
+            echo "Alpine comparison image unavailable; runtime smoke test not run."
+            exit 0
+          fi
+          cleanup() { docker logs dezzta-chart-alpine-smoke || true; docker rm -f dezzta-chart-alpine-smoke || true; }
+          trap cleanup EXIT
+          docker run -d --name dezzta-chart-alpine-smoke \
+            -p 127.0.0.1:18001:8000 \
+            -e APP_ENV=production \
+            -e CORS_ALLOWED_ORIGINS=https://dezzta-chart.vercel.app \
+            -e INSTRUMENT_REGISTRY_DB_PATH=/tmp/dezzta-chart-alpine-smoke.sqlite3 \
+            dezzta-chart-backend:alpine-comparison
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:18001/health; then
+              echo "Alpine runtime health smoke test passed."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Alpine runtime health smoke test failed."
+          exit 1
+
+      - name: Export Alpine vulnerability report
+        if: always() && github.ref == 'refs/heads/phase-2/market-data-foundation'
+        continue-on-error: true
+        run: |
+          if command -v trivy >/dev/null 2>&1 && docker image inspect dezzta-chart-backend:alpine-comparison >/dev/null 2>&1; then
+            trivy image --format json --output trivy-alpine.json --severity HIGH,CRITICAL --pkg-types os,library dezzta-chart-backend:alpine-comparison
+          else
+            echo "Alpine comparison image or Trivy binary unavailable; report not produced."
+          fi
+
       - name: Summarize container vulnerability comparison
         if: always() && github.ref == 'refs/heads/phase-2/market-data-foundation'
         continue-on-error: true
@@ -202,6 +254,7 @@ jobs:
           current = findings(load("trivy-current.json"))
           bookworm = findings(load("trivy-bookworm.json"))
           trixie_updated = findings(load("trivy-trixie-updated.json"))
+          alpine = findings(load("trivy-alpine.json"))
           lines = [
               "# Backend container vulnerability comparison",
               "",
@@ -212,6 +265,7 @@ jobs:
               ("Current python:3.12-slim", current),
               ("Comparison python:3.12-slim-bookworm", bookworm),
               ("Comparison Trixie + apt-get upgrade", trixie_updated),
+              ("Comparison python:3.12-alpine", alpine),
           ):
               if data is None:
                   lines.append(f"| {name} | NOT AVAILABLE | NOT AVAILABLE | NOT AVAILABLE |")
@@ -239,6 +293,7 @@ jobs:
             trivy-current.json
             trivy-bookworm.json
             trivy-trixie-updated.json
+            trivy-alpine.json
             container-vulnerability-comparison.md
           if-no-files-found: warn
           retention-days: 14
