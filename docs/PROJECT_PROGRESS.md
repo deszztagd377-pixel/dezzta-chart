@@ -617,7 +617,7 @@ This closes a configuration-validation gap only. It does not prove the deployed 
 Added bounded query validation to `GET /v1/ohlcv`:
 - Dataset, timeframe, raw symbol, provider, series type, bucket policy, calendar ID/version, and nanosecond query values now have explicit maximum lengths.
 - Publisher and provider instrument identifiers are constrained to positive signed 32-bit values.
-- Snapshot limit is constrained to 1–5,000 bars at the HTTP boundary, in addition to the configured server-side cap.
+- Snapshot limit is constrained to 1–5,000 bars at the HTTP boundary. The effective server-side cap is also hard-limited to 5,000 even if the environment configuration is set higher; REST and WebSocket snapshots use the same effective cap.
 - Added parameterized API tests for oversized strings, invalid identifier ranges, oversized nanosecond strings, and excessive response limits.
 
 This does not implement per-account/IP rate limiting, proxy-aware abuse controls, HTTP body limits, or WebSocket frame-size configuration. CI on the resulting HEAD must pass before these changes are treated as verified acceptance evidence.
