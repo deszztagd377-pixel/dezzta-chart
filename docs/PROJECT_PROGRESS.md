@@ -381,3 +381,17 @@ Changed behavior:
 Added regression coverage for Firebase token rejection during an idle subscription, identity-provider outage during recheck, entitlement revocation during an idle subscription, and the existing continuous-update revocation case.
 
 This hardening does not prove deployed Firebase credentials, production revocation latency, or end-to-end mobile behavior. Exact-head CI must pass before counting this acceptance criterion as verified.
+
+
+## Stage 1 backend credential-representation hardening — 2026-11-07
+
+A focused secret-handling review found that `Settings.__repr__` already hid the Databento API key and Firebase project identifier, but the backend WebSocket shared token was still a normal dataclass field and therefore appeared in the generated representation.
+
+Changed:
+- Marked `market_data_ws_token` as `repr=False`, matching the existing treatment of other backend-sensitive configuration values.
+- Added `backend/tests/test_config_security.py` to assert that the WebSocket token, Databento key, and Firebase project identifier never appear in `repr(Settings)`, while non-sensitive environment metadata remains available for diagnostics.
+
+Verification boundary:
+- The change is implemented on `phase-2/market-data-foundation`.
+- Exact-HEAD CI must pass before this control is counted as verified.
+- This prevents accidental exposure through the dataclass representation; it does not replace deployment secret-manager controls, log review, credential rotation, or production smoke tests.
