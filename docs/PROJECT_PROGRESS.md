@@ -558,3 +558,14 @@ Verification boundary:
 - CodeQL findings, if any, must be triaged; adding the workflow is not equivalent to a clean security audit.
 - No application runtime behavior, market-data path, or SQLite schema was changed.
 - No overall or Stage 1 percentage increase is claimed until the workflow has completed successfully and the security-analysis acceptance criterion is reviewed.
+
+
+## CodeQL first successful run — exact HEAD verification (2026-11-07)
+
+The new CodeQL workflow completed successfully on exact branch HEAD `f5a3a931e4bbaf70c53454f91811a915f13dc198`:
+- Workflow run #2: `42363114204`
+- JavaScript/TypeScript analysis job: success.
+- Python analysis job: success.
+- Both jobs completed initialization and analysis steps successfully.
+
+This confirms the workflow is operational for both configured language groups on this revision. It does **not** establish that the repository has zero code-scanning findings; alert triage and repository security-setting verification remain separate tasks. No percentage increase is claimed from the successful workflow run alone.
