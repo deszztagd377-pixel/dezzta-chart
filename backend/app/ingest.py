@@ -109,8 +109,21 @@ class OhlcvIngestionService:
         self.provider = provider
         self.dataset = dataset
         self._buffer = BoundedBuffer(queue_max)
-        # Overflow ranges are retained until coverage persistence confirms them.
-        self._pending_overflow_gaps: list[tuple[tuple[int, int] | None, int, int]] = []
+        # Durable journal entries are replayed before new overflow ranges.
+        self._overflow_journal = (
+            coverage if all(callable(getattr(coverage, name, None)) for name in
+                ("journal_overflow", "pending_overflows", "resolve_overflow"))
+            else None
+        )
+        self._pending_overflow_gaps: list[tuple[int | None, tuple[int, int] | None, int, int]] = []
+        if self._overflow_journal is not None:
+            self._pending_overflow_gaps.extend(
+                (int(item["id"]), item["instrument_hint"],
+                 int(item["start_ns"]), int(item["end_ns"]))
+                for item in self._overflow_journal.pending_overflows()
+            )
+            if self._pending_overflow_gaps:
+                self.degraded_reasons.add("ingest_overflow")
         self._batch = batch_size
         self._clock = clock_ns
         self._monotonic = monotonic_ns
@@ -194,19 +207,31 @@ class OhlcvIngestionService:
 
     def process_pending(self) -> int:
         """Apply buffered records (loop thread only). Returns records handled."""
-        self._pending_overflow_gaps.extend(self._buffer.take_overflows())
+        for instrument_hint, first_ns, last_ns in self._buffer.take_overflows():
+            self._pending_overflow_gaps.append((None, instrument_hint, first_ns, last_ns))
         if self._pending_overflow_gaps:
             self.degraded_reasons.add("ingest_overflow")
-        pending: list[tuple[tuple[int, int] | None, int, int]] = []
-        for instrument_hint, first_ns, last_ns in self._pending_overflow_gaps:
+        pending: list[tuple[int | None, tuple[int, int] | None, int, int]] = []
+        for journal_id, instrument_hint, first_ns, last_ns in self._pending_overflow_gaps:
             try:
-                self._note_overflow(instrument_hint, first_ns, last_ns)
+                if self._overflow_journal is not None:
+                    if journal_id is None:
+                        journal_id = self._overflow_journal.journal_overflow(
+                            instrument_hint, first_ns, last_ns, self._clock()
+                        )
+                    # Keep the durable row if the instrument cannot yet be resolved.
+                    if not self._note_overflow(instrument_hint, first_ns, last_ns):
+                        pending.append((journal_id, instrument_hint, first_ns, last_ns))
+                        continue
+                    self._overflow_journal.resolve_overflow(journal_id)
+                else:
+                    if not self._note_overflow(instrument_hint, first_ns, last_ns):
+                        pending.append((None, instrument_hint, first_ns, last_ns))
             except Exception:
-                # A coverage-store outage must not kill the single-writer task.
-                # Keep the exact range for retry on the next processing wakeup.
+                # Keep both the in-memory item and durable journal for retry.
                 self._count("coverage_persistence_error")
                 self.degraded_reasons.add("coverage_persistence_error")
-                pending.append((instrument_hint, first_ns, last_ns))
+                pending.append((journal_id, instrument_hint, first_ns, last_ns))
         self._pending_overflow_gaps = pending
         if not pending:
             self.degraded_reasons.discard("coverage_persistence_error")
@@ -276,22 +301,25 @@ class OhlcvIngestionService:
         return False
 
     def _note_overflow(self, instrument_hint: tuple[int, int] | None,
-                       first_ns: int, last_ns: int) -> None:
+                       first_ns: int, last_ns: int) -> bool:
         start = first_ns // _NS * _NS
         end = last_ns // _NS * _NS + _NS
-        if instrument_hint is not None:
-            publisher_id, instrument_id = instrument_hint
-            mapping = self.resolver.resolve(
-                self.provider, self.dataset, publisher_id, instrument_id, first_ns
-            )
-            if mapping is not None:
-                self.coverage.add_gap(mapping.coverage_scope, start, end)
-            else:
-                self.degraded_reasons.add("coverage_gap_unscoped")
-        else:
+        if instrument_hint is None:
             self.degraded_reasons.add("coverage_gap_unscoped")
+            self.degraded_reasons.add("ingest_overflow")
+            return False
+        publisher_id, instrument_id = instrument_hint
+        mapping = self.resolver.resolve(
+            self.provider, self.dataset, publisher_id, instrument_id, first_ns
+        )
+        if mapping is None:
+            self.degraded_reasons.add("coverage_gap_unscoped")
+            self.degraded_reasons.add("ingest_overflow")
+            return False
+        self.coverage.add_gap(mapping.coverage_scope, start, end)
         self.degraded_reasons.add("ingest_overflow")
         self._count("overflow_gap")
+        return True
 
     @staticmethod
     def _distribution(samples: deque[float]) -> dict[str, float | int | None]:

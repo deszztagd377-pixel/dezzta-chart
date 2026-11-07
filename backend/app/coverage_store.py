@@ -64,6 +64,16 @@ class SQLiteCoverageTracker(CoverageTracker):
                     meta_key TEXT PRIMARY KEY NOT NULL,
                     int_value INTEGER NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS ohlcv_overflow_journal (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    instrument_hint_json TEXT NOT NULL,
+                    start_ns INTEGER NOT NULL,
+                    end_ns INTEGER NOT NULL CHECK (end_ns > start_ns),
+                    created_at_ns INTEGER NOT NULL,
+                    UNIQUE (instrument_hint_json, start_ns, end_ns)
+                );
+                CREATE INDEX IF NOT EXISTS idx_ohlcv_overflow_journal_created
+                ON ohlcv_overflow_journal(created_at_ns, id);
                 """
             )
         finally:
@@ -203,6 +213,77 @@ class SQLiteCoverageTracker(CoverageTracker):
 
     def gap_scopes(self) -> list[Hashable]:
         return [scope for scope, intervals in self._gaps.items() if intervals]
+
+    def journal_overflow(
+        self, instrument_hint: tuple[int, int] | None,
+        start_ns: int, end_ns: int, created_at_ns: int,
+    ) -> int:
+        """Durably record an overflow before attempting coverage mutation."""
+        if end_ns <= start_ns:
+            raise ValueError("overflow journal end must be greater than start")
+        hint_json = json.dumps(
+            None if instrument_hint is None else list(instrument_hint),
+            separators=(",", ":"), ensure_ascii=True,
+        )
+        db = self._connect()
+        try:
+            db.execute("BEGIN IMMEDIATE")
+            db.execute(
+                """INSERT INTO ohlcv_overflow_journal
+                (instrument_hint_json,start_ns,end_ns,created_at_ns)
+                VALUES (?,?,?,?)
+                ON CONFLICT(instrument_hint_json,start_ns,end_ns) DO NOTHING""",
+                (hint_json, start_ns, end_ns, created_at_ns),
+            )
+            row = db.execute(
+                """SELECT id FROM ohlcv_overflow_journal
+                WHERE instrument_hint_json=? AND start_ns=? AND end_ns=?""",
+                (hint_json, start_ns, end_ns),
+            ).fetchone()
+            db.execute("COMMIT")
+            return int(row["id"])
+        except Exception:
+            if db.in_transaction:
+                db.execute("ROLLBACK")
+            raise
+        finally:
+            db.close()
+
+    def pending_overflows(self) -> list[dict[str, object]]:
+        """Return durable overflow records in deterministic replay order."""
+        db = self._connect()
+        try:
+            rows = db.execute(
+                """SELECT id,instrument_hint_json,start_ns,end_ns,created_at_ns
+                FROM ohlcv_overflow_journal ORDER BY created_at_ns,id"""
+            ).fetchall()
+        finally:
+            db.close()
+        result = []
+        for row in rows:
+            hint = json.loads(row["instrument_hint_json"])
+            result.append({
+                "id": int(row["id"]),
+                "instrument_hint": None if hint is None else tuple(int(v) for v in hint),
+                "start_ns": int(row["start_ns"]),
+                "end_ns": int(row["end_ns"]),
+                "created_at_ns": int(row["created_at_ns"]),
+            })
+        return result
+
+    def resolve_overflow(self, journal_id: int) -> None:
+        """Remove a journal record only after its coverage gap is durable."""
+        db = self._connect()
+        try:
+            db.execute("BEGIN IMMEDIATE")
+            db.execute("DELETE FROM ohlcv_overflow_journal WHERE id=?", (journal_id,))
+            db.execute("COMMIT")
+        except Exception:
+            if db.in_transaction:
+                db.execute("ROLLBACK")
+            raise
+        finally:
+            db.close()
 
     def stats(self) -> dict[str, int]:
         return {
