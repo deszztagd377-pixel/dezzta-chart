@@ -433,8 +433,10 @@ def test_ohlcv_endpoint_rejects_invalid_query_parameters(query: str) -> None:
 def test_ohlcv_endpoint_rejects_oversized_or_out_of_range_query_values(query: str) -> None:
     client = TestClient(_app_with_bars())
     exact = "dataset=GLBX.MDP3&publisher_id=1&instrument_id=101&raw_symbol=ESZ6&timeframe=1s"
+    key = query.split("=", 1)[0]
+    base = "&".join(part for part in exact.split("&") if not part.startswith(f"{key}="))
     response = client.get(
-        f"/v1/ohlcv?{exact}&{query}",
+        f"/v1/ohlcv?{base}&{query}",
         headers={"Authorization": "Bearer valid-firebase-token"},
     )
     assert response.status_code == 422
