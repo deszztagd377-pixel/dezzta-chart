@@ -665,3 +665,5 @@ Scope limitation: these controls bound each connection's message behavior and fr
 - Updated the security configuration reference with the timestamp range contract.
 - This is bounded input/data-integrity validation; it is not HTTP rate limiting or a substitute for deployment-aware abuse controls. Existing SQLite implementation was not changed.
 - Prior HEAD `3709a18` had CI and CodeQL success. Exact-HEAD validation for this change is pending; no project progress percentage is changed until the new acceptance evidence is verified.
+
+- CI on intermediate commit `9cfce47` exposed a pytest collection error: the existing oversized-query parametrization decorator was temporarily attached to the new overflow test during insertion. The decorator was restored to its original test; exact-HEAD CI is rerunning on the corrected test file.
