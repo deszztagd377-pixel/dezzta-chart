@@ -111,10 +111,10 @@ def test_accepts_bar_inside_explicit_early_close_session():
 
 def test_rejects_bar_interval_that_crosses_early_session_close():
     early = record(
-        date(2024, 3, 11), "2024-03-10T17:00:00", "2024-03-11T10:30:00",
+        date(2024, 3, 11), "2024-03-10T17:00:00", "2024-03-11T12:30:00",
         kind="early_close",
     )
-    start = datetime_to_epoch_ns(datetime(2024, 3, 11, 16, 0, tzinfo=timezone.utc))
+    start = datetime_to_epoch_ns(datetime(2024, 3, 11, 17, 0, tzinfo=timezone.utc))
     with pytest.raises(SessionBarRejected) as error:
         validator_for([early])(bar(start, timeframe="1h"))
     assert error.value.reason == "bar_crosses_session_close"
