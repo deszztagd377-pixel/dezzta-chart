@@ -1,3 +1,5 @@
+from collections import deque
+
 import pytest
 import tempfile
 from pathlib import Path
@@ -8,7 +10,7 @@ from starlette.websockets import WebSocketDisconnect
 from dataclasses import replace
 
 from app.config import Settings
-from app.main import create_app
+from app.main import _allow_websocket_ping, create_app
 from app.identity import IdentityProviderUnavailable, IdentityVerificationError, VerifiedPrincipal
 from app.instrument_identity import CanonicalInstrument
 from app.instrument_registry import ProviderInstrumentMapping
@@ -25,6 +27,19 @@ def make_settings(token: str = "test-secret") -> Settings:
         cors_allowed_origins=("http://localhost:5173",),
         instrument_registry_db_path=_test_database_path(),
     )
+
+
+def test_websocket_ping_rate_limit_allows_twenty_messages_in_window() -> None:
+    timestamps: deque[float] = deque()
+    assert all(_allow_websocket_ping(timestamps, 1.0) for _ in range(20))
+    assert not _allow_websocket_ping(timestamps, 1.0)
+
+
+def test_websocket_ping_rate_limit_expires_messages_at_window_boundary() -> None:
+    timestamps: deque[float] = deque()
+    assert all(_allow_websocket_ping(timestamps, 1.0) for _ in range(20))
+    assert _allow_websocket_ping(timestamps, 11.0)
+    assert len(timestamps) == 1
 
 
 def test_health_endpoint() -> None:
