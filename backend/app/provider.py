@@ -276,11 +276,12 @@ class ProviderManager:
                                  last_error=safe_error(exc, self._s.databento_api_key))
 
     async def reconcile_live_history(self) -> dict[str, int]:
-        """Reconcile uncovered history after each symbol last durable 1s bar.
+        """Reconcile uncovered history within a bounded recent horizon.
 
-        This recovers the crash window where callback overflow metadata never
-        reached SQLite. Callback handling remains memory-only and non-blocking.
-        Work is bounded by the configured historical span across all symbols.
+        Scanning only after the latest durable bar misses older holes caused by
+        out-of-order event timestamps. Coverage intervals exclude known-good
+        ranges; the configured historical span bounds the scan across symbols.
+        Callback handling remains memory-only and non-blocking.
         """
         if not self.historical_allowed:
             raise RuntimeError("Historical ingestion is not enabled/configured.")
@@ -323,16 +324,14 @@ class ProviderManager:
                 upper = min(now_ns, mapping.valid_to_ns if mapping.valid_to_ns is not None else now_ns)
                 if upper <= mapping.valid_from_ns:
                     continue
-                latest, _ = store.query(
-                    provider=self._ingest.provider, dataset=self._s.databento_dataset,
-                    publisher_id=mapping.publisher_id, instrument_id=mapping.instrument_id,
-                    raw_symbol=mapping.raw_symbol, series_type=mapping.series_type,
-                    timeframe="1s", limit=1,
+                # Scan a bounded recent horizon, not merely the tail after the
+                # latest durable bar. Out-of-order event timestamps can leave an
+                # older hole even when a newer bar is already persisted.
+                recovery_floor = max(
+                    mapping.valid_from_ns,
+                    now_ns - self._s.historical_max_span_hours * 3600 * _NS,
                 )
-                start = mapping.valid_from_ns
-                if latest:
-                    start = max(start, latest[-1].ts_start_ns + _NS)
-                start = min(start, upper)
+                start = min(recovery_floor, upper)
                 if start >= upper:
                     symbols_checked += 1
                     continue
