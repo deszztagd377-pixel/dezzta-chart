@@ -157,7 +157,7 @@ Files changed in this slice:
 - `backend/app/aggregation.py`
 - `backend/tests/test_aggregation.py`
 
-Current CI run for the latest code checkpoint: `42352853145` (pending/in progress at documentation time). Do not mark this slice CI-verified until that run completes successfully.
+The earlier run `42352853145` was subsequently cancelled during frontend dependency installation; the next run `42353072145` completed successfully across all listed frontend/backend test and build steps. The latter run's exact head-SHA association was not independently exposed by the connector, so it is not used as CI proof for later commits.
 
 The remaining integration is still substantial: authoritative versioned calendar loading, calendar selection by canonical instrument/product family, adapter/API identity propagation, and exact session-bound aggregation with complete schedule coverage. No CME production bars are enabled by this change.
 
@@ -194,3 +194,28 @@ Only that duplicate check was removed in commit `8f559e9`. The policy-specific v
 - Actual CME session-bound validation remains pending the calendar-aware ingestion integration.
 
 No unrelated test or SQLite code was changed for this repair. CI for the repair commit must complete before the change is marked verified.
+
+
+### Versioned CME calendar artifact loader — 2026-11-07
+
+Implemented the next isolated loader slice on the active branch:
+
+- Added `backend/app/session_calendar_loader.py` with a strict canonical JSON schema (unknown/missing fields and duplicate JSON keys are rejected).
+- Requires a separately supplied 64-character SHA-256 pin and verifies the exact raw UTF-8 artifact bytes before parsing.
+- Requires explicit calendar ID, version, product family, effective date range, Chicago timezone, publication timestamp, source ID, and HTTPS source URL on the `cmegroup.com` domain.
+- Rejects duplicate trading dates, missing effective-range dates, out-of-range records, unsupported schema versions, non-UTC publication timestamps, and malformed/ambiguous/nonexistent Chicago local times.
+- Produces an immutable `SessionCalendar` carrying the computed `sha256:<digest>` value. The loader does not fetch remote files, register calendars, or enable ingestion.
+
+Tests added in `backend/tests/test_session_calendar_loader.py` cover valid loading, digest mismatch, incomplete coverage, duplicate dates/JSON keys, inconsistent metadata, non-CME URLs, DST-invalid local times, and unknown schema fields.
+
+Important trust boundary: a matching SHA-256 digest proves byte identity only against the independently supplied pin. It does not, by itself, authenticate the publisher or prove that a schedule is an official CME release. No official calendar artifact has been loaded; the test fixture is synthetic and must never be used as production market data.
+
+Files changed:
+- `backend/app/session_calendar_loader.py`
+- `backend/tests/test_session_calendar_loader.py`
+
+Branch comparison confirms the branch advanced exactly two commits beyond `aae7bd331a34033548be4974bfe5198f273e57dd`; latest code commit is `61815630ad4ffce04e0bba661e31ce8068bce748`. CI for these new commits has not yet been verified. The current combined commit status exposes Vercel as pending; the Actions run for this exact head is not yet available through the connected GitHub action surface.
+
+No integration into the adapter, registry, OHLCV ingestion, or aggregation is claimed. The next slice is to harden loader edge cases, execute its dedicated and full backend tests in CI, then wire only validated instrument metadata to explicit calendar version selection. SQLite remains unchanged.
+
+Progress accounting: the owner-confirmed historical checkpoint remains 20.9%; no new overall percentage is calculated or awarded from this code addition. The proposed weighted ledger remains unapproved and unscored.
