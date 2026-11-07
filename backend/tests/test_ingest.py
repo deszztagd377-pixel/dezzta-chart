@@ -410,7 +410,9 @@ def test_journal_replay_is_idempotent_when_delete_fails_after_gap_persist(tmp_pa
     service.process_pending()
 
     # Coverage is durable, but journal deletion failed: both must remain safe.
-    assert first.gaps(scope) == [(T0, T0 + NS)]
+    # Overflow endpoints are converted to inclusive event-second buckets:
+    # an endpoint exactly at +1s conservatively covers through +2s.
+    assert first.gaps(scope) == [(T0, T0 + 2 * NS)]
     assert [row["id"] for row in first.pending_overflows()] == [journal_id]
     assert "coverage_persistence_error" in service.degraded_reasons
 
