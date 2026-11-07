@@ -6,6 +6,25 @@ from app.ingest import BoundedBuffer
 from helpers import NS, T0, make_service, rec
 
 
+def test_buffer_overflow_metadata_is_bounded_for_many_instrument_ids():
+    buf = BoundedBuffer(2)
+    assert buf.offer("queued-1", 1, 1, (1, 1))
+    assert buf.offer("queued-2", 2, 2, (1, 1))
+
+    # Two scoped overflow buckets are allowed; further identifiers collapse
+    # into one conservative unscoped range rather than growing the dict.
+    for instrument_id in range(2, 1002):
+        assert not buf.offer(
+            f"overflow-{instrument_id}", instrument_id, instrument_id,
+            (1, instrument_id),
+        )
+
+    overflows = buf.take_overflows()
+    assert len(overflows) <= 3  # configured scope cap + one unscoped bucket
+    assert any(hint is None for hint, _, _ in overflows)
+    assert buf.overflow_count == 1000
+
+
 def test_buffer_overflow_is_counted_not_silent():
     buf = BoundedBuffer(2)
     assert buf.offer("a", 1, 1) and buf.offer("b", 2, 2)
