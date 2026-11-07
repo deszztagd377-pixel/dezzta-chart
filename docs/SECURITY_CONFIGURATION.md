@@ -45,6 +45,7 @@ remain server-side and must never be packaged into the browser app or Android AP
   that the verified account has an entitlement for the active canonical
   instrument.
 - The authenticated OHLCV snapshot endpoint bounds identifier ranges and query-string field lengths (dataset, symbol, timeframe, provider metadata, nanosecond timestamps, and response limit) before handler execution. These input bounds reduce oversized or malformed query work; they are not request-rate limiting.
+- OHLCV `start_ns` and `end_ns` values are also capped at the maximum signed 64-bit integer (`9223372036854775807`), matching the timestamp range supported by the backend's integer storage contract. A 19-digit value above that limit is rejected with HTTP 422 rather than being passed into query/storage code.
 - The WebSocket subscription path independently verifies Firebase identity and
   checks instrument entitlement. Do not weaken either path to make them match.
 - The authenticated OHLCV WebSocket accepts only the documented `ping` client message after subscription. It closes connections that exceed 20 pings in a rolling 10-second window or send an unsupported client message. The container's Uvicorn command caps WebSocket messages at 64 KiB and its inbound WebSocket queue at 16 messages. These are per-connection protocol limits, not a global per-IP/account connection limiter.
