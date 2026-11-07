@@ -147,7 +147,8 @@ Implemented a bounded first integration slice on the active foundation branch:
 - Added the explicit `CME_SESSION_V1` bucket-policy identity to the OHLCV contract.
 - CME session bars are structurally limited to `1d`, `1w`, `1M`, and `3M`, and require both `calendar_id` and `calendar_version`.
 - Session starts are no longer incorrectly forced onto UTC midnight/fixed-interval boundaries; the exchange calendar must validate the actual session bounds before production ingestion.
-- UTC policies still reject calendar metadata and retain their existing UTC alignment checks.- Aggregation explicitly skips CME-session-policy bars until a verified calendar-bound resolver is connected. This is a fail-closed guard, not active CME aggregation.
+- UTC policies still reject calendar metadata and retain their existing UTC alignment checks.
+- Aggregation explicitly skips CME-session-policy bars until a verified calendar-bound resolver is connected. This is a fail-closed guard, not active CME aggregation.
 - Added OHLCV model tests and an aggregation regression test for the new contract.
 
 Files changed in this slice:
@@ -293,6 +294,7 @@ Files added:
 - `backend/tests/test_session_bar_validation.py`
 
 Progress remains at the owner-confirmed historical checkpoint **20.9%**; no weighted percentage increase is awarded for this isolated validation component before CI and the project milestone ledger are reconciled.
+
 
 
 
