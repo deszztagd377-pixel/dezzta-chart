@@ -656,3 +656,12 @@ Scope limitation: these controls bound each connection's message behavior and fr
 - Extended the successful authenticated OHLCV snapshot test to assert `Cache-Control: private, no-store, max-age=0`, `Pragma: no-cache`, and `X-Content-Type-Options: nosniff` on a real populated snapshot response.
 - This complements the existing health-response and unauthenticated-auth-error header tests, covering both successful market-data payloads and authentication failures.
 - Exact-HEAD CI/CodeQL verification is pending; no project progress percentage is changed by adding test coverage alone.
+
+
+## OHLCV nanosecond timestamp range enforcement — 2026-11-07
+
+- The authenticated REST snapshot parser now rejects `start_ns` or `end_ns` values above `9223372036854775807` (signed 64-bit maximum), before those values reach pipeline/storage query operations. This closes the gap where a 19-digit decimal value could be syntactically accepted while exceeding the signed integer range used by backend persistence.
+- Added API regression coverage for overflow on both query fields and for acceptance of the exact maximum signed 64-bit value on both lower/upper query bounds.
+- Updated the security configuration reference with the timestamp range contract.
+- This is bounded input/data-integrity validation; it is not HTTP rate limiting or a substitute for deployment-aware abuse controls. Existing SQLite implementation was not changed.
+- Prior HEAD `3709a18` had CI and CodeQL success. Exact-HEAD validation for this change is pending; no project progress percentage is changed until the new acceptance evidence is verified.
