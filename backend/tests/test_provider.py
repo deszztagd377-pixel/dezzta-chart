@@ -346,6 +346,81 @@ def test_without_definitions_records_are_rejected_not_invented():
     service.ingest_batch([rec(0)], "ohlcv-1s")
     assert service.counters == {"rejected_unknown_instrument": 1}
 
+def test_startup_reconciliation_backfills_since_last_durable_bar_and_keeps_callback_nonblocking(tmp_path):
+    from app.ohlcv import OhlcvPipeline
+    from app.ingest import OhlcvIngestionService
+    from app.ohlcv_store import SQLiteOhlcvStore
+    from app.symbology import InstrumentResolver, SymbolMapping
+    from app.coverage import CoverageTracker
+
+    class EmptyHistorical:
+        def __init__(self): self.calls = []
+        def fetch(self, *, schema, symbols, stype_in, start_ns, end_ns):
+            self.calls.append((schema, symbols, stype_in, start_ns, end_ns))
+            return []
+
+    async def go():
+        store = SQLiteOhlcvStore(str(tmp_path / "ohlcv.sqlite3"))
+        resolver = InstrumentResolver()
+        resolver.add(SymbolMapping(provider="databento", dataset="GLBX.MDP3",
+            publisher_id=1, instrument_id=101, raw_symbol="ESZ6", valid_from_ns=T0))
+        service = OhlcvIngestionService(pipeline=OhlcvPipeline(), resolver=resolver,
+            coverage=CoverageTracker(), persistence=store, clock_ns=lambda: T0 + 10 * NS)
+        service.ingest_batch([rec(2)], "ohlcv-1s")
+        hist = EmptyHistorical()
+        cfg = settings(databento_api_key=SECRET, databento_live_enabled=True,
+            databento_live_symbols=("ESZ6",), databento_historical_enabled=True,
+            historical_window_minutes=1, historical_max_span_hours=1)
+        manager_instance = ProviderManager(cfg, service, InstrumentCatalog(),
+            historical_factory=lambda: hist, clock_ns=lambda: T0 + 10 * NS)
+        result = await manager_instance.reconcile_live_history()
+        return result, hist, service, manager_instance
+
+    result, hist, service, manager_instance = asyncio.run(go())
+    assert result == {"symbols_checked": 1, "ranges_reconciled": 1,
+        "ranges_remaining": 0, "bars_ingested": 0, "windows_done": 1}
+    assert hist.calls == [("ohlcv-1s", ("ESZ6",), "raw_symbol", T0 + 3 * NS, T0 + 10 * NS)]
+    assert service.offer(rec(9), "ohlcv-1s") is True
+    assert manager_instance.backfill["state"] == "reconciliation_done"
+
+
+def test_startup_reconciliation_respects_global_budget_and_existing_coverage(tmp_path):
+    from app.ohlcv import OhlcvPipeline
+    from app.ingest import OhlcvIngestionService
+    from app.ohlcv_store import SQLiteOhlcvStore
+    from app.coverage import CoverageTracker
+    from app.symbology import InstrumentResolver, SymbolMapping
+
+    class EmptyHistorical:
+        def __init__(self): self.calls = []
+        def fetch(self, *, schema, symbols, stype_in, start_ns, end_ns):
+            self.calls.append((symbols, start_ns, end_ns))
+            return []
+
+    async def go():
+        store = SQLiteOhlcvStore(str(tmp_path / "ohlcv.sqlite3"))
+        resolver = InstrumentResolver()
+        for instrument_id, symbol in ((101, "ESZ6"), (102, "NQZ6")):
+            resolver.add(SymbolMapping(provider="databento", dataset="GLBX.MDP3",
+                publisher_id=1, instrument_id=instrument_id, raw_symbol=symbol, valid_from_ns=T0))
+        coverage = CoverageTracker()
+        coverage.add_covered(("databento", "GLBX.MDP3", 1, 101, "contract", "ESZ6"),
+                             T0, T0 + 30 * NS)
+        service = OhlcvIngestionService(pipeline=OhlcvPipeline(), resolver=resolver,
+            coverage=coverage, persistence=store, clock_ns=lambda: T0 + 7200 * NS)
+        hist = EmptyHistorical()
+        cfg = settings(databento_api_key=SECRET, databento_live_enabled=True,
+            databento_live_symbols=("ESZ6", "NQZ6"), databento_historical_enabled=True,
+            historical_window_minutes=60, historical_max_span_hours=1)
+        manager_instance = ProviderManager(cfg, service, InstrumentCatalog(),
+            historical_factory=lambda: hist, clock_ns=lambda: T0 + 7200 * NS)
+        result = await manager_instance.reconcile_live_history()
+        return result, hist
+
+    result, hist = asyncio.run(go())
+    assert result["ranges_reconciled"] == 1 and result["ranges_remaining"] == 1
+    assert hist.calls == [(("ESZ6",), T0 + 30 * NS, T0 + 3630 * NS)]
+
 def test_recover_gaps_uses_valid_mapping_and_bounded_historical_windows(tmp_path):
     from app.coverage_store import SQLiteCoverageTracker
     from app.ohlcv import OhlcvPipeline

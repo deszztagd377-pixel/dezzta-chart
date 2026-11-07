@@ -161,6 +161,11 @@ class ProviderManager:
                 if len(self._ingest.resolver) == 0:
                     self._detail = "instrument_definitions_unavailable"
                     return
+            if self.historical_allowed:
+                self._tasks.append(asyncio.create_task(
+                    self._run_startup_reconciliation(),
+                    name="ohlcv-startup-reconciliation",
+                ))
             self._tasks.append(asyncio.create_task(self._supervise(), name="ohlcv-live"))
 
     async def stop(self) -> None:
@@ -259,6 +264,107 @@ class ProviderManager:
             await self._sleep(delay)
         self._connection = "disconnected"
         self._detail = "gave_up_after_repeated_failures"
+
+    async def _run_startup_reconciliation(self) -> None:
+        """Run bounded historical reconciliation without delaying live startup."""
+        try:
+            await self.reconcile_live_history()
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            self.backfill.update(state="reconciliation_failed",
+                                 last_error=safe_error(exc, self._s.databento_api_key))
+
+    async def reconcile_live_history(self) -> dict[str, int]:
+        """Reconcile uncovered history after each symbol last durable 1s bar.
+
+        This recovers the crash window where callback overflow metadata never
+        reached SQLite. Callback handling remains memory-only and non-blocking.
+        Work is bounded by the configured historical span across all symbols.
+        """
+        if not self.historical_allowed:
+            raise RuntimeError("Historical ingestion is not enabled/configured.")
+        store = self._ingest.persistence
+        if store is None or not callable(getattr(store, "query", None)):
+            self.backfill.update(state="reconciliation_skipped",
+                                 last_error="durable_ohlcv_store_unavailable")
+            return {"symbols_checked": 0, "ranges_reconciled": 0,
+                    "ranges_remaining": 0, "bars_ingested": 0, "windows_done": 0}
+        symbols = tuple(dict.fromkeys(self._s.databento_live_symbols))
+        if not symbols:
+            self.backfill.update(state="reconciliation_skipped",
+                                 last_error="no_explicit_live_symbols")
+            return {"symbols_checked": 0, "ranges_reconciled": 0,
+                    "ranges_remaining": 0, "bars_ingested": 0, "windows_done": 0}
+
+        now_ns = self._clock()
+        budget_ns = self._s.historical_max_span_hours * 3600 * _NS
+        symbols_checked = ranges_reconciled = bars_ingested = windows_done = 0
+        ranges_remaining = 0
+        self.backfill.update(state="reconciling", last_error=None, windows_done=0,
+                             reconciliation="startup_crash_window")
+        for symbol in symbols:
+            mappings = self._ingest.resolver.mappings_for_symbol(
+                self._ingest.provider, self._s.databento_dataset, symbol
+            )
+            for mapping in sorted(mappings, key=lambda item: item.valid_from_ns):
+                upper = min(now_ns, mapping.valid_to_ns if mapping.valid_to_ns is not None else now_ns)
+                if upper <= mapping.valid_from_ns:
+                    continue
+                latest, _ = store.query(
+                    provider=self._ingest.provider, dataset=self._s.databento_dataset,
+                    publisher_id=mapping.publisher_id, instrument_id=mapping.instrument_id,
+                    raw_symbol=mapping.raw_symbol, series_type=mapping.series_type,
+                    timeframe="1s", limit=1,
+                )
+                start = mapping.valid_from_ns
+                if latest:
+                    start = max(start, latest[-1].ts_start_ns + _NS)
+                start = min(start, upper)
+                if start >= upper:
+                    symbols_checked += 1
+                    continue
+
+                # Reuse durable coverage so interrupted reconciliation resumes
+                # from the first uncovered range instead of repeating work.
+                cursor = start
+                missing: list[tuple[int, int]] = []
+                for covered_start, covered_end in self._ingest.coverage.intervals(mapping.coverage_scope):
+                    if covered_end <= cursor or covered_start >= upper:
+                        continue
+                    if covered_start > cursor:
+                        missing.append((cursor, min(covered_start, upper)))
+                    cursor = max(cursor, covered_end)
+                    if cursor >= upper:
+                        break
+                if cursor < upper:
+                    missing.append((cursor, upper))
+
+                symbols_checked += 1
+                for gap_start, gap_end in missing:
+                    if gap_end <= gap_start:
+                        continue
+                    if budget_ns <= 0:
+                        ranges_remaining += 1
+                        continue
+                    query_end = min(gap_end,
+                                    gap_start + self._s.historical_max_span_hours * 3600 * _NS,
+                                    gap_start + budget_ns)
+                    bars_ingested += await self.backfill_ohlcv(
+                        (mapping.raw_symbol,), gap_start, query_end, schema="ohlcv-1s"
+                    )
+                    windows_done += int(self.backfill.get("windows_done", 0))
+                    budget_ns -= query_end - gap_start
+                    ranges_reconciled += 1
+                    if query_end < gap_end:
+                        ranges_remaining += 1
+        self.backfill.update(state="reconciliation_done", last_error=None,
+                             windows_done=windows_done, symbols_checked=symbols_checked,
+                             ranges_reconciled=ranges_reconciled, ranges_remaining=ranges_remaining,
+                             bars_ingested=bars_ingested, reconciliation="startup_crash_window")
+        return {"symbols_checked": symbols_checked, "ranges_reconciled": ranges_reconciled,
+                "ranges_remaining": ranges_remaining, "bars_ingested": bars_ingested,
+                "windows_done": windows_done}
 
     # ------------------------------------------------------ definitions/backfill
     async def refresh_definitions(self, start_ns: int, end_ns: int) -> tuple[int, int]:
