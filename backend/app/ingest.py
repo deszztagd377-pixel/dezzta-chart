@@ -231,6 +231,20 @@ class OhlcvIngestionService:
                         has_unscoped_pending = True
                         pending.append((None, instrument_hint, first_ns, last_ns))
             except Exception:
+                # Preserve the unscoped warning only when identity is still
+                # unresolved; a coverage write failure after successful mapping
+                # is a persistence failure, not an identity failure.
+                if instrument_hint is None:
+                    has_unscoped_pending = True
+                else:
+                    try:
+                        mapping = self.resolver.resolve(
+                            self.provider, self.dataset,
+                            instrument_hint[0], instrument_hint[1], first_ns,
+                        )
+                        has_unscoped_pending = has_unscoped_pending or mapping is None
+                    except Exception:
+                        has_unscoped_pending = True
                 # Keep both the in-memory item and durable journal for retry.
                 self._count("coverage_persistence_error")
                 self.degraded_reasons.add("coverage_persistence_error")
