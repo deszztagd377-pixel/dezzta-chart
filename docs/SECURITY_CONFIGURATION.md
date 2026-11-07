@@ -110,7 +110,7 @@ requires verified identity and instrument entitlement.
 - [x] Add frontend and backend dependency vulnerability audits to CI.
 - [x] Add CodeQL analysis for JavaScript/TypeScript and Python.
 - [ ] Verify current repository secret-scanning and push-protection settings and review alert inventory; public-repository defaults are not proof of current state.
-- [ ] Add container-image vulnerability scanning.
+- [x] Add container-image vulnerability scanning through the pinned Trivy CI step (HIGH/CRITICAL OS and library findings fail the build).
 - [ ] Review SQLite file permissions, backup encryption, retention, and recovery.
 - [ ] Verify monitoring and incident-response procedures before production use.
 
