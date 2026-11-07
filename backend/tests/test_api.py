@@ -451,23 +451,6 @@ def test_ohlcv_endpoint_rejects_invalid_query_parameters(query: str) -> None:
     assert response.status_code == 422
 
 
-@pytest.mark.parametrize(
-    "query",
-    [
-        "dataset=" + ("D" * 65),
-        "publisher_id=0",
-        "publisher_id=2147483648",
-        "instrument_id=0",
-        "instrument_id=2147483648",
-        "timeframe=" + ("1" * 17),
-        "raw_symbol=" + ("S" * 129),
-        "start_ns=" + ("1" * 20),
-        "end_ns=" + ("1" * 20),
-        "provider=" + ("p" * 33),
-        "series_type=" + ("s" * 33),
-        "limit=5001",
-    ],
-)
 @pytest.mark.parametrize("field", ["start_ns", "end_ns"])
 def test_ohlcv_endpoint_rejects_nanosecond_timestamp_overflow(field: str) -> None:
     client = TestClient(_app_with_bars())
@@ -494,6 +477,23 @@ def test_ohlcv_endpoint_accepts_maximum_signed_64_bit_nanosecond_timestamp() -> 
     assert end_response.json()["count"] == 4
 
 
+@pytest.mark.parametrize(
+    "query",
+    [
+        "dataset=" + ("D" * 65),
+        "publisher_id=0",
+        "publisher_id=2147483648",
+        "instrument_id=0",
+        "instrument_id=2147483648",
+        "timeframe=" + ("1" * 17),
+        "raw_symbol=" + ("S" * 129),
+        "start_ns=" + ("1" * 20),
+        "end_ns=" + ("1" * 20),
+        "provider=" + ("p" * 33),
+        "series_type=" + ("s" * 33),
+        "limit=5001",
+    ],
+)
 def test_ohlcv_endpoint_rejects_oversized_or_out_of_range_query_values(query: str) -> None:
     client = TestClient(_app_with_bars())
     exact = "dataset=GLBX.MDP3&publisher_id=1&instrument_id=101&raw_symbol=ESZ6&timeframe=1s"
