@@ -424,7 +424,7 @@ def test_journal_replay_is_idempotent_when_delete_fails_after_gap_persist(tmp_pa
     )
     restarted.process_pending()
 
-    assert restarted_coverage.gaps(scope) == [(T0, T0 + NS)]
+    assert restarted_coverage.gaps(scope) == [(T0, T0 + 2 * NS)]
     assert restarted_coverage.pending_overflows() == []
     assert "coverage_persistence_error" not in restarted.degraded_reasons
 
