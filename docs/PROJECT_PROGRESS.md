@@ -337,3 +337,17 @@ Added the next Stage 2 integration slice:
 **Not enabled in the production app:** `main.py` intentionally does not supply a bar-validator callback yet. No authenticated official CME schedule artifact is present, and no approved calendar version is configured. The optional hook is an integration boundary, not a claim of active session validation. Existing UTC ingestion behavior is unchanged until a verified release is supplied and explicitly enabled. Session-aligned aggregation remains disabled.
 
 CI for the latest code commit is pending. Do not mark these tests as passing until the exact-head workflow completes.
+
+
+
+## Stage 1 security hardening — WebSocket Origin fail-closed (2026-11-07)
+
+A focused Stage 1 security review found that the WebSocket Origin guard previously skipped enforcement when `cors_allowed_origins` was empty. That behavior treated an empty allowlist as unrestricted for browser-originated WebSocket connections.
+
+Changed behavior:
+- Any request carrying an `Origin` header is now rejected with close code `4403` unless the exact origin is explicitly present in `cors_allowed_origins`.
+- An empty allowlist therefore rejects all browser-originated WebSocket connections.
+- Clients without an Origin header remain supported (for example, native/non-browser clients); they must still pass the existing Firebase token verification and subscription entitlement checks.
+- HTTP CORS configuration and the Firebase authentication flow were not weakened or bypassed.
+
+Added API tests for an unlisted origin, an empty allowlist, and a non-browser client without an Origin header. CI must pass on the exact resulting HEAD before this security criterion is counted as verified. This change does not by itself complete Stage 1's full security or deployment acceptance criteria.
