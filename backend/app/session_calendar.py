@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
 from typing import Literal, Mapping
+from types import MappingProxyType
 from zoneinfo import ZoneInfo
 
 CHICAGO = ZoneInfo("America/Chicago")
@@ -18,6 +19,75 @@ CALENDAR_BY_FAMILY = {
 }
 SessionKind = Literal["regular", "special", "early_close", "delayed_open", "closed"]
 SessionState = Literal["open", "maintenance", "closed", "unknown", "special-session"]
+
+
+def calendar_id_for_product_family(product_family: str) -> str | None:
+    """Resolve only an explicitly supplied CME product family; never parse symbols."""
+    family = product_family.strip().upper()
+    matches = [
+        calendar_id for calendar_id, families in CALENDAR_BY_FAMILY.items()
+        if family in families
+    ]
+    return matches[0] if len(matches) == 1 else None
+
+
+class SessionCalendarRegistry:
+    """In-memory registry of immutable, explicitly versioned calendar releases.
+
+    This registry does not fetch or manufacture schedules. A release must be
+    constructed from a separately verified source before it can be registered.
+    """
+
+    def __init__(self, calendars: tuple["SessionCalendar", ...] = ()) -> None:
+        self._calendars: dict[tuple[str, str], SessionCalendar] = {}
+        self.replace_all(calendars)
+
+    def __len__(self) -> int:
+        return len(self._calendars)
+
+    def register(self, calendar: "SessionCalendar") -> None:
+        key = (calendar.calendar_id, calendar.version)
+        existing = self._calendars.get(key)
+        if existing is not None and existing != calendar:
+            raise InvalidSessionCalendar(
+                "A calendar release key cannot be replaced with different content."
+            )
+        self._calendars[key] = calendar
+
+    def replace_all(self, calendars: tuple["SessionCalendar", ...]) -> None:
+        staged: dict[tuple[str, str], SessionCalendar] = {}
+        for calendar in calendars:
+            key = (calendar.calendar_id, calendar.version)
+            existing = staged.get(key)
+            if existing is not None and existing != calendar:
+                raise InvalidSessionCalendar(
+                    "Duplicate calendar release key has conflicting content."
+                )
+            staged[key] = calendar
+        self._calendars = staged
+
+    def get(
+        self, calendar_id: str, version: str | None = None
+    ) -> "SessionCalendar | None":
+        if version is not None:
+            return self._calendars.get((calendar_id, version))
+        candidates = [
+            calendar for (stored_id, _), calendar in self._calendars.items()
+            if stored_id == calendar_id
+        ]
+        # Never guess which release is current when multiple versions exist.
+        return candidates[0] if len(candidates) == 1 else None
+
+    def for_product_family(
+        self, product_family: str, version: str | None = None
+    ) -> "SessionCalendar | None":
+        calendar_id = calendar_id_for_product_family(product_family)
+        if calendar_id is None:
+            return None
+        calendar = self.get(calendar_id, version)
+        if calendar is None or calendar.product_family != product_family.strip().upper():
+            return None
+        return calendar
 
 
 class InvalidSessionCalendar(ValueError):
@@ -83,11 +153,13 @@ class SessionCalendar:
             raise InvalidSessionCalendar("Calendar effective range is reversed.")
         if self.published_at_utc.tzinfo is None or self.published_at_utc.utcoffset() is None:
             raise InvalidSessionCalendar("Publication timestamp must be timezone-aware.")
-        for trading_date, record in self.records.items():
+        copied_records = dict(self.records)
+        for trading_date, record in copied_records.items():
             if trading_date != record.trading_date:
                 raise InvalidSessionCalendar("Record key must equal its trading date.")
             if not self.effective_start <= trading_date <= self.effective_end:
                 raise InvalidSessionCalendar("Record is outside the declared effective range.")
+        object.__setattr__(self, "records", MappingProxyType(copied_records))
 
 
 def resolve_trading_date(
