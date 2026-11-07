@@ -29,7 +29,7 @@ def _parse_int(value: str, default: int, *, minimum: int = 1) -> int:
 @dataclass(frozen=True)
 class Settings:
     app_env: str
-    market_data_ws_token: str
+    market_data_ws_token: str = field(repr=False)
     cors_allowed_origins: tuple[str, ...]
     # --- Phase 2 provider settings: every field has a safe default so that
     # --- existing callers/tests that build Settings(...) keep working.
