@@ -288,6 +288,39 @@ def test_per_instrument_observations_are_bounded():
     assert status["evicted_instrument_counters"] == 1
     assert {item["instrument_id"] for item in status["instruments"]} == {2, 3}
 
+def test_durable_overflow_journal_replays_into_coverage_after_restart(tmp_path):
+    from app.coverage_store import SQLiteCoverageTracker
+    from app.ingest import OhlcvIngestionService
+    from app.ohlcv import OhlcvPipeline
+    from helpers import make_resolver
+
+    path = str(tmp_path / "overflow-restart.sqlite3")
+    first_coverage = SQLiteCoverageTracker(path)
+    hint = (1, 101)
+    journal_id = first_coverage.journal_overflow(
+        hint, T0 + 100, T0 + 200, T0 + 300
+    )
+
+    # A new service instance models process restart and restores the journal.
+    restored_coverage = SQLiteCoverageTracker(path)
+    restarted = OhlcvIngestionService(
+        pipeline=OhlcvPipeline(),
+        resolver=make_resolver(),
+        coverage=restored_coverage,
+    )
+    scope = ("databento", "GLBX.MDP3", 1, 101, "contract", "ESZ6")
+
+    assert "ingest_overflow" in restarted.degraded_reasons
+    assert restarted.status()["pending_overflow_gaps"] == 1
+
+    restarted.process_pending()
+
+    assert restored_coverage.gaps(scope) == [(T0, T0 + NS)]
+    assert restored_coverage.pending_overflows() == []
+    assert restarted.status()["pending_overflow_gaps"] == 0
+    assert journal_id > 0
+
+
 def test_ingestion_restart_restores_pipeline_and_resumes_local_sequence(tmp_path):
     from app.coverage import CoverageTracker
     from app.ingest import OhlcvIngestionService
