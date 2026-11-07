@@ -685,3 +685,65 @@ def test_reconciliation_and_explicit_gap_recovery_are_serialized():
          ("reconcile", "start"), ("reconcile", "end")],
     )
     assert results == [{"ok": "reconcile"}, {"ok": "recover"}]
+
+
+def test_startup_reconciliation_resumes_after_partial_historical_failure(tmp_path):
+    from app.coverage_store import SQLiteCoverageTracker
+    from app.ohlcv import OhlcvPipeline
+    from app.ohlcv_store import SQLiteOhlcvStore
+    from app.ingest import OhlcvIngestionService
+    from app.symbology import InstrumentResolver, SymbolMapping
+
+    class FailOnceHistorical:
+        def __init__(self):
+            self.calls = []
+            self.failed = False
+
+        def fetch(self, *, schema, symbols, stype_in, start_ns, end_ns):
+            self.calls.append((schema, symbols, stype_in, start_ns, end_ns))
+            if start_ns == T0 + 60 * NS and not self.failed:
+                self.failed = True
+                raise RuntimeError("temporary historical outage")
+            return [rec(int((start_ns - T0) // NS) + i) for i in range(2)]
+
+    async def go():
+        scope = ("databento", "GLBX.MDP3", 1, 101, "contract", "ESZ6")
+        coverage = SQLiteCoverageTracker(str(tmp_path / "coverage.sqlite3"))
+        store = SQLiteOhlcvStore(str(tmp_path / "ohlcv.sqlite3"))
+        resolver = InstrumentResolver()
+        resolver.add(SymbolMapping(
+            provider="databento", dataset="GLBX.MDP3", publisher_id=1,
+            instrument_id=101, raw_symbol="ESZ6", valid_from_ns=T0,
+        ))
+        service = OhlcvIngestionService(
+            pipeline=OhlcvPipeline(), resolver=resolver, coverage=coverage,
+            persistence=store, clock_ns=lambda: T0 + 150 * NS,
+        )
+        hist = FailOnceHistorical()
+        cfg = settings(
+            databento_api_key=SECRET, databento_live_enabled=True,
+            databento_live_symbols=("ESZ6",), databento_historical_enabled=True,
+            historical_window_minutes=1, historical_max_span_hours=1,
+        )
+        manager_instance = ProviderManager(
+            cfg, service, InstrumentCatalog(), historical_factory=lambda: hist,
+            clock_ns=lambda: T0 + 150 * NS,
+        )
+
+        with pytest.raises(RuntimeError, match="temporary historical outage"):
+            await manager_instance.reconcile_live_history()
+        first_coverage = coverage.intervals(scope)
+        resumed = await manager_instance.reconcile_live_history()
+        return hist.calls, first_coverage, resumed, coverage, scope
+
+    calls, first_coverage, resumed, coverage, scope = asyncio.run(go())
+    assert first_coverage == [(T0, T0 + 60 * NS)]
+    assert [(call[3], call[4]) for call in calls] == [
+        (T0, T0 + 60 * NS),
+        (T0 + 60 * NS, T0 + 120 * NS),
+        (T0 + 60 * NS, T0 + 120 * NS),
+        (T0 + 120 * NS, T0 + 150 * NS),
+    ]
+    assert resumed["ranges_reconciled"] == 1
+    assert resumed["ranges_remaining"] == 0
+    assert coverage.intervals(scope) == [(T0, T0 + 150 * NS)]
