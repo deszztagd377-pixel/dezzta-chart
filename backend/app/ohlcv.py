@@ -63,7 +63,15 @@ MIN_RETENTION: dict[str, int] = {
 
 BUCKET_POLICY_UTC_LEGACY = "UTC_LEGACY"
 BUCKET_POLICY_UTC_FIXED_V1 = "UTC_FIXED_V1"
-SUPPORTED_BUCKET_POLICIES = frozenset((BUCKET_POLICY_UTC_LEGACY, BUCKET_POLICY_UTC_FIXED_V1))
+# Structural identity only. Session-aware aggregation remains disabled until a
+# caller supplies a verified, version-matched exchange calendar.
+BUCKET_POLICY_CME_SESSION_V1 = "CME_SESSION_V1"
+_SESSION_TIMEFRAMES = frozenset(("1d", "1w", "1M", "3M"))
+SUPPORTED_BUCKET_POLICIES = frozenset((
+    BUCKET_POLICY_UTC_LEGACY,
+    BUCKET_POLICY_UTC_FIXED_V1,
+    BUCKET_POLICY_CME_SESSION_V1,
+))
 
 
 def bucket_policy_for_timeframe(timeframe: str) -> str:
@@ -197,9 +205,20 @@ class OhlcvBar:
         if self.completeness not in COMPLETENESS_VALUES:
             raise InvalidOhlcvBar("Unsupported completeness value.")
         if self.bucket_policy not in SUPPORTED_BUCKET_POLICIES:
-            raise InvalidOhlcvBar("Unsupported or not-yet-enabled bucket policy.")
-        if self.calendar_id or self.calendar_version:
-            raise InvalidOhlcvBar("UTC bucket policies must not carry exchange calendar metadata.")
+            raise InvalidOhlcvBar("Unsupported bucket policy.")
+        if self.bucket_policy == BUCKET_POLICY_CME_SESSION_V1:
+            if self.timeframe not in _SESSION_TIMEFRAMES:
+                raise InvalidOhlcvBar("CME session bucket policy is only valid for 1d, 1w, 1M, and 3M.")
+            if not self.calendar_id.strip() or not self.calendar_version.strip():
+                raise InvalidOhlcvBar("CME session bars require calendar_id and calendar_version.")
+            # Session starts are exchange-defined instants (e.g. 17:00 Chicago),
+            # not UTC-midnight/fixed-interval boundaries. The authoritative
+            # calendar resolver must validate their actual bounds before ingest.
+        else:
+            if self.calendar_id or self.calendar_version:
+                raise InvalidOhlcvBar("UTC bucket policies must not carry exchange calendar metadata.")
+            if bucket_start_ns(self.ts_start_ns, self.timeframe) != self.ts_start_ns:
+                raise InvalidOhlcvBar("Bar start timestamp is not aligned to its timeframe.")
         if self.ts_provider_out_ns is not None and (
             not isinstance(self.ts_provider_out_ns, int)
             or isinstance(self.ts_provider_out_ns, bool)
