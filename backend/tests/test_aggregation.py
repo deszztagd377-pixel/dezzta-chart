@@ -173,6 +173,26 @@ def test_derived_bar_durability_gate_runs_before_pipeline_mutation():
     assert aggregator.stats["persistence_rejected"] == len(seen)
 
 
+def test_cme_session_bars_remain_unaggregated_until_calendar_bounds_are_resolved():
+    from app.ohlcv import BUCKET_POLICY_CME_SESSION_V1
+
+    _, pipeline, *_ = make_service()
+    aggregator = Aggregator(pipeline)
+    session_open = 1_730_668_800 * NS  # deliberately not a UTC-midnight boundary
+    daily = base_bar(
+        0, "100", "101", "99", "100", 5, 1,
+        tf="1d", base=session_open,
+        bucket_policy=BUCKET_POLICY_CME_SESSION_V1,
+        calendar_id="CME_EQUITY_INDEX",
+        calendar_version="2026.11.1",
+    )
+    feed(pipeline, aggregator, daily)
+
+    assert pipeline.list_bars(timeframe="1d", bucket_policy=BUCKET_POLICY_CME_SESSION_V1) == [daily]
+    assert pipeline.list_bars(timeframe="1w", bucket_policy=BUCKET_POLICY_CME_SESSION_V1) == []
+    assert pipeline.list_bars(timeframe="1M", bucket_policy=BUCKET_POLICY_CME_SESSION_V1) == []
+
+
 def test_derived_intraday_bars_inherit_fixed_utc_policy_and_stop_before_daily():
     _, pipeline, *_ = make_service()
     aggregator = Aggregator(pipeline)
