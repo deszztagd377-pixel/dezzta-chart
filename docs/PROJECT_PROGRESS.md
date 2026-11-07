@@ -610,3 +610,14 @@ A configuration-hardening slice was added on `phase-2/market-data-foundation`:
 - Added focused tests for local development origin acceptance, wildcard rejection, path rejection, production HTTP rejection, and production HTTPS acceptance.
 
 This closes a configuration-validation gap only. It does not prove the deployed allowlist is correct, does not add rate limiting, and does not replace live HTTPS/WSS, Origin, Firebase lifecycle, or abuse-control smoke tests. No overall or Stage 1 percentage is increased until CI verifies the new commit and the broader Stage 1 ledger is reconciled.
+
+
+## Authenticated OHLCV request-boundary hardening — 2026-11-07
+
+Added bounded query validation to `GET /v1/ohlcv`:
+- Dataset, timeframe, raw symbol, provider, series type, bucket policy, calendar ID/version, and nanosecond query values now have explicit maximum lengths.
+- Publisher and provider instrument identifiers are constrained to positive signed 32-bit values.
+- Snapshot limit is constrained to 1–5,000 bars at the HTTP boundary, in addition to the configured server-side cap.
+- Added parameterized API tests for oversized strings, invalid identifier ranges, oversized nanosecond strings, and excessive response limits.
+
+This does not implement per-account/IP rate limiting, proxy-aware abuse controls, HTTP body limits, or WebSocket frame-size configuration. CI on the resulting HEAD must pass before these changes are treated as verified acceptance evidence.
