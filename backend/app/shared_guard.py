@@ -138,8 +138,8 @@ class RedisSharedGuard:
         result = await self._redis.eval(
             HTTP_LIMIT_SCRIPT,
             2,
-            f"dezzta:{guard-http}:client:{client_digest}:{window}",
-            f"dezzta:{guard-http}:global:{window}",
+            f"dezzta:{{guard-http}}:client:{client_digest}:{window}",
+            f"dezzta:{{guard-http}}:global:{window}",
             self.http_per_client_per_minute,
             self.http_global_per_minute,
             65,
@@ -150,7 +150,7 @@ class RedisSharedGuard:
 
     def _account_key(self, account_subject: str) -> str:
         digest = self._digest(account_subject)
-        return f"dezzta:{guard-ws}:account:{digest}"
+        return f"dezzta:{{guard-ws}}:account:{digest}"
 
     async def _write_websocket_lease(
         self,

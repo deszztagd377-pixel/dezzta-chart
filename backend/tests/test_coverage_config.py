@@ -36,6 +36,7 @@ def test_settings_from_environment_parses_flags_and_ignores_garbage():
     saved = dict(os.environ)
     try:
         os.environ.update({
+            "APP_ENV": "development", "REDIS_URL": "",
             "DATABENTO_LIVE_ENABLED": "TRUE", "DATABENTO_LIVE_SYMBOLS": "ESZ6, NQZ6,",
             "OHLCV_QUEUE_MAX": "not-a-number", "INSTRUMENT_ROOTS": "es,cl",
         })

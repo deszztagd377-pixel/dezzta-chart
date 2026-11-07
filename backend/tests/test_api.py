@@ -1127,6 +1127,8 @@ def test_shared_http_guard_rejects_rate_limited_request() -> None:
             return False, 13
     response=TestClient(create_app(make_settings(),shared_guard=Guard())).get("/v1/market-data/status")
     assert response.status_code==429 and response.headers["retry-after"]=="13"
+    assert response.headers["x-content-type-options"]=="nosniff"
+    assert response.headers["cache-control"]=="private, no-store, max-age=0"
     assert "Request rate limit" in response.json()["detail"]
 
 def test_shared_http_guard_fails_closed_when_redis_is_unavailable() -> None:
@@ -1135,6 +1137,8 @@ def test_shared_http_guard_fails_closed_when_redis_is_unavailable() -> None:
             raise ConnectionError("redis offline")
     response=TestClient(create_app(make_settings(),shared_guard=Guard())).get("/v1/market-data/status")
     assert response.status_code==503 and response.headers["retry-after"]=="5"
+    assert response.headers["x-content-type-options"]=="nosniff"
+    assert response.headers["cache-control"]=="private, no-store, max-age=0"
     assert "redis offline" not in response.text
 
 def test_shared_websocket_guard_rejects_before_accept_when_global_cap_is_full() -> None:

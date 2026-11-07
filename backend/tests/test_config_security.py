@@ -60,6 +60,7 @@ def test_production_cors_requires_https(monkeypatch) -> None:
 
 def test_production_cors_accepts_exact_https_origins(monkeypatch) -> None:
     monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("REDIS_URL", "rediss://redis.example:6380/0")
     monkeypatch.setenv(
         "CORS_ALLOWED_ORIGINS",
         "https://dezzta-chart.vercel.app,https://api.example",
