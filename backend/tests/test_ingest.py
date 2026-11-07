@@ -81,6 +81,44 @@ def test_queue_overflow_marks_gap_and_degraded_instead_of_dropping_silently():
     assert service.status()["degraded_reasons"] == []
 
 
+def test_overflow_gap_persistence_failure_is_retried_without_stopping_ingestion():
+    service, pipeline, _, coverage = make_service(queue_max=1)
+
+    class FlakyCoverage:
+        def __init__(self, delegate):
+            self.delegate = delegate
+            self.fail_once = True
+
+        def add_gap(self, scope, start_ns, end_ns):
+            if self.fail_once:
+                self.fail_once = False
+                raise OSError("temporary sqlite write failure")
+            self.delegate.add_gap(scope, start_ns, end_ns)
+
+    flaky = FlakyCoverage(coverage)
+    service.coverage = flaky
+    scope = ("databento", "GLBX.MDP3", 1, 101, "contract", "ESZ6")
+
+    assert service.offer(rec(0), "ohlcv-1s")
+    assert service.offer(rec(2), "ohlcv-1s") is False
+    assert service.process_pending() == 1
+    failed = service.status()
+    assert failed["pending_overflow_gaps"] == 1
+    assert "coverage_persistence_error" in failed["degraded_reasons"]
+    assert "ingest_overflow" in failed["degraded_reasons"]
+    assert len(pipeline.list_bars(timeframe="1s")) == 1
+
+    # A later consumer wakeup retries the exact range instead of losing it.
+    assert service.process_pending() == 0
+    recovered = service.status()
+    assert recovered["pending_overflow_gaps"] == 0
+    assert "coverage_persistence_error" not in recovered["degraded_reasons"]
+    assert coverage.gaps(scope) == [(T0 + 2 * NS, T0 + 3 * NS)]
+
+    service.acknowledge_overflow()
+    assert "ingest_overflow" not in service.status()["degraded_reasons"]
+
+
 def test_batch_backfill_does_not_extend_live_coverage_and_status_has_no_secret():
     service, _, _, coverage = make_service()
     service.ingest_batch([rec(0), rec(1)], "ohlcv-1s", live=False)

@@ -109,6 +109,8 @@ class OhlcvIngestionService:
         self.provider = provider
         self.dataset = dataset
         self._buffer = BoundedBuffer(queue_max)
+        # Overflow ranges are retained until coverage persistence confirms them.
+        self._pending_overflow_gaps: list[tuple[tuple[int, int] | None, int, int]] = []
         self._batch = batch_size
         self._clock = clock_ns
         self._monotonic = monotonic_ns
@@ -174,8 +176,22 @@ class OhlcvIngestionService:
 
     def process_pending(self) -> int:
         """Apply buffered records (loop thread only). Returns records handled."""
-        for instrument_hint, first_ns, last_ns in self._buffer.take_overflows():
-            self._note_overflow(instrument_hint, first_ns, last_ns)
+        self._pending_overflow_gaps.extend(self._buffer.take_overflows())
+        if self._pending_overflow_gaps:
+            self.degraded_reasons.add("ingest_overflow")
+        pending: list[tuple[tuple[int, int] | None, int, int]] = []
+        for instrument_hint, first_ns, last_ns in self._pending_overflow_gaps:
+            try:
+                self._note_overflow(instrument_hint, first_ns, last_ns)
+            except Exception:
+                # A coverage-store outage must not kill the single-writer task.
+                # Keep the exact range for retry on the next processing wakeup.
+                self._count("coverage_persistence_error")
+                self.degraded_reasons.add("coverage_persistence_error")
+                pending.append((instrument_hint, first_ns, last_ns))
+        self._pending_overflow_gaps = pending
+        if not pending:
+            self.degraded_reasons.discard("coverage_persistence_error")
         items = self._buffer.drain(self._batch)
         for record, schema, recv_ns, recv_monotonic_ns in items:
             self._process(record, schema, recv_ns, recv_monotonic_ns, live=True)
@@ -194,8 +210,9 @@ class OhlcvIngestionService:
         self._session_start = None
 
     def acknowledge_overflow(self) -> None:
-        """Operator action: clear the degraded flag (recorded gaps remain)."""
-        self.degraded_reasons.discard("ingest_overflow")
+        """Clear overflow degradation only after every gap is durably recorded."""
+        if not self._pending_overflow_gaps:
+            self.degraded_reasons.discard("ingest_overflow")
 
     def _count(self, key: str) -> None:
         self.counters[key] = self.counters.get(key, 0) + 1
@@ -329,6 +346,7 @@ class OhlcvIngestionService:
             "queue_depth": len(self._buffer),
             "queue_capacity": self._buffer._max,
             "overflow_count": self._buffer.overflow_count,
+            "pending_overflow_gaps": len(self._pending_overflow_gaps),
             "provider_callback_errors": self._provider_callback_errors,
             "degraded_reasons": sorted(self.degraded_reasons),
             "counters": dict(sorted(self.counters.items())),
