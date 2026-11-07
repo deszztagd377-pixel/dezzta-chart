@@ -351,3 +351,17 @@ Changed behavior:
 - HTTP CORS configuration and the Firebase authentication flow were not weakened or bypassed.
 
 Added API tests for an unlisted origin, an empty allowlist, and a non-browser client without an Origin header. CI must pass on the exact resulting HEAD before this security criterion is counted as verified. This change does not by itself complete Stage 1's full security or deployment acceptance criteria.
+
+
+
+## Stage 1 async authentication hardening — 2026-11-07
+
+The REST Bearer-auth dependency previously called Firebase Admin token verification directly inside an async FastAPI dependency. Firebase Admin verification includes revocation checking and may perform blocking SDK/network work, which could occupy the ASGI event-loop thread and delay unrelated requests.
+
+Changed behavior:
+- REST token verification now runs through `asyncio.to_thread`, matching the existing WebSocket verification approach.
+- Existing response semantics remain unchanged: unavailable identity provider returns 503; invalid/expired token returns 401; only a verified principal is accepted.
+- Added a focused API test that spies on the thread-offload boundary and verifies that the verifier is invoked through `asyncio.to_thread`.
+- No token, Firebase credential, or client identity is logged or exposed.
+
+This is a targeted resilience/performance improvement, not proof of deployed Firebase configuration or full Stage 1 completion. Count it as verified only after the exact-head backend tests and full CI pass.
