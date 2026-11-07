@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from app.instrument_identity import CanonicalInstrument
+from app.instrument_registry import SQLiteInstrumentRegistry
 from app.ohlcv import BUCKET_POLICY_UTC_FIXED_V1, FIXED_INTERVAL_SECONDS, OhlcvBar
 from app.session_calendar import (
     SessionCalendarRegistry,
@@ -121,4 +122,57 @@ def validate_intraday_bar_session(
         session_state=lookup.state,
         interval_start_ns=bar.ts_start_ns,
         interval_end_ns=interval_end_ns,
+    )
+
+
+
+def validate_provider_bar_session(
+    bar: OhlcvBar,
+    instrument_registry: SQLiteInstrumentRegistry,
+    calendar_registry: SessionCalendarRegistry,
+    *,
+    calendar_version: str,
+) -> SessionBarValidation:
+    """Resolve a provider bar through its point-in-time durable mapping, then validate it.
+
+    Provider identity is the tuple (provider, dataset, publisher_id,
+    instrument_id, event timestamp). raw_symbol is checked only as a
+    consistency assertion after resolution; it is never used to select an
+    instrument or calendar.
+    """
+    if not isinstance(bar, OhlcvBar):
+        raise SessionBarRejected("invalid_bar", "Expected an OhlcvBar.")
+    if not isinstance(instrument_registry, SQLiteInstrumentRegistry):
+        raise SessionBarRejected("instrument_registry_required")
+
+    try:
+        mapping = instrument_registry.resolve_provider_mapping(
+            provider=bar.provider,
+            dataset=bar.dataset,
+            publisher_id=bar.publisher_id,
+            instrument_id=bar.instrument_id,
+            timestamp_ns=bar.ts_event_ns,
+        )
+    except Exception:
+        raise SessionBarRejected("provider_mapping_lookup_failed") from None
+
+    if mapping is None:
+        raise SessionBarRejected("provider_mapping_unavailable")
+    if mapping.raw_symbol != bar.raw_symbol:
+        raise SessionBarRejected("provider_mapping_symbol_mismatch")
+    if mapping.series_type != bar.series_type:
+        raise SessionBarRejected("provider_mapping_series_mismatch")
+
+    try:
+        instrument = instrument_registry.get_instrument(mapping.canonical_id)
+    except Exception:
+        raise SessionBarRejected("canonical_instrument_lookup_failed") from None
+    if instrument is None:
+        raise SessionBarRejected("canonical_instrument_unavailable")
+
+    return validate_intraday_bar_session(
+        bar,
+        instrument,
+        calendar_registry,
+        calendar_version=calendar_version,
     )
