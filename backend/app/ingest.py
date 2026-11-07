@@ -105,9 +105,11 @@ class OhlcvIngestionService:
         monotonic_ns: Callable[[], int] = time.perf_counter_ns,
         on_bar_applied: Callable[[OhlcvBar], None] | None = None,
         persistence: SQLiteOhlcvStore | None = None,
+        bar_validator: Callable[[OhlcvBar], Any] | None = None,
     ) -> None:
         self.pipeline = pipeline
         self.resolver = resolver
+        self.bar_validator = bar_validator
         self.coverage = coverage
         self._on_bar_applied = on_bar_applied
         self._live_bar_applied_callbacks: set[Callable[[OhlcvBar], None]] = set()
@@ -382,6 +384,16 @@ class OhlcvIngestionService:
         except Exception:  # defensive: a bad record must never stop the consumer
             self._count("rejected_adapter_error")
             return
+        if self.bar_validator is not None:
+            try:
+                self.bar_validator(bar)
+            except Exception as exc:
+                reason = getattr(exc, "reason", None)
+                if isinstance(reason, str) and reason and reason.replace("_", "").isalnum():
+                    self._count(f"rejected_validation_{reason}")
+                else:
+                    self._count("rejected_validation_error")
+                return
         if self.persistence is not None:
             try:
                 persisted = self.persistence.apply(bar)
