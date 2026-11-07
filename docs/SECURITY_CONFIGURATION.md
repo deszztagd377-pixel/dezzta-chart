@@ -48,6 +48,7 @@ remain server-side and must never be packaged into the browser app or Android AP
 - The WebSocket subscription path independently verifies Firebase identity and
   checks instrument entitlement. Do not weaken either path to make them match.
 - The authenticated OHLCV WebSocket accepts only the documented `ping` client message after subscription. It closes connections that exceed 20 pings in a rolling 10-second window or send an unsupported client message. The container's Uvicorn command caps WebSocket messages at 64 KiB and its inbound WebSocket queue at 16 messages. These are per-connection protocol limits, not a global per-IP/account connection limiter.
+- WebSocket subscription identity fields are bounded before registry lookup: raw symbols are limited to 128 characters, timeframes to 16 characters, and canonical instrument IDs to the UUID-width 36-character form. These checks bound individual fields; they do not replace provider mapping or entitlement validation.
 - Never trust a client-supplied UID or account owner identifier.
 - Never put bearer tokens in URLs. Send them in the Authorization header for
   HTTP or the documented authentication message over WSS.
