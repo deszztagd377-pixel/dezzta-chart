@@ -228,9 +228,15 @@ class OhlcvIngestionService:
         self._session_start = None
 
     def acknowledge_overflow(self) -> None:
-        """Clear overflow degradation only after every gap is durably recorded."""
-        if not self._pending_overflow_gaps:
-            self.degraded_reasons.discard("ingest_overflow")
+        """Clear overflow degradation only after all known gaps are recovered."""
+        if self._pending_overflow_gaps:
+            return
+        gap_scopes = getattr(self.coverage, "gap_scopes", None)
+        gaps = getattr(self.coverage, "gaps", None)
+        if callable(gap_scopes) and callable(gaps):
+            if any(gaps(scope) for scope in gap_scopes()):
+                return
+        self.degraded_reasons.discard("ingest_overflow")
 
     def _count(self, key: str) -> None:
         self.counters[key] = self.counters.get(key, 0) + 1

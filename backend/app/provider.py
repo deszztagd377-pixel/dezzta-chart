@@ -447,6 +447,8 @@ class ProviderManager:
         remaining = sum(
             len(coverage.gaps(scope)) for scope in coverage.gap_scopes()
         )
+        if remaining == 0:
+            self._ingest.acknowledge_overflow()
         self.backfill.update(
             state="done",
             gaps_attempted=attempted,

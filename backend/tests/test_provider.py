@@ -373,6 +373,7 @@ def test_recover_gaps_uses_valid_mapping_and_bounded_historical_windows(tmp_path
         service = OhlcvIngestionService(
             pipeline=OhlcvPipeline(), resolver=resolver, coverage=coverage
         )
+        service.degraded_reasons.add("ingest_overflow")
         hist = EmptyHistorical()
         cfg = settings(
             databento_api_key=SECRET,
@@ -384,9 +385,9 @@ def test_recover_gaps_uses_valid_mapping_and_bounded_historical_windows(tmp_path
             cfg, service, InstrumentCatalog(), historical_factory=lambda: hist
         )
         result = await manager.recover_gaps()
-        return result, hist, coverage, scope
+        return result, hist, coverage, scope, service
 
-    result, hist, coverage, scope = asyncio.run(go())
+    result, hist, coverage, scope, service = asyncio.run(go())
     assert result == {
         "gaps_attempted": 1, "gaps_recovered": 1, "gaps_skipped": 0,
         "gaps_remaining": 0, "bars_ingested": 0, "windows_done": 2,
@@ -395,6 +396,7 @@ def test_recover_gaps_uses_valid_mapping_and_bounded_historical_windows(tmp_path
     assert all(call[1] == ("ESZ6",) and call[2] == "raw_symbol" for call in hist.calls)
     assert coverage.gaps(scope) == []
     assert coverage.intervals(scope) == [(T0, T0 + 120 * NS)]
+    assert "ingest_overflow" not in service.degraded_reasons
 
 
 def test_recover_gaps_skips_unresolvable_scope_without_erasing_gap(tmp_path):
@@ -410,6 +412,7 @@ def test_recover_gaps_skips_unresolvable_scope_without_erasing_gap(tmp_path):
         service = OhlcvIngestionService(
             pipeline=OhlcvPipeline(), resolver=InstrumentResolver(), coverage=coverage
         )
+        service.degraded_reasons.add("ingest_overflow")
         cfg = settings(
             databento_api_key=SECRET, databento_historical_enabled=True
         )
@@ -417,14 +420,15 @@ def test_recover_gaps_skips_unresolvable_scope_without_erasing_gap(tmp_path):
             cfg, service, InstrumentCatalog(), historical_factory=lambda: FakeHistorical()
         )
         result = await manager.recover_gaps()
-        return result, coverage, scope
+        return result, coverage, scope, service
 
-    result, coverage, scope = asyncio.run(go())
+    result, coverage, scope, service = asyncio.run(go())
     assert result["gaps_attempted"] == 1
     assert result["gaps_recovered"] == 0
     assert result["gaps_skipped"] == 1
     assert result["gaps_remaining"] == 1
     assert coverage.gaps(scope) == [(T0, T0 + NS)]
+    assert "ingest_overflow" in service.degraded_reasons
 
 
 def test_gap_recovery_enforces_total_historical_span_budget(tmp_path):
