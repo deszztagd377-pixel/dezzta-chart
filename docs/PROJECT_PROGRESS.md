@@ -824,3 +824,28 @@ Strict Trivy remains an active release blocker until the required scan passes wi
 - **Disposition:** the Strict Trivy HIGH/CRITICAL vulnerability blocker is resolved for this exact image digest and CI run. This does not imply zero security risk, a complete security audit, or production release readiness. Future base-image/dependency changes must continue to pass the same strict gate.
 - The next calendar task is an integration audit, not a new loader implementation: `backend/app/session_calendar_loader.py` and `backend/tests/test_session_calendar_loader.py` already exist. The loader validates schema, trusted SHA-256 pin, CME-domain HTTPS provenance, timezone, explicit effective-date coverage, duplicate/missing records, and ambiguous/nonexistent Chicago local times. Next inspect whether validated releases are connected to canonical instrument metadata and per-bar timestamp validation; do not duplicate the loader or claim any constructed fixture is an official CME schedule.
 - No overall percentage or Stage 1 completion credit is assigned solely for clearing this CI blocker. The owner-confirmed overall checkpoint remains 20.90%; Stage 1 remains provisional at 75% pending a complete acceptance-criteria review.
+
+
+## Calendar ingestion integration audit — 2026-11-07
+
+### Verified current implementation
+- `backend/app/session_calendar_loader.py` parses pinned versioned calendar artifacts and rejects digest mismatch, malformed/duplicate JSON keys, unknown schema fields, invalid CME provenance URL, timezone mismatch, incomplete effective-date coverage, duplicate dates, and ambiguous/nonexistent Chicago local timestamps.
+- `SessionCalendarRegistry.for_instrument()` selects only the explicit `session_calendar_id` from `CanonicalInstrument` and requires an explicit release version.
+- `backend/app/session_bar_validation.py` provides intraday session validation and a provider-bar entry point that resolves the point-in-time durable provider mapping before canonical instrument lookup. It checks raw symbol only after provider-ID mapping as a consistency assertion.
+- `OhlcvIngestionService` already supports an optional `bar_validator` callback and calls it before persistence and in-memory pipeline mutation. Its rejection counters are observable.
+- `Aggregator` deliberately skips deriving CME-session bars into higher timeframes until exact session bucket bounds are supplied. Existing tests cover this fail-closed behavior.
+- Existing tests in `backend/tests/test_session_bar_validation.py` cover regular session, early close, maintenance, explicit closed date, missing coverage, metadata mismatch, required version, inactive/non-futures, unsupported policy/timeframe, sub-microsecond precision, point-in-time mapping, and symbol mismatch.
+
+### Integration gap confirmed
+- `backend/app/main.py` constructs `OhlcvIngestionService` with persistence and stream callback but does not pass `bar_validator`.
+- `backend/app/config.py` currently has no trusted calendar artifact path, pinned SHA-256, calendar release version, or calendar-registry configuration.
+- Therefore the validator exists and its isolated tests pass, but the application composition root does not yet activate it. Do not claim live application ingestion is session-validated.
+- Do not wire a made-up calendar fixture or untrusted environment-only digest as an official schedule. A trusted release-manifest/pin and a verified calendar artifact are prerequisites for production activation. Until then, the integration must remain explicitly unavailable/fail-closed for any path that claims CME session validation.
+- No session-aligned daily/weekly/monthly/quarterly aggregation was enabled. The current aggregator's CME skip is correct and must remain until the calendar resolver is integrated with exact session bucket bounds.
+
+### Next implementation unit
+Design the application-level calendar release source contract (trusted manifest/pin, immutable artifact bytes, explicit version) and dependency injection into `create_app()`; then wire `validate_provider_bar_session` into ingestion only when a complete trusted release is loaded. Add composition-root tests proving: no release means no CME session validation is claimed; a valid pinned release validates before persistence/pipeline mutation; mapping/calendar errors reject without mutating state. Keep synthetic test calendars labeled test fixtures only.
+
+### Verification
+- Latest exact-HEAD CI before this audit: Automated Tests [#42373445229](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42373445229) SUCCESS; CodeQL [#42373445285](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42373445285) SUCCESS.
+- This audit changes no runtime behavior and earns no progress credit by itself.
