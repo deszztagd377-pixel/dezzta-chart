@@ -12,6 +12,8 @@ from typing import Literal, Mapping
 from types import MappingProxyType
 from zoneinfo import ZoneInfo
 
+from app.instrument_identity import CanonicalInstrument
+
 CHICAGO = ZoneInfo("America/Chicago")
 CALENDAR_BY_FAMILY = {
     "CME_EQUITY_INDEX": frozenset({"ES", "NQ"}),
@@ -88,6 +90,27 @@ class SessionCalendarRegistry:
         if calendar is None or calendar.product_family != product_family.strip().upper():
             return None
         return calendar
+
+    def for_instrument(
+        self, instrument: CanonicalInstrument, *, version: str
+    ) -> "SessionCalendar | None":
+        """Resolve only the calendar explicitly assigned to canonical metadata.
+
+        A release version is mandatory. This method never infers calendar
+        identity from symbol, raw_symbol, provider IDs, or product-family text.
+        """
+        if not isinstance(instrument, CanonicalInstrument):
+            raise TypeError("instrument must be a CanonicalInstrument.")
+        if instrument.asset_class != "future" or instrument.instrument_type != "future":
+            return None
+        calendar_id = instrument.session_calendar_id
+        if not isinstance(calendar_id, str) or not calendar_id.strip():
+            return None
+        if calendar_id not in CALENDAR_BY_FAMILY:
+            return None
+        if not isinstance(version, str) or not version.strip():
+            raise ValueError("An explicit calendar version is required.")
+        return self.get(calendar_id, version)
 
 
 class InvalidSessionCalendar(ValueError):
