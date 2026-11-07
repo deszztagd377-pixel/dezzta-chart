@@ -860,3 +860,11 @@ Design the application-level calendar release source contract (trusted manifest/
 - Test fixture source metadata is deliberately labelled test-only; it is not an official CME release and must not be configured in deployment.
 - CME session-aligned higher-timeframe aggregation remains disabled pending an independently trusted, complete release with exact bucket-boundary semantics.
 - This checkpoint records implementation scope only; progress credit remains pending until CI passes and the acceptance criteria are reviewed.
+
+
+## 2026-11-07 — Calendar integration CI regression triage
+
+- Automated Tests run [#42374317485](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42374317485) failed on commit `a9c8d035827af6b7b81d02fa58d7d49ecde86d05`: 458 passed, 11 failed. Frontend tests/build and CodeQL passed; backend dependency audit, container build, and Trivy were skipped because pytest failed.
+- Root cause identified: existing API test helpers register ESZ6 as a futures canonical instrument but do not configure a matching pinned calendar release. The new application-level validator correctly fails closed, so those tests no longer ingest their fixture bars. Test harness now uses a clearly labelled, pinned test-only calendar artifact; it must never be deployed as an official CME schedule.
+- A separate new runtime test incorrectly expected exactly one persisted row although the existing aggregator also writes derived intraday rows. Its assertion now verifies that the provider-sourced 1m bar was persisted; it does not enable CME session-aligned daily/weekly/monthly aggregation.
+- No production calendar, synthetic market prices, or session schedule is added to runtime configuration. Progress remains unchanged pending a green exact-HEAD CI run.

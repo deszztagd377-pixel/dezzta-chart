@@ -190,7 +190,11 @@ def test_app_accepts_future_bar_only_with_matching_pinned_release(
 
     assert application.state.ingestion.counters["inserted"] == 1
     assert len(application.state.ohlcv_pipeline.list_bars(timeframe="1m")) == 1
-    assert len(application.state.ohlcv_store.load_bars()) == 1
+    persisted = application.state.ohlcv_store.load_bars()
+    assert any(
+        item.timeframe == "1m" and item.origin == "provider"
+        for item in persisted
+    )
 
 
 def test_app_rejects_bar_when_calendar_artifact_pin_is_invalid(tmp_path, monkeypatch):

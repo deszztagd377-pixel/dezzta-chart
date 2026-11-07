@@ -1,5 +1,6 @@
 from collections import deque
 
+import hashlib
 import pytest
 import tempfile
 from pathlib import Path
@@ -20,12 +21,24 @@ def _test_database_path() -> str:
     return str(Path(tempfile.gettempdir()) / f"dezzta-chart-test-{uuid4().hex}.sqlite3")
 
 
+def _test_calendar_configuration() -> dict[str, str]:
+    """Use a pinned, explicitly test-only schedule; never a production CME release."""
+    artifact = Path(__file__).parent / "fixtures" / "cme_session_calendar_test_only.json"
+    raw = artifact.read_bytes()
+    return {
+        "session_calendar_artifact_path": str(artifact),
+        "session_calendar_sha256": hashlib.sha256(raw).hexdigest(),
+        "session_calendar_version": "test-only-2024.01",
+    }
+
+
 def make_settings(token: str = "test-secret") -> Settings:
     return Settings(
         app_env="test",
         market_data_ws_token=token,
         cors_allowed_origins=("http://localhost:5173",),
         instrument_registry_db_path=_test_database_path(),
+        **_test_calendar_configuration(),
     )
 
 
@@ -183,6 +196,7 @@ def _seed_stream_entitlement(application, *, grant=True):
         canonical_id=canonical_id, asset_class="future", instrument_type="future",
         symbol="ESZ6", venue="XCME", expiration_date="2026-12-18",
         settlement_currency="USD", contract_multiplier="50", tick_size="0.25",
+        session_calendar_id="CME_EQUITY_INDEX",
     )
     mapping = ProviderInstrumentMapping(
         provider="databento", dataset="GLBX.MDP3", publisher_id=1, instrument_id=101,
@@ -529,6 +543,7 @@ def test_lifespan_connects_a_fake_live_source_and_shuts_down_cleanly() -> None:
         databento_api_key="db-FAKEFAKEFAKEFAKEFAKEFAKE1234", databento_live_enabled=True,
         databento_live_symbols=("ESZ6",),
         instrument_registry_db_path=_test_database_path(),
+        **_test_calendar_configuration(),
     )
     application = create_app(settings, live_source_factory=FakeLive)
     _install_test_identity(application)
@@ -680,6 +695,7 @@ def test_authenticated_websocket_receives_validated_live_ohlcv_update() -> None:
         databento_api_key="db-FAKEFAKEFAKEFAKEFAKEFAKE1234",
         databento_live_enabled=True,
         databento_live_symbols=("ESZ6",),
+        **_test_calendar_configuration(),
     )
     application = create_app(settings, live_source_factory=FakeLive)
     _install_test_identity(application)
