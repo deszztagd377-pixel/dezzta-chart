@@ -6,6 +6,7 @@ Settings.__repr__ never includes the Databento key.
 
 from dataclasses import dataclass, field
 import os
+from urllib.parse import urlsplit
 
 _TRUE = frozenset(("1", "true", "yes", "on"))
 
@@ -16,6 +17,40 @@ def _parse_csv(value: str) -> tuple[str, ...]:
 
 def _parse_bool(value: str) -> bool:
     return value.strip().lower() in _TRUE
+
+
+def _parse_cors_origins(value: str, *, app_env: str) -> tuple[str, ...]:
+    """Accept exact browser origins only; production origins must use HTTPS."""
+    origins = _parse_csv(value)
+    production = app_env.strip().lower() == "production"
+
+    for origin in origins:
+        if origin == "*" or any(char.isspace() for char in origin):
+            raise ValueError("CORS_ALLOWED_ORIGINS must contain exact origins, not wildcards or whitespace.")
+
+        try:
+            parsed = urlsplit(origin)
+            # Accessing .port validates malformed port values as well.
+            _ = parsed.port
+        except ValueError as exc:
+            raise ValueError("CORS_ALLOWED_ORIGINS contains an invalid origin.") from exc
+
+        if (
+            parsed.scheme not in ("http", "https")
+            or not parsed.hostname
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.path
+            or parsed.query
+            or parsed.fragment
+            or origin.endswith("/")
+        ):
+            raise ValueError("CORS_ALLOWED_ORIGINS must contain bare http(s) origins only.")
+
+        if production and parsed.scheme != "https":
+            raise ValueError("Production CORS origins must use HTTPS.")
+
+    return origins
 
 
 def _parse_int(value: str, default: int, *, minimum: int = 1) -> int:
@@ -60,11 +95,13 @@ class Settings:
         if not registry_path or registry_path == ":memory:":
             registry_path = "./data/instrument_registry.sqlite3"
 
+        app_env = os.getenv("APP_ENV", "development").strip() or "development"
         return cls(
-            app_env=os.getenv("APP_ENV", "development").strip() or "development",
+            app_env=app_env,
             market_data_ws_token=os.getenv("MARKET_DATA_WS_TOKEN", "").strip(),
-            cors_allowed_origins=_parse_csv(
-                os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173")
+            cors_allowed_origins=_parse_cors_origins(
+                os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173"),
+                app_env=app_env,
             ),
             databento_api_key=os.getenv("DATABENTO_API_KEY", "").strip(),
             databento_dataset=os.getenv("DATABENTO_DATASET", "GLBX.MDP3").strip() or "GLBX.MDP3",
