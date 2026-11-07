@@ -50,6 +50,7 @@ MAX_WEBSOCKET_RAW_SYMBOL_LENGTH = 128
 MAX_WEBSOCKET_TIMEFRAME_LENGTH = 16
 MAX_WEBSOCKET_CANONICAL_ID_LENGTH = 36
 MAX_OHLCV_RESPONSE_BARS = 5_000
+MAX_NANOSECOND_TIMESTAMP = (1 << 63) - 1
 
 
 def _allow_websocket_ping(ping_timestamps: deque[float], now: float) -> bool:
@@ -67,7 +68,13 @@ def _parse_ns(value: str | None, name: str) -> int | None:
         return None
     if not value.isdigit():
         raise HTTPException(status_code=422, detail=f"{name} must be a non-negative integer of nanoseconds.")
-    return int(value)
+    timestamp_ns = int(value)
+    if timestamp_ns > MAX_NANOSECOND_TIMESTAMP:
+        raise HTTPException(
+            status_code=422,
+            detail=f"{name} exceeds the supported signed 64-bit nanosecond range.",
+        )
+    return timestamp_ns
 
 
 def create_app(
