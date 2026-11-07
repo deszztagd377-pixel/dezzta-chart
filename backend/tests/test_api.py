@@ -517,6 +517,48 @@ def test_websocket_authenticates_then_sends_exact_ohlcv_snapshot_with_watermark(
         assert snapshot["bars"][-1]["tsStartNs"] == str(_T0 + 3 * _NS)
 
 
+@pytest.mark.parametrize(
+    ("field", "value", "top_level"),
+    [
+        ("rawSymbol", "S" * 129, False),
+        ("timeframe", "1" * 17, False),
+        ("canonicalInstrumentId", "x" * 37, True),
+    ],
+)
+def test_websocket_rejects_oversized_series_identity_fields(
+    field: str, value: str, top_level: bool,
+) -> None:
+    application = create_app(make_settings())
+    _install_test_identity(application)
+    _seed_stream_entitlement(application)
+    client = TestClient(application)
+
+    with pytest.raises(WebSocketDisconnect) as disconnected:
+        with client.websocket_connect("/ws/market-data") as websocket:
+            websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+            assert websocket.receive_json()["type"] == "market_data.status"
+            request = {
+                "type": "market_data.subscribe",
+                "version": 1,
+                "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+                "series": {
+                    "dataset": "GLBX.MDP3",
+                    "publisherId": 1,
+                    "instrumentId": 101,
+                    "rawSymbol": "ESZ6",
+                    "timeframe": "1s",
+                },
+            }
+            if top_level:
+                request[field] = value
+            else:
+                request["series"][field] = value
+            websocket.send_json(request)
+            websocket.receive_json()
+
+    assert disconnected.value.code == 4400
+
+
 def test_websocket_denies_series_without_account_entitlement() -> None:
     application = create_app(make_settings())
     _install_test_identity(application)
