@@ -275,3 +275,34 @@ def test_bucket_policy_is_persisted_and_never_overwrites_other_policy(tmp_path):
     fixed_rows, fixed_total = store.query(bucket_policy="UTC_FIXED_V1")
     assert legacy_rows == [legacy] and legacy_total == 1
     assert fixed_rows == [fixed] and fixed_total == 1
+
+def test_concurrent_connections_preserve_all_ohlcv_writes(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+
+    path = str(tmp_path / "concurrent-market.sqlite3")
+    store = SQLiteOhlcvStore(path, busy_timeout_ms=10_000)
+    workers = 8
+    writes_per_worker = 25
+
+    def write_partition(worker):
+        results = []
+        for offset in range(writes_per_worker):
+            index = worker * writes_per_worker + offset
+            bar = make_bar(
+                start=index * 60 * NS,
+                event=10_000 + index,
+                sequence=index + 1,
+            )
+            results.append(store.apply(bar))
+        return results
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        partitions = list(executor.map(write_partition, range(workers)))
+
+    assert all(result == "inserted" for partition in partitions for result in partition)
+    rows, total = store.query(timeframe="1m")
+    assert total == workers * writes_per_worker
+    assert len(rows) == workers * writes_per_worker
+    assert [bar.ts_start_ns for bar in rows] == [
+        index * 60 * NS for index in range(workers * writes_per_worker)
+    ]
