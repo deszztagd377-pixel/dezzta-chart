@@ -219,3 +219,17 @@ Branch comparison confirms the branch advanced exactly two commits beyond `aae7b
 No integration into the adapter, registry, OHLCV ingestion, or aggregation is claimed. The next slice is to harden loader edge cases, execute its dedicated and full backend tests in CI, then wire only validated instrument metadata to explicit calendar version selection. SQLite remains unchanged.
 
 Progress accounting: the owner-confirmed historical checkpoint remains 20.9%; no new overall percentage is calculated or awarded from this code addition. The proposed weighted ledger remains unapproved and unscored.
+
+
+### Loader hardening follow-up — 2026-11-07
+
+The loader was tightened after static review:
+
+- Rejects malformed URL ports instead of allowing URL parsing errors to escape the loader's domain exception.
+- Requires an actual local datetime value (not a date-only string) for session boundaries.
+- Caps a single artifact's effective date range at 10 years to bound memory/CPU use during completeness validation.
+- Added regression tests for malformed ports, date-only session boundaries, and excessive effective ranges.
+
+Latest branch comparison against the handoff checkpoint `aae7bd331a34033548be4974bfe5198f273e57dd` reports exactly five commits ahead and zero behind. Latest branch HEAD: `f53f0fb6b804ed50dbebf14e79382fe82650a232`. The connected status surface currently returns no status checks for this HEAD; no successful CI claim is made. Run the full Actions workflow and inspect the backend test result before treating this loader slice as verified.
+
+This follow-up does not change the project percentage. The loader remains a parser/validator only; no official CME calendar release is supplied, authenticated, registered, or activated.
