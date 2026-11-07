@@ -39,7 +39,7 @@ def make_resolver(symbol="ESZ6", instrument_id=101, publisher_id=1,
     return resolver
 
 
-def make_service(queue_max=1000, resolver=None, retention=None, clock=None):
+def make_service(queue_max=1000, resolver=None, retention=None, clock=None, bar_validator=None):
     pipeline = OhlcvPipeline(retention)
     resolver = resolver or make_resolver()
     coverage = CoverageTracker()
@@ -47,5 +47,6 @@ def make_service(queue_max=1000, resolver=None, retention=None, clock=None):
     service = OhlcvIngestionService(
         pipeline=pipeline, resolver=resolver, coverage=coverage,
         queue_max=queue_max, clock_ns=clock or (lambda: T0 + 5_000 * NS + next(ticks)),
+        bar_validator=bar_validator,
     )
     return service, pipeline, resolver, coverage
