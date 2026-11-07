@@ -157,3 +157,31 @@ def test_rejects_unknown_schema_fields():
 
     with pytest.raises(SessionCalendarArtifactError, match="exactly the documented fields"):
         load_session_calendar_artifact(raw, expected_sha256=digest)
+
+
+
+def test_rejects_unbounded_effective_date_ranges():
+    payload = artifact_payload()
+    payload["effective_start"] = "2000-01-01"
+    raw, digest = pinned_bytes(payload)
+
+    with pytest.raises(SessionCalendarArtifactError, match="10-year safety limit"):
+        load_session_calendar_artifact(raw, expected_sha256=digest)
+
+
+def test_rejects_date_only_value_for_local_session_boundary():
+    payload = artifact_payload()
+    payload["records"][0]["open_local"] = "2026-11-01"
+    raw, digest = pinned_bytes(payload)
+
+    with pytest.raises(SessionCalendarArtifactError, match="local ISO datetime"):
+        load_session_calendar_artifact(raw, expected_sha256=digest)
+
+
+def test_rejects_malformed_source_url_port():
+    payload = artifact_payload()
+    payload["source"]["source_url"] = "https://www.cmegroup.com:invalid/calendar.json"
+    raw, digest = pinned_bytes(payload)
+
+    with pytest.raises(SessionCalendarArtifactError, match="source_url is malformed"):
+        load_session_calendar_artifact(raw, expected_sha256=digest)
