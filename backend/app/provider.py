@@ -95,6 +95,10 @@ class ProviderManager:
         self.last_error: str | None = None
         self.last_connected_ns: int | None = None
         self.backfill: dict[str, Any] = {"state": "idle", "last_error": None, "windows_done": 0}
+        # Historical operations share one status object and one ingestion writer.
+        # Serialize fetch/apply windows so concurrent recovery requests cannot
+        # overwrite each other's progress or interleave durable coverage updates.
+        self._backfill_lock = asyncio.Lock()
 
     # ----------------------------------------------------------------- state
     @property
@@ -435,43 +439,44 @@ class ProviderManager:
     async def backfill_ohlcv(
         self, symbols: Iterable[str], start_ns: int, end_ns: int, schema: str = "ohlcv-1s"
     ) -> int:
-        """Bounded historical backfill, window by window (bounded memory)."""
-        if not self.historical_allowed:
-            raise RuntimeError("Historical ingestion is not enabled/configured.")
-        self._validate_span(start_ns, end_ns)
-        symbols = tuple(symbols)
-        if not symbols:
-            raise ValueError("Explicit contract symbols are required.")
-        window = self._s.historical_window_minutes * 60 * _NS
-        total, cursor = 0, start_ns
-        self.backfill = {"state": "running", "last_error": None, "windows_done": 0}
-        try:
-            while cursor < end_ns:
-                upper = min(cursor + window, end_ns)
-                records = await self._fetch(schema, symbols, "raw_symbol", cursor, upper)
-                total += self._ingest.ingest_batch(records, schema, live=False)
-                # A successful get_range window covers only the explicitly
-                # requested instruments and only during their valid mapping.
-                for symbol in symbols:
-                    for mapping in self._ingest.resolver.mappings_for_symbol(
-                        self._ingest.provider, self._s.databento_dataset, symbol
-                    ):
-                        covered_start = max(cursor, mapping.valid_from_ns)
-                        covered_end = min(
-                            upper, mapping.valid_to_ns if mapping.valid_to_ns is not None else upper
-                        )
-                        if covered_end > covered_start:
-                            self._ingest.coverage.add_covered(
-                                mapping.coverage_scope, covered_start, covered_end
+        async with self._backfill_lock:
+            """Bounded historical backfill, window by window (bounded memory)."""
+            if not self.historical_allowed:
+                raise RuntimeError("Historical ingestion is not enabled/configured.")
+            self._validate_span(start_ns, end_ns)
+            symbols = tuple(symbols)
+            if not symbols:
+                raise ValueError("Explicit contract symbols are required.")
+            window = self._s.historical_window_minutes * 60 * _NS
+            total, cursor = 0, start_ns
+            self.backfill = {"state": "running", "last_error": None, "windows_done": 0}
+            try:
+                while cursor < end_ns:
+                    upper = min(cursor + window, end_ns)
+                    records = await self._fetch(schema, symbols, "raw_symbol", cursor, upper)
+                    total += self._ingest.ingest_batch(records, schema, live=False)
+                    # A successful get_range window covers only the explicitly
+                    # requested instruments and only during their valid mapping.
+                    for symbol in symbols:
+                        for mapping in self._ingest.resolver.mappings_for_symbol(
+                            self._ingest.provider, self._s.databento_dataset, symbol
+                        ):
+                            covered_start = max(cursor, mapping.valid_from_ns)
+                            covered_end = min(
+                                upper, mapping.valid_to_ns if mapping.valid_to_ns is not None else upper
                             )
-                self.backfill["windows_done"] += 1
-                cursor = upper
-                await asyncio.sleep(0)
-        except Exception as exc:
-            self.backfill.update(state="failed", last_error=safe_error(exc, self._s.databento_api_key))
-            raise
-        self.backfill["state"] = "done"
-        return total
+                            if covered_end > covered_start:
+                                self._ingest.coverage.add_covered(
+                                    mapping.coverage_scope, covered_start, covered_end
+                                )
+                    self.backfill["windows_done"] += 1
+                    cursor = upper
+                    await asyncio.sleep(0)
+            except Exception as exc:
+                self.backfill.update(state="failed", last_error=safe_error(exc, self._s.databento_api_key))
+                raise
+            self.backfill["state"] = "done"
+            return total
 
     async def recover_gaps(
         self, *, max_gaps: int = 100,

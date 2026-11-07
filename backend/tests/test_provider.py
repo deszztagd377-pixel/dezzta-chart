@@ -254,6 +254,40 @@ def test_backfill_is_bounded_windowed_and_records_coverage():
     assert service.coverage.intervals(("databento", "GLBX.MDP3", 1, 101, "contract", "ESZ6")) == [(T0, T0 + 150 * NS)]
 
 
+
+def test_concurrent_backfills_are_serialized_and_keep_status_consistent():
+    import time
+
+    class TrackingHistorical:
+        def __init__(self):
+            self.active = 0
+            self.max_active = 0
+            self.lock = threading.Lock()
+        def fetch(self, *, schema, symbols, stype_in, start_ns, end_ns):
+            with self.lock:
+                self.active += 1
+                self.max_active = max(self.max_active, self.active)
+            time.sleep(0.02)
+            with self.lock:
+                self.active -= 1
+            return []
+
+    async def go():
+        hist = TrackingHistorical()
+        m, *_ = manager(hist=lambda: hist, databento_historical_enabled=True,
+                        historical_window_minutes=1, historical_max_span_hours=1)
+        results = await asyncio.gather(
+            m.backfill_ohlcv(["ESZ6"], T0, T0 + 2 * NS),
+            m.backfill_ohlcv(["ESZ6"], T0 + 2 * NS, T0 + 4 * NS),
+        )
+        return hist, results, m.backfill
+
+    hist, results, status = asyncio.run(go())
+    assert hist.max_active == 1
+    assert results == [0, 0]
+    assert status["state"] == "done"
+    assert status["windows_done"] == 1
+
 def test_backfill_requires_explicit_enable_symbols_and_bounded_span():
     async def run(coro_factory, **kw):
         m, *_ = manager(hist=lambda: FakeHistorical(), **kw)
