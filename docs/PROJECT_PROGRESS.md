@@ -467,3 +467,29 @@ The first exact-HEAD run of the new frontend `npm audit --audit-level=high` gate
 Compatibility intent: Vite 6.4.4 remains within the Vite 6 major line supported by the existing React plugin 4; Vitest 4.1 requires Node 20 or newer, matching the workflow's Node 20 setup. The repository's test suite and production build must still pass on the resulting exact HEAD before these upgrades are accepted.
 
 No lockfile was hand-authored. The repository still lacks a committed `package-lock.json`, so dependency resolution is not yet reproducible. The remediation is pending exact-HEAD CI, including a clean high/critical npm audit result, frontend tests/build, backend tests/audit, and container build. No overall or Stage 1 progress increase is claimed at this point.
+
+
+
+## Frontend dependency audit remediation — exact-HEAD CI verified (2026-11-07)
+
+The dependency remediation documented above is now verified by GitHub Actions run #638 on exact HEAD `82e43bed39297256b5caa2e6cb3fad59350e1718`:
+
+- Frontend install completed and npm reported **0 vulnerabilities**; the explicit `npm audit --audit-level=high` gate also reported **0 vulnerabilities**.
+- Frontend tests: **22 test files passed, 158 tests passed**.
+- Frontend production build completed using Vite **6.4.5** (the compatible range selected by the manifest).
+- Backend tests: **437 passed, 1 warning**.
+- Backend `pip-audit`: **No known vulnerabilities found**.
+- Backend Docker image build completed successfully.
+- Every step in the single CI job completed successfully; workflow conclusion: **success**.
+
+This closes the exact-HEAD verification gap for the dependency remediation and confirms the Vite/Vitest/gRPC override combination passes the current CI test/build pipeline. It does **not** make dependency resolution reproducible: no committed root `package-lock.json` exists, and CI still uses `npm install` rather than `npm ci`. Python dependency resolution also remains range-based rather than lockfile-pinned.
+
+Non-blocking build observation: Vite emitted its existing warning that the minified JavaScript chunk exceeds 500 kB (reported bundle approximately 534.15 kB, gzip approximately 151.28 kB). This did not fail the build, but should be evaluated in a separately scoped bundle/code-splitting performance task; no speculative code splitting was introduced during this security remediation.
+
+The backend test warning was present in the successful run and has not yet been attributed to a specific warning source in this checkpoint. Do not treat the test suite as warning-free.
+
+Evidence:
+- Workflow run: https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42358624621
+- Exact tested commit: `82e43bed39297256b5caa2e6cb3fad59350e1718`
+
+No overall percentage increase is claimed in this note. The project-wide acceptance ledger and stage weighting have not been formally approved, and passing CI is verification evidence rather than a standalone measure of total project completion.
