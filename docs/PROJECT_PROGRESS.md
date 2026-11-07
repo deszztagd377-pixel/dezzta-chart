@@ -631,3 +631,12 @@ This does not implement per-account/IP rate limiting, proxy-aware abuse controls
 - Added unit tests for the ping-window limit and exact expiry boundary.
 
 Scope limitation: these controls bound each connection's message behavior and frame/queue sizes. They do not provide a global per-IP/account connection limit or distributed HTTP rate limiting. Those require deployment-aware trusted-proxy and shared-state design; do not treat these per-connection controls as complete abuse protection. CI for the resulting HEAD is pending verification.
+
+
+## WebSocket subscription identity bounds — 2026-11-07
+
+- Audited the authenticated WebSocket subscription parser and added explicit maximum lengths before registry lookups: raw symbol 128 characters, timeframe 16 characters, canonical instrument ID 36 characters (UUID-width contract).
+- Added parameterized API tests proving oversized raw-symbol, timeframe, and canonical-ID values close with protocol error 4400 before a subscription is established.
+- Existing provider-mapping equality, canonical-instrument active-state, entitlement checks, Firebase revalidation, per-connection ping window, and bounded Uvicorn frame/queue settings remain in place.
+- This is bounded input validation, not global HTTP rate limiting, per-IP/account connection limiting, or distributed abuse protection. Backend hosting provider/topology is not selected in the repository deployment guide, so a shared-state or edge rate limiter must not be guessed or represented as complete.
+- Exact-HEAD CI and CodeQL verification are pending for the resulting commit.
