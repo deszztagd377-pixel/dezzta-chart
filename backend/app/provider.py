@@ -99,6 +99,10 @@ class ProviderManager:
         # Serialize fetch/apply windows so concurrent recovery requests cannot
         # overwrite each other's progress or interleave durable coverage updates.
         self._backfill_lock = asyncio.Lock()
+        # Serialize complete recovery workflows (startup reconciliation and
+        # explicit gap recovery), while keeping the narrower backfill lock for
+        # individual fetch/apply windows.
+        self._recovery_lock = asyncio.Lock()
 
     # ----------------------------------------------------------------- state
     @property
@@ -280,6 +284,11 @@ class ProviderManager:
                                  last_error=safe_error(exc, self._s.databento_api_key))
 
     async def reconcile_live_history(self) -> dict[str, int]:
+        """Serialize startup reconciliation against explicit gap recovery."""
+        async with self._recovery_lock:
+            return await self._reconcile_live_history_locked()
+
+    async def _reconcile_live_history_locked(self) -> dict[str, int]:
         """Reconcile uncovered history within a bounded recent horizon.
 
         Scanning only after the latest durable bar misses older holes caused by
@@ -479,6 +488,16 @@ class ProviderManager:
             return total
 
     async def recover_gaps(
+        self, *, max_gaps: int = 100,
+        max_total_span_hours: int | None = None,
+    ) -> dict[str, int]:
+        """Serialize explicit gap recovery against startup reconciliation."""
+        async with self._recovery_lock:
+            return await self._recover_gaps_locked(
+                max_gaps=max_gaps, max_total_span_hours=max_total_span_hours
+            )
+
+    async def _recover_gaps_locked(
         self, *, max_gaps: int = 100,
         max_total_span_hours: int | None = None,
     ) -> dict[str, int]:
