@@ -174,7 +174,7 @@ jobs:
         run: |
           awk '
             BEGIN { replaced = 0 }
-            /^FROM python:3\\.12-slim$/ {
+            /^FROM python:3\.12-slim$/ {
               print "FROM python:3.12-alpine"
               replaced++
               next
