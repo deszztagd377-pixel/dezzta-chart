@@ -412,3 +412,18 @@ Verification and security boundary:
 - No dependency was upgraded, and no dependency audit or application test was run in this configuration-only slice.
 - The workflow file `.github/workflows/ci.yml` remains unchanged. Exact-HEAD CI and validation of Dependabot PR creation remain pending.
 - No overall or Stage 1 percentage credit is claimed for this monitoring configuration alone.
+
+
+## Stage 1 CI backend dependency audit — 2026-11-07
+
+Extended the existing GitHub Actions test/build workflow with a backend dependency vulnerability audit:
+- Installs `pip-audit` in the CI runner after backend test dependencies are installed.
+- Runs `pip-audit -r backend/requirements-dev.txt`, covering the backend runtime requirements included by that file and its development/test requirements.
+- A reported known vulnerability or audit execution failure will fail the CI job instead of being silently ignored.
+
+Scope and limitations:
+- This checks resolved Python dependency versions against the vulnerability data available to pip-audit at run time; it does not pin dependencies or make resolution reproducible.
+- Frontend dependency auditing is not yet wired into CI because the repository has no committed `package-lock.json`; adding `npm audit` without a lockfile would not establish a stable dependency graph.
+- GitHub Actions third-party action pinning, secret scanning, container image scanning, and repository-level Dependabot security-alert settings remain outstanding.
+- The audit step has been committed but has not yet run successfully on this exact HEAD. No security-clean claim is made until the workflow completes.
+- Overall progress remains unchanged pending exact-HEAD CI evidence and acceptance-ledger review.
