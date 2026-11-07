@@ -99,6 +99,35 @@ def test_overflow_journal_is_idempotent_and_survives_restart(tmp_path):
     assert SQLiteCoverageTracker(path).pending_overflows() == []
 
 
+def test_failed_overflow_journal_delete_rolls_back_and_preserves_record(tmp_path):
+    import sqlite3
+    import pytest
+
+    path = str(tmp_path / "journal-delete-rollback.sqlite3")
+    tracker = SQLiteCoverageTracker(path)
+    journal_id = tracker.journal_overflow((7, 101), 1_000, 2_000, 10)
+
+    class DeleteBlockedTracker(SQLiteCoverageTracker):
+        def _connect(self):
+            db = super()._connect()
+
+            def deny_delete(action, arg1, arg2, database, trigger):
+                if action == sqlite3.SQLITE_DELETE and arg1 == "ohlcv_overflow_journal":
+                    return sqlite3.SQLITE_DENY
+                return sqlite3.SQLITE_OK
+
+            db.set_authorizer(deny_delete)
+            return db
+
+    blocked = DeleteBlockedTracker(path)
+    with pytest.raises(sqlite3.DatabaseError):
+        blocked.resolve_overflow(journal_id)
+
+    # The failed transaction must not erase the durable recovery record.
+    pending = SQLiteCoverageTracker(path).pending_overflows()
+    assert [row["id"] for row in pending] == [journal_id]
+
+
 def test_unscoped_overflow_journal_survives_restart_until_resolved(tmp_path):
     path = str(tmp_path / "coverage.sqlite3")
     tracker = SQLiteCoverageTracker(path)
