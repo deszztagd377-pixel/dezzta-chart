@@ -40,24 +40,25 @@ export async function scanFrontendBundle(directory) {
 }
 
 async function main() {
-  const directory = path.resolve(process.argv[2] ?? 'dist');
+  const directory = path.resolve(process.argv[2] || 'dist');
   let findings;
   try {
     findings = await scanFrontendBundle(directory);
   } catch (error) {
-    process.stderr.write(\`Frontend bundle scan failed: \${error.message}\n\`);
+    process.stderr.write('Frontend bundle scan failed: ' + error.message + '\n');
     process.exitCode = 1;
     return;
   }
   if (findings.length > 0) {
     process.stderr.write('Potential server-side credential material found in frontend bundle:\n');
     for (const finding of findings) {
-      process.stderr.write(\`- \${finding.file}: \${finding.pattern}\n\`);
+      process.stderr.write('- ' + finding.file + ': ' + finding.pattern + '\n');
     }
     process.exitCode = 1;
     return;
   }
-  process.stdout.write(\`Frontend bundle secret scan passed (\${(await collectFiles(directory)).length} files checked).\n\`);
+  const count = (await collectFiles(directory)).length;
+  process.stdout.write('Frontend bundle secret scan passed (' + count + ' files checked).\n');
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
