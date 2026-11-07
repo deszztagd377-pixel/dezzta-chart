@@ -138,3 +138,27 @@ This tracker is intentionally separate from the CME calendar work so indicator p
 - Heatmap and Liquidation Maps visual work likewise waits for their respective owner reference images.
 - The project expansion gate is 40% overall. Before that gate, retain the calculation/data-integrity foundations and tests; prepare a scoped blueprint and obtain owner review at the gate before major UI implementation.
 - No indicator may be presented as predictive or as buy/sell advice. Simulated Footprint data must retain a visible SIMULATED label and must never be confused with market observations.
+
+
+### CME session identity contract — 2026-11-07
+
+Implemented a bounded first integration slice on the active foundation branch:
+
+- Added the explicit `CME_SESSION_V1` bucket-policy identity to the OHLCV contract.
+- CME session bars are structurally limited to `1d`, `1w`, `1M`, and `3M`, and require both `calendar_id` and `calendar_version`.
+- Session starts are no longer incorrectly forced onto UTC midnight/fixed-interval boundaries; the exchange calendar must validate the actual session bounds before production ingestion.
+- UTC policies still reject calendar metadata and retain their existing UTC alignment checks.
+- Aggregation explicitly skips CME-session-policy bars until a verified calendar-bound resolver is connected. This is a fail-closed guard, not active CME aggregation.
+- Added OHLCV model tests and an aggregation regression test for the new contract.
+
+Files changed in this slice:
+- `backend/app/ohlcv.py`
+- `backend/tests/test_ohlcv.py`
+- `backend/app/aggregation.py`
+- `backend/tests/test_aggregation.py`
+
+Current CI run for the latest code checkpoint: `42352853145` (pending/in progress at documentation time). Do not mark this slice CI-verified until that run completes successfully.
+
+The remaining integration is still substantial: authoritative versioned calendar loading, calendar selection by canonical instrument/product family, adapter/API identity propagation, and exact session-bound aggregation with complete schedule coverage. No CME production bars are enabled by this change.
+
+Indicator tracker remains unchanged: SMA/EMA/RSI/MACD/Bollinger calculations and tests exist but are not chart-integrated; Footprint remains simulated-only; Heatmap and Liquidation Maps remain unimplemented pending visual references.
