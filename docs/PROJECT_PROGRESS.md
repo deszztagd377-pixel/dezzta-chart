@@ -621,3 +621,13 @@ Added bounded query validation to `GET /v1/ohlcv`:
 - Added parameterized API tests for oversized strings, invalid identifier ranges, oversized nanosecond strings, and excessive response limits.
 
 This does not implement per-account/IP rate limiting, proxy-aware abuse controls, HTTP body limits, or WebSocket frame-size configuration. CI on the resulting HEAD must pass before these changes are treated as verified acceptance evidence.
+
+
+## WebSocket client-message and frame-boundary hardening — 2026-11-07
+
+- Added a monotonic sliding-window guard for authenticated OHLCV WebSocket client pings: at most 20 pings per 10 seconds per connection; excess traffic closes with policy-violation code 1008.
+- Unsupported post-subscription client messages now close with code 1008 instead of being silently ignored.
+- The backend container starts Uvicorn with a 64 KiB WebSocket message-size cap and a 16-message inbound queue cap.
+- Added unit tests for the ping-window limit and exact expiry boundary.
+
+Scope limitation: these controls bound each connection's message behavior and frame/queue sizes. They do not provide a global per-IP/account connection limit or distributed HTTP rate limiting. Those require deployment-aware trusted-proxy and shared-state design; do not treat these per-connection controls as complete abuse protection. CI for the resulting HEAD is pending verification.
