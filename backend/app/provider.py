@@ -284,12 +284,6 @@ class ProviderManager:
         """
         if not self.historical_allowed:
             raise RuntimeError("Historical ingestion is not enabled/configured.")
-        store = self._ingest.persistence
-        if store is None or not callable(getattr(store, "query", None)):
-            self.backfill.update(state="reconciliation_skipped",
-                                 last_error="durable_ohlcv_store_unavailable")
-            return {"symbols_checked": 0, "symbols_unmapped": 0, "ranges_reconciled": 0,
-                    "ranges_remaining": 0, "bars_ingested": 0, "windows_done": 0}
         symbols = tuple(dict.fromkeys(self._s.databento_live_symbols))
         if not symbols:
             self.backfill.update(state="reconciliation_skipped",
@@ -297,18 +291,33 @@ class ProviderManager:
             return {"symbols_checked": 0, "symbols_unmapped": 0, "ranges_reconciled": 0,
                     "ranges_remaining": 0, "bars_ingested": 0, "windows_done": 0}
 
+        # Resolve symbol diagnostics before checking persistence so an unavailable
+        # store cannot hide configured symbols that have no valid catalog mapping.
+        mappings_by_symbol = {
+            symbol: self._ingest.resolver.mappings_for_symbol(
+                self._ingest.provider, self._s.databento_dataset, symbol
+            )
+            for symbol in symbols
+        }
+        symbols_unmapped = sum(not mappings for mappings in mappings_by_symbol.values())
+        store = self._ingest.persistence
+        if store is None or not callable(getattr(store, "query", None)):
+            self.backfill.update(state="reconciliation_skipped",
+                                 last_error="durable_ohlcv_store_unavailable",
+                                 symbols_unmapped=symbols_unmapped)
+            return {"symbols_checked": 0, "symbols_unmapped": symbols_unmapped,
+                    "ranges_reconciled": 0, "ranges_remaining": 0,
+                    "bars_ingested": 0, "windows_done": 0}
+
         now_ns = self._clock()
         budget_ns = self._s.historical_max_span_hours * 3600 * _NS
-        symbols_checked = symbols_unmapped = ranges_reconciled = bars_ingested = windows_done = 0
+        symbols_checked = ranges_reconciled = bars_ingested = windows_done = 0
         ranges_remaining = 0
         self.backfill.update(state="reconciling", last_error=None, windows_done=0,
                              reconciliation="startup_crash_window")
         for symbol in symbols:
-            mappings = self._ingest.resolver.mappings_for_symbol(
-                self._ingest.provider, self._s.databento_dataset, symbol
-            )
+            mappings = mappings_by_symbol[symbol]
             if not mappings:
-                symbols_unmapped += 1
                 continue
             for mapping in sorted(mappings, key=lambda item: item.valid_from_ns):
                 upper = min(now_ns, mapping.valid_to_ns if mapping.valid_to_ns is not None else now_ns)

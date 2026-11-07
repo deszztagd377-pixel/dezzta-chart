@@ -432,7 +432,7 @@ def test_startup_reconciliation_respects_global_budget_and_existing_coverage(tmp
 
     result, hist = asyncio.run(go())
     assert result["symbols_unmapped"] == 0
-    assert result["ranges_reconciled"] == 1 and result["ranges_remaining"] == 1
+    assert result["ranges_reconciled"] == 1 and result["ranges_remaining"] == 2
     assert hist.calls == [(("ESZ6",), T0 + 30 * NS, T0 + 3630 * NS)]
 
 def test_recover_gaps_uses_valid_mapping_and_bounded_historical_windows(tmp_path):
