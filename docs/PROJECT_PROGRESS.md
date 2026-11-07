@@ -454,3 +454,16 @@ Verification and limitations:
 - This improves vulnerability visibility but does not provide reproducible dependency resolution. A committed lockfile plus `npm ci` remains a separate requirement.
 - The new audit has not yet run on the resulting commit at the time of this documentation change. Do not claim it passed until exact-HEAD CI finishes.
 - No overall or Stage 1 progress increase is claimed from adding a gate alone.
+
+
+## Frontend dependency audit remediation (2026-11-07)
+
+The first exact-HEAD run of the new frontend `npm audit --audit-level=high` gate failed and reported 8 findings (1 moderate, 5 high, 2 critical). The affected dependency groups in the audit output were:
+
+- `@grpc/grpc-js`, reached transitively through Firebase/Firestore. The Firebase Firestore dependency range held the gRPC client on a vulnerable release line. A root npm override now selects `@grpc/grpc-js ^1.14.7`, which is beyond the patched `1.14.5` release identified in the upstream advisory.
+- `vite` / `esbuild`. Vite is raised from the 4.x line to `^6.4.4`, the patched Vite 6 release for the advisory reported by CI.
+- `vitest` / `tinypool`. Vitest is raised from 0.34.x to `^4.1.12`, whose dependency line includes patched Tinypool 2.1.2 or later.
+
+Compatibility intent: Vite 6.4.4 remains within the Vite 6 major line supported by the existing React plugin 4; Vitest 4.1 requires Node 20 or newer, matching the workflow's Node 20 setup. The repository's test suite and production build must still pass on the resulting exact HEAD before these upgrades are accepted.
+
+No lockfile was hand-authored. The repository still lacks a committed `package-lock.json`, so dependency resolution is not yet reproducible. The remediation is pending exact-HEAD CI, including a clean high/critical npm audit result, frontend tests/build, backend tests/audit, and container build. No overall or Stage 1 progress increase is claimed at this point.
