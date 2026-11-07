@@ -46,7 +46,7 @@ jobs:
         run: npm run build
 
       - name: Test frontend bundle secret scanner
-        run: node --test scripts/check-frontend-bundle-secrets.test.mjs
+        run: node --test scripts/check-frontend-bundle-secrets.node-test.mjs
 
       - name: Scan production frontend bundle for server credentials
         run: node scripts/check-frontend-bundle-secrets.mjs dist
