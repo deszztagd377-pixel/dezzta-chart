@@ -46,6 +46,9 @@ from app.symbology import InstrumentResolver
 WEBSOCKET_AUTHORIZATION_RECHECK_SECONDS = 60.0
 WEBSOCKET_PING_WINDOW_SECONDS = 10.0
 WEBSOCKET_MAX_PINGS_PER_WINDOW = 20
+MAX_WEBSOCKET_RAW_SYMBOL_LENGTH = 128
+MAX_WEBSOCKET_TIMEFRAME_LENGTH = 16
+MAX_WEBSOCKET_CANONICAL_ID_LENGTH = 36
 MAX_OHLCV_RESPONSE_BARS = 5_000
 
 
@@ -490,7 +493,9 @@ def create_app(
             if (
                 dataset != config.databento_dataset
                 or not isinstance(raw_symbol, str) or not raw_symbol.strip()
+                or len(raw_symbol) > MAX_WEBSOCKET_RAW_SYMBOL_LENGTH
                 or not isinstance(timeframe, str)
+                or not timeframe or len(timeframe) > MAX_WEBSOCKET_TIMEFRAME_LENGTH
                 or (bucket_policy is not None and (
                     not isinstance(bucket_policy, str)
                     or bucket_policy not in SUPPORTED_BUCKET_POLICIES
@@ -498,7 +503,9 @@ def create_app(
                 or calendar_id != "" or calendar_version != ""
                 or not isinstance(publisher_id, int) or isinstance(publisher_id, bool) or publisher_id <= 0
                 or not isinstance(instrument_id, int) or isinstance(instrument_id, bool) or instrument_id <= 0
-                or not isinstance(canonical_id, str) or not canonical_id.strip()
+                or not isinstance(canonical_id, str)
+                or len(canonical_id) != MAX_WEBSOCKET_CANONICAL_ID_LENGTH
+                or not canonical_id.strip()
             ):
                 await websocket.close(code=4400, reason="Invalid or unsupported OHLCV series identity")
                 return
