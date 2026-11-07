@@ -99,10 +99,16 @@ The exact HEAD above passed all steps in the single GitHub Actions job: frontend
 - `backend/app/ohlcv.py` currently supports only `UTC_LEGACY` and `UTC_FIXED_V1` bucket policies; `OhlcvBar` rejects calendar metadata under those policies.
 - Therefore the new calendar primitives are **not yet connected to production aggregation**, and no CME session-aligned OHLCV should be claimed as active.
 - No authoritative CME schedule release has been loaded. Tests use constructed fixtures only; they are not exchange-calendar data.
-- Next implementation must introduce and validate an explicit calendar bucket identity, preserve calendar ID/version in bar identity and persistence, and gate aggregation on a matching, fully covered calendar release. Existing UTC intraday behavior must remain unchanged.
+- The SQLite OHLCV store has already been audited: schema version 2 persists `bucket_policy`, `calendar_id`, and `calendar_version`, and all three participate in the bar primary key and series index. No SQLite migration is currently indicated for this integration.
+- Next implementation must enable and validate the session bucket identity in `OhlcvBar`, preserve it through adapters and derived bars, and gate aggregation on a matching, fully covered calendar release. Existing UTC intraday behavior must remain unchanged.
 
 ### Progress accounting
 
 The prior owner-confirmed conversational checkpoints remain **20.3% then 20.9%**. A newly reconciled weighted overall percentage is still **not established** because the proposed milestone ledger has not been approved and scored criterion-by-criterion. This calendar work is recorded as verified foundation work, not converted into an invented percentage increase.
 
 SQLite is considered complete for the current foundation scope. No SQLite rework is scheduled unless a concrete regression or missing acceptance criterion is found.
+
+
+### Follow-up persistence audit — 2026-11-07
+
+A targeted audit of `backend/app/ohlcv_store.py` and `backend/tests/test_ohlcv_store.py` confirmed that OHLCV SQLite schema version 2 already persists calendar identity fields (`bucket_policy`, `calendar_id`, `calendar_version`) and includes them in the composite primary key and series index. Existing policy-isolation and legacy migration tests are present. **No SQLite schema change is currently required for the next calendar integration step.** The remaining enablement work is in the OHLCV model/adapter/aggregation contract; this is not a reason to reopen completed SQLite work.
