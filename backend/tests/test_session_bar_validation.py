@@ -4,6 +4,7 @@ from decimal import Decimal
 import pytest
 
 from app.instrument_identity import CanonicalInstrument
+from app.instrument_registry import ProviderInstrumentMapping, SQLiteInstrumentRegistry
 from app.ohlcv import BUCKET_POLICY_UTC_FIXED_V1, OhlcvBar
 from app.session_calendar import (
     CHICAGO,
@@ -16,6 +17,7 @@ from app.session_bar_validation import (
     SessionBarRejected,
     _epoch_ns_to_utc,
     validate_intraday_bar_session,
+    validate_provider_bar_session,
 )
 
 
@@ -200,3 +202,76 @@ def test_rejects_sub_microsecond_timestamp_precision_without_rounding():
     with pytest.raises(SessionBarRejected) as error:
         _epoch_ns_to_utc(1)
     assert error.value.reason == "unsupported_timestamp_precision"
+
+
+
+def durable_registry(tmp_path, *, raw_symbol="ESZ6", series_type="contract",
+                     valid_from_ns=0, valid_to_ns=None):
+    registry = SQLiteInstrumentRegistry(str(tmp_path / "instrument-registry.sqlite3"))
+    instrument = future()
+    registry.register_instrument_with_mapping(
+        instrument,
+        ProviderInstrumentMapping(
+            provider="databento",
+            dataset="GLBX.MDP3",
+            publisher_id=1,
+            instrument_id=10,
+            raw_symbol=raw_symbol,
+            valid_from_ns=valid_from_ns,
+            valid_to_ns=valid_to_ns,
+            canonical_id=instrument.canonical_id,
+            series_type=series_type,
+        ),
+    )
+    return registry
+
+
+def test_provider_validation_uses_point_in_time_durable_mapping(tmp_path):
+    monday = record(date(2024, 3, 11), "2024-03-10T17:00:00", "2024-03-11T16:00:00")
+    start = datetime_to_epoch_ns(datetime(2024, 3, 11, 15, 0, tzinfo=timezone.utc))
+    registry = durable_registry(tmp_path, valid_from_ns=start - 1)
+    result = validate_provider_bar_session(
+        bar(start),
+        registry,
+        SessionCalendarRegistry((calendar([monday]),)),
+        calendar_version="2024.03.1",
+    )
+    assert result.calendar_id == "CME_EQUITY_INDEX"
+    assert result.trading_date == "2024-03-11"
+
+
+def test_provider_validation_rejects_mapping_outside_its_validity_window(tmp_path):
+    monday = record(date(2024, 3, 11), "2024-03-10T17:00:00", "2024-03-11T16:00:00")
+    start = datetime_to_epoch_ns(datetime(2024, 3, 11, 15, 0, tzinfo=timezone.utc))
+    registry = durable_registry(tmp_path, valid_from_ns=0, valid_to_ns=start)
+    with pytest.raises(SessionBarRejected) as error:
+        validate_provider_bar_session(
+            bar(start), registry, SessionCalendarRegistry((calendar([monday]),)),
+            calendar_version="2024.03.1",
+        )
+    assert error.value.reason == "provider_mapping_unavailable"
+
+
+def test_provider_validation_rejects_ephemeral_symbol_mapping_mismatch(tmp_path):
+    monday = record(date(2024, 3, 11), "2024-03-10T17:00:00", "2024-03-11T16:00:00")
+    start = datetime_to_epoch_ns(datetime(2024, 3, 11, 15, 0, tzinfo=timezone.utc))
+    registry = durable_registry(tmp_path, raw_symbol="ESM6", valid_from_ns=0)
+    with pytest.raises(SessionBarRejected) as error:
+        validate_provider_bar_session(
+            bar(start), registry, SessionCalendarRegistry((calendar([monday]),)),
+            calendar_version="2024.03.1",
+        )
+    assert error.value.reason == "provider_mapping_symbol_mismatch"
+
+
+def test_provider_validation_never_uses_matching_symbol_without_provider_id_mapping(tmp_path):
+    monday = record(date(2024, 3, 11), "2024-03-10T17:00:00", "2024-03-11T16:00:00")
+    start = datetime_to_epoch_ns(datetime(2024, 3, 11, 15, 0, tzinfo=timezone.utc))
+    registry = SQLiteInstrumentRegistry(str(tmp_path / "empty-registry.sqlite3"))
+    registry.register_instrument(future())
+    with pytest.raises(SessionBarRejected) as error:
+        validate_provider_bar_session(
+            bar(start), registry, SessionCalendarRegistry((calendar([monday]),)),
+            calendar_version="2024.03.1",
+        )
+    assert error.value.reason == "provider_mapping_unavailable"
