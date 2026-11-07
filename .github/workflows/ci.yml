@@ -173,14 +173,21 @@ jobs:
         continue-on-error: true
         run: |
           awk '
-            BEGIN { replaced = 0 }
-            /^FROM python:3\.12-slim$/ {
+            BEGIN { replaced = 0; user_replaced = 0 }
+            /^FROM python:3\\.12-slim$/ {
               print "FROM python:3.12-alpine"
               replaced++
               next
             }
+            /^RUN useradd --system --uid 10001 --create-home appuser \\$/ {
+              print "RUN addgroup -g 10001 appuser && adduser -D -H -u 10001 -G appuser appuser \\"
+              if (getline <= 0) exit 43
+              print
+              user_replaced++
+              next
+            }
             { print }
-            END { if (replaced != 1) exit 42 }
+            END { if (replaced != 1 || user_replaced != 1) exit 42 }
           ' backend/Dockerfile > "$RUNNER_TEMP/Dockerfile.alpine"
           docker build -f "$RUNNER_TEMP/Dockerfile.alpine" -t dezzta-chart-backend:alpine-comparison backend
 
