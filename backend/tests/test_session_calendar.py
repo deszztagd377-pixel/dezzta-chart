@@ -15,6 +15,7 @@ from app.session_calendar import (
     resolve_trading_date,
     session_bucket_bounds,
 )
+from app.instrument_identity import CanonicalInstrument
 
 
 def make_calendar(records, *, start=date(2024, 3, 1), end=date(2024, 3, 31)):
@@ -216,3 +217,90 @@ def test_session_bucket_rejects_intraday_timeframes():
     calendar = make_calendar([], start=date(2024, 3, 11), end=date(2024, 3, 17))
     with pytest.raises(ValueError):
         session_bucket_bounds(calendar, date(2024, 3, 11), "1h")
+
+
+
+def canonical_future(*, symbol="ES", calendar_id="CME_EQUITY_INDEX"):
+    return CanonicalInstrument(
+        canonical_id="12345678-1234-5678-1234-567812345678",
+        asset_class="future",
+        instrument_type="future",
+        symbol=symbol,
+        venue="CME",
+        settlement_currency="USD",
+        expiration_date="2026-12-18",
+        session_calendar_id=calendar_id,
+    )
+
+
+def test_calendar_registry_resolves_by_canonical_instrument_calendar_metadata():
+    calendar = make_calendar([])
+    registry = SessionCalendarRegistry((calendar,))
+
+    resolved = registry.for_instrument(
+        canonical_future(symbol="NQ", calendar_id="CME_EQUITY_INDEX"),
+        version="2024.03.1",
+    )
+
+    assert resolved is calendar
+
+
+def test_calendar_resolution_does_not_infer_from_canonical_or_raw_symbol():
+    calendar = make_calendar([])
+    registry = SessionCalendarRegistry((calendar,))
+
+    resolved = registry.for_instrument(
+        canonical_future(symbol="GC", calendar_id="CME_EQUITY_INDEX"),
+        version="2024.03.1",
+    )
+
+    assert resolved is calendar
+
+
+def test_calendar_resolution_fails_closed_without_explicit_instrument_calendar_id():
+    calendar = make_calendar([])
+    registry = SessionCalendarRegistry((calendar,))
+    instrument = canonical_future(calendar_id=None)
+    assert registry.for_instrument(instrument, version="2024.03.1") is None
+
+
+def test_calendar_resolution_rejects_unsupported_instrument_calendar_id():
+    calendar = make_calendar([])
+    registry = SessionCalendarRegistry((calendar,))
+    instrument = canonical_future(calendar_id="UNKNOWN_CALENDAR")
+    assert registry.for_instrument(instrument, version="2024.03.1") is None
+
+
+def test_calendar_resolution_rejects_non_future_canonical_instrument():
+    calendar = make_calendar([])
+    registry = SessionCalendarRegistry((calendar,))
+    instrument = CanonicalInstrument(
+        canonical_id="12345678-1234-5678-1234-567812345678",
+        asset_class="equity",
+        instrument_type="stock",
+        symbol="ES",
+        venue="NASDAQ",
+        session_calendar_id="CME_EQUITY_INDEX",
+    )
+    assert registry.for_instrument(instrument, version="2024.03.1") is None
+
+
+def test_calendar_resolution_requires_an_explicit_version():
+    calendar = make_calendar([])
+    registry = SessionCalendarRegistry((calendar,))
+
+    with pytest.raises(ValueError, match="explicit calendar version"):
+        registry.for_instrument(
+            canonical_future(),
+            version="",
+        )
+
+
+def test_calendar_resolution_never_falls_back_to_another_version():
+    calendar = make_calendar([])
+    registry = SessionCalendarRegistry((calendar,))
+
+    assert registry.for_instrument(
+        canonical_future(),
+        version="unavailable-release",
+    ) is None
