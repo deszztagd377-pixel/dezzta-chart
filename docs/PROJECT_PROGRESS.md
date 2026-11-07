@@ -715,3 +715,17 @@ This verification does not change the owner-confirmed overall progress percentag
 - Trivy scanner version is explicitly pinned to v0.76.2 rather than relying on the action's older default.
 - This adds a repeatable container vulnerability check to CI. It does not prove the current image is vulnerability-free until the new exact-HEAD CI run completes, and it does not replace runtime/deployment scanning or a vulnerability remediation process.
 - No progress percentage is increased before the scanner has run successfully and any findings have been triaged.
+
+
+
+## Correction — preserve strict container vulnerability gate — 2026-11-07
+
+A follow-up CI policy experiment on commit `1e09c5d` changed the image scan to block only findings with a reported fix. That relaxation was not sufficiently justified by exploitability, runtime exposure, or compensating-control analysis and therefore did not meet this project's fail-closed security standard.
+
+The experiment was reverted on commit `1034d9f`:
+- The original Trivy policy is restored: scan OS and application libraries at HIGH/CRITICAL severity, include unfixed findings, and fail CI on any matching finding.
+- The full pre-existing progress history was restored after the experiment accidentally replaced rather than appended to this document.
+- The 49 HIGH / 0 CRITICAL finding inventory from run `42367103349` remains an unresolved image-security issue. No claim is made that these findings are harmless or fixed.
+- Next remediation work must inspect the exact base-image digest, package origins, fixed-version metadata, Debian security update availability, and whether a supported newer base image removes the findings. Any exception requires explicit risk acceptance; the CI gate must not be weakened merely to obtain a green run.
+
+This correction is an incident record, not a progress increase. The strict scan will continue to block CI until findings are remediated or a separately reviewed, evidence-backed policy is approved.
