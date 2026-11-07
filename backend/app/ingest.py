@@ -212,6 +212,7 @@ class OhlcvIngestionService:
         if self._pending_overflow_gaps:
             self.degraded_reasons.add("ingest_overflow")
         pending: list[tuple[int | None, tuple[int, int] | None, int, int]] = []
+        has_unscoped_pending = False
         for journal_id, instrument_hint, first_ns, last_ns in self._pending_overflow_gaps:
             try:
                 if self._overflow_journal is not None:
@@ -221,11 +222,13 @@ class OhlcvIngestionService:
                         )
                     # Keep the durable row if the instrument cannot yet be resolved.
                     if not self._note_overflow(instrument_hint, first_ns, last_ns):
+                        has_unscoped_pending = True
                         pending.append((journal_id, instrument_hint, first_ns, last_ns))
                         continue
                     self._overflow_journal.resolve_overflow(journal_id)
                 else:
                     if not self._note_overflow(instrument_hint, first_ns, last_ns):
+                        has_unscoped_pending = True
                         pending.append((None, instrument_hint, first_ns, last_ns))
             except Exception:
                 # Keep both the in-memory item and durable journal for retry.
@@ -233,6 +236,8 @@ class OhlcvIngestionService:
                 self.degraded_reasons.add("coverage_persistence_error")
                 pending.append((journal_id, instrument_hint, first_ns, last_ns))
         self._pending_overflow_gaps = pending
+        if not has_unscoped_pending:
+            self.degraded_reasons.discard("coverage_gap_unscoped")
         if not pending:
             self.degraded_reasons.discard("coverage_persistence_error")
         items = self._buffer.drain(self._batch)

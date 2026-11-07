@@ -288,6 +288,36 @@ def test_per_instrument_observations_are_bounded():
     assert status["evicted_instrument_counters"] == 1
     assert {item["instrument_id"] for item in status["instruments"]} == {2, 3}
 
+def test_unscoped_degraded_reason_clears_when_mapping_becomes_available(tmp_path):
+    from app.coverage_store import SQLiteCoverageTracker
+    from app.ingest import OhlcvIngestionService
+    from app.ohlcv import OhlcvPipeline
+    from app.symbology import SymbolMapping
+    from helpers import make_resolver
+
+    resolver = make_resolver()
+    coverage = SQLiteCoverageTracker(str(tmp_path / "late-mapping.sqlite3"))
+    service = OhlcvIngestionService(
+        pipeline=OhlcvPipeline(), resolver=resolver, coverage=coverage
+    )
+    service._pending_overflow_gaps.append((None, (1, 101), T0, T0 + 10))
+    service.process_pending()
+
+    assert "coverage_gap_unscoped" in service.degraded_reasons
+    assert coverage.pending_overflows()
+
+    resolver.add(SymbolMapping(
+        provider="databento", dataset="GLBX.MDP3", publisher_id=1,
+        instrument_id=101, raw_symbol="ESZ6", valid_from_ns=0, valid_to_ns=None,
+    ))
+    service.process_pending()
+
+    scope = ("databento", "GLBX.MDP3", 1, 101, "contract", "ESZ6")
+    assert coverage.gaps(scope) == [(T0, T0 + NS)]
+    assert coverage.pending_overflows() == []
+    assert "coverage_gap_unscoped" not in service.degraded_reasons
+
+
 def test_durable_overflow_journal_replays_into_coverage_after_restart(tmp_path):
     from app.coverage_store import SQLiteCoverageTracker
     from app.ingest import OhlcvIngestionService
