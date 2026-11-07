@@ -66,3 +66,15 @@ jobs:
 
       - name: Build backend container image
         run: docker build -f backend/Dockerfile -t dezzta-chart-backend:ci backend
+
+      - name: Scan backend container image
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: dezzta-chart-backend:ci
+          format: table
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: false
+          exit-code: '1'
+          version: v0.76.2
+          timeout: 10m0s

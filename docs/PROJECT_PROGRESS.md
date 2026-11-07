@@ -705,3 +705,13 @@ This verification does not change the owner-confirmed overall progress percentag
 - Added an API regression test that configures a non-default dataset (`GLBX.TEST`) and asserts that the status endpoint reports that exact value.
 - This does not enable provider connectivity, certify a dataset entitlement, or change the current historical/educational-only development boundary.
 - Exact-HEAD CI and CodeQL validation are required before treating this fix as verified. No progress percentage is changed by the code edit alone.
+
+
+## Container image vulnerability scanning added to CI — 2026-11-07
+
+- Added a Trivy image scan immediately after the backend Docker build. It scans both OS packages and application libraries in the locally built `dezzta-chart-backend:ci` image.
+- The scan reports HIGH and CRITICAL vulnerabilities and fails the CI job when any matching finding is present; unfixed findings are not silently ignored.
+- The third-party action is pinned to immutable commit `ed142fd0673e97e23eac54620cfb913e5ce36c25` (release v0.36.0). GitHub's tag object for v0.36.0 reported a valid verified signature. Its nested setup-trivy and actions/cache dependencies are also pinned to immutable SHAs in the inspected action metadata.
+- Trivy scanner version is explicitly pinned to v0.76.2 rather than relying on the action's older default.
+- This adds a repeatable container vulnerability check to CI. It does not prove the current image is vulnerability-free until the new exact-HEAD CI run completes, and it does not replace runtime/deployment scanning or a vulnerability remediation process.
+- No progress percentage is increased before the scanner has run successfully and any findings have been triaged.
