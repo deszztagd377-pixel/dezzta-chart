@@ -114,30 +114,72 @@ class SQLiteCoverageTracker(CoverageTracker):
                 result.append((end_ns, end))
         return result
 
-    def _persist_scope(self, scope: Hashable) -> None:
+    def _mutate_scope(
+        self, scope: Hashable, state: str, start_ns: int, end_ns: int,
+    ) -> None:
+        """Apply a scope mutation against the latest committed DB state.
+
+        BEGIN IMMEDIATE serializes the read/modify/write sequence across
+        independent tracker instances and processes sharing this database.
+        """
         key = self._scope_key(scope)
         db = self._connect()
         try:
             db.execute("BEGIN IMMEDIATE")
-            db.execute("DELETE FROM ohlcv_coverage_intervals WHERE scope_key=?", (key,))
-            rows = [
-                (key, "covered", start, end)
-                for start, end in self._covered.get(scope, [])
-            ] + [
-                (key, "gap", start, end)
-                for start, end in self._gaps.get(scope, [])
+            rows = db.execute(
+                """SELECT state,start_ns,end_ns
+                FROM ohlcv_coverage_intervals WHERE scope_key=?
+                ORDER BY state,start_ns,end_ns""",
+                (key,),
+            ).fetchall()
+            covered = [
+                (int(row["start_ns"]), int(row["end_ns"]))
+                for row in rows if row["state"] == "covered"
             ]
-            if rows:
+            gaps = [
+                (int(row["start_ns"]), int(row["end_ns"]))
+                for row in rows if row["state"] == "gap"
+            ]
+            meta = db.execute(
+                "SELECT int_value FROM ohlcv_coverage_meta WHERE meta_key='truncated'"
+            ).fetchone()
+            truncated = 0 if meta is None else int(meta["int_value"])
+
+            current = CoverageTracker(max_intervals=self._max)
+            current._covered[scope] = covered
+            current.truncated = truncated
+            if state == "covered":
+                CoverageTracker.add_covered(current, scope, start_ns, end_ns)
+                covered = current._covered.get(scope, [])
+                gaps = self._subtract(gaps, start_ns, end_ns)
+                truncated = current.truncated
+            else:
+                CoverageTracker.add_gap(current, scope, start_ns, end_ns)
+                covered = current._covered.get(scope, [])
+                gaps = self._merge(gaps, start_ns, end_ns)
+                if len(gaps) > self._max:
+                    truncated += len(gaps) - self._max
+                    gaps = gaps[-self._max:]
+
+            db.execute(
+                "DELETE FROM ohlcv_coverage_intervals WHERE scope_key=?", (key,)
+            )
+            persisted = [
+                (key, "covered", start, end) for start, end in covered
+            ] + [
+                (key, "gap", start, end) for start, end in gaps
+            ]
+            if persisted:
                 db.executemany(
                     """INSERT INTO ohlcv_coverage_intervals
                     (scope_key,state,start_ns,end_ns) VALUES (?,?,?,?)""",
-                    rows,
+                    persisted,
                 )
             db.execute(
                 """INSERT INTO ohlcv_coverage_meta(meta_key,int_value)
                 VALUES ('truncated', ?)
                 ON CONFLICT(meta_key) DO UPDATE SET int_value=excluded.int_value""",
-                (self.truncated,),
+                (truncated,),
             )
             db.execute("COMMIT")
         except Exception:
@@ -146,6 +188,11 @@ class SQLiteCoverageTracker(CoverageTracker):
             raise
         finally:
             db.close()
+
+        # Publish the committed snapshot locally only after durable commit.
+        self._covered[scope] = list(covered)
+        self._gaps[scope] = list(gaps)
+        self.truncated = truncated
 
     def _restore(self) -> None:
         db = self._connect()
@@ -175,38 +222,12 @@ class SQLiteCoverageTracker(CoverageTracker):
     def add_covered(self, scope: Hashable, start_ns: int, end_ns: int) -> None:
         if end_ns <= start_ns:
             return
-        old_covered = list(self._covered.get(scope, []))
-        old_gaps = list(self._gaps.get(scope, []))
-        old_truncated = self.truncated
-        super().add_covered(scope, start_ns, end_ns)
-        self._gaps[scope] = self._subtract(old_gaps, start_ns, end_ns)
-        try:
-            self._persist_scope(scope)
-        except Exception:
-            self._covered[scope] = old_covered
-            self._gaps[scope] = old_gaps
-            self.truncated = old_truncated
-            raise
+        self._mutate_scope(scope, "covered", start_ns, end_ns)
 
     def add_gap(self, scope: Hashable, start_ns: int, end_ns: int) -> None:
         if end_ns <= start_ns:
             return
-        old_covered = list(self._covered.get(scope, []))
-        old_gaps = list(self._gaps.get(scope, []))
-        old_truncated = self.truncated
-        super().add_gap(scope, start_ns, end_ns)
-        merged_gaps = self._merge(old_gaps, start_ns, end_ns)
-        if len(merged_gaps) > self._max:
-            self.truncated += len(merged_gaps) - self._max
-            merged_gaps = merged_gaps[-self._max:]
-        self._gaps[scope] = merged_gaps
-        try:
-            self._persist_scope(scope)
-        except Exception:
-            self._covered[scope] = old_covered
-            self._gaps[scope] = old_gaps
-            self.truncated = old_truncated
-            raise
+        self._mutate_scope(scope, "gap", start_ns, end_ns)
 
     def gaps(self, scope: Hashable) -> list[tuple[int, int]]:
         return list(self._gaps.get(scope, []))

@@ -62,7 +62,7 @@ def test_gap_interval_count_is_bounded_and_truncation_survives_restart(tmp_path)
 
 def test_failed_coverage_persistence_rolls_back_in_memory_state(tmp_path):
     class FailingTracker(SQLiteCoverageTracker):
-        def _persist_scope(self, scope):
+        def _mutate_scope(self, scope, state, start_ns, end_ns):
             raise OSError("disk unavailable")
 
     scope = ("databento", "GLBX.MDP3", 1, 101, "contract", "ESZ6")
@@ -165,3 +165,27 @@ def test_concurrent_connections_preserve_all_overflow_journal_records(tmp_path):
     assert len(set(ids)) == len(ids)
     assert len(pending) == workers * records_per_worker
     assert {row["id"] for row in pending} == set(ids)
+
+def test_independent_tracker_instances_do_not_overwrite_scope_updates(tmp_path):
+    path = str(tmp_path / "multi-instance-coverage.sqlite3")
+    scope = ("databento", "GLBX.MDP3", 1, 101, "contract", "ESZ6")
+    first = SQLiteCoverageTracker(path)
+    second = SQLiteCoverageTracker(path)
+
+    first.add_covered(scope, 0, 100)
+    second.add_covered(scope, 200, 300)
+
+    restored = SQLiteCoverageTracker(path)
+    assert restored.intervals(scope) == [(0, 100), (200, 300)]
+
+    # Each stale instance must base its next mutation on the latest DB state.
+    first.add_gap(scope, 40, 60)
+    assert SQLiteCoverageTracker(path).intervals(scope) == [
+        (0, 40), (60, 100), (200, 300)
+    ]
+    second.add_covered(scope, 40, 60)
+    final = SQLiteCoverageTracker(path)
+    assert final.intervals(scope) == [(0, 100), (200, 300)]
+    assert final.gaps(scope) == []
+
+
