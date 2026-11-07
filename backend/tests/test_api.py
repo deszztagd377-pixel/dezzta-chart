@@ -9,7 +9,7 @@ from dataclasses import replace
 
 from app.config import Settings
 from app.main import create_app
-from app.identity import IdentityVerificationError, VerifiedPrincipal
+from app.identity import IdentityProviderUnavailable, IdentityVerificationError, VerifiedPrincipal
 from app.instrument_identity import CanonicalInstrument
 from app.instrument_registry import ProviderInstrumentMapping
 
@@ -766,8 +766,124 @@ def test_websocket_normalizes_raw_symbol_for_snapshot_and_live_stream_identity()
         assert update["sequence"] == 1
 
 
+def _open_authorized_websocket_subscription(application, client):
+    websocket = client.websocket_connect("/ws/market-data")
+    websocket.__enter__()
+    websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+    assert websocket.receive_json()["type"] == "market_data.status"
+    websocket.send_json({
+        "type": "market_data.subscribe",
+        "version": 1,
+        "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+        "series": {
+            "dataset": "GLBX.MDP3",
+            "publisherId": 1,
+            "instrumentId": 101,
+            "rawSymbol": "ESZ6",
+            "timeframe": "1s",
+        },
+    })
+    assert websocket.receive_json()["type"] == "market_data.ohlcv.snapshot"
+    return websocket
+
+
+def test_websocket_revalidates_firebase_token_during_idle_subscription(monkeypatch) -> None:
+    monkeypatch.setattr("app.main.WEBSOCKET_AUTHORIZATION_RECHECK_SECONDS", 0.02)
+    application = _app_with_bars()
+    client = TestClient(application)
+
+    with client.websocket_connect("/ws/market-data") as websocket:
+        websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+        assert websocket.receive_json()["type"] == "market_data.status"
+        websocket.send_json({
+            "type": "market_data.subscribe",
+            "version": 1,
+            "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+            "series": {
+                "dataset": "GLBX.MDP3",
+                "publisherId": 1,
+                "instrumentId": 101,
+                "rawSymbol": "ESZ6",
+                "timeframe": "1s",
+            },
+        })
+        assert websocket.receive_json()["type"] == "market_data.ohlcv.snapshot"
+
+        def reject_expired_or_revoked_token(_token):
+            raise IdentityVerificationError("expired or revoked")
+
+        application.state.identity_verifier.verify = reject_expired_or_revoked_token
+        with pytest.raises(WebSocketDisconnect) as disconnected:
+            websocket.receive_json()
+
+    assert disconnected.value.code == 4401
+
+
+def test_websocket_fails_closed_when_identity_provider_unavailable_on_recheck(monkeypatch) -> None:
+    monkeypatch.setattr("app.main.WEBSOCKET_AUTHORIZATION_RECHECK_SECONDS", 0.02)
+    application = _app_with_bars()
+    client = TestClient(application)
+
+    with client.websocket_connect("/ws/market-data") as websocket:
+        websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+        assert websocket.receive_json()["type"] == "market_data.status"
+        websocket.send_json({
+            "type": "market_data.subscribe",
+            "version": 1,
+            "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+            "series": {
+                "dataset": "GLBX.MDP3",
+                "publisherId": 1,
+                "instrumentId": 101,
+                "rawSymbol": "ESZ6",
+                "timeframe": "1s",
+            },
+        })
+        assert websocket.receive_json()["type"] == "market_data.ohlcv.snapshot"
+
+        def unavailable(_token):
+            raise IdentityProviderUnavailable("provider unavailable")
+
+        application.state.identity_verifier.verify = unavailable
+        with pytest.raises(WebSocketDisconnect) as disconnected:
+            websocket.receive_json()
+
+    assert disconnected.value.code == 1013
+
+
+def test_websocket_rechecks_revoked_entitlement_during_idle_subscription(monkeypatch) -> None:
+    monkeypatch.setattr("app.main.WEBSOCKET_AUTHORIZATION_RECHECK_SECONDS", 0.02)
+    application = _app_with_bars()
+    client = TestClient(application)
+
+    with client.websocket_connect("/ws/market-data") as websocket:
+        websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+        assert websocket.receive_json()["type"] == "market_data.status"
+        websocket.send_json({
+            "type": "market_data.subscribe",
+            "version": 1,
+            "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+            "series": {
+                "dataset": "GLBX.MDP3",
+                "publisherId": 1,
+                "instrumentId": 101,
+                "rawSymbol": "ESZ6",
+                "timeframe": "1s",
+            },
+        })
+        assert websocket.receive_json()["type"] == "market_data.ohlcv.snapshot"
+        application.state.instrument_entitlements.revoke(
+            subject="firebase-user-123",
+            canonical_instrument_id="0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+        )
+        with pytest.raises(WebSocketDisconnect) as disconnected:
+            websocket.receive_json()
+
+    assert disconnected.value.code == 4403
+
+
 def test_websocket_rechecks_revoked_entitlement_during_continuous_updates(monkeypatch) -> None:
-    monkeypatch.setattr("app.main.WEBSOCKET_ENTITLEMENT_RECHECK_SECONDS", 0.03)
+    monkeypatch.setattr("app.main.WEBSOCKET_AUTHORIZATION_RECHECK_SECONDS", 0.03)
     application = _app_with_bars()
     client = TestClient(application)
 

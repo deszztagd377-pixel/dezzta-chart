@@ -42,7 +42,7 @@ from app.ohlcv_store import SQLiteOhlcvStore
 from app.symbology import InstrumentResolver
 
 
-WEBSOCKET_ENTITLEMENT_RECHECK_SECONDS = 60.0
+WEBSOCKET_AUTHORIZATION_RECHECK_SECONDS = 60.0
 
 
 def _parse_ns(value: str | None, name: str) -> int | None:
@@ -596,7 +596,7 @@ def create_app(
             receive_task = asyncio.create_task(websocket.receive_text())
             queue_task = None
             loop = asyncio.get_running_loop()
-            next_entitlement_check = loop.time() + WEBSOCKET_ENTITLEMENT_RECHECK_SECONDS
+            next_entitlement_check = loop.time() + WEBSOCKET_AUTHORIZATION_RECHECK_SECONDS
             try:
                 while True:
                     if subscription.overflowed:
@@ -612,6 +612,24 @@ def create_app(
                     # update frequency. A busy stream must not postpone access
                     # revocation checks indefinitely.
                     if loop.time() >= next_entitlement_check:
+                        # A WebSocket can outlive the Firebase ID token used at
+                        # handshake. Reverify the same token (including revocation)
+                        # on the authorization deadline; fail closed on expiry,
+                        # revocation, identity drift, or verifier outage.
+                        try:
+                            refreshed_principal = await asyncio.to_thread(
+                                application.state.identity_verifier.verify,
+                                supplied_token,
+                            )
+                        except IdentityProviderUnavailable:
+                            await websocket.close(code=1013, reason="Identity verification unavailable")
+                            return
+                        except IdentityVerificationError:
+                            await websocket.close(code=4401, reason="Authentication expired or revoked")
+                            return
+                        if refreshed_principal != principal:
+                            await websocket.close(code=4401, reason="Authenticated identity changed")
+                            return
                         try:
                             still_authorized = await asyncio.to_thread(has_series_access)
                         except Exception:
@@ -619,7 +637,7 @@ def create_app(
                         if not still_authorized:
                             await websocket.close(code=4403, reason="Instrument access revoked")
                             return
-                        next_entitlement_check = loop.time() + WEBSOCKET_ENTITLEMENT_RECHECK_SECONDS
+                        next_entitlement_check = loop.time() + WEBSOCKET_AUTHORIZATION_RECHECK_SECONDS
                     if not done:
                         if queue_task is not None and not queue_task.done():
                             queue_task.cancel()

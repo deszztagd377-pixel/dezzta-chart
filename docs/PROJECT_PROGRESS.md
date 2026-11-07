@@ -365,3 +365,19 @@ Changed behavior:
 - No token, Firebase credential, or client identity is logged or exposed.
 
 This is a targeted resilience/performance improvement, not proof of deployed Firebase configuration or full Stage 1 completion. Count it as verified only after the exact-head backend tests and full CI pass.
+
+
+## Stage 1 WebSocket authorization lifecycle hardening — 2026-11-07
+
+The authenticated OHLCV WebSocket already rechecked instrument entitlement on a monotonic deadline, including while the stream was busy. Review found that the Firebase ID token itself was only verified during the initial handshake. A long-lived connection could therefore outlive the token's validity or remain connected after token revocation until the socket closed.
+
+Changed behavior:
+- The periodic deadline is now named `WEBSOCKET_AUTHORIZATION_RECHECK_SECONDS` because it covers both identity and instrument authorization.
+- At each deadline, the server re-verifies the exact Firebase ID token originally supplied at handshake, using the verifier's revocation check.
+- The refreshed verified principal must exactly match the principal established at handshake. Identity verification failure closes with `4401`; identity-provider unavailability closes with retryable `1013`.
+- Only after identity revalidation succeeds does the server recheck the canonical instrument mapping, active status, and account entitlement. Missing/revoked entitlement still closes with `4403`.
+- Revalidation runs on a monotonic deadline independent of market update frequency. The configured 60-second interval is the maximum intended periodic recheck cadence; this is not instantaneous revocation.
+
+Added regression coverage for Firebase token rejection during an idle subscription, identity-provider outage during recheck, entitlement revocation during an idle subscription, and the existing continuous-update revocation case.
+
+This hardening does not prove deployed Firebase credentials, production revocation latency, or end-to-end mobile behavior. Exact-head CI must pass before counting this acceptance criterion as verified.
