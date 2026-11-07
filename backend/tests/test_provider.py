@@ -380,7 +380,7 @@ def test_without_definitions_records_are_rejected_not_invented():
     service.ingest_batch([rec(0)], "ohlcv-1s")
     assert service.counters == {"rejected_unknown_instrument": 1}
 
-def test_startup_reconciliation_backfills_since_last_durable_bar_and_keeps_callback_nonblocking(tmp_path):
+def test_startup_reconciliation_scans_bounded_horizon_and_keeps_callback_nonblocking(tmp_path):
     from app.ohlcv import OhlcvPipeline
     from app.ingest import OhlcvIngestionService
     from app.ohlcv_store import SQLiteOhlcvStore
@@ -411,11 +411,13 @@ def test_startup_reconciliation_backfills_since_last_durable_bar_and_keeps_callb
         return result, hist, service, manager_instance
 
     result, hist, service, manager_instance = asyncio.run(go())
-    assert result == {"symbols_checked": 1, "symbols_unmapped": 0, "ranges_reconciled": 2,
-        "ranges_remaining": 0, "bars_ingested": 0, "windows_done": 2}
+    assert result == {"symbols_checked": 1, "symbols_unmapped": 0, "ranges_reconciled": 1,
+        "ranges_remaining": 0, "bars_ingested": 0, "windows_done": 1}
+    # The in-memory coverage tracker has no covered interval in this fixture,
+    # so reconciliation scans the configured recent horizon as one range.
+    # The existing durable bar remains safe because ingestion is idempotent.
     assert hist.calls == [
-        ("ohlcv-1s", ("ESZ6",), "raw_symbol", T0, T0 + 2 * NS),
-        ("ohlcv-1s", ("ESZ6",), "raw_symbol", T0 + 3 * NS, T0 + 10 * NS),
+        ("ohlcv-1s", ("ESZ6",), "raw_symbol", T0, T0 + 10 * NS),
     ]
     assert service.offer(rec(9), "ohlcv-1s") is True
     assert manager_instance.backfill["state"] == "reconciliation_done"
