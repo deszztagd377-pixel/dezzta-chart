@@ -14,6 +14,7 @@ from app.session_calendar import (
 )
 from app.session_bar_validation import (
     SessionBarRejected,
+    _epoch_ns_to_utc,
     validate_intraday_bar_session,
 )
 
@@ -110,12 +111,12 @@ def test_accepts_bar_inside_explicit_early_close_session():
 
 def test_rejects_bar_interval_that_crosses_early_session_close():
     early = record(
-        date(2024, 3, 11), "2024-03-10T17:00:00", "2024-03-11T12:00:00",
+        date(2024, 3, 11), "2024-03-10T17:00:00", "2024-03-11T10:30:00",
         kind="early_close",
     )
-    start = datetime_to_epoch_ns(datetime(2024, 3, 11, 16, 59, 30, tzinfo=timezone.utc))
+    start = datetime_to_epoch_ns(datetime(2024, 3, 11, 16, 0, tzinfo=timezone.utc))
     with pytest.raises(SessionBarRejected) as error:
-        validator_for([early])(bar(start, timeframe="1m"))
+        validator_for([early])(bar(start, timeframe="1h"))
     assert error.value.reason == "bar_crosses_session_close"
 
 
@@ -190,15 +191,11 @@ def test_rejects_non_utc_intraday_policy_and_non_intraday_timeframe():
         validate(bar(start, policy="UTC_LEGACY"))
     assert error.value.reason == "unsupported_bucket_policy"
     with pytest.raises(SessionBarRejected) as error:
-        validate(bar(start, timeframe="1d", policy="UTC_LEGACY"))
-    assert error.value.reason == "unsupported_bucket_policy"
+        validate(bar(start, timeframe="1d", policy=BUCKET_POLICY_UTC_FIXED_V1))
+    assert error.value.reason == "unsupported_timeframe"
 
 
-def test_rejects_sub_microsecond_timestamp_precision_in_calendar_boundary():
-    monday = record(date(2024, 3, 11), "2024-03-10T17:00:00", "2024-03-11T16:00:00")
-    start = datetime_to_epoch_ns(datetime(2024, 3, 11, 15, 0, tzinfo=timezone.utc)) + 1
-    # Build a valid bar with the one-nanosecond offset using a 1s-aligned fixture
-    # is intentionally impossible; timestamp alignment is enforced by OhlcvBar.
-    # This assertion documents that malformed bar construction is rejected first.
-    with pytest.raises(Exception):
-        bar(start)
+def test_rejects_sub_microsecond_timestamp_precision_without_rounding():
+    with pytest.raises(SessionBarRejected) as error:
+        _epoch_ns_to_utc(1)
+    assert error.value.reason == "unsupported_timestamp_precision"
