@@ -150,14 +150,24 @@ def lookup_instant(calendar: SessionCalendar, instant: datetime) -> SessionLooku
                 calendar.calendar_id, calendar.version,
             )
 
-    # A covered schedule with no active session is closed/maintenance;
-    # absent schedule coverage remains unknown rather than guessed.
-    if not known:
+    # Classify non-session time only when the schedule explicitly covers
+    # the relevant trading date(s). A neighboring record cannot fill a gap.
+    wall_time = local.timetz().replace(tzinfo=None)
+    if time(16, 0) <= wall_time < time(17, 0):
+        current = resolve_trading_date(calendar, local.date())
+        following = resolve_trading_date(calendar, local.date() + timedelta(days=1))
+        if current is None or following is None:
+            return SessionLookup("unknown", calendar_id=calendar.calendar_id,
+                                 calendar_version=calendar.version)
+        return SessionLookup("maintenance", local.date(),
+                             calendar_id=calendar.calendar_id,
+                             calendar_version=calendar.version)
+
+    target_date = local.date() + timedelta(days=1) if wall_time >= time(17, 0) else local.date()
+    target = resolve_trading_date(calendar, target_date)
+    if target is None:
         return SessionLookup("unknown", calendar_id=calendar.calendar_id,
                              calendar_version=calendar.version)
-    wall_time = local.timetz().replace(tzinfo=None)
-    state = "maintenance" if time(16, 0) <= wall_time < time(17, 0) else "closed"
-    nearest = next((r for r in known if r.kind != "closed"), None)
-    return SessionLookup(state, nearest.trading_date if nearest else None,
+    return SessionLookup("closed", target_date,
                          calendar_id=calendar.calendar_id,
                          calendar_version=calendar.version)
