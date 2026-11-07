@@ -138,6 +138,8 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
           version: 1,
           canonicalInstrumentId: options.canonicalInstrumentId,
           series: {
+            provider: options.identity.provider ?? 'databento',
+            seriesType: options.identity.seriesType ?? 'contract',
             dataset: options.identity.dataset,
             publisherId: options.identity.publisherId,
             instrumentId: options.identity.instrumentId,
