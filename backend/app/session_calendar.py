@@ -38,6 +38,8 @@ class SessionRecord:
     close_local: datetime | None
 
     def __post_init__(self) -> None:
+        if self.kind not in {"regular", "special", "early_close", "delayed_open", "closed"}:
+            raise InvalidSessionCalendar("Unsupported session record kind.")
         if self.kind == "closed":
             if self.open_local is not None or self.close_local is not None:
                 raise InvalidSessionCalendar("Closed dates must not have session boundaries.")
@@ -129,13 +131,9 @@ def lookup_instant(calendar: SessionCalendar, instant: datetime) -> SessionLooku
         raise ValueError("An aware instant is required.")
     local = instant.astimezone(CHICAGO)
     candidates = (local.date() - timedelta(days=1), local.date(), local.date() + timedelta(days=1))
-    known: list[SessionRecord] = []
     for trading_date in candidates:
         record = resolve_trading_date(calendar, trading_date)
-        if record is None:
-            continue
-        known.append(record)
-        if record.kind == "closed":
+        if record is None or record.kind == "closed":
             continue
         assert record.open_local is not None and record.close_local is not None
         if record.open_local.astimezone(timezone.utc) <= instant.astimezone(timezone.utc) < record.close_local.astimezone(timezone.utc):
@@ -159,9 +157,17 @@ def lookup_instant(calendar: SessionCalendar, instant: datetime) -> SessionLooku
         if current is None or following is None:
             return SessionLookup("unknown", calendar_id=calendar.calendar_id,
                                  calendar_version=calendar.version)
-        return SessionLookup("maintenance", local.date(),
-                             calendar_id=calendar.calendar_id,
-                             calendar_version=calendar.version)
+        is_regular_maintenance = (
+            current.kind == "regular" and following.kind == "regular"
+            and current.close_local is not None and following.open_local is not None
+            and current.close_local.timetz().replace(tzinfo=None) == time(16, 0)
+            and following.open_local.timetz().replace(tzinfo=None) == time(17, 0)
+        )
+        return SessionLookup(
+            "maintenance" if is_regular_maintenance else "closed",
+            local.date(), calendar_id=calendar.calendar_id,
+            calendar_version=calendar.version,
+        )
 
     target_date = local.date() + timedelta(days=1) if wall_time >= time(17, 0) else local.date()
     target = resolve_trading_date(calendar, target_date)
