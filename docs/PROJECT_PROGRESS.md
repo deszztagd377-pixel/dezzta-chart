@@ -785,3 +785,18 @@ The diagnostic workflow addition is not a completed security remediation or a St
 - Corrected only the Alpine diagnostic matcher in `.github/workflows/ci.yml` to use the same single-escaped version pattern. This is a CI diagnostic correction, not a vulnerability remediation and not a production base-image change.
 - The strict Trivy gate, severity thresholds, unfixed-finding policy, and production `backend/Dockerfile` remain unchanged. The corrected Alpine candidate must still build, pass its runtime smoke test, and produce a valid scan report before its findings can be compared.
 - Follow-up CI triggered by this correction is pending at the time of this record. No overall progress or Stage 1 credit is awarded for this workflow-only fix.
+
+
+### Strict container Trivy investigation — 2026-11-07
+
+Latest audited branch HEAD before this investigation: `76e2e06f9afedfaeb5728caa0ac405c9e6dd5833`. Automated Tests run [42371490050](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42371490050) completed with failure at the required strict backend-image Trivy scan; CodeQL run [42371490129](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42371490129) passed. Frontend dependency audit, frontend tests/build, backend tests, backend dependency audit, and container build all passed.
+
+The uploaded scan artifact was inspected (artifact `13573724056`):
+- Current `python:3.12-slim` / Debian 13.7 image: **49 HIGH, 0 CRITICAL**, representing 13 distinct CVE IDs across OS packages. The report lists no fixed version for these findings; the dominant packages are util-linux family, acl, ncurses, SQLite, systemd, perl-base, and zlib.
+- Debian Bookworm comparison: **40 HIGH, 2 CRITICAL**; therefore it is not an acceptable replacement.
+- Trixie plus `apt-get upgrade`: **49 HIGH, 0 CRITICAL`; package versions/findings remained effectively unchanged.
+- Alpine comparison did not produce a report because its diagnostic build failed: the Debian-specific `useradd` command is unavailable in Alpine (exit 127). The prior “Alpine not available” row was not a clean scan and must not be interpreted as zero findings.
+
+No severity threshold was weakened, no Trivy ignore was added, and the production base image was not changed. This checkpoint updates only the Alpine *diagnostic candidate* to use Alpine's `addgroup`/`adduser` equivalents, preserving UID/GID 10001 and ownership, so CI can build, runtime-smoke-test, and scan that candidate. The result must be reviewed before any production base-image migration. If Alpine has no usable compatible build or still reports HIGH/CRITICAL findings, investigate a smaller hardened Debian-derived runtime image or other evidence-backed mitigation; do not hide findings.
+
+Strict Trivy remains an active release blocker until the required scan passes without suppressing HIGH/CRITICAL findings. No overall progress credit is claimed for diagnostics or documentation.
