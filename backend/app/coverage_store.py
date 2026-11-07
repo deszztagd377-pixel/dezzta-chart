@@ -235,6 +235,63 @@ class SQLiteCoverageTracker(CoverageTracker):
     def gap_scopes(self) -> list[Hashable]:
         return [scope for scope, intervals in self._gaps.items() if intervals]
 
+    def _refresh_scope(self, scope: Hashable) -> None:
+        """Refresh one scope so long-lived instances observe other writers."""
+        key = self._scope_key(scope)
+        db = self._connect()
+        try:
+            rows = db.execute(
+                """SELECT state,start_ns,end_ns
+                FROM ohlcv_coverage_intervals WHERE scope_key=?
+                ORDER BY state,start_ns,end_ns""",
+                (key,),
+            ).fetchall()
+        finally:
+            db.close()
+        covered = [
+            (int(row["start_ns"]), int(row["end_ns"]))
+            for row in rows if row["state"] == "covered"
+        ]
+        gaps = [
+            (int(row["start_ns"]), int(row["end_ns"]))
+            for row in rows if row["state"] == "gap"
+        ]
+        if covered:
+            self._covered[scope] = covered
+        else:
+            self._covered.pop(scope, None)
+        if gaps:
+            self._gaps[scope] = gaps
+        else:
+            self._gaps.pop(scope, None)
+
+    def intervals(self, scope: Hashable) -> list[tuple[int, int]]:
+        self._refresh_scope(scope)
+        return super().intervals(scope)
+
+    def status(self, scope: Hashable, start_ns: int, end_ns: int) -> str:
+        self._refresh_scope(scope)
+        return super().status(scope, start_ns, end_ns)
+
+    def gaps(self, scope: Hashable) -> list[tuple[int, int]]:
+        self._refresh_scope(scope)
+        return list(self._gaps.get(scope, []))
+
+    def gap_scopes(self) -> list[Hashable]:
+        db = self._connect()
+        try:
+            rows = db.execute(
+                """SELECT DISTINCT scope_key FROM ohlcv_coverage_intervals
+                WHERE state='gap' ORDER BY scope_key"""
+            ).fetchall()
+        finally:
+            db.close()
+        scopes = [tuple(json.loads(row["scope_key"])) for row in rows]
+        self._gaps = {}
+        for scope in scopes:
+            self._refresh_scope(scope)
+        return scopes
+
     def journal_overflow(
         self, instrument_hint: tuple[int, int] | None,
         start_ns: int, end_ns: int, created_at_ns: int,

@@ -188,4 +188,23 @@ def test_independent_tracker_instances_do_not_overwrite_scope_updates(tmp_path):
     assert final.intervals(scope) == [(0, 100), (200, 300)]
     assert final.gaps(scope) == []
 
+def test_long_lived_tracker_reads_latest_updates_from_other_instances(tmp_path):
+    path = str(tmp_path / "multi-instance-read.sqlite3")
+    scope = ("databento", "GLBX.MDP3", 1, 101, "contract", "ESZ6")
+    first = SQLiteCoverageTracker(path)
+    second = SQLiteCoverageTracker(path)
+
+    first.add_covered(scope, 0, 100)
+    assert second.intervals(scope) == [(0, 100)]
+    assert second.status(scope, 0, 100) == "covered"
+
+    first.add_gap(scope, 30, 50)
+    assert second.gaps(scope) == [(30, 50)]
+    assert second.intervals(scope) == [(0, 30), (50, 100)]
+    assert second.status(scope, 0, 100) == "partial"
+
+    first.add_covered(scope, 30, 50)
+    assert second.gaps(scope) == []
+    assert second.intervals(scope) == [(0, 100)]
+    assert second.gap_scopes() == []
 
