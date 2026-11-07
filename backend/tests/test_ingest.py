@@ -81,6 +81,16 @@ def test_queue_overflow_marks_gap_and_degraded_instead_of_dropping_silently():
     assert service.status()["degraded_reasons"] == []
 
 
+def test_unscoped_overflow_cannot_be_acknowledged_as_recovered():
+    service, _, _, _ = make_service()
+    service.degraded_reasons.update({"ingest_overflow", "coverage_gap_unscoped"})
+
+    service.acknowledge_overflow()
+
+    assert "ingest_overflow" in service.degraded_reasons
+    assert "coverage_gap_unscoped" in service.degraded_reasons
+
+
 def test_overflow_gap_persistence_failure_is_retried_without_stopping_ingestion():
     service, pipeline, _, coverage = make_service(queue_max=1)
 

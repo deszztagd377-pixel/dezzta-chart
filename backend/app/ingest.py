@@ -231,6 +231,9 @@ class OhlcvIngestionService:
         """Clear overflow degradation only after all known gaps are recovered."""
         if self._pending_overflow_gaps:
             return
+        # Unresolvable overflow has no scoped SQLite gap; do not report recovery.
+        if "coverage_gap_unscoped" in self.degraded_reasons:
+            return
         gap_scopes = getattr(self.coverage, "gap_scopes", None)
         gaps = getattr(self.coverage, "gaps", None)
         if callable(gap_scopes) and callable(gaps):
