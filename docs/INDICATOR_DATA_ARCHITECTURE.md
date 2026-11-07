@@ -124,3 +124,22 @@ unverified.
    indicator hook, with per-indicator timeframe and performance tests.
 7. Add additional indicators only after their required source data and formulas
    are documented and tested.
+
+
+## Indicator implementation status — 2026-11-07
+
+The following are verified calculation foundations, not finished chart UI:
+
+- SMA 20, EMA 20, Wilder RSI 14, MACD (12/26/9), and Bollinger Bands (20, 2) are implemented in `src/indicators/indicatorCalculations.ts` with warm-up nulls and unit tests.
+- `src/indicators/useMarketIndicators.ts` only returns values when the shared store contains a non-empty validated backend series in `ready` or `degraded` state. DEMO, loading, unavailable, and error states return no indicator values.
+- The current audit found no visible indicator controls, panes, or overlay wiring in `src/App.tsx` or `src/components/CandlestickChart.tsx`. Therefore these indicators are **not yet user-operable on the chart**.
+- The Footprint module in `src/education/simulatedFootprint.ts` is an offline educational accumulator only. It does not consume a provider stream and is not real order-flow data. It must remain labelled `SIMULATED`.
+- Heatmap and Liquidation Maps have no implementation verified in this audit.
+
+### Visual implementation prerequisites
+
+1. Wait for the owner's Footprint reference image before implementing its visual layout.
+2. Keep ordinary candlestick spacing unchanged while Footprint is OFF. Only explicit Footprint ON may enable spaced candle/cluster rendering.
+3. Wait for the owner's Heatmap and Liquidation Maps reference images before implementing those visual designs.
+4. Respect the 40% overall project gate: prepare and review a scoped blueprint before major visual feature implementation.
+5. Keep every study bound to the exact validated selected instrument/timeframe series. Never silently fall back to DEMO data for indicator calculations.
