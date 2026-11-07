@@ -77,9 +77,10 @@ describe('parseOhlcvStreamUpdate', () => {
   it('keeps fixed and legacy bucket policies isolated in stream events', () => {
     const fixedSeries = { ...series, bucketPolicy: 'UTC_FIXED_V1' };
     const fixedBar = { ...bar, bucketPolicy: 'UTC_FIXED_V1' };
+    const legacyBar = { ...bar, bucketPolicy: 'UTC_LEGACY' };
     const parsed = event({ series: fixedSeries, bar: fixedBar });
     expect(parsed.series.bucketPolicy).toBe('UTC_FIXED_V1');
-    expect(() => event({ series: fixedSeries, bar })).toThrow(/does not match/i);
+    expect(() => event({ series: fixedSeries, bar: legacyBar })).toThrow(/does not match/i);
   });
 
   it('rejects a bar whose identity differs from the declared stream series', () => {
