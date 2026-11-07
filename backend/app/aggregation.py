@@ -20,6 +20,7 @@ from typing import Callable
 
 from app.coverage import CoverageTracker
 from app.ohlcv import (
+    BUCKET_POLICY_CME_SESSION_V1,
     FIXED_INTERVAL_SECONDS,
     ORIGIN_DERIVED,
     InvalidOhlcvBar,
@@ -99,8 +100,12 @@ class Aggregator:
         while stack:
             current = stack.pop()
             for child_tf in CHILDREN.get(current.timeframe, ()):
-                # CME session-derived daily/weekly/monthly bars remain disabled
-                # until an authoritative versioned CME calendar is integrated.
+                # UTC intraday bars must not be relabelled as CME sessions.
+                # CME session bars are structurally identifiable, but deriving
+                # higher periods stays fail-closed until a verified calendar
+                # resolver supplies exact exchange bucket bounds.
+                if current.bucket_policy == BUCKET_POLICY_CME_SESSION_V1:
+                    continue
                 if current.bucket_policy == "UTC_FIXED_V1" and child_tf in ("1d", "1w", "1M", "3M"):
                     continue
                 start = bucket_start_ns(current.ts_start_ns, child_tf)
