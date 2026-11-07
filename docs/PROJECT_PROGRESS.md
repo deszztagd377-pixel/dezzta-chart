@@ -162,3 +162,23 @@ Current CI run for the latest code checkpoint: `42352853145` (pending/in progres
 The remaining integration is still substantial: authoritative versioned calendar loading, calendar selection by canonical instrument/product family, adapter/API identity propagation, and exact session-bound aggregation with complete schedule coverage. No CME production bars are enabled by this change.
 
 Indicator tracker remains unchanged: SMA/EMA/RSI/MACD/Bollinger calculations and tests exist but are not chart-integrated; Footprint remains simulated-only; Heatmap and Liquidation Maps remain unimplemented pending visual references.
+
+
+### CME calendar registry and explicit product-family selection — 2026-11-07
+
+Second integration slice completed on the active foundation branch:
+
+- Added `calendar_id_for_product_family()`; only explicit ES/NQ/GC product-family values select a calendar. Raw contract symbols such as `ESZ6` are deliberately not parsed or guessed.
+- Added `SessionCalendarRegistry` for explicit (calendar_id, version) registration and lookup.
+- When multiple releases exist for one calendar, an unversioned lookup returns no result rather than guessing which release is current.
+- Registry selection validates the product-family/calendar pairing; e.g. an ES calendar release cannot be silently reused for NQ or GC.
+- Calendar record mappings are copied and made read-only at construction so callers cannot mutate a registered release through the original dictionary or the calendar object.
+- Added tests for ES/NQ/GC selection, unknown roots, ambiguous versions, conflicting release keys, product-family mismatch, and immutable record mappings.
+
+Files changed in this slice:
+- `backend/app/session_calendar.py`
+- `backend/tests/test_session_calendar.py`
+
+This is a deterministic in-memory registry only. It does not fetch, parse, certify, or activate any official CME schedule release. The adapter is not yet wired to this registry, and CME OHLCV ingestion/aggregation remains disabled until canonical product-family metadata and verified calendar source loading are connected.
+
+Indicator tracker unchanged: SMA/EMA/RSI/MACD/Bollinger calculations exist but are not chart-integrated; Footprint is simulated-only; Heatmap and Liquidation Maps remain pending their visual references.
