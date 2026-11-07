@@ -539,3 +539,22 @@ Verification boundary:
 - Vercel's separate build-rate-limit check is not the same as GitHub Actions CI and remains an external deployment limitation.
 
 No overall or Stage 1 percentage increase is claimed from the workflow edit alone.
+
+## Stage 1 static application security analysis — CodeQL workflow (2026-11-07)
+
+Added `.github/workflows/codeql.yml` to run GitHub CodeQL analysis for both supported source-language groups:
+- `javascript-typescript` for the React/Vite frontend.
+- `python` for the FastAPI backend.
+
+Workflow behavior:
+- Runs on pushes to `main` and `phase-2/market-data-foundation`, pull requests targeting `main`, a weekly scheduled scan, and manual dispatch.
+- Uses the interpreted-language `build-mode: none` for both language jobs; it does not run or execute application code as part of a build.
+- Grants only the workflow permissions needed to read source/actions and upload code-scanning SARIF results (`security-events: write`).
+- Pins CodeQL init/analyze to immutable commit `c793b717bc78562f491db7b0e93a3a178b099162` (release tag v4.32.5). The tag resolves to this commit; the commit metadata reports a valid verified signature. Checkout remains pinned to the previously verified immutable v7.0.1 SHA.
+
+Verification boundary:
+- The workflow file was committed to the project branch. A successful CodeQL run on this exact revision is still required before treating the scanner as operational.
+- This workflow does not prove that repository-level secret scanning, push protection, Dependabot security alerts, or security configuration settings are enabled.
+- CodeQL findings, if any, must be triaged; adding the workflow is not equivalent to a clean security audit.
+- No application runtime behavior, market-data path, or SQLite schema was changed.
+- No overall or Stage 1 percentage increase is claimed until the workflow has completed successfully and the security-analysis acceptance criterion is reviewed.
