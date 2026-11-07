@@ -190,8 +190,9 @@ def test_rejects_non_utc_intraday_policy_and_non_intraday_timeframe():
     with pytest.raises(SessionBarRejected) as error:
         validate(bar(start, policy="UTC_LEGACY"))
     assert error.value.reason == "unsupported_bucket_policy"
+    daily_start = datetime_to_epoch_ns(datetime(2024, 3, 11, 0, 0, tzinfo=timezone.utc))
     with pytest.raises(SessionBarRejected) as error:
-        validate(bar(start, timeframe="1d", policy=BUCKET_POLICY_UTC_FIXED_V1))
+        validate(bar(daily_start, timeframe="1d", policy=BUCKET_POLICY_UTC_FIXED_V1))
     assert error.value.reason == "unsupported_timeframe"
 
 
