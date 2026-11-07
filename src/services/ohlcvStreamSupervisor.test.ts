@@ -348,6 +348,75 @@ describe('OHLCV stream supervisor', () => {
     expect(getMarketDataSnapshot().status).toBe('unavailable');
   });
 
+  it('schedules only one reconnect when a transport error and close event race', async () => {
+    vi.useFakeTimers();
+    const sockets: FakeSocket[] = [];
+    const getIdToken = vi.fn().mockResolvedValue('fresh-token');
+    const factory = vi.fn(() => {
+      const socket = new FakeSocket();
+      sockets.push(socket);
+      return socket as unknown as WebSocket;
+    });
+    const supervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken,
+      webSocketFactory: factory,
+      minReconnectDelayMs: 100,
+      maxReconnectDelayMs: 400,
+      random: () => 0,
+    });
+
+    await vi.waitFor(() => expect(sockets).toHaveLength(1));
+    sockets[0].readyState = 1;
+    sockets[0].emit('error', new Event('error'));
+    // The transport's error handler closes the socket, which emits close.
+    // A second close notification must not create another retry timer.
+    sockets[0].emit('close', Object.assign(new Event('close'), { code: 1006, reason: 'duplicate close' }));
+
+    expect(supervisor.status).toBe('reconnecting');
+    await vi.advanceTimersByTimeAsync(49);
+    expect(factory).toHaveBeenCalledOnce();
+    await vi.advanceTimersByTimeAsync(1);
+    await vi.waitFor(() => expect(sockets).toHaveLength(2));
+    expect(factory).toHaveBeenCalledTimes(2);
+    expect(getIdToken).toHaveBeenCalledTimes(2);
+    supervisor.stop();
+  });
+
+  it('cancels a scheduled reconnect when stopped before the retry deadline', async () => {
+    vi.useFakeTimers();
+    const sockets: FakeSocket[] = [];
+    const factory = vi.fn(() => {
+      const socket = new FakeSocket();
+      sockets.push(socket);
+      return socket as unknown as WebSocket;
+    });
+    const getIdToken = vi.fn().mockResolvedValue('fresh-token');
+    const supervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken,
+      webSocketFactory: factory,
+      minReconnectDelayMs: 100,
+      maxReconnectDelayMs: 400,
+      random: () => 0,
+    });
+
+    await vi.waitFor(() => expect(sockets).toHaveLength(1));
+    sockets[0].readyState = 1;
+    sockets[0].emit('error', new Event('error'));
+    expect(supervisor.status).toBe('reconnecting');
+    supervisor.stop();
+    await vi.advanceTimersByTimeAsync(1_000);
+
+    expect(factory).toHaveBeenCalledOnce();
+    expect(getIdToken).toHaveBeenCalledOnce();
+    expect(supervisor.status).toBe('stopped');
+  });
+
   it('does not open a socket when stop occurs while ID-token acquisition is pending', async () => {
     vi.useFakeTimers();
     let resolveToken!: (token: string) => void;
