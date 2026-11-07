@@ -849,3 +849,14 @@ Design the application-level calendar release source contract (trusted manifest/
 ### Verification
 - Latest exact-HEAD CI before this audit: Automated Tests [#42373445229](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42373445229) SUCCESS; CodeQL [#42373445285](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42373445285) SUCCESS.
 - This audit changes no runtime behavior and earns no progress credit by itself.
+
+## 2026-11-07 — Session calendar runtime ingestion integration
+
+- Added explicit backend settings for a calendar artifact path, trusted SHA-256 pin, and exact release version. No calendar URL fetching or default/fabricated schedule is introduced.
+- Added runtime loading that verifies the configured artifact through the existing strict loader, enforces a 16 MiB artifact size limit, and exposes only a sanitized availability state. Missing, partial, mismatched, or invalid configuration leaves an empty registry.
+- Wired a provider-bar validator into the application composition root and exposed the ingestion service/runtime calendar state for operational inspection.
+- The validator resolves provider identity through the durable point-in-time mapping first; it does not infer a canonical instrument from raw symbols. Active non-futures retain their non-CME path. Futures require an explicit loaded calendar version and session validation before persistence or pipeline mutation.
+- Added composition/runtime tests for unconfigured fail-closed behavior, digest mismatch, release-version mismatch, successful pinned-fixture acceptance, and rejection before both persistence and pipeline writes.
+- Test fixture source metadata is deliberately labelled test-only; it is not an official CME release and must not be configured in deployment.
+- CME session-aligned higher-timeframe aggregation remains disabled pending an independently trusted, complete release with exact bucket-boundary semantics.
+- This checkpoint records implementation scope only; progress credit remains pending until CI passes and the acceptance criteria are reviewed.

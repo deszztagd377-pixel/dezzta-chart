@@ -41,6 +41,10 @@ from app.databento_definition_sync import DatabentoDefinitionSynchronizer
 from app.ohlcv_stream import OhlcvStreamHub
 from app.ohlcv_store import SQLiteOhlcvStore
 from app.symbology import InstrumentResolver
+from app.session_calendar_runtime import (
+    build_provider_session_bar_validator,
+    load_session_calendar_runtime,
+)
 
 
 WEBSOCKET_AUTHORIZATION_RECHECK_SECONDS = 60.0
@@ -100,11 +104,22 @@ def create_app(
     stream_hub = OhlcvStreamHub()
     ohlcv_store = SQLiteOhlcvStore(config.instrument_registry_db_path)
     coverage_tracker = SQLiteCoverageTracker(config.instrument_registry_db_path)
+    session_calendar_registry, session_calendar_status = load_session_calendar_runtime(
+        artifact_path=config.session_calendar_artifact_path,
+        expected_sha256=config.session_calendar_sha256,
+        expected_version=config.session_calendar_version,
+    )
+    session_bar_validator = build_provider_session_bar_validator(
+        instrument_registry,
+        session_calendar_registry,
+        calendar_version=config.session_calendar_version,
+    )
     ingestion = OhlcvIngestionService(
         pipeline=ohlcv_pipeline, resolver=resolver, coverage=coverage_tracker,
         dataset=config.databento_dataset, queue_max=config.ohlcv_queue_max,
         on_bar_applied=stream_hub.publish,
         persistence=ohlcv_store,
+        bar_validator=session_bar_validator,
     )
     if live_source_factory is None and config.provider_configured:
         live_source_factory = lambda: DatabentoLiveSource(  # noqa: E731
@@ -147,6 +162,9 @@ def create_app(
     application.state.ohlcv_stream_hub = stream_hub
     application.state.ohlcv_store = ohlcv_store
     application.state.coverage_tracker = coverage_tracker
+    application.state.ingestion = ingestion
+    application.state.session_calendar_registry = session_calendar_registry
+    application.state.session_calendar_status = session_calendar_status
     application.state.provider = provider
     application.state.definition_sync = definition_sync
     application.state.resolver = resolver
@@ -246,6 +264,7 @@ def create_app(
             "ohlcv_pipeline_available": True,
             "ohlcv_provider_connected": ohlcv_status["connected"],
             "instruments": list(config.allowed_roots),
+            "session_calendar": application.state.session_calendar_status,
             "ohlcv": ohlcv_status,
         }
 

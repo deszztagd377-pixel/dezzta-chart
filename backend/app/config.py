@@ -81,6 +81,9 @@ class Settings:
     ohlcv_queue_max: int = 10_000
     ohlcv_max_response_bars: int = 5_000
     instrument_registry_db_path: str = "./data/instrument_registry.sqlite3"
+    session_calendar_artifact_path: str = ""
+    session_calendar_sha256: str = field(default="", repr=False)
+    session_calendar_version: str = ""
     firebase_project_id: str = field(default="", repr=False)
 
     @property
@@ -127,5 +130,8 @@ class Settings:
                 os.getenv("OHLCV_MAX_RESPONSE_BARS", "5000"), 5_000
             ),
             instrument_registry_db_path=registry_path,
+            session_calendar_artifact_path=os.getenv("SESSION_CALENDAR_ARTIFACT_PATH", "").strip(),
+            session_calendar_sha256=os.getenv("SESSION_CALENDAR_SHA256", "").strip(),
+            session_calendar_version=os.getenv("SESSION_CALENDAR_VERSION", "").strip(),
             firebase_project_id=os.getenv("FIREBASE_PROJECT_ID", "").strip(),
         )
