@@ -98,7 +98,8 @@ requires verified identity and instrument entitlement.
 
 ## 6. Remaining release checklist
 
-- [ ] Inspect frontend source and production bundle for accidental credentials.
+- [x] Add an automated production-bundle scan for private-key material, common high-confidence secret formats, and backend-only credential identifiers. The scan is a defense-in-depth check, not a substitute for source review or deployment secret-store inspection.
+- [ ] Inspect frontend source and production bundle manually for accidental credentials.
 - [ ] Confirm backend secrets are configured only in the deployment secret store.
 - [ ] Verify HTTPS/WSS, trusted Origin allowlist, and deployment headers.
 - [ ] Decide whether health, status, and instrument-catalogue endpoints are public.
