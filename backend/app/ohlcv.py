@@ -225,9 +225,6 @@ class OhlcvBar:
             or self.ts_provider_out_ns < 0
         ):
             raise InvalidOhlcvBar("ts_provider_out_ns must be a non-negative integer or None.")
-        if bucket_start_ns(self.ts_start_ns, self.timeframe) != self.ts_start_ns:
-            raise InvalidOhlcvBar("Bar start timestamp is not aligned to its timeframe.")
-
         for name in ("open", "high", "low", "close", "volume"):
             object.__setattr__(self, name, _decimal(getattr(self, name), name))
         if self.volume < 0:
