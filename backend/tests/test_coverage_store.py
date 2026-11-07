@@ -138,3 +138,30 @@ def test_unscoped_overflow_journal_survives_restart_until_resolved(tmp_path):
     assert len(pending) == 1
     assert pending[0]["id"] == journal_id
     assert pending[0]["instrument_hint"] is None
+
+def test_concurrent_connections_preserve_all_overflow_journal_records(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+
+    path = str(tmp_path / "concurrent-coverage.sqlite3")
+    tracker = SQLiteCoverageTracker(path, busy_timeout_ms=10_000)
+    workers = 8
+    records_per_worker = 20
+
+    def journal_partition(worker):
+        ids = []
+        for offset in range(records_per_worker):
+            index = worker * records_per_worker + offset
+            ids.append(tracker.journal_overflow(
+                (worker, index), index * 100, index * 100 + 50, index,
+            ))
+        return ids
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        partitions = list(executor.map(journal_partition, range(workers)))
+
+    ids = [journal_id for partition in partitions for journal_id in partition]
+    pending = tracker.pending_overflows()
+    assert len(ids) == workers * records_per_worker
+    assert len(set(ids)) == len(ids)
+    assert len(pending) == workers * records_per_worker
+    assert {row["id"] for row in pending} == set(ids)
