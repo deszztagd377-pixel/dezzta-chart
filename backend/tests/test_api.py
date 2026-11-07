@@ -413,6 +413,33 @@ def test_ohlcv_endpoint_rejects_invalid_query_parameters(query: str) -> None:
     assert response.status_code == 422
 
 
+@pytest.mark.parametrize(
+    "query",
+    [
+        "dataset=" + ("D" * 65),
+        "publisher_id=0",
+        "publisher_id=2147483648",
+        "instrument_id=0",
+        "instrument_id=2147483648",
+        "timeframe=" + ("1" * 17),
+        "raw_symbol=" + ("S" * 129),
+        "start_ns=" + ("1" * 20),
+        "end_ns=" + ("1" * 20),
+        "provider=" + ("p" * 33),
+        "series_type=" + ("s" * 33),
+        "limit=5001",
+    ],
+)
+def test_ohlcv_endpoint_rejects_oversized_or_out_of_range_query_values(query: str) -> None:
+    client = TestClient(_app_with_bars())
+    exact = "dataset=GLBX.MDP3&publisher_id=1&instrument_id=101&raw_symbol=ESZ6&timeframe=1s"
+    response = client.get(
+        f"/v1/ohlcv?{exact}&{query}",
+        headers={"Authorization": "Bearer valid-firebase-token"},
+    )
+    assert response.status_code == 422
+
+
 def test_lifespan_connects_a_fake_live_source_and_shuts_down_cleanly() -> None:
     class FakeLive:
         stopped = False
