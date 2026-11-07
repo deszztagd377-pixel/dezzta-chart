@@ -177,3 +177,71 @@ def lookup_instant(calendar: SessionCalendar, instant: datetime) -> SessionLooku
     return SessionLookup("closed", target_date,
                          calendar_id=calendar.calendar_id,
                          calendar_version=calendar.version)
+
+
+@dataclass(frozen=True, slots=True)
+class SessionBucket:
+    """Session-aligned bucket bounds and the exact calendar release used."""
+
+    timeframe: Literal["1d", "1w", "1M", "3M"]
+    trading_period_start: date
+    trading_period_end: date
+    start_ns: int
+    end_ns: int
+    calendar_id: str
+    calendar_version: str
+
+
+def session_bucket_bounds(
+    calendar: SessionCalendar, trading_date: date, timeframe: str
+) -> SessionBucket | None:
+    """Resolve exchange-session bucket bounds; None means incomplete schedule.
+
+    Weekly buckets use Monday-Sunday trading-date weeks; monthly and quarterly
+    buckets use calendar months. Every date in the period must be explicitly
+    represented, including closed dates, before bounds are returned.
+    """
+    if timeframe not in {"1d", "1w", "1M", "3M"}:
+        raise ValueError("Session buckets support only 1d, 1w, 1M, and 3M.")
+    if timeframe == "1d":
+        start_date = end_date = trading_date
+    elif timeframe == "1w":
+        start_date = trading_date - timedelta(days=trading_date.weekday())
+        end_date = start_date + timedelta(days=6)
+    else:
+        month_step = 1 if timeframe == "1M" else 3
+        start_month = ((trading_date.month - 1) // month_step) * month_step + 1
+        start_date = date(trading_date.year, start_month, 1)
+        next_month_index = start_month - 1 + month_step
+        next_month = date(
+            trading_date.year + next_month_index // 12,
+            next_month_index % 12 + 1,
+            1,
+        )
+        end_date = next_month - timedelta(days=1)
+
+    if start_date < calendar.effective_start or end_date > calendar.effective_end:
+        return None
+    days = (end_date - start_date).days + 1
+    period_records = [
+        resolve_trading_date(calendar, start_date + timedelta(days=offset))
+        for offset in range(days)
+    ]
+    if any(record is None for record in period_records):
+        return None
+    sessions = [
+        record for record in period_records
+        if record is not None and record.kind != "closed"
+    ]
+    if not sessions:
+        return None
+    first = min(sessions, key=lambda item: item.open_local.astimezone(timezone.utc))
+    last = max(sessions, key=lambda item: item.close_local.astimezone(timezone.utc))
+    return SessionBucket(
+        timeframe=timeframe, trading_period_start=start_date,
+        trading_period_end=end_date,
+        start_ns=datetime_to_epoch_ns(first.open_local),
+        end_ns=datetime_to_epoch_ns(last.close_local),
+        calendar_id=calendar.calendar_id,
+        calendar_version=calendar.version,
+    )
