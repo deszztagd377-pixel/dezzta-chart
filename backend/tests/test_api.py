@@ -589,6 +589,38 @@ def test_auth_session_requires_bearer_token():
     assert response.headers["www-authenticate"] == "Bearer"
 
 
+def test_auth_session_offloads_firebase_verification_from_event_loop(monkeypatch):
+    import asyncio
+
+    application = create_app(make_settings())
+    calls = []
+    original_to_thread = asyncio.to_thread
+
+    class FakeVerifier:
+        def verify(self, token):
+            assert token == "valid-firebase-token"
+            return VerifiedPrincipal(
+                subject="firebase-user-123",
+                issuer="https://securetoken.google.com/test-project",
+                audience="test-project",
+                auth_time=1_798_000_000,
+            )
+
+    async def recording_to_thread(function, *args, **kwargs):
+        calls.append(function)
+        return await original_to_thread(function, *args, **kwargs)
+
+    application.state.identity_verifier = FakeVerifier()
+    monkeypatch.setattr("app.main.asyncio.to_thread", recording_to_thread)
+    response = TestClient(application).get(
+        "/v1/auth/session",
+        headers={"Authorization": "Bearer valid-firebase-token"},
+    )
+
+    assert response.status_code == 200
+    assert calls == [application.state.identity_verifier.verify]
+
+
 def test_auth_session_returns_only_verified_principal():
     from app.identity import VerifiedPrincipal
 
