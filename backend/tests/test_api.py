@@ -290,7 +290,12 @@ def test_ohlcv_endpoint_returns_ingested_bars_with_local_sequence_and_limit() ->
     client = TestClient(_app_with_bars())
     headers = {"Authorization": "Bearer valid-firebase-token"}
     exact = "dataset=GLBX.MDP3&publisher_id=1&instrument_id=101&raw_symbol=ESZ6"
-    payload = client.get(f"/v1/ohlcv?{exact}&timeframe=1s", headers=headers).json()
+    snapshot_response = client.get(f"/v1/ohlcv?{exact}&timeframe=1s", headers=headers)
+    assert snapshot_response.status_code == 200
+    assert snapshot_response.headers["cache-control"] == "private, no-store, max-age=0"
+    assert snapshot_response.headers["pragma"] == "no-cache"
+    assert snapshot_response.headers["x-content-type-options"] == "nosniff"
+    payload = snapshot_response.json()
     assert payload["state"] == "ready" and payload["count"] == 4 and payload["truncated"] is False
     assert payload["bars"][0]["sequenceOrigin"] == "local"
     assert payload["bars"][0]["bucketPolicy"] == "UTC_FIXED_V1"
