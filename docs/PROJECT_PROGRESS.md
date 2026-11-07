@@ -774,3 +774,14 @@ The diagnostic workflow addition is not a completed security remediation or a St
 - Added a feature-branch-only diagnostic for `python:3.12-alpine`: build the same backend Dockerfile against Alpine, run an isolated `/health` smoke test, and export a Trivy JSON report for comparison. The candidate is diagnostic only; no production Dockerfile or base-image change is made. Build/runtime incompatibility or a missing report must remain visible as unavailable, not be treated as zero findings.
 - This diagnostic experiment is not a security fix or Stage 1 acceptance. A production base-image change requires successful full dependency installation, backend test coverage, runtime smoke testing, vulnerability review, and a separate explicit decision.
 - Overall progress remains unchanged; no Stage 1 acceptance criterion is awarded by adding a comparison job.
+
+
+
+## Alpine diagnostic matcher correction — 2026-11-07
+
+- Audited completed CI run [42369911702](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42369911702) on HEAD `7078a0ab4d0f44da80917da9ab34833f2ea9d5b5`. Frontend dependency audit, frontend tests/build, backend tests, backend dependency audit, Docker build, CodeQL, and all Debian diagnostic build/smoke/report steps completed successfully. The required strict Trivy scan failed with 49 HIGH / 0 CRITICAL findings, as intended.
+- The exact-HEAD comparison summary showed current Trixie: 49 HIGH / 0 CRITICAL; Trixie plus `apt-get upgrade`: 49 HIGH / 0 CRITICAL; Bookworm: 40 HIGH / 2 CRITICAL. Neither Debian comparison is accepted as a production remediation.
+- The Alpine report was unavailable. Source inspection found its AWK base-image matcher used a double-escaped dot (`\\\\.`) while the working Debian matchers use a single escaped dot (`\\.`). In an AWK ERE this does not match the literal dot in `3.12`, so the replacement guard can fail before the Alpine build.
+- Corrected only the Alpine diagnostic matcher in `.github/workflows/ci.yml` to use the same single-escaped version pattern. This is a CI diagnostic correction, not a vulnerability remediation and not a production base-image change.
+- The strict Trivy gate, severity thresholds, unfixed-finding policy, and production `backend/Dockerfile` remain unchanged. The corrected Alpine candidate must still build, pass its runtime smoke test, and produce a valid scan report before its findings can be compared.
+- Follow-up CI triggered by this correction is pending at the time of this record. No overall progress or Stage 1 credit is awarded for this workflow-only fix.
