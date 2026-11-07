@@ -239,31 +239,30 @@ def create_app(
         if not normalized_symbol:
             raise HTTPException(status_code=422, detail="raw_symbol is required.")
 
-        def has_series_access() -> bool:
+        def authorized_series_type() -> str | None:
             mapping = application.state.instrument_registry.resolve_provider_mapping(
-                provider="databento",
-                dataset=dataset,
-                publisher_id=publisher_id,
-                instrument_id=instrument_id,
-                timestamp_ns=time.time_ns(),
+                provider="databento", dataset=dataset, publisher_id=publisher_id,
+                instrument_id=instrument_id, timestamp_ns=time.time_ns(),
             )
-            if mapping is None or mapping.raw_symbol != normalized_symbol:
-                return False
-            if series_type is not None and mapping.series_type != series_type:
-                return False
+            if (
+                mapping is None or mapping.raw_symbol != normalized_symbol
+                or (series_type is not None and mapping.series_type != series_type)
+            ):
+                return None
             instrument = application.state.instrument_registry.get_instrument(mapping.canonical_id)
             if instrument is None or not instrument.is_active:
-                return False
-            return application.state.instrument_entitlements.has_access(
-                subject=principal.subject,
-                canonical_instrument_id=mapping.canonical_id,
-            )
+                return None
+            if not application.state.instrument_entitlements.has_access(
+                subject=principal.subject, canonical_instrument_id=mapping.canonical_id,
+            ):
+                return None
+            return mapping.series_type
 
         try:
-            authorized = await asyncio.to_thread(has_series_access)
+            effective_series_type = await asyncio.to_thread(authorized_series_type)
         except Exception:
-            authorized = False
-        if not authorized:
+            effective_series_type = None
+        if effective_series_type is None:
             raise HTTPException(status_code=403, detail="Instrument access denied.")
 
         try:
@@ -282,9 +281,9 @@ def create_app(
 
         effective_limit = min(limit or config.ohlcv_max_response_bars, config.ohlcv_max_response_bars)
         bars, total = ohlcv_pipeline.query(
-            dataset=dataset, publisher_id=publisher_id, instrument_id=instrument_id,
-            timeframe=timeframe, provider=provider_name, raw_symbol=raw_symbol,
-            series_type=series_type, bucket_policy=effective_bucket_policy,
+            dataset=dataset.strip().upper(), publisher_id=publisher_id, instrument_id=instrument_id,
+            timeframe=timeframe, provider="databento", raw_symbol=normalized_symbol,
+            series_type=effective_series_type, bucket_policy=effective_bucket_policy,
             calendar_id=calendar_id, calendar_version=calendar_version,
             start_ns=start_value, end_ns=end_value, limit=effective_limit,
         )

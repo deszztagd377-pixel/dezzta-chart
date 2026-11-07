@@ -42,10 +42,11 @@ class OhlcvStreamHub:
         self._subscriptions: dict[str, OhlcvStreamSubscription] = {}
 
     @staticmethod
-    def identity_for(bar: OhlcvBar) -> tuple[str, int, int, str, str, str, str, str]:
+    def identity_for(bar: OhlcvBar) -> tuple[str, str, int, int, str, str, str, str, str, str]:
         return (
-            bar.dataset, bar.publisher_id, bar.instrument_id, bar.raw_symbol,
-            bar.timeframe, bar.bucket_policy, bar.calendar_id, bar.calendar_version,
+            bar.provider, bar.dataset, bar.publisher_id, bar.instrument_id,
+            bar.series_type, bar.raw_symbol, bar.timeframe, bar.bucket_policy,
+            bar.calendar_id, bar.calendar_version,
         )
 
     def subscribe_snapshot(
@@ -68,8 +69,8 @@ class OhlcvStreamHub:
         registration, so the returned watermark is a valid atomic boundary.
         """
         identity = (
-            dataset, publisher_id, instrument_id, raw_symbol, timeframe,
-            bucket_policy, calendar_id, calendar_version,
+            "databento", dataset, publisher_id, instrument_id, "contract",
+            raw_symbol, timeframe, bucket_policy, calendar_id, calendar_version,
         )
         bars, total = pipeline.query(
             dataset=dataset,
@@ -135,9 +136,11 @@ class OhlcvStreamHub:
                 "operation": "upsert",
                 "isFinal": bar.completeness == "complete",
                 "series": {
+                    "provider": bar.provider,
                     "dataset": bar.dataset,
                     "publisherId": bar.publisher_id,
                     "instrumentId": bar.instrument_id,
+                    "seriesType": bar.series_type,
                     "rawSymbol": bar.raw_symbol,
                     "timeframe": bar.timeframe,
                     "bucketPolicy": bar.bucket_policy,

@@ -5,6 +5,8 @@ from uuid import uuid4
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
+from dataclasses import replace
+
 from app.config import Settings
 from app.main import create_app
 from app.identity import IdentityVerificationError, VerifiedPrincipal
@@ -276,6 +278,30 @@ def test_ohlcv_endpoint_returns_ingested_bars_with_local_sequence_and_limit() ->
         headers=headers,
     ).json()
     assert ranged["count"] == 2
+
+
+def test_rest_snapshot_is_scoped_to_authorized_provider_series_type() -> None:
+    application = _app_with_bars()
+    pipeline = application.state.ohlcv_pipeline
+    existing, _ = pipeline.query(
+        dataset="GLBX.MDP3", publisher_id=1, instrument_id=101,
+        raw_symbol="ESZ6", timeframe="1s", provider="databento",
+        series_type="contract", limit=1,
+    )
+    assert existing
+    pipeline.apply(replace(existing[0], series_type="continuous", sequence=999))
+    client = TestClient(application)
+    headers = {"Authorization": "Bearer valid-firebase-token"}
+    exact = "dataset=GLBX.MDP3&publisher_id=1&instrument_id=101&raw_symbol=ESZ6&timeframe=1s"
+
+    response = client.get(f"/v1/ohlcv?{exact}", headers=headers)
+    assert response.status_code == 200
+    assert response.json()["count"] == 4
+    assert {bar["seriesType"] for bar in response.json()["bars"]} == {"contract"}
+    assert {bar["provider"] for bar in response.json()["bars"]} == {"databento"}
+
+    denied = client.get(f"/v1/ohlcv?{exact}&series_type=continuous", headers=headers)
+    assert denied.status_code == 403
 
 
 def test_rest_and_websocket_snapshots_return_identical_ohlcv_bars() -> None:

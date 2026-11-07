@@ -11,7 +11,8 @@ _T0 = 1_704_067_200 * _NS
 
 def make_bar(
     offset: int, *, raw_symbol: str = "ESZ6", instrument_id: int = 101,
-    bucket_policy: str = "UTC_LEGACY",
+    bucket_policy: str = "UTC_LEGACY", provider: str = "databento",
+    series_type: str = "contract",
 ) -> OhlcvBar:
     start = _T0 + offset * _NS
     return OhlcvBar(
@@ -29,8 +30,8 @@ def make_bar(
         ts_event_ns=start + 900_000_000,
         ts_received_ns=start + 950_000_000,
         sequence=offset + 1,
-        provider="databento",
-        series_type="contract",
+        provider=provider,
+        series_type=series_type,
         origin="provider",
         completeness="complete",
         ts_provider_out_ns=start + 925_000_000,
@@ -85,8 +86,13 @@ def test_stream_hub_filters_exact_series_identity() -> None:
             raw_symbol="ESZ6", timeframe="1s", limit=100,
         )
 
-        other = make_bar(1, raw_symbol="NQZ6", instrument_id=202)
-        hub.publish(other)
+        unrelated_series = [
+            make_bar(1, raw_symbol="NQZ6", instrument_id=202),
+            make_bar(1, provider="other-provider"),
+            make_bar(1, series_type="continuous"),
+        ]
+        for bar in unrelated_series:
+            hub.publish(bar)
         assert subscription.queue.empty()
         assert subscription.watermark == 0
 
