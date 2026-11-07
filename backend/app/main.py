@@ -28,9 +28,10 @@ from app.identity import (
     VerifiedPrincipal,
 )
 from app.ohlcv import (
-    BUCKET_POLICY_UTC_LEGACY, SUPPORTED_BUCKET_POLICIES,
+    SUPPORTED_BUCKET_POLICIES,
     InvalidOhlcvBar,
     OhlcvPipeline,
+    bucket_policy_for_timeframe,
     bucket_start_ns,
     decimal_to_string,
 )
@@ -216,7 +217,7 @@ def create_app(
         start_ns: str | None = None,
         end_ns: str | None = None,
         limit: int | None = Query(default=None, ge=1),
-        bucket_policy: str = Query(default=BUCKET_POLICY_UTC_LEGACY),
+        bucket_policy: str | None = Query(default=None),
         calendar_id: str = "",
         calendar_version: str = "",
         principal: VerifiedPrincipal = Depends(require_verified_principal),
@@ -269,7 +270,10 @@ def create_app(
             bucket_start_ns(0, timeframe)
         except InvalidOhlcvBar as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
-        if bucket_policy not in SUPPORTED_BUCKET_POLICIES or calendar_id or calendar_version:
+        effective_bucket_policy = (
+            bucket_policy if bucket_policy is not None else bucket_policy_for_timeframe(timeframe)
+        )
+        if effective_bucket_policy not in SUPPORTED_BUCKET_POLICIES or calendar_id or calendar_version:
             raise HTTPException(status_code=422, detail="Unsupported OHLCV bucket identity.")
         start_value = _parse_ns(start_ns, "start_ns")
         end_value = _parse_ns(end_ns, "end_ns")
@@ -280,7 +284,7 @@ def create_app(
         bars, total = ohlcv_pipeline.query(
             dataset=dataset, publisher_id=publisher_id, instrument_id=instrument_id,
             timeframe=timeframe, provider=provider_name, raw_symbol=raw_symbol,
-            series_type=series_type, bucket_policy=bucket_policy,
+            series_type=series_type, bucket_policy=effective_bucket_policy,
             calendar_id=calendar_id, calendar_version=calendar_version,
             start_ns=start_value, end_ns=end_value, limit=effective_limit,
         )
@@ -462,7 +466,7 @@ def create_app(
             dataset = identity.get("dataset")
             raw_symbol = identity.get("rawSymbol")
             timeframe = identity.get("timeframe")
-            bucket_policy = identity.get("bucketPolicy", BUCKET_POLICY_UTC_LEGACY)
+            bucket_policy = identity.get("bucketPolicy")
             calendar_id = identity.get("calendarId", "")
             calendar_version = identity.get("calendarVersion", "")
             publisher_id = identity.get("publisherId")
@@ -472,8 +476,10 @@ def create_app(
                 dataset != config.databento_dataset
                 or not isinstance(raw_symbol, str) or not raw_symbol.strip()
                 or not isinstance(timeframe, str)
-                or not isinstance(bucket_policy, str)
-                or bucket_policy not in SUPPORTED_BUCKET_POLICIES
+                or (bucket_policy is not None and (
+                    not isinstance(bucket_policy, str)
+                    or bucket_policy not in SUPPORTED_BUCKET_POLICIES
+                ))
                 or calendar_id != "" or calendar_version != ""
                 or not isinstance(publisher_id, int) or isinstance(publisher_id, bool) or publisher_id <= 0
                 or not isinstance(instrument_id, int) or isinstance(instrument_id, bool) or instrument_id <= 0
@@ -494,6 +500,8 @@ def create_app(
             except InvalidOhlcvBar:
                 await websocket.close(code=4400, reason="Unsupported OHLCV timeframe")
                 return
+            if bucket_policy is None:
+                bucket_policy = bucket_policy_for_timeframe(timeframe)
 
             def has_series_access() -> bool:
                 mapping = application.state.instrument_registry.resolve_provider_mapping(

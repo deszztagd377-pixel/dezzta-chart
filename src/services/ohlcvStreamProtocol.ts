@@ -1,5 +1,6 @@
 import type { OhlcvBarDto, OhlcvTimeframe } from '../types/ohlcv';
 import { parseOhlcvSnapshot } from '../utils/ohlcvAdapter';
+import { getBucketPolicyForTimeframe } from '../utils/ohlcvBucketPolicy';
 
 export interface OhlcvStreamSeriesIdentity {
   dataset: string;
@@ -55,7 +56,7 @@ function sameSeries(
     left.instrumentId === right.instrumentId &&
     left.rawSymbol === right.rawSymbol &&
     left.timeframe === right.timeframe &&
-    (left.bucketPolicy ?? 'UTC_LEGACY') === (right.bucketPolicy ?? 'UTC_LEGACY') &&
+    (left.bucketPolicy ?? getBucketPolicyForTimeframe(left.timeframe)) === (right.bucketPolicy ?? getBucketPolicyForTimeframe(right.timeframe)) &&
     (left.calendarId ?? '') === (right.calendarId ?? '') &&
     (left.calendarVersion ?? '') === (right.calendarVersion ?? '');
 }
@@ -118,7 +119,7 @@ export function parseOhlcvStreamUpdate(payload: unknown): OhlcvStreamUpdateMessa
     instrumentId: bar.instrumentId,
     rawSymbol: bar.rawSymbol,
     timeframe: bar.timeframe,
-    bucketPolicy: bar.bucketPolicy ?? 'UTC_LEGACY',
+    bucketPolicy: bar.bucketPolicy ?? getBucketPolicyForTimeframe(bar.timeframe),
     calendarId: bar.calendarId ?? '',
     calendarVersion: bar.calendarVersion ?? '',
   })) {

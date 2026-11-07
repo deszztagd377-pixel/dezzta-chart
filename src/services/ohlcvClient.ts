@@ -1,5 +1,6 @@
 import type { ChartData } from '../types';
 import type { OhlcvSnapshotMessage } from '../types/ohlcv';
+import { getBucketPolicyForTimeframe } from '../utils/ohlcvBucketPolicy';
 import { parseOhlcvSnapshot, toChartCandles, type OhlcvSeriesIdentity } from '../utils/ohlcvAdapter';
 
 export type OhlcvRequestErrorCode =
@@ -78,7 +79,7 @@ function buildSnapshotUrl(baseUrl: string, identity: OhlcvSeriesIdentity, limit?
   url.searchParams.set('instrument_id', String(identity.instrumentId));
   url.searchParams.set('raw_symbol', identity.rawSymbol);
   url.searchParams.set('timeframe', identity.timeframe);
-  url.searchParams.set('bucket_policy', identity.bucketPolicy ?? 'UTC_LEGACY');
+  url.searchParams.set('bucket_policy', identity.bucketPolicy ?? getBucketPolicyForTimeframe(identity.timeframe));
   url.searchParams.set('calendar_id', identity.calendarId ?? '');
   url.searchParams.set('calendar_version', identity.calendarVersion ?? '');
   if (limit !== undefined) url.searchParams.set('limit', String(limit));

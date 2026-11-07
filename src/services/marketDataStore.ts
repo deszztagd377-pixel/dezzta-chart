@@ -1,4 +1,5 @@
 import type { ChartData, Timeframe } from '../types';
+import { getBucketPolicyForTimeframe } from '../utils/ohlcvBucketPolicy';
 
 export interface MarketSeriesIdentity {
   dataset: string;
@@ -135,7 +136,7 @@ function sameIdentity(left: MarketSeriesIdentity, right: MarketSeriesIdentity): 
     left.instrumentId === right.instrumentId &&
     left.rawSymbol === right.rawSymbol &&
     left.timeframe === right.timeframe &&
-    (left.bucketPolicy ?? 'UTC_LEGACY') === (right.bucketPolicy ?? 'UTC_LEGACY') &&
+    (left.bucketPolicy ?? getBucketPolicyForTimeframe(left.timeframe)) === (right.bucketPolicy ?? getBucketPolicyForTimeframe(right.timeframe)) &&
     (left.calendarId ?? '') === (right.calendarId ?? '') &&
     (left.calendarVersion ?? '') === (right.calendarVersion ?? '');
 }

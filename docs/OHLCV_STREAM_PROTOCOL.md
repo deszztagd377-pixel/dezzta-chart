@@ -19,7 +19,7 @@ A stream update uses:
 - `emittedAtNs`: server emission timestamp in Unix nanoseconds, decimal string
 - `operation`: currently `upsert`
 - `isFinal`: whether the bar is finalized; false means a revision may follow
-- `series`: exact dataset/publisher/instrument/raw-symbol/timeframe identity
+- `series`: exact dataset/publisher/instrument/raw-symbol/timeframe/bucket identity
 - `bar`: the existing canonical OHLCV bar DTO
 
 Example shape (illustrative values only; not market data):
@@ -39,7 +39,8 @@ Example shape (illustrative values only; not market data):
     "publisherId": 1,
     "instrumentId": 123,
     "rawSymbol": "ESZ6",
-    "timeframe": "1s"
+    "timeframe": "1s",
+    "bucketPolicy": "UTC_FIXED_V1"
   },
   "bar": {
     "dataset": "GLBX.MDP3",
@@ -49,6 +50,7 @@ Example shape (illustrative values only; not market data):
     "rawSymbol": "ESZ6",
     "seriesType": "contract",
     "timeframe": "1s",
+    "bucketPolicy": "UTC_FIXED_V1",
     "tsStartNs": "1793577600000000000",
     "open": "6000.125",
     "high": "6001.250",
@@ -68,6 +70,10 @@ Example shape (illustrative values only; not market data):
 The outer `sequence` is the stream delivery sequence. The nested `bar.sequence`
 is the existing local ingestion/revision sequence. They are different counters
 with different scopes and must never be substituted for one another.
+
+## Bucket identity defaults
+
+When callers omit `bucketPolicy`, REST and WebSocket boundaries derive it from the timeframe: intraday intervals use `UTC_FIXED_V1`; daily and larger intervals use `UTC_LEGACY`. Explicit supported policies remain available to address a distinct historical series. Frontend request construction, snapshot filtering, stream validation, and store identity comparisons follow the same timeframe rule. This prevents valid intraday bars from being hidden by an implicit legacy-policy filter.
 
 ## Validation and ordering
 

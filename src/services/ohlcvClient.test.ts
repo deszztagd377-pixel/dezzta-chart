@@ -76,7 +76,7 @@ describe('fetchOhlcvSnapshot', () => {
     expect(url.searchParams.get('instrument_id')).toBe('123');
     expect(url.searchParams.get('raw_symbol')).toBe('ESZ6');
     expect(url.searchParams.get('timeframe')).toBe('1s');
-    expect(url.searchParams.get('bucket_policy')).toBe('UTC_LEGACY');
+    expect(url.searchParams.get('bucket_policy')).toBe('UTC_FIXED_V1');
     expect(url.searchParams.get('calendar_id')).toBe('');
     expect(url.searchParams.get('calendar_version')).toBe('');
     expect(url.searchParams.get('limit')).toBe('250');

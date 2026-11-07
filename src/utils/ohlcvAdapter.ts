@@ -1,4 +1,5 @@
 import type { ChartData, Timeframe } from '../types';
+import { getBucketPolicyForTimeframe } from './ohlcvBucketPolicy';
 import type {
   OhlcvBarDto,
   OhlcvSnapshotMessage,
@@ -193,7 +194,7 @@ export function toChartCandles(
     bar.instrumentId === identity.instrumentId &&
     bar.rawSymbol === identity.rawSymbol &&
     bar.timeframe === identity.timeframe &&
-    (bar.bucketPolicy ?? 'UTC_LEGACY') === (identity.bucketPolicy ?? 'UTC_LEGACY') &&
+    (bar.bucketPolicy ?? getBucketPolicyForTimeframe(bar.timeframe)) === (identity.bucketPolicy ?? getBucketPolicyForTimeframe(identity.timeframe)) &&
     (bar.calendarId ?? '') === (identity.calendarId ?? '') &&
     (bar.calendarVersion ?? '') === (identity.calendarVersion ?? '')
   );
