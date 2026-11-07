@@ -41,6 +41,7 @@ class BoundedBuffer:
         # contains an unbounded number of distinct instrument identifiers.
         self._max_overflow_scopes = min(maxsize, 1024)
         self._overflows: dict[tuple[int, int] | None, tuple[int, int]] = {}
+        self._overflow_scoped_count = 0
         self.overflow_count = 0
         self.wakeup: Callable[[], None] | None = None
 
@@ -54,13 +55,14 @@ class BoundedBuffer:
                 point = ts_hint if ts_hint is not None else recv_ns
                 key = instrument_hint
                 if key not in self._overflows and key is not None:
-                    scoped_count = sum(scope is not None for scope in self._overflows)
-                    if scoped_count >= self._max_overflow_scopes:
+                    if self._overflow_scoped_count >= self._max_overflow_scopes:
                         # Preserve a conservative, explicitly unscoped range
                         # rather than allowing per-instrument metadata to grow
                         # without bound or assigning a gap to the wrong symbol.
                         key = None
                 previous = self._overflows.get(key)
+                if previous is None and key is not None:
+                    self._overflow_scoped_count += 1
                 self._overflows[key] = (
                     point if previous is None else min(previous[0], point),
                     point if previous is None else max(previous[1], point),
@@ -84,6 +86,7 @@ class BoundedBuffer:
         with self._lock:
             taken = [(key, bounds[0], bounds[1]) for key, bounds in self._overflows.items()]
             self._overflows.clear()
+            self._overflow_scoped_count = 0
             return taken
 
 

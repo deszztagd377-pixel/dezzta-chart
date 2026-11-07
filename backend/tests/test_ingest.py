@@ -25,6 +25,23 @@ def test_buffer_overflow_metadata_is_bounded_for_many_instrument_ids():
     assert buf.overflow_count == 1000
 
 
+def test_overflow_scope_counter_resets_after_metadata_is_drained():
+    buf = BoundedBuffer(2)
+    assert buf.offer("a", 1, 1)
+    assert buf.offer("b", 2, 2)
+    assert not buf.offer("overflow-a", 3, 3, (1, 101))
+    assert not buf.offer("overflow-b", 4, 4, (1, 102))
+    assert buf._overflow_scoped_count == 2
+
+    drained = buf.take_overflows()
+    assert len(drained) == 2
+    assert buf._overflow_scoped_count == 0
+
+    # A fresh overflow epoch can use its full scoped budget again.
+    assert not buf.offer("overflow-c", 5, 5, (1, 103))
+    assert buf._overflow_scoped_count == 1
+
+
 def test_buffer_overflow_is_counted_not_silent():
     buf = BoundedBuffer(2)
     assert buf.offer("a", 1, 1) and buf.offer("b", 2, 2)
