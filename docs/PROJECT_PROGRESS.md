@@ -600,3 +600,13 @@ The frontend dependency lockfile task is now verified on branch HEAD `033ec5f686
 A stale security-baseline document was corrected so it no longer claims that the lockfile is absent or that dependency audits and CodeQL are missing. The documentation now distinguishes implemented CI checks from remaining repository secret scanning, container-image scanning, and runtime controls. This documentation correction does not itself increase the project progress score.
 
 Verification scope: successful CI and CodeQL runs prove those configured jobs passed on the exact SHA above; they do not prove deployed Firebase configuration, production security, zero CodeQL alerts, or completion of all Stage 1 acceptance criteria.
+
+
+## Strict environment CORS validation — 2026-11-07
+
+A configuration-hardening slice was added on `phase-2/market-data-foundation`:
+- Environment-loaded CORS values now accept only exact bare HTTP(S) origins. Wildcards, whitespace, URL paths, credentials, query strings, fragments, and malformed ports/URLs fail startup configuration parsing rather than being silently accepted.
+- When `APP_ENV=production`, every configured CORS origin must use HTTPS. Exact local HTTP origins remain valid in development.
+- Added focused tests for local development origin acceptance, wildcard rejection, path rejection, production HTTP rejection, and production HTTPS acceptance.
+
+This closes a configuration-validation gap only. It does not prove the deployed allowlist is correct, does not add rate limiting, and does not replace live HTTPS/WSS, Origin, Firebase lifecycle, or abuse-control smoke tests. No overall or Stage 1 percentage is increased until CI verifies the new commit and the broader Stage 1 ledger is reconciled.
