@@ -423,9 +423,9 @@ Extended the existing GitHub Actions test/build workflow with a backend dependen
 
 Scope and limitations:
 - This checks resolved Python dependency versions against the vulnerability data available to pip-audit at run time; it does not pin dependencies or make resolution reproducible.
-- Frontend dependency auditing is not yet wired into CI because the repository has no committed `package-lock.json`; adding `npm audit` without a lockfile would not establish a stable dependency graph.
-- GitHub Actions third-party action pinning, secret scanning, container image scanning, and repository-level Dependabot security-alert settings remain outstanding.
-- The audit step has been committed but has not yet run successfully on this exact HEAD. No security-clean claim is made until the workflow completes.
+- Frontend dependency auditing is now wired into CI with `npm audit --audit-level=high` after `npm install`. Because no `package-lock.json` is committed, the audit checks the dependency graph resolved during that workflow run; it does not make frontend dependency resolution reproducible.
+- Immutable SHA pinning for the three GitHub Actions used by this workflow is implemented and passed CI on commit `d41f8cdee9be31172ce8440b239cb53764a57251`. Secret scanning, container image scanning, and repository-level Dependabot security-alert settings remain outstanding.
+- The backend `pip-audit` step passed on commit `d41f8cdee9be31172ce8440b239cb53764a57251`. The newly added frontend audit must pass on its own exact HEAD before it is considered verified. No security-clean claim is made from a dependency audit alone.
 - Overall progress remains unchanged pending exact-HEAD CI evidence and acceptance-ledger review.
 
 
@@ -443,3 +443,14 @@ Verification boundary:
 - This removes automatic tag movement for these three action dependencies; future action updates must deliberately verify and change the commit SHA.
 - This does not pin dependencies installed by npm/pip, does not add lockfiles, and does not replace action-code review or a broader supply-chain policy.
 - The updated workflow must pass on its resulting exact HEAD before this CI hardening is counted as verified. No overall or Stage 1 percentage increase is claimed from the edit alone.
+
+
+## Stage 1 frontend dependency vulnerability gate (2026-11-07)
+
+Added an `npm audit --audit-level=high` CI step immediately after frontend dependency installation. The gate fails the workflow when npm reports a high- or critical-severity advisory (or when the audit command itself fails).
+
+Verification and limitations:
+- The repository does not currently contain a committed `package-lock.json`; the GitHub API returned 404 for that path. CI's preceding `npm install` resolves dependencies in the runner, and npm audit checks that run's generated dependency graph.
+- This improves vulnerability visibility but does not provide reproducible dependency resolution. A committed lockfile plus `npm ci` remains a separate requirement.
+- The new audit has not yet run on the resulting commit at the time of this documentation change. Do not claim it passed until exact-HEAD CI finishes.
+- No overall or Stage 1 progress increase is claimed from adding a gate alone.
