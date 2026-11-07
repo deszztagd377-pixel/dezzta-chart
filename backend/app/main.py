@@ -43,6 +43,7 @@ from app.symbology import InstrumentResolver
 
 
 WEBSOCKET_AUTHORIZATION_RECHECK_SECONDS = 60.0
+MAX_OHLCV_RESPONSE_BARS = 5_000
 
 
 def _parse_ns(value: str | None, name: str) -> int | None:
@@ -60,6 +61,10 @@ def create_app(
     historical_source_factory=None,
 ) -> FastAPI:
     config = settings or Settings.from_environment()
+    max_ohlcv_response_bars = min(
+        max(1, config.ohlcv_max_response_bars),
+        MAX_OHLCV_RESPONSE_BARS,
+    )
     catalog = InstrumentCatalog(config.allowed_roots)
     instrument_registry = SQLiteInstrumentRegistry(config.instrument_registry_db_path)
     # Durable alert storage is initialized, but no public alert routes are
@@ -281,7 +286,7 @@ def create_app(
         if start_value is not None and end_value is not None and start_value >= end_value:
             raise HTTPException(status_code=422, detail="start_ns must be before end_ns.")
 
-        effective_limit = min(limit or config.ohlcv_max_response_bars, config.ohlcv_max_response_bars)
+        effective_limit = min(limit or max_ohlcv_response_bars, max_ohlcv_response_bars)
         bars, total = ohlcv_pipeline.query(
             dataset=dataset.strip().upper(), publisher_id=publisher_id, instrument_id=instrument_id,
             timeframe=timeframe, provider="databento", raw_symbol=normalized_symbol,
@@ -543,7 +548,7 @@ def create_app(
                 bucket_policy=bucket_policy,
                 calendar_id=calendar_id,
                 calendar_version=calendar_version,
-                limit=config.ohlcv_max_response_bars,
+                limit=max_ohlcv_response_bars,
             )
             feed_state = provider.state
             snapshot_state = (
