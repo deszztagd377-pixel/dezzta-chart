@@ -230,6 +230,6 @@ The loader was tightened after static review:
 - Caps a single artifact's effective date range at 10 years to bound memory/CPU use during completeness validation.
 - Added regression tests for malformed ports, date-only session boundaries, and excessive effective ranges.
 
-Latest branch comparison against the handoff checkpoint `aae7bd331a34033548be4974bfe5198f273e57dd` reports exactly five commits ahead and zero behind. Latest branch HEAD: `f53f0fb6b804ed50dbebf14e79382fe82650a232`. The connected status surface currently returns no status checks for this HEAD; no successful CI claim is made. Run the full Actions workflow and inspect the backend test result before treating this loader slice as verified.
+Latest branch comparison against the handoff checkpoint `aae7bd331a34033548be4974bfe5198f273e57dd` reports exactly six commits ahead and zero behind. Latest branch HEAD at this documentation update: `8f4fb0c8e701054ff757f089e380aee37be96dc7`. The connected status surface exposes Vercel as pending and no Actions check result for this HEAD; no successful CI claim is made. Run the full Actions workflow and inspect the backend test result before treating this loader slice as verified.
 
 This follow-up does not change the project percentage. The loader remains a parser/validator only; no official CME calendar release is supplied, authenticated, registered, or activated.
