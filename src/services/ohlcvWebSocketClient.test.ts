@@ -125,7 +125,7 @@ describe('connectOhlcvStream', () => {
       type: 'market_data.subscribe',
       version: 1,
       canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
-      series: identity,
+      series: { ...identity, bucketPolicy: 'UTC_FIXED_V1' },
     });
 
     socket.message(snapshot);

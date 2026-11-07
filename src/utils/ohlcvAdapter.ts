@@ -163,7 +163,7 @@ export function parseOhlcvSnapshot(payload: unknown): OhlcvSnapshotMessage {
       bar.instrumentId,
       bar.rawSymbol,
       bar.timeframe,
-      bar.bucketPolicy ?? 'UTC_LEGACY',
+      bar.bucketPolicy ?? getBucketPolicyForTimeframe(bar.timeframe),
       bar.calendarId ?? '',
       bar.calendarVersion ?? '',
     ].join('|');

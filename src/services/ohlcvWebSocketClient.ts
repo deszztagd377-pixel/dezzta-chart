@@ -162,7 +162,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
             instrumentId: options.identity.instrumentId,
             rawSymbol: options.identity.rawSymbol,
             timeframe: options.identity.timeframe,
-            bucketPolicy: options.identity.bucketPolicy ?? 'UTC_LEGACY',
+            bucketPolicy: options.identity.bucketPolicy ?? getBucketPolicyForTimeframe(options.identity.timeframe),
             calendarId: options.identity.calendarId ?? '',
             calendarVersion: options.identity.calendarVersion ?? '',
           },
