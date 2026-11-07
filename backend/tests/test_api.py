@@ -468,6 +468,32 @@ def test_ohlcv_endpoint_rejects_invalid_query_parameters(query: str) -> None:
         "limit=5001",
     ],
 )
+@pytest.mark.parametrize("field", ["start_ns", "end_ns"])
+def test_ohlcv_endpoint_rejects_nanosecond_timestamp_overflow(field: str) -> None:
+    client = TestClient(_app_with_bars())
+    exact = "dataset=GLBX.MDP3&publisher_id=1&instrument_id=101&raw_symbol=ESZ6&timeframe=1s"
+    response = client.get(
+        f"/v1/ohlcv?{exact}&{field}=9223372036854775808",
+        headers={"Authorization": "Bearer valid-firebase-token"},
+    )
+    assert response.status_code == 422
+    assert "signed 64-bit nanosecond range" in response.json()["detail"]
+
+
+def test_ohlcv_endpoint_accepts_maximum_signed_64_bit_nanosecond_timestamp() -> None:
+    client = TestClient(_app_with_bars())
+    headers = {"Authorization": "Bearer valid-firebase-token"}
+    exact = "dataset=GLBX.MDP3&publisher_id=1&instrument_id=101&raw_symbol=ESZ6&timeframe=1s"
+
+    start_response = client.get(f"/v1/ohlcv?{exact}&start_ns=9223372036854775807", headers=headers)
+    end_response = client.get(f"/v1/ohlcv?{exact}&end_ns=9223372036854775807", headers=headers)
+
+    assert start_response.status_code == 200
+    assert start_response.json()["count"] == 0
+    assert end_response.status_code == 200
+    assert end_response.json()["count"] == 4
+
+
 def test_ohlcv_endpoint_rejects_oversized_or_out_of_range_query_values(query: str) -> None:
     client = TestClient(_app_with_bars())
     exact = "dataset=GLBX.MDP3&publisher_id=1&instrument_id=101&raw_symbol=ESZ6&timeframe=1s"
