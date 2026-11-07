@@ -640,3 +640,12 @@ Scope limitation: these controls bound each connection's message behavior and fr
 - Existing provider-mapping equality, canonical-instrument active-state, entitlement checks, Firebase revalidation, per-connection ping window, and bounded Uvicorn frame/queue settings remain in place.
 - This is bounded input validation, not global HTTP rate limiting, per-IP/account connection limiting, or distributed abuse protection. Backend hosting provider/topology is not selected in the repository deployment guide, so a shared-state or edge rate limiter must not be guessed or represented as complete.
 - Exact-HEAD CI and CodeQL verification are pending for the resulting commit.
+
+
+## HTTP API response hardening — 2026-11-07
+
+- Added response security headers to `/health` and `/v1/*`: content-type sniffing disabled, framing denied, restrictive referrer policy, and camera/microphone/geolocation disabled.
+- Added explicit non-cache policy (`private, no-store, max-age=0`, `Pragma: no-cache`, `Expires: 0`) for API and health responses, including authentication failures and market-data responses.
+- Added API tests for the full header set on health responses and no-store/security headers on unauthenticated API errors.
+- These application headers do not provide TLS termination, frontend CSP, rate limiting, or deployment-edge protections. HSTS is intentionally not set here because TLS termination and trusted-proxy behavior are not yet confirmed for the backend deployment.
+- CI and CodeQL verification are pending for the resulting HEAD.
