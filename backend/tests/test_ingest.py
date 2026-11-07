@@ -293,9 +293,9 @@ def test_unscoped_degraded_reason_clears_when_mapping_becomes_available(tmp_path
     from app.ingest import OhlcvIngestionService
     from app.ohlcv import OhlcvPipeline
     from app.symbology import SymbolMapping
-    from helpers import make_resolver
+    from app.symbology import InstrumentResolver
 
-    resolver = make_resolver()
+    resolver = InstrumentResolver()
     coverage = SQLiteCoverageTracker(str(tmp_path / "late-mapping.sqlite3"))
     service = OhlcvIngestionService(
         pipeline=OhlcvPipeline(), resolver=resolver, coverage=coverage
