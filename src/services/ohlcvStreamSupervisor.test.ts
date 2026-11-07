@@ -312,7 +312,7 @@ describe('OHLCV stream supervisor', () => {
       operation: 'upsert',
       isFinal: true,
       series: identity,
-      bar: { ...bar, sequence: 21, close: '6002.000' },
+      bar: { ...bar, sequence: 21, high: '6002.000', close: '6002.000' },
     });
 
     expect(supervisor.status).toBe('subscribed');
