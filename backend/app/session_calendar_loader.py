@@ -22,6 +22,7 @@ from app.session_calendar import (
 
 _CHICAGO = ZoneInfo("America/Chicago")
 _SHA256 = re.compile(r"^[0-9a-fA-F]{64}$")
+_MAX_EFFECTIVE_DAYS = 3660
 _TOP_LEVEL_KEYS = {
     "schema_version", "calendar_id", "version", "product_family",
     "effective_start", "effective_end", "timezone", "source", "records",
@@ -66,7 +67,7 @@ def _iso_date(value: Any, name: str) -> date:
 
 
 def _chicago_local_datetime(value: Any, name: str) -> datetime:
-    if not isinstance(value, str):
+    if not isinstance(value, str) or "T" not in value:
         raise SessionCalendarArtifactError(f"{name} must be a local ISO datetime string.")
     try:
         parsed = datetime.fromisoformat(value)
@@ -108,14 +109,18 @@ def _validate_source(source: dict[str, Any]) -> None:
         raise SessionCalendarArtifactError("source_id is required.")
     if not isinstance(source_url, str):
         raise SessionCalendarArtifactError("source_url must be a string.")
-    parsed = urlsplit(source_url)
-    host = (parsed.hostname or "").lower()
+    try:
+        parsed = urlsplit(source_url)
+        host = (parsed.hostname or "").lower()
+        port = parsed.port
+    except ValueError as exc:
+        raise SessionCalendarArtifactError("source_url is malformed.") from exc
     if (
         parsed.scheme != "https"
         or not (host == "cmegroup.com" or host.endswith(".cmegroup.com"))
         or parsed.username is not None
         or parsed.password is not None
-        or parsed.port not in (None, 443)
+        or port not in (None, 443)
     ):
         raise SessionCalendarArtifactError("source_url must be an HTTPS URL on the cmegroup.com domain.")
 
@@ -199,6 +204,8 @@ def load_session_calendar_artifact(
             raise SessionCalendarArtifactError(f"Invalid session record at index {index}: {exc}") from exc
 
     expected_days = (effective_end - effective_start).days + 1
+    if expected_days > _MAX_EFFECTIVE_DAYS:
+        raise SessionCalendarArtifactError("Calendar effective range exceeds the supported 10-year safety limit.")
     if len(records) != expected_days:
         raise SessionCalendarArtifactError("Calendar records do not cover every effective date exactly once.")
     expected_dates = {
