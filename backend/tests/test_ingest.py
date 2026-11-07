@@ -139,9 +139,6 @@ def test_consumer_retries_pending_overflow_gap_without_new_provider_events():
                     raise OSError("temporary coverage database outage")
                 self.delegate.add_gap(scope, start_ns, end_ns)
 
-            def stats(self):
-                return self.delegate.stats()
-
         flaky = FlakyCoverage(coverage)
         service.coverage = flaky
         scope = ("databento", "GLBX.MDP3", 1, 101, "contract", "ESZ6")
