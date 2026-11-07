@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.12-alpine3.24
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -11,7 +11,8 @@ RUN python -m pip install -r requirements.txt
 
 COPY app ./app
 
-RUN useradd --system --uid 10001 --create-home appuser \
+RUN addgroup -g 10001 appuser \
+    && adduser -D -H -u 10001 -G appuser appuser \
     && chown -R appuser:appuser /app
 USER 10001:10001
 

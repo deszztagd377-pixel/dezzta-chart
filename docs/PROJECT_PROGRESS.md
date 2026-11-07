@@ -800,3 +800,14 @@ The uploaded scan artifact was inspected (artifact `13573724056`):
 No severity threshold was weakened, no Trivy ignore was added, and the production base image was not changed. This checkpoint updates only the Alpine *diagnostic candidate* to use Alpine's `addgroup`/`adduser` equivalents, preserving UID/GID 10001 and ownership, so CI can build, runtime-smoke-test, and scan that candidate. The result must be reviewed before any production base-image migration. If Alpine has no usable compatible build or still reports HIGH/CRITICAL findings, investigate a smaller hardened Debian-derived runtime image or other evidence-backed mitigation; do not hide findings.
 
 Strict Trivy remains an active release blocker until the required scan passes without suppressing HIGH/CRITICAL findings. No overall progress credit is claimed for diagnostics or documentation.
+
+
+## Strict Trivy remediation checkpoint (2026-11-07)
+
+- Audited branch HEAD: `ae0d5f7db9bfd8b3dacba6abfce9724c17d43b11` on `phase-2/market-data-foundation`; `main` was not changed.
+- Latest Automated Tests run `42372282172` completed with failure at the required production-image Strict Trivy scan. Frontend tests/build, backend tests, backend dependency audit, and production Docker build passed; CodeQL run `42372282139` passed.
+- Downloaded and inspected the run's `container-vulnerability-reports` artifact. The current Debian-based production candidate had 49 HIGH and 0 CRITICAL findings. Debian Bookworm comparison had 40 HIGH and 2 CRITICAL; Trixie with apt upgrade still had 49 HIGH.
+- The Alpine comparison image (Alpine 3.24.4) had 0 HIGH/CRITICAL findings across Trivy OS and Python library package results, and its runtime `/health` smoke test passed. This is a candidate backed by the exact CI artifact, not yet a production remediation claim.
+- Applying the tested Alpine base and matching non-root user setup to the production Dockerfile. Removing obsolete Debian/Alpine comparison-image CI scaffolding so the required production scan remains the single authoritative gate; retaining the current-image JSON artifact.
+- **Strict production Trivy status remains pending** until a new CI run builds the actual production Dockerfile, passes runtime checks, and passes the unchanged HIGH/CRITICAL scan with `ignore-unfixed: false` and `exit-code: 1`.
+- No progress percentage is increased by this diagnostic or configuration change. Stage 1 remains provisional at 75%; overall checkpoint remains 20.90% pending verified acceptance-criteria reconciliation.
