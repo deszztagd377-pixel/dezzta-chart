@@ -518,3 +518,24 @@ Evidence:
 - Exact tested commit: `b8bd556826df52bef4152021669d0348e42513bb`
 
 No overall or stage percentage increase is claimed. This checkpoint adds verification and accurately attributes an existing warning; it does not satisfy a new end-to-end acceptance criterion.
+
+
+## Stage 1 CI runtime maintenance — immutable Node.js 24-compatible actions (2026-11-07)
+
+After the previous exact-HEAD CI run completed successfully, the workflow's three pinned GitHub Actions were reviewed against their upstream release references. The old pinned releases generated GitHub's Node.js 20 action-runtime deprecation warning.
+
+Updated `.github/workflows/ci.yml` to use immutable commit SHAs for the upstream Node.js 24-compatible releases:
+- `actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1` (v7.0.1)
+- `actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1` (v7.1.0)
+- `actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0` (v7.1.0)
+
+The GitHub API resolved each immutable SHA from its named upstream tag, and the corresponding commit metadata reported verified signatures. The workflow's application runtime remains Node.js 20; this update concerns the JavaScript runtime used internally by the GitHub Actions themselves, not the Node version used to run the project.
+
+Verification boundary:
+- Previous workflow run #640 completed successfully on exact pre-change HEAD `b183968b0f76c0c682f4d9e0a843a665b277e5bc`, including frontend audit/tests/build, backend tests/audit, and Docker image build.
+- The action upgrade is a new workflow change and is **not yet verified** until CI completes on the resulting exact HEAD.
+- No application dependency, backend runtime, or application feature was changed in this slice.
+- Root `package-lock.json` is still absent and frontend dependency resolution remains non-reproducible; backend requirements remain range-based.
+- Vercel's separate build-rate-limit check is not the same as GitHub Actions CI and remains an external deployment limitation.
+
+No overall or Stage 1 percentage increase is claimed from the workflow edit alone.
