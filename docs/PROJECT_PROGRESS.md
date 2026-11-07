@@ -147,8 +147,7 @@ Implemented a bounded first integration slice on the active foundation branch:
 - Added the explicit `CME_SESSION_V1` bucket-policy identity to the OHLCV contract.
 - CME session bars are structurally limited to `1d`, `1w`, `1M`, and `3M`, and require both `calendar_id` and `calendar_version`.
 - Session starts are no longer incorrectly forced onto UTC midnight/fixed-interval boundaries; the exchange calendar must validate the actual session bounds before production ingestion.
-- UTC policies still reject calendar metadata and retain their existing UTC alignment checks.
-- Aggregation explicitly skips CME-session-policy bars until a verified calendar-bound resolver is connected. This is a fail-closed guard, not active CME aggregation.
+- UTC policies still reject calendar metadata and retain their existing UTC alignment checks.- Aggregation explicitly skips CME-session-policy bars until a verified calendar-bound resolver is connected. This is a fail-closed guard, not active CME aggregation.
 - Added OHLCV model tests and an aggregation regression test for the new contract.
 
 Files changed in this slice:
@@ -298,7 +297,6 @@ Progress remains at the owner-confirmed historical checkpoint **20.9%**; no weig
 
 
 ## Stage 1 audit snapshot — provisional criterion scoring (2026-11-07)
-
 The owner requested a fresh Stage 1 calculation. Since the six-stage acceptance ledger has not yet been formally approved, this is a transparent **provisional Stage 1 index**, not a change to the overall project percentage.
 
 Scoring method for this audit only:
@@ -395,3 +393,20 @@ Verification boundary:
 - The change is implemented on `phase-2/market-data-foundation`.
 - Exact-HEAD CI must pass before this control is counted as verified.
 - This prevents accidental exposure through the dataclass representation; it does not replace deployment secret-manager controls, log review, credential rotation, or production smoke tests.
+
+## Stage 1 dependency update monitoring — 2026-11-07
+
+Added `.github/dependabot.yml` to request weekly dependency update pull requests for:
+- npm dependencies at the repository root;
+- pip dependencies under `/backend`;
+- GitHub Actions dependencies under `/`.
+
+All update pull requests target `phase-2/market-data-foundation`; Dependabot is configured with a maximum of five open update pull requests per ecosystem and a `dependencies` label.
+
+Verification and security boundary:
+- This configuration schedules dependency update pull requests; it is not a vulnerability scan and does not itself prove that Dependabot security alerts or security updates are enabled in repository settings.
+- The repository still has no committed root `package-lock.json`; the current workflow still uses `npm install`, so frontend dependency resolution is not yet reproducible.
+- Backend requirements still use version ranges and no backend lockfile was added.
+- No dependency was upgraded, and no dependency audit or application test was run in this configuration-only slice.
+- The workflow file `.github/workflows/ci.yml` remains unchanged. Exact-HEAD CI and validation of Dependabot PR creation remain pending.
+- No overall or Stage 1 percentage credit is claimed for this monitoring configuration alone.
