@@ -377,12 +377,25 @@ def test_startup_reconciliation_backfills_since_last_durable_bar_and_keeps_callb
         return result, hist, service, manager_instance
 
     result, hist, service, manager_instance = asyncio.run(go())
-    assert result == {"symbols_checked": 1, "ranges_reconciled": 1,
+    assert result == {"symbols_checked": 1, "symbols_unmapped": 0, "ranges_reconciled": 1,
         "ranges_remaining": 0, "bars_ingested": 0, "windows_done": 1}
     assert hist.calls == [("ohlcv-1s", ("ESZ6",), "raw_symbol", T0 + 3 * NS, T0 + 10 * NS)]
     assert service.offer(rec(9), "ohlcv-1s") is True
     assert manager_instance.backfill["state"] == "reconciliation_done"
 
+
+def test_startup_reconciliation_reports_explicit_symbols_without_a_valid_mapping():
+    async def go():
+        service, *_ = make_service()
+        cfg = settings(databento_api_key=SECRET, databento_live_enabled=True,
+            databento_live_symbols=("NQZ6",), databento_historical_enabled=True)
+        manager_instance = ProviderManager(cfg, service, InstrumentCatalog(),
+            historical_factory=lambda: FakeHistorical(), clock_ns=lambda: T0 + NS)
+        return await manager_instance.reconcile_live_history()
+
+    result = asyncio.run(go())
+    assert result == {"symbols_checked": 0, "symbols_unmapped": 1,
+        "ranges_reconciled": 0, "ranges_remaining": 0, "bars_ingested": 0, "windows_done": 0}
 
 def test_startup_reconciliation_respects_global_budget_and_existing_coverage(tmp_path):
     from app.ohlcv import OhlcvPipeline
@@ -418,6 +431,7 @@ def test_startup_reconciliation_respects_global_budget_and_existing_coverage(tmp
         return result, hist
 
     result, hist = asyncio.run(go())
+    assert result["symbols_unmapped"] == 0
     assert result["ranges_reconciled"] == 1 and result["ranges_remaining"] == 1
     assert hist.calls == [(("ESZ6",), T0 + 30 * NS, T0 + 3630 * NS)]
 

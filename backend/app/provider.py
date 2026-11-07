@@ -288,7 +288,7 @@ class ProviderManager:
         if store is None or not callable(getattr(store, "query", None)):
             self.backfill.update(state="reconciliation_skipped",
                                  last_error="durable_ohlcv_store_unavailable")
-            return {"symbols_checked": 0, "ranges_reconciled": 0,
+            return {"symbols_checked": 0, "symbols_unmapped": 0, "ranges_reconciled": 0,
                     "ranges_remaining": 0, "bars_ingested": 0, "windows_done": 0}
         symbols = tuple(dict.fromkeys(self._s.databento_live_symbols))
         if not symbols:
