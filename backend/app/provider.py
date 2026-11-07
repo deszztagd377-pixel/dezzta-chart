@@ -294,12 +294,12 @@ class ProviderManager:
         if not symbols:
             self.backfill.update(state="reconciliation_skipped",
                                  last_error="no_explicit_live_symbols")
-            return {"symbols_checked": 0, "ranges_reconciled": 0,
+            return {"symbols_checked": 0, "symbols_unmapped": 0, "ranges_reconciled": 0,
                     "ranges_remaining": 0, "bars_ingested": 0, "windows_done": 0}
 
         now_ns = self._clock()
         budget_ns = self._s.historical_max_span_hours * 3600 * _NS
-        symbols_checked = ranges_reconciled = bars_ingested = windows_done = 0
+        symbols_checked = symbols_unmapped = ranges_reconciled = bars_ingested = windows_done = 0
         ranges_remaining = 0
         self.backfill.update(state="reconciling", last_error=None, windows_done=0,
                              reconciliation="startup_crash_window")
@@ -307,6 +307,9 @@ class ProviderManager:
             mappings = self._ingest.resolver.mappings_for_symbol(
                 self._ingest.provider, self._s.databento_dataset, symbol
             )
+            if not mappings:
+                symbols_unmapped += 1
+                continue
             for mapping in sorted(mappings, key=lambda item: item.valid_from_ns):
                 upper = min(now_ns, mapping.valid_to_ns if mapping.valid_to_ns is not None else now_ns)
                 if upper <= mapping.valid_from_ns:
@@ -360,11 +363,12 @@ class ProviderManager:
                         ranges_remaining += 1
         self.backfill.update(state="reconciliation_done", last_error=None,
                              windows_done=windows_done, symbols_checked=symbols_checked,
+                             symbols_unmapped=symbols_unmapped,
                              ranges_reconciled=ranges_reconciled, ranges_remaining=ranges_remaining,
                              bars_ingested=bars_ingested, reconciliation="startup_crash_window")
-        return {"symbols_checked": symbols_checked, "ranges_reconciled": ranges_reconciled,
-                "ranges_remaining": ranges_remaining, "bars_ingested": bars_ingested,
-                "windows_done": windows_done}
+        return {"symbols_checked": symbols_checked, "symbols_unmapped": symbols_unmapped,
+                "ranges_reconciled": ranges_reconciled, "ranges_remaining": ranges_remaining,
+                "bars_ingested": bars_ingested, "windows_done": windows_done}
 
     # ------------------------------------------------------ definitions/backfill
     async def refresh_definitions(self, start_ns: int, end_ns: int) -> tuple[int, int]:
