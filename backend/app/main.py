@@ -156,7 +156,9 @@ def create_app(
                 headers={"WWW-Authenticate": "Bearer"},
             )
         try:
-            return application.state.identity_verifier.verify(token)
+            # Firebase Admin verification can perform network I/O (including revocation checks).
+            # Keep this synchronous SDK call off the ASGI event loop.
+            return await asyncio.to_thread(application.state.identity_verifier.verify, token)
         except IdentityProviderUnavailable as exc:
             raise HTTPException(
                 status_code=503,
