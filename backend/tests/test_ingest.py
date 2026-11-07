@@ -187,3 +187,38 @@ def test_per_instrument_observations_are_bounded():
     assert status["tracked_instruments"] == 2
     assert status["evicted_instrument_counters"] == 1
     assert {item["instrument_id"] for item in status["instruments"]} == {2, 3}
+
+def test_ingestion_restart_restores_pipeline_and_resumes_local_sequence(tmp_path):
+    from app.coverage import CoverageTracker
+    from app.ingest import OhlcvIngestionService
+    from app.ohlcv import OhlcvPipeline
+    from app.ohlcv_store import SQLiteOhlcvStore
+    from helpers import make_resolver
+
+    database_path = str(tmp_path / "restart.sqlite3")
+    first = OhlcvIngestionService(
+        pipeline=OhlcvPipeline(),
+        resolver=make_resolver(),
+        coverage=CoverageTracker(),
+        persistence=SQLiteOhlcvStore(database_path),
+    )
+    first.ingest_batch([rec(0), rec(1)], "ohlcv-1s", live=False)
+    original_bars = first.pipeline.list_bars(timeframe="1s")
+    assert [bar.sequence for bar in original_bars] == [1, 2]
+
+    # A fresh service models process startup: persisted bars must be loaded
+    # before new provider records are accepted.
+    restarted = OhlcvIngestionService(
+        pipeline=OhlcvPipeline(),
+        resolver=make_resolver(),
+        coverage=CoverageTracker(),
+        persistence=SQLiteOhlcvStore(database_path),
+    )
+    restored = restarted.pipeline.list_bars(timeframe="1s")
+    assert restored == original_bars
+
+    restarted.ingest_batch([rec(2)], "ohlcv-1s", live=False)
+    after_restart = restarted.pipeline.list_bars(timeframe="1s")
+    assert [bar.sequence for bar in after_restart] == [1, 2, 3]
+    assert after_restart[-1].ts_start_ns == T0 + 2 * NS
+
