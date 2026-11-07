@@ -50,6 +50,24 @@ def test_health_endpoint() -> None:
         "status": "ok",
         "service": "dezzta-chart-backend",
     }
+    assert response.headers["x-content-type-options"] == "nosniff"
+    assert response.headers["x-frame-options"] == "DENY"
+    assert response.headers["referrer-policy"] == "no-referrer"
+    assert response.headers["permissions-policy"] == (
+        "camera=(), microphone=(), geolocation=()"
+    )
+    assert response.headers["cache-control"] == "private, no-store, max-age=0"
+    assert response.headers["pragma"] == "no-cache"
+    assert response.headers["expires"] == "0"
+
+
+def test_unauthenticated_api_errors_are_not_cacheable() -> None:
+    client = TestClient(create_app(make_settings()))
+    response = client.get("/v1/auth/session")
+    assert response.status_code == 401
+    assert response.headers["cache-control"] == "private, no-store, max-age=0"
+    assert response.headers["pragma"] == "no-cache"
+    assert response.headers["x-content-type-options"] == "nosniff"
 
 
 def test_market_data_status_is_honest_about_unimplemented_feed() -> None:
