@@ -752,3 +752,15 @@ This correction is an incident record, not a progress increase. The strict scan 
 - Fixed a real diagnostic-summary bug: when a JSON report was missing, the workflow previously converted it to an empty findings dictionary and displayed zero, which could falsely imply a clean scan. The summary now preserves missing as `NOT AVAILABLE`, while a present report with an empty `Results` list correctly reports zero. Inline assertions cover both cases.
 - The strict Trivy gate is unchanged: HIGH/CRITICAL findings, including unfixed findings, still fail CI. No ignore rule, severity downgrade, or vulnerability suppression was introduced.
 - This is a CI reporting correctness fix and security investigation evidence, not a remediation of the 49 Trixie findings. Overall progress remains unchanged until a new acceptance criterion is actually satisfied.
+
+
+## Trixie security-update candidate diagnostic — 2026-11-07
+
+The exact-HEAD Trivy artifact from run [42369053094](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42369053094) confirms:
+- Current `python:3.12-slim` candidate: 49 HIGH, 0 CRITICAL unique vulnerability/package/version tuples.
+- Bookworm comparison: 40 HIGH, 2 CRITICAL (42 total); it remains rejected as a replacement candidate.
+- The strict Trivy gate failed as intended; frontend tests/build, backend tests, dependency audits, Docker build, and CodeQL passed on the same commit.
+
+A further **diagnostic-only** candidate has been added to CI: retain the current Trixie base, apply Debian repository updates with `apt-get update && apt-get upgrade`, then build, runtime-smoke-test `/health`, and scan it with Trivy. The comparison report now includes this third candidate. This experiment does not alter `backend/Dockerfile`, does not change the strict required scan, and does not make any production base-image decision. It must pass the runtime smoke test and demonstrate a materially improved scan before it can be considered for a separately reviewed remediation.
+
+The diagnostic workflow addition is not a completed security remediation or a Stage 1 acceptance. The exact final-HEAD CI result and artifact are pending. Overall progress remains unchanged.
