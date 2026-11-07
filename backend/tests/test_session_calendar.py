@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -126,9 +126,9 @@ def test_calendar_rejects_product_family_calendar_mismatch():
 def test_weekly_session_bucket_uses_first_open_and_last_close_only_with_full_coverage():
     records = []
     for offset in range(7):
-        day = date(2024, 3, 11) + __import__("datetime").timedelta(days=offset)
+        day = date(2024, 3, 11) + timedelta(days=offset)
         if offset < 5:
-            open_day = day - __import__("datetime").timedelta(days=1)
+            open_day = day - timedelta(days=1)
             records.append(session(
                 day, f"{open_day.isoformat()}T17:00:00",
                 f"{day.isoformat()}T16:00:00",
