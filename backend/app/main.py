@@ -8,10 +8,12 @@ clients can subscribe to the in-memory OHLCV pipeline when validated bars exist.
 
 import asyncio
 import time
+from uuid import uuid4
 from collections import deque
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import Settings
@@ -41,6 +43,7 @@ from app.databento_definition_sync import DatabentoDefinitionSynchronizer
 from app.ohlcv_stream import OhlcvStreamHub
 from app.ohlcv_store import SQLiteOhlcvStore
 from app.symbology import InstrumentResolver
+from app.shared_guard import RedisSharedGuard
 from app.session_calendar_runtime import (
     build_provider_session_bar_validator,
     load_session_calendar_runtime,
@@ -86,8 +89,18 @@ def create_app(
     *,
     live_source_factory=None,
     historical_source_factory=None,
+    shared_guard=None,
 ) -> FastAPI:
     config = settings or Settings.from_environment()
+    if shared_guard is None and config.redis_url:
+        shared_guard = RedisSharedGuard(
+            config.redis_url,
+            http_per_client_per_minute=config.http_rate_limit_per_client,
+            http_global_per_minute=config.http_rate_limit_global,
+            websocket_global_limit=config.websocket_connection_limit_global,
+            websocket_per_account_limit=config.websocket_connection_limit_per_account,
+            websocket_lease_seconds=config.websocket_lease_seconds,
+        )
     max_ohlcv_response_bars = min(
         max(1, config.ohlcv_max_response_bars),
         MAX_OHLCV_RESPONSE_BARS,
@@ -146,11 +159,17 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
-        await provider.start()
         try:
-            yield
+            if shared_guard is not None:
+                await shared_guard.start()
+            await provider.start()
+            try:
+                yield
+            finally:
+                await provider.stop()
         finally:
-            await provider.stop()
+            if shared_guard is not None:
+                await shared_guard.close()
 
     application = FastAPI(
         title="DEZZTA CHART Backend",
@@ -175,6 +194,8 @@ def create_app(
     application.state.price_alert_store = price_alert_store
     application.state.instrument_entitlements = instrument_entitlements
     application.state.identity_verifier = identity_verifier
+    application.state.shared_guard = shared_guard
+    application.state.shared_guard_enabled = shared_guard is not None
 
     application.add_middleware(
         CORSMiddleware,
@@ -186,6 +207,40 @@ def create_app(
 
     @application.middleware("http")
     async def api_security_headers(request, call_next):
+        if shared_guard is not None and request.url.path.startswith("/v1/"):
+            client_identity = request.client.host if request.client is not None else "unknown"
+            try:
+                allowed, retry_after = await shared_guard.allow_http(client_identity or "unknown")
+            except Exception:
+                return JSONResponse(
+                    status_code=503,
+                    content={"detail": "Shared request protection is temporarily unavailable."},
+                    headers={
+                        "Retry-After": "5",
+                        "Cache-Control": "private, no-store, max-age=0",
+                        "X-Content-Type-Options": "nosniff",
+                        "X-Frame-Options": "DENY",
+                        "Referrer-Policy": "no-referrer",
+                        "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+                        "Pragma": "no-cache",
+                        "Expires": "0",
+                    },
+                )
+            if not allowed:
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "Request rate limit exceeded."},
+                    headers={
+                        "Retry-After": str(retry_after),
+                        "Cache-Control": "private, no-store, max-age=0",
+                        "X-Content-Type-Options": "nosniff",
+                        "X-Frame-Options": "DENY",
+                        "Referrer-Policy": "no-referrer",
+                        "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+                        "Pragma": "no-cache",
+                        "Expires": "0",
+                    },
+                )
         response = await call_next(request)
         if request.url.path == "/health" or request.url.path.startswith("/v1/"):
             response.headers["X-Content-Type-Options"] = "nosniff"
@@ -456,307 +511,352 @@ def create_app(
             await websocket.close(code=4403, reason="Origin not allowed")
             return
 
-        await websocket.accept()
-
-        try:
-            auth_message = await asyncio.wait_for(
-                websocket.receive_json(),
-                timeout=5.0,
-            )
-        except (asyncio.TimeoutError, ValueError):
-            await websocket.close(code=4401, reason="Authentication required")
-            return
-        except WebSocketDisconnect:
-            return
-
-        supplied_token = (
-            auth_message.get("token")
-            if isinstance(auth_message, dict)
-            and auth_message.get("type") == "auth"
-            else None
-        )
-
-        if not isinstance(supplied_token, str) or not supplied_token:
-            await websocket.close(code=4401, reason="Authentication failed")
-            return
-
-        try:
-            principal = await asyncio.to_thread(
-                application.state.identity_verifier.verify,
-                supplied_token,
-            )
-        except IdentityProviderUnavailable:
-            await websocket.close(code=1013, reason="Identity verification unavailable")
-            return
-        except IdentityVerificationError:
-            await websocket.close(code=4401, reason="Authentication failed")
-            return
-
-        await websocket.send_json(
-            {
-                "type": "market_data.status",
-                "version": 1,
-                "dataset": config.databento_dataset,
-                "schema": "ohlcv",
-                "instruments": list(config.allowed_roots),
-                "quality": {
-                    "state": provider.state,
-                    "lastEventTsNs": None if ingestion.last_event_ns is None else str(ingestion.last_event_ns),
-                    "lastReceiveTsNs": None if ingestion.last_receive_ns is None else str(ingestion.last_receive_ns),
-                    "detail": "Authenticated OHLCV subscription is available; no order-book stream is provided.",
-                },
-            }
-        )
-
-        subscription = None
-        try:
+        connection_id = uuid4().hex
+        if shared_guard is not None:
             try:
-                request = await asyncio.wait_for(websocket.receive_json(), timeout=10.0)
-            except asyncio.TimeoutError:
-                await websocket.close(code=4408, reason="Subscription request timed out")
+                reserved = await shared_guard.acquire_websocket(connection_id)
+            except Exception:
+                await websocket.close(code=1013, reason="Shared connection protection unavailable")
                 return
-            if not isinstance(request, dict) or request.get("type") != "market_data.subscribe" or request.get("version") != 1:
-                await websocket.close(code=4400, reason="A version 1 OHLCV subscription is required")
+            if not reserved:
+                await websocket.close(code=1013, reason="WebSocket capacity reached")
                 return
-            identity = request.get("series")
-            if not isinstance(identity, dict):
-                await websocket.close(code=4400, reason="Exact OHLCV series identity is required")
-                return
-            dataset = identity.get("dataset")
-            raw_symbol = identity.get("rawSymbol")
-            timeframe = identity.get("timeframe")
-            bucket_policy = identity.get("bucketPolicy")
-            calendar_id = identity.get("calendarId", "")
-            calendar_version = identity.get("calendarVersion", "")
-            publisher_id = identity.get("publisherId")
-            instrument_id = identity.get("instrumentId")
-            canonical_id = request.get("canonicalInstrumentId")
-            if (
-                dataset != config.databento_dataset
-                or not isinstance(raw_symbol, str) or not raw_symbol.strip()
-                or len(raw_symbol) > MAX_WEBSOCKET_RAW_SYMBOL_LENGTH
-                or not isinstance(timeframe, str)
-                or not timeframe or len(timeframe) > MAX_WEBSOCKET_TIMEFRAME_LENGTH
-                or (bucket_policy is not None and (
-                    not isinstance(bucket_policy, str)
-                    or bucket_policy not in SUPPORTED_BUCKET_POLICIES
-                ))
-                or calendar_id != "" or calendar_version != ""
-                or not isinstance(publisher_id, int) or isinstance(publisher_id, bool) or publisher_id <= 0
-                or not isinstance(instrument_id, int) or isinstance(instrument_id, bool) or instrument_id <= 0
-                or not isinstance(canonical_id, str)
-                or len(canonical_id) != MAX_WEBSOCKET_CANONICAL_ID_LENGTH
-                or not canonical_id.strip()
-            ):
-                await websocket.close(code=4400, reason="Invalid or unsupported OHLCV series identity")
-                return
-            # Use the canonical resolver spelling for both the snapshot
-            # query and the live fan-out identity. Authorization already
-            # compares normalized symbols; leaving the request spelling here
-            # would otherwise authorize lowercase/whitespace variants but
-            # silently subscribe them to a different stream key.
-            raw_symbol = raw_symbol.strip().upper()
-            canonical_id = canonical_id.strip()
+
+        try:
+            await websocket.accept()
 
             try:
-                bucket_start_ns(0, timeframe)
-            except InvalidOhlcvBar:
-                await websocket.close(code=4400, reason="Unsupported OHLCV timeframe")
+                auth_message = await asyncio.wait_for(
+                    websocket.receive_json(),
+                    timeout=5.0,
+                )
+            except (asyncio.TimeoutError, ValueError):
+                await websocket.close(code=4401, reason="Authentication required")
                 return
-            if bucket_policy is None:
-                bucket_policy = bucket_policy_for_timeframe(timeframe)
+            except WebSocketDisconnect:
+                return
 
-            def has_series_access() -> bool:
-                mapping = application.state.instrument_registry.resolve_provider_mapping(
-                    provider="databento",
+            supplied_token = (
+                auth_message.get("token")
+                if isinstance(auth_message, dict)
+                and auth_message.get("type") == "auth"
+                else None
+            )
+
+            if not isinstance(supplied_token, str) or not supplied_token:
+                await websocket.close(code=4401, reason="Authentication failed")
+                return
+
+            try:
+                principal = await asyncio.to_thread(
+                    application.state.identity_verifier.verify,
+                    supplied_token,
+                )
+            except IdentityProviderUnavailable:
+                await websocket.close(code=1013, reason="Identity verification unavailable")
+                return
+            except IdentityVerificationError:
+                await websocket.close(code=4401, reason="Authentication failed")
+                return
+
+            if shared_guard is not None:
+                try:
+                    account_reserved = await shared_guard.acquire_websocket(
+                        connection_id, principal.subject
+                    )
+                except Exception:
+                    await websocket.close(code=1013, reason="Shared connection protection unavailable")
+                    return
+                if not account_reserved:
+                    await websocket.close(code=1013, reason="Account WebSocket capacity reached")
+                    return
+
+            await websocket.send_json(
+                {
+                    "type": "market_data.status",
+                    "version": 1,
+                    "dataset": config.databento_dataset,
+                    "schema": "ohlcv",
+                    "instruments": list(config.allowed_roots),
+                    "quality": {
+                        "state": provider.state,
+                        "lastEventTsNs": None if ingestion.last_event_ns is None else str(ingestion.last_event_ns),
+                        "lastReceiveTsNs": None if ingestion.last_receive_ns is None else str(ingestion.last_receive_ns),
+                        "detail": "Authenticated OHLCV subscription is available; no order-book stream is provided.",
+                    },
+                }
+            )
+
+            subscription = None
+            try:
+                try:
+                    request = await asyncio.wait_for(websocket.receive_json(), timeout=10.0)
+                except asyncio.TimeoutError:
+                    await websocket.close(code=4408, reason="Subscription request timed out")
+                    return
+                if not isinstance(request, dict) or request.get("type") != "market_data.subscribe" or request.get("version") != 1:
+                    await websocket.close(code=4400, reason="A version 1 OHLCV subscription is required")
+                    return
+                identity = request.get("series")
+                if not isinstance(identity, dict):
+                    await websocket.close(code=4400, reason="Exact OHLCV series identity is required")
+                    return
+                dataset = identity.get("dataset")
+                raw_symbol = identity.get("rawSymbol")
+                timeframe = identity.get("timeframe")
+                bucket_policy = identity.get("bucketPolicy")
+                calendar_id = identity.get("calendarId", "")
+                calendar_version = identity.get("calendarVersion", "")
+                publisher_id = identity.get("publisherId")
+                instrument_id = identity.get("instrumentId")
+                canonical_id = request.get("canonicalInstrumentId")
+                if (
+                    dataset != config.databento_dataset
+                    or not isinstance(raw_symbol, str) or not raw_symbol.strip()
+                    or len(raw_symbol) > MAX_WEBSOCKET_RAW_SYMBOL_LENGTH
+                    or not isinstance(timeframe, str)
+                    or not timeframe or len(timeframe) > MAX_WEBSOCKET_TIMEFRAME_LENGTH
+                    or (bucket_policy is not None and (
+                        not isinstance(bucket_policy, str)
+                        or bucket_policy not in SUPPORTED_BUCKET_POLICIES
+                    ))
+                    or calendar_id != "" or calendar_version != ""
+                    or not isinstance(publisher_id, int) or isinstance(publisher_id, bool) or publisher_id <= 0
+                    or not isinstance(instrument_id, int) or isinstance(instrument_id, bool) or instrument_id <= 0
+                    or not isinstance(canonical_id, str)
+                    or len(canonical_id) != MAX_WEBSOCKET_CANONICAL_ID_LENGTH
+                    or not canonical_id.strip()
+                ):
+                    await websocket.close(code=4400, reason="Invalid or unsupported OHLCV series identity")
+                    return
+                # Use the canonical resolver spelling for both the snapshot
+                # query and the live fan-out identity. Authorization already
+                # compares normalized symbols; leaving the request spelling here
+                # would otherwise authorize lowercase/whitespace variants but
+                # silently subscribe them to a different stream key.
+                raw_symbol = raw_symbol.strip().upper()
+                canonical_id = canonical_id.strip()
+
+                try:
+                    bucket_start_ns(0, timeframe)
+                except InvalidOhlcvBar:
+                    await websocket.close(code=4400, reason="Unsupported OHLCV timeframe")
+                    return
+                if bucket_policy is None:
+                    bucket_policy = bucket_policy_for_timeframe(timeframe)
+
+                def has_series_access() -> bool:
+                    mapping = application.state.instrument_registry.resolve_provider_mapping(
+                        provider="databento",
+                        dataset=dataset,
+                        publisher_id=publisher_id,
+                        instrument_id=instrument_id,
+                        timestamp_ns=time.time_ns(),
+                    )
+                    if (
+                        mapping is None
+                        or mapping.raw_symbol != raw_symbol.strip().upper()
+                        or mapping.canonical_id != canonical_id.strip()
+                    ):
+                        return False
+                    instrument = application.state.instrument_registry.get_instrument(canonical_id)
+                    if instrument is None or not instrument.is_active:
+                        return False
+                    return application.state.instrument_entitlements.has_access(
+                        subject=principal.subject,
+                        canonical_instrument_id=canonical_id,
+                    )
+
+                try:
+                    authorized = await asyncio.to_thread(has_series_access)
+                except Exception:
+                    authorized = False
+                if not authorized:
+                    await websocket.close(code=4403, reason="Instrument access denied")
+                    return
+
+                # No await occurs between snapshot query and stream registration.
+                # Ingestion and fan-out share this event loop, so this watermark is
+                # an atomic boundary: later accepted revisions enter the queue.
+                subscription, snapshot_bars, total = stream_hub.subscribe_snapshot(
+                    ohlcv_pipeline,
                     dataset=dataset,
                     publisher_id=publisher_id,
                     instrument_id=instrument_id,
-                    timestamp_ns=time.time_ns(),
+                    raw_symbol=raw_symbol,
+                    timeframe=timeframe,
+                    bucket_policy=bucket_policy,
+                    calendar_id=calendar_id,
+                    calendar_version=calendar_version,
+                    limit=max_ohlcv_response_bars,
                 )
-                if (
-                    mapping is None
-                    or mapping.raw_symbol != raw_symbol.strip().upper()
-                    or mapping.canonical_id != canonical_id.strip()
-                ):
-                    return False
-                instrument = application.state.instrument_registry.get_instrument(canonical_id)
-                if instrument is None or not instrument.is_active:
-                    return False
-                return application.state.instrument_entitlements.has_access(
-                    subject=principal.subject,
-                    canonical_instrument_id=canonical_id,
+                feed_state = provider.state
+                snapshot_state = (
+                    "unavailable" if not snapshot_bars
+                    else "degraded" if feed_state in ("degraded", "recovering")
+                    else "ready"
                 )
+                await websocket.send_json({
+                    "type": "market_data.ohlcv.snapshot",
+                    "version": 1,
+                    "state": snapshot_state,
+                    "feedState": feed_state,
+                    "timestampUnit": "nanoseconds",
+                    "priceRepresentation": "decimal-string",
+                    "count": len(snapshot_bars),
+                    "truncated": total > len(snapshot_bars),
+                    "detail": None if snapshot_bars else "No validated bars match this exact series yet.",
+                    "streamId": subscription.stream_id,
+                    "watermark": subscription.watermark,
+                    "bars": [
+                        {
+                            "dataset": bar.dataset,
+                            "provider": bar.provider,
+                            "publisherId": bar.publisher_id,
+                            "instrumentId": bar.instrument_id,
+                            "rawSymbol": bar.raw_symbol,
+                            "seriesType": bar.series_type,
+                            "timeframe": bar.timeframe,
+                            "bucketPolicy": bar.bucket_policy,
+                            "calendarId": bar.calendar_id,
+                            "calendarVersion": bar.calendar_version,
+                            "tsStartNs": str(bar.ts_start_ns),
+                            "open": decimal_to_string(bar.open),
+                            "high": decimal_to_string(bar.high),
+                            "low": decimal_to_string(bar.low),
+                            "close": decimal_to_string(bar.close),
+                            "volume": decimal_to_string(bar.volume),
+                            "tsEventNs": str(bar.ts_event_ns),
+                            "tsReceivedNs": str(bar.ts_received_ns),
+                            "tsProviderOutNs": None if bar.ts_provider_out_ns is None else str(bar.ts_provider_out_ns),
+                            "sequence": bar.sequence,
+                            "sequenceOrigin": bar.sequence_origin,
+                            "origin": bar.origin,
+                            "completeness": bar.completeness,
+                        }
+                        for bar in snapshot_bars
+                    ],
+                })
 
-            try:
-                authorized = await asyncio.to_thread(has_series_access)
-            except Exception:
-                authorized = False
-            if not authorized:
-                await websocket.close(code=4403, reason="Instrument access denied")
-                return
-
-            # No await occurs between snapshot query and stream registration.
-            # Ingestion and fan-out share this event loop, so this watermark is
-            # an atomic boundary: later accepted revisions enter the queue.
-            subscription, snapshot_bars, total = stream_hub.subscribe_snapshot(
-                ohlcv_pipeline,
-                dataset=dataset,
-                publisher_id=publisher_id,
-                instrument_id=instrument_id,
-                raw_symbol=raw_symbol,
-                timeframe=timeframe,
-                bucket_policy=bucket_policy,
-                calendar_id=calendar_id,
-                calendar_version=calendar_version,
-                limit=max_ohlcv_response_bars,
-            )
-            feed_state = provider.state
-            snapshot_state = (
-                "unavailable" if not snapshot_bars
-                else "degraded" if feed_state in ("degraded", "recovering")
-                else "ready"
-            )
-            await websocket.send_json({
-                "type": "market_data.ohlcv.snapshot",
-                "version": 1,
-                "state": snapshot_state,
-                "feedState": feed_state,
-                "timestampUnit": "nanoseconds",
-                "priceRepresentation": "decimal-string",
-                "count": len(snapshot_bars),
-                "truncated": total > len(snapshot_bars),
-                "detail": None if snapshot_bars else "No validated bars match this exact series yet.",
-                "streamId": subscription.stream_id,
-                "watermark": subscription.watermark,
-                "bars": [
-                    {
-                        "dataset": bar.dataset,
-                        "provider": bar.provider,
-                        "publisherId": bar.publisher_id,
-                        "instrumentId": bar.instrument_id,
-                        "rawSymbol": bar.raw_symbol,
-                        "seriesType": bar.series_type,
-                        "timeframe": bar.timeframe,
-                        "bucketPolicy": bar.bucket_policy,
-                        "calendarId": bar.calendar_id,
-                        "calendarVersion": bar.calendar_version,
-                        "tsStartNs": str(bar.ts_start_ns),
-                        "open": decimal_to_string(bar.open),
-                        "high": decimal_to_string(bar.high),
-                        "low": decimal_to_string(bar.low),
-                        "close": decimal_to_string(bar.close),
-                        "volume": decimal_to_string(bar.volume),
-                        "tsEventNs": str(bar.ts_event_ns),
-                        "tsReceivedNs": str(bar.ts_received_ns),
-                        "tsProviderOutNs": None if bar.ts_provider_out_ns is None else str(bar.ts_provider_out_ns),
-                        "sequence": bar.sequence,
-                        "sequenceOrigin": bar.sequence_origin,
-                        "origin": bar.origin,
-                        "completeness": bar.completeness,
-                    }
-                    for bar in snapshot_bars
-                ],
-            })
-
-            receive_task = asyncio.create_task(websocket.receive_text())
-            queue_task = None
-            ping_timestamps: deque[float] = deque()
-            loop = asyncio.get_running_loop()
-            next_entitlement_check = loop.time() + WEBSOCKET_AUTHORIZATION_RECHECK_SECONDS
-            try:
-                while True:
-                    if subscription.overflowed:
-                        await websocket.close(code=1013, reason="OHLCV client queue overflow; reconnect and resnapshot")
-                        return
-                    queue_task = asyncio.create_task(subscription.queue.get())
-                    done, _ = await asyncio.wait(
-                        {receive_task, queue_task},
-                        timeout=max(0.0, next_entitlement_check - loop.time()),
-                        return_when=asyncio.FIRST_COMPLETED,
-                    )
-                    # Revalidate on a monotonic deadline independent of market
-                    # update frequency. A busy stream must not postpone access
-                    # revocation checks indefinitely.
-                    if loop.time() >= next_entitlement_check:
-                        # A WebSocket can outlive the Firebase ID token used at
-                        # handshake. Reverify the same token (including revocation)
-                        # on the authorization deadline; fail closed on expiry,
-                        # revocation, identity drift, or verifier outage.
-                        try:
-                            refreshed_principal = await asyncio.to_thread(
-                                application.state.identity_verifier.verify,
-                                supplied_token,
-                            )
-                        except IdentityProviderUnavailable:
-                            await websocket.close(code=1013, reason="Identity verification unavailable")
+                receive_task = asyncio.create_task(websocket.receive_text())
+                queue_task = None
+                ping_timestamps: deque[float] = deque()
+                loop = asyncio.get_running_loop()
+                next_entitlement_check = loop.time() + WEBSOCKET_AUTHORIZATION_RECHECK_SECONDS
+                next_lease_refresh = loop.time() + max(1.0, config.websocket_lease_seconds / 3)
+                try:
+                    while True:
+                        if subscription.overflowed:
+                            await websocket.close(code=1013, reason="OHLCV client queue overflow; reconnect and resnapshot")
                             return
-                        except IdentityVerificationError:
-                            await websocket.close(code=4401, reason="Authentication expired or revoked")
-                            return
-                        if refreshed_principal != principal:
-                            await websocket.close(code=4401, reason="Authenticated identity changed")
-                            return
-                        try:
-                            still_authorized = await asyncio.to_thread(has_series_access)
-                        except Exception:
-                            still_authorized = False
-                        if not still_authorized:
-                            await websocket.close(code=4403, reason="Instrument access revoked")
-                            return
-                        next_entitlement_check = loop.time() + WEBSOCKET_AUTHORIZATION_RECHECK_SECONDS
-                    if not done:
-                        if queue_task is not None and not queue_task.done():
+                        queue_task = asyncio.create_task(subscription.queue.get())
+                        done, _ = await asyncio.wait(
+                            {receive_task, queue_task},
+                            timeout=max(0.0, min(next_entitlement_check, next_lease_refresh) - loop.time()),
+                            return_when=asyncio.FIRST_COMPLETED,
+                        )
+                        # Revalidate on a monotonic deadline independent of market
+                        # update frequency. A busy stream must not postpone access
+                        # revocation checks indefinitely.
+                        if shared_guard is not None and loop.time() >= next_lease_refresh:
+                            try:
+                                lease_valid = await shared_guard.renew_websocket(connection_id, principal.subject)
+                            except Exception:
+                                await websocket.close(code=1013, reason="Shared connection protection unavailable")
+                                return
+                            if not lease_valid:
+                                await websocket.close(code=1013, reason="WebSocket capacity lease expired")
+                                return
+                            next_lease_refresh = loop.time() + max(1.0, config.websocket_lease_seconds / 3)
+                        if loop.time() >= next_entitlement_check:
+                            # A WebSocket can outlive the Firebase ID token used at
+                            # handshake. Reverify the same token (including revocation)
+                            # on the authorization deadline; fail closed on expiry,
+                            # revocation, identity drift, or verifier outage.
+                            try:
+                                refreshed_principal = await asyncio.to_thread(
+                                    application.state.identity_verifier.verify,
+                                    supplied_token,
+                                )
+                            except IdentityProviderUnavailable:
+                                await websocket.close(code=1013, reason="Identity verification unavailable")
+                                return
+                            except IdentityVerificationError:
+                                await websocket.close(code=4401, reason="Authentication expired or revoked")
+                                return
+                            if refreshed_principal != principal:
+                                await websocket.close(code=4401, reason="Authenticated identity changed")
+                                return
+                            try:
+                                still_authorized = await asyncio.to_thread(has_series_access)
+                            except Exception:
+                                still_authorized = False
+                            if not still_authorized:
+                                await websocket.close(code=4403, reason="Instrument access revoked")
+                                return
+                            next_entitlement_check = loop.time() + WEBSOCKET_AUTHORIZATION_RECHECK_SECONDS
+                        if not done:
+                            if queue_task is not None and not queue_task.done():
+                                queue_task.cancel()
+                                try:
+                                    await queue_task
+                                except asyncio.CancelledError:
+                                    pass
+                                queue_task = None
+                            continue
+                        if receive_task in done:
+                            try:
+                                client_message = receive_task.result()
+                            except WebSocketDisconnect:
+                                return
+                            if client_message != "ping":
+                                await websocket.close(code=1008, reason="Unsupported client message")
+                                return
+                            if not _allow_websocket_ping(ping_timestamps, loop.time()):
+                                await websocket.close(code=1008, reason="WebSocket ping rate limit exceeded")
+                                return
+                            await websocket.send_json({"type": "market_data.pong", "version": 1})
+                            receive_task = asyncio.create_task(websocket.receive_text())
+                        if queue_task in done:
+                            if subscription.overflowed:
+                                await websocket.close(code=1013, reason="OHLCV client queue overflow; reconnect and resnapshot")
+                                return
+                            await websocket.send_json(queue_task.result())
+                            queue_task = None
+                        else:
                             queue_task.cancel()
                             try:
                                 await queue_task
                             except asyncio.CancelledError:
                                 pass
                             queue_task = None
-                        continue
-                    if receive_task in done:
-                        try:
-                            client_message = receive_task.result()
-                        except WebSocketDisconnect:
-                            return
-                        if client_message != "ping":
-                            await websocket.close(code=1008, reason="Unsupported client message")
-                            return
-                        if not _allow_websocket_ping(ping_timestamps, loop.time()):
-                            await websocket.close(code=1008, reason="WebSocket ping rate limit exceeded")
-                            return
-                        await websocket.send_json({"type": "market_data.pong", "version": 1})
-                        receive_task = asyncio.create_task(websocket.receive_text())
-                    if queue_task in done:
-                        if subscription.overflowed:
-                            await websocket.close(code=1013, reason="OHLCV client queue overflow; reconnect and resnapshot")
-                            return
-                        await websocket.send_json(queue_task.result())
-                        queue_task = None
-                    else:
+                finally:
+                    if queue_task is not None and not queue_task.done():
                         queue_task.cancel()
                         try:
                             await queue_task
                         except asyncio.CancelledError:
                             pass
-                        queue_task = None
-            finally:
-                if queue_task is not None and not queue_task.done():
-                    queue_task.cancel()
+                    receive_task.cancel()
                     try:
-                        await queue_task
-                    except asyncio.CancelledError:
+                        await receive_task
+                    except (asyncio.CancelledError, WebSocketDisconnect):
                         pass
-                receive_task.cancel()
-                try:
-                    await receive_task
-                except (asyncio.CancelledError, WebSocketDisconnect):
-                    pass
-        except WebSocketDisconnect:
-            return
+            except WebSocketDisconnect:
+                return
+            finally:
+                if subscription is not None:
+                    stream_hub.unsubscribe(subscription.stream_id)
+
         finally:
-            if subscription is not None:
-                stream_hub.unsubscribe(subscription.stream_id)
+            if shared_guard is not None:
+                try:
+                    await shared_guard.release_websocket(
+                        connection_id,
+                        principal.subject if "principal" in locals() else None,
+                    )
+                except Exception:
+                    pass
 
     return application
 

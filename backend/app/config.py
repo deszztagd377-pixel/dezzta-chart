@@ -85,6 +85,33 @@ class Settings:
     session_calendar_sha256: str = field(default="", repr=False)
     session_calendar_version: str = ""
     firebase_project_id: str = field(default="", repr=False)
+    redis_url: str = field(default="", repr=False)
+    http_rate_limit_per_client: int = 120
+    http_rate_limit_global: int = 6000
+    websocket_connection_limit_global: int = 500
+    websocket_connection_limit_per_account: int = 5
+    websocket_lease_seconds: int = 45
+
+    def __post_init__(self) -> None:
+        if self.app_env.strip().lower() == "production" and not self.redis_url:
+            raise ValueError("REDIS_URL is required in production; shared security guards cannot be disabled.")
+        if self.redis_url:
+            try:
+                parsed = urlsplit(self.redis_url)
+                _ = parsed.port
+            except ValueError as exc:
+                raise ValueError("REDIS_URL is invalid.") from exc
+            if parsed.scheme not in ("redis", "rediss") or not parsed.hostname:
+                raise ValueError("REDIS_URL must be a valid redis:// or rediss:// URL.")
+            if self.app_env.strip().lower() == "production" and parsed.scheme != "rediss":
+                raise ValueError("Production REDIS_URL must use rediss:// TLS.")
+        limits = (
+            self.http_rate_limit_per_client, self.http_rate_limit_global,
+            self.websocket_connection_limit_global,
+            self.websocket_connection_limit_per_account, self.websocket_lease_seconds,
+        )
+        if any(value < 1 for value in limits):
+            raise ValueError("Shared security guard limits must be positive integers.")
 
     @property
     def provider_configured(self) -> bool:
@@ -134,4 +161,10 @@ class Settings:
             session_calendar_sha256=os.getenv("SESSION_CALENDAR_SHA256", "").strip(),
             session_calendar_version=os.getenv("SESSION_CALENDAR_VERSION", "").strip(),
             firebase_project_id=os.getenv("FIREBASE_PROJECT_ID", "").strip(),
+            redis_url=os.getenv("REDIS_URL", "").strip(),
+            http_rate_limit_per_client=_parse_int(os.getenv("HTTP_RATE_LIMIT_PER_CLIENT", "120"), 120),
+            http_rate_limit_global=_parse_int(os.getenv("HTTP_RATE_LIMIT_GLOBAL", "6000"), 6000),
+            websocket_connection_limit_global=_parse_int(os.getenv("WEBSOCKET_CONNECTION_LIMIT_GLOBAL", "500"), 500),
+            websocket_connection_limit_per_account=_parse_int(os.getenv("WEBSOCKET_CONNECTION_LIMIT_PER_ACCOUNT", "5"), 5),
+            websocket_lease_seconds=_parse_int(os.getenv("WEBSOCKET_LEASE_SECONDS", "45"), 45),
         )

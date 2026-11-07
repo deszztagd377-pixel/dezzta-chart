@@ -71,3 +71,19 @@ def test_production_cors_accepts_exact_https_origins(monkeypatch) -> None:
         "https://dezzta-chart.vercel.app",
         "https://api.example",
     )
+
+
+def test_production_requires_redis_shared_security_store() -> None:
+    import pytest
+    with pytest.raises(ValueError, match="REDIS_URL is required"):
+        Settings(app_env="production", market_data_ws_token="", cors_allowed_origins=("https://chart.example",))
+
+def test_production_requires_tls_redis_url() -> None:
+    import pytest
+    with pytest.raises(ValueError, match="rediss://"):
+        Settings(app_env="production", market_data_ws_token="", cors_allowed_origins=("https://chart.example",), redis_url="redis://redis.example:6379/0")
+
+def test_production_accepts_tls_redis_url_without_exposing_it_in_repr() -> None:
+    redis_url="rediss://user:redis-secret@redis.example:6380/0"
+    settings=Settings(app_env="production", market_data_ws_token="", cors_allowed_origins=("https://chart.example",), redis_url=redis_url)
+    assert redis_url not in repr(settings)

@@ -1118,3 +1118,70 @@ def test_websocket_allows_non_browser_client_without_origin_header():
         websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
         message = websocket.receive_json()
     assert message["type"] == "market_data.status"
+
+
+def test_shared_http_guard_rejects_rate_limited_request() -> None:
+    class Guard:
+        async def allow_http(self, client_identity):
+            assert client_identity
+            return False, 13
+    response=TestClient(create_app(make_settings(),shared_guard=Guard())).get("/v1/market-data/status")
+    assert response.status_code==429 and response.headers["retry-after"]=="13"
+    assert "Request rate limit" in response.json()["detail"]
+
+def test_shared_http_guard_fails_closed_when_redis_is_unavailable() -> None:
+    class Guard:
+        async def allow_http(self, client_identity):
+            raise ConnectionError("redis offline")
+    response=TestClient(create_app(make_settings(),shared_guard=Guard())).get("/v1/market-data/status")
+    assert response.status_code==503 and response.headers["retry-after"]=="5"
+    assert "redis offline" not in response.text
+
+def test_shared_websocket_guard_rejects_before_accept_when_global_cap_is_full() -> None:
+    class Guard:
+        async def acquire_websocket(self, connection_id, account_subject=None):
+            assert account_subject is None
+            return False
+        async def release_websocket(self, connection_id, account_subject=None):
+            raise AssertionError("Rejected reservation must not be released")
+    client=TestClient(create_app(make_settings(),shared_guard=Guard()))
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect("/ws/market-data"):
+            pass
+
+def test_shared_websocket_guard_rejects_account_cap_after_firebase_auth() -> None:
+    class Guard:
+        def __init__(self):
+            self.subject=None
+            self.released=False
+        async def acquire_websocket(self, connection_id, account_subject=None):
+            if account_subject is None:
+                return True
+            self.subject=account_subject
+            return False
+        async def release_websocket(self, connection_id, account_subject=None):
+            self.released=True
+            assert account_subject=="firebase-user-123"
+    guard=Guard()
+    application=create_app(make_settings(),shared_guard=guard)
+    _install_test_identity(application)
+    client=TestClient(application)
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect("/ws/market-data") as websocket:
+            websocket.send_json({"type":"auth","token":"valid-firebase-token"})
+            websocket.receive_json()
+    assert guard.subject=="firebase-user-123"
+    assert guard.released is True
+
+def test_shared_guard_startup_failure_prevents_serving() -> None:
+    class Guard:
+        closed=False
+        async def start(self):
+            raise ConnectionError("redis unavailable")
+        async def close(self):
+            self.closed=True
+    guard=Guard()
+    with pytest.raises(ConnectionError):
+        with TestClient(create_app(make_settings(),shared_guard=guard)):
+            pass
+    assert guard.closed is True
