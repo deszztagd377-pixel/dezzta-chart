@@ -173,6 +173,12 @@ class OhlcvIngestionService:
             self._event.clear()
             while self.process_pending():
                 await asyncio.sleep(0)  # yield to the loop between batches
+            if self._pending_overflow_gaps:
+                # No provider event is guaranteed after an overflow. Schedule a
+                # bounded retry wakeup so transient coverage-store failures can
+                # recover even when the input queue is empty.
+                await asyncio.sleep(0.25)
+                self._event.set()
 
     def process_pending(self) -> int:
         """Apply buffered records (loop thread only). Returns records handled."""

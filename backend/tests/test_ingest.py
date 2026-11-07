@@ -119,6 +119,52 @@ def test_overflow_gap_persistence_failure_is_retried_without_stopping_ingestion(
     assert "ingest_overflow" not in service.status()["degraded_reasons"]
 
 
+def test_consumer_retries_pending_overflow_gap_without_new_provider_events():
+    import asyncio
+
+    async def scenario():
+        service, _, _, coverage = make_service(queue_max=1)
+
+        class FlakyCoverage:
+            def __init__(self, delegate):
+                self.delegate = delegate
+                self.failures_remaining = 2
+
+            def add_gap(self, scope, start_ns, end_ns):
+                if self.failures_remaining:
+                    self.failures_remaining -= 1
+                    raise OSError("temporary coverage database outage")
+                self.delegate.add_gap(scope, start_ns, end_ns)
+
+            def stats(self):
+                return self.delegate.stats()
+
+        flaky = FlakyCoverage(coverage)
+        service.coverage = flaky
+        service.attach_loop(asyncio.get_running_loop())
+        task = asyncio.create_task(service.run())
+        try:
+            assert service.offer(rec(0), "ohlcv-1s")
+            assert service.offer(rec(2), "ohlcv-1s") is False
+
+            async def recovered():
+                while service.status()["pending_overflow_gaps"]:
+                    await asyncio.sleep(0.01)
+
+            await asyncio.wait_for(recovered(), timeout=1.5)
+            scope = ("databento", "GLBX.MDP3", 1, 101, "contract", "ESZ6")
+            assert coverage.gaps(scope) == [(T0 + 2 * NS, T0 + 3 * NS)]
+            assert "coverage_persistence_error" not in service.status()["degraded_reasons"]
+        finally:
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+
+    asyncio.run(scenario())
+
+
 def test_batch_backfill_does_not_extend_live_coverage_and_status_has_no_secret():
     service, _, _, coverage = make_service()
     service.ingest_batch([rec(0), rec(1)], "ohlcv-1s", live=False)
