@@ -44,6 +44,7 @@ remain server-side and must never be packaged into the browser app or Android AP
   The `GET /v1/ohlcv` route also resolves the exact provider mapping and checks
   that the verified account has an entitlement for the active canonical
   instrument.
+- The authenticated OHLCV snapshot endpoint bounds identifier ranges and query-string field lengths (dataset, symbol, timeframe, provider metadata, nanosecond timestamps, and response limit) before handler execution. These input bounds reduce oversized or malformed query work; they are not request-rate limiting.
 - The WebSocket subscription path independently verifies Firebase identity and
   checks instrument entitlement. Do not weaken either path to make them match.
 - Never trust a client-supplied UID or account owner identifier.
