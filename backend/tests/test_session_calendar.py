@@ -8,6 +8,8 @@ from app.session_calendar import (
     InvalidSessionCalendar,
     SessionCalendar,
     SessionRecord,
+    SessionCalendarRegistry,
+    calendar_id_for_product_family,
     datetime_to_epoch_ns,
     lookup_instant,
     resolve_trading_date,
@@ -39,6 +41,65 @@ def session(trading_date, open_local, close_local, kind="regular"):
         close_local=datetime.fromisoformat(close_local).replace(tzinfo=CHICAGO)
         if close_local else None,
     )
+
+
+def test_product_family_selects_only_its_explicit_calendar():
+    assert calendar_id_for_product_family("ES") == "CME_EQUITY_INDEX"
+    assert calendar_id_for_product_family("NQ") == "CME_EQUITY_INDEX"
+    assert calendar_id_for_product_family("GC") == "COMEX_GOLD"
+    assert calendar_id_for_product_family("UNKNOWN") is None
+    assert calendar_id_for_product_family("ESZ6") is None
+
+
+def test_calendar_registry_requires_unambiguous_explicit_release_version():
+    equity_v1 = make_calendar([])
+    equity_v2 = SessionCalendar(
+        calendar_id="CME_EQUITY_INDEX", version="2024.03.2", product_family="ES",
+        effective_start=date(2024, 3, 1), effective_end=date(2024, 3, 31),
+        source_id="official-cme-schedule-release",
+        source_url="https://www.cmegroup.com/trading-hours.html",
+        published_at_utc=datetime(2024, 2, 2, tzinfo=timezone.utc),
+        checksum="sha256:second-release", records={},
+    )
+    registry = SessionCalendarRegistry((equity_v1, equity_v2))
+    assert registry.get("CME_EQUITY_INDEX", "2024.03.1") is equity_v1
+    assert registry.get("CME_EQUITY_INDEX", "2024.03.2") is equity_v2
+    assert registry.get("CME_EQUITY_INDEX") is None
+    assert registry.for_product_family("ES", "2024.03.2") is equity_v2
+    assert registry.for_product_family("NQ", "2024.03.2") is None
+    assert registry.for_product_family("GC", "2024.03.2") is None
+
+
+def test_calendar_registry_rejects_conflicting_content_for_same_release_key():
+    first = make_calendar([])
+    conflicting = SessionCalendar(
+        calendar_id=first.calendar_id, version=first.version,
+        product_family=first.product_family,
+        effective_start=first.effective_start, effective_end=first.effective_end,
+        source_id=first.source_id, source_url=first.source_url,
+        published_at_utc=first.published_at_utc,
+        checksum="sha256:conflicting-content", records={},
+    )
+    registry = SessionCalendarRegistry((first,))
+    with pytest.raises(InvalidSessionCalendar, match="cannot be replaced"):
+        registry.register(conflicting)
+
+
+def test_calendar_records_are_immutable_after_validation():
+    monday = session(date(2024, 3, 11), "2024-03-10T17:00:00", "2024-03-11T16:00:00")
+    source_records = {monday.trading_date: monday}
+    calendar = SessionCalendar(
+        calendar_id="CME_EQUITY_INDEX", version="2024.03.1", product_family="ES",
+        effective_start=date(2024, 3, 1), effective_end=date(2024, 3, 31),
+        source_id="official-cme-schedule-release",
+        source_url="https://www.cmegroup.com/trading-hours.html",
+        published_at_utc=datetime(2024, 2, 1, tzinfo=timezone.utc),
+        checksum="sha256:verified-release-digest", records=source_records,
+    )
+    source_records.clear()
+    assert resolve_trading_date(calendar, monday.trading_date) is monday
+    with pytest.raises(TypeError):
+        calendar.records[date(2024, 3, 12)] = monday
 
 
 def test_sunday_reopen_maps_to_monday_trading_date_across_spring_dst():
