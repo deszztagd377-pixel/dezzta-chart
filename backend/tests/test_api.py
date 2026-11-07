@@ -776,3 +776,39 @@ def test_websocket_rechecks_revoked_entitlement_during_continuous_updates(monkey
 
         assert disconnected is not None, "revoked subscription remained active during continuous updates"
         assert disconnected.code == 4403
+
+
+
+def test_websocket_rejects_origin_not_in_allowlist():
+    application = create_app(make_settings())
+    client = TestClient(application)
+    with pytest.raises(WebSocketDisconnect) as disconnected:
+        with client.websocket_connect(
+            "/ws/market-data",
+            headers={"origin": "https://attacker.example"},
+        ):
+            pass
+    assert disconnected.value.code == 4403
+
+
+def test_websocket_rejects_browser_origin_when_allowlist_is_empty():
+    settings = replace(make_settings(), cors_allowed_origins=())
+    application = create_app(settings)
+    client = TestClient(application)
+    with pytest.raises(WebSocketDisconnect) as disconnected:
+        with client.websocket_connect(
+            "/ws/market-data",
+            headers={"origin": "https://unexpected.example"},
+        ):
+            pass
+    assert disconnected.value.code == 4403
+
+
+def test_websocket_allows_non_browser_client_without_origin_header():
+    application = create_app(make_settings())
+    _install_test_identity(application)
+    client = TestClient(application)
+    with client.websocket_connect("/ws/market-data") as websocket:
+        websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+        message = websocket.receive_json()
+    assert message["type"] == "market_data.status"
