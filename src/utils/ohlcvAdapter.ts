@@ -7,6 +7,8 @@ import type {
 } from '../types/ohlcv';
 
 export interface OhlcvSeriesIdentity {
+  provider?: string;
+  seriesType?: 'contract' | 'continuous';
   dataset: string;
   publisherId: number;
   instrumentId: number;
@@ -158,6 +160,8 @@ export function parseOhlcvSnapshot(payload: unknown): OhlcvSnapshotMessage {
   const previousBySeries = new Map<string, bigint>();
   for (const [index, bar] of bars.entries()) {
     const seriesKey = [
+      bar.provider ?? 'databento',
+      bar.seriesType ?? 'contract',
       bar.dataset,
       bar.publisherId,
       bar.instrumentId,
@@ -189,6 +193,8 @@ export function toChartCandles(
   if (snapshot.state === 'unavailable') return [];
 
   const matchingBars = snapshot.bars.filter((bar) =>
+    (bar.provider ?? 'databento') === (identity.provider ?? 'databento') &&
+    (bar.seriesType ?? 'contract') === (identity.seriesType ?? 'contract') &&
     bar.dataset === identity.dataset &&
     bar.publisherId === identity.publisherId &&
     bar.instrumentId === identity.instrumentId &&

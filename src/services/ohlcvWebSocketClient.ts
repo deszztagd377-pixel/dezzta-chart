@@ -157,6 +157,8 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
         guard = new OhlcvStreamSequenceGuard(
           parsed.streamId,
           {
+            provider: options.identity.provider ?? 'databento',
+            seriesType: options.identity.seriesType ?? 'contract',
             dataset: options.identity.dataset,
             publisherId: options.identity.publisherId,
             instrumentId: options.identity.instrumentId,

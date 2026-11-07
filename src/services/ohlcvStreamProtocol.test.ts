@@ -6,6 +6,8 @@ import {
 } from './ohlcvStreamProtocol';
 
 const series = {
+  provider: 'databento',
+  seriesType: 'contract',
   dataset: 'GLBX.MDP3',
   publisherId: 1,
   instrumentId: 123,
@@ -81,6 +83,13 @@ describe('parseOhlcvStreamUpdate', () => {
     const parsed = event({ series: fixedSeries, bar: fixedBar });
     expect(parsed.series.bucketPolicy).toBe('UTC_FIXED_V1');
     expect(() => event({ series: fixedSeries, bar: legacyBar })).toThrow(/does not match/i);
+  });
+
+  it('rejects provider or series-type mismatches between stream identity and bar', () => {
+    expect(() => event({ series: { ...series, provider: 'other-provider' } })).toThrow(/does not match/i);
+    expect(() => event({ series: { ...series, seriesType: 'continuous' } })).toThrow(/does not match/i);
+    expect(() => event({ bar: { ...bar, provider: 'other-provider' } })).toThrow(/does not match/i);
+    expect(() => event({ bar: { ...bar, seriesType: 'continuous' } })).toThrow(/does not match/i);
   });
 
   it('rejects a bar whose identity differs from the declared stream series', () => {

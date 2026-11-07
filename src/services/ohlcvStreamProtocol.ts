@@ -3,6 +3,8 @@ import { parseOhlcvSnapshot } from '../utils/ohlcvAdapter';
 import { getBucketPolicyForTimeframe } from '../utils/ohlcvBucketPolicy';
 
 export interface OhlcvStreamSeriesIdentity {
+  provider: string;
+  seriesType: 'contract' | 'continuous';
   dataset: string;
   publisherId: number;
   instrumentId: number;
@@ -51,7 +53,9 @@ function sameSeries(
   left: OhlcvStreamSeriesIdentity,
   right: OhlcvStreamSeriesIdentity,
 ): boolean {
-  return left.dataset === right.dataset &&
+  return left.provider === right.provider &&
+    left.seriesType === right.seriesType &&
+    left.dataset === right.dataset &&
     left.publisherId === right.publisherId &&
     left.instrumentId === right.instrumentId &&
     left.rawSymbol === right.rawSymbol &&
@@ -86,6 +90,8 @@ export function parseOhlcvStreamUpdate(payload: unknown): OhlcvStreamUpdateMessa
 
   const series = payload.series;
   if (
+    !isNonEmptyString(series.provider) ||
+    !['contract', 'continuous'].includes(String(series.seriesType)) ||
     !isNonEmptyString(series.dataset) ||
     !isPositiveSafeInteger(series.publisherId) ||
     !isPositiveSafeInteger(series.instrumentId) ||
@@ -112,8 +118,16 @@ export function parseOhlcvStreamUpdate(payload: unknown): OhlcvStreamUpdateMessa
     truncated: false,
   });
   const bar = snapshot.bars[0];
+  if (
+    !isNonEmptyString(bar.provider) ||
+    !['contract', 'continuous'].includes(String(bar.seriesType))
+  ) {
+    throw new Error('OHLCV stream bar provider or series type is invalid.');
+  }
   const identity = series as unknown as OhlcvStreamSeriesIdentity;
   if (!sameSeries(identity, {
+    provider: bar.provider,
+    seriesType: bar.seriesType as 'contract' | 'continuous',
     dataset: bar.dataset,
     publisherId: bar.publisherId,
     instrumentId: bar.instrumentId,

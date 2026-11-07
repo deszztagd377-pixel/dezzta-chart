@@ -37,6 +37,8 @@ export interface OhlcvStreamSupervisor {
 
 function sameIdentity(left: MarketSeriesIdentity | null, right: MarketSeriesIdentity): boolean {
   return left !== null &&
+    (left.provider ?? 'databento') === (right.provider ?? 'databento') &&
+    (left.seriesType ?? 'contract') === (right.seriesType ?? 'contract') &&
     left.dataset === right.dataset &&
     left.publisherId === right.publisherId &&
     left.instrumentId === right.instrumentId &&

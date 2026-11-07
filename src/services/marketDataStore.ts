@@ -2,6 +2,8 @@ import type { ChartData, Timeframe } from '../types';
 import { getBucketPolicyForTimeframe } from '../utils/ohlcvBucketPolicy';
 
 export interface MarketSeriesIdentity {
+  provider?: string;
+  seriesType?: 'contract' | 'continuous';
   dataset: string;
   publisherId: number;
   instrumentId: number;
@@ -131,7 +133,9 @@ export function publishMarketDataSnapshot(input: {
 
 
 function sameIdentity(left: MarketSeriesIdentity, right: MarketSeriesIdentity): boolean {
-  return left.dataset === right.dataset &&
+  return (left.provider ?? 'databento') === (right.provider ?? 'databento') &&
+    (left.seriesType ?? 'contract') === (right.seriesType ?? 'contract') &&
+    left.dataset === right.dataset &&
     left.publisherId === right.publisherId &&
     left.instrumentId === right.instrumentId &&
     left.rawSymbol === right.rawSymbol &&

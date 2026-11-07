@@ -109,6 +109,19 @@ describe('toChartCandles', () => {
     }]);
   });
 
+  it('does not mix bars from another provider or series type', () => {
+    const payload = makeSnapshot({
+      bars: [
+        { ...baseBar },
+        { ...baseBar, provider: 'other-provider' },
+        { ...baseBar, seriesType: 'continuous' },
+      ],
+    });
+    const snapshot = parseOhlcvSnapshot(payload);
+    expect(toChartCandles(snapshot, identity)).toHaveLength(1);
+    expect(toChartCandles(snapshot, { ...identity, seriesType: 'continuous' })).toHaveLength(1);
+  });
+
   it('does not mix bars from another instrument or timeframe', () => {
     const payload = makeSnapshot({
       bars: [
