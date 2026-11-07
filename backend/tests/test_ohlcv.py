@@ -155,6 +155,29 @@ def test_bucket_policy_is_part_of_pipeline_identity_and_query_filter():
     assert pipeline.list_bars(bucket_policy="UTC_FIXED_V1") == [fixed]
 
 
-def test_exchange_calendar_policy_is_rejected_until_calendar_is_verified():
-    with pytest.raises(InvalidOhlcvBar, match="not-yet-enabled"):
-        bar(bucket_policy="CME_SESSION_V1", calendar_id="CME", calendar_version="2026.1")
+def test_cme_session_policy_requires_calendar_identity_and_session_timeframe():
+    from app.ohlcv import BUCKET_POLICY_CME_SESSION_V1
+
+    # 17:00 Chicago session opens are intentionally not UTC-midnight aligned.
+    session_start = 1_730_668_800 * NS
+    session_bar = bar(
+        start=session_start,
+        timeframe="1d",
+        bucket_policy=BUCKET_POLICY_CME_SESSION_V1,
+        calendar_id="CME_EQUITY_INDEX",
+        calendar_version="2026.11.1",
+    )
+    assert session_bar.ts_start_ns == session_start
+    assert session_bar.calendar_id == "CME_EQUITY_INDEX"
+
+    with pytest.raises(InvalidOhlcvBar, match="calendar_id and calendar_version"):
+        bar(start=session_start, timeframe="1d",
+            bucket_policy=BUCKET_POLICY_CME_SESSION_V1,
+            calendar_id="CME_EQUITY_INDEX")
+
+    with pytest.raises(InvalidOhlcvBar, match="only valid for 1d"):
+        bar(bucket_policy=BUCKET_POLICY_CME_SESSION_V1,
+            calendar_id="CME_EQUITY_INDEX", calendar_version="2026.11.1")
+
+    with pytest.raises(InvalidOhlcvBar, match="must not carry exchange calendar"):
+        bar(calendar_id="CME_EQUITY_INDEX", calendar_version="2026.11.1")
