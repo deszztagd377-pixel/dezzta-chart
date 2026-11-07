@@ -33,6 +33,11 @@ remain server-side and must never be packaged into the browser app or Android AP
 ## 3. Transport and authentication
 
 - Production deployments must use HTTPS and WSS.
+- Environment-loaded CORS configuration accepts only exact bare HTTP(S)
+  origins; wildcard origins, paths, credentials, query strings, fragments, and
+  malformed origins are rejected. When `APP_ENV=production`, every configured
+  CORS origin must use HTTPS. This is configuration validation, not a substitute
+  for deployment-side HTTPS/WSS and Origin smoke tests.
 - Keep the WebSocket Origin allowlist explicit. Origin checks supplement, but do
   not replace, token verification.
 - HTTP authentication uses a Firebase Bearer ID token verified by the backend.
