@@ -68,15 +68,18 @@ requires verified identity and instrument entitlement.
 - Production Vite source maps are disabled by default in `vite.config.ts`.
 - `.gitignore` excludes environment files while allowing a sanitized
   `.env.example`. Ignore rules do not remove secrets already committed.
-- CI currently installs frontend packages with `npm install`, runs frontend
-  tests and a production build, installs Python development dependencies,
-  runs backend tests, and builds the backend container.
-- The audited repository did not contain a `package-lock.json`. A lockfile
-  and reproducible `npm ci` workflow should be introduced only after a
-  deliberate dependency-resolution review.
-- The current CI workflow does not yet show dedicated dependency vulnerability,
-  secret-scanning, or container-image scanning steps. Add these after selecting
-  and validating suitable scanners and their failure thresholds.
+- CI installs frontend dependencies with `npm ci` from the committed
+  `package-lock.json`, then runs `npm audit --audit-level=high`, frontend
+  unit tests, and the production build.
+- CI installs Python development dependencies, runs backend tests, performs
+  `pip-audit` against `backend/requirements-dev.txt`, and builds the backend
+  container image.
+- CodeQL runs for JavaScript/TypeScript and Python on pushes to the project
+  branches, pull requests to `main`, and a weekly schedule.
+- These checks are verified on individual commits; they do not replace
+  repository secret scanning, container image vulnerability scanning, or
+  runtime monitoring. The Python dependency inputs are still range-based and
+  do not yet have a committed fully resolved lockfile.
 
 ## 6. Remaining release checklist
 
@@ -88,7 +91,9 @@ requires verified identity and instrument entitlement.
 - [ ] Test HTTP and WebSocket entitlement denial, revocation, reconnect, and
       exact instrument/timeframe switching.
 - [ ] Add and test rate limits, request-size bounds, and abuse monitoring.
-- [ ] Add dependency, secret, and container security scans to CI.
+- [x] Add frontend and backend dependency vulnerability audits to CI.
+- [x] Add CodeQL analysis for JavaScript/TypeScript and Python.
+- [ ] Add repository secret scanning and container-image vulnerability scanning.
 - [ ] Review SQLite file permissions, backup encryption, retention, and recovery.
 - [ ] Verify monitoring and incident-response procedures before production use.
 
