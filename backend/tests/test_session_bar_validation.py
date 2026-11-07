@@ -255,7 +255,7 @@ def test_provider_validation_rejects_mapping_outside_its_validity_window(tmp_pat
 def test_provider_validation_rejects_ephemeral_symbol_mapping_mismatch(tmp_path):
     monday = record(date(2024, 3, 11), "2024-03-10T17:00:00", "2024-03-11T16:00:00")
     start = datetime_to_epoch_ns(datetime(2024, 3, 11, 15, 0, tzinfo=timezone.utc))
-    registry = durable_registry(tmp_path, raw_symbol="ESM6", valid_from_ns=0)
+    registry = durable_registry(tmp_path, raw_symbol="ESM6", valid_from_ns=1)
     with pytest.raises(SessionBarRejected) as error:
         validate_provider_bar_session(
             bar(start), registry, SessionCalendarRegistry((calendar([monday]),)),
