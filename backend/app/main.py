@@ -209,19 +209,19 @@ def create_app(
 
     @application.get("/v1/ohlcv", tags=["market-data"])
     async def ohlcv_snapshot(
-        dataset: str,
-        publisher_id: int,
-        instrument_id: int,
-        timeframe: str,
-        raw_symbol: str,
-        provider_name: str | None = Query(default=None, alias="provider"),
-        series_type: str | None = None,
-        start_ns: str | None = None,
-        end_ns: str | None = None,
-        limit: int | None = Query(default=None, ge=1),
-        bucket_policy: str | None = Query(default=None),
-        calendar_id: str = "",
-        calendar_version: str = "",
+        dataset: str = Query(min_length=1, max_length=64),
+        publisher_id: int = Query(ge=1, le=2_147_483_647),
+        instrument_id: int = Query(ge=1, le=2_147_483_647),
+        timeframe: str = Query(min_length=1, max_length=16),
+        raw_symbol: str = Query(min_length=1, max_length=128),
+        provider_name: str | None = Query(default=None, alias="provider", max_length=32),
+        series_type: str | None = Query(default=None, max_length=32),
+        start_ns: str | None = Query(default=None, max_length=19),
+        end_ns: str | None = Query(default=None, max_length=19),
+        limit: int | None = Query(default=None, ge=1, le=5_000),
+        bucket_policy: str | None = Query(default=None, max_length=32),
+        calendar_id: str = Query(default="", max_length=128),
+        calendar_version: str = Query(default="", max_length=64),
         principal: VerifiedPrincipal = Depends(require_verified_principal),
     ) -> dict[str, object]:
         """Return an exact OHLCV series after Firebase identity and entitlement checks.
