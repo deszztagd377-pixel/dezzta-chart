@@ -667,3 +667,33 @@ Scope limitation: these controls bound each connection's message behavior and fr
 - Prior HEAD `3709a18` had CI and CodeQL success. Exact-HEAD validation for this change is pending; no project progress percentage is changed until the new acceptance evidence is verified.
 
 - CI on intermediate commit `9cfce47` exposed a pytest collection error: the existing oversized-query parametrization decorator was temporarily attached to the new overflow test during insertion. The decorator was restored to its original test; exact-HEAD CI is rerunning on the corrected test file.
+
+
+## Verified CI and security configuration checkpoint — 2026-11-07
+
+Working branch: `phase-2/market-data-foundation`  
+Verified HEAD before this documentation checkpoint: `01301eca926124cc7091a1269fbe4ede8bb3055a`  
+Main HEAD at audit: `e3841681bc69b73619058deaf939df82ae5116a1` (unchanged).
+
+### Exact-HEAD automated evidence
+
+- CI run [42365951828](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42365951828) completed successfully on the exact HEAD.
+- Frontend: 22 test files passed; npm audit reported 0 vulnerabilities; production build passed.
+- Backend: 463 tests passed, 1 Starlette deprecation warning; pip-audit reported no known vulnerabilities; Docker image build passed.
+- CodeQL run [42365951887](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42365951887) completed successfully for JavaScript/TypeScript and Python, and uploaded both analyses. Workflow success is not evidence that the alert inventory is empty; alert counts were not available in this audit.
+
+### Repository security setting boundary
+
+- GitHub repository metadata confirms the repository is public and user-owned, created on 2026-10-30.
+- GitHub documents secret scanning and push protection as enabled by default for new public repositories owned by personal accounts. Administrators can disable them; this audit could not read the current repository-level setting or alert inventory. Do not mark the control fully verified until the Settings > Code security and analysis page and Security alert views have been inspected.
+- Container image vulnerability scanning is not currently part of CI. The image is built successfully, but its OS/package vulnerability inventory is not yet scanned. Do not treat the successful Docker build as a security scan.
+- No new scan action was added in this checkpoint: the available candidate scanner/action's supply-chain posture requires a separate review before adding a third-party CI dependency.
+
+### Remaining Stage 1 security work
+
+- Verify repository secret scanning and push-protection settings plus alert inventory.
+- Add a reviewed, pinned container-image scanner and define severity/fixability policy.
+- Reconcile backend dependency ranges and a reproducible lock strategy.
+- Complete deployment-specific Firebase, HTTPS/WSS, Origin, rate-limit, and monitoring checks.
+
+This verification does not change the owner-confirmed overall progress percentage. Passing CI validates only the configured checks on this commit.
