@@ -285,7 +285,7 @@ Added a pure, fail-closed validation component for intraday OHLCV bars:
 
 Added `backend/tests/test_session_bar_validation.py` with 11 deterministic tests covering regular sessions, special/early-close sessions, a bar crossing the early close, maintenance, explicit closure, missing coverage, canonical calendar identity, explicit version selection, inactive/non-futures instruments, unsupported bucket policy/timeframe, and timestamp precision.
 
-**Important integration boundary:** this validator is not yet wired into `record_to_bar()` or the production ingestion pipeline. The caller must first resolve the point-in-time provider mapping with `SQLiteInstrumentRegistry.resolve_provider_mapping(..., timestamp_ns=...)`, load the corresponding canonical object with `get_instrument(canonical_id)`, and supply the approved calendar release/version. That adapter integration is the next engineering slice; until then no claim is made that every ingested Databento bar is session-validated.
+**Important integration boundary:** the pure validator is now callable through a durable provider-identity resolver and an optional ingestion validation hook. The production application does **not** configure that hook yet because no authenticated official CME schedule release/version has been supplied. Therefore no claim is made that production Databento bars are currently session-validated.
 
 No production CME calendar artifact has been supplied or authenticated. Test records are synthetic fixtures only. No session-aligned aggregation is enabled. Existing UTC ingestion/aggregation and SQLite schema are unchanged.
 
@@ -294,3 +294,46 @@ Files added:
 - `backend/tests/test_session_bar_validation.py`
 
 Progress remains at the owner-confirmed historical checkpoint **20.9%**; no weighted percentage increase is awarded for this isolated validation component before CI and the project milestone ledger are reconciled.
+
+
+
+## Stage 1 audit snapshot — provisional criterion scoring (2026-11-07)
+
+The owner requested a fresh Stage 1 calculation. Since the six-stage acceptance ledger has not yet been formally approved, this is a transparent **provisional Stage 1 index**, not a change to the overall project percentage.
+
+Scoring method for this audit only:
+- Ten Stage 1 acceptance groups are treated equally (10% of Stage 1 each).
+- Complete = 1.0 credit; partial = 0.5; unverified/blocked = 0.
+- Five groups are complete and five are partial: (5 × 1.0 + 5 × 0.5) / 10 = **75.00% provisional Stage 1 completion**.
+- This method and criterion boundaries require owner approval before being used as the official stage score.
+
+| Stage 1 acceptance group | Audit result | Evidence / remaining boundary |
+|---|---|---|
+| Frontend shell and production build | Complete | React/Vite/Lightweight Charts shell; latest observed frontend test/build steps passed |
+| Backend bootstrap and health endpoint | Complete | FastAPI application and health endpoint have tests |
+| API contracts and data validation | Partial | Versioned OHLCV contracts, request validation, and data guards exist; full deployed end-to-end validation remains unverified |
+| Canonical instrument identity | Complete | Immutable canonical identities and point-in-time provider mappings have registry tests |
+| SQLite persistence foundation | Complete | Persistence, schema migration, restart, and coverage tests exist; no SQLite rework is indicated |
+| Firebase client/server authentication | Partial | Firebase client provider and Admin token verifier exist; actual deployment configuration and operational token flow are not verified |
+| Account/instrument authorization | Complete | Server derives subject from verified principal and uses deny-by-default canonical-instrument entitlements; API and store tests exist |
+| Secret/configuration/CORS hygiene | Partial | Backend-only provider secrets, redacted settings repr, and restricted CORS baseline exist; comprehensive security scanning/review remains open |
+| Resilience and observability | Partial | Bounded ingestion, overflow gap tracking, retries, and status counters exist; production fault/monitoring verification remains open |
+| CI reproducibility and deployment validation | Partial | CI runs frontend/backend tests and container build; dependency lockfile and deployed Android/web smoke verification remain open |
+
+This 75.00% Stage 1 index is not an overall-project percentage and does not imply Stage 1 is complete. Historical overall checkpoints 20.3% then 20.9% remain preserved. The overall baseline stays **20.9%** pending owner approval of a full weighted six-stage model and a reproducible cross-stage scoring ledger.
+
+
+## CME provider-to-session validation integration seam — 2026-11-07
+
+Added the next Stage 2 integration slice:
+
+- `validate_provider_bar_session()` now resolves the provider mapping through `SQLiteInstrumentRegistry.resolve_provider_mapping()` using provider, dataset, publisher ID, instrument ID, and the bar event timestamp.
+- The resulting canonical ID is used to load the canonical instrument. Calendar selection still comes only from explicit canonical `session_calendar_id` plus an explicit calendar version.
+- Raw symbol is never used to select the instrument or calendar; it is checked only for consistency against the durable mapping. A mismatch is rejected.
+- Missing/expired point-in-time mappings and registry lookup failures fail closed with stable rejection reasons.
+- `OhlcvIngestionService` now accepts an optional `bar_validator` callback and invokes it after OHLCV parsing but before persistence, pipeline mutation, aggregation, or broadcast. Rejections are counted as `rejected_validation_<reason>`; a validation exception cannot stop the consumer.
+- Added four durable-mapping/session tests and two ingestion-hook tests, including a proof that rejected bars never reach persistence/pipeline.
+
+**Not enabled in the production app:** `main.py` intentionally does not supply a bar-validator callback yet. No authenticated official CME schedule artifact is present, and no approved calendar version is configured. The optional hook is an integration boundary, not a claim of active session validation. Existing UTC ingestion behavior is unchanged until a verified release is supplied and explicitly enabled. Session-aligned aggregation remains disabled.
+
+CI for the latest code commit is pending. Do not mark these tests as passing until the exact-head workflow completes.
