@@ -351,6 +351,46 @@ def test_durable_overflow_journal_replays_into_coverage_after_restart(tmp_path):
     assert journal_id > 0
 
 
+def test_journal_replay_is_idempotent_when_delete_fails_after_gap_persist(tmp_path):
+    from app.coverage_store import SQLiteCoverageTracker
+    from app.ingest import OhlcvIngestionService
+    from app.ohlcv import OhlcvPipeline
+    from helpers import make_resolver
+
+    path = str(tmp_path / "journal-delete-failure.sqlite3")
+    scope = ("databento", "GLBX.MDP3", 1, 101, "contract", "ESZ6")
+    first = SQLiteCoverageTracker(path)
+    journal_id = first.journal_overflow((1, 101), T0, T0 + NS, T0 + 2 * NS)
+
+    service = OhlcvIngestionService(
+        pipeline=OhlcvPipeline(), resolver=make_resolver(), coverage=first
+    )
+    original_resolve = first.resolve_overflow
+
+    def fail_delete(_journal_id):
+        raise OSError("simulated failure after durable coverage write")
+
+    first.resolve_overflow = fail_delete
+    service.process_pending()
+
+    # Coverage is durable, but journal deletion failed: both must remain safe.
+    assert first.gaps(scope) == [(T0, T0 + NS)]
+    assert [row["id"] for row in first.pending_overflows()] == [journal_id]
+    assert "coverage_persistence_error" in service.degraded_reasons
+
+    # Restart replays the same gap idempotently, then removes the journal.
+    restarted_coverage = SQLiteCoverageTracker(path)
+    restarted = OhlcvIngestionService(
+        pipeline=OhlcvPipeline(), resolver=make_resolver(),
+        coverage=restarted_coverage,
+    )
+    restarted.process_pending()
+
+    assert restarted_coverage.gaps(scope) == [(T0, T0 + NS)]
+    assert restarted_coverage.pending_overflows() == []
+    assert "coverage_persistence_error" not in restarted.degraded_reasons
+
+
 def test_ingestion_restart_restores_pipeline_and_resumes_local_sequence(tmp_path):
     from app.coverage import CoverageTracker
     from app.ingest import OhlcvIngestionService
