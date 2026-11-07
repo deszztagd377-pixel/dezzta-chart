@@ -153,7 +153,10 @@ def test_consumer_retries_pending_overflow_gap_without_new_provider_events():
             assert service.offer(rec(2), "ohlcv-1s") is False
 
             async def recovered():
-                while service.status()["pending_overflow_gaps"]:
+                while (
+                    service.counters.get("overflow_gap", 0) < 1
+                    or service.status()["pending_overflow_gaps"]
+                ):
                     await asyncio.sleep(0.01)
 
             await asyncio.wait_for(recovered(), timeout=1.5)
