@@ -649,3 +649,10 @@ Scope limitation: these controls bound each connection's message behavior and fr
 - Added API tests for the full header set on health responses and no-store/security headers on unauthenticated API errors.
 - These application headers do not provide TLS termination, frontend CSP, rate limiting, or deployment-edge protections. HSTS is intentionally not set here because TLS termination and trusted-proxy behavior are not yet confirmed for the backend deployment.
 - CI and CodeQL verification are pending for the resulting HEAD.
+
+
+## API cache-policy regression coverage — 2026-11-07
+
+- Extended the successful authenticated OHLCV snapshot test to assert `Cache-Control: private, no-store, max-age=0`, `Pragma: no-cache`, and `X-Content-Type-Options: nosniff` on a real populated snapshot response.
+- This complements the existing health-response and unauthenticated-auth-error header tests, covering both successful market-data payloads and authentication failures.
+- Exact-HEAD CI/CodeQL verification is pending; no project progress percentage is changed by adding test coverage alone.
