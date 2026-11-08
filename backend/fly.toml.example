@@ -33,3 +33,4 @@ primary_region = "sin"
 [[mounts]]
   source = "dezzta_data"
   destination = "/data"
+  snapshot_retention = 14
