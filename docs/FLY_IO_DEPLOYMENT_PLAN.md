@@ -235,3 +235,6 @@ The initial deployment is not accepted until all of these are evidenced:
 - A documented rollback path exists before subsequent schema-changing releases.
 
 Until these checks run on an actual Fly Machine and volume, permission, persistence, backup, and restore status remains **unverified**.
+
+
+Configuration clarification: the `[build]` section does not change Fly's Docker build context. Because this example is stored in `backend/` and its Dockerfile uses relative `COPY` instructions, run Fly commands with `backend/` as the deploy context (for example, work from that directory). The app name and primary region placeholders must be replaced before validation. The TOML does not itself enforce a one-Machine count; the actual Fly app must be kept at one Machine and checked after every deployment. The selected `auto_stop_machines = "off"` / `auto_start_machines = false` pair intentionally avoids proxy-driven stop/start behavior for the single-node SQLite service.
