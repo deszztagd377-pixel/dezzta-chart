@@ -165,7 +165,8 @@ jobs:
             fi
             echo "Backend health response:"
             cat /tmp/dezzta-health.json
-            python -c 'import json; payload=json.load(open("/tmp/dezzta-health.json", encoding="utf-8")); assert payload.get("status") == "ok", f"Unexpected backend health payload: {payload!r}"'
+            node -e 'const fs = require("node:fs"); const payload = JSON.parse(fs.readFileSync("/tmp/dezzta-health.json", "utf8")); if (payload.status !== "ok") { console.error("Unexpected backend health payload:", payload); process.exit(1); }'
+            echo "Backend health JSON validation passed."
           }
           wait_for_redis
           start_container
