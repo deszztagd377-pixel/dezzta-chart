@@ -231,7 +231,7 @@ describe('startFirebaseAuthObserver lifecycle boundary', () => {
     const { startFirebaseAuthObserver } = await import('./AuthProvider');
     const callbacks = handlers();
 
-    expect(startFirebaseAuthObserver(callbacks)).toBeNull();
+    expect(startFirebaseAuthObserver(callbacks)).toBeUndefined();
     expect(callbacks.onError).toHaveBeenCalledWith(
       'Konfigurasi Firebase tidak cocok atau gagal diinisialisasi. Autentikasi dinonaktifkan.',
     );
@@ -245,7 +245,7 @@ describe('startFirebaseAuthObserver lifecycle boundary', () => {
     const { startFirebaseAuthObserver } = await import('./AuthProvider');
     const callbacks = handlers();
 
-    expect(startFirebaseAuthObserver(callbacks)).toBeNull();
+    expect(startFirebaseAuthObserver(callbacks)).toBeUndefined();
     expect(callbacks.onUser).not.toHaveBeenCalled();
     expect(callbacks.onStatus).not.toHaveBeenCalled();
     expect(callbacks.onError).not.toHaveBeenCalled();

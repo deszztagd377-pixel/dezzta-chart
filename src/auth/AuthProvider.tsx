@@ -107,12 +107,12 @@ export interface FirebaseAuthLifecycleHandlers {
  */
 export function startFirebaseAuthObserver(
   handlers: FirebaseAuthLifecycleHandlers,
-): (() => void) | null {
+): (() => void) | undefined {
   const resolution = resolveFirebaseAuth();
   if (resolution.error) {
     handlers.onError(resolution.error);
     handlers.onStatus('error');
-    return null;
+    return undefined;
   }
   if (!resolution.auth) return null;
 
