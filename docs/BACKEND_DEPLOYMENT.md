@@ -24,15 +24,21 @@ review before any real provider session is enabled.
 
 ## Container build and local smoke test
 
-Run from the repository root:
+Run from the repository root. Production now requires a managed Redis endpoint with TLS. Export its URL from your secret manager into the current shell without echoing it; the value must begin with `rediss://`.
 
 ```sh
+: "${REDIS_URL:?Export the managed Redis TLS URL from your secret manager first}"
+case "$REDIS_URL" in rediss://*) ;; *) echo "REDIS_URL must use rediss:// in production" >&2; exit 1 ;; esac
+
 docker build -f backend/Dockerfile -t dezzta-chart-backend:local backend
 docker run --rm -p 8000:8000 \
   -e APP_ENV=production \
+  -e REDIS_URL \
   -e CORS_ALLOWED_ORIGINS=https://dezzta-chart.vercel.app \
   dezzta-chart-backend:local
 ```
+
+The API intentionally fails startup if the Redis connection cannot be established. Do not replace this with a local in-memory limiter or use an unencrypted Redis URL in production. Keep the Redis URL in the backend hosting platform's secret manager only.
 
 In a second terminal, verify:
 
@@ -57,6 +63,7 @@ For a container-based Python web service, use:
 - Port: the platform-provided `PORT` environment variable (defaults to 8000)
 - `APP_ENV=production`
 - `CORS_ALLOWED_ORIGINS=https://dezzta-chart.vercel.app`
+- `REDIS_URL` supplied as a backend-only secret from managed Redis; require a `rediss://` TLS endpoint.
 
 Add any Vercel preview origins only when needed, as comma-separated exact
 origins. Do not use `*` for production CORS. Set the frontend's
@@ -93,5 +100,6 @@ uses read-only HTTP snapshots and does not need that token.
 - A successful container health check proves process liveness only. It does
   not prove provider connectivity, contract-definition availability, OHLCV
   completeness, or market-data freshness.
+- Redis must be reachable from the backend region; review managed-service persistence, access controls, TLS certificate validation, private networking, and failover behavior.
 - Review hosting cost, free-tier sleep limits, region, TLS, access logs,
   retention, and incident controls before creating a public service.

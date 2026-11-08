@@ -868,3 +868,36 @@ Design the application-level calendar release source contract (trusted manifest/
 - Root cause identified: existing API test helpers register ESZ6 as a futures canonical instrument but do not configure a matching pinned calendar release. The new application-level validator correctly fails closed, so those tests no longer ingest their fixture bars. Test harness now uses a clearly labelled, pinned test-only calendar artifact; it must never be deployed as an official CME schedule.
 - A separate new runtime test incorrectly expected exactly one persisted row although the existing aggregator also writes derived intraday rows. Its assertion now verifies that the provider-sourced 1m bar was persisted; it does not enable CME session-aligned daily/weekly/monthly aggregation.
 - No production calendar, synthetic market prices, or session schedule is added to runtime configuration. Progress remains unchanged pending a green exact-HEAD CI run.
+
+
+## Stage 1 — Redis shared guard and container runtime verification (2026-11-08)
+
+### Branch and CI checkpoint before this work
+- Active branch: `phase-2/market-data-foundation`; HEAD before this unit: `c103cf98e4c8e1328415687f81e2dacadbe1a643`. Branch `main` was read for comparison only and was not modified.
+- Automated Tests [#42377723802](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42377723802) and CodeQL [#42377723806](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42377723806) completed successfully on exact HEAD `c103cf9`.
+- The backend test log reports 489 passed and one Starlette/httpx deprecation warning. Dependency audit, Docker build, and strict Trivy scan completed successfully; the exported image report showed zero HIGH/CRITICAL findings for that exact image digest. This is scoped scan evidence, not a claim of zero overall security risk.
+
+### Verified Redis shared-guard implementation
+- Added `backend/app/shared_guard.py` with atomic Redis Lua fixed-window HTTP limits and leased WebSocket connection caps shared across backend instances.
+- Production configuration requires `REDIS_URL` with `rediss://`; the application pings Redis during lifespan startup and refuses to serve when the shared store is unavailable. HTTP Redis failures fail closed with 503; rejected limits return 429; WebSocket guard failures/capacity rejection close the connection.
+- Redis key hash tags keep each multi-key Lua operation within a single Redis Cluster hash slot. Account subjects are SHA-256 digested before use in keys.
+- Added Redis 7 as a CI service and real Lua integration tests. Exact-HEAD CI above exercised the scripts against Redis, rather than relying only on mocks.
+
+### Runtime smoke-test gap and remediation
+- The previous workflow built and scanned the backend image but did not start the image. The old local production smoke-test command in `docs/BACKEND_DEPLOYMENT.md` also omitted the now-mandatory Redis secret and would therefore fail startup.
+- This change adds a container runtime smoke step using the CI Redis service, checks `/health`, then sends two requests through the Redis-protected `/v1/market-data/status` path with a one-request client limit and verifies 200 followed by 429. The test uses an unencrypted loopback Redis URL only inside the isolated CI network; production still requires managed Redis TLS.
+- Updated deployment guidance to require a backend-only managed Redis secret, verify the `rediss://` scheme, and explain fail-closed startup. No provider credentials or real Redis credentials are added to source.
+
+### Remaining boundaries
+- No managed Redis provider or backend hosting platform has been selected or provisioned. Production DNS, TLS certificate validation, private networking, persistence/failover, and deployed smoke tests remain unverified.
+- Proxy-aware client identity remains intentionally disabled; arbitrary `X-Forwarded-For` values are not trusted. Before public deployment, confirm the backend proxy topology and configure a narrowly trusted proxy policy if needed.
+- Initial rate/connection defaults are not load-tested capacity guarantees. Redis Cluster client routing has not been verified; the key scheme is slot-compatible but the configured client is the standard Redis async client.
+- Historical overall checkpoint remains **20.90%**; Stage 1 remains **75% provisional**. This CI/deployment-preparation work does not independently change the owner-confirmed overall percentage or establish Stage 1 completion.
+
+### Files changed in this unit
+- `.github/workflows/ci.yml`: start the built image and verify health plus real Redis-backed HTTP rate limiting.
+- `docs/BACKEND_DEPLOYMENT.md`: correct production Redis requirements and remove the broken no-Redis production smoke command.
+- `docs/PROJECT_PROGRESS.md`: record exact prior evidence, this validation scope, and remaining production boundaries.
+
+### Verification pending
+The new container smoke step and the full exact-HEAD workflow must pass before this unit is marked verified. No percentage increase is claimed at commit time.

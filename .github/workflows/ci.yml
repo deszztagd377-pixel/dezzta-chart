@@ -85,6 +85,45 @@ jobs:
       - name: Build backend container image
         run: docker build -f backend/Dockerfile -t dezzta-chart-backend:ci backend
 
+      - name: Smoke test backend container with shared Redis guard
+        env:
+          REDIS_TEST_URL: redis://127.0.0.1:6379/15
+        run: |
+          set -euo pipefail
+          container_name=dezzta-chart-backend-smoke
+          cleanup() {
+            docker rm -f "$container_name" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          docker run --detach --name "$container_name" --network host \
+            -e APP_ENV=development \
+            -e PORT=18000 \
+            -e REDIS_URL="$REDIS_TEST_URL" \
+            -e HTTP_RATE_LIMIT_PER_CLIENT=1 \
+            -e HTTP_RATE_LIMIT_GLOBAL=10 \
+            -e INSTRUMENT_REGISTRY_DB_PATH=/tmp/dezzta-chart-smoke.sqlite3 \
+            -e CORS_ALLOWED_ORIGINS=http://localhost:5173 \
+            dezzta-chart-backend:ci
+          base_url=http://127.0.0.1:18000
+          ready=0
+          for attempt in $(seq 1 30); do
+            if curl --silent --show-error --fail "$base_url/health" >/tmp/dezzta-health.json; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then
+            docker logs "$container_name"
+            exit 1
+          fi
+          grep -Fq '"status":"ok"' /tmp/dezzta-health.json
+          first_status=$(curl --silent --show-error --output /tmp/dezzta-first.json --write-out '%{http_code}' "$base_url/v1/market-data/status")
+          test "$first_status" = "200"
+          second_status=$(curl --silent --show-error --output /tmp/dezzta-second.json --write-out '%{http_code}' "$base_url/v1/market-data/status")
+          test "$second_status" = "429"
+          echo "Container health, Redis-backed request path, and HTTP rate-limit rejection passed."
+
       - name: Scan backend container image
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
