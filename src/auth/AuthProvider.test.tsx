@@ -27,6 +27,29 @@ beforeEach(() => {
   firebaseMocks.isFirebaseConfigured.mockReturnValue(true);
 });
 
+describe('readableAuthError', () => {
+  it('maps known Firebase error codes to safe user-facing messages', async () => {
+    const { readableAuthError } = await import('./AuthProvider');
+
+    expect(readableAuthError({ code: 'auth/invalid-email', message: 'raw provider detail' }))
+      .toBe('Format email tidak valid.');
+    expect(readableAuthError({ code: 'auth/too-many-requests', message: 'raw provider detail' }))
+      .toBe('Terlalu banyak percobaan. Coba lagi nanti.');
+  });
+
+  it('does not expose unknown provider messages or token-like error details', async () => {
+    const { readableAuthError } = await import('./AuthProvider');
+    const sensitiveMessage = 'permission denied for project secret-project; token=private-value';
+
+    expect(readableAuthError(new Error(sensitiveMessage)))
+      .toBe('Autentikasi gagal. Periksa konfigurasi Firebase dan coba lagi.');
+    expect(readableAuthError({ code: 'auth/unrecognized', message: sensitiveMessage }))
+      .not.toContain('private-value');
+    expect(readableAuthError(null))
+      .toBe('Autentikasi gagal. Periksa konfigurasi Firebase dan coba lagi.');
+  });
+});
+
 describe('resolveFirebaseAuth', () => {
   it('returns the configured Auth instance without changing its identity', async () => {
     const auth = { currentUser: null };
