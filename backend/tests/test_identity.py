@@ -208,6 +208,17 @@ def test_subject_fallback_accepts_valid_sub_when_uid_is_absent():
     assert principal.subject == CLAIMS["sub"]
 
 
+def test_uid_is_accepted_when_sub_is_absent():
+    claims = {key: value for key, value in CLAIMS.items() if key != "sub"}
+    verifier = FirebaseIdentityVerifier(
+        PROJECT, verify_callable=lambda token, **kwargs: claims
+    )
+
+    principal = verifier.verify("token")
+
+    assert principal.subject == CLAIMS["uid"]
+
+
 @pytest.mark.parametrize("claims", [None, [], "not-a-claims-object", 42])
 def test_non_object_claims_are_rejected(claims):
     verifier = FirebaseIdentityVerifier(
@@ -220,10 +231,23 @@ def test_non_object_claims_are_rejected(claims):
 
 @pytest.mark.parametrize(
     "missing_claim",
-    ["uid", "sub", "iss", "aud", "auth_time"],
+    ["iss", "aud", "auth_time"],
 )
 def test_required_identity_claims_cannot_be_omitted(missing_claim):
     claims = {key: value for key, value in CLAIMS.items() if key != missing_claim}
+    verifier = FirebaseIdentityVerifier(
+        PROJECT, verify_callable=lambda token, **kwargs: claims
+    )
+
+    with pytest.raises(IdentityVerificationError):
+        verifier.verify("token")
+
+
+def test_subject_is_rejected_when_both_uid_and_sub_are_absent():
+    claims = {
+        key: value for key, value in CLAIMS.items()
+        if key not in {"uid", "sub"}
+    }
     verifier = FirebaseIdentityVerifier(
         PROJECT, verify_callable=lambda token, **kwargs: claims
     )
