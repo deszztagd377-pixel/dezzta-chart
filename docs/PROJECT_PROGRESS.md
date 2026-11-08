@@ -1264,3 +1264,12 @@ Verification boundary: these tests exercise the complete extracted observer life
 - Verification boundary: committed for exact-HEAD GitHub Actions execution. No local pytest run is claimed through the repository connector. This is not a real signed-token Firebase Admin E2E test.
 - Overall remains **20.90%**; Stage 1 remains **75% provisional**. This additional regression test does not close the React DOM lifecycle, authorized Firebase signed-token E2E, or production reliability gates.
 - `Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.`
+
+### Firebase principal claim-boundary regression coverage — 2026-11-08
+
+- Expanded `backend/tests/test_identity.py` with nine parameterized/positive cases: valid `sub`-only fallback, rejection of non-object claim payloads, and rejection when each required identity claim (`uid`, `sub`, `iss`, `aud`, or `auth_time`) is omitted.
+- This exercises the existing `FirebaseIdentityVerifier` contract without changing production verification behavior.
+- Existing tests continue to cover issuer/audience mismatch, UID/subject drift, oversized identifiers, malformed/oversized tokens, SDK error normalization, named Firebase Admin app reuse/initialization, and `check_revoked=True`.
+- Verification boundary: the changes are committed for GitHub Actions validation; no local pytest run is claimed. These tests use an injected verifier/fake Admin SDK and are not real signed-token Firebase E2E coverage.
+- Overall remains **20.90%** and Stage 1 remains **75% provisional**. No acceptance criterion for React DOM lifecycle, authorized Firebase signed-token E2E, or production reliability is closed by this test-only addition.
+- `Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.`
