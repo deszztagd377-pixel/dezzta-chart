@@ -183,7 +183,7 @@ jobs:
           else
             echo "Database ownership inspection failed: $database_owner"
             docker exec "$container_name" sh -c 'ls -lan /data; find /data -maxdepth 1 -type f -print 2>/dev/null || true'
-            return 1
+            exit 1
           fi
           assert_equal() {
             expected=$1
