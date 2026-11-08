@@ -1041,3 +1041,29 @@ Design the application-level calendar release source contract (trusted manifest/
 - Overall checkpoint remains **20.90%**; Stage 1 remains **75% provisional**.
 - `Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.`
 - This is a code-level fail-closed correction; no progress credit is assigned until exact-HEAD CI and criterion-level verification are complete.
+
+
+## 2026-11-08 — Firebase Auth observer subscription boundary
+
+### Five-work-package cycle
+1. Rechecked the active branch HEAD (13526a0af359b8de060d10c767edc4295d7ef796) and current workflow state before editing. The branch remains phase-2/market-data-foundation; main remains untouched.
+2. Confirmed exact-HEAD CodeQL success. Automated Tests had frontend tests/build, secret scans, backend tests, and dependency audits complete successfully; backend container image build was still in progress.
+3. Identified a remaining exception boundary: observer registration itself was outside a try/catch. A synchronous SDK/setup failure could still escape the React effect. The observer error callback also left a potentially stale user in provider state.
+4. Added subscribeToFirebaseAuth() as a narrow subscription boundary. It forwards signed-in/signed-out observer events, preserves the Firebase unsubscribe callback, forwards asynchronous observer errors, and converts synchronous registration failures into the provider's existing fail-closed error path. Observer errors now clear the user before setting error status.
+5. Expanded AuthProvider unit coverage with three observer-contract tests: state-event forwarding and cleanup, asynchronous error forwarding, and synchronous registration failure handling.
+
+### Files changed
+- src/auth/AuthProvider.tsx: isolate observer registration, preserve cleanup, and clear stale user state on observer error.
+- src/auth/AuthProvider.test.tsx: add observer contract and cleanup tests.
+- docs/PROJECT_PROGRESS.md: record the change and verification limits.
+
+### Verification boundary
+- No local test run is claimed. The exact-HEAD CI run observed before this commit had not yet completed its backend container build, Redis smoke test, and image scan.
+- The new tests exercise the observer subscription contract with mocked Firebase callbacks. They do not mount the React provider in a DOM, and do not prove real browser lifecycle, Firebase redirect completion, token refresh behavior, or production identity-token validation.
+- A DOM-capable test harness remains a separate follow-up because the current dependency manifest/lockfile does not contain jsdom, happy-dom, or React Testing Library. No lockfile was hand-edited and no unverified dependency version was introduced.
+- No production credentials or paid cloud resources were provisioned.
+
+### Progress accounting
+- Overall remains 20.90%; Stage 1 remains 75% provisional.
+- Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.
+- Code and mock-level test coverage improved, but exact-HEAD CI and end-to-end lifecycle acceptance remain outstanding.

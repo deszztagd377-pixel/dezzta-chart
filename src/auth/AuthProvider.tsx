@@ -56,6 +56,28 @@ export type FirebaseAuthResolution =
   | { auth: Auth; error: null }
   | { auth: null; error: string | null };
 
+export interface FirebaseAuthObserverHandlers {
+  onUser(user: User | null): void;
+  onError(error: unknown): void;
+}
+
+/**
+ * Keep observer setup behind a fail-closed boundary. Firebase can reject
+ * subscription synchronously; observer errors are forwarded to the same
+ * handler and cleanup is preserved.
+ */
+export function subscribeToFirebaseAuth(
+  auth: Auth,
+  handlers: FirebaseAuthObserverHandlers,
+): (() => void) | null {
+  try {
+    return onAuthStateChanged(auth, handlers.onUser, handlers.onError);
+  } catch (error) {
+    handlers.onError(error);
+    return null;
+  }
+}
+
 /**
  * Firebase initialization can throw when an existing default app belongs to
  * another project. Convert that boundary failure into an explicit auth state
@@ -88,13 +110,17 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     }
     if (!resolution.auth) return;
 
-    return onAuthStateChanged(resolution.auth, (nextUser) => {
-      setUser(nextUser);
-      setStatus(nextUser ? 'signed-in' : 'signed-out');
-    }, (reason) => {
-      setError(readableAuthError(reason));
-      setStatus('error');
-    });
+    return subscribeToFirebaseAuth(resolution.auth, {
+      onUser: (nextUser) => {
+        setUser(nextUser);
+        setStatus(nextUser ? 'signed-in' : 'signed-out');
+      },
+      onError: (reason) => {
+        setUser(null);
+        setError(readableAuthError(reason));
+        setStatus('error');
+      },
+    }) ?? undefined;
   }, []);
 
   const runAuthAction = useCallback(async (action: (auth: Auth) => Promise<unknown>) => {
