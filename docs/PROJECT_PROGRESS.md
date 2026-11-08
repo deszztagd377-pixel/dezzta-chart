@@ -1067,3 +1067,32 @@ Design the application-level calendar release source contract (trusted manifest/
 - Overall remains 20.90%; Stage 1 remains 75% provisional.
 - Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.
 - Code and mock-level test coverage improved, but exact-HEAD CI and end-to-end lifecycle acceptance remain outstanding.
+
+
+## 2026-11-08 — Exact-HEAD CI closure and Stage 1 remaining-gates audit
+
+### Five-work-package verification cycle
+1. Revalidated the active branch ref and confirmed HEAD is `55eadd66d619accde6577b590f5f5b21b1d38270`; `main` remained at `e3841681bc69b73619058deaf939df82ae5116a1` and was not modified.
+2. Re-polled the exact-HEAD Automated Tests workflow. Run [#42436063431](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42436063431) completed with conclusion **success**.
+3. Inspected all job steps: frontend dependency install/audit, frontend unit tests, production build, frontend secret scans, backend dependency install/tests/audit, backend container build, Redis-backed container smoke test (health + 200 then 429 rate-limit behavior), Trivy HIGH/CRITICAL image scan, vulnerability report export/upload, and cleanup all completed successfully.
+4. Confirmed exact-HEAD CodeQL run [#42436063369](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42436063369) completed with conclusion **success**.
+5. Audited the remaining Stage 1 authentication and release evidence. Backend `FirebaseIdentityVerifier` has unit coverage for issuer/audience/subject/auth-time validation, revocation-check invocation, malformed/oversized tokens, SDK errors, project app initialization, and fail-closed behavior. HTTP and WebSocket authorization also check canonical instrument mapping and entitlement. The remaining gap is not the verifier unit layer: browser-level React AuthProvider lifecycle coverage and real deployment Firebase/Admin credential smoke tests remain outstanding.
+
+### Verified status and boundaries
+- Exact-HEAD Automated Tests and CodeQL are both green on `55eadd66d619accde6577b590f5f5b21b1d38270`.
+- The CI Redis smoke test uses an ephemeral CI Redis service. It does not establish managed production Redis TLS, persistence, failover, or Fly network reachability.
+- Trivy's CI step passed for the tested image at this commit; this is not a permanent guarantee against newly disclosed vulnerabilities after the scan.
+- The AuthProvider tests remain mocked observer-contract tests. They do not mount/unmount the provider in a browser DOM or prove redirect completion, token refresh, or production session behavior.
+- Production Firebase Admin credentials and signed-token E2E (valid, expired, revoked, wrong-project), Fly ingress trust, persistent-volume permissions, backup/restore, and deployed HTTPS/WSS smoke tests remain external release gates.
+- No credentials, user data, paid cloud resources, or production services were provisioned.
+
+### Next focused Stage 1 work
+1. Add a DOM-capable frontend integration test environment with a dependency/lockfile update generated and verified consistently; do not hand-edit lockfile metadata.
+2. Exercise AuthProvider mount, initial loading, signed-in/signed-out observer transitions, observer error, cleanup/unmount, sign-out, and token refresh behavior with controlled Firebase SDK mocks.
+3. Re-run exact-HEAD frontend tests/build, full Automated Tests, and CodeQL.
+4. Keep real Firebase Admin and deployment smoke checks explicitly external; do not mark them complete without real environment evidence.
+
+### Progress accounting
+- Overall remains **20.90%**; Stage 1 remains **75% provisional**.
+- CI completion validates the current repository commit but does not by itself satisfy the outstanding browser lifecycle and production deployment acceptance criteria.
+- `Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.`
