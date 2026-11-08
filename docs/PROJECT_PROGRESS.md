@@ -1267,9 +1267,9 @@ Verification boundary: these tests exercise the complete extracted observer life
 
 ### Firebase principal claim-boundary regression coverage — 2026-11-08
 
-- Expanded `backend/tests/test_identity.py` with nine parameterized/positive cases: valid `sub`-only fallback, rejection of non-object claim payloads, and rejection when each required identity claim (`uid`, `sub`, `iss`, `aud`, or `auth_time`) is omitted.
-- This exercises the existing `FirebaseIdentityVerifier` contract without changing production verification behavior.
-- Existing tests continue to cover issuer/audience mismatch, UID/subject drift, oversized identifiers, malformed/oversized tokens, SDK error normalization, named Firebase Admin app reuse/initialization, and `check_revoked=True`.
-- Verification boundary: the changes are committed for GitHub Actions validation; no local pytest run is claimed. These tests use an injected verifier/fake Admin SDK and are not real signed-token Firebase E2E coverage.
-- Overall remains **20.90%** and Stage 1 remains **75% provisional**. No acceptance criterion for React DOM lifecycle, authorized Firebase signed-token E2E, or production reliability is closed by this test-only addition.
+- The first exact-HEAD CI run exposed two incorrect negative test expectations: the verifier intentionally accepts either a valid `uid` or, when `uid` is absent, a valid `sub`. Requiring each field independently contradicted the implemented fallback contract; this was a test defect, not a production verifier regression.
+- Corrected the omission matrix to require the non-fallback claims (`iss`, `aud`, and `auth_time`) and added explicit positive coverage for both `sub`-only and `uid`-only principals, plus rejection when both subject identifiers are absent.
+- Retained rejection of non-object claim payloads and existing issuer/audience mismatch, UID/subject drift, oversized identifiers, malformed/oversized tokens, SDK error normalization, named Firebase Admin app reuse/initialization, and `check_revoked=True` coverage.
+- Verification boundary: correction is committed for exact-HEAD GitHub Actions validation; no local pytest run is claimed. These tests use an injected verifier/fake Admin SDK and are not real signed-token Firebase E2E coverage.
+- Overall remains **20.90%** and Stage 1 remains **75% provisional**. This test correction does not close React DOM lifecycle, authorized Firebase signed-token E2E, or production reliability acceptance criteria.
 - `Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.`
