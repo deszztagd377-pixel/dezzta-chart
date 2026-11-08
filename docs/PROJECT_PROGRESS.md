@@ -1251,5 +1251,5 @@ Verification boundary: these tests exercise the complete extracted observer life
 - Tightened the verified-principal boundary to reject a Firebase UID/subject longer than the documented 128-character maximum.
 - Added regression coverage for an oversized matching `uid`/`sub` pair and for the supported `sub`-only fallback.
 - Existing issuer, audience, auth-time, Firebase Admin signature verification, and revocation-check behavior are unchanged.
-- Exact-HEAD CI verification is pending for this implementation commit; do not count the gate as complete until the Automated Tests workflow passes.
+- Exact-HEAD verification completed on 2026-11-08: Automated Tests run #746 succeeded, including 25 frontend test files, 497 backend tests passed, production build, Redis-backed container smoke test, dependency audits, and HIGH/CRITICAL Trivy image scan. CodeQL run #104 also succeeded. This verifies the commit's CI gates but does not close the separate React DOM lifecycle, authorized Firebase signed-token E2E, or production infrastructure acceptance criteria.
 - Overall progress remains **20.90%** and Stage 1 remains **75% provisional**; this targeted validation does not close the signed-token E2E or production release gates.
