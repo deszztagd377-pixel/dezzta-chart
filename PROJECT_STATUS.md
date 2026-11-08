@@ -6,16 +6,15 @@ Last audited: 2026-11-08
 Repository: deszztagd377-pixel/dezzta-chart
 Baseline branch: main
 Working branch: phase-2/market-data-foundation
-Latest audited working-branch HEAD: 91d3329f6fc03814902d523f941bf72b4d0a6f2d
+Latest audited working-branch HEAD: d01d1435acec5a475239371402d9021bce14f629
 
 ## Latest verified CI checkpoint — 2026-11-08
 
-- Automated Tests run [#759](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42446726581) completed successfully on exact HEAD `91d3329f6fc03814902d523f941bf72b4d0a6f2d`. Verified completed steps include frontend `npm ci`, frontend dependency audit, frontend unit tests/build, frontend bundle secret tests and scan, backend dependency install/tests/audit, backend container build, Redis-backed container smoke test, Trivy image scan, and vulnerability-report export/upload.
-- CodeQL run [#117](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42446726540) completed successfully on the same exact HEAD. The Vercel commit status for `91d3329...` is also success (deployment completed).
-- The prior successful checkpoint remains Automated Tests #754 / CodeQL #112 on `cf74d0e...`; superseded runs #756–#758 and CodeQL #115–#116 were cancelled by latest-run concurrency where applicable, not treated as failures. The latest exact-HEAD run #759 is now the authoritative CI result.
+- Automated Tests run [#760](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42446968025) completed successfully on exact HEAD `d01d1435acec5a475239371402d9021bce14f629`. All workflow steps succeeded: frontend `npm ci`, frontend dependency audit, frontend unit tests/build, frontend bundle secret tests and scan, backend dependency install/tests/audit, backend container build, Redis-backed container smoke test, Trivy image scan, vulnerability-report export/upload, and cleanup.
+- CodeQL run [#118](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42446968011) completed successfully on the same exact HEAD. The Vercel commit status for `d01d143...` is success (deployment completed).
+- The immediately preceding exact-HEAD checkpoint `91d3329...` also passed Automated Tests #759 and CodeQL #117. Older runs cancelled by latest-run concurrency are not failures and are not used as the latest acceptance evidence.
 - Remaining Stage 1 gates include React DOM AuthProvider lifecycle tests, authorized real Firebase signed-token E2E, and production Fly Volume/SQLite backup-restore/Redis failover/HTTPS-WSS verification. CI success does not substitute for these gates.
 - Progress remains the owner-confirmed conversational checkpoint **20.90% overall** and **75% provisional for Stage 1**; no new milestone credit is assigned by this CI result alone. The weighted ledger remains proposed and requires owner review before a recalculated score is published.
-
 ## Overall progress
 
 - Historical progress records: 19.60% older formal estimate; owner-confirmed conversational checkpoints 20.30% → 20.90%. These are not a newly recalculated current score. The proposed 100%-weighted model is in [docs/PROJECT_MILESTONE_LEDGER.md](docs/PROJECT_MILESTONE_LEDGER.md); owner review and criterion scoring remain pending. See [docs/PROJECT_PROGRESS.md](docs/PROJECT_PROGRESS.md).
