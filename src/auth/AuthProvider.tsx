@@ -114,7 +114,7 @@ export function startFirebaseAuthObserver(
     handlers.onStatus('error');
     return undefined;
   }
-  if (!resolution.auth) return null;
+  if (!resolution.auth) return undefined;
 
   let active = true;
   const unsubscribe = subscribeToFirebaseAuth(resolution.auth, {
