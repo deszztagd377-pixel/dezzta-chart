@@ -195,3 +195,38 @@ def test_subject_fallback_rejects_uid_longer_than_firebase_limit():
 
     with pytest.raises(IdentityVerificationError):
         verifier.verify("token")
+
+
+def test_subject_fallback_accepts_valid_sub_when_uid_is_absent():
+    claims = {key: value for key, value in CLAIMS.items() if key != "uid"}
+    verifier = FirebaseIdentityVerifier(
+        PROJECT, verify_callable=lambda token, **kwargs: claims
+    )
+
+    principal = verifier.verify("token")
+
+    assert principal.subject == CLAIMS["sub"]
+
+
+@pytest.mark.parametrize("claims", [None, [], "not-a-claims-object", 42])
+def test_non_object_claims_are_rejected(claims):
+    verifier = FirebaseIdentityVerifier(
+        PROJECT, verify_callable=lambda token, **kwargs: claims
+    )
+
+    with pytest.raises(IdentityVerificationError, match="claims are invalid"):
+        verifier.verify("token")
+
+
+@pytest.mark.parametrize(
+    "missing_claim",
+    ["uid", "sub", "iss", "aud", "auth_time"],
+)
+def test_required_identity_claims_cannot_be_omitted(missing_claim):
+    claims = {key: value for key, value in CLAIMS.items() if key != missing_claim}
+    verifier = FirebaseIdentityVerifier(
+        PROJECT, verify_callable=lambda token, **kwargs: claims
+    )
+
+    with pytest.raises(IdentityVerificationError):
+        verifier.verify("token")
