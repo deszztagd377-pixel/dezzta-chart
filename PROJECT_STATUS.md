@@ -7,19 +7,21 @@ Repository: deszztagd377-pixel/dezzta-chart
 Baseline branch: main
 Baseline main HEAD: e3841681bc69b73619058deaf939df82ae5116a1
 Working branch: phase-2/market-data-foundation
-Latest audited working-branch HEAD: 2c4f36c0f620700874e7af1217d756c82f7e3145
-Branch comparison at this checkpoint: 784 commits ahead, 0 behind main. Main was not modified.
+Latest audited working-branch HEAD: a579d291bda6eba3dd1191ff4fc93d6c27db8865
+Branch comparison at this checkpoint: 785 commits ahead, 0 behind main. Main was not modified.
 
 ## Latest verified CI checkpoint — 2026-11-08
 
-- Automated Tests [#777](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42449722628) completed successfully on exact code commit `2c4f36c0f620700874e7af1217d756c82f7e3145`. All job steps succeeded, including frontend install/audit/tests/build, frontend bundle secret scanning, backend install/tests/audit, backend container build, Redis-backed smoke test, Trivy HIGH/CRITICAL image scan, JSON vulnerability-report export/upload, and cleanup.
-- The backend smoke test verified health JSON, isolated Redis-backed rate limiting (first request 200, second request 429), runtime application UID/GID 10001:10001, persistent volume ownership 10001:10001, SQLite database ownership 10001:10001, SQLite integrity, and database persistence after container restart.
-- The immediately preceding CI [#776](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42449365067) failed at the UID assertion. Logs showed the process and mounted SQLite files already had the expected 10001:10001 ownership; the shell extraction returned the entire /proc/1/status line instead of the numeric UID/GID. Commit `2c4f36c...` corrected extraction and the smoke test passed on #777. This is a resolved CI-script assertion defect, not evidence of a production volume-permission defect.
-- CodeQL [#135](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42449722614) completed successfully on the same exact commit, for both Python and JavaScript/TypeScript.
-- The Trivy JSON report artifact was uploaded successfully as `container-vulnerability-reports` (artifact ID `13604129950`). A successful scan means no HIGH/CRITICAL finding caused the configured scan to fail; review of the detailed report remains separate from this pass/fail status.
-- No new overall-progress or Stage 1 progress credit is assigned from this CI repair alone. Progress remains **20.90% overall** and **75% provisional for Stage 1** pending acceptance-ledger reconciliation.
-- Remaining Stage 1 gates: React DOM AuthProvider lifecycle tests; authorized real Firebase signed-token E2E (valid, expired, revoked, wrong-project); production Fly Volume permissions/restart persistence; off-host encrypted backup, retention and restore drill; managed Redis TLS/failover/private networking; HTTPS/WSS smoke tests; and monitoring/observability. The SQLite Online Backup API helper is a local consistent-snapshot primitive only and does not complete production backup/restore.
-- Vercel deployment status for this newest commit has not been verified in this checkpoint. Do not reuse older deployment status as evidence for this commit.
+- Automated Tests [#778](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42450151950) completed successfully on exact commit `a579d291bda6eba3dd1191ff4fc93d6c27db8865`. All 25 job steps succeeded: frontend dependency install/audit/tests/build, bundle secret scanning, backend dependency install/tests/audit, container build, isolated Redis smoke test, SQLite persistence/restart checks, Trivy scan, vulnerability report export/upload, and cleanup.
+- Backend pytest result: **517 passed, 1 warning in 16.09s**. The warning is recorded separately for review; the test suite did not fail.
+- Container smoke test passed: health JSON, Redis-backed rate limit (200 then 429), non-root runtime UID/GID 10001:10001, mounted volume/database ownership, SQLite integrity, and restart persistence.
+- Trivy HIGH/CRITICAL scan completed successfully. The JSON report artifact `container-vulnerability-reports` uploaded successfully (artifact ID `13605158250`). A passing configured scan is not a substitute for reviewing the complete report or assessing severities outside the configured gate.
+- CodeQL [#136](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42450151944) completed successfully on the same exact commit, including Python and JavaScript/TypeScript analysis.
+- Non-blocking CI warnings observed: Redis service container reports host `vm.overcommit_memory` is disabled; GitHub Actions reports the pinned upload-artifact action targets deprecated Node.js 20 and is being forced to Node.js 24. Neither warning caused this run to fail. Review action upgrade compatibility and host-level Redis settings before production.
+- The preceding CI [#776](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42449365067) failed due to shell parsing of the UID/GID diagnostic line, not incorrect volume ownership. The parser correction in commit `2c4f36c...` was validated by #777 and subsequent #778.
+- No progress credit is assigned from CI or documentation-only updates. Overall remains **20.90%** and Stage 1 **75% provisional**; proposed milestone weights remain unapproved.
+- Remaining Stage 1 gates: real React DOM AuthProvider lifecycle tests; authorized Firebase signed-token E2E (valid, expired, revoked, wrong-project); real Fly Volume permission/restart verification; encrypted off-host backup, retention and restore drill; managed Redis TLS/failover/private networking; deployed HTTPS/WSS smoke tests; monitoring/observability.
+- Vercel deployment for this exact HEAD has not been verified in this checkpoint. Do not reuse older deployment status as evidence.
 
 ## Overall progress
 
