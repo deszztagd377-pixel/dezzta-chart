@@ -143,3 +143,95 @@ No production secrets, credentials, provider entitlements, or account tokens sho
 ## Progress accounting
 
 This is an architecture/deployment-readiness audit and runbook. It does not itself prove a Fly deployment, managed Redis connectivity, persistent-volume durability, Firebase production authentication, or public ingress security. It therefore does not increase the project's overall progress or Stage 1 completion percentage.
+
+
+## Single-Machine SQLite decision — approved initial topology
+
+The project owner selected **one Fly Machine with one attached Fly Volume** for the initial deployment. This is a deliberate constrained topology, not an HA configuration.
+
+### Database path and shared-file audit
+
+The backend creates all of the following stores with the same `Settings.instrument_registry_db_path`:
+
+- `SQLiteInstrumentRegistry`
+- `SQLitePriceAlertStore`
+- `SQLiteInstrumentEntitlementStore`
+- `SQLiteOhlcvStore`
+- `SQLiteCoverageTracker`
+- Databento definition journal/synchronizer
+
+The configured default is `./data/instrument_registry.sqlite3`. For Fly, mount the volume at `/data` and set:
+
+```text
+INSTRUMENT_REGISTRY_DB_PATH=/data/dezzta-chart.sqlite3
+```
+
+This keeps the single shared SQLite database file on the persistent volume. Do not configure separate paths for individual stores.
+
+The OHLCV store enables SQLite WAL mode during initialization. The other stores share that same database file. Backup operations must therefore account for SQLite's WAL sidecar and must not copy only the main `.sqlite3` file while the application is writing.
+
+### UID/GID and mount permission audit
+
+Verified container facts:
+
+- `backend/Dockerfile` creates `appuser` with UID/GID `10001:10001`.
+- The final image runs as `USER 10001:10001`; the application is not intended to run as root.
+- Store constructors create the database parent directory, but they cannot override a mounted filesystem that is not writable by the runtime UID/GID.
+
+Fly's volume documentation describes the mount point and local volume behavior. Fly community guidance indicates that mount ownership is normally initialized from the Docker image user, but permission behavior must be checked on the actual Machine rather than assumed. See the official [volume management documentation](https://fly.io/docs/volumes/volume-manage/) and the [Fly discussion of mount ownership](https://community.fly.io/t/fly-volumes-getting-permission-denied/1773).
+
+Preflight acceptance checks, after a volume exists and before exposing the API:
+
+1. Confirm the process identity is UID/GID `10001:10001`.
+2. Inspect the mounted `/data` owner, group, and mode.
+3. As the actual application user, create and remove a harmless test file in `/data`.
+4. Start the backend and confirm it creates/opens `/data/dezzta-chart.sqlite3`.
+5. Restart the Machine and confirm the same database file and known test record remain.
+6. Confirm no application process has been changed to run as root to work around a permission failure.
+
+If the write test fails, stop before production exposure. Diagnose the mounted directory ownership and correct it with a reviewed, least-privilege setup. Do not blindly run recursive ownership changes or weaken permissions to world-writable.
+
+### Single-Machine Fly configuration template
+
+A reviewable template is provided at `backend/fly.toml.example`. It intentionally contains placeholder app/region values and is not deployable until those values are chosen. It configures:
+
+- Docker build context as `backend/` (the directory containing the Dockerfile and requirements).
+- Internal HTTP port `8000`, HTTPS enforcement, and `GET /health` check.
+- `APP_ENV=production`, the persistent database path, and the exact Vercel CORS origin.
+- Databento live and historical ingestion disabled.
+- One mounted volume at `/data`.
+- Machine auto-stop disabled for predictable always-on service behavior.
+
+The template does **not** contain `REDIS_URL`, Firebase credentials, Databento credentials, or any other secret. Supply secrets only through Fly's secret mechanism after the managed service and credential choices are reviewed.
+
+The Fly app must be explicitly kept at **one Machine** for this SQLite topology. Do not use multiple regions, create a second Machine, or enable horizontal autoscaling. A Fly Volume is local to its attached Machine and does not replicate writes to another volume. A replacement Machine must be attached to the intended existing volume; a newly created empty volume is not a copy of the old database.
+
+### Backup and restore policy
+
+Fly documents scheduled daily volume snapshots as enabled by default, with a default retention of 5 days and a configurable retention range up to 60 days. Treat these snapshots as a short-window infrastructure recovery aid, not as the only backup or as proof that a SQLite application-consistent restore has been tested. See [Fly volume management and snapshots](https://fly.io/docs/volumes/volume-manage/) and [Fly Volumes overview](https://fly.io/docs/volumes/).
+
+Required independent backup approach:
+
+- Use Python's SQLite online backup API (`sqlite3.Connection.backup`) to create a transactionally consistent backup while the application is live. Do not use a plain file copy of the live main database while WAL writes may be active.
+- Transfer the completed backup to a separate, access-controlled backup destination outside the Fly Volume and outside the Machine's ephemeral filesystem.
+- Encrypt backups in transit and at rest; keep destination credentials outside Git and outside the application image.
+- Retain multiple dated backups according to an agreed retention policy. The exact offsite destination, cost, and retention must be selected before production data is stored.
+- Restore a backup into a separate test database, run `PRAGMA integrity_check`, verify expected tables and known records, and exercise representative read paths.
+- Record backup completion, size, timestamp, database integrity result, and restore-test result without logging secrets or personal tokens.
+
+Do not delete or replace the live database during a restore test. A production recovery requires a planned maintenance window, a verified backup, a stopped or isolated application, and a controlled replacement procedure.
+
+### Single-Machine release acceptance gate
+
+The initial deployment is not accepted until all of these are evidenced:
+
+- Exactly one Fly Machine is attached to exactly one intended volume in the selected region.
+- `INSTRUMENT_REGISTRY_DB_PATH` resolves to `/data/dezzta-chart.sqlite3`.
+- UID/GID `10001:10001` can write to the mount without running the application as root.
+- Database creation, restart persistence, and a known-record readback pass.
+- An independent online backup is created outside the volume.
+- A restore drill passes `PRAGMA integrity_check` and application-level readback.
+- Automatic snapshot configuration and its retention are confirmed in the actual Fly app.
+- A documented rollback path exists before subsequent schema-changing releases.
+
+Until these checks run on an actual Fly Machine and volume, permission, persistence, backup, and restore status remains **unverified**.

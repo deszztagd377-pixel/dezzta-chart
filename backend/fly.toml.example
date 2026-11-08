@@ -1,0 +1,35 @@
+# Fly.io single-Machine deployment template for DEZZTA CHART.
+# Copy to backend/fly.toml only after choosing the app name and region.
+# Build context is backend/ because this file lives beside backend/Dockerfile.
+
+app = "REPLACE_WITH_FLY_APP_NAME"
+primary_region = "REPLACE_WITH_REGION"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  APP_ENV = "production"
+  PORT = "8000"
+  INSTRUMENT_REGISTRY_DB_PATH = "/data/dezzta-chart.sqlite3"
+  CORS_ALLOWED_ORIGINS = "https://dezzta-chart.vercel.app"
+  DATABENTO_LIVE_ENABLED = "false"
+  DATABENTO_HISTORICAL_ENABLED = "false"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[http_service.checks]]
+  grace_period = "25s"
+  interval = "30s"
+  method = "GET"
+  path = "/health"
+  timeout = "5s"
+
+[[mounts]]
+  source = "dezzta_data"
+  destination = "/data"
