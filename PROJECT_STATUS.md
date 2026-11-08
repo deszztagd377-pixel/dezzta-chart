@@ -5,17 +5,22 @@
 Last audited: 2026-11-08
 Repository: deszztagd377-pixel/dezzta-chart
 Baseline branch: main
+Baseline main HEAD: e3841681bc69b73619058deaf939df82ae5116a1
 Working branch: phase-2/market-data-foundation
-Latest audited working-branch HEAD: 1f383c8c3ddc1775c8c5abc94d4404429af849dd
+Latest audited working-branch HEAD: 2c4f36c0f620700874e7af1217d756c82f7e3145
+Branch comparison at this checkpoint: 784 commits ahead, 0 behind main. Main was not modified.
 
 ## Latest verified CI checkpoint — 2026-11-08
 
-- Automated Tests [#761](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42447181745) completed successfully on exact code commit `74e13e2cc9b85e76e436e97c8fe8f689ff6e4525`. All 25 job steps succeeded, including frontend installation/audit/tests/build, bundle secret scanning, backend install/tests/audit, container build, Redis-backed smoke test, Trivy scan, vulnerability report export/upload, and cleanup.
-- CodeQL [#119](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42447181714) completed successfully on the same exact commit. Vercel deployment status for `74e13e2...` is success.
-- After that green checkpoint, commit `f42107f...` added `backend/app/sqlite_backup.py` using SQLite Online Backup API, atomic publication, and integrity verification; commit `6df1280...` added focused WAL/consistency/failure-safety tests; commit `1f383c8...` documents the helper and updates this status record. CI/CodeQL for the newest code and documentation commits must be verified separately; do not reuse #761/#119 as evidence for those later commits.
-- AuthPanel is already integrated inside `SettingsPanel`, which is reachable through the app's Settings navigation item. The earlier claim that AuthPanel was not integrated into the app was incorrect and is corrected here. Existing SettingsPanel SSR tests include the AuthPanel state presentation.
-- Remaining Stage 1 gates: React DOM AuthProvider lifecycle tests; authorized real Firebase signed-token E2E; production Fly Volume permissions/restart persistence; off-host encrypted backup, retention and restore drill; managed Redis failover/private networking; and HTTPS/WSS/monitoring verification. The new backup helper is a local consistent snapshot primitive only; it does not complete production backup/restore.
-- Progress remains **20.90% overall** and **75% provisional for Stage 1**. No new progress credit is assigned until the new backup code passes CI and its acceptance criterion is formally reconciled. The weighted ledger remains proposed and requires owner review before recalculating the overall score.
+- Automated Tests [#777](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42449722628) completed successfully on exact code commit `2c4f36c0f620700874e7af1217d756c82f7e3145`. All job steps succeeded, including frontend install/audit/tests/build, frontend bundle secret scanning, backend install/tests/audit, backend container build, Redis-backed smoke test, Trivy HIGH/CRITICAL image scan, JSON vulnerability-report export/upload, and cleanup.
+- The backend smoke test verified health JSON, isolated Redis-backed rate limiting (first request 200, second request 429), runtime application UID/GID 10001:10001, persistent volume ownership 10001:10001, SQLite database ownership 10001:10001, SQLite integrity, and database persistence after container restart.
+- The immediately preceding CI [#776](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42449365067) failed at the UID assertion. Logs showed the process and mounted SQLite files already had the expected 10001:10001 ownership; the shell extraction returned the entire /proc/1/status line instead of the numeric UID/GID. Commit `2c4f36c...` corrected extraction and the smoke test passed on #777. This is a resolved CI-script assertion defect, not evidence of a production volume-permission defect.
+- CodeQL [#135](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42449722614) completed successfully on the same exact commit, for both Python and JavaScript/TypeScript.
+- The Trivy JSON report artifact was uploaded successfully as `container-vulnerability-reports` (artifact ID `13604129950`). A successful scan means no HIGH/CRITICAL finding caused the configured scan to fail; review of the detailed report remains separate from this pass/fail status.
+- No new overall-progress or Stage 1 progress credit is assigned from this CI repair alone. Progress remains **20.90% overall** and **75% provisional for Stage 1** pending acceptance-ledger reconciliation.
+- Remaining Stage 1 gates: React DOM AuthProvider lifecycle tests; authorized real Firebase signed-token E2E (valid, expired, revoked, wrong-project); production Fly Volume permissions/restart persistence; off-host encrypted backup, retention and restore drill; managed Redis TLS/failover/private networking; HTTPS/WSS smoke tests; and monitoring/observability. The SQLite Online Backup API helper is a local consistent-snapshot primitive only and does not complete production backup/restore.
+- Vercel deployment status for this newest commit has not been verified in this checkpoint. Do not reuse older deployment status as evidence for this commit.
+
 ## Overall progress
 
 - Historical progress records: 19.60% older formal estimate; owner-confirmed conversational checkpoints 20.30% → 20.90%. These are not a newly recalculated current score. The proposed 100%-weighted model is in [docs/PROJECT_MILESTONE_LEDGER.md](docs/PROJECT_MILESTONE_LEDGER.md); owner review and criterion scoring remain pending. See [docs/PROJECT_PROGRESS.md](docs/PROJECT_PROGRESS.md).
