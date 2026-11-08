@@ -8,7 +8,7 @@ import React, {
 } from 'react';
 import {
   createUserWithEmailAndPassword,
-  onAuthStateChanged,
+  onIdTokenChanged,
   signInWithEmailAndPassword,
   signInWithRedirect,
   signOut,
@@ -71,7 +71,7 @@ export function subscribeToFirebaseAuth(
   handlers: FirebaseAuthObserverHandlers,
 ): (() => void) | null {
   try {
-    return onAuthStateChanged(auth, handlers.onUser, handlers.onError);
+    return onIdTokenChanged(auth, handlers.onUser, handlers.onError);
   } catch (error) {
     handlers.onError(error);
     return null;

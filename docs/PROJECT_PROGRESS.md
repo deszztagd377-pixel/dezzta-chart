@@ -1127,3 +1127,17 @@ Design the application-level calendar release source contract (trusted manifest/
 - Overall remains **20.90%**; Stage 1 remains **75% provisional**.
 - `Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.`
 - This audit and documentation correction do not satisfy new implementation acceptance criteria and do not justify increasing the progress score.
+
+
+## 2026-11-08 — Firebase ID-token observer coverage
+
+### Authentication lifecycle hardening
+- Switched the AuthProvider observer from `onAuthStateChanged` to Firebase `onIdTokenChanged`. The latter reports sign-in/sign-out state and ID-token refresh events, allowing the existing provider callback to receive updated Firebase User state after credential refresh.
+- Retained the existing observer error handling and unsubscribe cleanup contract.
+- Extended the mocked observer tests to assert that the subscription uses the ID-token observer and forwards an updated User instance for a same-account token refresh event.
+- This is observer-contract coverage only. It does not replace the still-pending React DOM mount/unmount lifecycle test or a real Firebase signed-token E2E against an authorized test project.
+- Exact-HEAD Automated Tests for parent commit `6c71eb3` were still running when this change was prepared; the new commit must receive its own full CI result before being considered validated.
+
+### Progress accounting
+- Overall remains **20.90%**; Stage 1 remains **75% provisional**.
+- This implementation improves the authentication observer behavior, but acceptance criteria for actual browser lifecycle and production identity validation remain incomplete. Do not increase progress until the new tests pass and the broader criteria are met.

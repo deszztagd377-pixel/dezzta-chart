@@ -4,7 +4,7 @@ import type { Auth, User } from 'firebase/auth';
 const firebaseMocks = vi.hoisted(() => ({
   getFirebaseAuth: vi.fn(),
   isFirebaseConfigured: vi.fn(),
-  onAuthStateChanged: vi.fn(),
+  onIdTokenChanged: vi.fn(),
 }));
 
 vi.mock('../services/firebase', () => ({
@@ -15,7 +15,7 @@ vi.mock('../services/firebase', () => ({
 
 vi.mock('firebase/auth', () => ({
   createUserWithEmailAndPassword: vi.fn(),
-  onAuthStateChanged: firebaseMocks.onAuthStateChanged,
+  onIdTokenChanged: firebaseMocks.onIdTokenChanged,
   signInWithEmailAndPassword: vi.fn(),
   signInWithRedirect: vi.fn(),
   signOut: vi.fn(),
@@ -64,10 +64,10 @@ describe('subscribeToFirebaseAuth', () => {
     const onUser = vi.fn();
     const onError = vi.fn();
     const unsubscribe = vi.fn();
-    firebaseMocks.onAuthStateChanged.mockReturnValue(unsubscribe);
+    firebaseMocks.onIdTokenChanged.mockReturnValue(unsubscribe);
 
     const cleanup = subscribeToFirebaseAuth(auth, { onUser, onError });
-    const [observedAuth, nextUser, observerError] = firebaseMocks.onAuthStateChanged.mock.calls[0];
+    const [observedAuth, nextUser, observerError] = firebaseMocks.onIdTokenChanged.mock.calls[0];
 
     expect(observedAuth).toBe(auth);
     expect(typeof nextUser).toBe('function');
@@ -81,14 +81,37 @@ describe('subscribeToFirebaseAuth', () => {
     expect(unsubscribe).toHaveBeenCalledOnce();
   });
 
+  it('subscribes to ID-token changes so refreshed credentials update the user observer', async () => {
+    const { subscribeToFirebaseAuth } = await import('./AuthProvider');
+    const initialUser = { uid: 'test-user', getIdToken: vi.fn().mockResolvedValue('old-token') } as unknown as User;
+    const refreshedUser = { uid: 'test-user', getIdToken: vi.fn().mockResolvedValue('new-token') } as unknown as User;
+    const onUser = vi.fn();
+    const onError = vi.fn();
+    firebaseMocks.onIdTokenChanged.mockReturnValue(vi.fn());
+
+    subscribeToFirebaseAuth({} as Auth, { onUser, onError });
+    const [observedAuth, nextUser, observerError] = firebaseMocks.onIdTokenChanged.mock.calls[0];
+
+    expect(observedAuth).toBeDefined();
+    expect(typeof nextUser).toBe('function');
+    expect(typeof observerError).toBe('function');
+    nextUser(initialUser);
+    nextUser(refreshedUser);
+
+    expect(onUser).toHaveBeenNthCalledWith(1, initialUser);
+    expect(onUser).toHaveBeenNthCalledWith(2, refreshedUser);
+    await expect(refreshedUser.getIdToken()).resolves.toBe('new-token');
+    expect(onError).not.toHaveBeenCalled();
+  });
+
   it('forwards asynchronous observer errors', async () => {
     const { subscribeToFirebaseAuth } = await import('./AuthProvider');
     const onUser = vi.fn();
     const onError = vi.fn();
-    firebaseMocks.onAuthStateChanged.mockReturnValue(vi.fn());
+    firebaseMocks.onIdTokenChanged.mockReturnValue(vi.fn());
 
     subscribeToFirebaseAuth({} as Auth, { onUser, onError });
-    const observerError = firebaseMocks.onAuthStateChanged.mock.calls[0][2];
+    const observerError = firebaseMocks.onIdTokenChanged.mock.calls[0][2];
     const failure = { code: 'auth/network-request-failed' };
     observerError(failure);
 
@@ -100,7 +123,7 @@ describe('subscribeToFirebaseAuth', () => {
     const onUser = vi.fn();
     const onError = vi.fn();
     const failure = new Error('observer registration failed');
-    firebaseMocks.onAuthStateChanged.mockImplementation(() => {
+    firebaseMocks.onIdTokenChanged.mockImplementation(() => {
       throw failure;
     });
 
