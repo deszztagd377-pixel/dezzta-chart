@@ -94,6 +94,50 @@ export function resolveFirebaseAuth(): FirebaseAuthResolution {
   }
 }
 
+export interface FirebaseAuthLifecycleHandlers {
+  onUser(user: User | null): void;
+  onStatus(status: AuthStatus): void;
+  onError(message: string): void;
+}
+
+/**
+ * Own the complete auth-observer boundary used by the React effect.
+ * Cleanup first deactivates callbacks, then unsubscribes, so a queued
+ * observer callback cannot publish stale state after teardown.
+ */
+export function startFirebaseAuthObserver(
+  handlers: FirebaseAuthLifecycleHandlers,
+): (() => void) | null {
+  const resolution = resolveFirebaseAuth();
+  if (resolution.error) {
+    handlers.onError(resolution.error);
+    handlers.onStatus('error');
+    return null;
+  }
+  if (!resolution.auth) return null;
+
+  let active = true;
+  const unsubscribe = subscribeToFirebaseAuth(resolution.auth, {
+    onUser: (nextUser) => {
+      if (!active) return;
+      handlers.onUser(nextUser);
+      handlers.onStatus(nextUser ? 'signed-in' : 'signed-out');
+    },
+    onError: (reason) => {
+      if (!active) return;
+      handlers.onUser(null);
+      handlers.onError(readableAuthError(reason));
+      handlers.onStatus('error');
+    },
+  });
+
+  return () => {
+    if (!active) return;
+    active = false;
+    unsubscribe?.();
+  };
+}
+
 export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<AuthStatus>(
@@ -101,27 +145,11 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   );
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const resolution = resolveFirebaseAuth();
-    if (resolution.error) {
-      setError(resolution.error);
-      setStatus('error');
-      return;
-    }
-    if (!resolution.auth) return;
-
-    return subscribeToFirebaseAuth(resolution.auth, {
-      onUser: (nextUser) => {
-        setUser(nextUser);
-        setStatus(nextUser ? 'signed-in' : 'signed-out');
-      },
-      onError: (reason) => {
-        setUser(null);
-        setError(readableAuthError(reason));
-        setStatus('error');
-      },
-    }) ?? undefined;
-  }, []);
+  useEffect(() => startFirebaseAuthObserver({
+    onUser: setUser,
+    onStatus: setStatus,
+    onError: setError,
+  }), []);
 
   const runAuthAction = useCallback(async (action: (auth: Auth) => Promise<unknown>) => {
     const resolution = resolveFirebaseAuth();

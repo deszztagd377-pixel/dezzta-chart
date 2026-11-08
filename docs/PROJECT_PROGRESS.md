@@ -1232,3 +1232,15 @@ The Firebase subject/UID consistency hardening from commit `0e99dc039495a90abbea
 Remaining Stage 1 identity gates are unchanged: real Firebase signed-token E2E (valid, expired, revoked, wrong-project) and React DOM AuthProvider lifecycle coverage (mount/unmount, observer transitions/errors, token refresh, and cleanup). The existing frontend AuthProvider tests use helper-level mocks and server rendering; they do not execute browser effects.
 
 Progress accounting remains unchanged: overall **20.90%**, Stage 1 **75% provisional**. Exact-HEAD CI verifies the targeted regression but does not close the outstanding lifecycle, signed-token, and production reliability acceptance criteria. No progress credit is inferred from CI completion alone.
+
+
+### Auth observer lifecycle boundary hardening — 2026-11-08
+
+Implemented a testable lifecycle boundary for the Firebase observer used by `AuthProvider`:
+
+- Extracted the complete observer startup/state-transition path into `startFirebaseAuthObserver`; the React effect delegates to this boundary and returns its cleanup.
+- Observer events are ignored after cleanup has deactivated the lifecycle, including callbacks already queued by the provider. Cleanup is idempotent and invokes the Firebase unsubscribe at most once.
+- Initialization failure remains fail-closed; unconfigured Firebase does not manufacture a signed-out state; observer registration and asynchronous observer errors map to a sanitized error state.
+- Added focused tests for signed-out/signed-in/error transitions, post-cleanup callback suppression, idempotent cleanup, initialization failure, unconfigured state, and synchronous registration failure.
+
+Verification boundary: these tests exercise the complete extracted observer lifecycle boundary with Firebase observer mocks. They do **not** mount React into a browser DOM and do not replace the still-open React DOM mount/unmount integration test or authorized Firebase signed-token E2E. No dependency or lockfile was changed.

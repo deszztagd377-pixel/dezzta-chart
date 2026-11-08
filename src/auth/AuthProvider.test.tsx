@@ -163,6 +163,112 @@ describe('subscribeToFirebaseAuth', () => {
 });
 
 
+describe('startFirebaseAuthObserver lifecycle boundary', () => {
+  function handlers() {
+    return {
+      onUser: vi.fn(),
+      onStatus: vi.fn(),
+      onError: vi.fn(),
+    };
+  }
+
+  it('maps signed-out, signed-in, and observer-error events into auth state', async () => {
+    const auth = { currentUser: null } as Auth;
+    const unsubscribe = vi.fn();
+    firebaseMocks.getFirebaseAuth.mockReturnValue(auth);
+    firebaseMocks.onIdTokenChanged.mockReturnValue(unsubscribe);
+    const { startFirebaseAuthObserver } = await import('./AuthProvider');
+    const callbacks = handlers();
+
+    const cleanup = startFirebaseAuthObserver(callbacks);
+    const [observedAuth, nextUser, observerError] = firebaseMocks.onIdTokenChanged.mock.calls[0];
+    const signedInUser = { uid: 'lifecycle-user' } as User;
+
+    expect(observedAuth).toBe(auth);
+    nextUser(null);
+    nextUser(signedInUser);
+    observerError({ code: 'auth/network-request-failed' });
+
+    expect(callbacks.onUser).toHaveBeenNthCalledWith(1, null);
+    expect(callbacks.onUser).toHaveBeenNthCalledWith(2, signedInUser);
+    expect(callbacks.onUser).toHaveBeenNthCalledWith(3, null);
+    expect(callbacks.onStatus.mock.calls).toEqual([
+      ['signed-out'],
+      ['signed-in'],
+      ['error'],
+    ]);
+    expect(callbacks.onError).toHaveBeenCalledWith('Koneksi jaringan bermasalah.');
+    cleanup?.();
+    expect(unsubscribe).toHaveBeenCalledOnce();
+  });
+
+  it('ignores queued observer callbacks after cleanup and unsubscribes only once', async () => {
+    const auth = { currentUser: null } as Auth;
+    const unsubscribe = vi.fn();
+    firebaseMocks.getFirebaseAuth.mockReturnValue(auth);
+    firebaseMocks.onIdTokenChanged.mockReturnValue(unsubscribe);
+    const { startFirebaseAuthObserver } = await import('./AuthProvider');
+    const callbacks = handlers();
+
+    const cleanup = startFirebaseAuthObserver(callbacks);
+    const [, nextUser, observerError] = firebaseMocks.onIdTokenChanged.mock.calls[0];
+    cleanup?.();
+    cleanup?.();
+
+    nextUser({ uid: 'late-user' } as User);
+    observerError({ code: 'auth/network-request-failed' });
+
+    expect(unsubscribe).toHaveBeenCalledOnce();
+    expect(callbacks.onUser).not.toHaveBeenCalled();
+    expect(callbacks.onStatus).not.toHaveBeenCalled();
+    expect(callbacks.onError).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when Firebase initialization fails', async () => {
+    firebaseMocks.getFirebaseAuth.mockImplementation(() => {
+      throw new Error('default app mismatch');
+    });
+    const { startFirebaseAuthObserver } = await import('./AuthProvider');
+    const callbacks = handlers();
+
+    expect(startFirebaseAuthObserver(callbacks)).toBeNull();
+    expect(callbacks.onError).toHaveBeenCalledWith(
+      'Konfigurasi Firebase tidak cocok atau gagal diinisialisasi. Autentikasi dinonaktifkan.',
+    );
+    expect(callbacks.onStatus).toHaveBeenCalledWith('error');
+    expect(firebaseMocks.onIdTokenChanged).not.toHaveBeenCalled();
+  });
+
+  it('does not manufacture a signed-out state when Firebase is unconfigured', async () => {
+    firebaseMocks.isFirebaseConfigured.mockReturnValue(false);
+    firebaseMocks.getFirebaseAuth.mockReturnValue(null);
+    const { startFirebaseAuthObserver } = await import('./AuthProvider');
+    const callbacks = handlers();
+
+    expect(startFirebaseAuthObserver(callbacks)).toBeNull();
+    expect(callbacks.onUser).not.toHaveBeenCalled();
+    expect(callbacks.onStatus).not.toHaveBeenCalled();
+    expect(callbacks.onError).not.toHaveBeenCalled();
+    expect(firebaseMocks.onIdTokenChanged).not.toHaveBeenCalled();
+  });
+
+  it('reports synchronous observer-registration failure as a safe error state', async () => {
+    firebaseMocks.getFirebaseAuth.mockReturnValue({ currentUser: null });
+    firebaseMocks.onIdTokenChanged.mockImplementation(() => {
+      throw { code: 'auth/network-request-failed' };
+    });
+    const { startFirebaseAuthObserver } = await import('./AuthProvider');
+    const callbacks = handlers();
+
+    const cleanup = startFirebaseAuthObserver(callbacks);
+
+    expect(cleanup).toBeTypeOf('function');
+    expect(callbacks.onError).toHaveBeenCalledWith('Koneksi jaringan bermasalah.');
+    expect(callbacks.onStatus).toHaveBeenCalledWith('error');
+    cleanup?.();
+  });
+});
+
 describe('AuthProvider server-rendered context contract', () => {
   async function renderContext() {
     // Server rendering validates the context contract without pretending to
