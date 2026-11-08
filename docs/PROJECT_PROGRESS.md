@@ -909,3 +909,31 @@ Design the application-level calendar release source contract (trusted manifest/
 - CodeQL [#42432195494](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42432195494) completed successfully for both JavaScript/TypeScript and Python analysis jobs on the same exact HEAD.
 - The CI smoke test validates container startup and shared Redis HTTP limiting in isolated CI only; it does not validate a managed production Redis endpoint, production proxy topology, persistent host volume, Firebase production identity, or deployed backend connectivity.
 - The earlier “verification pending” note is superseded by this result. Overall progress remains **20.90%** and Stage 1 remains **75% provisional** because no new owner-approved acceptance-weight change or production deployment acceptance criterion was completed.
+
+
+## 2026-11-08 — Stage 1 security configuration audit (five-work-package cycle)
+
+### Baseline and branch safety
+- Pre-change branch HEAD: `a4e391986ce28548546b386d35803d1396c9b04f` on `phase-2/market-data-foundation`.
+- `main` was inspected and remained at `e3841681bc69b73619058deaf939df82ae5116a1`; no work was performed on `main`.
+- Latest pre-change CodeQL run [#42433757134](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42433757134) completed successfully on the exact pre-change HEAD.
+- Latest pre-change Automated Tests run [#42433757042](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42433757042) had frontend install/audit/tests/build/bundle-secret-scan and backend dependency installation/tests/dependency audit completed successfully; the Docker image build was still running at audit time. No final conclusion was available for that run.
+
+### Five work packages handled
+1. **Identity-path audit:** confirmed the backend verifies Firebase ID tokens with revocation checking and validates issuer, audience, subject, and authentication time. Real production Admin credentials and signed-token E2E behavior remain unverified.
+2. **Production configuration audit:** found that production required TLS Redis but did not require `FIREBASE_PROJECT_ID`; the app could therefore start while authenticated routes had no project configured.
+3. **Fail-fast configuration fix:** production settings now reject an empty Firebase project identifier. This is configuration validation only; it does not claim that Admin credentials are available.
+4. **Deployment contract alignment:** documented `FIREBASE_PROJECT_ID` in the backend example environment and Fly template. The Fly template retains the selected `sin` region and a deliberate placeholder that must be replaced before deployment.
+5. **Security/progress evidence:** updated deployment and security documentation, added a focused regression test for the missing-project rejection, and preserved all external production checks as open gates.
+
+### Remaining Stage 1 / release gates
+- Production Firebase Admin application credentials must be configured server-side and tested with valid, expired, revoked, and wrong-project tokens.
+- Fly app name, actual Fly CLI validation, Machine/Volume provisioning, mounted-volume UID/GID permissions, SQLite restart persistence, and an application-consistent backup/restore drill remain unverified.
+- Managed Redis TLS connectivity, Fly ingress client-IP trust policy, production CORS/HTTPS smoke tests, and deployment monitoring remain unverified.
+- Public exposure of `/health`, `/v1/market-data/status`, and `/v1/instruments` still requires explicit owner approval.
+- No resource was provisioned and no paid service was created.
+
+### Progress accounting
+- Historical owner-confirmed overall checkpoint remains **20.90%**; Stage 1 remains **75% provisional**.
+- This work closes a code-level configuration gap but does not complete the external identity/deployment acceptance criteria. No progress increase is claimed pending exact-HEAD CI and criterion-level reconciliation.
+- Indicator implementation state is unchanged: SMA/EMA/RSI/MACD/Bollinger calculation foundations and tests exist without visible chart integration; Footprint remains deterministic offline simulation; Heatmap and Liquidation Maps remain unverified and await owner visual references.

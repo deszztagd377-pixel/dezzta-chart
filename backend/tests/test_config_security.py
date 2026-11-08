@@ -61,6 +61,7 @@ def test_production_cors_requires_https(monkeypatch) -> None:
 def test_production_cors_accepts_exact_https_origins(monkeypatch) -> None:
     monkeypatch.setenv("APP_ENV", "production")
     monkeypatch.setenv("REDIS_URL", "rediss://redis.example:6380/0")
+    monkeypatch.setenv("FIREBASE_PROJECT_ID", "dezzta-chart-prod")
     monkeypatch.setenv(
         "CORS_ALLOWED_ORIGINS",
         "https://dezzta-chart.vercel.app,https://api.example",
@@ -86,5 +87,25 @@ def test_production_requires_tls_redis_url() -> None:
 
 def test_production_accepts_tls_redis_url_without_exposing_it_in_repr() -> None:
     redis_url="rediss://user:redis-secret@redis.example:6380/0"
-    settings=Settings(app_env="production", market_data_ws_token="", cors_allowed_origins=("https://chart.example",), redis_url=redis_url)
+    settings=Settings(
+        app_env="production",
+        market_data_ws_token="",
+        cors_allowed_origins=("https://chart.example",),
+        redis_url=redis_url,
+        firebase_project_id="dezzta-chart-prod",
+    )
     assert redis_url not in repr(settings)
+
+
+
+def test_production_requires_firebase_project_id() -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="FIREBASE_PROJECT_ID is required"):
+        Settings(
+            app_env="production",
+            market_data_ws_token="",
+            cors_allowed_origins=("https://chart.example",),
+            redis_url="rediss://redis.example:6380/0",
+            firebase_project_id="",
+        )

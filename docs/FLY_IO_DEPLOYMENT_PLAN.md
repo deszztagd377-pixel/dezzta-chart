@@ -88,7 +88,9 @@ A production availability target requiring redundant Machines should trigger a d
 - It checks token revocation and validates the verified principal's subject, issuer, audience, and authentication time.
 - The verifier initializes Firebase Admin with the configured project ID and relies on the Admin SDK's default application credential discovery; it does not currently accept a credential object through application settings.
 - The production identity path has not been end-to-end validated against a real Firebase project and real signed ID token.
-- `FIREBASE_PROJECT_ID` is parsed by backend settings, but the example environment file does not currently document a complete production credential arrangement.
+- Production settings now fail at startup when `FIREBASE_PROJECT_ID` is missing, in addition to requiring TLS Redis. This prevents a backend from appearing ready while authenticated OHLCV/WebSocket verification is guaranteed to return provider-unavailable.
+- The Fly template carries a non-secret `FIREBASE_PROJECT_ID` placeholder; replace it with the exact Firebase project identifier before deployment.
+- The project identifier alone is not an Admin credential. The Admin SDK must still discover valid server-side application credentials at runtime; this remains an external deployment validation gate.
 
 ### Fly release requirements
 

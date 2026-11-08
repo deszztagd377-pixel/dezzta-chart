@@ -95,6 +95,10 @@ class Settings:
     def __post_init__(self) -> None:
         if self.app_env.strip().lower() == "production" and not self.redis_url:
             raise ValueError("REDIS_URL is required in production; shared security guards cannot be disabled.")
+        if self.app_env.strip().lower() == "production" and not self.firebase_project_id.strip():
+            raise ValueError(
+                "FIREBASE_PROJECT_ID is required in production; authenticated routes cannot verify identities without it."
+            )
         if self.redis_url:
             try:
                 parsed = urlsplit(self.redis_url)

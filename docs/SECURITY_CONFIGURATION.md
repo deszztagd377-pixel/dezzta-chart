@@ -40,6 +40,8 @@ remain server-side and must never be packaged into the browser app or Android AP
   for deployment-side HTTPS/WSS and Origin smoke tests.
 - Keep the WebSocket Origin allowlist explicit. Origin checks supplement, but do
   not replace, token verification.
+- In `APP_ENV=production`, startup requires both a TLS `REDIS_URL` and a non-empty `FIREBASE_PROJECT_ID`; the backend refuses to start with an incomplete identity-verification configuration.
+- `FIREBASE_PROJECT_ID` identifies the Firebase project and is not an Admin credential. The Firebase Admin SDK must still obtain valid server-side application credentials through the deployment runtime.
 - HTTP authentication uses a Firebase Bearer ID token verified by the backend.
   The `GET /v1/ohlcv` route also resolves the exact provider mapping and checks
   that the verified account has an entitlement for the active canonical
@@ -103,7 +105,7 @@ requires verified identity and instrument entitlement.
 - [ ] Confirm backend secrets are configured only in the deployment secret store.
 - [ ] Verify HTTPS/WSS, trusted Origin allowlist, and deployment headers.
 - [ ] Decide whether health, status, and instrument-catalogue endpoints are public.
-- [ ] Smoke-test Firebase sign-in, token refresh, expiry, and revocation.
+- [ ] Smoke-test Firebase sign-in, token refresh, expiry, and revocation against the production Firebase project and runtime Admin credentials.
 - [ ] Test HTTP and WebSocket entitlement denial, revocation, reconnect, and
       exact instrument/timeframe switching.
 - [ ] Add and test rate limits, request-size bounds, and abuse monitoring.
