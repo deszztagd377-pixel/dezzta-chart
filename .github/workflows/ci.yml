@@ -91,22 +91,39 @@ jobs:
         run: |
           set -euo pipefail
           container_name=dezzta-chart-backend-smoke
+          redis_container_name=dezzta-chart-smoke-redis
+          network_name=dezzta-chart-smoke-network
           volume_name=dezzta-chart-backend-smoke-data
           base_url=http://127.0.0.1:18000
           cleanup() {
-            docker rm -f "$container_name" >/dev/null 2>&1 || true
+            docker rm -f "$container_name" "$redis_container_name" >/dev/null 2>&1 || true
             docker volume rm -f "$volume_name" >/dev/null 2>&1 || true
+            docker network rm "$network_name" >/dev/null 2>&1 || true
           }
           trap cleanup EXIT
+          docker network create "$network_name" >/dev/null
           docker volume create "$volume_name" >/dev/null
+          docker run --detach --name "$redis_container_name" --network "$network_name" redis:7-alpine >/dev/null
+          wait_for_redis() {
+            for attempt in $(seq 1 20); do
+              if docker exec "$redis_container_name" redis-cli ping 2>/dev/null | grep -Fxq PONG; then
+                echo "Isolated smoke-test Redis is ready."
+                return 0
+              fi
+              sleep 1
+            done
+            echo "Smoke-test Redis did not become ready."
+            docker logs --tail 100 "$redis_container_name" || true
+            return 1
+          }
           start_container() {
             docker run --detach --name "$container_name" \
+              --network "$network_name" \
               --publish 127.0.0.1:18000:18000 \
-              --add-host=host.docker.internal:host-gateway \
               --mount "type=volume,src=$volume_name,dst=/data" \
               -e APP_ENV=development \
               -e PORT=18000 \
-              -e REDIS_URL="redis://host.docker.internal:6379/15" \
+              -e REDIS_URL="redis://$redis_container_name:6379/15" \
               -e HTTP_RATE_LIMIT_PER_CLIENT=1 \
               -e HTTP_RATE_LIMIT_GLOBAL=10 \
               -e INSTRUMENT_REGISTRY_DB_PATH=/data/dezzta-chart-smoke.sqlite3 \
@@ -117,14 +134,20 @@ jobs:
             ready=0
             echo "Waiting for backend health through published loopback port 18000."
             for attempt in $(seq 1 30); do
-              container_state=$(docker inspect --format '{{.State.Status}}' "$container_name")
+              container_state="$(docker inspect --format '{{.State.Status}}' "$container_name" 2>/dev/null || true)"
+              if [ -z "$container_state" ]; then
+                echo "Backend container disappeared before becoming healthy."
+                docker ps -a --no-trunc || true
+                docker logs --tail 200 "$container_name" 2>&1 || true
+                return 1
+              fi
               if [ "$container_state" != "running" ]; then
                 echo "Backend container exited before becoming healthy (state=$container_state)."
-                docker inspect --format 'exit_code={{.State.ExitCode}} error={{.State.Error}} finished_at={{.State.FinishedAt}}' "$container_name"
-                docker logs --tail 200 "$container_name" || true
-                exit 1
+                docker inspect --format 'exit_code={{.State.ExitCode}} error={{.State.Error}} finished_at={{.State.FinishedAt}}' "$container_name" || true
+                docker logs --timestamps --tail 200 "$container_name" || true
+                return 1
               fi
-              if curl --silent --show-error --fail "$base_url/health" >/tmp/dezzta-health.json; then
+              if curl --silent --show-error --fail "$base_url/health" >/tmp/dezzta-health.json 2>/tmp/dezzta-health-error.txt; then
                 ready=1
                 break
               fi
@@ -132,15 +155,17 @@ jobs:
             done
             if [ "$ready" -ne 1 ]; then
               echo "Backend container remained running but /health did not become ready."
+              cat /tmp/dezzta-health-error.txt || true
               docker inspect --format 'state={{.State.Status}} exit_code={{.State.ExitCode}} error={{.State.Error}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}not-configured{{end}}' "$container_name" || true
               echo "Backend container startup logs:"
               docker logs --timestamps --tail 200 "$container_name" || true
               echo "Backend container process and port diagnostics:"
               docker exec "$container_name" sh -c 'id; ps; (ss -lntp || netstat -lntp || true)' || true
-              exit 1
+              return 1
             fi
             grep -Fq '"status":"ok"' /tmp/dezzta-health.json
           }
+          wait_for_redis
           start_container
           wait_for_health
 
@@ -164,7 +189,7 @@ jobs:
           start_container
           wait_for_health
           docker exec "$container_name" python -c 'import sqlite3; c=sqlite3.connect("/data/dezzta-chart-smoke.sqlite3"); assert c.execute("PRAGMA integrity_check").fetchone()[0] == "ok"; assert c.execute("SELECT 1 FROM sqlite_master WHERE type=\u0027table\u0027 LIMIT 1").fetchone()'
-          echo "Container health, non-root UID/GID, mounted-volume ownership, SQLite integrity and restart persistence, Redis-backed request path, and HTTP rate-limit rejection passed."
+          echo "Container health, isolated Redis guard, non-root UID/GID, mounted-volume ownership, SQLite integrity and restart persistence, and HTTP rate-limit rejection passed."
 
       - name: Scan backend container image
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
