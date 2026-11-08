@@ -173,10 +173,10 @@ jobs:
           wait_for_health
 
           echo "Inspecting backend runtime identity and persistent-volume ownership."
-          docker exec "$container_name" sh -c 'id; printf "PID 1 identity: "; awk "/^Uid:|^Gid:/{print}" /proc/1/status'
+          docker exec --user 10001:10001 "$container_name" sh -c 'id; printf "PID 1 identity: "; awk "/^Uid:|^Gid:/{print}" /proc/1/status'
           docker exec "$container_name" sh -c 'ls -lan /data; stat -c "volume_owner=%u:%g mode=%a path=%n" /data'
-          app_uid=$(docker exec "$container_name" sh -c 'awk "/^Uid:/{print $2}" /proc/1/status')
-          app_gid=$(docker exec "$container_name" sh -c 'awk "/^Gid:/{print $2}" /proc/1/status')
+          app_uid=$(docker exec "$container_name" sh -c 'grep "^Uid:" /proc/1/status | cut -f2')
+          app_gid=$(docker exec "$container_name" sh -c 'grep "^Gid:" /proc/1/status | cut -f2')
           volume_owner=$(docker exec "$container_name" stat -c '%u:%g' /data)
           if database_owner=$(docker exec "$container_name" stat -c '%u:%g' /data/dezzta-chart-smoke.sqlite3 2>&1); then
             :
