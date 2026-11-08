@@ -1253,3 +1253,14 @@ Verification boundary: these tests exercise the complete extracted observer life
 - Existing issuer, audience, auth-time, Firebase Admin signature verification, and revocation-check behavior are unchanged.
 - Exact-HEAD verification completed on 2026-11-08 for commit `79ccd4c089f81be97dc831b4f86c9e64b37a84b3`: Automated Tests run #747 (`42441298097`) succeeded, including 25 frontend test files / 190 frontend tests, 497 backend tests, production build, Redis-backed container smoke test, dependency audits, and the Trivy HIGH/CRITICAL OS/library package scan. CodeQL run #105 (`42441298157`) also succeeded for JavaScript/TypeScript and Python, and the Vercel commit status was success. The Trivy report is scoped to HIGH/CRITICAL OS/library vulnerabilities; it is not a full secrets, misconfiguration, license, or all-severity audit. These CI results do not close the separate React DOM lifecycle, authorized Firebase signed-token E2E, or production infrastructure acceptance criteria.
 - Overall progress remains **20.90%** and Stage 1 remains **75% provisional**; this targeted validation does not close the signed-token E2E or production release gates.
+
+
+
+### WebSocket principal identity-drift regression — 2026-11-08
+
+- Added a backend API regression test for a WebSocket session whose Firebase verifier initially returns one verified principal and returns a different principal at the scheduled authorization recheck.
+- The test asserts the existing fail-closed behavior closes the socket with authentication failure (4401), rather than allowing the established subscription to continue under a changed account identity.
+- This is test coverage for an existing identity revalidation branch; no production authentication behavior, Firebase configuration, token verification policy, SQLite schema, or market-data behavior was changed.
+- Verification boundary: committed for exact-HEAD GitHub Actions execution. No local pytest run is claimed through the repository connector. This is not a real signed-token Firebase Admin E2E test.
+- Overall remains **20.90%**; Stage 1 remains **75% provisional**. This additional regression test does not close the React DOM lifecycle, authorized Firebase signed-token E2E, or production reliability gates.
+- `Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.`
