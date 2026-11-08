@@ -40,6 +40,7 @@ def test_verifier_returns_principal_only_after_verified_claims():
         {"iss": "https://attacker.example"},
         {"aud": "another-project"},
         {"uid": ""},
+        {"sub": "different-firebase-user"},
         {"auth_time": True},
         {"auth_time": 0},
     ],

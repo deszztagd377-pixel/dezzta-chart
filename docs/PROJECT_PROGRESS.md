@@ -1199,3 +1199,22 @@ Design the application-level calendar release source contract (trusted manifest/
 - Overall remains **20.90%**; Stage 1 remains **75% provisional**.
 - The added tests cover AuthProvider action wiring but do not close browser lifecycle, real signed-token, or production deployment acceptance criteria.
 - Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.
+
+
+## 2026-11-08 — Firebase subject and UID consistency hardening
+
+### Implementation
+- Tightened the verified-principal claim boundary: when Firebase Admin returns both JWT `sub` and `uid`, the verifier now rejects a token payload if those identifiers disagree.
+- Preserved the existing Firebase Admin signature, issuer, audience, expiry, and revocation verification path. This is an additional consistency check after SDK verification; it does not replace cryptographic token validation.
+- Added a regression case to the invalid-claims matrix proving a mismatched `uid`/`sub` pair cannot produce a `VerifiedPrincipal`.
+- Existing valid claim fixtures continue to represent matching identifiers. No SQLite, CME calendar, frontend behavior, dependency, or lockfile changes were made.
+
+### Verification boundary
+- The new regression test is committed for exact-HEAD CI execution; no local pytest run is claimed through the GitHub repository connector.
+- This test exercises the decoded-claims validation boundary using the existing injected verifier seam. It is not a real Firebase signed-token E2E test.
+- DOM lifecycle coverage and authorized Firebase signed-token E2E for valid, expired, revoked, and wrong-project cases remain open.
+
+### Progress accounting
+- Overall remains **20.90%**; Stage 1 remains **75% provisional** until exact-HEAD CI and the remaining integration/release acceptance criteria are satisfied.
+- This targeted identity-consistency hardening does not by itself close the Stage 1 identity acceptance gate.
+- `Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.`

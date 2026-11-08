@@ -99,6 +99,12 @@ class FirebaseIdentityVerifier:
             or issuer != expected_issuer
             or audience != self._project_id
             or not isinstance(auth_time, int) or isinstance(auth_time, bool) or auth_time <= 0
+            # Firebase Admin exposes both the JWT subject and uid; they must
+            # identify the same account before a principal can be constructed.
+            or (
+                "uid" in claims and "sub" in claims
+                and claims.get("uid") != claims.get("sub")
+            )
         ):
             raise IdentityVerificationError("Identity token claims are invalid.")
         return VerifiedPrincipal(
