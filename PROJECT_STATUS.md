@@ -2,10 +2,19 @@
 
 > **Progress-history correction (2026-11-05):** The owner clarifies that conversational checkpoints progressed from **20.3% to 20.9%**. The older **19.60%** remains a historical formal estimate, not a later regression. **19.9% is not a verified calculation.** Do not publish a fresh overall percentage until the milestone ledger reconciles these records.
 
-Last audited: 2026-11-06
+Last audited: 2026-11-08
 Repository: deszztagd377-pixel/dezzta-chart
 Baseline branch: main
 Working branch: phase-2/market-data-foundation
+Latest audited working-branch HEAD: db44f15dc8868616ca39074a8d0fb603ca080dc1
+
+## Latest verified CI checkpoint — 2026-11-08
+
+- Automated Tests run [#754](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42446010425) completed successfully on exact HEAD `cf74d0eff49b1e642b226854468052f2506b565d`, including frontend tests/build, backend tests/audit, Redis-backed container smoke test, Trivy image scan, and vulnerability-report export/upload.
+- CodeQL run [#112](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42446010422) completed successfully on that same HEAD. Vercel commit status was success.
+- A documentation-only follow-up at `db44f15dc8868616ca39074a8d0fb603ca080dc1` records the exact-HEAD CI result in `docs/PROJECT_PROGRESS.md`. CI and CodeQL for this newer documentation commit are queued; they are not yet claimed as successful.
+- Remaining Stage 1 gates include React DOM AuthProvider lifecycle tests, authorized real Firebase signed-token E2E, and production Fly Volume/SQLite backup-restore/Redis failover/HTTPS-WSS verification. CI success does not substitute for these gates.
+- Progress remains the owner-confirmed conversational checkpoint **20.90% overall** and **75% provisional for Stage 1**; no new milestone credit is assigned by this CI result alone. The weighted ledger remains proposed and requires owner review before a recalculated score is published.
 
 ## Overall progress
 
