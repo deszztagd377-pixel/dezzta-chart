@@ -1,4 +1,4 @@
-import { getApp, getApps, initializeApp } from 'firebase/app';
+import { getApps, initializeApp } from 'firebase/app';
 import {
   getAuth,
   GoogleAuthProvider,
@@ -23,7 +23,19 @@ export function getFirebaseAuth(): Auth | null {
   if (authInstance) return authInstance;
   const config = readFirebaseConfig();
   if (!config) return null;
-  const app = getApps().length > 0 ? getApp() : initializeApp(config);
+
+  // A named Firebase app may exist without a default app. Never infer that
+  // getApps().length > 0 means the default app is available.
+  const defaultApp = getApps().find((candidate) => candidate.name === '[DEFAULT]');
+  const app = defaultApp ?? initializeApp(config);
+
+  // Reusing a default app from another Firebase project would authenticate
+  // against an unintended identity boundary. Fail closed on config mismatch.
+  const configKeys: (keyof typeof config)[] = ['apiKey', 'authDomain', 'projectId', 'appId'];
+  if (configKeys.some((key) => app.options[key] !== config[key])) {
+    throw new Error('Firebase default app configuration does not match VITE_FIREBASE_* settings.');
+  }
+
   authInstance = getAuth(app);
   return authInstance;
 }

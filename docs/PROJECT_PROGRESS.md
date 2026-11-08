@@ -987,3 +987,31 @@ Design the application-level calendar release source contract (trusted manifest/
 - CI now verifies the repository-level frontend/backend test and build pipeline plus the isolated backend container/Redis smoke path. This closes the CI-pending note for commit `6c84034` but does not validate production Firebase Admin credentials, real valid/expired/revoked/wrong-project signed tokens, managed Redis TLS, Fly Machine/Volume permissions and restart persistence, off-host backup/restore, production ingress/CORS/HTTPS, or monitoring.
 - Overall progress remains **20.90%**; Stage 1 remains **75% provisional**. No progress credit is assigned merely for CI completion or documentation reconciliation; a criterion-level weighting review and production-gate evidence are still required.
 - `Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.`
+
+
+## 2026-11-08 — Firebase frontend configuration boundary and status semantics
+
+### Five-work-package implementation cycle
+1. **Exact branch/CI preflight:** started from branch HEAD `10a96951d18e71728e0d22128f174e2aa5170fd4`; `main` remained unchanged. CodeQL for this HEAD completed successfully; Automated Tests was still running when this unit began.
+2. **Firebase app selection hardening:** `getFirebaseAuth()` now searches specifically for the Firebase default app rather than treating any named app as proof that a default app exists.
+3. **Project-boundary enforcement:** a pre-existing default app is reused only when its API key, auth domain, project ID, and app ID exactly match the current `VITE_FIREBASE_*` configuration. A mismatch throws a sanitized configuration error before `getAuth()` is called; no credentials are logged.
+4. **Service regression coverage:** added tests for incomplete environment configuration, default-app initialization and memoization, named-app-only initialization, reuse of a matching default app alongside named apps, wrong-project rejection, and Google account-selection parameters.
+5. **Authentication status accuracy:** corrected `AuthPanel` so provider status `error` is displayed as `AUTH ERROR`, not the misleading `SIGNED OUT`; added static-render regression tests for error, unconfigured, and signed-in states.
+
+### Files changed
+- `src/services/firebase.ts`: select only the default Firebase app and enforce exact configured project/app identity before obtaining Auth.
+- `src/services/firebase.test.ts`: focused Firebase configuration and app-selection tests.
+- `src/components/AuthPanel.tsx`: accurately distinguish authentication errors from signed-out state.
+- `src/components/AuthPanel.test.tsx`: static markup regressions for status presentation.
+- `docs/PROJECT_PROGRESS.md`: record this security and test slice plus its verification boundary.
+
+### Verification boundary
+- These new tests are committed for CI execution; no local Vitest run is claimed from this GitHub-only editing session.
+- The component tests use `renderToStaticMarkup`; they verify displayed status but do not execute browser events or React effects.
+- Full `AuthProvider` lifecycle integration testing still requires a DOM-capable test environment and lockfile-consistent dependencies. The repository currently has neither jsdom/happy-dom nor React Testing Library in its package lock, so no dependency or lockfile was fabricated in this change.
+- Production Firebase Admin credentials and real signed-token E2E (valid, expired, revoked, wrong-project) remain open external acceptance gates.
+
+### Progress accounting
+- Overall checkpoint remains **20.90%**; Stage 1 remains **75% provisional**.
+- `Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.`
+- This implementation improves code-level Firebase app isolation and error-state accuracy; progress credit awaits exact-HEAD Automated Tests and CodeQL results plus the agreed acceptance ledger.

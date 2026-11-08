@@ -13,6 +13,19 @@ const AuthPanel: React.FC = () => {
     try { await action(); } finally { setBusy(false); }
   };
 
+  const statusLabel = status === 'signed-in'
+    ? 'SIGNED IN'
+    : status === 'loading'
+      ? 'CHECKING'
+      : status === 'unconfigured'
+        ? 'NOT CONFIGURED'
+        : status === 'error'
+          ? 'AUTH ERROR'
+          : 'SIGNED OUT';
+  const statusClass = status === 'signed-in'
+    ? 'auth-panel__state is-online'
+    : 'auth-panel__state';
+
   return (
     <section className="auth-panel" aria-labelledby="auth-panel-title">
       <div className="auth-panel__heading">
@@ -20,9 +33,7 @@ const AuthPanel: React.FC = () => {
           <p className="auth-panel__eyebrow">ACCOUNT SECURITY</p>
           <h3 id="auth-panel-title">Firebase account</h3>
         </div>
-        <span className={status === 'signed-in' ? 'auth-panel__state is-online' : 'auth-panel__state'}>
-          {status === 'signed-in' ? 'SIGNED IN' : status === 'loading' ? 'CHECKING' : status === 'unconfigured' ? 'NOT CONFIGURED' : 'SIGNED OUT'}
-        </span>
+        <span className={statusClass}>{statusLabel}</span>
       </div>
 
       {user ? (
