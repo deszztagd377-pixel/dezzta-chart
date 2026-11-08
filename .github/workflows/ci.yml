@@ -100,11 +100,13 @@ jobs:
           trap cleanup EXIT
           docker volume create "$volume_name" >/dev/null
           start_container() {
-            docker run --detach --name "$container_name" --network host \
+            docker run --detach --name "$container_name" \
+              --publish 127.0.0.1:18000:18000 \
+              --add-host=host.docker.internal:host-gateway \
               --mount "type=volume,src=$volume_name,dst=/data" \
               -e APP_ENV=development \
               -e PORT=18000 \
-              -e REDIS_URL="$REDIS_TEST_URL" \
+              -e REDIS_URL="redis://host.docker.internal:6379/15" \
               -e HTTP_RATE_LIMIT_PER_CLIENT=1 \
               -e HTTP_RATE_LIMIT_GLOBAL=10 \
               -e INSTRUMENT_REGISTRY_DB_PATH=/data/dezzta-chart-smoke.sqlite3 \
@@ -113,6 +115,7 @@ jobs:
           }
           wait_for_health() {
             ready=0
+            echo "Waiting for backend health through published loopback port 18000."
             for attempt in $(seq 1 30); do
               container_state=$(docker inspect --format '{{.State.Status}}' "$container_name")
               if [ "$container_state" != "running" ]; then
@@ -129,8 +132,11 @@ jobs:
             done
             if [ "$ready" -ne 1 ]; then
               echo "Backend container remained running but /health did not become ready."
-              docker inspect --format 'state={{.State.Status}} exit_code={{.State.ExitCode}} error={{.State.Error}}' "$container_name"
-              docker logs --tail 200 "$container_name" || true
+              docker inspect --format 'state={{.State.Status}} exit_code={{.State.ExitCode}} error={{.State.Error}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}not-configured{{end}}' "$container_name" || true
+              echo "Backend container startup logs:"
+              docker logs --timestamps --tail 200 "$container_name" || true
+              echo "Backend container process and port diagnostics:"
+              docker exec "$container_name" sh -c 'id; ps; (ss -lntp || netstat -lntp || true)' || true
               exit 1
             fi
             grep -Fq '"status":"ok"' /tmp/dezzta-health.json
