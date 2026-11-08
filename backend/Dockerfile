@@ -26,4 +26,4 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD python -c "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.getenv('PORT', '8000') + '/health', timeout=3)"
 
-CMD ["sh", "-c", "find /data -mindepth 0 -maxdepth 1 -exec chown 10001:10001 {} + && exec su-exec 10001:10001 uvicorn app.main:app --host 0.0.0.0 --port \"${PORT:-8000}\" --ws-max-size 65536 --ws-max-queue 16"]
+CMD ["sh", "-c", "chown -R 10001:10001 /data && exec su-exec 10001:10001 uvicorn app.main:app --host 0.0.0.0 --port \"${PORT:-8000}\" --ws-max-size 65536 --ws-max-queue 16"]
