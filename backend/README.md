@@ -139,6 +139,34 @@ pytest
 - With default settings, the status endpoint correctly reports the provider as disconnected; this is not evidence of a working external feed.
 - Review CORS, TLS, hosting access controls, and WebSocket authentication before public deployment.
 
+## Consistent SQLite backups
+
+The backend includes `app.sqlite_backup.create_consistent_sqlite_backup()`
+for creating a transactionally consistent local snapshot of a file-backed
+SQLite database. It uses SQLite's Online Backup API, validates the completed
+snapshot with `PRAGMA integrity_check`, writes to a temporary file in the
+destination directory, and atomically replaces the destination only after the
+backup passes validation. The temporary snapshot is restricted to owner-only
+permissions where the filesystem supports POSIX modes.
+
+Example from the `backend/` directory:
+
+```python
+from app.sqlite_backup import create_consistent_sqlite_backup
+
+create_consistent_sqlite_backup(
+    "/data/dezzta-chart.sqlite3",
+    "/data/backups/dezzta-chart-2026-11-08.sqlite3",
+)
+```
+
+This helper provides a local consistent snapshot only. It does **not** encrypt,
+upload, schedule, retain, or restore off-host backups. Production backup
+operations still require an independently managed encryption/key process,
+off-host storage, retention policy, and a tested restore drill. Do not treat a
+copy of a live SQLite database file (or a Fly Volume snapshot alone) as a
+substitute for this Online Backup API workflow and a verified recovery plan.
+
 ## Container deployment
 
 A portable, non-root backend image is defined in `backend/Dockerfile`. It reads the
