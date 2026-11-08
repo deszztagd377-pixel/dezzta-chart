@@ -1161,3 +1161,22 @@ Design the application-level calendar release source contract (trusted manifest/
 - Overall remains **20.90%**; Stage 1 remains **75% provisional** pending exact-HEAD test results and outstanding integration/release acceptance criteria.
 - Server-rendered context contract tests are additional unit coverage, not a substitute for DOM lifecycle or real signed-token E2E.
 - `Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.`
+
+
+## 2026-11-08 — Firebase authentication error disclosure regression tests
+
+### Security-focused test slice
+- Exported the existing pure Firebase error-to-user-message mapper so it can be tested directly without mounting React or initializing Firebase.
+- Added tests proving recognized Firebase error codes map to fixed Indonesian messages and unknown/provider-supplied error messages are not forwarded to the UI.
+- Covered non-object/null error input and a synthetic sensitive-detail string to guard against accidental disclosure of provider internals or token-like text.
+- This change does not alter authentication decisions, token verification, or Firebase SDK behavior; it makes the existing sanitization boundary directly regression-testable.
+
+### Verification boundary
+- Tests are committed for exact-HEAD CI execution; no local package-manager run is claimed.
+- This is pure-function security regression coverage, not browser DOM lifecycle or signed-token E2E coverage.
+- The existing DOM-capable React lifecycle and authorized Firebase signed-token E2E gates remain open.
+
+### Progress accounting
+- Overall remains **20.90%**; Stage 1 remains **75% provisional**.
+- No progress credit is assigned until the exact-HEAD CI run passes and the Stage 1 acceptance ledger is reconciled.
+- `Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.`
