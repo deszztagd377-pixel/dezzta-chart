@@ -33,7 +33,7 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function readableAuthError(error: unknown): string {
+export function readableAuthError(error: unknown): string {
   const code = typeof error === 'object' && error !== null && 'code' in error
     ? String((error as { code: unknown }).code)
     : '';
