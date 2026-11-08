@@ -1,9 +1,9 @@
 # Fly.io single-Machine deployment template for DEZZTA CHART.
-# Copy to backend/fly.toml only after choosing the app name and region.
+# Copy to backend/fly.toml only after choosing the app name.
 # Build context is backend/ because this file lives beside backend/Dockerfile.
 
 app = "REPLACE_WITH_FLY_APP_NAME"
-primary_region = "REPLACE_WITH_REGION"
+primary_region = "sin"
 
 [build]
   dockerfile = "Dockerfile"
