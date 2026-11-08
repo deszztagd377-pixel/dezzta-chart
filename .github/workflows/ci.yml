@@ -85,44 +85,71 @@ jobs:
       - name: Build backend container image
         run: docker build -f backend/Dockerfile -t dezzta-chart-backend:ci backend
 
-      - name: Smoke test backend container with shared Redis guard
+      - name: Smoke test backend container with shared Redis guard and persistent volume
         env:
           REDIS_TEST_URL: redis://127.0.0.1:6379/15
         run: |
           set -euo pipefail
           container_name=dezzta-chart-backend-smoke
+          volume_name=dezzta-chart-backend-smoke-data
+          base_url=http://127.0.0.1:18000
           cleanup() {
             docker rm -f "$container_name" >/dev/null 2>&1 || true
+            docker volume rm -f "$volume_name" >/dev/null 2>&1 || true
           }
           trap cleanup EXIT
-          docker run --detach --name "$container_name" --network host \
-            -e APP_ENV=development \
-            -e PORT=18000 \
-            -e REDIS_URL="$REDIS_TEST_URL" \
-            -e HTTP_RATE_LIMIT_PER_CLIENT=1 \
-            -e HTTP_RATE_LIMIT_GLOBAL=10 \
-            -e INSTRUMENT_REGISTRY_DB_PATH=/tmp/dezzta-chart-smoke.sqlite3 \
-            -e CORS_ALLOWED_ORIGINS=http://localhost:5173 \
-            dezzta-chart-backend:ci
-          base_url=http://127.0.0.1:18000
-          ready=0
-          for attempt in $(seq 1 30); do
-            if curl --silent --show-error --fail "$base_url/health" >/tmp/dezzta-health.json; then
-              ready=1
-              break
+          docker volume create "$volume_name" >/dev/null
+          start_container() {
+            docker run --detach --name "$container_name" --network host \
+              --mount "type=volume,src=$volume_name,dst=/data" \
+              -e APP_ENV=development \
+              -e PORT=18000 \
+              -e REDIS_URL="$REDIS_TEST_URL" \
+              -e HTTP_RATE_LIMIT_PER_CLIENT=1 \
+              -e HTTP_RATE_LIMIT_GLOBAL=10 \
+              -e INSTRUMENT_REGISTRY_DB_PATH=/data/dezzta-chart-smoke.sqlite3 \
+              -e CORS_ALLOWED_ORIGINS=http://localhost:5173 \
+              dezzta-chart-backend:ci
+          }
+          wait_for_health() {
+            ready=0
+            for attempt in $(seq 1 30); do
+              if curl --silent --show-error --fail "$base_url/health" >/tmp/dezzta-health.json; then
+                ready=1
+                break
+              fi
+              sleep 1
+            done
+            if [ "$ready" -ne 1 ]; then
+              docker logs "$container_name"
+              exit 1
             fi
-            sleep 1
-          done
-          if [ "$ready" -ne 1 ]; then
-            docker logs "$container_name"
-            exit 1
-          fi
-          grep -Fq '"status":"ok"' /tmp/dezzta-health.json
+            grep -Fq '"status":"ok"' /tmp/dezzta-health.json
+          }
+          start_container
+          wait_for_health
+
+          app_uid=$(docker exec "$container_name" sh -c 'awk "/^Uid:/{print $2}" /proc/1/status')
+          app_gid=$(docker exec "$container_name" sh -c 'awk "/^Gid:/{print $2}" /proc/1/status')
+          volume_owner=$(docker exec "$container_name" stat -c '%u:%g' /data)
+          database_owner=$(docker exec "$container_name" stat -c '%u:%g' /data/dezzta-chart-smoke.sqlite3)
+          test "$app_uid" = "10001"
+          test "$app_gid" = "10001"
+          test "$volume_owner" = "10001:10001"
+          test "$database_owner" = "10001:10001"
+
           first_status=$(curl --silent --show-error --output /tmp/dezzta-first.json --write-out '%{http_code}' "$base_url/v1/market-data/status")
           test "$first_status" = "200"
           second_status=$(curl --silent --show-error --output /tmp/dezzta-second.json --write-out '%{http_code}' "$base_url/v1/market-data/status")
           test "$second_status" = "429"
-          echo "Container health, Redis-backed request path, and HTTP rate-limit rejection passed."
+
+          docker exec "$container_name" python -c 'import sqlite3; c=sqlite3.connect("/data/dezzta-chart-smoke.sqlite3"); assert c.execute("PRAGMA integrity_check").fetchone()[0] == "ok"; assert c.execute("SELECT 1 FROM sqlite_master WHERE type=\u0027table\u0027 LIMIT 1").fetchone()'
+          docker stop "$container_name" >/dev/null
+          docker rm "$container_name" >/dev/null
+          start_container
+          wait_for_health
+          docker exec "$container_name" python -c 'import sqlite3; c=sqlite3.connect("/data/dezzta-chart-smoke.sqlite3"); assert c.execute("PRAGMA integrity_check").fetchone()[0] == "ok"; assert c.execute("SELECT 1 FROM sqlite_master WHERE type=\u0027table\u0027 LIMIT 1").fetchone()'
+          echo "Container health, non-root UID/GID, mounted-volume ownership, SQLite integrity and restart persistence, Redis-backed request path, and HTTP rate-limit rejection passed."
 
       - name: Scan backend container image
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
