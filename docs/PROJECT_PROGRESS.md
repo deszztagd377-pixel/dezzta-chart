@@ -1180,3 +1180,22 @@ Design the application-level calendar release source contract (trusted manifest/
 - Overall remains **20.90%**; Stage 1 remains **75% provisional**.
 - No progress credit is assigned until the exact-HEAD CI run passes and the Stage 1 acceptance ledger is reconciled.
 - `Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.`
+
+
+## 2026-11-08 — Firebase Auth action contract regression coverage
+
+### Implementation
+- Expanded the existing Firebase SDK mocks so AuthProvider action methods can be asserted directly without changing production authentication behavior.
+- Added six tests for email sign-in normalization, email registration normalization, Google redirect provider wiring, sign-out Auth-instance wiring, current-user ID-token retrieval, and rejection when no user is signed in.
+- Tests obtain the AuthProvider context through React server rendering. They cover exposed action callbacks only; server rendering does not execute the provider effect, mount a browser DOM, or validate observer lifecycle/unmount cleanup.
+- The lockfile does not contain installed package entries for jsdom, happy-dom, @testing-library/react, @testing-library/dom, or react-test-renderer. No dependency or lockfile changes were made.
+
+### Verification boundary
+- Exact-HEAD GitHub Actions validation is required for this test change; no local npm execution is claimed.
+- Browser DOM lifecycle tests and real Firebase Admin signed-token E2E (valid, expired, revoked, wrong-project) remain open.
+- Production Fly/Redis/backup/restore/deployed HTTPS-WSS gates remain external release requirements.
+
+### Progress accounting
+- Overall remains **20.90%**; Stage 1 remains **75% provisional**.
+- The added tests cover AuthProvider action wiring but do not close browser lifecycle, real signed-token, or production deployment acceptance criteria.
+- Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.

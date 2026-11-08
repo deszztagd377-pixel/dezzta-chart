@@ -5,20 +5,25 @@ const firebaseMocks = vi.hoisted(() => ({
   getFirebaseAuth: vi.fn(),
   isFirebaseConfigured: vi.fn(),
   onIdTokenChanged: vi.fn(),
+  signInWithEmailAndPassword: vi.fn(),
+  createUserWithEmailAndPassword: vi.fn(),
+  signInWithRedirect: vi.fn(),
+  signOut: vi.fn(),
+  createGoogleProvider: vi.fn(),
 }));
 
 vi.mock('../services/firebase', () => ({
   getFirebaseAuth: firebaseMocks.getFirebaseAuth,
   isFirebaseConfigured: firebaseMocks.isFirebaseConfigured,
-  createGoogleProvider: vi.fn(),
+  createGoogleProvider: firebaseMocks.createGoogleProvider,
 }));
 
 vi.mock('firebase/auth', () => ({
-  createUserWithEmailAndPassword: vi.fn(),
+  createUserWithEmailAndPassword: firebaseMocks.createUserWithEmailAndPassword,
   onIdTokenChanged: firebaseMocks.onIdTokenChanged,
-  signInWithEmailAndPassword: vi.fn(),
-  signInWithRedirect: vi.fn(),
-  signOut: vi.fn(),
+  signInWithEmailAndPassword: firebaseMocks.signInWithEmailAndPassword,
+  signInWithRedirect: firebaseMocks.signInWithRedirect,
+  signOut: firebaseMocks.signOut,
 }));
 
 beforeEach(() => {
@@ -209,6 +214,97 @@ describe('AuthProvider server-rendered context contract', () => {
 
     expect(() => renderToStaticMarkup(React.createElement(Probe))).toThrow(
       'useAuth must be used inside AuthProvider.',
+    );
+  });
+});
+
+
+describe('AuthProvider Firebase action contract', () => {
+  async function renderActionContext() {
+    // Server rendering exposes the provider's action callbacks without
+    // claiming to exercise useEffect, browser DOM mounting, or cleanup.
+    const React = await import('react');
+    const { renderToStaticMarkup } = await import('react-dom/server');
+    const { AuthProvider, useAuth } = await import('./AuthProvider');
+    let context: ReturnType<typeof useAuth> | null = null;
+    function Probe() {
+      context = useAuth();
+      return null;
+    }
+    renderToStaticMarkup(
+      React.createElement(AuthProvider, null, React.createElement(Probe)),
+    );
+    if (!context) throw new Error('AuthProvider context was not captured.');
+    return context;
+  }
+
+  it('trims email before calling Firebase email sign-in', async () => {
+    const auth = { currentUser: null } as Auth;
+    firebaseMocks.getFirebaseAuth.mockReturnValue(auth);
+    firebaseMocks.signInWithEmailAndPassword.mockResolvedValue({});
+    const context = await renderActionContext();
+
+    await context.signInEmail('  student@example.test  ', 'test-password');
+
+    expect(firebaseMocks.signInWithEmailAndPassword)
+      .toHaveBeenCalledWith(auth, 'student@example.test', 'test-password');
+  });
+
+  it('trims email before calling Firebase account registration', async () => {
+    const auth = { currentUser: null } as Auth;
+    firebaseMocks.getFirebaseAuth.mockReturnValue(auth);
+    firebaseMocks.createUserWithEmailAndPassword.mockResolvedValue({});
+    const context = await renderActionContext();
+
+    await context.registerEmail('  student@example.test  ', 'test-password');
+
+    expect(firebaseMocks.createUserWithEmailAndPassword)
+      .toHaveBeenCalledWith(auth, 'student@example.test', 'test-password');
+  });
+
+  it('uses the resolved Firebase Auth instance for Google redirect', async () => {
+    const auth = { currentUser: null } as Auth;
+    const provider = { providerId: 'google.com' };
+    firebaseMocks.getFirebaseAuth.mockReturnValue(auth);
+    firebaseMocks.createGoogleProvider.mockReturnValue(provider);
+    firebaseMocks.signInWithRedirect.mockResolvedValue({});
+    const context = await renderActionContext();
+
+    await context.signInGoogle();
+
+    expect(firebaseMocks.createGoogleProvider).toHaveBeenCalledOnce();
+    expect(firebaseMocks.signInWithRedirect).toHaveBeenCalledWith(auth, provider);
+  });
+
+  it('uses the resolved Firebase Auth instance for sign-out', async () => {
+    const auth = { currentUser: null } as Auth;
+    firebaseMocks.getFirebaseAuth.mockReturnValue(auth);
+    firebaseMocks.signOut.mockResolvedValue(undefined);
+    const context = await renderActionContext();
+
+    await context.signOutUser();
+
+    expect(firebaseMocks.signOut).toHaveBeenCalledOnce();
+    expect(firebaseMocks.signOut).toHaveBeenCalledWith(auth);
+  });
+
+  it('retrieves an ID token only from the current Firebase user', async () => {
+    const getIdToken = vi.fn().mockResolvedValue('test-id-token');
+    firebaseMocks.getFirebaseAuth.mockReturnValue({
+      currentUser: { getIdToken },
+    });
+    const context = await renderActionContext();
+
+    await expect(context.getIdToken()).resolves.toBe('test-id-token');
+    expect(getIdToken).toHaveBeenCalledOnce();
+  });
+
+  it('rejects token retrieval when no Firebase user is signed in', async () => {
+    firebaseMocks.getFirebaseAuth.mockReturnValue({ currentUser: null });
+    const context = await renderActionContext();
+
+    await expect(context.getIdToken()).rejects.toThrow(
+      'Pengguna belum login ke Firebase.',
     );
   });
 });
