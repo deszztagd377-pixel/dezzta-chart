@@ -41,6 +41,7 @@ def test_verifier_returns_principal_only_after_verified_claims():
         {"aud": "another-project"},
         {"uid": ""},
         {"sub": "different-firebase-user"},
+        {"uid": "u" * 129, "sub": "u" * 129},
         {"auth_time": True},
         {"auth_time": 0},
     ],
@@ -183,3 +184,14 @@ def test_admin_sdk_import_failure_is_reported_as_provider_unavailable(monkeypatc
         FirebaseIdentityVerifier(PROJECT).verify("token")
 
     assert str(error.value) == "Firebase Admin SDK is unavailable."
+
+
+def test_subject_fallback_rejects_uid_longer_than_firebase_limit():
+    claims = {key: value for key, value in CLAIMS.items() if key != "uid"}
+    claims["sub"] = "s" * 129
+    verifier = FirebaseIdentityVerifier(
+        PROJECT, verify_callable=lambda token, **kwargs: claims
+    )
+
+    with pytest.raises(IdentityVerificationError):
+        verifier.verify("token")

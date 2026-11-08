@@ -95,7 +95,7 @@ class FirebaseIdentityVerifier:
         auth_time = claims.get("auth_time")
         expected_issuer = f"https://securetoken.google.com/{self._project_id}"
         if (
-            not isinstance(subject, str) or not subject.strip()
+            not isinstance(subject, str) or not subject.strip() or len(subject) > 128
             or issuer != expected_issuer
             or audience != self._project_id
             or not isinstance(auth_time, int) or isinstance(auth_time, bool) or auth_time <= 0

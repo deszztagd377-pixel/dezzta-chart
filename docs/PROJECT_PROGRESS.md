@@ -1244,3 +1244,12 @@ Implemented a testable lifecycle boundary for the Firebase observer used by `Aut
 - Added focused tests for signed-out/signed-in/error transitions, post-cleanup callback suppression, idempotent cleanup, initialization failure, unconfigured state, and synchronous registration failure.
 
 Verification boundary: these tests exercise the complete extracted observer lifecycle boundary with Firebase observer mocks. They do **not** mount React into a browser DOM and do not replace the still-open React DOM mount/unmount integration test or authorized Firebase signed-token E2E. No dependency or lockfile was changed.
+
+
+## 2026-11-08 — Firebase principal UID length validation
+
+- Tightened the verified-principal boundary to reject a Firebase UID/subject longer than the documented 128-character maximum.
+- Added regression coverage for an oversized matching `uid`/`sub` pair and for the supported `sub`-only fallback.
+- Existing issuer, audience, auth-time, Firebase Admin signature verification, and revocation-check behavior are unchanged.
+- Exact-HEAD CI verification is pending for this implementation commit; do not count the gate as complete until the Automated Tests workflow passes.
+- Overall progress remains **20.90%** and Stage 1 remains **75% provisional**; this targeted validation does not close the signed-token E2E or production release gates.
