@@ -1015,3 +1015,29 @@ Design the application-level calendar release source contract (trusted manifest/
 - Overall checkpoint remains **20.90%**; Stage 1 remains **75% provisional**.
 - `Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.`
 - This implementation improves code-level Firebase app isolation and error-state accuracy; progress credit awaits exact-HEAD Automated Tests and CodeQL results plus the agreed acceptance ledger.
+
+
+## 2026-11-08 — Firebase Auth initialization fails closed in React provider
+
+### Five-work-package cycle
+1. Rechecked active branch and exact HEAD before editing: `phase-2/market-data-foundation` at `faf171e5c0d53b90f96c17d475c3de365240afb3`; `main` remained unchanged.
+2. Rechecked CI for that exact SHA: CodeQL completed successfully; Automated Tests had frontend tests/build, backend tests, and dependency audits successful while the backend image build was still running.
+3. Reviewed the AuthProvider effect and action boundaries. `getFirebaseAuth()` could throw on a default-app/project mismatch before the provider installed its observer, and the same exception could escape a sign-in/register/sign-out action because initialization happened outside the action try/catch.
+4. Added a single fail-closed resolution boundary. Initialization errors now become an explicit safe error state in the provider effect and user actions; they no longer escape as uncaught exceptions. Token retrieval also rejects with the sanitized provider-level message.
+5. Added focused unit tests for successful resolution, initialization failure, and an unconfigured Firebase result.
+
+### Files changed
+- `src/auth/AuthProvider.tsx`: normalize Firebase initialization failures and prevent uncaught exceptions in effect/action boundaries.
+- `src/auth/AuthProvider.test.tsx`: test the fail-closed resolver contract.
+- `docs/PROJECT_PROGRESS.md`: record the implementation and exact verification boundary.
+
+### Verification boundary
+- This change is committed for exact-HEAD CI. No local test run is claimed.
+- Resolver unit tests validate the initialization boundary but are not a full React DOM lifecycle test. Auth observer transitions, redirect completion, token refresh, and cleanup still need a DOM-capable integration harness.
+- At the time of this edit, exact-HEAD Automated Tests was still in progress after frontend tests/build and backend tests had passed; backend image build and Redis smoke/security scan steps had not yet completed. CodeQL had completed successfully.
+- No credentials, paid resources, Firebase production setup, or Fly resources were created.
+
+### Progress accounting
+- Overall checkpoint remains **20.90%**; Stage 1 remains **75% provisional**.
+- `Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.`
+- This is a code-level fail-closed correction; no progress credit is assigned until exact-HEAD CI and criterion-level verification are complete.

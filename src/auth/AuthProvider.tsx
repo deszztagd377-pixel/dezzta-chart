@@ -12,6 +12,7 @@ import {
   signInWithEmailAndPassword,
   signInWithRedirect,
   signOut,
+  type Auth,
   type User,
 } from 'firebase/auth';
 import { createGoogleProvider, getFirebaseAuth, isFirebaseConfigured } from '../services/firebase';
@@ -51,6 +52,26 @@ function readableAuthError(error: unknown): string {
   return messages[code] ?? 'Autentikasi gagal. Periksa konfigurasi Firebase dan coba lagi.';
 }
 
+export type FirebaseAuthResolution =
+  | { auth: Auth; error: null }
+  | { auth: null; error: string | null };
+
+/**
+ * Firebase initialization can throw when an existing default app belongs to
+ * another project. Convert that boundary failure into an explicit auth state
+ * instead of allowing a React effect or user action to throw uncaught.
+ */
+export function resolveFirebaseAuth(): FirebaseAuthResolution {
+  try {
+    return { auth: getFirebaseAuth(), error: null };
+  } catch {
+    return {
+      auth: null,
+      error: 'Konfigurasi Firebase tidak cocok atau gagal diinisialisasi. Autentikasi dinonaktifkan.',
+    };
+  }
+}
+
 export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<AuthStatus>(
@@ -59,9 +80,15 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const auth = getFirebaseAuth();
-    if (!auth) return;
-    return onAuthStateChanged(auth, (nextUser) => {
+    const resolution = resolveFirebaseAuth();
+    if (resolution.error) {
+      setError(resolution.error);
+      setStatus('error');
+      return;
+    }
+    if (!resolution.auth) return;
+
+    return onAuthStateChanged(resolution.auth, (nextUser) => {
       setUser(nextUser);
       setStatus(nextUser ? 'signed-in' : 'signed-out');
     }, (reason) => {
@@ -70,17 +97,24 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     });
   }, []);
 
-  const runAuthAction = useCallback(async (action: (auth: NonNullable<ReturnType<typeof getFirebaseAuth>>) => Promise<unknown>) => {
-    const auth = getFirebaseAuth();
-    if (!auth) {
+  const runAuthAction = useCallback(async (action: (auth: Auth) => Promise<unknown>) => {
+    const resolution = resolveFirebaseAuth();
+    if (resolution.error) {
+      setError(resolution.error);
+      setStatus('error');
+      return;
+    }
+    if (!resolution.auth) {
       setError('Firebase belum dikonfigurasi. Lengkapi environment VITE_FIREBASE_* terlebih dahulu.');
+      setStatus('unconfigured');
       return;
     }
     setError(null);
     try {
-      await action(auth);
+      await action(resolution.auth);
     } catch (reason) {
       setError(readableAuthError(reason));
+      setStatus('error');
     }
   }, []);
 
@@ -90,12 +124,12 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     runAuthAction((auth) => createUserWithEmailAndPassword(auth, email.trim(), password)), [runAuthAction]);
   const signInGoogle = useCallback(() =>
     runAuthAction((auth) => signInWithRedirect(auth, createGoogleProvider())), [runAuthAction]);
-  const signOutUser = useCallback(() =>
-    runAuthAction((auth) => signOut(auth)), [runAuthAction]);
+  const signOutUser = useCallback(() => runAuthAction((auth) => signOut(auth)), [runAuthAction]);
   const getIdToken = useCallback(async () => {
-    const auth = getFirebaseAuth();
-    if (!auth?.currentUser) throw new Error('Pengguna belum login ke Firebase.');
-    return auth.currentUser.getIdToken();
+    const resolution = resolveFirebaseAuth();
+    if (resolution.error) throw new Error(resolution.error);
+    if (!resolution.auth?.currentUser) throw new Error('Pengguna belum login ke Firebase.');
+    return resolution.auth.currentUser.getIdToken();
   }, []);
   const clearError = useCallback(() => setError(null), []);
 
