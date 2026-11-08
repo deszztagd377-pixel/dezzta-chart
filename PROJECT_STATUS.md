@@ -6,15 +6,16 @@ Last audited: 2026-11-08
 Repository: deszztagd377-pixel/dezzta-chart
 Baseline branch: main
 Working branch: phase-2/market-data-foundation
-Latest audited working-branch HEAD: d01d1435acec5a475239371402d9021bce14f629
+Latest audited working-branch HEAD: 1f383c8c3ddc1775c8c5abc94d4404429af849dd
 
 ## Latest verified CI checkpoint — 2026-11-08
 
-- Automated Tests run [#760](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42446968025) completed successfully on exact HEAD `d01d1435acec5a475239371402d9021bce14f629`. All workflow steps succeeded: frontend `npm ci`, frontend dependency audit, frontend unit tests/build, frontend bundle secret tests and scan, backend dependency install/tests/audit, backend container build, Redis-backed container smoke test, Trivy image scan, vulnerability-report export/upload, and cleanup.
-- CodeQL run [#118](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42446968011) completed successfully on the same exact HEAD. The Vercel commit status for `d01d143...` is success (deployment completed).
-- The immediately preceding exact-HEAD checkpoint `91d3329...` also passed Automated Tests #759 and CodeQL #117. Older runs cancelled by latest-run concurrency are not failures and are not used as the latest acceptance evidence.
-- Remaining Stage 1 gates include React DOM AuthProvider lifecycle tests, authorized real Firebase signed-token E2E, and production Fly Volume/SQLite backup-restore/Redis failover/HTTPS-WSS verification. CI success does not substitute for these gates.
-- Progress remains the owner-confirmed conversational checkpoint **20.90% overall** and **75% provisional for Stage 1**; no new milestone credit is assigned by this CI result alone. The weighted ledger remains proposed and requires owner review before a recalculated score is published.
+- Automated Tests [#761](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42447181745) completed successfully on exact code commit `74e13e2cc9b85e76e436e97c8fe8f689ff6e4525`. All 25 job steps succeeded, including frontend installation/audit/tests/build, bundle secret scanning, backend install/tests/audit, container build, Redis-backed smoke test, Trivy scan, vulnerability report export/upload, and cleanup.
+- CodeQL [#119](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42447181714) completed successfully on the same exact commit. Vercel deployment status for `74e13e2...` is success.
+- After that green checkpoint, commit `f42107f...` added `backend/app/sqlite_backup.py` using SQLite Online Backup API, atomic publication, and integrity verification; commit `6df1280...` added focused WAL/consistency/failure-safety tests; commit `1f383c8...` documents the helper and updates this status record. CI/CodeQL for the newest code and documentation commits must be verified separately; do not reuse #761/#119 as evidence for those later commits.
+- AuthPanel is already integrated inside `SettingsPanel`, which is reachable through the app's Settings navigation item. The earlier claim that AuthPanel was not integrated into the app was incorrect and is corrected here. Existing SettingsPanel SSR tests include the AuthPanel state presentation.
+- Remaining Stage 1 gates: React DOM AuthProvider lifecycle tests; authorized real Firebase signed-token E2E; production Fly Volume permissions/restart persistence; off-host encrypted backup, retention and restore drill; managed Redis failover/private networking; and HTTPS/WSS/monitoring verification. The new backup helper is a local consistent snapshot primitive only; it does not complete production backup/restore.
+- Progress remains **20.90% overall** and **75% provisional for Stage 1**. No new progress credit is assigned until the new backup code passes CI and its acceptance criterion is formally reconciled. The weighted ledger remains proposed and requires owner review before recalculating the overall score.
 ## Overall progress
 
 - Historical progress records: 19.60% older formal estimate; owner-confirmed conversational checkpoints 20.30% → 20.90%. These are not a newly recalculated current score. The proposed 100%-weighted model is in [docs/PROJECT_MILESTONE_LEDGER.md](docs/PROJECT_MILESTONE_LEDGER.md); owner review and criterion scoring remain pending. See [docs/PROJECT_PROGRESS.md](docs/PROJECT_PROGRESS.md).
