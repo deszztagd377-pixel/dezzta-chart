@@ -899,5 +899,13 @@ Design the application-level calendar release source contract (trusted manifest/
 - `docs/BACKEND_DEPLOYMENT.md`: correct production Redis requirements and remove the broken no-Redis production smoke command.
 - `docs/PROJECT_PROGRESS.md`: record exact prior evidence, this validation scope, and remaining production boundaries.
 
-### Verification pending
-The new container smoke step and the full exact-HEAD workflow must pass before this unit is marked verified. No percentage increase is claimed at commit time.
+### Exact-HEAD verification completed (2026-11-08)
+- Automated Tests [#42432195466](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42432195466) completed with conclusion **success** on exact HEAD `a603d1f91e52a46b2eb23f8cc68eb7676b8097ca`.
+- Frontend: 22 test files and 158 tests passed; production build succeeded; frontend bundle secret scan checked 3 files and passed.
+- Backend: 489 tests passed, with one Starlette/httpx deprecation warning. Backend dependency audit and Docker image build passed.
+- The new container smoke test passed: backend container became healthy, first Redis-protected status request returned HTTP 200, and the next request returned HTTP 429 under the one-request test limit.
+- Strict Trivy image scan completed successfully; its report showed 0 HIGH/CRITICAL vulnerabilities for the scanned Alpine OS and Python package targets. This is scoped to this image and severity filter, not a claim of zero security risk.
+- Vulnerability report artifact [container-vulnerability-reports](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42432195466/artifacts/13598435728) was uploaded successfully.
+- CodeQL [#42432195494](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42432195494) completed successfully for both JavaScript/TypeScript and Python analysis jobs on the same exact HEAD.
+- The CI smoke test validates container startup and shared Redis HTTP limiting in isolated CI only; it does not validate a managed production Redis endpoint, production proxy topology, persistent host volume, Firebase production identity, or deployed backend connectivity.
+- The earlier “verification pending” note is superseded by this result. Overall progress remains **20.90%** and Stage 1 remains **75% provisional** because no new owner-approved acceptance-weight change or production deployment acceptance criterion was completed.
