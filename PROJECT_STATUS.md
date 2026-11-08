@@ -6,13 +6,13 @@ Last audited: 2026-11-08
 Repository: deszztagd377-pixel/dezzta-chart
 Baseline branch: main
 Working branch: phase-2/market-data-foundation
-Latest audited working-branch HEAD: db44f15dc8868616ca39074a8d0fb603ca080dc1
+Latest audited working-branch HEAD: ca0f0da895fe93f568eafafd8298ed563c162b6a
 
 ## Latest verified CI checkpoint — 2026-11-08
 
 - Automated Tests run [#754](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42446010425) completed successfully on exact HEAD `cf74d0eff49b1e642b226854468052f2506b565d`, including frontend tests/build, backend tests/audit, Redis-backed container smoke test, Trivy image scan, and vulnerability-report export/upload.
 - CodeQL run [#112](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42446010422) completed successfully on that same HEAD. Vercel commit status was success.
-- A documentation-only follow-up at `db44f15dc8868616ca39074a8d0fb603ca080dc1` records the exact-HEAD CI result in `docs/PROJECT_PROGRESS.md`. CI and CodeQL for this newer documentation commit are queued; they are not yet claimed as successful.
+- Documentation-only follow-up commits `db44f15dc8868616ca39074a8d0fb603ca080dc1` and `ca0f0da895fe93f568eafafd8298ed563c162b6a` record the CI checkpoint and update this status file. On exact HEAD `ca0f0da...`, CodeQL run [#114](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42446359808) completed successfully. Automated Tests run [#756](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42446359776) was still in progress at the latest audit: frontend dependency install/audit, frontend tests/build, bundle secret checks, backend dependency install, backend tests, and backend dependency audit had passed; container build, Redis smoke test, and Trivy scan/report steps had not completed. Earlier runs #755/#113 on the superseded `db44f15...` commit were cancelled by the workflow's latest-run concurrency policy, not reported as test failures.
 - Remaining Stage 1 gates include React DOM AuthProvider lifecycle tests, authorized real Firebase signed-token E2E, and production Fly Volume/SQLite backup-restore/Redis failover/HTTPS-WSS verification. CI success does not substitute for these gates.
 - Progress remains the owner-confirmed conversational checkpoint **20.90% overall** and **75% provisional for Stage 1**; no new milestone credit is assigned by this CI result alone. The weighted ledger remains proposed and requires owner review before a recalculated score is published.
 
@@ -25,13 +25,13 @@ Latest audited working-branch HEAD: db44f15dc8868616ca39074a8d0fb603ca080dc1
 
 ## Current foundation
 
-- React 18, TypeScript 5, Vite 4.
+- React 18, TypeScript 5, Vite 6 (package manifest declares `vite: ^6.4.4`).
 - Lightweight Charts 5 is installed.
 - Existing candlestick chart currently uses hard-coded sample OHLC values from January 2024.
 - Existing chart interaction includes zoom/scroll, pinch scaling, drag scrolling, and crosshair configuration. Interaction options have focused unit coverage.
 - A timeframe type and selector exist for second, minute, hour, day, week, and month intervals.
 - An OHLCV aggregation utility and Vitest unit tests exist.
-- GitHub Actions runs frontend unit tests, a frontend production build, backend tests, and a backend container-image build. Run [`42053572558`](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42053572558) passed all six substantive steps on exact branch HEAD `8ae99f5c5a11cdfb8b5d52acc1455a47259f194b` (2026-11-05).
+- GitHub Actions currently runs `npm ci`, frontend dependency audit, frontend unit tests/build, frontend bundle-secret tests/scanning, backend dependency install/tests/audit, backend container build, Redis-backed container smoke test, Trivy HIGH/CRITICAL scan, and vulnerability-report export/upload. Run [`42053572558`](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42053572558) is an older historical CI run on exact branch HEAD `8ae99f5c5a11cdfb8b5d52acc1455a47259f194b` (2026-11-05), not the current workflow baseline.
 
 ## Verified limitations
 
@@ -45,7 +45,7 @@ Latest audited working-branch HEAD: db44f15dc8868616ca39074a8d0fb603ca080dc1
 - Data freshness requirement: clearly distinguish source-event time, receive time, and display time. Do not label sample, delayed, or unsynchronized data as live/real-time. End-to-end freshness depends on provider, network, backend, and device.
 - Watchlist contains a read-only offline ES/NQ/GC catalog fixture. Settings exposes the grid visibility preference and reset behavior; broader account, chart-layout, and indicator settings are not implemented.
 - Drawing tools, indicator tier navigation, Volume Profile, Footprint, Heatmap, Liquidation Maps, chart-layout/settings persistence, and Android packaging are not implemented.
-- No root `package-lock.json` was present in the audited repository tree; CI currently uses `npm install`. A lockfile/clean-install migration remains unimplemented and must be verified before switching to `npm ci`.
+- Root `package-lock.json` is present at the audited branch HEAD with `lockfileVersion: 3`; `.github/workflows/ci.yml` uses `npm ci`. The lockfile/clean-install migration is therefore implemented at repository/CI level. React DOM lifecycle coverage remains a separate gap: current dependencies do not include jsdom, happy-dom, or React Testing Library, and no DOM-mount lifecycle tests are claimed.
 
 ## Phase 2 — Market Data Foundation
 
