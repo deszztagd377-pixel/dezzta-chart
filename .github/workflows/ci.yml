@@ -114,6 +114,13 @@ jobs:
           wait_for_health() {
             ready=0
             for attempt in $(seq 1 30); do
+              container_state=$(docker inspect --format '{{.State.Status}}' "$container_name")
+              if [ "$container_state" != "running" ]; then
+                echo "Backend container exited before becoming healthy (state=$container_state)."
+                docker inspect --format 'exit_code={{.State.ExitCode}} error={{.State.Error}} finished_at={{.State.FinishedAt}}' "$container_name"
+                docker logs --tail 200 "$container_name" || true
+                exit 1
+              fi
               if curl --silent --show-error --fail "$base_url/health" >/tmp/dezzta-health.json; then
                 ready=1
                 break
@@ -121,7 +128,9 @@ jobs:
               sleep 1
             done
             if [ "$ready" -ne 1 ]; then
-              docker logs "$container_name"
+              echo "Backend container remained running but /health did not become ready."
+              docker inspect --format 'state={{.State.Status}} exit_code={{.State.ExitCode}} error={{.State.Error}}' "$container_name"
+              docker logs --tail 200 "$container_name" || true
               exit 1
             fi
             grep -Fq '"status":"ok"' /tmp/dezzta-health.json
