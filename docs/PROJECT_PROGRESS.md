@@ -944,3 +944,26 @@ Design the application-level calendar release source contract (trusted manifest/
 - Root cause: the existing TLS Redis negative test omitted the newly mandatory Firebase project identifier. It therefore failed earlier at the Firebase guard and never reached the Redis TLS assertion.
 - Corrective change: the TLS-specific test now supplies a valid non-secret Firebase project ID, isolating the intended insecure-Redis condition. The dedicated missing-Firebase test continues to verify the new production requirement.
 - No production validation was weakened; only the test fixture was corrected. Exact-HEAD CI must rerun before this correction is accepted.
+
+## 2026-11-08 — Firebase Admin adapter verification tests
+
+### Five-work-package cycle
+1. Revalidated the active branch and exact HEAD before editing; the working branch was `phase-2/market-data-foundation` at `dc75cebe736d80ccb4a8ef2262b1ef4c43ca9093`. The `main` ref remained unchanged at `e3841681bc69b73619058deaf939df82ae5116a1`.
+2. Confirmed both workflows on the exact baseline HEAD had completed successfully: Automated Tests [#42434289775](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42434289775) and CodeQL [#42434289748](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42434289748).
+3. Audited `FirebaseIdentityVerifier` and found its Admin SDK adapter boundary had no direct tests for named-app reuse, initialization arguments, initialization failure normalization, or missing SDK behavior. Existing tests primarily exercised the injected verification callable.
+4. Added focused tests with a fake Firebase Admin module to verify: the named project app is reused; a missing app is initialized with the configured project ID; every Admin verification call receives `check_revoked=True`; initialization exceptions are sanitized; and missing Admin SDK imports fail closed.
+5. Recorded the new test scope and its production boundary here. These are deterministic adapter tests, **not** real signed-token tests and do not establish that production credentials, token expiry, revocation, or wrong-project behavior have been verified against Firebase.
+
+### Files changed
+- `backend/tests/test_identity.py`: Admin SDK adapter lifecycle and fail-closed regression tests.
+- `docs/PROJECT_PROGRESS.md`: exact baseline, test scope, and remaining production validation boundary.
+
+### Verification boundary and next actions
+- The new tests have not yet run locally or in CI at the time of this record; accept them only after the exact-HEAD Automated Tests and CodeQL workflows complete successfully.
+- Next, review whether the existing backend identity tests cover token claim mismatches, token expiry/revocation normalization, and route-level rejection consistently. Then strengthen frontend auth lifecycle tests without introducing a new test framework solely for superficial coverage.
+- Production Firebase Admin credentials and real signed-token lifecycle remain an external deployment gate. No credentials or paid resources were created.
+
+### Progress accounting
+- Overall remains **20.90%**; Stage 1 remains **75% provisional**.
+- `Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.`
+- Adding tests and documentation alone does not earn progress credit; the tests must pass and the milestone ledger must be reconciled before any percentage change.

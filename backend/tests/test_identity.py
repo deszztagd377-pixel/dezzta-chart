@@ -82,3 +82,103 @@ def test_missing_project_configuration_fails_closed():
     )
     with pytest.raises(IdentityProviderUnavailable):
         verifier.verify("token")
+
+def _install_fake_firebase_admin(monkeypatch, *, get_app, initialize_app, verify_id_token):
+    import sys
+    from types import ModuleType
+
+    admin = ModuleType("firebase_admin")
+    auth = ModuleType("firebase_admin.auth")
+    admin.get_app = get_app
+    admin.initialize_app = initialize_app
+    auth.verify_id_token = verify_id_token
+    admin.auth = auth
+    monkeypatch.setitem(sys.modules, "firebase_admin", admin)
+    monkeypatch.setitem(sys.modules, "firebase_admin.auth", auth)
+
+
+def test_admin_sdk_reuses_named_project_app_and_enforces_revocation_check(monkeypatch):
+    app = object()
+    calls = []
+
+    def verify_id_token(token, *, app, check_revoked):
+        calls.append((token, app, check_revoked))
+        return CLAIMS
+
+    _install_fake_firebase_admin(
+        monkeypatch,
+        get_app=lambda name: app if name == PROJECT else pytest.fail("unexpected project"),
+        initialize_app=lambda **kwargs: pytest.fail("existing app should be reused"),
+        verify_id_token=verify_id_token,
+    )
+
+    verifier = FirebaseIdentityVerifier(PROJECT)
+    assert verifier.verify("first-token").subject == "firebase-user-123"
+    assert verifier.verify("second-token").subject == "firebase-user-123"
+    assert calls == [
+        ("first-token", app, True),
+        ("second-token", app, True),
+    ]
+
+
+def test_admin_sdk_initializes_missing_named_project_app(monkeypatch):
+    app = object()
+    initialized = []
+    verified = []
+
+    def get_app(name):
+        assert name == PROJECT
+        raise ValueError("app does not exist")
+
+    def initialize_app(*, options, name):
+        initialized.append((options, name))
+        return app
+
+    def verify_id_token(token, *, app, check_revoked):
+        verified.append((token, app, check_revoked))
+        return CLAIMS
+
+    _install_fake_firebase_admin(
+        monkeypatch,
+        get_app=get_app,
+        initialize_app=initialize_app,
+        verify_id_token=verify_id_token,
+    )
+
+    principal = FirebaseIdentityVerifier(PROJECT).verify("valid-token")
+    assert principal.subject == "firebase-user-123"
+    assert initialized == [({"projectId": PROJECT}, PROJECT)]
+    assert verified == [("valid-token", app, True)]
+
+
+def test_admin_sdk_initialization_failure_is_normalized(monkeypatch):
+    def get_app(name):
+        raise ValueError("missing app")
+
+    def initialize_app(**kwargs):
+        raise RuntimeError("private key material must not escape")
+
+    _install_fake_firebase_admin(
+        monkeypatch,
+        get_app=get_app,
+        initialize_app=initialize_app,
+        verify_id_token=lambda *args, **kwargs: pytest.fail("verification must not run"),
+    )
+
+    with pytest.raises(IdentityProviderUnavailable) as error:
+        FirebaseIdentityVerifier(PROJECT).verify("token")
+
+    assert str(error.value) == "Firebase identity provider could not initialize."
+    assert "private key" not in str(error.value)
+
+
+def test_admin_sdk_import_failure_is_reported_as_provider_unavailable(monkeypatch):
+    import sys
+
+    monkeypatch.setitem(sys.modules, "firebase_admin", None)
+    monkeypatch.setitem(sys.modules, "firebase_admin.auth", None)
+
+    with pytest.raises(IdentityProviderUnavailable) as error:
+        FirebaseIdentityVerifier(PROJECT).verify("token")
+
+    assert str(error.value) == "Firebase Admin SDK is unavailable."
