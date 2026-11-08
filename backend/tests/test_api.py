@@ -1189,3 +1189,42 @@ def test_shared_guard_startup_failure_prevents_serving() -> None:
         with TestClient(create_app(make_settings(),shared_guard=guard)):
             pass
     assert guard.closed is True
+
+
+
+def test_websocket_rejects_identity_drift_during_idle_subscription(monkeypatch) -> None:
+    """A still-valid token must not keep a socket bound to a changed principal."""
+    monkeypatch.setattr("app.main.WEBSOCKET_AUTHORIZATION_RECHECK_SECONDS", 0.02)
+    application = _app_with_bars()
+    client = TestClient(application)
+
+    with client.websocket_connect("/ws/market-data") as websocket:
+        websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+        assert websocket.receive_json()["type"] == "market_data.status"
+        websocket.send_json({
+            "type": "market_data.subscribe",
+            "version": 1,
+            "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+            "series": {
+                "dataset": "GLBX.MDP3",
+                "publisherId": 1,
+                "instrumentId": 101,
+                "rawSymbol": "ESZ6",
+                "timeframe": "1s",
+            },
+        })
+        assert websocket.receive_json()["type"] == "market_data.ohlcv.snapshot"
+
+        def changed_identity(_token):
+            return VerifiedPrincipal(
+                subject="different-firebase-user",
+                issuer="https://securetoken.google.com/test-project",
+                audience="test-project",
+                auth_time=1_798_000_000,
+            )
+
+        application.state.identity_verifier.verify = changed_identity
+        with pytest.raises(WebSocketDisconnect) as disconnected:
+            websocket.receive_json()
+
+    assert disconnected.value.code == 4401
