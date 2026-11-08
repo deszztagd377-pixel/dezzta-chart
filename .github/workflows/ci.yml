@@ -163,7 +163,9 @@ jobs:
               docker exec "$container_name" sh -c 'id; ps; (ss -lntp || netstat -lntp || true)' || true
               return 1
             fi
-            grep -Fq '"status":"ok"' /tmp/dezzta-health.json
+            echo "Backend health response:"
+            cat /tmp/dezzta-health.json
+            python -c 'import json; payload=json.load(open("/tmp/dezzta-health.json", encoding="utf-8")); assert payload.get("status") == "ok", f"Unexpected backend health payload: {payload!r}"'
           }
           wait_for_redis
           start_container
