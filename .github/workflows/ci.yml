@@ -172,14 +172,33 @@ jobs:
           start_container
           wait_for_health
 
+          echo "Inspecting backend runtime identity and persistent-volume ownership."
+          docker exec "$container_name" sh -c 'id; printf "PID 1 identity: "; awk "/^Uid:|^Gid:/{print}" /proc/1/status'
+          docker exec "$container_name" sh -c 'ls -lan /data; stat -c "volume_owner=%u:%g mode=%a path=%n" /data'
           app_uid=$(docker exec "$container_name" sh -c 'awk "/^Uid:/{print $2}" /proc/1/status')
           app_gid=$(docker exec "$container_name" sh -c 'awk "/^Gid:/{print $2}" /proc/1/status')
           volume_owner=$(docker exec "$container_name" stat -c '%u:%g' /data)
-          database_owner=$(docker exec "$container_name" stat -c '%u:%g' /data/dezzta-chart-smoke.sqlite3)
-          test "$app_uid" = "10001"
-          test "$app_gid" = "10001"
-          test "$volume_owner" = "10001:10001"
-          test "$database_owner" = "10001:10001"
+          if database_owner=$(docker exec "$container_name" stat -c '%u:%g' /data/dezzta-chart-smoke.sqlite3 2>&1); then
+            :
+          else
+            echo "Database ownership inspection failed: $database_owner"
+            docker exec "$container_name" sh -c 'ls -lan /data; find /data -maxdepth 1 -type f -print 2>/dev/null || true'
+            return 1
+          fi
+          assert_equal() {
+            expected=$1
+            actual=$2
+            label=$3
+            if [ "$actual" != "$expected" ]; then
+              echo "FAIL: $label expected '$expected' but got '$actual'."
+              return 1
+            fi
+            echo "PASS: $label=$actual"
+          }
+          assert_equal "10001" "$app_uid" "application UID"
+          assert_equal "10001" "$app_gid" "application GID"
+          assert_equal "10001:10001" "$volume_owner" "persistent volume owner"
+          assert_equal "10001:10001" "$database_owner" "SQLite database owner"
 
           first_status=$(curl --silent --show-error --output /tmp/dezzta-first.json --write-out '%{http_code}' "$base_url/v1/market-data/status")
           test "$first_status" = "200"
