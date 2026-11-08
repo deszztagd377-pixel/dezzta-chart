@@ -937,3 +937,10 @@ Design the application-level calendar release source contract (trusted manifest/
 - Historical owner-confirmed overall checkpoint remains **20.90%**; Stage 1 remains **75% provisional**.
 - This work closes a code-level configuration gap but does not complete the external identity/deployment acceptance criteria. No progress increase is claimed pending exact-HEAD CI and criterion-level reconciliation.
 - Indicator implementation state is unchanged: SMA/EMA/RSI/MACD/Bollinger calculation foundations and tests exist without visible chart integration; Footprint remains deterministic offline simulation; Heatmap and Liquidation Maps remain unverified and await owner visual references.
+
+
+### CI regression follow-up — production configuration test isolation
+- Exact-HEAD Automated Tests run [#42434126660](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42434126660) failed with **1 failed, 489 passed**; CodeQL [#42434126648](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42434126648) succeeded.
+- Root cause: the existing TLS Redis negative test omitted the newly mandatory Firebase project identifier. It therefore failed earlier at the Firebase guard and never reached the Redis TLS assertion.
+- Corrective change: the TLS-specific test now supplies a valid non-secret Firebase project ID, isolating the intended insecure-Redis condition. The dedicated missing-Firebase test continues to verify the new production requirement.
+- No production validation was weakened; only the test fixture was corrected. Exact-HEAD CI must rerun before this correction is accepted.
