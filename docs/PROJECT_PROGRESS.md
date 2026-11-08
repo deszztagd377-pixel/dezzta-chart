@@ -967,3 +967,23 @@ Design the application-level calendar release source contract (trusted manifest/
 - Overall remains **20.90%**; Stage 1 remains **75% provisional**.
 - `Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.`
 - Adding tests and documentation alone does not earn progress credit; the tests must pass and the milestone ledger must be reconciled before any percentage change.
+
+
+## 2026-11-08 — Firebase Admin adapter tests: exact-HEAD CI reconciliation
+
+- This entry supersedes the preceding note that said the new Admin SDK adapter tests were still awaiting CI. The branch remained `phase-2/market-data-foundation` at exact HEAD `6c8403464f5944b7b36b48cd33754fbb32166fbf` during this audit; the `main` ref remained `e3841681bc69b73619058deaf939df82ae5116a1` and was not modified.
+- Automated Tests [#42434723776](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42434723776) completed successfully on that exact branch and SHA. The workflow log reports **22 frontend test files / 158 frontend tests passed**, **494 backend tests passed**, frontend production build passed, frontend bundle secret scan passed, backend dependency audit passed, Docker image build passed, and the Redis-backed container health/rate-limit smoke test passed. Pytest emitted one Starlette/httpx deprecation warning. The Trivy image scan and report-upload steps completed successfully; no broad claim of zero vulnerabilities or zero security risk is made here.
+- CodeQL [#42434723800](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42434723800) completed successfully for both Python and JavaScript/TypeScript analysis jobs on the same exact SHA.
+- The Firebase Admin adapter tests are therefore CI-verified. They validate named-app reuse, configured-project initialization, revocation-check argument enforcement, sanitized initialization failure, and missing-SDK fail-closed behavior. They are still mocked adapter tests, not real Firebase-signed-token production E2E tests.
+
+### Frontend authentication lifecycle audit — five focused work packages
+1. **Repository/CI integrity:** confirmed the active branch HEAD and exact-HEAD Automated Tests + CodeQL success; confirmed `main` was unchanged.
+2. **Test harness:** inspected `package.json`, `package-lock.json`, and `vite.config.ts`. Vitest is configured through the `test` script, but no DOM renderer/test environment or React Testing Library package is installed in the lockfile.
+3. **Existing frontend test quality:** current component tests use `renderToStaticMarkup`; this verifies static markup only and does not execute effects, event handlers, or Firebase observer callbacks.
+4. **Auth implementation:** reviewed `AuthProvider.tsx`, `services/firebase.ts`, and `AuthPanel.tsx`. Firebase sign-in, registration, Google redirect, sign-out, auth-state observation, and ID-token retrieval are implemented. The auth provider lifecycle itself has no dedicated integration test file in the current source tree.
+5. **Safe next implementation boundary:** do not pretend static rendering proves sign-in lifecycle. Add a real DOM-capable test harness and lockfile-consistent dependencies in a dedicated change, then cover initial observer state, signed-out/signed-in transitions, sign-in/register failures, token refresh, sign-out, and observer cleanup. Avoid hand-editing the lockfile or claiming lifecycle coverage before those tests run.
+
+### Stage 1 acceptance boundary and progress accounting
+- CI now verifies the repository-level frontend/backend test and build pipeline plus the isolated backend container/Redis smoke path. This closes the CI-pending note for commit `6c84034` but does not validate production Firebase Admin credentials, real valid/expired/revoked/wrong-project signed tokens, managed Redis TLS, Fly Machine/Volume permissions and restart persistence, off-host backup/restore, production ingress/CORS/HTTPS, or monitoring.
+- Overall progress remains **20.90%**; Stage 1 remains **75% provisional**. No progress credit is assigned merely for CI completion or documentation reconciliation; a criterion-level weighting review and production-gate evidence are still required.
+- `Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.`
