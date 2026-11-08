@@ -1096,3 +1096,34 @@ Design the application-level calendar release source contract (trusted manifest/
 - Overall remains **20.90%**; Stage 1 remains **75% provisional**.
 - CI completion validates the current repository commit but does not by itself satisfy the outstanding browser lifecycle and production deployment acceptance criteria.
 - `Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.`
+
+
+
+## 2026-11-08 — Auth lifecycle and release-gate evidence refresh (HEAD 70fdf42)
+
+### Five-work-package audit
+1. Re-read the active branch ref: `phase-2/market-data-foundation` is at `70fdf42e9cd9e6c79eae8d3a144a68f59d0ddd72`. `main` remains at `e3841681bc69b73619058deaf939df82ae5116a1`; no main ref was changed.
+2. Verified the latest Automated Tests run `42436392709` and CodeQL run `42436392713` both target exact HEAD `70fdf42e9cd9e6c79eae8d3a144a68f59d0ddd72` and completed successfully. Vercel commit status is success.
+3. Inspected `AuthProvider.tsx`, its tests, Firebase client initialization, Vite config, and the CI workflow. Firebase client initialization checks all required public config values and rejects a mismatched default Firebase app. The observer subscription boundary preserves unsubscribe and fails closed on synchronous or asynchronous observer errors.
+4. Confirmed the frontend tests still only exercise the observer contract with mocked Firebase callbacks. There is no DOM environment in the dependency lockfile; actual provider mount/unmount, context transitions, and browser lifecycle are not yet tested. No dependency or lockfile change was attempted because a real package-manager environment to generate and verify the lockfile is not available through this repository connector.
+5. Re-audited backend identity tests and deployment boundaries. Firebase Admin verifier tests use injected callables/fake SDK modules, not signed production Firebase tokens. Fly config remains a template; no production Fly Machine/Volume, managed Redis, credentials, encrypted off-host backup, or restore drill has been provisioned.
+
+### Exact-HEAD CI evidence
+- Automated Tests: [run 42436392709](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42436392709) — completed successfully; frontend tests/build, backend tests, image build, ephemeral Redis smoke test, and Trivy scan all succeeded.
+- CodeQL: [run 42436392713](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42436392713) — JavaScript/TypeScript and Python analyses succeeded.
+- Vercel commit status: success.
+- The Redis service in CI is ephemeral; this is not evidence of production managed Redis TLS, persistence, failover, or Fly connectivity.
+- Trivy success applies to the image scanned for this commit only.
+
+### Corrections and remaining gates
+- The preceding section's run evidence referred to commit `55eadd66d619accde6577b590f5f5b21b1d38270`, not the current documentation-only HEAD. This section records the separately verified exact-HEAD runs for `70fdf42`.
+- Current AuthProvider integration gap: DOM mount/unmount and observable context lifecycle.
+- Current identity integration gap: real signed-token checks for valid, expired, revoked, and wrong-project cases in an authorized test Firebase project.
+- Current deployment gates: Fly UID/GID and volume permission/persistence checks, SQLite Online Backup API backup and restore drill, off-host encrypted backup/retention, trusted Fly proxy configuration, managed Redis network/reliability checks, deployed HTTPS/WSS smoke tests, and monitoring.
+- Branch protection currently reports `protected: false`; changing repository governance settings requires explicit owner approval.
+- No credentials, user data, or paid cloud resources were provisioned.
+
+### Progress accounting
+- Overall remains **20.90%**; Stage 1 remains **75% provisional**.
+- `Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.`
+- This audit and documentation correction do not satisfy new implementation acceptance criteria and do not justify increasing the progress score.
