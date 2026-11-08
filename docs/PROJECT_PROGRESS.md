@@ -1218,3 +1218,17 @@ Design the application-level calendar release source contract (trusted manifest/
 - Overall remains **20.90%**; Stage 1 remains **75% provisional** until exact-HEAD CI and the remaining integration/release acceptance criteria are satisfied.
 - This targeted identity-consistency hardening does not by itself close the Stage 1 identity acceptance gate.
 - `Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.`
+
+
+### Exact-HEAD CI verification — 2026-11-08
+
+The Firebase subject/UID consistency hardening from commit `0e99dc039495a90abbea1649569e75eff7b864ee` is now verified by GitHub Actions on that exact HEAD:
+
+- Workflow run [42439735705](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42439735705) completed with conclusion **success** for the push event on `phase-2/market-data-foundation`.
+- The single `Test and Build` job passed all reported steps, including frontend dependency installation/audit, frontend unit tests and production build, frontend bundle secret scanning, backend dependency installation/tests/audit, container build, Redis-backed smoke test, and Trivy image scan.
+- The combined commit status reports Vercel **success** for the same HEAD.
+- The mismatched `uid`/`sub` regression case is therefore covered by the exact-HEAD backend test run. This remains a decoded-claims validation test using the injected verifier seam, not a real signed Firebase token E2E.
+
+Remaining Stage 1 identity gates are unchanged: real Firebase signed-token E2E (valid, expired, revoked, wrong-project) and React DOM AuthProvider lifecycle coverage (mount/unmount, observer transitions/errors, token refresh, and cleanup). The existing frontend AuthProvider tests use helper-level mocks and server rendering; they do not execute browser effects.
+
+Progress accounting remains unchanged: overall **20.90%**, Stage 1 **75% provisional**. Exact-HEAD CI verifies the targeted regression but does not close the outstanding lifecycle, signed-token, and production reliability acceptance criteria. No progress credit is inferred from CI completion alone.
