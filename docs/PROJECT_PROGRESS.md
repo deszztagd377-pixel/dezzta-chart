@@ -1141,3 +1141,23 @@ Design the application-level calendar release source contract (trusted manifest/
 ### Progress accounting
 - Overall remains **20.90%**; Stage 1 remains **75% provisional**.
 - This implementation improves the authentication observer behavior, but acceptance criteria for actual browser lifecycle and production identity validation remain incomplete. Do not increase progress until the new tests pass and the broader criteria are met.
+
+
+## 2026-11-08 — AuthProvider server-rendered context contract tests
+
+### Verified repository test coverage added
+- Added React server-rendered tests for the AuthProvider context boundary using the existing `react-dom/server` dependency; no new package or lockfile mutation was required.
+- Tests cover the initial `loading` state when Firebase is configured, the explicit `unconfigured` state when Firebase configuration is absent, exposure of the expected auth action methods, and rejection of `useAuth` outside an AuthProvider.
+- These tests intentionally do **not** claim browser DOM lifecycle coverage: server rendering does not run the provider effect, mount a browser DOM, exercise Firebase observer transitions, or verify unmount cleanup.
+- The existing mocked observer tests remain responsible for the subscription callback, error forwarding, refresh callback, and unsubscribe contract.
+- Exact-HEAD CI validation for this test addition is pending until the commit's Automated Tests and CodeQL runs complete.
+
+### Remaining Stage 1 authentication gates
+1. A DOM-capable test environment and real React mount/unmount lifecycle coverage.
+2. Firebase Admin signed-token E2E for valid, expired, revoked, and wrong-project tokens against an authorized test Firebase project.
+3. Production deployment and identity-boundary validation remain separate release gates.
+
+### Progress accounting
+- Overall remains **20.90%**; Stage 1 remains **75% provisional** pending exact-HEAD test results and outstanding integration/release acceptance criteria.
+- Server-rendered context contract tests are additional unit coverage, not a substitute for DOM lifecycle or real signed-token E2E.
+- `Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.`

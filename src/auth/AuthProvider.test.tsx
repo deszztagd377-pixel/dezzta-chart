@@ -133,3 +133,59 @@ describe('subscribeToFirebaseAuth', () => {
     expect(onError).toHaveBeenCalledWith(failure);
   });
 });
+
+
+describe('AuthProvider server-rendered context contract', () => {
+  async function renderContext() {
+    // Server rendering validates the context contract without pretending to
+    // exercise browser effects, DOM mounting, or observer cleanup.
+    const React = await import('react');
+    const { renderToStaticMarkup } = await import('react-dom/server');
+    const { AuthProvider, useAuth } = await import('./AuthProvider');
+    let context: ReturnType<typeof useAuth> | null = null;
+    function Probe() {
+      context = useAuth();
+      return React.createElement('span', null, context.status);
+    }
+    const html = renderToStaticMarkup(
+      React.createElement(AuthProvider, null, React.createElement(Probe)),
+    );
+    return { context, html };
+  }
+
+  it('exposes the loading state while configured Firebase observer setup has not run', async () => {
+    firebaseMocks.isFirebaseConfigured.mockReturnValue(true);
+    const { context, html } = await renderContext();
+
+    expect(html).toContain('loading');
+    expect(context?.status).toBe('loading');
+    expect(typeof context?.signInEmail).toBe('function');
+    expect(typeof context?.registerEmail).toBe('function');
+    expect(typeof context?.signInGoogle).toBe('function');
+    expect(typeof context?.signOutUser).toBe('function');
+    expect(typeof context?.getIdToken).toBe('function');
+  });
+
+  it('exposes an explicit unconfigured state instead of a fabricated signed-out state', async () => {
+    firebaseMocks.isFirebaseConfigured.mockReturnValue(false);
+    const { context, html } = await renderContext();
+
+    expect(html).toContain('unconfigured');
+    expect(context?.status).toBe('unconfigured');
+    expect(context?.user).toBeNull();
+  });
+
+  it('rejects useAuth outside the provider boundary', async () => {
+    const React = await import('react');
+    const { renderToStaticMarkup } = await import('react-dom/server');
+    const { useAuth } = await import('./AuthProvider');
+    function Probe() {
+      useAuth();
+      return null;
+    }
+
+    expect(() => renderToStaticMarkup(React.createElement(Probe))).toThrow(
+      'useAuth must be used inside AuthProvider.',
+    );
+  });
+});
