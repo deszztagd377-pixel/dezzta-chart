@@ -43,6 +43,16 @@ jobs:
         with:
           node-version: 20
 
+      - name: Generate frontend lockfile for DOM integration tests
+        run: npm install --package-lock-only --ignore-scripts
+
+      - name: Export frontend lockfile bootstrap artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: frontend-lockfile-bootstrap
+          path: package-lock.json
+          retention-days: 1
+
       - name: Install frontend dependencies
         run: npm ci
 
