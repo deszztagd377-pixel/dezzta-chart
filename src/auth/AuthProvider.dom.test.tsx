@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 
-import React, { StrictMode } from 'react';
-import { act } from 'react-dom/test-utils';
+import React, { StrictMode, act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Auth, User } from 'firebase/auth';
@@ -141,7 +140,10 @@ describe('AuthProvider React DOM lifecycle', () => {
   });
 
   it('keeps the first StrictMode effect subscription inert after its cleanup', () => {
-    renderProvider(<StrictMode><Probe /></StrictMode>);
+    if (!root) throw new Error('React root is not initialized.');
+    act(() => {
+      root?.render(<StrictMode><AuthProvider><Probe /></AuthProvider></StrictMode>);
+    });
 
     expect(observers).toHaveLength(2);
     expect(observers[0].unsubscribe).toHaveBeenCalledOnce();
