@@ -74,11 +74,21 @@ Incremental events are ordered by `ts_event`: older updates cannot overwrite new
 
 WebSocket: `ws://127.0.0.1:8000/ws/market-data`
 
-The WebSocket client must send this first message after connecting:
+The current prototype requires the client to send a Firebase Authentication ID token
+as the first WebSocket message after connecting. The backend verifies the token
+with Firebase Admin, including revocation checks, and derives the account identity
+from the verified principal:
 
 ```json
-{"type":"auth","token":"YOUR_LOCAL_MARKET_DATA_WS_TOKEN"}
+{"type":"auth","token":"FIREBASE_ID_TOKEN"}
 ```
+
+Do not use a static shared WebSocket token or put a signing secret in the browser.
+The prototype currently verifies the Firebase ID token directly; the separately
+approved short-lived, narrowly scoped WebSocket-ticket exchange is **not yet
+implemented**. Do not treat this prototype handshake as the final production
+credential design. Production release remains blocked on the ticket lifecycle,
+real Firebase signed-token end-to-end tests, and deployment verification.
 
 After authentication, the server sends a status message. The client must then send
 one version 1 subscription with the exact verified series identity:
