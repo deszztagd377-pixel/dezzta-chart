@@ -7,22 +7,20 @@ Repository: deszztagd377-pixel/dezzta-chart
 Baseline branch: main
 Baseline main HEAD: e3841681bc69b73619058deaf939df82ae5116a1
 Working branch: phase-2/market-data-foundation
-Audit source working-branch HEAD: 2fee4bb68ba8f01a8094d631f93b88cf0501e2a7
+Audit source working-branch HEAD: f26c3d8421814796ed954b2a804eaeba5aeeca2c
 Branch ahead/behind count was not recalculated in this checkpoint. This audit update is scoped to the working branch; `main` is not a target.
 
 ## Latest verified CI checkpoint — 2026-11-09
 
-- Working-branch HEAD: `2fee4bb68ba8f01a8094d631f93b88cf0501e2a7` on `phase-2/market-data-foundation`.
-- Automated Tests [#786](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42628139501) completed with conclusion **success** on this exact HEAD. All 25/25 steps succeeded: clean frontend install and dependency audit, frontend tests/build, bundle-secret scanner tests and scan, backend dependency installation/tests/audit, container build, isolated Redis and persistent-volume smoke test, Trivy scan, vulnerability report export/upload, and cleanup.
-- CodeQL [#144](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42628139461) completed successfully on the same exact HEAD for Python and JavaScript/TypeScript.
-- GitHub combined commit status reports Vercel **success** for this exact HEAD. This is deployment-provider status evidence only; it does not replace browser/device smoke tests against the deployed frontend and backend.
-- The root `package-lock.json` is present (lockfileVersion 3), and the current workflow uses `npm ci`. Clean-install/dependency-audit automation is verified at repository/CI level; deployed Android/web smoke acceptance remains open.
-- The existing `backend/app/sqlite_backup.py` helper creates a consistent local SQLite snapshot and verifies integrity. It does not encrypt, upload, schedule, retain, or restore off-host backups; no production backup/restore drill is claimed.
-- Production configuration code requires `FIREBASE_PROJECT_ID`, a TLS `rediss://` Redis URL, and HTTPS CORS origins. This validates fail-closed configuration rules, not a real managed Redis service, its private networking/failover, or production deployment.
-- React DOM AuthProvider lifecycle coverage remains open: current frontend dependencies do not include a DOM environment and `src/auth/AuthProvider.dom.test.tsx` is absent. Existing AuthProvider tests exercise helper contracts and server rendering, not browser mounting, effect cleanup, or StrictMode replay.
+- Working-branch HEAD: `f26c3d8421814796ed954b2a804eaeba5aeeca2c` on `phase-2/market-data-foundation`.
+- Automated Tests [#787](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42628687958) completed with conclusion **success** on this exact HEAD. All 25/25 job steps succeeded, including `npm ci`, frontend dependency audit, frontend unit tests/build, bundle-secret scan, backend tests/dependency audit, container build, Redis and persistent-volume smoke test, Trivy scan/report export, and cleanup.
+- CodeQL [#145](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42628687971) completed successfully on the same exact HEAD for Python and JavaScript/TypeScript.
+- GitHub combined commit status reports Vercel **success** for this exact HEAD. This does not replace browser/device smoke tests against deployed frontend and backend endpoints.
+- Root `package-lock.json` is present (lockfileVersion 3), and CI verifies clean installation through `npm ci`.
+- React DOM AuthProvider lifecycle integration coverage remains open. Existing tests cover extracted observer lifecycle helpers and server rendering, but do not mount React in a browser DOM or verify effect cleanup/StrictMode replay.
 - Remaining Stage 1 gates: (1) React DOM lifecycle tests; (2) authorized real Firebase signed-token E2E for valid, expired, revoked, and wrong-project cases; (3) production Fly Volume permission/restart verification; (4) encrypted off-host backup, retention, and restore drill; (5) managed Redis TLS/private networking/failover verification; (6) deployed HTTPS/WSS and Android/web smoke tests; and (7) production monitoring/observability and fault/recovery verification.
-- Stage 1 remains **75% provisional** under the historical equal-weight ten-group method. Passing CI and documentation updates do not close the outstanding runtime/infrastructure acceptance gates. The method and criterion boundaries still require owner approval; this score is not an overall-project percentage.
-- This checkpoint changes audit metadata only. No application source, dependencies, credentials, runtime configuration, or infrastructure resources were changed. `main` remains untouched.
+- Stage 1 remains **75% provisional** under the historical equal-weight ten-group method. Exact-HEAD CI success does not close the remaining runtime/infrastructure acceptance gates. The method and criterion boundaries still require owner approval; this is not an overall-project percentage.
+- This checkpoint updates audit documentation only. No application source, dependencies, credentials, runtime configuration, or infrastructure resources were changed. `main` remains untouched.
 
 ## Previous verified CI checkpoint — 2026-11-09 (95c0dce)
 

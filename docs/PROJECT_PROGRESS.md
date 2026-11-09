@@ -1293,3 +1293,20 @@ Verification boundary: these tests exercise the complete extracted observer life
 - React DOM lifecycle coverage remains unimplemented at this HEAD; no `jsdom` dependency or `src/auth/AuthProvider.dom.test.tsx` file is present in the audited tree.
 - Stage 1 remains **75.00% provisional** under the historical equal-weight method. No percentage increase is awarded by this evidence reconciliation because the remaining partial acceptance groups are not fully closed and the scoring method remains unapproved. Do not describe Stage 1 as 100% complete.
 - No production source, runtime configuration, or deployment resource was changed by this reconciliation.
+
+### Exact-HEAD CI and Stage 1 reconciliation — 2026-11-09
+
+Working branch: `phase-2/market-data-foundation`  
+Audited HEAD: `f26c3d8421814796ed954b2a804eaeba5aeeca2c`
+
+- Automated Tests [#787](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42628687958) completed successfully on this exact HEAD; all 25/25 job steps passed. The run verified `npm ci`, frontend dependency audit, frontend unit tests and production build, frontend bundle secret scanning, backend dependency installation/tests/audit, container build, Redis/persistent-volume smoke test, Trivy image scan/report export, and cleanup.
+- CodeQL [#145](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42628687971) completed successfully on the same exact HEAD for Python and JavaScript/TypeScript. The combined commit status reported Vercel success.
+- The root `package-lock.json` is present (lockfileVersion 3). Earlier statements in this file that describe a missing root lockfile are historical snapshots and must not be read as the current tree state.
+- The frontend AuthProvider has a testable observer lifecycle boundary with helper-level tests for signed-in/signed-out/error transitions, callback suppression after cleanup, idempotent cleanup, initialization failure, unconfigured state, and synchronous observer-registration failure. It still lacks a React DOM mount/unmount integration test; no jsdom or equivalent DOM test dependency is present in the current package manifest.
+- Firebase Admin verification code has unit coverage for issuer/audience, UID/subject consistency and length, malformed claims, and revocation checking via an injected verifier/fake SDK. Those tests are not real signed-token E2E using credentials and project configuration owned by the authorized production administrator.
+- The SQLite backup helper creates an owner-restricted local consistent snapshot and checks SQLite integrity. It does not provide encryption, off-host transfer, retention, scheduling, or a restore drill.
+- Production settings enforce Firebase project ID, TLS Redis URL, and HTTPS CORS constraints. Automated CI container smoke tests exercise Redis and a persistent volume, but they do not establish production Fly Volume permissions/restart behavior, managed Redis private networking/failover, deployed HTTPS/WSS, Android/web behavior, or production monitoring/recovery.
+- Remaining Stage 1 acceptance gates therefore remain open: React DOM lifecycle test; real Firebase signed-token E2E; production Fly Volume verification; encrypted off-host backup/retention/restore; managed Redis TLS/private networking/failover; deployed HTTPS/WSS and Android/web smoke tests; production observability/fault recovery.
+- Stage 1 remains **75.00% provisional** under the historical equal-weight ten-group model. No score increase is assigned from CI or documentation-only work. The scoring method and boundaries remain subject to owner approval.
+- No application source, dependency manifest, lockfile, credentials, production configuration, or infrastructure was changed in this checkpoint.
+
