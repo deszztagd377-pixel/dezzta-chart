@@ -7,18 +7,22 @@ Repository: deszztagd377-pixel/dezzta-chart
 Baseline branch: main
 Baseline main HEAD: e3841681bc69b73619058deaf939df82ae5116a1
 Working branch: phase-2/market-data-foundation
-Audit source working-branch HEAD (before this documentation-only commit): edb5816472bbce776c00cd6c47b1a9391322d63a
+Audit source working-branch HEAD: 95c0dcecd3e929577043a2da3f4764081116bc4a
 Branch ahead/behind count was not recalculated in this checkpoint. This audit update is scoped to the working branch; `main` is not a target.
 
 ## Latest verified CI checkpoint — 2026-11-09
 
-- Working-branch source HEAD audited: `edb5816472bbce776c00cd6c47b1a9391322d63a` on `phase-2/market-data-foundation`.
-- Automated Tests [#783](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42451429663) completed with conclusion `success` on that exact SHA. The single `Test and Build` job reported all steps completed successfully, including frontend dependency install/audit, frontend unit tests/build, bundle-secret checks, backend dependency install/tests/audit, container build, Redis/persistent-volume smoke test, Trivy scan, vulnerability report export/upload, and cleanup.
-- CodeQL [#141](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42451429605) completed successfully on the same exact SHA. Both Python and JavaScript/TypeScript analysis jobs succeeded.
-- GitHub's combined commit status contains one reported context: `Vercel`, state `failure`, description `Deployment rate limited — retry in 24 hours.`, timestamp `2026-11-08T05:36:17Z`. This is the last status record currently returned for the audited SHA; GitHub has not supplied a newer Vercel status in this check. Because the retry window has passed according to the owner, this old status must be treated as stale evidence—not proof that Vercel is still rate-limited and not proof that a deployment succeeded. The live Vercel dashboard/deployment result remains unverified.
-- No local repository checkout or local test execution was available during this audit. CI results above are remote GitHub Actions evidence only.
-- No Stage 1 or overall progress credit is assigned for this audit/documentation update. Stage 1 remains **75% provisional** and the owner-confirmed historical overall checkpoint remains **20.90%**; neither is a fresh recalculation. Remaining Stage 1 gates are unchanged: real React DOM AuthProvider lifecycle tests; authorized Firebase signed-token E2E (valid, expired, revoked, wrong-project); real Fly Volume permission/restart verification; encrypted off-host backup, retention and restore drill; managed Redis TLS/failover/private networking; deployed HTTPS/WSS smoke tests; and monitoring/observability.
-- Scope of this checkpoint: evidence and audit metadata only. No application source, dependencies, database schema, chart behavior, or user-facing feature changed. No workflow was rerun manually, no deployment was manually triggered, and `main` was not modified.
+- Working-branch HEAD: `95c0dcecd3e929577043a2da3f4764081116bc4a` on `phase-2/market-data-foundation`.
+- Automated Tests [#785](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42627632001) completed with conclusion **success** on this exact HEAD. The complete `Test and Build` job passed frontend clean install/audit/tests/build and bundle-secret scanning; backend dependency installation, all backend tests and dependency audit; backend container build; Redis/shared-guard and persistent-volume smoke test; Trivy image scan; vulnerability-report export/upload; and cleanup.
+- CodeQL [#143](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42627631896) completed successfully on the same exact HEAD for Python and JavaScript/TypeScript.
+- GitHub combined commit status reports Vercel **success** for this exact HEAD. This is deployment-provider status evidence only; it does not replace browser/device smoke tests against the deployed frontend and backend.
+- The root `package-lock.json` is present (lockfileVersion 3), and the current workflow uses `npm ci`. The clean-install/dependency-audit automation gap is closed at repository/CI level. Deployed Android/web smoke acceptance remains open.
+- The existing `backend/app/sqlite_backup.py` helper creates a consistent local SQLite snapshot and verifies integrity. It does not encrypt, upload, schedule, retain, or restore off-host backups; no production backup/restore drill is claimed.
+- Production configuration code requires `FIREBASE_PROJECT_ID`, a TLS `rediss://` Redis URL, and HTTPS CORS origins. This validates fail-closed configuration rules, not a real managed Redis service, its private networking/failover, or production deployment.
+- React DOM AuthProvider lifecycle coverage remains open: current frontend dependencies do not include a DOM environment and `src/auth/AuthProvider.dom.test.tsx` is absent. Existing AuthProvider tests exercise helper contracts and server rendering, not browser mounting, effect cleanup, or StrictMode replay.
+- Remaining Stage 1 gates: (1) React DOM lifecycle tests; (2) authorized real Firebase signed-token E2E for valid, expired, revoked, and wrong-project cases; (3) production Fly Volume permission/restart verification; (4) encrypted off-host backup, retention, and restore drill; (5) managed Redis TLS/private networking/failover verification; (6) deployed HTTPS/WSS and Android/web smoke tests; and (7) production monitoring/observability and fault/recovery verification.
+- Stage 1 remains **75% provisional** under the historical equal-weight ten-group method. No progress credit is assigned for documentation reconciliation or passing CI alone. The method and criterion boundaries still require owner approval; the score is not an overall-project percentage.
+- No production source, credentials, runtime configuration, or infrastructure resource was changed. `main` remains untouched.
 
 ## Previous verified CI checkpoint — 2026-11-08
 
