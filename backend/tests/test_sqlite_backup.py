@@ -1,4 +1,6 @@
+import os
 import sqlite3
+import stat
 
 import pytest
 
@@ -59,6 +61,44 @@ def test_failed_backup_preserves_previous_destination_and_removes_temporary_file
     destination.write_bytes(b"previous-good-backup")
 
     with pytest.raises(sqlite3.DatabaseError):
+        create_consistent_sqlite_backup(source, destination)
+
+    assert destination.read_bytes() == b"previous-good-backup"
+    assert list(tmp_path.glob(".backup.sqlite3.*.sqlite-backup.tmp")) == []
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX permission bits are required")
+def test_backup_is_published_with_owner_only_permissions(tmp_path):
+    source = tmp_path / "live.sqlite3"
+    destination = tmp_path / "backup.sqlite3"
+    with sqlite3.connect(source) as database:
+        database.execute("CREATE TABLE sample (value INTEGER)")
+        database.execute("INSERT INTO sample VALUES (1)")
+
+    create_consistent_sqlite_backup(source, destination)
+
+    assert stat.S_IMODE(destination.stat().st_mode) == 0o600
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX permission bits are required")
+def test_backup_fails_closed_when_owner_only_permissions_cannot_be_set(
+    tmp_path, monkeypatch
+):
+    from app import sqlite_backup
+
+    source = tmp_path / "live.sqlite3"
+    destination = tmp_path / "backup.sqlite3"
+    with sqlite3.connect(source) as database:
+        database.execute("CREATE TABLE sample (value INTEGER)")
+        database.execute("INSERT INTO sample VALUES (1)")
+    destination.write_bytes(b"previous-good-backup")
+
+    def deny_chmod(*args, **kwargs):
+        raise PermissionError("permission change denied")
+
+    monkeypatch.setattr(sqlite_backup.os, "chmod", deny_chmod)
+
+    with pytest.raises(PermissionError, match="permission change denied"):
         create_consistent_sqlite_backup(source, destination)
 
     assert destination.read_bytes() == b"previous-good-backup"
