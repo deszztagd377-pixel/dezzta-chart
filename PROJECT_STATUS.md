@@ -10,9 +10,9 @@ Working branch: phase-2/market-data-foundation
 Audit source working-branch HEAD: 39389269700fd6c2842b30a8b6b96a02ad6ad594
 Branch ahead/behind count was not recalculated in this checkpoint. This audit update is scoped to the working branch; `main` is not a target.
 
-## Latest verified CI checkpoint — 2026-11-09
+## Latest verified source/CI checkpoint — 2026-11-09
 
-- Exact working-branch HEAD: `9a3a7e8efb80922c0ee67ec4dc795a43cb4ad873` on `phase-2/market-data-foundation`. The protected baseline `main` remains at `e3841681bc69b73619058deaf939df82ae5116a1`.
+- Exact source/CI baseline: `9a3a7e8efb80922c0ee67ec4dc795a43cb4ad873` on `phase-2/market-data-foundation`. Two subsequent commits on this branch contain documentation-only audit corrections; the latest workflow run validates that documentation-updated branch head. The protected baseline `main` remains at `e3841681bc69b73619058deaf939df82ae5116a1`.
 - Automated Tests [#803](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42643369939) completed successfully on this exact HEAD. The Test and Build job completed all 25 steps successfully, including frontend install/audit/tests/build, frontend bundle-secret scanner tests and production scan, backend install/tests/audit, container build, Redis/shared-guard and persistent-volume/restart smoke, Trivy HIGH/CRITICAL scan, report export/upload, and cleanup.
 - CodeQL [#161](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42643369940) completed successfully on the same exact HEAD for Python and JavaScript/TypeScript. Successful analysis does not establish that the repository has zero CodeQL alerts.
 - Vercel reported deployment success for this exact HEAD: [deployment](https://vercel.com/deszztagd377-pixel/dezzta-chart/4zgL9ZxuP2VKTHPVcWmCMxCWfyHA). This verifies the Vercel deployment status only; it does not verify the separately deployed backend, Firebase production authentication, or live market-data delivery.
