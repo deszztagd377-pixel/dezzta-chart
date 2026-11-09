@@ -7,8 +7,18 @@ Repository: deszztagd377-pixel/dezzta-chart
 Baseline branch: main
 Baseline main HEAD: e3841681bc69b73619058deaf939df82ae5116a1
 Working branch: phase-2/market-data-foundation
-Audit source working-branch HEAD: 39389269700fd6c2842b30a8b6b96a02ad6ad594
+Audit source working-branch HEAD: 436f8b374b8bf5ef1ef4b51944f0c99603acd12c
 Branch ahead/behind count was not recalculated in this checkpoint. This audit update is scoped to the working branch; `main` is not a target.
+
+## Latest exact-HEAD follow-up — 2026-11-09
+
+- Active branch HEAD verified: `436f8b374b8bf5ef1ef4b51944f0c99603acd12c`; protected `main` remains `e3841681bc69b73619058deaf939df82ae5116a1`.
+- Automated Tests [#806](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42645120887) completed successfully on the exact branch HEAD. All job steps passed, including frontend install/audit/tests/build and bundle-secret scans; backend install/tests/audit and container build; isolated Redis guard and persistent-volume/restart smoke; Trivy HIGH/CRITICAL scan; vulnerability-report export/upload; and cleanup.
+- CodeQL [#164](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42645120945) completed successfully on the same exact HEAD for Python and JavaScript/TypeScript. Successful analysis is not evidence of zero CodeQL alerts.
+- Vercel commit status for this exact HEAD is success: [deployment](https://vercel.com/deszztagd377-pixel/dezzta-chart/4Ji4ST4ftFsZB1AeiwxgpAJTYP9f). This does not validate backend, Firebase production authentication, or live provider delivery.
+- Trivy report artifact [13687016777](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42645120887/artifacts/13687016777) was exported and uploaded. The configured HIGH/CRITICAL image-scan gate passed; the report remains scoped to the CI backend image and configured OS/library scan.
+- This follow-up records verification and corrects the previously stale audit HEAD above. No application source, production infrastructure, production credentials, database schema, or `main` branch changed.
+- Stage 1 remains **75.00% provisional**. The six production acceptance gates and owner approval of scoring criteria remain open; CI, CodeQL, and Vercel success do not close them.
 
 ## Latest verified source/CI checkpoint — 2026-11-09
 
