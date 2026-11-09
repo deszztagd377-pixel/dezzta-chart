@@ -2,15 +2,25 @@
 
 > **Progress-history correction (2026-11-05):** The owner clarifies that conversational checkpoints progressed from **20.3% to 20.9%**. The older **19.60%** remains a historical formal estimate, not a later regression. **19.9% is not a verified calculation.** Do not publish a fresh overall percentage until the milestone ledger reconciles these records.
 
-Last audited: 2026-11-08
+Last audited: 2026-11-09
 Repository: deszztagd377-pixel/dezzta-chart
 Baseline branch: main
 Baseline main HEAD: e3841681bc69b73619058deaf939df82ae5116a1
 Working branch: phase-2/market-data-foundation
-Latest audited working-branch HEAD: a579d291bda6eba3dd1191ff4fc93d6c27db8865
-Branch comparison at this checkpoint: 785 commits ahead, 0 behind main. Main was not modified.
+Audit source working-branch HEAD (before this documentation-only commit): edb5816472bbce776c00cd6c47b1a9391322d63a
+Branch ahead/behind count was not recalculated in this checkpoint. This audit update is scoped to the working branch; `main` is not a target.
 
-## Latest verified CI checkpoint — 2026-11-08
+## Latest verified CI checkpoint — 2026-11-09
+
+- Working-branch source HEAD audited: `edb5816472bbce776c00cd6c47b1a9391322d63a` on `phase-2/market-data-foundation`.
+- Automated Tests [#783](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42451429663) completed with conclusion `success` on that exact SHA. The single `Test and Build` job reported all steps completed successfully, including frontend dependency install/audit, frontend unit tests/build, bundle-secret checks, backend dependency install/tests/audit, container build, Redis/persistent-volume smoke test, Trivy scan, vulnerability report export/upload, and cleanup.
+- CodeQL [#141](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42451429605) completed successfully on the same exact SHA. Both Python and JavaScript/TypeScript analysis jobs succeeded.
+- GitHub's combined commit status contains one reported context: `Vercel`, state `failure`, description `Deployment rate limited — retry in 24 hours.`, timestamp `2026-11-08T05:36:17Z`. This is the last status record currently returned for the audited SHA; GitHub has not supplied a newer Vercel status in this check. Because the retry window has passed according to the owner, this old status must be treated as stale evidence—not proof that Vercel is still rate-limited and not proof that a deployment succeeded. The live Vercel dashboard/deployment result remains unverified.
+- No local repository checkout or local test execution was available during this audit. CI results above are remote GitHub Actions evidence only.
+- No Stage 1 or overall progress credit is assigned for this audit/documentation update. Stage 1 remains **75% provisional** and the owner-confirmed historical overall checkpoint remains **20.90%**; neither is a fresh recalculation. Remaining Stage 1 gates are unchanged: real React DOM AuthProvider lifecycle tests; authorized Firebase signed-token E2E (valid, expired, revoked, wrong-project); real Fly Volume permission/restart verification; encrypted off-host backup, retention and restore drill; managed Redis TLS/failover/private networking; deployed HTTPS/WSS smoke tests; and monitoring/observability.
+- Scope of this checkpoint: evidence and audit metadata only. No application source, dependencies, database schema, chart behavior, or user-facing feature changed. No workflow was rerun manually, no deployment was manually triggered, and `main` was not modified.
+
+## Previous verified CI checkpoint — 2026-11-08
 
 - Automated Tests [#778](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42450151950) completed successfully on exact commit `a579d291bda6eba3dd1191ff4fc93d6c27db8865`. All 25 job steps succeeded: frontend dependency install/audit/tests/build, bundle secret scanning, backend dependency install/tests/audit, container build, isolated Redis smoke test, SQLite persistence/restart checks, Trivy scan, vulnerability report export/upload, and cleanup.
 - Backend pytest result: **517 passed, 1 warning in 16.09s**. The warning is recorded separately for review; the test suite did not fail.
