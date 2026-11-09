@@ -67,11 +67,10 @@ def create_consistent_sqlite_backup(
         source_db.close()
         source_db = None
 
-        try:
+        if os.name == "posix":
+            # Backups contain application data: never publish a POSIX snapshot
+            # if owner-only permissions cannot be applied.
             os.chmod(temporary, 0o600)
-        except OSError:
-            # Some platforms/filesystems do not expose POSIX permission bits.
-            pass
         os.replace(temporary, destination)
         return destination
     finally:
