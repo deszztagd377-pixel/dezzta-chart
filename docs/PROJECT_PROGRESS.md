@@ -1323,3 +1323,13 @@ Audited HEAD: `f26c3d8421814796ed954b2a804eaeba5aeeca2c`
 - Trivy artifact [13681570393](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42631149393/artifacts/13681570393) was inspected. It covers the CI image `dezzta-chart-backend:ci`, digest `sha256:d0024931974be9799d5380f63d1a8a7394db5a43b7f34ca7ba7205d61dd9dab2`, Alpine 3.24.4 and Python package targets; it contains zero HIGH/CRITICAL findings in the configured OS/library scan. This is scoped to that CI image and scan configuration, not a production security certification.
 - These changes close the React DOM lifecycle test sub-gate and remove the dependency-lockfile uncertainty. They do not close real Firebase signed-token E2E or any production deployment/backup/managed Redis/monitoring acceptance gate. Stage 1 remains **75.00% provisional** under the historical scoring method; no score increase is claimed until the remaining acceptance groups are fully closed and scoring criteria approved.
 - Application runtime behavior, production credentials, database schema, and production infrastructure were not changed.
+
+
+### Exact-HEAD validation after React DOM integration — 2026-11-09
+
+- Working branch `phase-2/market-data-foundation` exact HEAD `0aaf2c7367aabc706e9b498eee1dafb95c81c986` passed Automated Tests [#791](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42632245788), all 25/25 workflow steps, after temporary lockfile-generation/push steps were removed and CI permissions returned to read-only.
+- Frontend: `npm ci`, `npm audit --audit-level=high`, 26 test files / 197 tests, production build, bundle-secret scanner tests, and production bundle scan all passed.
+- Backend: 517 pytest tests, pip-audit, Docker image build, isolated Redis shared-guard test, persistent-volume ownership/restart/SQLite integrity smoke test, Trivy scan, report export/upload, and cleanup all passed.
+- CodeQL [#149](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42632245960) passed Python and JavaScript/TypeScript on the same exact HEAD; Vercel commit status was success.
+- Manually inspected Trivy artifact [13682051497](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42632245788/artifacts/13682051497): CI image digest `sha256:54e829d9468ceef7349a124127e5f1529e445cef36a7b125e60784468c2d0963`, Alpine 3.24.4 and Python package targets, zero HIGH/CRITICAL findings in the configured OS/library scan. Scope limitations remain as documented above.
+- Stage 1 remains **75.00% provisional**. Exact-HEAD CI and React DOM lifecycle gates are verified, but real Firebase signed-token E2E and production infrastructure acceptance remain open. No production resource or secret was modified.
