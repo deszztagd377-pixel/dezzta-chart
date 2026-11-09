@@ -4,7 +4,7 @@
 
 - The backend route `/ws/market-data` authenticates the first JSON frame with a Firebase ID token through `FirebaseIdentityVerifier`; it no longer accepts the legacy `MARKET_DATA_WS_TOKEN` setting.
 - Firebase Admin verification requests revocation checking and validates the expected project issuer/audience and required identity claims. Unit tests use an injected verifier/fake Admin SDK; a real Firebase-project signed-token E2E has **not** been completed.
-- The React root is wrapped in `AuthProvider`. An `AuthPanel` component exists, but `App.tsx` does not currently render it; therefore a complete user-facing sign-in journey is not yet integrated into the visible app.
+- The React root is wrapped in `AuthProvider` from `src/main.tsx`. `src/components/SettingsPanel.tsx` renders `AuthPanel`, and `App.tsx` renders `SettingsPanel` when the Settings tab is active. The Firebase sign-in panel is therefore available in the visible Settings screen.
 - The frontend contains an authenticated WebSocket client and stream supervisor. The chart integration obtains Firebase ID tokens, requests a fresh token on reconnect, validates snapshot/watermark and sequence continuity, and publishes accepted data through the shared market-data store. This is code-level integration, not proof of a deployed backend/provider connection.
 - The legacy static token must never be placed in `VITE_*` variables, frontend source, local storage, a public config endpoint, or an Android package.
 - CORS/Origin validation is defense in depth, not authentication. Native clients may not send an Origin header, so the backend must still require valid credentials.
@@ -49,7 +49,7 @@ The client must validate the server snapshot and its stream ID/watermark before 
 ## Remaining security and integration gates
 
 - A real Firebase project and authorized test accounts must be used to verify valid, expired, revoked, and wrong-project signed tokens end to end. Existing injected-verifier tests are not a substitute.
-- The `AuthPanel` is not mounted by `App.tsx`; integrate and test the visible sign-in/session experience before claiming an end-user authentication flow.
+- The `AuthPanel` is mounted through `SettingsPanel` and is covered by `AuthPanel.test.tsx`; `AuthProvider` observer lifecycle is covered by `AuthProvider.dom.test.tsx`. Deployed Firebase account/session behavior and real signed-token E2E remain unverified.
 - The client currently sends Firebase ID tokens directly in the initial WebSocket auth frame. A separate short-lived, narrowly scoped WebSocket ticket and signing-key lifecycle have not been implemented; decide whether this additional exchange is required by the production threat model before deployment.
 - A long-lived connection is rechecked for instrument entitlement and mapping every 60 seconds. Firebase token expiry/revocation during an established connection still requires a bounded connection-lifetime/re-authentication policy.
 - No public backend deployment, real provider feed, or end-to-end client connection against production infrastructure is verified.
@@ -68,7 +68,22 @@ Do not enable production frontend streaming until the real-token E2E, visible au
 
 ## Remaining integration gates
 
-- The frontend still has no Firebase sign-in/session UI and no WebSocket client. It must obtain a Firebase ID token through the approved app-auth flow, then send that token in the initial auth frame and include the verified canonical instrument ID in each subscription.
+- Superseded by the 2026-11-09 source audit: the Firebase sign-in/session panel is available in Settings, and the frontend WebSocket client/stream supervisor is integrated with `AuthProvider` and the shared market-data store. This is code-level integration only; deployed end-to-end behavior remains unverified.
 - Verified futures-definition ingestion must populate canonical instruments and point-in-time provider mappings before a user can be granted access to a contract. The offline ES/NQ/GC fixture is not sufficient to authorize a live subscription.
 - No production Firebase project credentials, real user session, provider feed, deployed backend, or end-to-end client connection has been validated in this change.
 - A long-lived connection is rechecked for instrument entitlement and mapping every 60 seconds. Firebase token expiry/revocation during an established connection still requires a bounded connection-lifetime/re-authentication policy before production deployment.
+
+
+## 2026-11-09 source-audit reconciliation
+
+The following corrections supersede earlier statements in this document that described the visible sign-in panel or frontend WebSocket client as absent:
+
+- `src/main.tsx` wraps the application in `AuthProvider`.
+- `src/App.tsx` renders `SettingsPanel` when the Settings tab is selected.
+- `src/components/SettingsPanel.tsx` renders `AuthPanel`; users can reach the Firebase sign-in, registration, and sign-out UI from Settings.
+- `src/components/AuthPanel.test.tsx` covers the panel's configured/unconfigured, error, and signed-in presentation states.
+- `src/auth/AuthProvider.dom.test.tsx` covers observer mount, signed-in/signed-out transitions, error handling, cleanup, StrictMode behavior, initialization failure, and unconfigured Firebase.
+- The chart's stream supervisor obtains Firebase ID tokens through `AuthProvider`, requests a fresh token on reconnect, validates snapshots and sequence continuity, and publishes accepted data through the shared market-data store. This is code-level integration, not proof of a deployed backend or live provider connection.
+- Still open: real Firebase signed-token E2E (valid, expired, revoked, wrong-project); production credential discovery and session behavior; an approved scoped WebSocket-ticket/key-management design if required by the threat model; connection lifetime/re-authentication policy; and deployed HTTPS/WSS validation.
+
+Do not treat the presence of UI components or mocked/injected unit tests as production authentication evidence. No production credentials or Firebase project settings were changed by this documentation correction.
