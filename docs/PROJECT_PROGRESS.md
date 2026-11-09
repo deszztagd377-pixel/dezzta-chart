@@ -1357,3 +1357,15 @@ Audited HEAD: `f26c3d8421814796ed954b2a804eaeba5aeeca2c`
 - Six production gates remain open: real Firebase signed-token and scoped-ticket E2E plus visible auth flow; actual Fly Volume permission/restart; encrypted off-host backup/retention/restore; managed Redis TLS/private networking/failover; deployed HTTPS/WSS and Android/web smoke; production monitoring/fault recovery.
 - No Fly production app/Machine/volume, managed Redis, DNS, billing resource, production credential, or live provider feed was created or modified. These require authorized project-owner/admin access and secret-manager handling outside chat.
 - Stage 1 remains **75.00% provisional**. No scoring change is justified by the CI run alone; production gates and scoring acceptance remain open. `main` was not changed.
+
+
+### Stage 1 exact-HEAD follow-up — CI #799 and CodeQL #157 — 2026-11-09
+
+- Exact branch HEAD: `7ce27502e1ef14ca65da79f366272778836ffe6d` on `phase-2/market-data-foundation`.
+- Corrected `backend/README.md`: the WebSocket prototype authenticates using a Firebase Authentication ID token verified by Firebase Admin; it does not yet implement the separately approved short-lived, narrowly scoped WebSocket-ticket exchange. The documentation now explicitly blocks treating the prototype as the final production credential design.
+- Automated Tests [#799](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42639532618) completed successfully on the exact HEAD. All 39 Test and Build job steps, including cleanup, completed successfully. Frontend clean install, audit, unit tests, production build and bundle-secret checks passed. Backend dependency install, 519 pytest tests, pip-audit, Docker build, Redis/persistent-volume smoke tests, Trivy scan/report export and upload passed.
+- CodeQL [#157](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42639533040) completed successfully for Python and JavaScript/TypeScript on the same exact HEAD. Vercel status was success.
+- The open-PR/open-issue search returned no open pull requests or issues at the time of this audit.
+- No runtime code, production credentials, production infrastructure, or deployment configuration changed. These CI results do not substitute for production acceptance.
+- The six production gates remain open: authorized real Firebase signed-token E2E plus visible sign-in and scoped-ticket flow; actual Fly Volume permissions/restart; encrypted off-host backup/retention/restore; managed Redis TLS/private networking/failover; deployed HTTPS/WSS and Android/web smoke; production monitoring/fault recovery.
+- Stage 1 remains **75.00% provisional**. No progress increase is justified by documentation-only changes or CI success alone. The scoring method remains subject to owner approval; `main` remains untouched.
