@@ -7,20 +7,20 @@ Repository: deszztagd377-pixel/dezzta-chart
 Baseline branch: main
 Baseline main HEAD: e3841681bc69b73619058deaf939df82ae5116a1
 Working branch: phase-2/market-data-foundation
-Audit source working-branch HEAD: f26c3d8421814796ed954b2a804eaeba5aeeca2c
+Audit source working-branch HEAD: 1826912f3e8b99ef242e19c8ac06dc5665a5f62a
 Branch ahead/behind count was not recalculated in this checkpoint. This audit update is scoped to the working branch; `main` is not a target.
 
 ## Latest verified CI checkpoint — 2026-11-09
 
-- Working-branch HEAD: `f26c3d8421814796ed954b2a804eaeba5aeeca2c` on `phase-2/market-data-foundation`.
-- Automated Tests [#787](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42628687958) completed with conclusion **success** on this exact HEAD. All 25/25 job steps succeeded, including `npm ci`, frontend dependency audit, frontend unit tests/build, bundle-secret scan, backend tests/dependency audit, container build, Redis and persistent-volume smoke test, Trivy scan/report export, and cleanup.
-- CodeQL [#145](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42628687971) completed successfully on the same exact HEAD for Python and JavaScript/TypeScript.
-- GitHub combined commit status reports Vercel **success** for this exact HEAD. This does not replace browser/device smoke tests against deployed frontend and backend endpoints.
-- Root `package-lock.json` is present (lockfileVersion 3), and CI verifies clean installation through `npm ci`.
-- React DOM AuthProvider lifecycle integration coverage remains open. Existing tests cover extracted observer lifecycle helpers and server rendering, but do not mount React in a browser DOM or verify effect cleanup/StrictMode replay.
-- Remaining Stage 1 gates: (1) React DOM lifecycle tests; (2) authorized real Firebase signed-token E2E for valid, expired, revoked, and wrong-project cases; (3) production Fly Volume permission/restart verification; (4) encrypted off-host backup, retention, and restore drill; (5) managed Redis TLS/private networking/failover verification; (6) deployed HTTPS/WSS and Android/web smoke tests; and (7) production monitoring/observability and fault/recovery verification.
-- Stage 1 remains **75% provisional** under the historical equal-weight ten-group method. Exact-HEAD CI success does not close the remaining runtime/infrastructure acceptance gates. The method and criterion boundaries still require owner approval; this is not an overall-project percentage.
-- This checkpoint updates audit documentation only. No application source, dependencies, credentials, runtime configuration, or infrastructure resources were changed. `main` remains untouched.
+- Audited working-branch source/lockfile HEAD: `1826912f3e8b99ef242e19c8ac06dc5665a5f62a` on `phase-2/market-data-foundation`. The preceding source commit was `55b7d4f8e86836500af0846ca7d89ab1f40cc3b8`; the branch follow-up commit adds the CI-generated jsdom lockfile only.
+- Automated Tests [#790](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42631149393) completed successfully on source commit `55b7d4f8e86836500af0846ca7d89ab1f40cc3b8`. The run generated the jsdom lockfile before `npm ci`, then committed the exact generated lockfile to the branch as `1826912f3e8b99ef242e19c8ac06dc5665a5f62a`. Frontend: 26 test files / 197 tests passed, including seven new React DOM AuthProvider lifecycle tests; npm audit, production build, and bundle-secret scan passed. Backend: 517 tests and dependency audit passed; Docker build, isolated Redis and persistent-volume smoke test, Trivy scan/report export/upload passed.
+- CodeQL [#148](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42631149482) completed successfully for Python and JavaScript/TypeScript on the same source commit. Vercel status was success for that source commit.
+- Trivy report artifact [13681570393](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42631149393/artifacts/13681570393) was manually inspected. It covers CI image digest `sha256:d0024931974be9799d5380f63d1a8a7394db5a43b7f34ca7ba7205d61dd9dab2`, Alpine 3.24.4, and Python package targets; zero HIGH/CRITICAL findings were reported for the configured OS/library scan. This is not a production certification or a full all-severity/misconfiguration audit.
+- React DOM lifecycle test coverage is now implemented and passed in CI. The initial #789 run had one harness failure because StrictMode wrapped only the child probe; #790 verifies the corrected arrangement where StrictMode wraps AuthProvider itself. The deprecated test-utils `act` import was replaced by `React.act`.
+- The root `package-lock.json` now includes `jsdom@26.1.0`. The temporary CI lockfile-bootstrap/push steps have been removed in this checkpoint commit; the workflow returns to read-only repository permissions and standard `npm ci`.
+- Remaining Stage 1 gates: authorized real Firebase signed-token E2E (valid, expired, revoked, wrong-project); production Fly Volume permissions/restart; encrypted off-host backup, retention and restore drill; managed Redis TLS/private networking/failover; deployed HTTPS/WSS and Android/web smoke; production monitoring/observability and fault/recovery verification.
+- Stage 1 remains **75.00% provisional** under the historical equal-weight ten-group method. React DOM coverage and dependency-lockfile uncertainty are resolved, but the Firebase/authentication and production reliability acceptance groups remain partial. Scoring criteria still require owner approval; this is not an overall-project percentage.
+- No production credentials, runtime configuration, application runtime behavior, database schema, or production infrastructure were changed. `main` remains untouched.
 
 ## Previous verified CI checkpoint — 2026-11-09 (95c0dce)
 
