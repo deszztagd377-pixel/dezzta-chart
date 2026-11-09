@@ -1333,3 +1333,15 @@ Audited HEAD: `f26c3d8421814796ed954b2a804eaeba5aeeca2c`
 - CodeQL [#149](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42632245960) passed Python and JavaScript/TypeScript on the same exact HEAD; Vercel commit status was success.
 - Manually inspected Trivy artifact [13682051497](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42632245788/artifacts/13682051497): CI image digest `sha256:54e829d9468ceef7349a124127e5f1529e445cef36a7b125e60784468c2d0963`, Alpine 3.24.4 and Python package targets, zero HIGH/CRITICAL findings in the configured OS/library scan. Scope limitations remain as documented above.
 - Stage 1 remains **75.00% provisional**. Exact-HEAD CI and React DOM lifecycle gates are verified, but real Firebase signed-token E2E and production infrastructure acceptance remain open. No production resource or secret was modified.
+
+
+### Stage 1 exact-HEAD validation and backup hardening — 2026-11-09
+
+- Exact source HEAD validated: `7b6fa39ab0862e8ed8e436d95f64ff2207a78456` on `phase-2/market-data-foundation`.
+- Hardened local SQLite backup publication: POSIX permission enforcement is now fail-closed when owner-only mode `0600` cannot be applied. Added regression tests for the mode and for preserving the previous destination on permission failure.
+- Automated Tests [#794](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42636775435) passed on exact source HEAD. Frontend: 26 files / 197 tests. Backend: 519 tests. npm audit, pip-audit, production build, secret scanning, Docker build, isolated Redis and persistent-volume smoke tests, SQLite integrity/restart checks, Trivy scan, report export and upload all passed.
+- Both new backup regression tests passed. CodeQL [#152](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42636775603) passed Python and JavaScript/TypeScript on the same source HEAD; Vercel status was success.
+- Manually inspected Trivy artifact [13683362475](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42636775435/artifacts/13683362475). Alpine 3.24.4 OS and Python package targets each reported zero vulnerabilities in the configured scan. Scope is limited to the CI image and configured scanners.
+- The React DOM AuthProvider integration gate is now closed by the seven committed DOM tests and exact-HEAD CI evidence. Do not carry forward older entries that say those tests are missing.
+- Remaining Stage 1 production gates: authorized real Firebase signed-token E2E; actual Fly Volume permission/restart; encrypted off-host backup, retention and restore drill; managed Redis TLS/private networking/failover; deployed HTTPS/WSS and Android/web smoke; production monitoring/fault recovery.
+- Stage 1 remains **75.00% provisional** under the historical equal-weight ten-group method. No percentage increase is assigned because the remaining production acceptance gates remain open and the scoring method still requires owner approval. No production resources or secrets were modified.
