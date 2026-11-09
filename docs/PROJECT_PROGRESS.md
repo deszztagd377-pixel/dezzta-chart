@@ -1283,3 +1283,13 @@ Verification boundary: these tests exercise the complete extracted observer life
 - This confirms the repository's current automated CI and deployment status at this exact commit. It does not establish React DOM lifecycle coverage, real Firebase signed-token E2E, or production Fly Volume/backup/restore/Redis failover and deployed HTTPS/WSS acceptance.
 - No source code or dependencies changed in this verification. Overall progress remains **20.90%** and Stage 1 remains **75% provisional**; CI success alone does not close the remaining Stage 1 integration and production reliability gates.
 - `Perubahan progres: 0,00% — belum ada acceptance criteria baru yang terverifikasi.`
+
+
+### Stage 1 evidence reconciliation — 2026-11-09
+
+- The current working-branch tree at HEAD `d1e4a37169bf5c4f129db565bbf92a1a5eb0b72c` contains a root `package-lock.json` (lockfileVersion 3). The earlier Stage 1 audit text stating that no root lockfile exists is historical and must not be read as the current repository state.
+- The exact-HEAD GitHub Actions workflow run [#784](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42618501125) succeeded at `d1e4a37169bf5c4f129db565bbf92a1a5eb0b72c`. Its job steps confirm `npm ci`, `npm audit --audit-level=high`, frontend tests, frontend production build, frontend bundle secret scanning, backend tests, backend dependency audit, container build, Redis/persistent-volume smoke test, and Trivy container scanning all completed successfully.
+- This exact-HEAD CI evidence closes the automated clean-install/dependency-audit/CI portion of the CI reproducibility criterion. It does not close deployed Android/web smoke acceptance, Firebase signed-token E2E, Fly Volume production permissions/restart, off-host backup/restore drill, managed Redis TLS/failover/private networking, or production HTTPS/WSS and monitoring verification.
+- React DOM lifecycle coverage remains unimplemented at this HEAD; no `jsdom` dependency or `src/auth/AuthProvider.dom.test.tsx` file is present in the audited tree.
+- Stage 1 remains **75.00% provisional** under the historical equal-weight method. No percentage increase is awarded by this evidence reconciliation because the remaining partial acceptance groups are not fully closed and the scoring method remains unapproved. Do not describe Stage 1 as 100% complete.
+- No production source, runtime configuration, or deployment resource was changed by this reconciliation.
