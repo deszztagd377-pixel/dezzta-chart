@@ -68,7 +68,7 @@ This matrix separates repository implementation from evidence that must come fro
 37. **Implemented / test present** — the market-data status endpoint exposes bounded application-level operational state; it is not external monitoring.
 38. **External verification required** — configure external metrics/log collection, retention, dashboards, and access controls.
 39. **External verification required** — configure alert routing and demonstrate delivery to the responsible operator; document incident ownership, escalation, and recovery steps.
-40. **Approval / design required** — review durable WebSocket event replay/outbox, reconnect semantics, sustained write-rate and multi-process contention benchmarks, and any short-lived scoped WebSocket-ticket design before production sign-off. Do not add ticket exchange without an approved threat model and scoped design.
+40. **Owner-approved design objectives; scoped design review still required before implementation** — the owner approved the goals for durable WebSocket event replay/outbox, reconnect semantics, sustained write-rate and multi-process contention benchmarks, and evaluation of a short-lived scoped WebSocket-ticket design. The detailed proposal is in [WEBSOCKET_RELIABILITY_DESIGN.md](WEBSOCKET_RELIABILITY_DESIGN.md). Review the cursor model, retention, benchmark plan, and ticket threat model before implementation. Do not add ticket exchange until its threat model and scoped design are explicitly reviewed.
 
 ## Evidence required before Stage 1 can be marked 100%
 
@@ -76,7 +76,7 @@ This matrix separates repository implementation from evidence that must come fro
 - A successful production-like Firebase + Redis + HTTPS/WSS integration run.
 - A documented persistent-volume restart check and encrypted off-site backup restore drill.
 - Evidence of monitoring and alert delivery, plus an approved incident/recovery procedure.
-- An owner-reviewed decision for the remaining replay/benchmark/ticket-exchange scope.
+- Owner review of the scoped replay/benchmark/ticket blueprint and security threat model before implementation.
 
 **Current disposition:** Stage 1 is not production-accepted. The branch contains substantial implementation and regression coverage, but external acceptance evidence listed above is still outstanding. A green frontend deployment check alone does not satisfy these gates.
 
@@ -101,3 +101,16 @@ The CI workflow succeeding does not change the external acceptance status above.
 - CodeQL Security Analysis: [run 42804110246](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42804110246) — **success** for both JavaScript/TypeScript and Python analysis jobs.
 - The latest code change is documentation-only: it aligns the deployment guide's production startup example and hosting configuration with the already-required `FIREBASE_PROJECT_ID` setting. No runtime code was changed by this commit.
 - These green workflows provide repository CI and static-analysis evidence for this exact commit. They do not satisfy the external deployment, managed Redis/Firebase integration, backup encryption/restore, production WSS, monitoring/alerting, or owner-approval gates listed above. Stage 1 therefore remains **not production-accepted**.
+
+
+## Latest verified checkpoint — 2026-11-10 (commit 93d144c)
+
+- Release-candidate branch: `phase-2/market-data-foundation`
+- Exact tested commit: `93d144cc837be96ccb27a7bbb89d97be1b6035a3`
+- Automated Tests & Build: [run 42805150877](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42805150877) — **success**.
+- Verified steps: frontend dependency install/audit, frontend unit tests/build, frontend bundle secret-scanner test and production-bundle credential scan, backend dependency install/pytest/audit, Docker image build, Redis + persistent-volume smoke test, Trivy image scan, vulnerability report export/upload.
+- CodeQL Security Analysis: [run 42805150519](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42805150519) — **success** for JavaScript/TypeScript and Python.
+- The owner approved the four design objectives on 2026-11-10. A scoped technical blueprint has been added in `docs/WEBSOCKET_RELIABILITY_DESIGN.md`; implementation remains gated on review of the detailed cursor/retention choices and ticket threat model.
+- CI and CodeQL are repository evidence only. They do not prove production Firebase/managed Redis integration, provider entitlement/real-time market-data quality, production volume provisioning, encrypted off-site backup/restore, deployed HTTPS/WSS, monitoring/alert delivery, or market-data provider cost/availability.
+- The design blueprint explicitly keeps live and historical provider ingestion disabled by default. No provider credentials, paid services, runtime behavior, or authentication flow were changed in this checkpoint.
+- Stage 1 remains **not production-accepted** until all external gates and the scoped design review have reproducible evidence.
