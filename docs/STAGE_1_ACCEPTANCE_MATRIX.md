@@ -284,3 +284,10 @@ The following ten criteria are audited individually. ZERO MONEY is binding, so n
 - The owner must not buy hardware, hosting, domains, storage, or subscriptions to close these gates. If existing resources are insufficient, the affected production capability remains deferred.
 - The ten gates remain open. No percentage or checklist count is increased by this remediation register.
 
+
+
+## Zero-cost disposition for all ten external gates — 2026-11-10
+
+The owner-mandated ZERO MONEY policy is binding across Stage 1 and all later stages. The gate-by-gate resolution plan is documented in [STAGE_1_ZERO_COST_GATE_PLAN.md](STAGE_1_ZERO_COST_GATE_PLAN.md). It specifies no-billing candidate approaches, required evidence, and explicit defer conditions for criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, and 39.
+
+This plan is not production evidence and does not close any external criterion. No paid provider, hosting, managed Redis, Firebase billing upgrade, paid backup/KMS, paid monitoring/alerting, domain, trial, or paid runner is authorized. If an existing owner-controlled environment cannot meet a gate safely at zero incremental cost, keep that gate open/constrained rather than weakening controls or creating a payment obligation.
