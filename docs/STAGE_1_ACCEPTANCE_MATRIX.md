@@ -143,3 +143,18 @@ The CI workflow succeeding does not change the external acceptance status above.
 - This CI/CodeQL evidence does not satisfy real production Firebase/managed Redis integration, provisioned production volume, encrypted off-host backup/restore, deployed HTTPS/WSS, external monitoring/alert delivery, or market-data licensing/provider coverage.
 
 **Checklist remains 30/40 with 10 external production gates outstanding.** The durable cursor bridge is a partial implementation increment and does not close the full reconnect/replay acceptance requirement. Stage 1 remains **not production-accepted**.
+
+
+## Latest verified implementation checkpoint — durable WebSocket replay (2026-11-10)
+
+- Branch: `phase-2/market-data-foundation`
+- Exact code commit tested: `38174c9c4e6280669649cb4677426809c37d9cf5`
+- Automated Tests & Build: [run 42812016639](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42812016639) — **success**.
+- CodeQL Security Analysis: [run 42812016650](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42812016650) — **success** for JavaScript/TypeScript and Python.
+- Verified: frontend dependency audit/unit tests/build/secret scans; backend pytest/dependency audit; Docker image build; Redis + persistent-volume smoke test; Trivy image scan; vulnerability report export/upload.
+- Implementation now accepts an optional decimal-string reconnect cursor, authorizes the exact series before replay, performs bounded exact-series replay, and hands off to live updates with a new contiguous stream sequence. Expired/ahead cursors, replay storage errors, and excessive backlog explicitly fall back to a fresh snapshot.
+- Frontend stream client and supervisor now preserve the last accepted durable cursor across transient socket reconnects, apply replay events through the existing validated update path, and retain the current chart while reconnecting. Cursor values remain strings to avoid JavaScript integer precision loss.
+- Added backend and frontend regression coverage for replay ordering, exact series identity, cursor-ahead resnapshot, cursor precision, replay/live transition, and supervisor reconnect.
+- This remains repository evidence, not production browser/Android WSS proof. Sustained throughput/reconnect benchmarks and real production provider latency/gap evidence remain outstanding.
+
+**Checklist accounting remains 30/40, with 10 external production verification gates outstanding.** No external gate is marked complete by source-code changes or CI alone. Stage 1 remains **not production-accepted**.
