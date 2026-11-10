@@ -1,3 +1,5 @@
+> **SUPERSEDED / DO NOT EXECUTE (owner decision 2026-11-10):** The project now has a mandatory ZERO MONEY policy. Fly.io Machines, Volumes, and managed Redis must not be provisioned or deployed under the current decision. This file is retained as historical technical research only. Do not attach a payment method, enable billing, start a trial, or create resources. See [ZERO_COST_POLICY.md](ZERO_COST_POLICY.md). Any earlier selection of Fly.io is superseded where it conflicts with zero spend.
+
 # Fly.io backend deployment plan and validation
 
 ## Decision and current disposition
