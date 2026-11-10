@@ -619,13 +619,13 @@ def test_websocket_replays_exact_series_from_durable_cursor() -> None:
         replayed = [websocket.receive_json() for _ in range(started["count"])]
         assert all(event["type"] == "market_data.ohlcv.update" for event in replayed)
         assert all(event["replayed"] is True for event in replayed)
-        assert [event["cursor"] for event in replayed] == sorted(
-            event["cursor"] for event in replayed
+        assert [int(event["cursor"]) for event in replayed] == sorted(
+            int(event["cursor"]) for event in replayed
         )
         assert all(event["series"]["rawSymbol"] == "ESZ6" for event in replayed)
         complete = websocket.receive_json()
         assert complete["type"] == "market_data.ohlcv.replay_complete"
-        assert complete["cursor"] == expected_high_water
+        assert int(complete["cursor"]) == expected_high_water
 
 
 def test_websocket_replay_cursor_ahead_falls_back_to_fresh_snapshot() -> None:
