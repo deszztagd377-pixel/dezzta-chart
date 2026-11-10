@@ -182,7 +182,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
 
       if (value.type === 'market_data.ohlcv.replay_started' && state === 'authenticated') {
         if (
-          !isNonEmptyString(value.streamId) ||
+          (typeof value.streamId !== 'string' || value.streamId.trim().length === 0) ||
           !Number.isSafeInteger(value.count) ||
           (value.count as number) < 0 ||
           typeof value.throughCursor !== 'string' ||
