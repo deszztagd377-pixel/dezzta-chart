@@ -61,6 +61,13 @@ describe('parseOhlcvStreamUpdate', () => {
     expect(parsed.bar.open).toBe('6000.125');
   });
 
+  it('preserves large durable cursors as exact decimal strings', () => {
+    const cursor = '9007199254740993123';
+    expect(event({ cursor }).cursor).toBe(cursor);
+    expect(() => event({ cursor: 9007199254740993 })).toThrow(/decimal string/i);
+    expect(() => event({ cursor: '12.5' })).toThrow(/decimal string/i);
+  });
+
   it('rejects unsupported versions and missing event identity', () => {
     expect(() => event({ version: 2 })).toThrow(/type or version/i);
     expect(() => event({ eventId: '' })).toThrow(/streamId and eventId/i);
