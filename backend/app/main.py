@@ -781,6 +781,9 @@ def create_app(
                     else "ready"
                 )
                 if request_cursor is not None and replay_fallback_reason is None:
+                    # Reserve the replay sequence range before yielding to the
+                    # socket so concurrently queued live events start after it.
+                    subscription.watermark = len(replay_events)
                     await websocket.send_json({
                         "type": "market_data.ohlcv.replay_started",
                         "version": 1,
@@ -790,9 +793,6 @@ def create_app(
                         "count": len(replay_events),
                         "cursorScope": "global-outbox-filtered-by-exact-series",
                     })
-                    # Seed the stream-local sequence before yielding to the
-                    # socket; live events queued during replay continue at N+1.
-                    subscription.watermark = len(replay_events)
                     for replay_sequence, event in enumerate(replay_events, start=1):
                         replay_bar = event.get("bar", {})
                         event["streamId"] = subscription.stream_id
