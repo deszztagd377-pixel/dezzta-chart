@@ -7,8 +7,10 @@ all event/receive timestamps remain integer nanoseconds.
 from __future__ import annotations
 
 from decimal import Decimal
+import json
 from pathlib import Path
 import sqlite3
+import uuid
 from typing import Mapping
 
 from app.ohlcv import (
@@ -61,7 +63,9 @@ CREATE TABLE IF NOT EXISTS ohlcv_store_state (
 );
 """
 
-_OHLCV_SCHEMA_VERSION = 2
+OUTBOX_MAX_EVENTS = 100_000
+OUTBOX_MAX_REPLAY_BATCH = 1_000
+_OHLCV_SCHEMA_VERSION = 3
 
 
 class SQLiteOhlcvStore:
@@ -181,6 +185,46 @@ class SQLiteOhlcvStore:
                     state_key TEXT PRIMARY KEY NOT NULL,
                     int_value INTEGER NOT NULL
                 )"""
+            )
+            db.execute(
+                """CREATE TABLE IF NOT EXISTS ohlcv_outbox (
+                    cursor INTEGER PRIMARY KEY AUTOINCREMENT,
+                    event_id TEXT NOT NULL UNIQUE,
+                    provider TEXT NOT NULL,
+                    dataset TEXT NOT NULL,
+                    publisher_id INTEGER NOT NULL,
+                    instrument_id INTEGER NOT NULL,
+                    series_type TEXT NOT NULL,
+                    raw_symbol TEXT NOT NULL,
+                    timeframe TEXT NOT NULL,
+                    bucket_policy TEXT NOT NULL,
+                    calendar_id TEXT NOT NULL,
+                    calendar_version TEXT NOT NULL,
+                    created_at_ns INTEGER NOT NULL,
+                    event_json TEXT NOT NULL
+                )"""
+            )
+            db.execute(
+                """CREATE INDEX IF NOT EXISTS idx_ohlcv_outbox_series_cursor
+                ON ohlcv_outbox(provider,dataset,publisher_id,instrument_id,
+                    series_type,raw_symbol,timeframe,bucket_policy,
+                    calendar_id,calendar_version,cursor)"""
+            )
+            db.execute(
+                """CREATE TABLE IF NOT EXISTS ohlcv_outbox_state (
+                    state_key TEXT PRIMARY KEY NOT NULL,
+                    int_value INTEGER NOT NULL
+                )"""
+            )
+            db.execute(
+                """INSERT INTO ohlcv_outbox_state(state_key,int_value)
+                VALUES ('retention_floor',0)
+                ON CONFLICT(state_key) DO NOTHING"""
+            )
+            db.execute(
+                """INSERT INTO ohlcv_outbox_state(state_key,int_value)
+                VALUES ('high_water',0)
+                ON CONFLICT(state_key) DO NOTHING"""
             )
             db.execute(
                 """INSERT INTO ohlcv_schema_meta(schema_key, schema_version)
@@ -321,6 +365,88 @@ class SQLiteOhlcvStore:
                     ts_provider_out_ns=excluded.ts_provider_out_ns""",
                 self._values(bar),
             )
+            event_id = uuid.uuid4().hex
+            event_payload = {
+                "type": "market_data.ohlcv.update",
+                "version": 1,
+                "eventId": event_id,
+                "operation": "upsert",
+                "series": {
+                    "provider": bar.provider,
+                    "dataset": bar.dataset,
+                    "publisherId": bar.publisher_id,
+                    "instrumentId": bar.instrument_id,
+                    "seriesType": bar.series_type,
+                    "rawSymbol": bar.raw_symbol,
+                    "timeframe": bar.timeframe,
+                    "bucketPolicy": bar.bucket_policy,
+                    "calendarId": bar.calendar_id,
+                    "calendarVersion": bar.calendar_version,
+                },
+                "bar": {
+                    "dataset": bar.dataset,
+                    "provider": bar.provider,
+                    "publisherId": bar.publisher_id,
+                    "instrumentId": bar.instrument_id,
+                    "rawSymbol": bar.raw_symbol,
+                    "seriesType": bar.series_type,
+                    "timeframe": bar.timeframe,
+                    "bucketPolicy": bar.bucket_policy,
+                    "calendarId": bar.calendar_id,
+                    "calendarVersion": bar.calendar_version,
+                    "tsStartNs": str(bar.ts_start_ns),
+                    "open": format(bar.open, "f"),
+                    "high": format(bar.high, "f"),
+                    "low": format(bar.low, "f"),
+                    "close": format(bar.close, "f"),
+                    "volume": format(bar.volume, "f"),
+                    "tsEventNs": str(bar.ts_event_ns),
+                    "tsReceivedNs": str(bar.ts_received_ns),
+                    "tsProviderOutNs": None if bar.ts_provider_out_ns is None else str(bar.ts_provider_out_ns),
+                    "sequence": bar.sequence,
+                    "sequenceOrigin": bar.sequence_origin,
+                    "origin": bar.origin,
+                    "completeness": bar.completeness,
+                },
+            }
+            cursor = db.execute(
+                """INSERT INTO ohlcv_outbox(
+                    event_id,provider,dataset,publisher_id,instrument_id,
+                    series_type,raw_symbol,timeframe,bucket_policy,calendar_id,
+                    calendar_version,created_at_ns,event_json
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    event_id, bar.provider, bar.dataset, bar.publisher_id,
+                    bar.instrument_id, bar.series_type, bar.raw_symbol,
+                    bar.timeframe, bar.bucket_policy, bar.calendar_id,
+                    bar.calendar_version, bar.ts_received_ns,
+                    json.dumps(event_payload, separators=(",", ":"), sort_keys=True),
+                ),
+            ).lastrowid
+            db.execute(
+                """UPDATE ohlcv_outbox_state SET int_value=?
+                WHERE state_key='high_water'""",
+                (int(cursor),),
+            )
+            # Keep a bounded global replay window. The floor records the largest
+            # cursor deliberately removed, so old clients are forced to resnapshot.
+            overflow = db.execute(
+                "SELECT COUNT(*) AS amount FROM ohlcv_outbox"
+            ).fetchone()
+            if int(overflow["amount"]) > OUTBOX_MAX_EVENTS:
+                floor_row = db.execute(
+                    """SELECT cursor FROM ohlcv_outbox
+                    ORDER BY cursor DESC LIMIT 1 OFFSET ?""",
+                    (OUTBOX_MAX_EVENTS - 1,),
+                ).fetchone()
+                new_floor = int(floor_row["cursor"]) - 1
+                db.execute("DELETE FROM ohlcv_outbox WHERE cursor<=?", (new_floor,))
+                db.execute(
+                    """UPDATE ohlcv_outbox_state SET int_value=MAX(int_value,?)
+                    WHERE state_key='retention_floor'""",
+                    (new_floor,),
+                )
+
             cap = self.retention[bar.timeframe]
             db.execute(
                 """DELETE FROM ohlcv_bars WHERE provider=? AND dataset=?
@@ -434,6 +560,93 @@ class SQLiteOhlcvStore:
                 "SELECT int_value FROM ohlcv_store_state WHERE state_key='max_local_sequence'"
             ).fetchone()
             return 0 if row is None else int(row["int_value"])
+        finally:
+            db.close()
+
+    def outbox_high_water(self) -> int:
+        """Return the durable global outbox cursor, including pruned history."""
+        db = self._connect()
+        try:
+            row = db.execute(
+                "SELECT int_value FROM ohlcv_outbox_state WHERE state_key='high_water'"
+            ).fetchone()
+            return 0 if row is None else int(row["int_value"])
+        finally:
+            db.close()
+
+    def replay_outbox(
+        self, *, after_cursor: int, provider: str, dataset: str,
+        publisher_id: int, instrument_id: int, series_type: str,
+        raw_symbol: str, timeframe: str, bucket_policy: str,
+        calendar_id: str = "", calendar_version: str = "",
+        limit: int = 500,
+    ) -> dict[str, object]:
+        """Read a bounded, exact-series replay window or require a fresh snapshot.
+
+        Cursors are global and monotonic. The returned cursor may advance across
+        unrelated series only when no matching events remain before the high-water.
+        """
+        if not isinstance(after_cursor, int) or isinstance(after_cursor, bool) or after_cursor < 0:
+            raise ValueError("after_cursor must be a non-negative integer.")
+        if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= OUTBOX_MAX_REPLAY_BATCH:
+            raise ValueError("limit must be between 1 and OUTBOX_MAX_REPLAY_BATCH.")
+        identity = (
+            provider, dataset, publisher_id, instrument_id, series_type,
+            raw_symbol, timeframe, bucket_policy, calendar_id, calendar_version,
+        )
+        if any(not isinstance(value, str) or not value for value in
+               (provider, dataset, series_type, raw_symbol, timeframe, bucket_policy)):
+            raise ValueError("A complete canonical series identity is required.")
+        if any(not isinstance(value, int) or isinstance(value, bool) or value < 1
+               for value in (publisher_id, instrument_id)):
+            raise ValueError("publisher_id and instrument_id must be positive integers.")
+        db = self._connect()
+        try:
+            state = {
+                row["state_key"]: int(row["int_value"])
+                for row in db.execute(
+                    "SELECT state_key,int_value FROM ohlcv_outbox_state"
+                ).fetchall()
+            }
+            floor = state.get("retention_floor", 0)
+            high_water = state.get("high_water", 0)
+            if after_cursor < floor or after_cursor > high_water:
+                return {
+                    "status": "resnapshot_required",
+                    "reason": "cursor_expired" if after_cursor < floor else "cursor_ahead",
+                    "events": [],
+                    "next_cursor": high_water,
+                    "high_water": high_water,
+                    "retention_floor": floor,
+                }
+            rows = db.execute(
+                """SELECT cursor,event_id,event_json FROM ohlcv_outbox
+                WHERE cursor>? AND provider=? AND dataset=? AND publisher_id=?
+                AND instrument_id=? AND series_type=? AND raw_symbol=?
+                AND timeframe=? AND bucket_policy=? AND calendar_id=?
+                AND calendar_version=? ORDER BY cursor ASC LIMIT ?""",
+                (after_cursor, *identity, limit + 1),
+            ).fetchall()
+            has_more = len(rows) > limit
+            selected = rows[:limit]
+            events = []
+            for row in selected:
+                payload = json.loads(row["event_json"])
+                payload["cursor"] = int(row["cursor"])
+                payload["eventId"] = row["event_id"]
+                events.append(payload)
+            if has_more:
+                next_cursor = int(selected[-1]["cursor"])
+            else:
+                next_cursor = high_water
+            return {
+                "status": "ok",
+                "events": events,
+                "next_cursor": next_cursor,
+                "high_water": high_water,
+                "retention_floor": floor,
+                "has_more": has_more,
+            }
         finally:
             db.close()
 
