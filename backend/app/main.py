@@ -558,6 +558,11 @@ def create_app(
             except IdentityVerificationError:
                 await websocket.close(code=4401, reason="Authentication failed")
                 return
+            except Exception:
+                # An unexpected verifier failure must never leave the socket
+                # authenticated or expose provider/internal exception details.
+                await websocket.close(code=1013, reason="Identity verification unavailable")
+                return
 
             if shared_guard is not None:
                 try:
@@ -783,6 +788,11 @@ def create_app(
                                 return
                             except IdentityVerificationError:
                                 await websocket.close(code=4401, reason="Authentication expired or revoked")
+                                return
+                            except Exception:
+                                # Keep long-lived subscriptions fail-closed even
+                                # if a verifier adapter raises outside its contract.
+                                await websocket.close(code=1013, reason="Identity verification unavailable")
                                 return
                             if refreshed_principal != principal:
                                 await websocket.close(code=4401, reason="Authenticated identity changed")
