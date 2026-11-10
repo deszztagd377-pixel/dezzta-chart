@@ -192,7 +192,7 @@ This is an additional operational/functional acceptance track; it does not chang
 - `backend/app/databento_sources.py` explicitly labels its official SDK wrappers **UNVERIFIED**; the real SDK calls have not yet been exercised with valid provider credentials in CI or a production-like environment.
 - Before claiming all-pair/all-timeframe LIVE readiness, require: (1) real SDK connection and callback verification for the pinned SDK version, (2) approved provider entitlements and a complete configured instrument universe, (3) exchange-calendar-aware intraday and higher-timeframe bucket derivation with DST/holiday/early-close tests, (4) per-instrument/per-timeframe gap and completeness checks, and (5) measured event-to-client latency and reconnect recovery across every supported timeframe.
 
-**No source-code shortcut is accepted for these requirements.** Existing fail-closed behavior is intentional protection against fabricated or misaligned candles. The replay I/O isolation candidate remains pending exact-commit CI; it does not change feed coverage or timeframe derivation.
+**No source-code shortcut is accepted for these requirements.** Existing fail-closed behavior is intentional protection against fabricated or misaligned candles. Replay I/O event-loop isolation was verified on ancestor commit `63469d9cb4d4557e4e3c992056ea2a732a1e5ea2` by successful Automated Tests and CodeQL runs 42815030378 and 42815030406. The current calendar publication timestamp hardening is a separate change and remains pending its own exact-commit CI; neither change proves feed coverage or timeframe derivation.
 
 
 ## Latest verified branch-head checkpoint — 2026-11-10
@@ -214,3 +214,14 @@ This is an additional functional acceptance track **inside Stage 1**, not a sepa
 - This workstream must be completed and tested before claiming supported futures timeframes. Approval alone does not mark it complete or production-ready.
 - The 10 external production gates remain outstanding independently. The 40-point matrix will not be reduced or marked complete merely because this workstream is approved.
 
+
+
+## Latest code hardening checkpoint — calendar publication timestamp (2026-11-10)
+
+- Code commit: `088e91dc135e65adbb0ad176f89a5c32cfec6df4`.
+- Test commit / current branch head: `1f52e8053fbd6ed50ce94b2cf93ac906ff75814e`.
+- `SessionCalendar.published_at_utc` now rejects aware timestamps with non-zero UTC offsets and normalizes valid zero-offset timestamps to `timezone.utc`.
+- Regression test covers conversion from America/Chicago to UTC and rejection of non-UTC offsets.
+- Exact-commit Automated Tests run: [42816364225](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42816364225) — queued at the latest inspection.
+- Exact-commit CodeQL run: [42816364046](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42816364046) — analysis in progress at the latest inspection.
+- This hardening does not change the 30/40 checklist evidence count or close any production gate. Do not mark it CI-verified until both workflows finish successfully.
