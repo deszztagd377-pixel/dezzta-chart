@@ -254,3 +254,34 @@ def test_subject_is_rejected_when_both_uid_and_sub_are_absent():
 
     with pytest.raises(IdentityVerificationError):
         verifier.verify("token")
+
+
+@pytest.mark.parametrize(
+    "overrides,remove_claims",
+    [
+        ({"uid": None}, ()),
+        ({"uid": 123}, ()),
+        ({"uid": "   "}, ()),
+        ({"sub": None}, ("uid",)),
+        ({"sub": "   "}, ("uid",)),
+        ({"iss": None}, ()),
+        ({"aud": [PROJECT]}, ()),
+        ({"auth_time": "1798000000"}, ()),
+        ({"auth_time": 1798000000.0}, ()),
+        ({"auth_time": -1}, ()),
+    ],
+)
+def test_identity_verifier_rejects_malformed_claim_types_and_values(
+    overrides, remove_claims
+):
+    claims = {
+        key: value for key, value in CLAIMS.items()
+        if key not in remove_claims
+    }
+    claims.update(overrides)
+    verifier = FirebaseIdentityVerifier(
+        PROJECT, verify_callable=lambda token, **kwargs: claims
+    )
+
+    with pytest.raises(IdentityVerificationError):
+        verifier.verify("token")
