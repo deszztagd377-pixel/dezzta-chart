@@ -1,3 +1,5 @@
+> **OWNER CONSTRAINT — ZERO MONEY (2026-11-10):** All Stage 1 acceptance work must comply with [ZERO_COST_POLICY.md](ZERO_COST_POLICY.md). Do not provision Fly.io, paid Redis, paid market-data APIs, paid backup/monitoring, paid email/SMS, paid runners, or any trial/plan that can create a charge. Earlier Fly.io deployment research is superseded and must not be executed. If a criterion cannot be satisfied at zero incremental cost, record it as constrained/deferred rather than purchasing a service.
+
 # Stage 1 — Production Acceptance Matrix
 
 Branch: `phase-2/market-data-foundation`
@@ -245,3 +247,14 @@ This is an additional functional acceptance track **inside Stage 1**, not a sepa
 - CodeQL Security Analysis: [run 42817566002](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42817566002) — **success** for Python and JavaScript/TypeScript analysis.
 - This exact-commit CI evidence supersedes the earlier pending/queued checkpoint notes above for the 7b41c5a commit. It verifies repository CI and an ephemeral CI volume/Redis test only; it does **not** prove a Fly deployment, managed Redis, production Firebase credentials, a production Fly Volume, encrypted off-host backup/restore, production WSS, or external monitoring/alert delivery.
 - External production gates remain **10/40 outstanding**. Stage 1 remains **not production-accepted** and the checklist count is unchanged.
+
+
+## Mandatory zero-cost acceptance overlay — owner decision 2026-11-10
+
+- The owner has explicitly prohibited all project charges and unexpected future bills. This is a mandatory constraint across all 40 criteria, including hosting, identity, market data, backup, monitoring, alert delivery, CI, and operations.
+- The Fly.io plan is superseded as an executable deployment target. Do not create an app, Machine, Volume, managed Redis instance, billing account, or trial.
+- Databento live/historical access remains disabled; no paid market-data API or dataset may be used. A free source must be independently checked for lawful use, coverage, freshness, quotas, and no billing exposure before adoption.
+- Firebase is permitted only if the exact selected authentication methods remain within a verified no-billing plan. Phone/SMS and billing upgrades are prohibited. If billing is required, defer the integration rather than upgrade.
+- Any no-cost replacement for managed Redis or external operations tooling must preserve the existing security guarantees and be reviewed/tested before changing production requirements. No insecure in-memory fallback is allowed.
+- A free tier or promotional credit alone is not evidence of zero cost. Payment methods, automatic upgrades, overages, trial conversion, and quota exhaustion behavior must be checked. Unknown billing behavior means do not enable the service.
+- This overlay does not reduce the 40 criteria, does not close external gates, and does not change the current 30/40 evidence accounting. Stage 1 remains not production-accepted.
