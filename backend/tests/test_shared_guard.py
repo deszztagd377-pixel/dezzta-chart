@@ -174,3 +174,29 @@ def test_redis_lua_scripts_enforce_http_and_websocket_limits():
             await guard.close()
 
     asyncio.run(exercise())
+
+
+
+@pytest.mark.parametrize(
+    "limit_name",
+    [
+        "http_per_client_per_minute",
+        "http_global_per_minute",
+        "websocket_global_limit",
+        "websocket_per_account_limit",
+        "websocket_lease_seconds",
+    ],
+)
+@pytest.mark.parametrize(
+    "invalid_value",
+    [True, False, 0, -1, 1.5, 0.5, "2", None],
+)
+def test_shared_guard_rejects_non_positive_or_non_integer_limits(
+    limit_name, invalid_value
+):
+    with pytest.raises(ValueError, match="positive integers"):
+        RedisSharedGuard(
+            "rediss://redis.example.invalid",
+            **{limit_name: invalid_value},
+            redis_client=FakeRedis(),
+        )
