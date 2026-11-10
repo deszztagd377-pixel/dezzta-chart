@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import date, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
@@ -372,3 +373,20 @@ def test_session_record_rejects_malformed_field_types(
 ):
     with pytest.raises(InvalidSessionCalendar):
         SessionRecord(trading_date, kind, open_local, close_local)
+
+
+@pytest.mark.parametrize("field,value", [
+    ("calendar_id", []),
+    ("version", None),
+    ("product_family", 7),
+    ("source_id", {}),
+    ("source_url", None),
+    ("checksum", []),
+    ("effective_start", datetime(2024, 3, 1, tzinfo=timezone.utc)),
+    ("effective_end", "2024-03-31"),
+    ("published_at_utc", "2024-02-01T00:00:00Z"),
+])
+def test_calendar_rejects_malformed_metadata_field_types(field, value):
+    valid = make_calendar([])
+    with pytest.raises(InvalidSessionCalendar):
+        replace(valid, **{field: value})
