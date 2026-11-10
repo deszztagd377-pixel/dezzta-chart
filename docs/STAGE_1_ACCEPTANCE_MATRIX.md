@@ -171,3 +171,11 @@ The CI workflow succeeding does not change the external acceptance status above.
 - These checks validate repository behavior only. They do not prove every market pair is configured or entitled, every timeframe has live provider coverage, or production Firebase/Redis/HTTPS/WSS, backup restore, monitoring, and alert delivery have passed.
 
 **Checklist remains 30/40 with 10 external production verification gates outstanding.** The reconnect cursor hardening does not close any external gate. Stage 1 remains **not production-accepted**.
+
+
+## Current candidate — replay I/O event-loop isolation (pending CI)
+
+- Candidate code commit: `dac22020bfe10e48cef58f5125ee3e6d341bc969` on `phase-2/market-data-foundation`.
+- SQLite durable replay page reads now run through `asyncio.to_thread` so a bounded replay query does not synchronously occupy the WebSocket event-loop thread. The live subscription is still registered before replay, preserving the existing queue-based handoff design.
+- This candidate has not yet been verified by a workflow run in this record. Do not treat it as CI-passed until the exact commit's tests/build/security/container jobs complete successfully.
+- No external production gate is closed by this change.
