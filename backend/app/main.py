@@ -118,14 +118,15 @@ def create_app(
     ohlcv_store = SQLiteOhlcvStore(config.instrument_registry_db_path)
 
     def publish_persisted_bar(bar) -> None:
-        # Ingestion is single-writer on this event loop. The bar and outbox event
-        # were committed together immediately before this callback.
-        cursor = ohlcv_store.outbox_high_water()
-        event_id = ohlcv_store.outbox_event_id(cursor)
-        if event_id is None:
+        # Resolve the exact revision: derived-timeframe persistence may occur
+        # before the source bar's notification callback.
+        event = ohlcv_store.outbox_event_for_bar(bar)
+        if event is None:
             raise RuntimeError("Persisted OHLCV outbox event is missing.")
         stream_hub.publish(
-            bar, durable_cursor=cursor, durable_event_id=event_id,
+            bar,
+            durable_cursor=event["cursor"],
+            durable_event_id=event["eventId"],
         )
 
     coverage_tracker = SQLiteCoverageTracker(config.instrument_registry_db_path)
