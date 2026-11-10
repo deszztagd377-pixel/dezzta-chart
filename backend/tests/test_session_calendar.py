@@ -86,6 +86,37 @@ def test_calendar_registry_rejects_conflicting_content_for_same_release_key():
         registry.register(conflicting)
 
 
+def test_calendar_publication_timestamp_must_be_utc_and_is_normalized():
+    calendar = SessionCalendar(
+        calendar_id="CME_EQUITY_INDEX",
+        version="2024.03.1",
+        product_family="ES",
+        effective_start=date(2024, 3, 1),
+        effective_end=date(2024, 3, 31),
+        source_id="official-cme-schedule-release",
+        source_url="https://www.cmegroup.com/trading-hours.html",
+        published_at_utc=datetime(2024, 2, 1, 6, 0, tzinfo=ZoneInfo("America/Chicago")),
+        checksum="sha256:verified-release-digest",
+        records={},
+    )
+    assert calendar.published_at_utc.tzinfo is timezone.utc
+    assert calendar.published_at_utc == datetime(2024, 2, 1, 12, 0, tzinfo=timezone.utc)
+
+    with pytest.raises(InvalidSessionCalendar, match="expressed in UTC"):
+        SessionCalendar(
+            calendar_id="CME_EQUITY_INDEX",
+            version="2024.03.1",
+            product_family="ES",
+            effective_start=date(2024, 3, 1),
+            effective_end=date(2024, 3, 31),
+            source_id="official-cme-schedule-release",
+            source_url="https://www.cmegroup.com/trading-hours.html",
+            published_at_utc=datetime(2024, 2, 1, 12, 0, tzinfo=ZoneInfo("America/Chicago")),
+            checksum="sha256:verified-release-digest",
+            records={},
+        )
+
+
 def test_calendar_records_are_immutable_after_validation():
     monday = session(date(2024, 3, 11), "2024-03-10T17:00:00", "2024-03-11T16:00:00")
     source_records = {monday.trading_date: monday}
