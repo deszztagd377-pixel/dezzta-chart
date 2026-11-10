@@ -736,16 +736,16 @@ def create_app(
                         try:
                             replay_page = ohlcv_store.replay_outbox(
                                 after_cursor=replay_after,
-                            provider="databento",
-                            dataset=dataset,
-                            publisher_id=publisher_id,
-                            instrument_id=instrument_id,
-                            series_type="contract",
-                            raw_symbol=raw_symbol,
-                            timeframe=timeframe,
-                            bucket_policy=bucket_policy,
-                            calendar_id=calendar_id,
-                            calendar_version=calendar_version,
+                                provider="databento",
+                                dataset=dataset,
+                                publisher_id=publisher_id,
+                                instrument_id=instrument_id,
+                                series_type="contract",
+                                raw_symbol=raw_symbol,
+                                timeframe=timeframe,
+                                bucket_policy=bucket_policy,
+                                calendar_id=calendar_id,
+                                calendar_version=calendar_version,
                                 limit=min(500, MAX_WEBSOCKET_REPLAY_EVENTS + 1 - len(replay_events)),
                             )
                         except Exception:
