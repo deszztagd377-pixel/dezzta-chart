@@ -945,6 +945,58 @@ def _open_authorized_websocket_subscription(application, client):
     return websocket
 
 
+def test_websocket_fails_closed_on_unexpected_initial_verifier_error() -> None:
+    application = create_app(make_settings())
+
+    class BrokenVerifier:
+        def verify(self, _token):
+            raise RuntimeError("private verifier details")
+
+    application.state.identity_verifier = BrokenVerifier()
+    client = TestClient(application)
+
+    with pytest.raises(WebSocketDisconnect) as disconnected:
+        with client.websocket_connect("/ws/market-data") as websocket:
+            websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+            websocket.receive_json()
+
+    assert disconnected.value.code == 1013
+    assert "private verifier details" not in str(disconnected.value)
+
+
+def test_websocket_fails_closed_on_unexpected_verifier_error_during_recheck(monkeypatch) -> None:
+    monkeypatch.setattr("app.main.WEBSOCKET_AUTHORIZATION_RECHECK_SECONDS", 0.02)
+    application = _app_with_bars()
+    client = TestClient(application)
+
+    with client.websocket_connect("/ws/market-data") as websocket:
+        websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+        assert websocket.receive_json()["type"] == "market_data.status"
+        websocket.send_json({
+            "type": "market_data.subscribe",
+            "version": 1,
+            "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+            "series": {
+                "dataset": "GLBX.MDP3",
+                "publisherId": 1,
+                "instrumentId": 101,
+                "rawSymbol": "ESZ6",
+                "timeframe": "1s",
+            },
+        })
+        assert websocket.receive_json()["type"] == "market_data.ohlcv.snapshot"
+
+        def fail_unexpectedly(_token):
+            raise RuntimeError("private verifier details")
+
+        application.state.identity_verifier.verify = fail_unexpectedly
+        with pytest.raises(WebSocketDisconnect) as disconnected:
+            websocket.receive_json()
+
+    assert disconnected.value.code == 1013
+    assert "private verifier details" not in str(disconnected.value)
+
+
 def test_websocket_revalidates_firebase_token_during_idle_subscription(monkeypatch) -> None:
     monkeypatch.setattr("app.main.WEBSOCKET_AUTHORIZATION_RECHECK_SECONDS", 0.02)
     application = _app_with_bars()
