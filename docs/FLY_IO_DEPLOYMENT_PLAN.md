@@ -6,7 +6,7 @@
 - Application: FastAPI backend, built from `backend/Dockerfile` with `backend/` as the Docker build context.
 - Status: **deployment design and repository audit only; no Fly app, Machine, volume, Redis service, DNS, or paid resource has been provisioned.**
 - Active branch: `phase-2/market-data-foundation`.
-- Audited source HEAD: `bf019975f464b62a50f1f1283e4419a516fa063f`.
+- Audited source HEAD at the 2026-11-10 repository review: `555157c33ace8b241595804b16c65fa5ce09ec1b`.
 - The `main` branch was not changed.
 
 This document separates verified repository behavior from platform-specific work that still requires an actual Fly environment. Do not mark the backend deployed or production-ready based on CI-only evidence.
@@ -109,7 +109,7 @@ A production availability target requiring redundant Machines should trigger a d
 - CORS is read-only (`GET`), does not allow credentials, and accepts only explicitly configured origins.
 - HTTP rate limiting currently derives the client identity from `request.client.host`.
 - The application does not currently establish a Fly-specific trusted-client-IP policy. Do not trust arbitrary `X-Forwarded-For` values.
-- The WebSocket guard is configured, but the current frontend chart path uses read-only HTTP snapshots and does not require the WebSocket token.
+- The frontend chart includes an authenticated WebSocket client/stream supervisor integrated with Firebase `AuthProvider` and the shared market-data store; the server authenticates the first WebSocket frame with a Firebase ID token. This is repository-level integration only. The deployed HTTPS/WSS handshake, real Firebase token flow, and end-to-end browser/Android connection remain unverified.
 
 ### Fly ingress requirements
 
