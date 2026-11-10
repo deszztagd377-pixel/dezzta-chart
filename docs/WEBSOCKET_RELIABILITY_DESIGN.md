@@ -152,3 +152,13 @@ Verification on the exact code commit:
 - CI included frontend tests/build/secret scans, backend pytest/dependency audit, Docker build, Redis + persistent-volume smoke test, Trivy image scan, and vulnerability-report export/upload.
 
 **Not closed by this implementation:** production browser/Android WSS verification, managed Firebase/Redis configuration, deployed persistent volume, encrypted off-host backup/restore, external monitoring/alerting, provider licensing/coverage, and measured throughput/reconnect latency benchmarks. The 40-point matrix remains 30/40 with 10 external verification gates outstanding; Stage 1 is not production-accepted.
+
+
+## 14. Cursor validation hardening checkpoint
+
+Verified on exact code commit `9cb7a876bca9215b7792312aa908b3ad60e0b5a6`:
+
+- Replay cursor input is restricted to ASCII decimal digits before integer conversion, preventing Unicode digit lookalikes from reaching integer parsing.
+- Regression cases cover superscript and Arabic-Indic digit characters, decimal notation, excessively long values, and values above the signed SQLite 64-bit maximum.
+- The malformed-cursor tests pass in Automated Tests & Build [run 42812627122](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42812627122); CodeQL Python and JavaScript/TypeScript pass in [run 42812627082](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42812627082).
+- This hardening does not prove production WSS behavior, all-pair/all-timeframe provider coverage, or measured end-to-end latency. Those remain separate acceptance requirements.
