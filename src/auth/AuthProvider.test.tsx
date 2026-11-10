@@ -414,3 +414,78 @@ describe('AuthProvider Firebase action contract', () => {
     );
   });
 });
+
+
+describe('AuthProvider fail-closed action boundary', () => {
+  async function renderActionContext() {
+    const React = await import('react');
+    const { renderToStaticMarkup } = await import('react-dom/server');
+    const { AuthProvider, useAuth } = await import('./AuthProvider');
+    let context: ReturnType<typeof useAuth> | null = null;
+    function Probe() {
+      context = useAuth();
+      return null;
+    }
+    renderToStaticMarkup(React.createElement(AuthProvider, null, React.createElement(Probe)));
+    if (!context) throw new Error('AuthProvider context was not captured.');
+    return context;
+  }
+
+  it.each([
+    ['email sign-in', (context: Awaited<ReturnType<typeof renderActionContext>>) => context.signInEmail('user@example.test', 'password')],
+    ['email registration', (context: Awaited<ReturnType<typeof renderActionContext>>) => context.registerEmail('user@example.test', 'password')],
+    ['Google redirect', (context: Awaited<ReturnType<typeof renderActionContext>>) => context.signInGoogle()],
+    ['sign-out', (context: Awaited<ReturnType<typeof renderActionContext>>) => context.signOutUser()],
+  ])('does not call Firebase SDK for %s when client configuration is absent', async (_label, invoke) => {
+    firebaseMocks.isFirebaseConfigured.mockReturnValue(false);
+    firebaseMocks.getFirebaseAuth.mockReturnValue(null);
+    const context = await renderActionContext();
+
+    await expect(invoke(context)).resolves.toBeUndefined();
+
+    expect(firebaseMocks.signInWithEmailAndPassword).not.toHaveBeenCalled();
+    expect(firebaseMocks.createUserWithEmailAndPassword).not.toHaveBeenCalled();
+    expect(firebaseMocks.signInWithRedirect).not.toHaveBeenCalled();
+    expect(firebaseMocks.signOut).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['email sign-in', (context: Awaited<ReturnType<typeof renderActionContext>>) => context.signInEmail('user@example.test', 'password')],
+    ['email registration', (context: Awaited<ReturnType<typeof renderActionContext>>) => context.registerEmail('user@example.test', 'password')],
+    ['Google redirect', (context: Awaited<ReturnType<typeof renderActionContext>>) => context.signInGoogle()],
+    ['sign-out', (context: Awaited<ReturnType<typeof renderActionContext>>) => context.signOutUser()],
+  ])('does not call Firebase SDK for %s when app resolution throws', async (_label, invoke) => {
+    firebaseMocks.getFirebaseAuth.mockImplementation(() => {
+      throw new Error('private Firebase initialization detail');
+    });
+    const context = await renderActionContext();
+
+    await expect(invoke(context)).resolves.toBeUndefined();
+
+    expect(firebaseMocks.signInWithEmailAndPassword).not.toHaveBeenCalled();
+    expect(firebaseMocks.createUserWithEmailAndPassword).not.toHaveBeenCalled();
+    expect(firebaseMocks.signInWithRedirect).not.toHaveBeenCalled();
+    expect(firebaseMocks.signOut).not.toHaveBeenCalled();
+  });
+
+  it('does not invoke token retrieval when Firebase initialization throws', async () => {
+    firebaseMocks.getFirebaseAuth.mockImplementation(() => {
+      throw new Error('private Firebase initialization detail');
+    });
+    const context = await renderActionContext();
+
+    await expect(context.getIdToken()).rejects.toThrow(
+      'Konfigurasi Firebase tidak cocok atau gagal diinisialisasi. Autentikasi dinonaktifkan.',
+    );
+  });
+
+  it('does not expose raw provider rejection details through the action promise', async () => {
+    firebaseMocks.getFirebaseAuth.mockReturnValue({ currentUser: null });
+    firebaseMocks.signInWithEmailAndPassword.mockRejectedValue(
+      new Error('private provider detail token=must-not-leak'),
+    );
+    const context = await renderActionContext();
+
+    await expect(context.signInEmail('user@example.test', 'password')).resolves.toBeUndefined();
+  });
+});
