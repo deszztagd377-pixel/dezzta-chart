@@ -176,6 +176,11 @@ class SessionCalendar:
             raise InvalidSessionCalendar("Calendar effective range is reversed.")
         if self.published_at_utc.tzinfo is None or self.published_at_utc.utcoffset() is None:
             raise InvalidSessionCalendar("Publication timestamp must be timezone-aware.")
+        if self.published_at_utc.utcoffset() != timedelta(0):
+            raise InvalidSessionCalendar("Publication timestamp must be expressed in UTC.")
+        object.__setattr__(
+            self, "published_at_utc", self.published_at_utc.astimezone(timezone.utc)
+        )
         copied_records = dict(self.records)
         for trading_date, record in copied_records.items():
             if trading_date != record.trading_date:
