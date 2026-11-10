@@ -25,6 +25,7 @@ export interface OhlcvStreamUpdateMessage {
   version: 1;
   streamId: string;
   eventId: string;
+  cursor?: string;
   sequence: number;
   emittedAtNs: string;
   operation: 'upsert';
@@ -74,6 +75,10 @@ export function parseOhlcvStreamUpdate(payload: unknown): OhlcvStreamUpdateMessa
   }
   if (!isNonEmptyString(payload.streamId) || !isNonEmptyString(payload.eventId)) {
     throw new Error('OHLCV stream event requires streamId and eventId.');
+  }
+  if (payload.cursor !== undefined &&
+      (typeof payload.cursor !== 'string' || !/^\\d+$/.test(payload.cursor))) {
+    throw new Error('OHLCV durable cursor must be an unsigned decimal string.');
   }
   if (!isPositiveSafeInteger(payload.sequence)) {
     throw new Error('OHLCV stream sequence must be a positive safe integer.');
@@ -145,6 +150,7 @@ export function parseOhlcvStreamUpdate(payload: unknown): OhlcvStreamUpdateMessa
     version: 1,
     streamId: payload.streamId,
     eventId: payload.eventId,
+    ...(typeof payload.cursor === 'string' ? { cursor: payload.cursor } : {}),
     sequence: payload.sequence,
     emittedAtNs: payload.emittedAtNs,
     operation: 'upsert',
