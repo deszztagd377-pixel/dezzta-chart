@@ -158,3 +158,16 @@ The CI workflow succeeding does not change the external acceptance status above.
 - This remains repository evidence, not production browser/Android WSS proof. Sustained throughput/reconnect benchmarks and real production provider latency/gap evidence remain outstanding.
 
 **Checklist accounting remains 30/40, with 10 external production verification gates outstanding.** No external gate is marked complete by source-code changes or CI alone. Stage 1 remains **not production-accepted**.
+
+
+## Latest verified checkpoint — reconnect cursor hardening (2026-11-10)
+
+- Branch: `phase-2/market-data-foundation`
+- Exact code commit: `9cb7a876bca9215b7792312aa908b3ad60e0b5a6`
+- Automated Tests & Build: [run 42812627122](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42812627122) — **success**.
+- CodeQL Security Analysis: [run 42812627082](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42812627082) — **success** for JavaScript/TypeScript and Python.
+- Latest regression hardening rejects non-ASCII digit cursor strings, decimal strings, and values outside signed SQLite 64-bit range; malformed cursors are rejected with the expected WebSocket close code.
+- Verified workflow steps include frontend dependency audit/unit tests/build/secret scans, backend pytest/dependency audit, Docker image build, Redis + persistent-volume smoke test, Trivy scan, and vulnerability-report export/upload.
+- These checks validate repository behavior only. They do not prove every market pair is configured or entitled, every timeframe has live provider coverage, or production Firebase/Redis/HTTPS/WSS, backup restore, monitoring, and alert delivery have passed.
+
+**Checklist remains 30/40 with 10 external production verification gates outstanding.** The reconnect cursor hardening does not close any external gate. Stage 1 remains **not production-accepted**.
