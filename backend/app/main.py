@@ -733,8 +733,9 @@ def create_app(
                 if request_cursor is not None:
                     replay_after = request_cursor
                     while True:
-                        replay_page = ohlcv_store.replay_outbox(
-                            after_cursor=replay_after,
+                        try:
+                            replay_page = ohlcv_store.replay_outbox(
+                                after_cursor=replay_after,
                             provider="databento",
                             dataset=dataset,
                             publisher_id=publisher_id,
@@ -745,8 +746,11 @@ def create_app(
                             bucket_policy=bucket_policy,
                             calendar_id=calendar_id,
                             calendar_version=calendar_version,
-                            limit=min(500, MAX_WEBSOCKET_REPLAY_EVENTS + 1 - len(replay_events)),
-                        )
+                                limit=min(500, MAX_WEBSOCKET_REPLAY_EVENTS + 1 - len(replay_events)),
+                            )
+                        except Exception:
+                            replay_fallback_reason = "replay_storage_unavailable"
+                            break
                         if replay_page.get("status") != "ok":
                             replay_fallback_reason = str(replay_page.get("reason", "replay_unavailable"))
                             break
@@ -780,7 +784,7 @@ def create_app(
                     await websocket.send_json({
                         "type": "market_data.ohlcv.replay_started",
                         "version": 1,
-                        "fromCursor": request_cursor,
+                        "fromCursor": str(request_cursor),
                         "throughCursor": str(replay_end_cursor),
                         "streamId": subscription.stream_id,
                         "count": len(replay_events),
@@ -821,8 +825,8 @@ def create_app(
                             "type": "market_data.ohlcv.resnapshot_required",
                             "version": 1,
                             "reason": replay_fallback_reason or "replay_unavailable",
-                            "requestedCursor": request_cursor,
-                            "snapshotCursor": snapshot_cursor,
+                            "requestedCursor": str(request_cursor),
+                            "snapshotCursor": str(snapshot_cursor),
                         })
                     await websocket.send_json({
                         "type": "market_data.ohlcv.snapshot",
