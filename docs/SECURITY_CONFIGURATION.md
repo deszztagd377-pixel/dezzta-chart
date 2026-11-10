@@ -108,7 +108,8 @@ requires verified identity and instrument entitlement.
 - [ ] Smoke-test Firebase sign-in, token refresh, expiry, and revocation against the production Firebase project and runtime Admin credentials.
 - [ ] Test HTTP and WebSocket entitlement denial, revocation, reconnect, and
       exact instrument/timeframe switching.
-- [ ] Add and test rate limits, request-size bounds, and abuse monitoring.
+- [x] Implement Redis-backed HTTP rate limits, WebSocket connection caps/leases, bounded query and WebSocket fields, and per-connection ping limits; unit coverage exists for the shared-guard behavior.
+- [ ] Verify those controls against the deployed managed Redis service and real client traffic; configure abuse monitoring, alert thresholds, and incident response.
 - [x] Add frontend and backend dependency vulnerability audits to CI.
 - [x] Add CodeQL analysis for JavaScript/TypeScript and Python.
 - [ ] Verify current repository secret-scanning and push-protection settings and review alert inventory; public-repository defaults are not proof of current state.
