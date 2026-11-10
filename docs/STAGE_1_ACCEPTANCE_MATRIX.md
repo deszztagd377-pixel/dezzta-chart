@@ -23,7 +23,7 @@ This matrix separates repository implementation from evidence that must come fro
 5. **Implemented / test present** — shared HTTP/WebSocket limits reject booleans, non-integers, zero, and negative values.
 6. **Implemented / test present** — Redis and provider credentials are excluded from settings representations.
 7. **Implemented / test present** — safe provider defaults keep live and historical ingestion disabled.
-8. **External verification required** — confirm production secrets are stored only in the hosting provider's secret manager and are absent from frontend bundles, logs, build output, and repository history.
+8. **External verification required** — confirm production secrets use an owner-controlled, no-billing host secret-injection mechanism (for example OS-protected service credentials) and are absent from frontend bundles, logs, build output, and repository history. Do not introduce a paid secret manager.
 
 ### B. Identity and WebSocket authorization
 
@@ -38,7 +38,7 @@ This matrix separates repository implementation from evidence that must come fro
 17. **Implemented / test present** — identity and authorization are periodically revalidated during a connection.
 18. **Implemented / test present** — shared WebSocket admission enforces global and per-account connection limits.
 19. **Implemented / test present** — expiring shared leases and release paths are implemented for WebSocket connections.
-20. **External verification required** — exercise real Firebase sign-in, token expiry/revocation, entitlement denial, reconnect, and browser plus Android WebSocket flows against the deployed backend.
+20. **External verification required / constrained by ZERO MONEY** — exercise real Firebase sign-in, token expiry/revocation, entitlement denial, reconnect, and browser plus Android WebSocket flows only if a no-billing configuration is verified. Otherwise keep production Firebase integration disabled and defer this gate; never enable Blaze.
 
 ### C. Shared guards and service resilience
 
@@ -46,7 +46,7 @@ This matrix separates repository implementation from evidence that must come fro
 22. **Implemented / test present** — HTTP rate limiting fails closed when Redis operations fail.
 23. **Implemented / test present** — WebSocket admission and lease operations fail closed on Redis errors.
 24. **Implemented / test present** — shared counters and leases use atomic Redis Lua scripts.
-25. **External verification required** — validate managed Redis TLS certificate checking, access controls, private networking, persistence policy, and failover behavior from the selected backend region.
+25. **External verification required / managed paid Redis prohibited** — validate TLS certificate checking, ACLs, private-network binding, persistence, restart and failure behavior for a self-hosted Redis instance on existing owner-controlled hardware. Do not purchase managed Redis.
 
 ### D. SQLite durability and backup
 
@@ -61,15 +61,15 @@ This matrix separates repository implementation from evidence that must come fro
 
 32. **Implemented / test present** — the backend container runs the application as UID/GID `10001:10001`.
 33. **Implemented / test present** — the CI workflow contains a Docker smoke test for volume ownership, SQLite integrity, restart persistence, and rate-limit behavior.
-34. **External verification required** — provision the selected production persistent volume and verify mount path, owner, permissions, restart durability, and replacement behavior on that provider.
-35. **External verification required** — deploy the backend with production configuration and verify HTTPS health checks, startup failure behavior, and backend-only secret injection.
-36. **External verification required** — verify the deployed WSS handshake and authenticated subscription flow from supported web and Android clients through the real reverse proxy.
+34. **External verification required** — configure a persistent data volume on existing owner-controlled hardware and verify mount path, owner, permissions, restart durability, disk-pressure behavior, and recovery. Do not provision a paid provider volume.
+35. **External verification required / zero-cost constrained** — run the backend on existing owner-controlled hardware and verify HTTPS health checks, startup failure behavior, and backend-only secret injection. Expose it publicly only if the existing network/domain path is verified to create no incremental charge; otherwise keep it local/LAN and defer public deployment.
+36. **External verification required** — verify the WSS handshake and authenticated subscription flow from supported web and Android clients through a reverse proxy on the owner-controlled host. Do not purchase hosting, domain, or CDN to satisfy this gate.
 
 ### F. Operations and production acceptance
 
 37. **Implemented / test present** — the market-data status endpoint exposes bounded application-level operational state; it is not external monitoring.
-38. **External verification required** — configure external metrics/log collection, retention, dashboards, and access controls.
-39. **External verification required** — configure alert routing and demonstrate delivery to the responsible operator; document incident ownership, escalation, and recovery steps.
+38. **External verification required / paid observability prohibited** — configure self-hosted metrics/log collection, bounded retention, dashboards, and access controls on existing hardware, or explicitly defer if resource limits prevent safe operation.
+39. **External verification required / paid delivery prohibited** — demonstrate a no-incremental-cost local alert path and document incident ownership, escalation, and recovery steps. Do not assume email/SMS/push delivery is free.
 40. **Owner-approved design — complete (2026-11-10)** — the owner explicitly approved the detailed replay cursor model, outbox retention policy, reconnect semantics, benchmark plan, and short-lived scoped WebSocket-ticket threat model in [WEBSOCKET_RELIABILITY_DESIGN.md](WEBSOCKET_RELIABILITY_DESIGN.md). This closes the owner-approval criterion. Durable outbox/replay implementation still requires incremental code review and regression evidence; ticket exchange additionally remains gated on an independent security review before ticket code is added.
 
 ## Evidence required before Stage 1 can be marked 100%
