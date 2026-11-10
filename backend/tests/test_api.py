@@ -585,7 +585,7 @@ def test_websocket_authenticates_then_sends_exact_ohlcv_snapshot_with_watermark(
         assert snapshot["state"] == "ready"
         assert snapshot["streamId"]
         assert snapshot["watermark"] == 0
-        assert snapshot["cursor"] == application.state.ohlcv_store.outbox_high_water()
+        assert int(snapshot["cursor"]) == application.state.ohlcv_store.outbox_high_water()
         assert snapshot["cursorScope"] == "global-outbox-filtered-by-exact-series"
         assert snapshot["count"] == 4
         assert snapshot["bars"][-1]["tsStartNs"] == str(_T0 + 3 * _NS)
@@ -601,7 +601,7 @@ def test_websocket_replays_exact_series_from_durable_cursor() -> None:
         websocket.send_json({
             "type": "market_data.subscribe",
             "version": 1,
-            "cursor": 0,
+            "cursor": "0",
             "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
             "series": {
                 "dataset": "GLBX.MDP3",
@@ -614,7 +614,7 @@ def test_websocket_replays_exact_series_from_durable_cursor() -> None:
         started = websocket.receive_json()
         assert started["type"] == "market_data.ohlcv.replay_started"
         assert started["fromCursor"] == 0
-        assert started["throughCursor"] == expected_high_water
+        assert int(started["throughCursor"]) == expected_high_water
         assert started["count"] == 4
         replayed = [websocket.receive_json() for _ in range(started["count"])]
         assert all(event["type"] == "market_data.ohlcv.update" for event in replayed)
@@ -638,7 +638,7 @@ def test_websocket_replay_cursor_ahead_falls_back_to_fresh_snapshot() -> None:
         websocket.send_json({
             "type": "market_data.subscribe",
             "version": 1,
-            "cursor": requested_cursor,
+            "cursor": str(requested_cursor),
             "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
             "series": {
                 "dataset": "GLBX.MDP3",
@@ -653,7 +653,7 @@ def test_websocket_replay_cursor_ahead_falls_back_to_fresh_snapshot() -> None:
         assert fallback["reason"] == "cursor_ahead"
         snapshot = websocket.receive_json()
         assert snapshot["type"] == "market_data.ohlcv.snapshot"
-        assert snapshot["cursor"] < requested_cursor
+        assert int(snapshot["cursor"]) < requested_cursor
 
 
 @pytest.mark.parametrize(
@@ -990,8 +990,8 @@ def test_websocket_normalizes_raw_symbol_for_snapshot_and_live_stream_identity()
         assert update["series"]["rawSymbol"] == "ESZ6"
         assert update["bar"]["rawSymbol"] == "ESZ6"
         assert update["sequence"] == 1
-        assert update["cursor"] > snapshot["cursor"]
-        assert update["eventId"] == application.state.ohlcv_store.outbox_event_id(update["cursor"])
+        assert int(update["cursor"]) > int(snapshot["cursor"])
+        assert update["eventId"] == application.state.ohlcv_store.outbox_event_id(int(update["cursor"]))
 
 
 def _open_authorized_websocket_subscription(application, client):
