@@ -209,7 +209,7 @@ def test_legacy_schema_migrates_and_preserves_exact_rows(tmp_path):
         meta = db.execute(
             "SELECT schema_version FROM ohlcv_schema_meta WHERE schema_key='ohlcv'"
         ).fetchone()
-        assert meta["schema_version"] == 2
+        assert meta["schema_version"] == 3
         primary_key_columns = [
             row["name"] for row in db.execute("PRAGMA table_info(ohlcv_bars)")
             if row["pk"]
@@ -243,7 +243,7 @@ def test_legacy_schema_migrates_and_preserves_exact_rows(tmp_path):
     with sqlite3.connect(path) as db:
         assert db.execute(
             "SELECT schema_version FROM ohlcv_schema_meta WHERE schema_key='ohlcv'"
-        ).fetchone()[0] == 2
+        ).fetchone()[0] == 3
         assert db.execute("SELECT COUNT(*) FROM ohlcv_bars").fetchone()[0] == 2
 
 
