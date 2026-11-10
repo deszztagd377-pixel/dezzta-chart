@@ -162,3 +162,11 @@ Verified on exact code commit `9cb7a876bca9215b7792312aa908b3ad60e0b5a6`:
 - Regression cases cover superscript and Arabic-Indic digit characters, decimal notation, excessively long values, and values above the signed SQLite 64-bit maximum.
 - The malformed-cursor tests pass in Automated Tests & Build [run 42812627122](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42812627122); CodeQL Python and JavaScript/TypeScript pass in [run 42812627082](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42812627082).
 - This hardening does not prove production WSS behavior, all-pair/all-timeframe provider coverage, or measured end-to-end latency. Those remain separate acceptance requirements.
+
+
+## 15. Replay read event-loop isolation (candidate)
+
+Candidate implementation on `phase-2/market-data-foundation`, commit `dac22020bfe10e48cef58f5125ee3e6d341bc969`:
+
+- The WebSocket route now awaits `asyncio.to_thread(ohlcv_store.replay_outbox, ...)` for each bounded SQLite replay page. The store method opens and closes its own SQLite connection, while the existing live queue is registered before replay; queued live events can therefore continue to be serviced while replay I/O runs off the event-loop thread.
+- This is intended to reduce event-loop blocking during reconnect backlogs. It is not a measured latency improvement yet. Exact-commit CI, concurrency/reconnect benchmarks, and production WSS measurements are still required before acceptance.
