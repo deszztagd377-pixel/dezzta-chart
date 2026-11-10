@@ -203,3 +203,30 @@ def test_derived_intraday_bars_inherit_fixed_utc_policy_and_stop_before_daily():
     assert len(five) == 1
     assert five[0].bucket_policy == "UTC_FIXED_V1"
     assert pipeline.list_bars(timeframe="1d", bucket_policy="UTC_FIXED_V1") == []
+
+def test_utc_fixed_one_second_input_keeps_every_intraday_timeframe_available():
+    """The UTC-fixed intraday chain remains usable without a paid provider."""
+    _, pipeline, *_ = make_service()
+    aggregator = Aggregator(pipeline)
+    first = base_bar(
+        0, "100", "101", "99", "100", 1, 1,
+        bucket_policy="UTC_FIXED_V1",
+    )
+
+    feed(pipeline, aggregator, first)
+
+    intraday_timeframes = [
+        tf for tf in FIXED_INTERVAL_SECONDS if tf != "1d"
+    ]
+    for timeframe in intraday_timeframes:
+        bars = pipeline.list_bars(
+            timeframe=timeframe, bucket_policy="UTC_FIXED_V1"
+        )
+        assert len(bars) == 1, timeframe
+        assert bars[0].ts_start_ns == bucket_start_ns(T0, timeframe)
+        assert bars[0].origin == "derived"
+    # Session-dependent higher periods must not be invented from UTC buckets.
+    for timeframe in ("1d", "1w", "1M", "3M"):
+        assert pipeline.list_bars(
+            timeframe=timeframe, bucket_policy="UTC_FIXED_V1"
+        ) == []
