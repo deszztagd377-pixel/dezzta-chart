@@ -88,7 +88,10 @@ class RedisSharedGuard:
             websocket_per_account_limit,
             websocket_lease_seconds,
         )
-        if any(value < 1 for value in limits):
+        if any(
+            not isinstance(value, int) or isinstance(value, bool) or value < 1
+            for value in limits
+        ):
             raise ValueError("Shared guard limits must all be positive integers.")
 
         self.http_per_client_per_minute = http_per_client_per_minute
