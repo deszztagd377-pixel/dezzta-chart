@@ -170,16 +170,34 @@ class SessionCalendar:
     records: Mapping[date, SessionRecord]
 
     def __post_init__(self) -> None:
+        text_fields = {
+            "calendar_id": self.calendar_id,
+            "version": self.version,
+            "product_family": self.product_family,
+            "source_id": self.source_id,
+            "source_url": self.source_url,
+            "checksum": self.checksum,
+        }
+        if any(not isinstance(value, str) or not value.strip()
+               for value in text_fields.values()):
+            raise InvalidSessionCalendar("Calendar identity and provenance fields must be non-empty strings.")
         if self.calendar_id not in CALENDAR_BY_FAMILY:
             raise InvalidSessionCalendar("Unsupported CME calendar identifier.")
         if self.product_family not in CALENDAR_BY_FAMILY[self.calendar_id]:
             raise InvalidSessionCalendar("Product family does not match calendar identifier.")
-        if not self.version.strip() or not self.source_id.strip() or not self.source_url.startswith("https://"):
+        if not self.source_url.startswith("https://"):
             raise InvalidSessionCalendar("Version and HTTPS source provenance are required.")
-        if not self.checksum.strip():
-            raise InvalidSessionCalendar("An immutable source checksum is required.")
+        if (
+            not isinstance(self.effective_start, date)
+            or isinstance(self.effective_start, datetime)
+            or not isinstance(self.effective_end, date)
+            or isinstance(self.effective_end, datetime)
+        ):
+            raise InvalidSessionCalendar("Calendar effective bounds must be dates, not datetimes.")
         if self.effective_end < self.effective_start:
             raise InvalidSessionCalendar("Calendar effective range is reversed.")
+        if not isinstance(self.published_at_utc, datetime):
+            raise InvalidSessionCalendar("Publication timestamp must be a datetime.")
         if self.published_at_utc.tzinfo is None or self.published_at_utc.utcoffset() is None:
             raise InvalidSessionCalendar("Publication timestamp must be timezone-aware.")
         if self.published_at_utc.utcoffset() != timedelta(0):
