@@ -22,6 +22,11 @@ def test_production_requires_shared_redis_guard():
         make_settings(app_env="production", firebase_project_id="dezzta-prod")
 
 
+def test_production_environment_name_is_normalized_before_security_checks():
+    with pytest.raises(ValueError, match="REDIS_URL is required"):
+        make_settings(app_env=" Production ", firebase_project_id="dezzta-prod")
+
+
 def test_production_requires_firebase_project_id():
     with pytest.raises(ValueError, match="FIREBASE_PROJECT_ID is required"):
         make_settings(
