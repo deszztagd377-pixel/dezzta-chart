@@ -1,9 +1,9 @@
 # Stage 1 — WebSocket Reliability and Market-Data Integrity Blueprint
 
-Status: owner-approved design objectives; implementation remains gated on owner review of this blueprint and a threat-model review.
+Status: owner-approved blueprint (2026-11-10). Durable outbox/replay implementation may proceed in reviewed increments. WebSocket-ticket code remains gated on a separate security review and passing threat-model tests.
 
 Branch: `phase-2/market-data-foundation`
-Baseline inspected: commit `93d144cc837be96ccb27a7bbb89d97be1b6035a3`
+Baseline inspected: commit `bb604521d37262bdeb6745111c012a088429863a`
 
 ## 1. Non-negotiable requirements
 
@@ -88,8 +88,8 @@ Record environment, workload, commit SHA, data source, result distributions, and
 
 ## 9. Implementation gates
 
-1. Owner reviews this blueprint and confirms the replay cursor model, outbox retention policy, and ticket necessity.
-2. Security review approves the ticket threat model and storage/atomic-consumption design before any ticket code is added.
+1. **Complete — owner approved this blueprint on 2026-11-10**, including the replay cursor model, outbox retention policy, benchmark plan, and ticket threat model.
+2. **Still required before ticket code:** independent security review of the ticket threat model and storage/atomic-consumption design, followed by fail-closed regression tests.
 3. Benchmark baseline and deployment topology are documented before choosing SQLite-only or a separate broker.
 4. Implement in small migrations with rollback strategy, bounded storage, fail-closed behavior, and regression tests.
 5. Re-run CI, CodeQL, container smoke/Trivy, and crash/restart/replay tests on the exact candidate commit.
