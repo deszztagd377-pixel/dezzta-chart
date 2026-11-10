@@ -62,13 +62,14 @@ def test_snapshot_registration_is_atomic_boundary_for_following_updates() -> Non
 
         second = make_bar(1)
         assert pipeline.apply(second) == "inserted"
-        hub.publish(second, durable_cursor=42)
+        hub.publish(second, durable_cursor=42, durable_event_id="durable-event-42")
 
         update = subscription.queue.get_nowait()
         assert update["type"] == "market_data.ohlcv.update"
         assert update["streamId"] == subscription.stream_id
         assert update["sequence"] == 1
         assert update["cursor"] == 42
+        assert update["eventId"] == "durable-event-42"
         assert subscription.durable_cursor == 42
         assert update["bar"]["tsStartNs"] == str(_T0 + _NS)
         assert update["bar"]["tsProviderOutNs"] == str(_T0 + _NS + 925_000_000)
