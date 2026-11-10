@@ -20,7 +20,7 @@ export type OhlcvSupervisorStatus =
   | 'stopped';
 
 export interface OhlcvStreamSupervisorOptions
-  extends Omit<OhlcvStreamOptions, 'token' | 'onSnapshot' | 'onUpdate' | 'onStatus' | 'onError' | 'onClose'> {
+  extends Omit<OhlcvStreamOptions, 'token' | 'onSnapshot' | 'onUpdate' | 'onStatus' | 'onError' | 'onClose' | 'onCursor'> {
   /** Must return a fresh Firebase ID token; called again for every reconnect. */
   getIdToken: () => Promise<string>;
   minReconnectDelayMs?: number;
@@ -73,6 +73,7 @@ export function startOhlcvStreamSupervisor(
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   let connection: OhlcvStreamConnection | null = null;
   let attempt = 0;
+  let resumeCursor = options.resumeCursor;
 
   const setStatus = (next: OhlcvSupervisorStatus) => {
     currentStatus = next;
@@ -85,7 +86,9 @@ export function startOhlcvStreamSupervisor(
     const jitter = 0.5 + Math.min(1, Math.max(0, random())) * 0.5;
     const delay = Math.max(1, Math.floor(exponential * jitter));
     attempt += 1;
-    resetMarketDataSnapshot(options.identity, 'loading', 'Stream interrupted; obtaining a fresh authenticated snapshot.');
+    // Preserve the last validated chart state while reconnecting. The next
+    // socket resumes from its durable cursor; only an explicit resnapshot
+    // response replaces the local window.
     setStatus('reconnecting');
     reconnectTimer = setTimeout(() => {
       reconnectTimer = null;
@@ -107,6 +110,10 @@ export function startOhlcvStreamSupervisor(
       connection = connectOhlcvStream({
         ...options,
         token,
+        resumeCursor,
+        onCursor: (cursor) => {
+          resumeCursor = cursor;
+        },
         onSnapshot: (snapshot, candles) => {
           if (stopped) return;
           if (snapshot.state === 'unavailable' || candles.length === 0) {
@@ -128,6 +135,7 @@ export function startOhlcvStreamSupervisor(
         },
         onUpdate: (_event, candle) => {
           if (stopped) return;
+          if (_event.cursor !== undefined) resumeCursor = _event.cursor;
           const current = getMarketDataSnapshot();
           if (current.source === 'backend' && sameIdentity(current.identity, options.identity)) {
             publishMarketDataUpdate({ identity: options.identity, bar: candle });
