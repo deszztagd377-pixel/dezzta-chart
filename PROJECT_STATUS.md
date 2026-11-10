@@ -7,7 +7,7 @@ Repository: deszztagd377-pixel/dezzta-chart
 Baseline branch: main
 Baseline main HEAD: e3841681bc69b73619058deaf939df82ae5116a1
 Working branch: phase-2/market-data-foundation
-Latest working-branch HEAD: 25d46d9ab4699d8924865eaf19680464cfaf691e (documentation-only commit)
+Latest CI-verified checkpoint: 25d46d9ab4699d8924865eaf19680464cfaf691e (documentation-only commit; CI #807 and CodeQL #165 passed)
 Audited application-source baseline: 436f8b374b8bf5ef1ef4b51944f0c99603acd12c
 `main` remains the protected baseline and is not a work target.
 
