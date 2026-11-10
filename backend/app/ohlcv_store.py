@@ -587,7 +587,7 @@ class SQLiteOhlcvStore:
                 f'%"tsStartNs":"{bar.ts_start_ns}"%',
                 f'%"tsEventNs":"{bar.ts_event_ns}"%',
                 f'%"tsReceivedNs":"{bar.ts_received_ns}"%',
-                f'%"sequence":{bar.sequence}%',
+                f'%"sequence":{bar.sequence},"sequenceOrigin"%',
             )
             row = db.execute(
                 """SELECT cursor,event_id,event_json FROM ohlcv_outbox
