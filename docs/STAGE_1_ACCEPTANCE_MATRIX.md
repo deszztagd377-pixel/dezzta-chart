@@ -91,3 +91,13 @@ The following CI evidence is recorded for the current checkpoint:
 - This is CI evidence for the listed repository checks only. It does **not** prove real Firebase project integration, managed Redis provider configuration, production volume provisioning, encrypted off-site backup/restore, deployed HTTPS/WSS, external monitoring/alert delivery, or owner approval of the remaining design scope.
 
 The CI workflow succeeding does not change the external acceptance status above. Stage 1 remains **not production-accepted** until every required external gate and the owner-reviewed design decision have reproducible evidence.
+
+## Latest verified checkpoint — 2026-11-10
+
+- Release-candidate branch: `phase-2/market-data-foundation`
+- Commit: `969e5c9868c79006a1efc632a307cf8873ef03ad`
+- Automated Tests & Build: [run 42804110006](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42804110006) — **success**.
+- Verified workflow steps: frontend dependency install/audit, frontend unit tests/build, frontend bundle secret-scanner test and production-bundle credential scan, backend dependency install/pytest/audit, Docker image build, Redis + persistent-volume container smoke test, Trivy container scan, vulnerability-report export and upload.
+- CodeQL Security Analysis: [run 42804110246](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42804110246) — **success** for both JavaScript/TypeScript and Python analysis jobs.
+- The latest code change is documentation-only: it aligns the deployment guide's production startup example and hosting configuration with the already-required `FIREBASE_PROJECT_ID` setting. No runtime code was changed by this commit.
+- These green workflows provide repository CI and static-analysis evidence for this exact commit. They do not satisfy the external deployment, managed Redis/Firebase integration, backup encryption/restore, production WSS, monitoring/alerting, or owner-approval gates listed above. Stage 1 therefore remains **not production-accepted**.
