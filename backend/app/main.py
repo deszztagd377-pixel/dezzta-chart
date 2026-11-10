@@ -816,9 +816,21 @@ def create_app(
                         queued_cursor = queued.get("cursor")
                         if not isinstance(queued_cursor, int) or queued_cursor > replay_end_cursor:
                             pending_live.append(queued)
+                    # Re-sequence retained live notifications after the replay
+                    # batch. This also handles a notification queued before the
+                    # replay boundary was finalized without creating a sequence gap.
+                    next_live_sequence = len(replay_events)
                     for queued in pending_live:
+                        next_live_sequence += 1
+                        queued["streamId"] = subscription.stream_id
+                        queued["sequence"] = next_live_sequence
                         subscription.queue.put_nowait(queued)
-                    subscription.durable_cursor = max(subscription.durable_cursor, replay_end_cursor)
+                    subscription.watermark = next_live_sequence
+                    subscription.durable_cursor = max(
+                        subscription.durable_cursor,
+                        replay_end_cursor,
+                        *(int(item["cursor"]) for item in pending_live if isinstance(item.get("cursor"), str) and item["cursor"].isdigit()),
+                    )
                 else:
                     if request_cursor is not None:
                         await websocket.send_json({
