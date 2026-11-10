@@ -114,7 +114,10 @@ class Settings:
             self.websocket_connection_limit_global,
             self.websocket_connection_limit_per_account, self.websocket_lease_seconds,
         )
-        if any(value < 1 for value in limits):
+        if any(
+            not isinstance(value, int) or isinstance(value, bool) or value < 1
+            for value in limits
+        ):
             raise ValueError("Shared security guard limits must be positive integers.")
 
     @property
