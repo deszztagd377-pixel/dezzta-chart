@@ -77,7 +77,7 @@ export function parseOhlcvStreamUpdate(payload: unknown): OhlcvStreamUpdateMessa
     throw new Error('OHLCV stream event requires streamId and eventId.');
   }
   if (payload.cursor !== undefined &&
-      (typeof payload.cursor !== 'string' || !/^\\d+$/.test(payload.cursor))) {
+      (typeof payload.cursor !== 'string' || !/^\d+$/.test(payload.cursor))) {
     throw new Error('OHLCV durable cursor must be an unsigned decimal string.');
   }
   if (!isPositiveSafeInteger(payload.sequence)) {
