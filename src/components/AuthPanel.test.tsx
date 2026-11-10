@@ -49,6 +49,14 @@ describe('AuthPanel status presentation', () => {
     expect(markup).not.toContain('SIGNED OUT');
   });
 
+  it('disables every sign-in action while Firebase is not configured', () => {
+    const markup = renderToStaticMarkup(<AuthPanel />);
+    const actionButtons = [...markup.matchAll(/<button\\b[^>]*>/g)].map(([button]) => button);
+
+    expect(actionButtons).toHaveLength(3);
+    expect(actionButtons.every((button) => button.includes('disabled=""'))).toBe(true);
+  });
+
   it('shows signed-in state when the provider has an authenticated user', () => {
     authMocks.useAuth.mockReturnValue({
       ...baseAuth,
