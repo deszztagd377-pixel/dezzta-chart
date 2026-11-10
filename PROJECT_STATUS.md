@@ -7,21 +7,21 @@ Repository: deszztagd377-pixel/dezzta-chart
 Baseline branch: main
 Baseline main HEAD: e3841681bc69b73619058deaf939df82ae5116a1
 Working branch: phase-2/market-data-foundation
-Latest CI-verified checkpoint: 70f3edc0d18c977cd6db59a208c2758a7ca2442f (CI #810 and CodeQL #168 passed)
+Latest completed CI/CodeQL/Vercel-verified checkpoint: a10414984b78e4782c127b3feb30ae498ddc0c07 (CI #811, CodeQL #169, and Vercel passed)
 Audited application-source baseline: 436f8b374b8bf5ef1ef4b51944f0c99603acd12c
 `main` remains the protected baseline and is not a work target.
 
-## Latest exact-HEAD follow-up — 2026-11-10
+## Latest completed CI checkpoint — 2026-11-10
 
-- Verified working-branch HEAD: `70f3edc0d18c977cd6db59a208c2758a7ca2442f` on `phase-2/market-data-foundation`; the branch ref resolves to this exact commit. Protected `main` remains `e3841681bc69b73619058deaf939df82ae5116a1`.
-- Automated Tests [#810](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42735600944) completed successfully on this exact HEAD. All 25 listed job steps passed, including frontend install/audit/tests/build and bundle-secret scanning; backend install/tests/audit; container build; Redis-backed shared-guard and mounted-volume/restart smoke; Trivy HIGH/CRITICAL scan; report export/upload; and cleanup.
-- CodeQL [#168](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42735601127) completed successfully on the same exact HEAD for Python and JavaScript/TypeScript. Successful analysis does not prove zero CodeQL alerts.
-- Vercel reported success for this exact commit: [deployment](https://vercel.com/deszztagd377-pixel/dezzta-chart/4nGPg83FAgqy7vbdnWJbEPDNZzMg). This is frontend deployment evidence only.
+- Verified working-branch HEAD: `a10414984b78e4782c127b3feb30ae498ddc0c07` on `phase-2/market-data-foundation`; the branch ref resolves to this exact commit. Protected `main` remains `e3841681bc69b73619058deaf939df82ae5116a1`.
+- Automated Tests [#811](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42736356065) completed successfully on this exact HEAD. All 25 listed job steps passed, including frontend install/audit/tests/build and bundle-secret scanning; backend install/tests/audit; container build; Redis-backed shared-guard and mounted-volume/restart smoke; Trivy HIGH/CRITICAL scan; report export/upload; and cleanup.
+- CodeQL [#169](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42736356177) completed successfully on the same exact HEAD for Python and JavaScript/TypeScript. Successful analysis does not prove zero CodeQL alerts.
+- Vercel reported success for this exact commit according to the GitHub combined commit status. This is frontend deployment evidence only; the exact deployment URL was not separately retrieved in this audit.
 - No failed CI or CodeQL job step was found in the exact-HEAD run summaries. The successful CI container smoke verifies an isolated ephemeral Redis and test volume; it does not verify the actual production Fly Volume, managed Redis network/failover, external backup/restore, production Firebase project, or deployed Android/web market-data session.
-- This checkpoint changes no application runtime code, database schema, production credentials, production infrastructure, or provider configuration. The previous 2026-11-10 checkpoint below remains as historical evidence.
+- This checkpoint changes no application runtime code, database schema, production credentials, production infrastructure, or provider configuration. The prior `70f3edc` checkpoint and its CI #810 / CodeQL #168 results remain historical evidence below.
 - Stage 1 remains **75.00% provisional** under the historical equal-weight ten-group method. The six production acceptance gates and owner approval of scoring criteria remain open; CI, CodeQL, and Vercel success do not close those gates or justify a percentage increase.
 
-## Previous exact-HEAD follow-up — 2026-11-10
+## Previous exact-HEAD follow-up — 2026-11-10 (70f3edc / CI #810)
 
 - Latest verified working-branch commit: `25d46d9ab4699d8924865eaf19680464cfaf691e`, message `docs(stage-1): record latest exact-head CI verification`. Its diff changes only `PROJECT_STATUS.md`; the audited application-source baseline remains `436f8b374b8bf5ef1ef4b51944f0c99603acd12c`.
 - Automated Tests [#807](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42646491732) completed successfully for this checkpoint. The Test and Build job completed all 25 listed steps successfully: frontend dependency install/audit, unit tests, production build, bundle-secret scanner tests and production bundle scan; backend dependency install/tests/audit; container build; Redis/shared-guard and persistent-volume/restart smoke; Trivy scan; vulnerability-report export/upload; and cleanup.
