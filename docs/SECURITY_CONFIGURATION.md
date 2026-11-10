@@ -105,7 +105,8 @@ requires verified identity and instrument entitlement.
 - [ ] Confirm backend secrets are configured only in the deployment secret store.
 - [ ] Verify HTTPS/WSS, trusted Origin allowlist, and deployment headers.
 - [ ] Decide whether health, status, and instrument-catalogue endpoints are public.
-- [ ] Smoke-test Firebase sign-in, token refresh, expiry, and revocation against the production Firebase project and runtime Admin credentials.
+- [x] Implement server-side Firebase Admin ID-token verification with project issuer/audience checks, bounded token input, revocation checking, normalized errors, and unit coverage for invalid claims and SDK initialization.
+- [ ] Smoke-test Firebase sign-in, token refresh, expiry, and revocation against the production Firebase project and runtime Admin credentials; repository unit tests do not replace this deployed end-to-end verification.
 - [ ] Test HTTP and WebSocket entitlement denial, revocation, reconnect, and
       exact instrument/timeframe switching.
 - [x] Implement Redis-backed HTTP rate limits, WebSocket connection caps/leases, bounded query and WebSocket fields, and per-connection ping limits; unit coverage exists for the shared-guard behavior.
