@@ -617,15 +617,20 @@ def create_app(
                 if not isinstance(request, dict) or request.get("type") != "market_data.subscribe" or request.get("version") != 1:
                     await websocket.close(code=4400, reason="A version 1 OHLCV subscription is required")
                     return
-                request_cursor = request.get("cursor")
-                if "cursor" in request and (
-                    not isinstance(request_cursor, int)
-                    or isinstance(request_cursor, bool)
-                    or request_cursor < 0
-                    or request_cursor > MAX_SQLITE_CURSOR
-                ):
-                    await websocket.close(code=4400, reason="Invalid durable replay cursor")
-                    return
+                cursor_value = request.get("cursor")
+                request_cursor: int | None = None
+                if "cursor" in request:
+                    if (
+                        not isinstance(cursor_value, str)
+                        or not cursor_value.isdigit()
+                        or len(cursor_value) > 19
+                    ):
+                        await websocket.close(code=4400, reason="Invalid durable replay cursor")
+                        return
+                    request_cursor = int(cursor_value)
+                    if request_cursor > MAX_SQLITE_CURSOR:
+                        await websocket.close(code=4400, reason="Invalid durable replay cursor")
+                        return
                 identity = request.get("series")
                 if not isinstance(identity, dict):
                     await websocket.close(code=4400, reason="Exact OHLCV series identity is required")
@@ -776,17 +781,27 @@ def create_app(
                         "type": "market_data.ohlcv.replay_started",
                         "version": 1,
                         "fromCursor": request_cursor,
-                        "throughCursor": replay_end_cursor,
+                        "throughCursor": str(replay_end_cursor),
+                        "streamId": subscription.stream_id,
                         "count": len(replay_events),
                         "cursorScope": "global-outbox-filtered-by-exact-series",
                     })
-                    for event in replay_events:
+                    # Seed the stream-local sequence before yielding to the
+                    # socket; live events queued during replay continue at N+1.
+                    subscription.watermark = len(replay_events)
+                    for replay_sequence, event in enumerate(replay_events, start=1):
+                        replay_bar = event.get("bar", {})
+                        event["streamId"] = subscription.stream_id
+                        event["sequence"] = replay_sequence
+                        event["emittedAtNs"] = str(time.time_ns())
+                        event["isFinal"] = isinstance(replay_bar, dict) and replay_bar.get("completeness") == "complete"
+                        event["cursor"] = str(event["cursor"])
                         event["replayed"] = True
                         await websocket.send_json(event)
                     await websocket.send_json({
                         "type": "market_data.ohlcv.replay_complete",
                         "version": 1,
-                        "cursor": replay_end_cursor,
+                        "cursor": str(replay_end_cursor),
                         "count": len(replay_events),
                     })
                     # Any notification at or below the replay boundary is
@@ -821,7 +836,7 @@ def create_app(
                         "detail": None if snapshot_bars else "No validated bars match this exact series yet.",
                         "streamId": subscription.stream_id,
                         "watermark": subscription.watermark,
-                        "cursor": subscription.durable_cursor,
+                        "cursor": str(subscription.durable_cursor),
                         "cursorScope": "global-outbox-filtered-by-exact-series",
                         "bars": [
                             {
