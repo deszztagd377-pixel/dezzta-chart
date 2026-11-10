@@ -79,3 +79,15 @@ This matrix separates repository implementation from evidence that must come fro
 - An owner-reviewed decision for the remaining replay/benchmark/ticket-exchange scope.
 
 **Current disposition:** Stage 1 is not production-accepted. The branch contains substantial implementation and regression coverage, but external acceptance evidence listed above is still outstanding. A green frontend deployment check alone does not satisfy these gates.
+
+## Recorded CI evidence
+
+The following CI evidence is recorded for the current checkpoint:
+
+- Commit: `fcfa7c9c59520d55cba4554a6d4a9f45ba3ed26d`
+- Workflow run: [DEZZTA CHART — Automated Tests](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42801624127)
+- Run conclusion: **success** (2026-11-10)
+- Verified workflow steps: frontend dependency install/audit, frontend unit tests/build, frontend bundle secret-scanner test and production-bundle credential scan, backend dependency install/pytest/audit, Docker image build, Redis + persistent-volume container smoke test, Trivy container scan, vulnerability-report export and upload.
+- This is CI evidence for the listed repository checks only. It does **not** prove real Firebase project integration, managed Redis provider configuration, production volume provisioning, encrypted off-site backup/restore, deployed HTTPS/WSS, external monitoring/alert delivery, or owner approval of the remaining design scope.
+
+The CI workflow succeeding does not change the external acceptance status above. Stage 1 remains **not production-accepted** until every required external gate and the owner-reviewed design decision have reproducible evidence.
