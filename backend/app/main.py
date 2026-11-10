@@ -722,12 +722,6 @@ def create_app(
                     limit=max_ohlcv_response_bars,
                     durable_cursor=snapshot_cursor,
                 )
-                feed_state = provider.state
-                snapshot_state = (
-                    "unavailable" if not snapshot_bars
-                    else "degraded" if feed_state in ("degraded", "recovering")
-                    else "ready"
-                )
                 replay_events: list[dict[str, object]] = []
                 replay_fallback_reason: str | None = None
                 replay_end_cursor = snapshot_cursor
@@ -815,7 +809,7 @@ def create_app(
                             "requestedCursor": request_cursor,
                             "snapshotCursor": snapshot_cursor,
                         })
-                                        await websocket.send_json({
+                    await websocket.send_json({
                         "type": "market_data.ohlcv.snapshot",
                         "version": 1,
                         "state": snapshot_state,
