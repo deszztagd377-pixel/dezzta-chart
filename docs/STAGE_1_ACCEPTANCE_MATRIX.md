@@ -205,10 +205,12 @@ This is an additional operational/functional acceptance track; it does not chang
 - Checklist accounting remains 30/40 with 10 external production verification gates outstanding. Market-data provider, symbol-universe, SDK, calendar-aware timeframe, and latency requirements remain additional functional acceptance blockers. Stage 1 remains **not production-accepted**.
 
 
-## Additional functional acceptance gate — session-aware timeframe derivation
+## Stage 1 integrated functional workstream — session-aware timeframe derivation
 
-This gate is separate from the 40 production checklist items above. The current CME-session aggregator remains fail-closed because the calendar artifact has one open/close pair per trading date and does not yet encode explicit tradable segments and intraday breaks as first-class records.
+This is an additional functional acceptance track **inside Stage 1**, not a separate stage and not a replacement for any of the 40 production checklist criteria. The owner approved the engineering blueprint on 2026-11-10 for staged implementation.
 
-- Owner-review proposal: [SESSION_AWARE_AGGREGATION_BLUEPRINT.md](SESSION_AWARE_AGGREGATION_BLUEPRINT.md).
-- The proposal covers an exact-version bucket resolver, explicit session segments/breaks, DST/holiday/early-close handling, deterministic revisions, full timeframe test matrix, and staged fail-closed rollout.
-- **Not implemented and not approved yet.** Do not remove the CME-session derivation skip or claim all futures timeframes until the owner decisions in the blueprint are resolved and the required tests/production evidence pass.
+- Approved engineering basis: [SESSION_AWARE_AGGREGATION_BLUEPRINT.md](SESSION_AWARE_AGGREGATION_BLUEPRINT.md).
+- Current CME-session aggregator remains fail-closed. The calendar artifact still needs explicit tradable segments and intraday breaks; bucket alignment must be grounded in authoritative exchange specifications.
+- This workstream must be completed and tested before claiming supported futures timeframes. Approval alone does not mark it complete or production-ready.
+- The 10 external production gates remain outstanding independently. The 40-point matrix will not be reduced or marked complete merely because this workstream is approved.
+
