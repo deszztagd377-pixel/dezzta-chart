@@ -431,12 +431,15 @@ describe('AuthProvider fail-closed action boundary', () => {
     return context;
   }
 
-  it.each([
-    ['email sign-in', (context: Awaited<ReturnType<typeof renderActionContext>>) => context.signInEmail('user@example.test', 'password')],
-    ['email registration', (context: Awaited<ReturnType<typeof renderActionContext>>) => context.registerEmail('user@example.test', 'password')],
-    ['Google redirect', (context: Awaited<ReturnType<typeof renderActionContext>>) => context.signInGoogle()],
-    ['sign-out', (context: Awaited<ReturnType<typeof renderActionContext>>) => context.signOutUser()],
-  ])('does not call Firebase SDK for %s when client configuration is absent', async (_label, invoke) => {
+  type AuthAction = (context: Awaited<ReturnType<typeof renderActionContext>>) => Promise<void>;
+  const actions: Array<[string, AuthAction]> = [
+    ['email sign-in', (context) => context.signInEmail('user@example.test', 'password')],
+    ['email registration', (context) => context.registerEmail('user@example.test', 'password')],
+    ['Google redirect', (context) => context.signInGoogle()],
+    ['sign-out', (context) => context.signOutUser()],
+  ];
+
+  it.each(actions)('does not call Firebase SDK for %s when client configuration is absent', async (_label, invoke) => {
     firebaseMocks.isFirebaseConfigured.mockReturnValue(false);
     firebaseMocks.getFirebaseAuth.mockReturnValue(null);
     const context = await renderActionContext();
@@ -449,12 +452,7 @@ describe('AuthProvider fail-closed action boundary', () => {
     expect(firebaseMocks.signOut).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ['email sign-in', (context: Awaited<ReturnType<typeof renderActionContext>>) => context.signInEmail('user@example.test', 'password')],
-    ['email registration', (context: Awaited<ReturnType<typeof renderActionContext>>) => context.registerEmail('user@example.test', 'password')],
-    ['Google redirect', (context: Awaited<ReturnType<typeof renderActionContext>>) => context.signInGoogle()],
-    ['sign-out', (context: Awaited<ReturnType<typeof renderActionContext>>) => context.signOutUser()],
-  ])('does not call Firebase SDK for %s when app resolution throws', async (_label, invoke) => {
+  it.each(actions)('does not call Firebase SDK for %s when app resolution throws', async (_label, invoke) => {
     firebaseMocks.getFirebaseAuth.mockImplementation(() => {
       throw new Error('private Firebase initialization detail');
     });
