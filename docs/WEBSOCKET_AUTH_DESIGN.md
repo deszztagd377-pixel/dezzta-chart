@@ -51,7 +51,7 @@ The client must validate the server snapshot and its stream ID/watermark before 
 - A real Firebase project and authorized test accounts must be used to verify valid, expired, revoked, and wrong-project signed tokens end to end. Existing injected-verifier tests are not a substitute.
 - The `AuthPanel` is mounted through `SettingsPanel` and is covered by `AuthPanel.test.tsx`; `AuthProvider` observer lifecycle is covered by `AuthProvider.dom.test.tsx`. Deployed Firebase account/session behavior and real signed-token E2E remain unverified.
 - The client currently sends Firebase ID tokens directly in the initial WebSocket auth frame. A separate short-lived, narrowly scoped WebSocket ticket and signing-key lifecycle have not been implemented; decide whether this additional exchange is required by the production threat model before deployment.
-- A long-lived connection is rechecked for instrument entitlement and mapping every 60 seconds. Firebase token expiry/revocation during an established connection still requires a bounded connection-lifetime/re-authentication policy.
+- A long-lived connection re-verifies the same Firebase ID token (including expiry and revocation) and rechecks instrument entitlement/mapping every 60 seconds. If the token expires, is revoked, the identity changes, or verification is unavailable, the server closes the connection; the client must obtain a fresh token and reconnect. This bounded revalidation is implemented in the WebSocket loop, but has not yet been verified against a real Firebase project.
 - No public backend deployment, real provider feed, or end-to-end client connection against production infrastructure is verified.
 
 Do not enable production frontend streaming until the real-token E2E, visible auth flow, connection-lifetime policy, TLS deployment, and operational controls have been reviewed and tested.
@@ -71,7 +71,7 @@ Do not enable production frontend streaming until the real-token E2E, visible au
 - Superseded by the 2026-11-09 source audit: the Firebase sign-in/session panel is available in Settings, and the frontend WebSocket client/stream supervisor is integrated with `AuthProvider` and the shared market-data store. This is code-level integration only; deployed end-to-end behavior remains unverified.
 - Verified futures-definition ingestion must populate canonical instruments and point-in-time provider mappings before a user can be granted access to a contract. The offline ES/NQ/GC fixture is not sufficient to authorize a live subscription.
 - No production Firebase project credentials, real user session, provider feed, deployed backend, or end-to-end client connection has been validated in this change.
-- A long-lived connection is rechecked for instrument entitlement and mapping every 60 seconds. Firebase token expiry/revocation during an established connection still requires a bounded connection-lifetime/re-authentication policy before production deployment.
+- A long-lived connection re-verifies the same Firebase ID token (including expiry and revocation) and rechecks instrument entitlement/mapping every 60 seconds. If the token expires, is revoked, the identity changes, or verification is unavailable, the server closes the connection; the client must obtain a fresh token and reconnect. This bounded revalidation is implemented in the WebSocket loop, but has not yet been verified against a real Firebase project.
 
 
 ## 2026-11-09 source-audit reconciliation
@@ -84,6 +84,6 @@ The following corrections supersede earlier statements in this document that des
 - `src/components/AuthPanel.test.tsx` covers the panel's configured/unconfigured, error, and signed-in presentation states.
 - `src/auth/AuthProvider.dom.test.tsx` covers observer mount, signed-in/signed-out transitions, error handling, cleanup, StrictMode behavior, initialization failure, and unconfigured Firebase.
 - The chart's stream supervisor obtains Firebase ID tokens through `AuthProvider`, requests a fresh token on reconnect, validates snapshots and sequence continuity, and publishes accepted data through the shared market-data store. This is code-level integration, not proof of a deployed backend or live provider connection.
-- Still open: real Firebase signed-token E2E (valid, expired, revoked, wrong-project); production credential discovery and session behavior; an approved scoped WebSocket-ticket/key-management design if required by the threat model; connection lifetime/re-authentication policy; and deployed HTTPS/WSS validation.
+- Still open: real Firebase signed-token E2E (valid, expired, revoked, wrong-project); production credential discovery and session behavior; an approved scoped WebSocket-ticket/key-management design if required by the threat model; and deployed HTTPS/WSS validation. The source-level 60-second token re-verification and entitlement recheck are implemented, but remain unproven against a real Firebase project and deployed backend.
 
 Do not treat the presence of UI components or mocked/injected unit tests as production authentication evidence. No production credentials or Firebase project settings were changed by this documentation correction.
