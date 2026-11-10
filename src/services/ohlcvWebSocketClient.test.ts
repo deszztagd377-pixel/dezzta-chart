@@ -141,6 +141,71 @@ describe('connectOhlcvStream', () => {
     expect(onUpdate.mock.calls[0][1].close).toBe(6001);
   });
 
+  it('resumes from a durable cursor and applies replay before switching to live updates', () => {
+    const socket = new FakeSocket();
+    const onSnapshot = vi.fn();
+    const onUpdate = vi.fn();
+    const onCursor = vi.fn();
+    const onError = vi.fn();
+    const connection = connectOhlcvStream({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      token: 'verified-token',
+      resumeCursor: '9007199254740993123',
+      onCursor,
+      webSocketFactory: () => socket as unknown as WebSocket,
+      onSnapshot,
+      onUpdate,
+      onError,
+    });
+    socket.readyState = 1;
+    socket.emit('open', new Event('open'));
+    socket.message({ type: 'market_data.status', version: 1 });
+    expect(JSON.parse(socket.sent[1])).toMatchObject({
+      type: 'market_data.subscribe',
+      cursor: '9007199254740993123',
+    });
+
+    socket.message({
+      type: 'market_data.ohlcv.replay_started',
+      version: 1,
+      streamId: 'stream-replay',
+      fromCursor: '9007199254740993123',
+      throughCursor: '9007199254740993124',
+      count: 1,
+    });
+    socket.message({
+      ...update,
+      streamId: 'stream-replay',
+      cursor: '9007199254740993124',
+      sequence: 1,
+      replayed: true,
+    });
+    expect(connection.state).toBe('authenticated');
+    expect(onUpdate).toHaveBeenCalledOnce();
+    expect(onCursor).toHaveBeenLastCalledWith('9007199254740993124');
+
+    socket.message({
+      type: 'market_data.ohlcv.replay_complete',
+      version: 1,
+      cursor: '9007199254740993124',
+      count: 1,
+    });
+    expect(connection.state).toBe('subscribed');
+    expect(onCursor).toHaveBeenLastCalledWith('9007199254740993124');
+
+    socket.message({
+      ...update,
+      streamId: 'stream-replay',
+      cursor: '9007199254740993125',
+      sequence: 2,
+    });
+    expect(onUpdate).toHaveBeenCalledTimes(2);
+    expect(onError).not.toHaveBeenCalled();
+    connection.close();
+  });
+
   it('does not let the handshake timeout close a stream after its snapshot is accepted', () => {
     vi.useFakeTimers();
     const { socket, onError, connection } = setup();
