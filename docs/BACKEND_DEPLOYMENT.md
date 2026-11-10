@@ -24,16 +24,18 @@ review before any real provider session is enabled.
 
 ## Container build and local smoke test
 
-Run from the repository root. Production now requires a managed Redis endpoint with TLS. Export its URL from your secret manager into the current shell without echoing it; the value must begin with `rediss://`.
+Run from the repository root. Production requires a managed Redis endpoint with TLS and a Firebase project ID. Export `REDIS_URL` and `FIREBASE_PROJECT_ID` from the appropriate backend configuration/secret manager into the current shell without echoing their values; `REDIS_URL` must begin with `rediss://`.
 
 ```sh
 : "${REDIS_URL:?Export the managed Redis TLS URL from your secret manager first}"
+: "${FIREBASE_PROJECT_ID:?Export the Firebase project ID for the backend first}"
 case "$REDIS_URL" in rediss://*) ;; *) echo "REDIS_URL must use rediss:// in production" >&2; exit 1 ;; esac
 
 docker build -f backend/Dockerfile -t dezzta-chart-backend:local backend
 docker run --rm -p 8000:8000 \
   -e APP_ENV=production \
   -e REDIS_URL \
+  -e FIREBASE_PROJECT_ID \
   -e CORS_ALLOWED_ORIGINS=https://dezzta-chart.vercel.app \
   dezzta-chart-backend:local
 ```
@@ -63,6 +65,7 @@ For a container-based Python web service, use:
 - Port: the platform-provided `PORT` environment variable (defaults to 8000)
 - `APP_ENV=production`
 - `CORS_ALLOWED_ORIGINS=https://dezzta-chart.vercel.app`
+- `FIREBASE_PROJECT_ID` supplied as backend-only configuration for the Firebase project used to verify ID tokens.
 - `REDIS_URL` supplied as a backend-only secret from managed Redis; require a `rediss://` TLS endpoint.
 
 Add any Vercel preview origins only when needed, as comma-separated exact
