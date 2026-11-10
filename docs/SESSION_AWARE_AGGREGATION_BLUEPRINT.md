@@ -1,6 +1,6 @@
 # Session-aware OHLCV timeframe aggregation — owner review blueprint
 
-Status: **PROPOSAL — NOT APPROVED FOR IMPLEMENTATION**
+Status: **OWNER-APPROVED BASIS — STAGED IMPLEMENTATION AUTHORIZED (2026-11-10)**
 
 Branch: `phase-2/market-data-foundation`
 
@@ -88,11 +88,16 @@ Property-based tests should additionally prove that generated buckets are ordere
 
 No all-pairs or all-timeframes LIVE claim is allowed until provider coverage and latency evidence exist for the configured instrument universe.
 
-## 6. Owner decisions required before implementation
+## 6. Owner decisions and implementation guardrails
 
-- Approve the proposed calendar artifact extension for explicit intraday tradable segments/breaks.
-- Approve the bucket alignment policy choice per calendar (segment-open aligned or exchange-defined clock grid), based on authoritative exchange rules.
-- Approve whether calendar-version corrections require backfill/reprocessing or immutable historical interpretation.
-- Approve the rollout gate: enable only verified calendar/timeframe combinations; all others remain fail-closed.
+- Owner approved this blueprint as the engineering basis for staged implementation on 2026-11-10.
+- The approval does not authorize guessed exchange rules. The bucket alignment policy must be selected from authoritative exchange specifications and recorded with source evidence before the resolver is enabled.
+- Calendar-version corrections must preserve immutable historical interpretation until an explicit migration/backfill policy is evidenced and reviewed.
+- Rollout is approved only for verified calendar/timeframe combinations; all others remain fail-closed.
 
-Until these decisions are reviewed, do not remove the CME-session aggregation skip or enable CME futures timeframe derivation.
+The CME-session aggregation skip must remain in place until the resolver, exact calendar provenance, integration tests, and per-timeframe evidence are complete. This approved workstream is part of Stage 1 acceptance, not a separate stage.
+
+
+## Owner approval record — 2026-11-10
+
+The project owner approved this blueprint as the basis for staged implementation and explicitly requested that session-aware aggregation be integrated into Stage 1 completion. Work must remain on `phase-2/market-data-foundation`; no change to `main` is authorized. Approval is not evidence that any calendar/timeframe is production-ready and does not waive tests or external provider verification.
