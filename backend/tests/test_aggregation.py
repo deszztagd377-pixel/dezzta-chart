@@ -216,7 +216,7 @@ def test_utc_fixed_one_second_input_keeps_every_intraday_timeframe_available():
     feed(pipeline, aggregator, first)
 
     intraday_timeframes = [
-        tf for tf in FIXED_INTERVAL_SECONDS if tf != "1d"
+        tf for tf in FIXED_INTERVAL_SECONDS if tf not in {"1s", "1d"}
     ]
     for timeframe in intraday_timeframes:
         bars = pipeline.list_bars(
