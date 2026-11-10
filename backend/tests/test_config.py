@@ -17,6 +17,36 @@ def make_settings(**overrides):
     return Settings(**values)
 
 
+@pytest.mark.parametrize(
+    "redis_url",
+    [
+        "http://redis.example.invalid:6379/0",
+        "redis://",
+        "redis://redis.example.invalid:not-a-port/0",
+        "redis://[::1",
+        "redis://redis.example.invalid:70000/0",
+    ],
+)
+def test_settings_rejects_malformed_redis_urls(redis_url):
+    with pytest.raises(ValueError, match="REDIS_URL is invalid|valid redis"):
+        make_settings(redis_url=redis_url)
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "http_rate_limit_per_client",
+        "http_rate_limit_global",
+        "websocket_connection_limit_global",
+        "websocket_connection_limit_per_account",
+        "websocket_lease_seconds",
+    ],
+)
+def test_shared_security_limits_reject_negative_values(field):
+    with pytest.raises(ValueError, match="must be positive"):
+        make_settings(**{field: -1})
+
+
 def test_production_environment_name_is_normalized_before_security_checks():
     with pytest.raises(ValueError, match="REDIS_URL is required"):
         make_settings(app_env=" Production ", firebase_project_id="dezzta-prod")
