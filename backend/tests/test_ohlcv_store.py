@@ -306,3 +306,113 @@ def test_concurrent_connections_preserve_all_ohlcv_writes(tmp_path):
     assert [bar.ts_start_ns for bar in rows] == [
         index * 60 * NS for index in range(workers * writes_per_worker)
     ]
+
+
+def _replay_args(**overrides):
+    values = {
+        "provider": "databento",
+        "dataset": "GLBX.MDP3",
+        "publisher_id": 1,
+        "instrument_id": 123,
+        "series_type": "contract",
+        "raw_symbol": "ESZ6",
+        "timeframe": "1m",
+        "bucket_policy": "UTC_LEGACY",
+        "calendar_id": "",
+        "calendar_version": "",
+    }
+    values.update(overrides)
+    return values
+
+
+def test_outbox_commits_atomically_with_bar_and_replays_exact_decimal_payload(tmp_path):
+    path = str(tmp_path / "outbox.sqlite3")
+    store = SQLiteOhlcvStore(path)
+    bar = make_bar(
+        start=60 * NS, event=1_790_000_000_123_456_789,
+        close="101.000000000000000001",
+        volume="12.500000000000000009",
+    )
+    assert store.apply(bar) == "inserted"
+    assert store.outbox_high_water() == 1
+
+    restarted = SQLiteOhlcvStore(path)
+    replay = restarted.replay_outbox(after_cursor=0, **_replay_args())
+    assert replay["status"] == "ok"
+    assert replay["next_cursor"] == 1
+    assert replay["high_water"] == 1
+    assert len(replay["events"]) == 1
+    event = replay["events"][0]
+    assert event["cursor"] == 1
+    assert event["eventId"]
+    assert event["bar"]["close"] == "101.000000000000000001"
+    assert event["bar"]["volume"] == "12.500000000000000009"
+    assert event["bar"]["tsEventNs"] == "1790000000123456789"
+
+
+def test_duplicate_stale_and_rejected_revisions_do_not_add_outbox_events(tmp_path):
+    store = SQLiteOhlcvStore(str(tmp_path / "outbox-dedupe.sqlite3"))
+    first = make_bar(event=100, sequence=1)
+    assert store.apply(first) == "inserted"
+    assert store.apply(first) == "duplicate"
+    assert store.apply(make_bar(event=99, sequence=99, close="99")) == "stale"
+    assert store.apply(make_bar(event=101, sequence=2, close="102", origin="derived")) == "provider_precedence"
+    assert store.outbox_high_water() == 1
+
+
+def test_outbox_failure_rolls_back_the_corresponding_bar_revision(tmp_path):
+    import sqlite3
+
+    path = str(tmp_path / "outbox-rollback.sqlite3")
+    store = SQLiteOhlcvStore(path)
+    with sqlite3.connect(path) as db:
+        db.execute(
+            """CREATE TRIGGER reject_outbox_insert BEFORE INSERT ON ohlcv_outbox
+            BEGIN SELECT RAISE(ABORT, 'outbox unavailable'); END"""
+        )
+    with pytest.raises(sqlite3.IntegrityError, match="outbox unavailable"):
+        store.apply(make_bar())
+    assert store.load_bars() == []
+    assert store.outbox_high_water() == 0
+
+
+def test_outbox_cursor_expiry_and_bounded_retention_force_resnapshot(tmp_path, monkeypatch):
+    import app.ohlcv_store as store_module
+
+    monkeypatch.setattr(store_module, "OUTBOX_MAX_EVENTS", 2)
+    store = SQLiteOhlcvStore(str(tmp_path / "outbox-retention.sqlite3"))
+    for index in range(3):
+        assert store.apply(make_bar(
+            start=index * 60 * NS, event=100 + index, sequence=index + 1,
+            close=str(101 + index),
+        )) == "inserted"
+
+    expired = store.replay_outbox(after_cursor=0, **_replay_args())
+    assert expired["status"] == "resnapshot_required"
+    assert expired["reason"] == "cursor_expired"
+    assert expired["retention_floor"] == 1
+    replay = store.replay_outbox(after_cursor=1, **_replay_args())
+    assert replay["status"] == "ok"
+    assert [event["cursor"] for event in replay["events"]] == [2, 3]
+    ahead = store.replay_outbox(after_cursor=4, **_replay_args())
+    assert ahead["status"] == "resnapshot_required"
+    assert ahead["reason"] == "cursor_ahead"
+
+
+def test_outbox_replay_isolated_by_complete_series_identity(tmp_path):
+    store = SQLiteOhlcvStore(str(tmp_path / "outbox-series.sqlite3"))
+    assert store.apply(make_bar()) == "inserted"
+    other = make_bar(
+        start=60 * NS, event=101, sequence=2, instrument_id=456,
+        raw_symbol="NQZ6",
+    )
+    assert store.apply(other) == "inserted"
+    es = store.replay_outbox(after_cursor=0, **_replay_args())
+    nq = store.replay_outbox(after_cursor=0, **_replay_args(
+        instrument_id=456, raw_symbol="NQZ6",
+    ))
+    assert len(es["events"]) == 1
+    assert es["events"][0]["bar"]["rawSymbol"] == "ESZ6"
+    assert len(nq["events"]) == 1
+    assert nq["events"][0]["bar"]["rawSymbol"] == "NQZ6"
+    assert es["next_cursor"] == nq["next_cursor"] == 2
