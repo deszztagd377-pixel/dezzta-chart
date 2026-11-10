@@ -224,6 +224,10 @@ def resolve_trading_date(
     calendar: SessionCalendar, trading_date: date
 ) -> SessionRecord | None:
     """Return an explicit record; None means UNKNOWN, not closed."""
+    if not isinstance(calendar, SessionCalendar):
+        raise TypeError("calendar must be a SessionCalendar.")
+    if not isinstance(trading_date, date) or isinstance(trading_date, datetime):
+        raise TypeError("trading_date must be a date, not a datetime.")
     if not calendar.effective_start <= trading_date <= calendar.effective_end:
         return None
     return calendar.records.get(trading_date)
@@ -231,6 +235,8 @@ def resolve_trading_date(
 
 def datetime_to_epoch_ns(value: datetime) -> int:
     """Convert an aware datetime to integer epoch nanoseconds without floats."""
+    if not isinstance(value, datetime):
+        raise TypeError("value must be a datetime.")
     if value.tzinfo is None or value.utcoffset() is None:
         raise ValueError("An aware datetime is required.")
     utc_value = value.astimezone(timezone.utc)
@@ -257,6 +263,10 @@ def lookup_instant(calendar: SessionCalendar, instant: datetime) -> SessionLooku
     reopen can be assigned to Monday's trading date without fixed-UTC offsets.
     No session is synthesized when the calendar lacks a required record.
     """
+    if not isinstance(calendar, SessionCalendar):
+        raise TypeError("calendar must be a SessionCalendar.")
+    if not isinstance(instant, datetime):
+        raise TypeError("instant must be a datetime.")
     if instant.tzinfo is None or instant.utcoffset() is None:
         raise ValueError("An aware instant is required.")
     local = instant.astimezone(CHICAGO)
@@ -331,7 +341,11 @@ def session_bucket_bounds(
     buckets use calendar months. Every date in the period must be explicitly
     represented, including closed dates, before bounds are returned.
     """
-    if timeframe not in {"1d", "1w", "1M", "3M"}:
+    if not isinstance(calendar, SessionCalendar):
+        raise TypeError("calendar must be a SessionCalendar.")
+    if not isinstance(trading_date, date) or isinstance(trading_date, datetime):
+        raise TypeError("trading_date must be a date, not a datetime.")
+    if not isinstance(timeframe, str) or timeframe not in {"1d", "1w", "1M", "3M"}:
         raise ValueError("Session buckets support only 1d, 1w, 1M, and 3M.")
     if timeframe == "1d":
         start_date = end_date = trading_date
