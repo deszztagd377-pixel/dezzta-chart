@@ -560,7 +560,8 @@ def test_lifespan_connects_a_fake_live_source_and_shuts_down_cleanly() -> None:
     assert FakeLive.stopped is True
 
 def test_websocket_authenticates_then_sends_exact_ohlcv_snapshot_with_watermark() -> None:
-    client = TestClient(_app_with_bars())
+    application = _app_with_bars()
+    client = TestClient(application)
     with client.websocket_connect("/ws/market-data") as websocket:
         websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
         status = websocket.receive_json()
@@ -584,7 +585,7 @@ def test_websocket_authenticates_then_sends_exact_ohlcv_snapshot_with_watermark(
         assert snapshot["state"] == "ready"
         assert snapshot["streamId"]
         assert snapshot["watermark"] == 0
-        assert snapshot["cursor"] == 0
+        assert snapshot["cursor"] == application.state.ohlcv_store.outbox_high_water()
         assert snapshot["cursorScope"] == "global-outbox-filtered-by-exact-series"
         assert snapshot["count"] == 4
         assert snapshot["bars"][-1]["tsStartNs"] == str(_T0 + 3 * _NS)
@@ -924,7 +925,8 @@ def test_websocket_normalizes_raw_symbol_for_snapshot_and_live_stream_identity()
         assert update["series"]["rawSymbol"] == "ESZ6"
         assert update["bar"]["rawSymbol"] == "ESZ6"
         assert update["sequence"] == 1
-        assert update["cursor"] == 1
+        assert update["cursor"] > snapshot["cursor"]
+        assert update["eventId"] == application.state.ohlcv_store.outbox_event_id(update["cursor"])
 
 
 def _open_authorized_websocket_subscription(application, client):
