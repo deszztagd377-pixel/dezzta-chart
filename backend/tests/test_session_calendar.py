@@ -337,3 +337,38 @@ def test_calendar_resolution_never_falls_back_to_another_version():
         canonical_future(),
         version="unavailable-release",
     ) is None
+
+
+@pytest.mark.parametrize("records", [
+    None,
+    [],
+    {date(2024, 3, 11): object()},
+    {datetime(2024, 3, 11, tzinfo=timezone.utc): session(
+        date(2024, 3, 11), "2024-03-10T17:00:00", "2024-03-11T16:00:00"
+    )},
+])
+def test_calendar_rejects_malformed_record_containers_and_entries(records):
+    with pytest.raises(InvalidSessionCalendar):
+        SessionCalendar(
+            calendar_id="CME_EQUITY_INDEX", version="2024.03.1", product_family="ES",
+            effective_start=date(2024, 3, 1), effective_end=date(2024, 3, 31),
+            source_id="official-cme-schedule-release",
+            source_url="https://www.cmegroup.com/trading-hours.html",
+            published_at_utc=datetime(2024, 2, 1, tzinfo=timezone.utc),
+            checksum="sha256:verified-release-digest", records=records,
+        )
+
+
+@pytest.mark.parametrize("trading_date,kind,open_local,close_local", [
+    (datetime(2024, 3, 11, tzinfo=timezone.utc), "regular",
+     datetime(2024, 3, 10, 17, 0, tzinfo=CHICAGO),
+     datetime(2024, 3, 11, 16, 0, tzinfo=CHICAGO)),
+    (date(2024, 3, 11), [], None, None),
+    (date(2024, 3, 11), "regular", "not-a-datetime",
+     datetime(2024, 3, 11, 16, 0, tzinfo=CHICAGO)),
+])
+def test_session_record_rejects_malformed_field_types(
+    trading_date, kind, open_local, close_local
+):
+    with pytest.raises(InvalidSessionCalendar):
+        SessionRecord(trading_date, kind, open_local, close_local)
