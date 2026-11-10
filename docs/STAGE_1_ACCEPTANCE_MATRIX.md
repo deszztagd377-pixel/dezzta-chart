@@ -173,13 +173,14 @@ The CI workflow succeeding does not change the external acceptance status above.
 **Checklist remains 30/40 with 10 external production verification gates outstanding.** The reconnect cursor hardening does not close any external gate. Stage 1 remains **not production-accepted**.
 
 
-## Current candidate — replay I/O event-loop isolation (pending CI)
+## Verified implementation — replay I/O event-loop isolation (2026-11-10)
 
 - Candidate code commit: `dac22020bfe10e48cef58f5125ee3e6d341bc969` on `phase-2/market-data-foundation`.
-- SQLite durable replay page reads now run through `asyncio.to_thread` so a bounded replay query does not synchronously occupy the WebSocket event-loop thread. The live subscription is still registered before replay, preserving the existing queue-based handoff design.
-- This candidate has not yet been verified by a workflow run in this record. Do not treat it as CI-passed until the exact commit's tests/build/security/container jobs complete successfully.
-- No external production gate is closed by this change.
-
+- The SQLite durable replay page read is executed with `asyncio.to_thread`, preventing the bounded synchronous SQLite query from occupying the ASGI event-loop thread. Subscription-before-replay and queue handoff remain unchanged.
+- Exact branch-head verification commit: `63469d9cb4d4557e4e3c992056ea2a732a1e5ea2`. This commit descends from the replay candidate and was tested as a whole.
+- Automated Tests & Build: [run 42815030378](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42815030378) — **success**. Frontend unit tests/build/secret scans, backend pytest/dependency audit, Docker build, Redis + persistent-volume smoke test, Trivy scan and report export all passed.
+- CodeQL Security Analysis: [run 42815030406](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42815030406) — **success** for JavaScript/TypeScript and Python.
+- No external production gate is closed by this code change or by repository CI alone.
 
 ## Market-data coverage and timeframe readiness — explicit acceptance blockers
 
@@ -192,3 +193,13 @@ This is an additional operational/functional acceptance track; it does not chang
 - Before claiming all-pair/all-timeframe LIVE readiness, require: (1) real SDK connection and callback verification for the pinned SDK version, (2) approved provider entitlements and a complete configured instrument universe, (3) exchange-calendar-aware intraday and higher-timeframe bucket derivation with DST/holiday/early-close tests, (4) per-instrument/per-timeframe gap and completeness checks, and (5) measured event-to-client latency and reconnect recovery across every supported timeframe.
 
 **No source-code shortcut is accepted for these requirements.** Existing fail-closed behavior is intentional protection against fabricated or misaligned candles. The replay I/O isolation candidate remains pending exact-commit CI; it does not change feed coverage or timeframe derivation.
+
+
+## Latest verified branch-head checkpoint — 2026-11-10
+
+- Branch: `phase-2/market-data-foundation`
+- Exact branch head: `63469d9cb4d4557e4e3c992056ea2a732a1e5ea2`
+- Automated Tests & Build: [run 42815030378](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42815030378) — **success**.
+- CodeQL Security Analysis: [run 42815030406](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42815030406) — **success**.
+- The exact branch head includes the replay I/O isolation candidate and its prior implementation history. Workflow jobs were inspected individually; every listed job and step completed successfully.
+- Checklist accounting remains 30/40 with 10 external production verification gates outstanding. Market-data provider, symbol-universe, SDK, calendar-aware timeframe, and latency requirements remain additional functional acceptance blockers. Stage 1 remains **not production-accepted**.
