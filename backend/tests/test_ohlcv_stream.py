@@ -54,18 +54,22 @@ def test_snapshot_registration_is_atomic_boundary_for_following_updates() -> Non
             raw_symbol="ESZ6",
             timeframe="1s",
             limit=100,
+            durable_cursor=41,
         )
         assert len(snapshot) == total == 1
         assert subscription.watermark == 0
+        assert subscription.durable_cursor == 41
 
         second = make_bar(1)
         assert pipeline.apply(second) == "inserted"
-        hub.publish(second)
+        hub.publish(second, durable_cursor=42)
 
         update = subscription.queue.get_nowait()
         assert update["type"] == "market_data.ohlcv.update"
         assert update["streamId"] == subscription.stream_id
         assert update["sequence"] == 1
+        assert update["cursor"] == 42
+        assert subscription.durable_cursor == 42
         assert update["bar"]["tsStartNs"] == str(_T0 + _NS)
         assert update["bar"]["tsProviderOutNs"] == str(_T0 + _NS + 925_000_000)
         assert update["isFinal"] is True
@@ -193,3 +197,18 @@ def test_derived_timeframe_revisions_are_streamed_to_the_matching_subscription()
         assert update["isFinal"] is False
 
     asyncio.run(scenario())
+
+
+
+def test_stream_hub_rejects_invalid_durable_cursor() -> None:
+    pipeline = OhlcvPipeline()
+    for cursor in (-1, True, 1.5):
+        try:
+            OhlcvStreamHub().subscribe_snapshot(
+                pipeline, dataset="GLBX.MDP3", publisher_id=1,
+                instrument_id=101, raw_symbol="ESZ6", timeframe="1s",
+                limit=10, durable_cursor=cursor,
+            )
+        except ValueError:
+            continue
+        raise AssertionError(f"durable cursor {cursor!r} should be rejected")
