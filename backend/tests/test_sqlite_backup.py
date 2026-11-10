@@ -103,3 +103,29 @@ def test_backup_fails_closed_when_owner_only_permissions_cannot_be_set(
 
     assert destination.read_bytes() == b"previous-good-backup"
     assert list(tmp_path.glob(".backup.sqlite3.*.sqlite-backup.tmp")) == []
+
+
+def test_consistent_backup_can_be_restored_into_a_fresh_database(tmp_path):
+    source = tmp_path / "live.sqlite3"
+    snapshot = tmp_path / "backup.sqlite3"
+    restored = tmp_path / "restored.sqlite3"
+
+    with sqlite3.connect(source) as database:
+        database.execute(
+            "CREATE TABLE bars (id INTEGER PRIMARY KEY, close TEXT NOT NULL)"
+        )
+        database.execute(
+            "INSERT INTO bars (close) VALUES (?)",
+            ("123.450000000000000001",),
+        )
+
+    create_consistent_sqlite_backup(source, snapshot)
+
+    with sqlite3.connect(snapshot) as backup, sqlite3.connect(restored) as target:
+        backup.backup(target)
+
+    with sqlite3.connect(restored) as database:
+        assert database.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+        assert database.execute("SELECT close FROM bars").fetchall() == [
+            ("123.450000000000000001",)
+        ]
