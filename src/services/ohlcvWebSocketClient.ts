@@ -13,6 +13,8 @@ export interface OhlcvStreamOptions {
   identity: OhlcvSeriesIdentity;
   canonicalInstrumentId: string;
   token: string;
+  resumeCursor?: string;
+  onCursor?: (cursor: string) => void;
   onSnapshot: (snapshot: OhlcvSnapshotMessage, candles: ChartData[]) => void;
   onUpdate: (event: OhlcvStreamUpdateMessage, candle: ChartData) => void;
   onStatus?: (status: 'connecting' | 'authenticated' | 'subscribed' | 'closed') => void;
@@ -49,6 +51,7 @@ function snapshotFromSocket(payload: unknown): {
   snapshot: OhlcvSnapshotMessage;
   streamId: string;
   watermark: number;
+  cursor?: string;
 } {
   if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) {
     throw new Error('OHLCV WebSocket snapshot must be an object.');
@@ -57,12 +60,18 @@ function snapshotFromSocket(payload: unknown): {
   if (
     typeof value.streamId !== 'string' || !value.streamId ||
     !Number.isSafeInteger(value.watermark) ||
-    (value.watermark as number) < 0
+    (value.watermark as number) < 0 ||
+    (value.cursor !== undefined && (typeof value.cursor !== 'string' || !/^\\d+$/.test(value.cursor)))
   ) {
     throw new Error('OHLCV WebSocket snapshot is missing a valid stream watermark.');
   }
   const snapshot = parseOhlcvSnapshot(value);
-  return { snapshot, streamId: value.streamId, watermark: value.watermark as number };
+  return {
+    snapshot,
+    streamId: value.streamId,
+    watermark: value.watermark as number,
+    ...(typeof value.cursor === 'string' ? { cursor: value.cursor } : {}),
+  };
 }
 
 /**
@@ -72,6 +81,9 @@ function snapshotFromSocket(payload: unknown): {
  */
 export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConnection {
   if (!options.token.trim()) throw new Error('A verified identity token is required.');
+  if (options.resumeCursor !== undefined && !/^\\d+$/.test(options.resumeCursor)) {
+    throw new Error('OHLCV resume cursor must be an unsigned decimal string.');
+  }
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(options.canonicalInstrumentId)) {
     throw new Error('A validated canonical instrument UUID is required.');
   }
@@ -84,6 +96,9 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
   const socket = factory(buildWebSocketUrl(options.baseUrl));
   let state: OhlcvStreamConnection['state'] = 'connecting';
   let guard: OhlcvStreamSequenceGuard | null = null;
+  let replayExpectedCount: number | null = null;
+  let replayReceivedCount = 0;
+  let replayEndCursor: string | null = null;
   let timer: ReturnType<typeof setTimeout> | null = setTimeout(() => {
     fail(new Error('OHLCV WebSocket handshake timed out.'));
   }, timeoutMs);
@@ -137,6 +152,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
           type: 'market_data.subscribe',
           version: 1,
           canonicalInstrumentId: options.canonicalInstrumentId,
+          ...(options.resumeCursor !== undefined ? { cursor: options.resumeCursor } : {}),
           series: {
             provider: options.identity.provider ?? 'databento',
             seriesType: options.identity.seriesType ?? 'contract',
@@ -153,9 +169,75 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
         return;
       }
 
+      if (value.type === 'market_data.ohlcv.resnapshot_required' && state === 'authenticated') {
+        if (typeof value.reason !== 'string' || typeof value.snapshotCursor !== 'string' ||
+            !/^\\d+$/.test(value.snapshotCursor)) {
+          throw new Error('OHLCV resnapshot instruction is invalid.');
+        }
+        replayExpectedCount = null;
+        replayReceivedCount = 0;
+        replayEndCursor = null;
+        return;
+      }
+
+      if (value.type === 'market_data.ohlcv.replay_started' && state === 'authenticated') {
+        if (
+          !isNonEmptyString(value.streamId) ||
+          !Number.isSafeInteger(value.count) ||
+          (value.count as number) < 0 ||
+          typeof value.throughCursor !== 'string' ||
+          !/^\\d+$/.test(value.throughCursor)
+        ) {
+          throw new Error('OHLCV replay start message is invalid.');
+        }
+        guard = new OhlcvStreamSequenceGuard(
+          value.streamId,
+          {
+            provider: options.identity.provider ?? 'databento',
+            seriesType: options.identity.seriesType ?? 'contract',
+            dataset: options.identity.dataset,
+            publisherId: options.identity.publisherId,
+            instrumentId: options.identity.instrumentId,
+            rawSymbol: options.identity.rawSymbol,
+            timeframe: options.identity.timeframe,
+            bucketPolicy: options.identity.bucketPolicy ?? getBucketPolicyForTimeframe(options.identity.timeframe),
+            calendarId: options.identity.calendarId ?? '',
+            calendarVersion: options.identity.calendarVersion ?? '',
+          },
+          0,
+        );
+        replayExpectedCount = value.count as number;
+        replayReceivedCount = 0;
+        replayEndCursor = value.throughCursor;
+        return;
+      }
+
+      if (value.type === 'market_data.ohlcv.replay_complete' && state === 'authenticated') {
+        if (
+          replayExpectedCount === null ||
+          !Number.isSafeInteger(value.count) ||
+          value.count !== replayExpectedCount ||
+          replayReceivedCount !== replayExpectedCount ||
+          typeof value.cursor !== 'string' ||
+          value.cursor !== replayEndCursor ||
+          !guard ||
+          guard.watermark !== replayExpectedCount
+        ) {
+          throw new Error('OHLCV replay completion does not match the replayed event sequence.');
+        }
+        options.onCursor?.(value.cursor);
+        replayExpectedCount = null;
+        replayEndCursor = null;
+        clearTimer();
+        setState('subscribed');
+        return;
+      }
+
       if (value.type === 'market_data.ohlcv.snapshot' && state === 'authenticated') {
         const parsed = snapshotFromSocket(value);
+        if (replayExpectedCount !== null) throw new Error('Snapshot arrived before replay completed.');
         const candles = toChartCandles(parsed.snapshot, options.identity);
+        if (parsed.cursor !== undefined) options.onCursor?.(parsed.cursor);
         guard = new OhlcvStreamSequenceGuard(
           parsed.streamId,
           {
@@ -181,8 +263,12 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
         return;
       }
 
-      if (value.type === 'market_data.ohlcv.update' && state === 'subscribed') {
+      if (value.type === 'market_data.ohlcv.update' &&
+          (state === 'subscribed' || replayExpectedCount !== null)) {
         if (!guard) throw new Error('OHLCV stream update arrived before its snapshot.');
+        if (replayExpectedCount !== null && replayReceivedCount >= replayExpectedCount) {
+          throw new Error('OHLCV replay delivered more events than declared.');
+        }
         const event = parseOhlcvStreamUpdate(value);
         const decision = guard.accept(event);
         if (!decision.accepted) {
@@ -204,6 +290,8 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
         const candle = toChartCandles(singleSnapshot, options.identity)[0];
         if (!candle) throw new Error('OHLCV update did not contain the subscribed series.');
         options.onUpdate(event, candle);
+        if (event.cursor !== undefined) options.onCursor?.(event.cursor);
+        if (replayExpectedCount !== null) replayReceivedCount += 1;
         return;
       }
 
