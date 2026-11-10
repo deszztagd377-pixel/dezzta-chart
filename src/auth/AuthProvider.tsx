@@ -85,7 +85,9 @@ export function subscribeToFirebaseAuth(
  */
 export function resolveFirebaseAuth(): FirebaseAuthResolution {
   try {
-    return { auth: getFirebaseAuth(), error: null };
+    const auth = getFirebaseAuth();
+    if (!auth) return { auth: null, error: null };
+    return { auth, error: null };
   } catch {
     return {
       auth: null,
