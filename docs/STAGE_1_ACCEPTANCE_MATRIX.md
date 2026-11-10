@@ -127,3 +127,19 @@ The CI workflow succeeding does not change the external acceptance status above.
 - The green CI run is repository evidence only. It does not satisfy the external Firebase/managed Redis integration, real deployment volume, encrypted off-host backup/restore, deployed HTTPS/WSS, monitoring/alert delivery, or market-data licensing/provider gates.
 
 **Current checklist accounting:** 30/40 criteria have repository implementation/test evidence or completed owner approval; 10/40 remain external production verification gates. This is a checklist count, not a production-readiness percentage. Stage 1 remains **not production-accepted**.
+
+
+## Latest verified checkpoint — 2026-11-10 (commit 26a9ed8)
+
+- Branch: `phase-2/market-data-foundation`
+- Exact tested commit: `26a9ed840449cab9abeb573d5029b02d8fcbe998`
+- Automated Tests & Build: [run 42810062870](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42810062870) — **success**.
+- CodeQL Security Analysis: [run 42810062624](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42810062624) — **success** for JavaScript/TypeScript and Python.
+- Verified steps: frontend dependency install/audit, frontend unit tests/build, frontend bundle secret scanner and production credential scan, backend dependency install/pytest/audit, Docker image build, Redis + persistent-volume smoke test, Trivy image scan, vulnerability-report export/upload.
+- The backend test suite initially exposed one invalid test fixture (close=999 while high=103). The fixture was corrected to a valid but different close=102, preserving the intended exact-payload mismatch test. The rerun passed.
+- Implementation: durable outbox cursor and persisted event ID now propagate into the WebSocket snapshot and live notification path. The callback resolves the exact stored event for each source/derived bar revision rather than assuming the global latest cursor belongs to that bar.
+- Still outstanding: WebSocket reconnect cursor input and durable replay delivery, expired-cursor resnapshot protocol at the socket layer, replay authorization/pagination integration, and sustained throughput/reconnect benchmarks.
+- Feed coverage is not all-pair by default: `DATABENTO_LIVE_SYMBOLS` defaults empty and the live source subscribes only to explicitly configured raw contract symbols. The current default allowed roots are ES, NQ, and GC. Real-time coverage requires lawful provider entitlement, credentials, and explicit configured symbols.
+- This CI/CodeQL evidence does not satisfy real production Firebase/managed Redis integration, provisioned production volume, encrypted off-host backup/restore, deployed HTTPS/WSS, external monitoring/alert delivery, or market-data licensing/provider coverage.
+
+**Checklist remains 30/40 with 10 external production gates outstanding.** The durable cursor bridge is a partial implementation increment and does not close the full reconnect/replay acceptance requirement. Stage 1 remains **not production-accepted**.
