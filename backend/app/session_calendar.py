@@ -131,7 +131,11 @@ class SessionRecord:
     close_local: datetime | None
 
     def __post_init__(self) -> None:
-        if self.kind not in {"regular", "special", "early_close", "delayed_open", "closed"}:
+        if not isinstance(self.trading_date, date) or isinstance(self.trading_date, datetime):
+            raise InvalidSessionCalendar("Trading date must be a date, not a datetime.")
+        if not isinstance(self.kind, str) or self.kind not in {
+            "regular", "special", "early_close", "delayed_open", "closed"
+        }:
             raise InvalidSessionCalendar("Unsupported session record kind.")
         if self.kind == "closed":
             if self.open_local is not None or self.close_local is not None:
@@ -140,6 +144,8 @@ class SessionRecord:
         if self.open_local is None or self.close_local is None:
             raise InvalidSessionCalendar("Open session records require both boundaries.")
         for boundary in (self.open_local, self.close_local):
+            if not isinstance(boundary, datetime):
+                raise InvalidSessionCalendar("Session boundaries must be datetimes.")
             if boundary.tzinfo is None or boundary.utcoffset() is None:
                 raise InvalidSessionCalendar("Session boundaries must be timezone-aware.")
             if getattr(boundary.tzinfo, "key", None) != "America/Chicago":
@@ -181,8 +187,14 @@ class SessionCalendar:
         object.__setattr__(
             self, "published_at_utc", self.published_at_utc.astimezone(timezone.utc)
         )
+        if not isinstance(self.records, Mapping):
+            raise InvalidSessionCalendar("Calendar records must be a date-to-session mapping.")
         copied_records = dict(self.records)
         for trading_date, record in copied_records.items():
+            if not isinstance(trading_date, date) or isinstance(trading_date, datetime):
+                raise InvalidSessionCalendar("Calendar record keys must be dates, not datetimes.")
+            if not isinstance(record, SessionRecord):
+                raise InvalidSessionCalendar("Every calendar record must be a SessionRecord.")
             if trading_date != record.trading_date:
                 raise InvalidSessionCalendar("Record key must equal its trading date.")
             if not self.effective_start <= trading_date <= self.effective_end:
