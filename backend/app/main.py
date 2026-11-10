@@ -130,7 +130,9 @@ def create_app(
     ingestion = OhlcvIngestionService(
         pipeline=ohlcv_pipeline, resolver=resolver, coverage=coverage_tracker,
         dataset=config.databento_dataset, queue_max=config.ohlcv_queue_max,
-        on_bar_applied=stream_hub.publish,
+        on_bar_applied=lambda bar: stream_hub.publish(  # noqa: E731
+            bar, durable_cursor=ohlcv_store.outbox_high_water()
+        ),
         persistence=ohlcv_store,
         bar_validator=session_bar_validator,
     )
@@ -680,9 +682,11 @@ def create_app(
                     await websocket.close(code=4403, reason="Instrument access denied")
                     return
 
-                # No await occurs between snapshot query and stream registration.
-                # Ingestion and fan-out share this event loop, so this watermark is
-                # an atomic boundary: later accepted revisions enter the queue.
+                # No await occurs between durable high-water capture, snapshot
+                # query, and stream registration. Ingestion and fan-out share this
+                # event loop, so later accepted revisions enter the queue with a
+                # strictly newer durable outbox cursor.
+                snapshot_cursor = ohlcv_store.outbox_high_water()
                 subscription, snapshot_bars, total = stream_hub.subscribe_snapshot(
                     ohlcv_pipeline,
                     dataset=dataset,
@@ -694,6 +698,7 @@ def create_app(
                     calendar_id=calendar_id,
                     calendar_version=calendar_version,
                     limit=max_ohlcv_response_bars,
+                    durable_cursor=snapshot_cursor,
                 )
                 feed_state = provider.state
                 snapshot_state = (
@@ -713,6 +718,8 @@ def create_app(
                     "detail": None if snapshot_bars else "No validated bars match this exact series yet.",
                     "streamId": subscription.stream_id,
                     "watermark": subscription.watermark,
+                    "cursor": subscription.durable_cursor,
+                    "cursorScope": "global-outbox-filtered-by-exact-series",
                     "bars": [
                         {
                             "dataset": bar.dataset,
