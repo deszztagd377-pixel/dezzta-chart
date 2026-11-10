@@ -2,13 +2,24 @@
 
 > **Progress-history correction (2026-11-05):** The owner clarifies that conversational checkpoints progressed from **20.3% to 20.9%**. The older **19.60%** remains a historical formal estimate, not a later regression. **19.9% is not a verified calculation.** Do not publish a fresh overall percentage until the milestone ledger reconciles these records.
 
-Last audited: 2026-11-09
+Last audited: 2026-11-10
 Repository: deszztagd377-pixel/dezzta-chart
 Baseline branch: main
 Baseline main HEAD: e3841681bc69b73619058deaf939df82ae5116a1
 Working branch: phase-2/market-data-foundation
-Audit source working-branch HEAD: 436f8b374b8bf5ef1ef4b51944f0c99603acd12c
-Branch ahead/behind count was not recalculated in this checkpoint. This audit update is scoped to the working branch; `main` is not a target.
+Latest working-branch HEAD: 25d46d9ab4699d8924865eaf19680464cfaf691e (documentation-only commit)
+Audited application-source baseline: 436f8b374b8bf5ef1ef4b51944f0c99603acd12c
+`main` remains the protected baseline and is not a work target.
+
+## Latest exact-HEAD follow-up — 2026-11-10
+
+- Latest verified working-branch commit: `25d46d9ab4699d8924865eaf19680464cfaf691e`, message `docs(stage-1): record latest exact-head CI verification`. Its diff changes only `PROJECT_STATUS.md`; the audited application-source baseline remains `436f8b374b8bf5ef1ef4b51944f0c99603acd12c`.
+- Automated Tests [#807](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42646491732) completed successfully for this checkpoint. The Test and Build job completed all 25 listed steps successfully: frontend dependency install/audit, unit tests, production build, bundle-secret scanner tests and production bundle scan; backend dependency install/tests/audit; container build; Redis/shared-guard and persistent-volume/restart smoke; Trivy scan; vulnerability-report export/upload; and cleanup.
+- CodeQL [#165](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42646491842) completed successfully for both Python and JavaScript/TypeScript jobs on this checkpoint. Successful analysis does not prove that there are zero CodeQL alerts.
+- Vercel commit status for `25d46d9ab4699d8924865eaf19680464cfaf691e` is success: [deployment](https://vercel.com/deszztagd377-pixel/dezzta-chart/HJGV4U5ipcWZoJ3SBditJYZGTY4n). This is frontend deployment status only; it does not validate production backend, Firebase session/revocation behavior, or live market-data delivery.
+- The protected `main` baseline remains `e3841681bc69b73619058deaf939df82ae5116a1`; no changes were made to `main`.
+- No failing step was present in the completed CI #807 or CodeQL #165 job summaries. No application runtime source, production credentials, production infrastructure, database schema, or provider configuration was changed in this documentation checkpoint.
+- Stage 1 remains **75.00% provisional**. The six production acceptance gates and owner approval of scoring criteria remain open. A green CI, CodeQL, or Vercel status does not close those gates or justify a progress increase.
 
 ## Latest exact-HEAD follow-up — 2026-11-09
 
