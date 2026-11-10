@@ -430,16 +430,15 @@ class SQLiteOhlcvStore:
             )
             # Keep a bounded global replay window. The floor records the largest
             # cursor deliberately removed, so old clients are forced to resnapshot.
-            overflow = db.execute(
-                "SELECT COUNT(*) AS amount FROM ohlcv_outbox"
+            floor_row = db.execute(
+                "SELECT int_value FROM ohlcv_outbox_state WHERE state_key='retention_floor'"
             ).fetchone()
-            if int(overflow["amount"]) > OUTBOX_MAX_EVENTS:
-                floor_row = db.execute(
-                    """SELECT cursor FROM ohlcv_outbox
-                    ORDER BY cursor DESC LIMIT 1 OFFSET ?""",
-                    (OUTBOX_MAX_EVENTS - 1,),
-                ).fetchone()
-                new_floor = int(floor_row["cursor"]) - 1
+            current_floor = 0 if floor_row is None else int(floor_row["int_value"])
+            # Normal AUTOINCREMENT cursors are contiguous because inserts and
+            # floor advancement share this transaction; avoid a full COUNT scan
+            # on every market-data write once the retention window is full.
+            if int(cursor) - current_floor > OUTBOX_MAX_EVENTS:
+                new_floor = int(cursor) - OUTBOX_MAX_EVENTS
                 db.execute("DELETE FROM ohlcv_outbox WHERE cursor<=?", (new_floor,))
                 db.execute(
                     """UPDATE ohlcv_outbox_state SET int_value=MAX(int_value,?)
@@ -597,11 +596,16 @@ class SQLiteOhlcvStore:
         if any(not isinstance(value, str) or not value for value in
                (provider, dataset, series_type, raw_symbol, timeframe, bucket_policy)):
             raise ValueError("A complete canonical series identity is required.")
+        if not isinstance(calendar_id, str) or not isinstance(calendar_version, str):
+            raise ValueError("calendar_id and calendar_version must be strings.")
         if any(not isinstance(value, int) or isinstance(value, bool) or value < 1
                for value in (publisher_id, instrument_id)):
             raise ValueError("publisher_id and instrument_id must be positive integers.")
         db = self._connect()
         try:
+            # Keep high-water, retention floor, and replay rows on one SQLite
+            # read snapshot so a concurrent commit cannot split the cursor view.
+            db.execute("BEGIN")
             state = {
                 row["state_key"]: int(row["int_value"])
                 for row in db.execute(
