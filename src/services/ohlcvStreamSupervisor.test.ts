@@ -47,7 +47,7 @@ const snapshot = {
   type: 'market_data.ohlcv.snapshot', version: 1, state: 'ready', feedState: 'live',
   timestampUnit: 'nanoseconds', priceRepresentation: 'decimal-string',
   count: 1, truncated: false, bars: [bar], detail: null,
-  streamId: 'stream-a', watermark: 7,
+  streamId: 'stream-a', watermark: 7, cursor: '100',
 };
 
 afterEach(() => {
@@ -86,6 +86,79 @@ describe('OHLCV stream supervisor', () => {
     supervisor.stop();
     expect(supervisor.status).toBe('stopped');
     expect(getMarketDataSnapshot().bars).toHaveLength(0);
+  });
+
+  it('resumes from the last accepted cursor after a transport reconnect without clearing the chart', async () => {
+    vi.useFakeTimers();
+    const sockets: FakeSocket[] = [];
+    const supervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken: async () => 'fresh-token',
+      webSocketFactory: () => {
+        const socket = new FakeSocket();
+        sockets.push(socket);
+        return socket as unknown as WebSocket;
+      },
+      minReconnectDelayMs: 100,
+      maxReconnectDelayMs: 400,
+      random: () => 0,
+    });
+    await vi.waitFor(() => expect(sockets).toHaveLength(1));
+    sockets[0].readyState = 1;
+    sockets[0].emit('open', new Event('open'));
+    sockets[0].message({ type: 'market_data.status', version: 1 });
+    sockets[0].message(snapshot);
+    expect(getMarketDataSnapshot().bars).toHaveLength(1);
+
+    sockets[0].serverClose(1006, 'network interrupted');
+    expect(supervisor.status).toBe('reconnecting');
+    expect(getMarketDataSnapshot().bars).toHaveLength(1);
+
+    await vi.advanceTimersByTimeAsync(50);
+    await vi.waitFor(() => expect(sockets).toHaveLength(2));
+    sockets[1].readyState = 1;
+    sockets[1].emit('open', new Event('open'));
+    sockets[1].message({ type: 'market_data.status', version: 1 });
+    expect(JSON.parse(sockets[1].sent[1])).toMatchObject({
+      type: 'market_data.subscribe',
+      cursor: '100',
+    });
+
+    sockets[1].message({
+      type: 'market_data.ohlcv.replay_started',
+      version: 1,
+      streamId: 'stream-b',
+      fromCursor: '100',
+      throughCursor: '101',
+      count: 1,
+    });
+    sockets[1].message({
+      type: 'market_data.ohlcv.update',
+      version: 1,
+      streamId: 'stream-b',
+      eventId: 'replayed-event',
+      cursor: '101',
+      sequence: 1,
+      emittedAtNs: '1793577602000000000',
+      operation: 'upsert',
+      isFinal: true,
+      series: identity,
+      bar: { ...bar, sequence: 8, close: '6001.000', high: '6001.250' },
+      replayed: true,
+    });
+    sockets[1].message({
+      type: 'market_data.ohlcv.replay_complete',
+      version: 1,
+      cursor: '101',
+      count: 1,
+    });
+
+    expect(supervisor.status).toBe('subscribed');
+    expect(getMarketDataSnapshot().bars).toHaveLength(1);
+    expect(getMarketDataSnapshot().bars[0].close).toBe(6001);
+    supervisor.stop();
   });
 
   it('seeds the backend store from the first validated update after an empty snapshot', async () => {
