@@ -88,3 +88,22 @@ At the time this contract was added:
 ## 8. Safety and product boundary
 
 This project is a market-data visualization and analysis system. Data quality, timestamps, and chart labels must be transparent. No latency target, feed, or visualization can guarantee that a market is free from manipulation or that a user's interpretation is correct.
+
+## 9. Mandatory zero-cost market-data and timeframe contract (owner decision 2026-11-10)
+
+ZERO MONEY is a hard constraint. Databento live and historical access is not an approved source under the current owner decision. Do not enable it, request a key, start a trial, attach a payment method, or silently substitute a paid provider. Any candidate public/free source must first pass a documented zero-cost preflight covering payment requirements, quota exhaustion, overages, auto-upgrade/trial conversion, terms, redistribution rights, supported instruments, event timestamp semantics, and measured freshness. Unknown billing or licensing behavior means the source stays disabled.
+
+The complete configured timeframe set must remain supported by the data model and aggregation layer:
+`1s, 5s, 15s, 30s, 45s, 1m, 3m, 5m, 15m, 30m, 45m, 1h, 2h, 4h, 1d, 1w, 1M, 3M`.
+
+A 1-second base stream must remain the finest OHLCV input where a verified source provides it. Derived timeframes must use event-time bucket boundaries, preserve late revisions, replace rather than add revised volume, and never invent candles for missing intervals. A timeframe being selectable or derivable does not prove that its source data is available or current.
+
+Bucket policy is instrument/session-specific:
+- UTC-fixed intraday aggregation may derive the configured intraday tiers through 4h.
+- Daily/weekly/monthly/quarterly buckets for exchange-traded instruments must use the approved, versioned exchange-session calendar and its authoritative tradable segments. Do not relabel UTC-midnight buckets as exchange sessions.
+- Where the source or calendar is not verified, keep that market/timeframe combination unavailable or explicitly partial; do not fabricate a session boundary.
+- Provider-supplied higher-timeframe bars retain precedence under the existing pipeline rules.
+
+Current verified repository capability: the backend aggregation tests exercise the complete configured timeframe parent chain from 1s input, while the UTC_FIXED_V1 policy deliberately stops before session-dependent 1d/1w/1M/3M. The frontend timeframe engine tests that all configured timeframe bucket functions are recognized. These are code/test capabilities, not proof of a free real-world feed, universal instrument coverage, or the 1.0s/1.5s end-to-end latency objectives.
+
+Release gate: no live-data claim until a specific zero-cost source, instrument universe, terms, and event-to-screen measurements are verified. If no compliant source provides a market/instrument at 1s granularity, expose that limitation rather than silently downgrading the feed or fabricating 1s bars.
