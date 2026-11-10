@@ -109,7 +109,9 @@ Implemented on the approved branch as a storage-layer increment (pending exact-c
 - `replay_outbox` returns a bounded exact-series replay page. Its global cursor can advance across unrelated series only when no matching events remain before the high-water; when more matching events remain, it stops at the last returned event cursor.
 - Regression coverage was added for transaction rollback, restart replay, exact decimal preservation, deduplication, series isolation, and retention-expiry behavior.
 
-**Follow-on work still required:** the WebSocket route now captures the durable outbox high-water immediately before its synchronous pipeline snapshot/registration handoff, includes the cursor in the snapshot, and attaches the exact persisted revision cursor plus stable outbox event ID to each live notification. The exact event lookup is series-scoped and checks timestamps, sequence, and decimal payload so a derived-timeframe event cannot be mistaken for its source bar. However, the route still does not accept a reconnect cursor or replay missed events to clients; reconnect currently starts with a fresh snapshot. Multi-series authorization/replay, snapshot/replay/live protocol handoff, replay pagination/limits at the socket boundary, and sustained write/reconnect benchmarks remain follow-on work. This increment alone does not claim durable WebSocket reconnect is production-ready.
+**Implemented in the reconnect path (CI-verified on 2026-11-10):** clients may supply their last durable cursor as an unsigned decimal string; the server validates it, authorizes the exact canonical series, and performs bounded exact-series replay. The server registers the live subscription before replay, emits replay events with a fresh stream ID and stream-local sequence, then hands off queued live updates with sequence continuity. Events already covered by replay are removed from the queued handoff. If the cursor is expired/ahead, replay storage is unavailable, or the backlog exceeds the 10,000-event socket replay cap, the server explicitly requests a fresh snapshot instead of silently skipping history. The frontend validates replay boundaries and event sequences, applies each event before advancing its cursor, preserves the last validated chart during transient reconnect, and replaces it only after a resnapshot. Cursor values travel as decimal strings to preserve SQLite 64-bit integer precision in JavaScript.
+
+**Still required:** sustained write/reconnect benchmarks with P50/P95/P99 measurements, real browser and Android WSS tests against the deployed reverse proxy, and production evidence for Firebase/Redis/volume/backup/monitoring/provider gates. The replay code is repository-tested; it is not yet production-deployment proof.
 
 
 ## 11. Durable cursor propagation into WebSocket snapshot/live path
@@ -122,8 +124,31 @@ Implemented and CI-verified on commit `26a9ed840449cab9abeb573d5029b02d8fcbe998`
 - Regression tests cover snapshot high-water, live cursor progression, stable event ID propagation, and distinct source/derived timeframe cursors.
 - CI passed on the exact commit: frontend tests/build and bundle secret scans, backend pytest/dependency audit, Docker image build, Redis + persistent-volume smoke test, Trivy scan/report export/upload. CodeQL JavaScript/TypeScript and Python both passed.
 
-**Still not implemented:** WebSocket reconnect cursor input, durable replay before live delivery, explicit resnapshot protocol for expired cursors at the socket layer, multi-series replay authorization, and benchmark evidence. The global cursor is safe to advance across unrelated series only when the server filters replay by the full canonical identity and no matching event remains before the returned cursor.
+**Implemented in the reconnect path (CI-verified on 2026-11-10):** clients may supply their last durable cursor as an unsigned decimal string; the server validates it, authorizes the exact canonical series, and performs bounded exact-series replay. The server registers the live subscription before replay, emits replay events with a fresh stream ID and stream-local sequence, then hands off queued live updates with sequence continuity. Events already covered by replay are removed from the queued handoff. If the cursor is expired/ahead, replay storage is unavailable, or the backlog exceeds the 10,000-event socket replay cap, the server explicitly requests a fresh snapshot instead of silently skipping history. The frontend validates replay boundaries and event sequences, applies each event before advancing its cursor, preserves the last validated chart during transient reconnect, and replaces it only after a resnapshot. Cursor values travel as decimal strings to preserve SQLite 64-bit integer precision in JavaScript.
+
+**Still required:** sustained write/reconnect benchmarks with P50/P95/P99 measurements, real browser and Android WSS tests against the deployed reverse proxy, and production evidence for Firebase/Redis/volume/backup/monitoring/provider gates. The replay code is repository-tested; it is not yet production-deployment proof.
 
 ## 12. Current live-feed coverage constraint
 
 The live source is Databento `ohlcv-1s` and subscribes only to explicit raw contract symbols from `DATABENTO_LIVE_SYMBOLS`. That configuration defaults to an empty tuple; the current default allowed roots are ES, NQ, and GC. Therefore this repository does **not** currently prove live coverage for every pair/contract. A configured provider credential, licensed entitlement, and explicit symbol list are required. Do not report all-pair real-time availability or zero delay until each requested instrument is configured, legally entitled, and monitored for gaps and timestamp latency.
+
+
+## 13. Durable WebSocket reconnect and replay integration
+
+Implemented on `phase-2/market-data-foundation`, exact tested commit `38174c9c4e6280669649cb4677426809c37d9cf5`:
+
+- The subscription request accepts an optional durable `cursor` as a decimal string. The server rejects malformed or out-of-range values before replay.
+- The server authenticates the Firebase principal and rechecks entitlement for the exact provider/dataset/publisher/instrument/series/symbol/timeframe identity before it reads replay history.
+- The server registers the live queue before replay, preventing a replay-to-live subscription gap. Replay reads are exact-series filtered and bounded to 10,000 events per reconnect, with storage pages capped at 500.
+- Replay events retain their persisted event IDs and durable cursors. The server adds a fresh connection stream ID and contiguous stream-local sequence. Live updates queued during replay are handed off after the replay boundary with contiguous sequence numbers; overlap already represented by replay is discarded.
+- Expired/ahead cursors, unavailable replay storage, and excessive replay backlog produce an explicit `market_data.ohlcv.resnapshot_required` followed by a new snapshot. No missing history is silently represented as current.
+- The browser client validates replay start/end cursors, event schema, exact series identity, and stream sequence. The supervisor advances the durable cursor only after applying validated updates, preserves the existing chart while transiently reconnecting, and resumes using the last accepted cursor.
+- Durable cursors are serialized as decimal strings so values above JavaScript's safe-integer range remain exact.
+- Regression tests cover exact-series replay, cursor-ahead resnapshot fallback, lossless cursor parsing, replay-to-live handoff, supervisor reconnect, and preservation of the last chart state.
+
+Verification on the exact code commit:
+- Automated Tests & Build: [run 42812016639](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42812016639) — **success**.
+- CodeQL Security Analysis: [run 42812016650](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42812016650) — **success** for Python and JavaScript/TypeScript.
+- CI included frontend tests/build/secret scans, backend pytest/dependency audit, Docker build, Redis + persistent-volume smoke test, Trivy image scan, and vulnerability-report export/upload.
+
+**Not closed by this implementation:** production browser/Android WSS verification, managed Firebase/Redis configuration, deployed persistent volume, encrypted off-host backup/restore, external monitoring/alerting, provider licensing/coverage, and measured throughput/reconnect latency benchmarks. The 40-point matrix remains 30/40 with 10 external verification gates outstanding; Stage 1 is not production-accepted.
