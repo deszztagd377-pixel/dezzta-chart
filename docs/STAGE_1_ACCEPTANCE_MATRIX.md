@@ -179,3 +179,16 @@ The CI workflow succeeding does not change the external acceptance status above.
 - SQLite durable replay page reads now run through `asyncio.to_thread` so a bounded replay query does not synchronously occupy the WebSocket event-loop thread. The live subscription is still registered before replay, preserving the existing queue-based handoff design.
 - This candidate has not yet been verified by a workflow run in this record. Do not treat it as CI-passed until the exact commit's tests/build/security/container jobs complete successfully.
 - No external production gate is closed by this change.
+
+
+## Market-data coverage and timeframe readiness — explicit acceptance blockers
+
+This is an additional operational/functional acceptance track; it does not change the 40-point checklist count above.
+
+- The live adapter currently requests the Databento `ohlcv-1s` schema and subscribes only to the explicit `DATABENTO_LIVE_SYMBOLS` raw-contract allowlist. The setting defaults to empty. Therefore the repository does not provide all-pair LIVE coverage by default.
+- Supported timeframe identifiers include `1s, 5s, 15s, 30s, 45s, 1m, 3m, 5m, 15m, 30m, 45m, 1h, 2h, 4h, 1d, 1w, 1M, 3M`. Most are intended to be derived from accepted child bars; a timeframe being listed is not proof that a live series is currently produced.
+- The aggregator deliberately fails closed for `CME_SESSION_V1` bars until verified session-aligned bucket bounds are available. In particular, it currently skips derivation for CME-session bars rather than risk assigning futures bars to incorrect UTC/session buckets. UTC-fixed derivation also stops before daily/weekly/monthly periods. This means the code must not be represented as delivering every timeframe for CME futures.
+- `backend/app/databento_sources.py` explicitly labels its official SDK wrappers **UNVERIFIED**; the real SDK calls have not yet been exercised with valid provider credentials in CI or a production-like environment.
+- Before claiming all-pair/all-timeframe LIVE readiness, require: (1) real SDK connection and callback verification for the pinned SDK version, (2) approved provider entitlements and a complete configured instrument universe, (3) exchange-calendar-aware intraday and higher-timeframe bucket derivation with DST/holiday/early-close tests, (4) per-instrument/per-timeframe gap and completeness checks, and (5) measured event-to-client latency and reconnect recovery across every supported timeframe.
+
+**No source-code shortcut is accepted for these requirements.** Existing fail-closed behavior is intentional protection against fabricated or misaligned candles. The replay I/O isolation candidate remains pending exact-commit CI; it does not change feed coverage or timeframe derivation.
