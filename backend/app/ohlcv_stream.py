@@ -18,12 +18,13 @@ from app.ohlcv import (
 )
 
 STREAM_QUEUE_CAPACITY = 256
+SeriesIdentity = tuple[str, str, int, int, str, str, str, str, str, str]
 
 
 @dataclass(slots=True)
 class OhlcvStreamSubscription:
     stream_id: str
-    identity: tuple[str, int, int, str, str, str, str, str]
+    identity: SeriesIdentity
     queue: asyncio.Queue[dict[str, Any]]
     watermark: int = 0
     overflowed: bool = False
@@ -42,7 +43,7 @@ class OhlcvStreamHub:
         self._subscriptions: dict[str, OhlcvStreamSubscription] = {}
 
     @staticmethod
-    def identity_for(bar: OhlcvBar) -> tuple[str, str, int, int, str, str, str, str, str, str]:
+    def identity_for(bar: OhlcvBar) -> SeriesIdentity:
         return (
             bar.provider, bar.dataset, bar.publisher_id, bar.instrument_id,
             bar.series_type, bar.raw_symbol, bar.timeframe, bar.bucket_policy,
