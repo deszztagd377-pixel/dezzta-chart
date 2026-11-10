@@ -70,9 +70,27 @@ origins. Do not use `*` for production CORS. Set the frontend's
 `VITE_MARKET_DATA_API_BASE_URL` to the deployed HTTPS API origin in Vercel,
 then redeploy the frontend. Never put backend secrets in Vite variables.
 
-The WebSocket endpoint remains unavailable unless its server-side
-`MARKET_DATA_WS_TOKEN` is configured; the current frontend chart integration
-uses read-only HTTP snapshots and does not need that token.
+The `/ws/market-data` route currently authenticates with a Firebase ID token
+sent in the first JSON `auth` message. The backend verifies the token (including
+revocation checks) and periodically re-verifies both identity and instrument
+entitlement during the connection. This route does not read
+`MARKET_DATA_WS_TOKEN`; do not use that setting as evidence that this route is
+enabled or disabled.
+
+A route present in source is not proof of deployed WSS availability or client
+end-to-end compatibility. Before production acceptance, verify the HTTPS/WSS
+reverse-proxy configuration, the deployed WebSocket handshake, and the actual
+web and Android client flow. A separate short-lived scoped WebSocket-ticket
+exchange is not implemented in this checkpoint; keep that design decision and
+its key lifecycle subject to an approved threat model before adding it.
+
+The `/v1/market-data/status` payload includes provider state, reconnect
+attempts, ingestion counters, queue depth, degraded reasons, persistence and
+coverage statistics, and bounded-window latency samples. This application
+status payload is not a substitute for external monitoring, durable log
+retention, alert routing, or a tested incident/recovery procedure. Configure
+those controls in the hosting/monitoring platform and verify alert delivery
+before production acceptance.
 
 ## Security and operational notes
 
