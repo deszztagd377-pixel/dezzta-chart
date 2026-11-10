@@ -96,3 +96,17 @@ Record environment, workload, commit SHA, data source, result distributions, and
 6. Production provider, licensing, hosting cost, and monitoring are reviewed separately. No paid service or provider credential is enabled by this blueprint.
 
 This document is a proposal, not proof of implementation, provider entitlement, production availability, or zero-latency performance.
+
+
+## 10. First implementation increment — transactional SQLite outbox
+
+Implemented on the approved branch as a storage-layer increment (pending exact-commit CI verification):
+
+- OHLCV schema version 3 creates `ohlcv_outbox` and its exact-series/cursor index, plus durable `high_water` and `retention_floor` metadata. Existing schema-v2 OHLCV rows are preserved; the shared SQLite `user_version` remains owned by the instrument registry.
+- `SQLiteOhlcvStore.apply` writes the accepted bar revision and its outbox event in the same `BEGIN IMMEDIATE` transaction. A failed outbox insert rolls back the bar write. Duplicate, stale, expired, and provider-precedence-rejected bars do not create events.
+- Event payloads preserve the complete canonical series identity, exact decimal strings, nanosecond timestamps, sequence provenance, origin, and completeness. Each committed event receives a stable opaque event ID and monotonic SQLite cursor.
+- The initial bounded retention policy is a maximum of 100,000 events. Pruning advances a durable retention floor; a replay cursor below that floor (or ahead of the durable high-water) returns `resnapshot_required` rather than silently omitting history.
+- `replay_outbox` returns a bounded exact-series replay page. Its global cursor can advance across unrelated series only when no matching events remain before the high-water; when more matching events remain, it stops at the last returned event cursor.
+- Regression coverage was added for transaction rollback, restart replay, exact decimal preservation, deduplication, series isolation, and retention-expiry behavior.
+
+**Not yet complete:** the current WebSocket route still uses its in-memory subscription watermark and has not yet been wired to this durable cursor/replay API. Snapshot/high-water handoff, reconnect protocol integration, live notification cursor propagation, multi-series authorization/replay, and sustained write/reconnect benchmarks remain follow-on implementation and verification work. This increment alone does not claim durable WebSocket reconnect is production-ready.
