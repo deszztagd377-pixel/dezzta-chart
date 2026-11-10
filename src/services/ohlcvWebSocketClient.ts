@@ -61,7 +61,7 @@ function snapshotFromSocket(payload: unknown): {
     typeof value.streamId !== 'string' || !value.streamId ||
     !Number.isSafeInteger(value.watermark) ||
     (value.watermark as number) < 0 ||
-    (value.cursor !== undefined && (typeof value.cursor !== 'string' || !/^\\d+$/.test(value.cursor)))
+    (value.cursor !== undefined && (typeof value.cursor !== 'string' || !/^\d+$/.test(value.cursor)))
   ) {
     throw new Error('OHLCV WebSocket snapshot is missing a valid stream watermark.');
   }
@@ -81,7 +81,7 @@ function snapshotFromSocket(payload: unknown): {
  */
 export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConnection {
   if (!options.token.trim()) throw new Error('A verified identity token is required.');
-  if (options.resumeCursor !== undefined && !/^\\d+$/.test(options.resumeCursor)) {
+  if (options.resumeCursor !== undefined && !/^\d+$/.test(options.resumeCursor)) {
     throw new Error('OHLCV resume cursor must be an unsigned decimal string.');
   }
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(options.canonicalInstrumentId)) {
@@ -175,7 +175,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
 
       if (value.type === 'market_data.ohlcv.resnapshot_required' && state === 'authenticated') {
         if (typeof value.reason !== 'string' || typeof value.snapshotCursor !== 'string' ||
-            !/^\\d+$/.test(value.snapshotCursor)) {
+            !/^\d+$/.test(value.snapshotCursor)) {
           throw new Error('OHLCV resnapshot instruction is invalid.');
         }
         replayExpectedCount = null;
@@ -190,9 +190,9 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
           !Number.isSafeInteger(value.count) ||
           (value.count as number) < 0 ||
           typeof value.fromCursor !== 'string' ||
-          !/^\\d+$/.test(value.fromCursor) ||
+          !/^\d+$/.test(value.fromCursor) ||
           typeof value.throughCursor !== 'string' ||
-          !/^\\d+$/.test(value.throughCursor) ||
+          !/^\d+$/.test(value.throughCursor) ||
           (options.resumeCursor !== undefined &&
             BigInt(value.fromCursor) !== BigInt(options.resumeCursor)) ||
           BigInt(value.throughCursor) < BigInt(value.fromCursor)
