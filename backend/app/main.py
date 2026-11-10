@@ -735,7 +735,8 @@ def create_app(
                     replay_after = request_cursor
                     while True:
                         try:
-                            replay_page = ohlcv_store.replay_outbox(
+                            replay_page = await asyncio.to_thread(
+                                ohlcv_store.replay_outbox,
                                 after_cursor=replay_after,
                                 provider="databento",
                                 dataset=dataset,
