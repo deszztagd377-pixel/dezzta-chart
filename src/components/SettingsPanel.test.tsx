@@ -50,5 +50,7 @@ describe('SettingsPanel', () => {
     expect(markup).toContain('DEMO');
     expect(markup).toContain('fixed sample dataset');
     expect(markup).toContain('Restore display defaults');
+    expect(markup).toContain('Firebase account');
+    expect(markup).toContain('ACCOUNT SECURITY');
   });
 });
