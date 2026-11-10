@@ -57,6 +57,8 @@ MAX_WEBSOCKET_RAW_SYMBOL_LENGTH = 128
 MAX_WEBSOCKET_TIMEFRAME_LENGTH = 16
 MAX_WEBSOCKET_CANONICAL_ID_LENGTH = 36
 MAX_OHLCV_RESPONSE_BARS = 5_000
+MAX_WEBSOCKET_REPLAY_EVENTS = 10_000
+MAX_SQLITE_CURSOR = (1 << 63) - 1
 MAX_NANOSECOND_TIMESTAMP = (1 << 63) - 1
 
 
@@ -615,6 +617,15 @@ def create_app(
                 if not isinstance(request, dict) or request.get("type") != "market_data.subscribe" or request.get("version") != 1:
                     await websocket.close(code=4400, reason="A version 1 OHLCV subscription is required")
                     return
+                request_cursor = request.get("cursor")
+                if "cursor" in request and (
+                    not isinstance(request_cursor, int)
+                    or isinstance(request_cursor, bool)
+                    or request_cursor < 0
+                    or request_cursor > MAX_SQLITE_CURSOR
+                ):
+                    await websocket.close(code=4400, reason="Invalid durable replay cursor")
+                    return
                 identity = request.get("series")
                 if not isinstance(identity, dict):
                     await websocket.close(code=4400, reason="Exact OHLCV series identity is required")
@@ -717,50 +728,136 @@ def create_app(
                     else "degraded" if feed_state in ("degraded", "recovering")
                     else "ready"
                 )
-                await websocket.send_json({
-                    "type": "market_data.ohlcv.snapshot",
-                    "version": 1,
-                    "state": snapshot_state,
-                    "feedState": feed_state,
-                    "timestampUnit": "nanoseconds",
-                    "priceRepresentation": "decimal-string",
-                    "count": len(snapshot_bars),
-                    "truncated": total > len(snapshot_bars),
-                    "detail": None if snapshot_bars else "No validated bars match this exact series yet.",
-                    "streamId": subscription.stream_id,
-                    "watermark": subscription.watermark,
-                    "cursor": subscription.durable_cursor,
-                    "cursorScope": "global-outbox-filtered-by-exact-series",
-                    "bars": [
-                        {
-                            "dataset": bar.dataset,
-                            "provider": bar.provider,
-                            "publisherId": bar.publisher_id,
-                            "instrumentId": bar.instrument_id,
-                            "rawSymbol": bar.raw_symbol,
-                            "seriesType": bar.series_type,
-                            "timeframe": bar.timeframe,
-                            "bucketPolicy": bar.bucket_policy,
-                            "calendarId": bar.calendar_id,
-                            "calendarVersion": bar.calendar_version,
-                            "tsStartNs": str(bar.ts_start_ns),
-                            "open": decimal_to_string(bar.open),
-                            "high": decimal_to_string(bar.high),
-                            "low": decimal_to_string(bar.low),
-                            "close": decimal_to_string(bar.close),
-                            "volume": decimal_to_string(bar.volume),
-                            "tsEventNs": str(bar.ts_event_ns),
-                            "tsReceivedNs": str(bar.ts_received_ns),
-                            "tsProviderOutNs": None if bar.ts_provider_out_ns is None else str(bar.ts_provider_out_ns),
-                            "sequence": bar.sequence,
-                            "sequenceOrigin": bar.sequence_origin,
-                            "origin": bar.origin,
-                            "completeness": bar.completeness,
-                        }
-                        for bar in snapshot_bars
-                    ],
-                })
+                replay_events: list[dict[str, object]] = []
+                replay_fallback_reason: str | None = None
+                replay_end_cursor = snapshot_cursor
+                if request_cursor is not None:
+                    replay_after = request_cursor
+                    while True:
+                        replay_page = ohlcv_store.replay_outbox(
+                            after_cursor=replay_after,
+                            provider="databento",
+                            dataset=dataset,
+                            publisher_id=publisher_id,
+                            instrument_id=instrument_id,
+                            series_type="contract",
+                            raw_symbol=raw_symbol,
+                            timeframe=timeframe,
+                            bucket_policy=bucket_policy,
+                            calendar_id=calendar_id,
+                            calendar_version=calendar_version,
+                            limit=min(500, MAX_WEBSOCKET_REPLAY_EVENTS + 1 - len(replay_events)),
+                        )
+                        if replay_page.get("status") != "ok":
+                            replay_fallback_reason = str(replay_page.get("reason", "replay_unavailable"))
+                            break
+                        page_events = replay_page.get("events", [])
+                        if not isinstance(page_events, list):
+                            replay_fallback_reason = "invalid_replay_page"
+                            break
+                        if len(replay_events) + len(page_events) > MAX_WEBSOCKET_REPLAY_EVENTS:
+                            replay_fallback_reason = "replay_backlog_exceeds_limit"
+                            break
+                        replay_events.extend(page_events)
+                        next_cursor = replay_page.get("next_cursor")
+                        if not isinstance(next_cursor, int) or isinstance(next_cursor, bool):
+                            replay_fallback_reason = "invalid_replay_cursor"
+                            break
+                        replay_end_cursor = next_cursor
+                        if not replay_page.get("has_more"):
+                            break
+                        if next_cursor <= replay_after:
+                            replay_fallback_reason = "replay_cursor_did_not_advance"
+                            break
+                        replay_after = next_cursor
 
+                feed_state = provider.state
+                snapshot_state = (
+                    "unavailable" if not snapshot_bars
+                    else "degraded" if feed_state in ("degraded", "recovering")
+                    else "ready"
+                )
+                if request_cursor is not None and replay_fallback_reason is None:
+                    await websocket.send_json({
+                        "type": "market_data.ohlcv.replay_started",
+                        "version": 1,
+                        "fromCursor": request_cursor,
+                        "throughCursor": replay_end_cursor,
+                        "count": len(replay_events),
+                        "cursorScope": "global-outbox-filtered-by-exact-series",
+                    })
+                    for event in replay_events:
+                        event["replayed"] = True
+                        await websocket.send_json(event)
+                    await websocket.send_json({
+                        "type": "market_data.ohlcv.replay_complete",
+                        "version": 1,
+                        "cursor": replay_end_cursor,
+                        "count": len(replay_events),
+                    })
+                    # Any notification at or below the replay boundary is
+                    # already represented by replay. Keep only newer live events.
+                    pending_live: list[dict[str, object]] = []
+                    while not subscription.queue.empty():
+                        queued = subscription.queue.get_nowait()
+                        queued_cursor = queued.get("cursor")
+                        if not isinstance(queued_cursor, int) or queued_cursor > replay_end_cursor:
+                            pending_live.append(queued)
+                    for queued in pending_live:
+                        subscription.queue.put_nowait(queued)
+                    subscription.durable_cursor = max(subscription.durable_cursor, replay_end_cursor)
+                else:
+                    if request_cursor is not None:
+                        await websocket.send_json({
+                            "type": "market_data.ohlcv.resnapshot_required",
+                            "version": 1,
+                            "reason": replay_fallback_reason or "replay_unavailable",
+                            "requestedCursor": request_cursor,
+                            "snapshotCursor": snapshot_cursor,
+                        })
+                                        await websocket.send_json({
+                        "type": "market_data.ohlcv.snapshot",
+                        "version": 1,
+                        "state": snapshot_state,
+                        "feedState": feed_state,
+                        "timestampUnit": "nanoseconds",
+                        "priceRepresentation": "decimal-string",
+                        "count": len(snapshot_bars),
+                        "truncated": total > len(snapshot_bars),
+                        "detail": None if snapshot_bars else "No validated bars match this exact series yet.",
+                        "streamId": subscription.stream_id,
+                        "watermark": subscription.watermark,
+                        "cursor": subscription.durable_cursor,
+                        "cursorScope": "global-outbox-filtered-by-exact-series",
+                        "bars": [
+                            {
+                                "dataset": bar.dataset,
+                                "provider": bar.provider,
+                                "publisherId": bar.publisher_id,
+                                "instrumentId": bar.instrument_id,
+                                "rawSymbol": bar.raw_symbol,
+                                "seriesType": bar.series_type,
+                                "timeframe": bar.timeframe,
+                                "bucketPolicy": bar.bucket_policy,
+                                "calendarId": bar.calendar_id,
+                                "calendarVersion": bar.calendar_version,
+                                "tsStartNs": str(bar.ts_start_ns),
+                                "open": decimal_to_string(bar.open),
+                                "high": decimal_to_string(bar.high),
+                                "low": decimal_to_string(bar.low),
+                                "close": decimal_to_string(bar.close),
+                                "volume": decimal_to_string(bar.volume),
+                                "tsEventNs": str(bar.ts_event_ns),
+                                "tsReceivedNs": str(bar.ts_received_ns),
+                                "tsProviderOutNs": None if bar.ts_provider_out_ns is None else str(bar.ts_provider_out_ns),
+                                "sequence": bar.sequence,
+                                "sequenceOrigin": bar.sequence_origin,
+                                "origin": bar.origin,
+                                "completeness": bar.completeness,
+                            }
+                            for bar in snapshot_bars
+                        ],
+                    })
                 receive_task = asyncio.create_task(websocket.receive_text())
                 queue_task = None
                 ping_timestamps: deque[float] = deque()
