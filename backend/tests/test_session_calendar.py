@@ -427,3 +427,29 @@ def test_session_bucket_bounds_rejects_non_string_timeframe_cleanly():
     calendar = make_calendar([])
     with pytest.raises(ValueError, match="Session buckets support only"):
         session_bucket_bounds(calendar, date(2024, 3, 11), [])
+
+
+@pytest.mark.parametrize("family", [None, 7, [], {}])
+def test_product_family_resolver_rejects_non_string_input(family):
+    with pytest.raises(TypeError, match="product_family must be a string"):
+        calendar_id_for_product_family(family)
+
+
+def test_calendar_registry_rejects_non_calendar_entries():
+    registry = SessionCalendarRegistry()
+    with pytest.raises(TypeError, match="calendar must be a SessionCalendar"):
+        registry.register(object())
+    with pytest.raises(TypeError, match="every calendar must be a SessionCalendar"):
+        registry.replace_all((object(),))
+
+
+@pytest.mark.parametrize("calendar_id,version", [
+    (None, None),
+    ([], None),
+    ("CME_EQUITY_INDEX", 7),
+    ("CME_EQUITY_INDEX", ""),
+])
+def test_calendar_registry_rejects_malformed_lookup_keys(calendar_id, version):
+    registry = SessionCalendarRegistry()
+    with pytest.raises(TypeError):
+        registry.get(calendar_id, version)
