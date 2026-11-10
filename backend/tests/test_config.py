@@ -130,3 +130,21 @@ def test_settings_immutability_preserves_security_configuration():
     with pytest.raises(AttributeError):
         settings.redis_url = "redis://replacement.invalid"  # type: ignore[misc]
     assert replace(settings).redis_url == settings.redis_url
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "http_rate_limit_per_client",
+        "http_rate_limit_global",
+        "websocket_connection_limit_global",
+        "websocket_connection_limit_per_account",
+        "websocket_lease_seconds",
+    ],
+)
+@pytest.mark.parametrize("invalid_value", [True, False, 1.5, 0.5, "2", None, -1, 0])
+def test_shared_security_limits_reject_non_integer_and_invalid_values(
+    field, invalid_value
+):
+    with pytest.raises(ValueError, match="positive integers"):
+        make_settings(**{field: invalid_value})
