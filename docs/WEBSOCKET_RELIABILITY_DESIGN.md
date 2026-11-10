@@ -109,4 +109,21 @@ Implemented on the approved branch as a storage-layer increment (pending exact-c
 - `replay_outbox` returns a bounded exact-series replay page. Its global cursor can advance across unrelated series only when no matching events remain before the high-water; when more matching events remain, it stops at the last returned event cursor.
 - Regression coverage was added for transaction rollback, restart replay, exact decimal preservation, deduplication, series isolation, and retention-expiry behavior.
 
-**Not yet complete:** the current WebSocket route still uses its in-memory subscription watermark and has not yet been wired to this durable cursor/replay API. Snapshot/high-water handoff, reconnect protocol integration, live notification cursor propagation, multi-series authorization/replay, and sustained write/reconnect benchmarks remain follow-on implementation and verification work. This increment alone does not claim durable WebSocket reconnect is production-ready.
+**Follow-on work still required:** the WebSocket route now captures the durable outbox high-water immediately before its synchronous pipeline snapshot/registration handoff, includes the cursor in the snapshot, and attaches the exact persisted revision cursor plus stable outbox event ID to each live notification. The exact event lookup is series-scoped and checks timestamps, sequence, and decimal payload so a derived-timeframe event cannot be mistaken for its source bar. However, the route still does not accept a reconnect cursor or replay missed events to clients; reconnect currently starts with a fresh snapshot. Multi-series authorization/replay, snapshot/replay/live protocol handoff, replay pagination/limits at the socket boundary, and sustained write/reconnect benchmarks remain follow-on work. This increment alone does not claim durable WebSocket reconnect is production-ready.
+
+
+## 11. Durable cursor propagation into WebSocket snapshot/live path
+
+Implemented and CI-verified on commit `26a9ed840449cab9abeb573d5029b02d8fcbe998`:
+
+- Snapshot setup reads the outbox high-water and performs the in-memory pipeline snapshot plus subscription registration without an intervening await on the single-writer event loop. The response includes `cursor` and declares its scope as a global outbox cursor filtered by exact series identity.
+- Live notifications now carry the durable cursor and the persisted stable event ID rather than relying only on a per-connection sequence.
+- The callback resolves the exact outbox row for the bar revision. It deliberately does not attach the global latest cursor: derived bars can be persisted between a source bar commit and its notification callback. Exact series identity, timestamps, sequence, and decimal OHLCV are checked before returning the cursor/event ID.
+- Regression tests cover snapshot high-water, live cursor progression, stable event ID propagation, and distinct source/derived timeframe cursors.
+- CI passed on the exact commit: frontend tests/build and bundle secret scans, backend pytest/dependency audit, Docker image build, Redis + persistent-volume smoke test, Trivy scan/report export/upload. CodeQL JavaScript/TypeScript and Python both passed.
+
+**Still not implemented:** WebSocket reconnect cursor input, durable replay before live delivery, explicit resnapshot protocol for expired cursors at the socket layer, multi-series replay authorization, and benchmark evidence. The global cursor is safe to advance across unrelated series only when the server filters replay by the full canonical identity and no matching event remains before the returned cursor.
+
+## 12. Current live-feed coverage constraint
+
+The live source is Databento `ohlcv-1s` and subscribes only to explicit raw contract symbols from `DATABENTO_LIVE_SYMBOLS`. That configuration defaults to an empty tuple; the current default allowed roots are ES, NQ, and GC. Therefore this repository does **not** currently prove live coverage for every pair/contract. A configured provider credential, licensed entitlement, and explicit symbol list are required. Do not report all-pair real-time availability or zero delay until each requested instrument is configured, legally entitled, and monitored for gaps and timestamp latency.
