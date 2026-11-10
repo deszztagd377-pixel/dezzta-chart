@@ -390,3 +390,40 @@ def test_calendar_rejects_malformed_metadata_field_types(field, value):
     valid = make_calendar([])
     with pytest.raises(InvalidSessionCalendar):
         replace(valid, **{field: value})
+
+
+@pytest.mark.parametrize("value", [None, "2024-03-11", date(2024, 3, 11)])
+def test_datetime_to_epoch_ns_rejects_non_datetime_values(value):
+    with pytest.raises(TypeError, match="value must be a datetime"):
+        datetime_to_epoch_ns(value)
+
+
+@pytest.mark.parametrize("trading_date", [
+    datetime(2024, 3, 11, tzinfo=timezone.utc), "2024-03-11", None,
+])
+def test_resolve_trading_date_rejects_non_date_values(trading_date):
+    calendar = make_calendar([])
+    with pytest.raises(TypeError, match="trading_date must be a date"):
+        resolve_trading_date(calendar, trading_date)
+
+
+@pytest.mark.parametrize("instant", [None, "2024-03-11T12:00:00Z", date(2024, 3, 11)])
+def test_lookup_instant_rejects_non_datetime_values(instant):
+    calendar = make_calendar([])
+    with pytest.raises(TypeError, match="instant must be a datetime"):
+        lookup_instant(calendar, instant)
+
+
+@pytest.mark.parametrize("trading_date", [
+    datetime(2024, 3, 11, tzinfo=timezone.utc), "2024-03-11", None,
+])
+def test_session_bucket_bounds_rejects_non_date_values(trading_date):
+    calendar = make_calendar([])
+    with pytest.raises(TypeError, match="trading_date must be a date"):
+        session_bucket_bounds(calendar, trading_date, "1d")
+
+
+def test_session_bucket_bounds_rejects_non_string_timeframe_cleanly():
+    calendar = make_calendar([])
+    with pytest.raises(ValueError, match="Session buckets support only"):
+        session_bucket_bounds(calendar, date(2024, 3, 11), [])
