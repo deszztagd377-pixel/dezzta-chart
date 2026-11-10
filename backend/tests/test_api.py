@@ -628,6 +628,34 @@ def test_websocket_replays_exact_series_from_durable_cursor() -> None:
         assert int(complete["cursor"]) == expected_high_water
 
 
+@pytest.mark.parametrize(
+    "invalid_cursor",
+    ["²", "١", "1.5", "9" * 20, "9223372036854775808"],
+)
+def test_websocket_rejects_malformed_or_out_of_range_replay_cursor(invalid_cursor: str) -> None:
+    application = _app_with_bars()
+    client = TestClient(application)
+    with pytest.raises(WebSocketDisconnect) as disconnected:
+        with client.websocket_connect("/ws/market-data") as websocket:
+            websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+            assert websocket.receive_json()["type"] == "market_data.status"
+            websocket.send_json({
+                "type": "market_data.subscribe",
+                "version": 1,
+                "cursor": invalid_cursor,
+                "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+                "series": {
+                    "dataset": "GLBX.MDP3",
+                    "publisherId": 1,
+                    "instrumentId": 101,
+                    "rawSymbol": "ESZ6",
+                    "timeframe": "1s",
+                },
+            })
+            websocket.receive_json()
+    assert disconnected.value.code == 4400
+
+
 def test_websocket_replay_cursor_ahead_falls_back_to_fresh_snapshot() -> None:
     application = _app_with_bars()
     client = TestClient(application)
