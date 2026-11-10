@@ -150,7 +150,7 @@ class OhlcvStreamHub:
                 "streamId": subscription.stream_id,
                 "eventId": durable_event_id or uuid.uuid4().hex,
                 "sequence": next_sequence,
-                **({"cursor": durable_cursor} if durable_cursor is not None else {}),
+                **({"cursor": str(durable_cursor)} if durable_cursor is not None else {}),
                 "emittedAtNs": str(self._clock_ns()),
                 "operation": "upsert",
                 "isFinal": bar.completeness == "complete",
