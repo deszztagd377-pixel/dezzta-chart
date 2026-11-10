@@ -622,6 +622,7 @@ def create_app(
                 if "cursor" in request:
                     if (
                         not isinstance(cursor_value, str)
+                        or not cursor_value.isascii()
                         or not cursor_value.isdigit()
                         or len(cursor_value) > 19
                     ):
