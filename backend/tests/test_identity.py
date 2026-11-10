@@ -257,6 +257,31 @@ def test_subject_is_rejected_when_both_uid_and_sub_are_absent():
 
 
 @pytest.mark.parametrize(
+    "uid,sub",
+    [
+        ("account-a", "account-b"),
+        ("firebase-user-1", "firebase-user-2"),
+        ("123", "124"),
+        ("user@example.test", "another@example.test"),
+        ("a" * 128, "b" * 128),
+        ("account-a", ""),
+        ("account-a", "   "),
+        ("   ", "account-a"),
+        (123, "account-a"),
+        ("account-a", 123),
+    ],
+)
+def test_identity_verifier_rejects_mismatched_or_malformed_uid_and_sub(uid, sub):
+    claims = {**CLAIMS, "uid": uid, "sub": sub}
+    verifier = FirebaseIdentityVerifier(
+        PROJECT, verify_callable=lambda token, **kwargs: claims
+    )
+
+    with pytest.raises(IdentityVerificationError):
+        verifier.verify("token")
+
+
+@pytest.mark.parametrize(
     "overrides,remove_claims",
     [
         ({"uid": None}, ()),
