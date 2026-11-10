@@ -236,3 +236,12 @@ This is an additional functional acceptance track **inside Stage 1**, not a sepa
 - CodeQL: [run 42816899668](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42816899668) — **success** for both Python and JavaScript/TypeScript jobs.
 - This closes the pending CI verification for the UTC timestamp hardening only. It does not implement session-aware aggregation, verify the Databento SDK against a real account, or satisfy any external production gate.
 - Checklist accounting remains **30/40** with **10 external production verification gates** outstanding. Stage 1 remains **not production-accepted**.
+
+
+## Latest exact-commit CI verification — 2026-11-10
+
+- Exact commit: 7b41c5a3ead82cb07f428b10474ba01267a45c60 on phase-2/market-data-foundation.
+- Automated Tests & Build: [run 42817566167](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42817566167) — **success**. All steps completed successfully, including frontend dependency audit, unit tests, build, bundle-secret scans, backend pytest, backend dependency audit, Docker build, isolated Redis + persistent-volume restart smoke test, Trivy image scan, vulnerability report export, and artifact upload.
+- CodeQL Security Analysis: [run 42817566002](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42817566002) — **success** for Python and JavaScript/TypeScript analysis.
+- This exact-commit CI evidence supersedes the earlier pending/queued checkpoint notes above for the 7b41c5a commit. It verifies repository CI and an ephemeral CI volume/Redis test only; it does **not** prove a Fly deployment, managed Redis, production Firebase credentials, a production Fly Volume, encrypted off-host backup/restore, production WSS, or external monitoring/alert delivery.
+- External production gates remain **10/40 outstanding**. Stage 1 remains **not production-accepted** and the checklist count is unchanged.
