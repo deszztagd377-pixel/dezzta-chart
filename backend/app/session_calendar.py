@@ -25,6 +25,8 @@ SessionState = Literal["open", "maintenance", "closed", "unknown", "special-sess
 
 def calendar_id_for_product_family(product_family: str) -> str | None:
     """Resolve only an explicitly supplied CME product family; never parse symbols."""
+    if not isinstance(product_family, str):
+        raise TypeError("product_family must be a string.")
     family = product_family.strip().upper()
     matches = [
         calendar_id for calendar_id, families in CALENDAR_BY_FAMILY.items()
@@ -48,6 +50,8 @@ class SessionCalendarRegistry:
         return len(self._calendars)
 
     def register(self, calendar: "SessionCalendar") -> None:
+        if not isinstance(calendar, SessionCalendar):
+            raise TypeError("calendar must be a SessionCalendar.")
         key = (calendar.calendar_id, calendar.version)
         existing = self._calendars.get(key)
         if existing is not None and existing != calendar:
@@ -59,6 +63,8 @@ class SessionCalendarRegistry:
     def replace_all(self, calendars: tuple["SessionCalendar", ...]) -> None:
         staged: dict[tuple[str, str], SessionCalendar] = {}
         for calendar in calendars:
+            if not isinstance(calendar, SessionCalendar):
+                raise TypeError("every calendar must be a SessionCalendar.")
             key = (calendar.calendar_id, calendar.version)
             existing = staged.get(key)
             if existing is not None and existing != calendar:
@@ -71,6 +77,10 @@ class SessionCalendarRegistry:
     def get(
         self, calendar_id: str, version: str | None = None
     ) -> "SessionCalendar | None":
+        if not isinstance(calendar_id, str) or not calendar_id.strip():
+            raise TypeError("calendar_id must be a non-empty string.")
+        if version is not None and (not isinstance(version, str) or not version.strip()):
+            raise TypeError("version must be a non-empty string when provided.")
         if version is not None:
             return self._calendars.get((calendar_id, version))
         candidates = [
