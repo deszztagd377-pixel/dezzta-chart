@@ -68,7 +68,7 @@ def test_snapshot_registration_is_atomic_boundary_for_following_updates() -> Non
         assert update["type"] == "market_data.ohlcv.update"
         assert update["streamId"] == subscription.stream_id
         assert update["sequence"] == 1
-        assert update["cursor"] == 42
+        assert update["cursor"] == "42"
         assert update["eventId"] == "durable-event-42"
         assert subscription.durable_cursor == 42
         assert update["bar"]["tsStartNs"] == str(_T0 + _NS)
