@@ -573,6 +573,20 @@ class SQLiteOhlcvStore:
         finally:
             db.close()
 
+    def outbox_event_id(self, cursor: int) -> str | None:
+        """Return the persisted stable event ID for a durable cursor."""
+        if not isinstance(cursor, int) or isinstance(cursor, bool) or cursor < 1:
+            raise ValueError("cursor must be a positive integer.")
+        db = self._connect()
+        try:
+            row = db.execute(
+                "SELECT event_id FROM ohlcv_outbox WHERE cursor=?",
+                (cursor,),
+            ).fetchone()
+            return None if row is None else str(row["event_id"])
+        finally:
+            db.close()
+
     def replay_outbox(
         self, *, after_cursor: int, provider: str, dataset: str,
         publisher_id: int, instrument_id: int, series_type: str,
