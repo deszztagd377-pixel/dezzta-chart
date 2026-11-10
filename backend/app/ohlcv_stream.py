@@ -100,12 +100,20 @@ class OhlcvStreamHub:
         self._subscriptions[stream_id] = subscription
         return subscription, bars, total
 
-    def publish(self, bar: OhlcvBar, *, durable_cursor: int | None = None) -> None:
+    def publish(
+        self, bar: OhlcvBar, *, durable_cursor: int | None = None,
+        durable_event_id: str | None = None,
+    ) -> None:
         """Publish only an accepted pipeline revision to matching subscribers."""
         if durable_cursor is not None and (
             not isinstance(durable_cursor, int) or isinstance(durable_cursor, bool) or durable_cursor < 1
         ):
             raise ValueError("durable_cursor must be a positive integer")
+        if durable_event_id is not None and (
+            not isinstance(durable_event_id, str) or not durable_event_id
+            or len(durable_event_id) > 128
+        ):
+            raise ValueError("durable_event_id must be a non-empty string up to 128 characters")
         identity = self.identity_for(bar)
         payload_bar = {
             "dataset": bar.dataset,
@@ -140,7 +148,7 @@ class OhlcvStreamHub:
                 "type": "market_data.ohlcv.update",
                 "version": 1,
                 "streamId": subscription.stream_id,
-                "eventId": uuid.uuid4().hex,
+                "eventId": durable_event_id or uuid.uuid4().hex,
                 "sequence": next_sequence,
                 **({"cursor": durable_cursor} if durable_cursor is not None else {}),
                 "emittedAtNs": str(self._clock_ns()),
