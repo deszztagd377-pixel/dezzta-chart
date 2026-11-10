@@ -416,3 +416,26 @@ def test_outbox_replay_isolated_by_complete_series_identity(tmp_path):
     assert len(nq["events"]) == 1
     assert nq["events"][0]["bar"]["rawSymbol"] == "NQZ6"
     assert es["next_cursor"] == nq["next_cursor"] == 2
+
+
+def test_outbox_event_lookup_resolves_exact_source_and_derived_series_revision(tmp_path):
+    store = SQLiteOhlcvStore(str(tmp_path / "outbox-exact-event.sqlite3"))
+    source = make_bar(start=0, event=100, sequence=1, timeframe="1s")
+    derived = make_bar(
+        start=0, event=100, sequence=1, timeframe="1m",
+        origin="derived", completeness="open",
+    )
+    assert store.apply(source) == "inserted"
+    source_event = store.outbox_event_for_bar(source)
+    assert source_event is not None
+    assert source_event["cursor"] == 1
+
+    assert store.apply(derived) == "inserted"
+    derived_event = store.outbox_event_for_bar(derived)
+    assert derived_event is not None
+    assert derived_event["cursor"] == 2
+    assert derived_event["eventId"] != source_event["eventId"]
+
+    assert store.outbox_event_for_bar(
+        make_bar(start=0, event=100, sequence=1, timeframe="1s", close="999")
+    ) is None
