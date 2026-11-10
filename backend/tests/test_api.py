@@ -613,7 +613,7 @@ def test_websocket_replays_exact_series_from_durable_cursor() -> None:
         })
         started = websocket.receive_json()
         assert started["type"] == "market_data.ohlcv.replay_started"
-        assert started["fromCursor"] == 0
+        assert started["fromCursor"] == "0"
         assert int(started["throughCursor"]) == expected_high_water
         assert started["count"] == 4
         replayed = [websocket.receive_json() for _ in range(started["count"])]
