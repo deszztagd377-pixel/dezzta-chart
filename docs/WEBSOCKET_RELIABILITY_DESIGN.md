@@ -170,3 +170,12 @@ Candidate implementation on `phase-2/market-data-foundation`, commit `dac22020bf
 
 - The WebSocket route now awaits `asyncio.to_thread(ohlcv_store.replay_outbox, ...)` for each bounded SQLite replay page. The store method opens and closes its own SQLite connection, while the existing live queue is registered before replay; queued live events can therefore continue to be serviced while replay I/O runs off the event-loop thread.
 - This is intended to reduce event-loop blocking during reconnect backlogs. It is not a measured latency improvement yet. Exact-commit CI, concurrency/reconnect benchmarks, and production WSS measurements are still required before acceptance.
+
+
+## 16. Market-data timeframe and provider verification boundary
+
+- The live Databento adapter requests only `ohlcv-1s` and subscribes to explicit raw contract symbols. It is not an all-symbol subscription, and the configured live symbol list defaults to empty.
+- The timeframe registry includes fixed intraday intervals plus daily, weekly, monthly, and quarterly periods. Derived bars are not universally available merely because the timeframe is supported by the model.
+- The aggregation path deliberately skips derivation for `CME_SESSION_V1` bars until exchange-session-aligned bucket bounds are implemented and verified. UTC-fixed aggregation also stops before daily/weekly/monthly periods. This prevents incorrect session labeling but leaves futures multi-timeframe delivery incomplete.
+- The Databento SDK wrapper module marks its actual SDK calls unverified pending a real credentialed integration test.
+- The acceptance matrix now records the evidence required before any claim of all-pair/all-timeframe LIVE coverage. No provider entitlement, real SDK connection, full symbol-universe coverage, or end-to-end latency claim is inferred from unit tests.
