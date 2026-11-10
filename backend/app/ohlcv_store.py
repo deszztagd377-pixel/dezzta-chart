@@ -573,6 +573,56 @@ class SQLiteOhlcvStore:
         finally:
             db.close()
 
+    def outbox_event_for_bar(self, bar: OhlcvBar) -> dict[str, object] | None:
+        """Resolve the exact committed outbox event for one persisted bar revision.
+
+        Do not use the global high-water here: derived bars can be committed
+        between a source bar's persistence and its live notification callback.
+        """
+        if not isinstance(bar, OhlcvBar):
+            raise TypeError("Expected an OhlcvBar instance.")
+        db = self._connect()
+        try:
+            patterns = (
+                f'%"tsStartNs":"{bar.ts_start_ns}"%',
+                f'%"tsEventNs":"{bar.ts_event_ns}"%',
+                f'%"tsReceivedNs":"{bar.ts_received_ns}"%',
+                f'%"sequence":{bar.sequence}%',
+            )
+            row = db.execute(
+                """SELECT cursor,event_id,event_json FROM ohlcv_outbox
+                WHERE provider=? AND dataset=? AND publisher_id=? AND instrument_id=?
+                AND series_type=? AND raw_symbol=? AND timeframe=? AND bucket_policy=?
+                AND calendar_id=? AND calendar_version=?
+                AND event_json LIKE ? AND event_json LIKE ?
+                AND event_json LIKE ? AND event_json LIKE ?
+                ORDER BY cursor DESC LIMIT 1""",
+                (
+                    bar.provider, bar.dataset, bar.publisher_id, bar.instrument_id,
+                    bar.series_type, bar.raw_symbol, bar.timeframe, bar.bucket_policy,
+                    bar.calendar_id, bar.calendar_version, *patterns,
+                ),
+            ).fetchone()
+            if row is None:
+                return None
+            payload = json.loads(row["event_json"])
+            stored_bar = payload.get("bar", {})
+            if (
+                stored_bar.get("tsStartNs") != str(bar.ts_start_ns)
+                or stored_bar.get("tsEventNs") != str(bar.ts_event_ns)
+                or stored_bar.get("tsReceivedNs") != str(bar.ts_received_ns)
+                or stored_bar.get("sequence") != bar.sequence
+                or stored_bar.get("open") != format(bar.open, "f")
+                or stored_bar.get("high") != format(bar.high, "f")
+                or stored_bar.get("low") != format(bar.low, "f")
+                or stored_bar.get("close") != format(bar.close, "f")
+                or stored_bar.get("volume") != format(bar.volume, "f")
+            ):
+                return None
+            return {"cursor": int(row["cursor"]), "eventId": str(row["event_id"])}
+        finally:
+            db.close()
+
     def outbox_event_id(self, cursor: int) -> str | None:
         """Return the persisted stable event ID for a durable cursor."""
         if not isinstance(cursor, int) or isinstance(cursor, bool) or cursor < 1:
