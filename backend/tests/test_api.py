@@ -591,6 +591,71 @@ def test_websocket_authenticates_then_sends_exact_ohlcv_snapshot_with_watermark(
         assert snapshot["bars"][-1]["tsStartNs"] == str(_T0 + 3 * _NS)
 
 
+def test_websocket_replays_exact_series_from_durable_cursor() -> None:
+    application = _app_with_bars()
+    client = TestClient(application)
+    expected_high_water = application.state.ohlcv_store.outbox_high_water()
+    with client.websocket_connect("/ws/market-data") as websocket:
+        websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+        assert websocket.receive_json()["type"] == "market_data.status"
+        websocket.send_json({
+            "type": "market_data.subscribe",
+            "version": 1,
+            "cursor": 0,
+            "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+            "series": {
+                "dataset": "GLBX.MDP3",
+                "publisherId": 1,
+                "instrumentId": 101,
+                "rawSymbol": "ESZ6",
+                "timeframe": "1s",
+            },
+        })
+        started = websocket.receive_json()
+        assert started["type"] == "market_data.ohlcv.replay_started"
+        assert started["fromCursor"] == 0
+        assert started["throughCursor"] == expected_high_water
+        assert started["count"] == 4
+        replayed = [websocket.receive_json() for _ in range(started["count"])]
+        assert all(event["type"] == "market_data.ohlcv.update" for event in replayed)
+        assert all(event["replayed"] is True for event in replayed)
+        assert [event["cursor"] for event in replayed] == sorted(
+            event["cursor"] for event in replayed
+        )
+        assert all(event["series"]["rawSymbol"] == "ESZ6" for event in replayed)
+        complete = websocket.receive_json()
+        assert complete["type"] == "market_data.ohlcv.replay_complete"
+        assert complete["cursor"] == expected_high_water
+
+
+def test_websocket_replay_cursor_ahead_falls_back_to_fresh_snapshot() -> None:
+    application = _app_with_bars()
+    client = TestClient(application)
+    requested_cursor = application.state.ohlcv_store.outbox_high_water() + 1
+    with client.websocket_connect("/ws/market-data") as websocket:
+        websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+        assert websocket.receive_json()["type"] == "market_data.status"
+        websocket.send_json({
+            "type": "market_data.subscribe",
+            "version": 1,
+            "cursor": requested_cursor,
+            "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+            "series": {
+                "dataset": "GLBX.MDP3",
+                "publisherId": 1,
+                "instrumentId": 101,
+                "rawSymbol": "ESZ6",
+                "timeframe": "1s",
+            },
+        })
+        fallback = websocket.receive_json()
+        assert fallback["type"] == "market_data.ohlcv.resnapshot_required"
+        assert fallback["reason"] == "cursor_ahead"
+        snapshot = websocket.receive_json()
+        assert snapshot["type"] == "market_data.ohlcv.snapshot"
+        assert snapshot["cursor"] < requested_cursor
+
+
 @pytest.mark.parametrize(
     ("field", "value", "top_level"),
     [
