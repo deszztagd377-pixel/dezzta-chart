@@ -68,7 +68,7 @@ This matrix separates repository implementation from evidence that must come fro
 37. **Implemented / test present** — the market-data status endpoint exposes bounded application-level operational state; it is not external monitoring.
 38. **External verification required** — configure external metrics/log collection, retention, dashboards, and access controls.
 39. **External verification required** — configure alert routing and demonstrate delivery to the responsible operator; document incident ownership, escalation, and recovery steps.
-40. **Owner-approved design objectives; scoped design review still required before implementation** — the owner approved the goals for durable WebSocket event replay/outbox, reconnect semantics, sustained write-rate and multi-process contention benchmarks, and evaluation of a short-lived scoped WebSocket-ticket design. The detailed proposal is in [WEBSOCKET_RELIABILITY_DESIGN.md](WEBSOCKET_RELIABILITY_DESIGN.md). Review the cursor model, retention, benchmark plan, and ticket threat model before implementation. Do not add ticket exchange until its threat model and scoped design are explicitly reviewed.
+40. **Owner-approved design — complete (2026-11-10)** — the owner explicitly approved the detailed replay cursor model, outbox retention policy, reconnect semantics, benchmark plan, and short-lived scoped WebSocket-ticket threat model in [WEBSOCKET_RELIABILITY_DESIGN.md](WEBSOCKET_RELIABILITY_DESIGN.md). This closes the owner-approval criterion. Durable outbox/replay implementation still requires incremental code review and regression evidence; ticket exchange additionally remains gated on an independent security review before ticket code is added.
 
 ## Evidence required before Stage 1 can be marked 100%
 
@@ -76,7 +76,7 @@ This matrix separates repository implementation from evidence that must come fro
 - A successful production-like Firebase + Redis + HTTPS/WSS integration run.
 - A documented persistent-volume restart check and encrypted off-site backup restore drill.
 - Evidence of monitoring and alert delivery, plus an approved incident/recovery procedure.
-- Owner review of the scoped replay/benchmark/ticket blueprint and security threat model before implementation.
+- Owner approval of the scoped replay/benchmark/ticket blueprint (completed 2026-11-10); independent security review remains mandatory before implementing ticket exchange.
 
 **Current disposition:** Stage 1 is not production-accepted. The branch contains substantial implementation and regression coverage, but external acceptance evidence listed above is still outstanding. A green frontend deployment check alone does not satisfy these gates.
 
@@ -114,3 +114,16 @@ The CI workflow succeeding does not change the external acceptance status above.
 - CI and CodeQL are repository evidence only. They do not prove production Firebase/managed Redis integration, provider entitlement/real-time market-data quality, production volume provisioning, encrypted off-site backup/restore, deployed HTTPS/WSS, monitoring/alert delivery, or market-data provider cost/availability.
 - The design blueprint explicitly keeps live and historical provider ingestion disabled by default. No provider credentials, paid services, runtime behavior, or authentication flow were changed in this checkpoint.
 - Stage 1 remains **not production-accepted** until all external gates and the scoped design review have reproducible evidence.
+
+
+## Latest verified checkpoint — 2026-11-10 (commit bb60452)
+
+- Branch: `phase-2/market-data-foundation`
+- Commit: `bb604521d37262bdeb6745111c012a088429863a`
+- Automated Tests & Build: [run 42807415946](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42807415946) — **success**.
+- Verified: frontend dependency install/audit, frontend unit tests/build, frontend bundle secret-scanner test and production-bundle credential scan, backend dependency install/pytest/audit, Docker image build, Redis + persistent-volume smoke test, Trivy image scan, vulnerability-report export/upload.
+- Code change: corrected the WebSocket subscription identity type annotation to use the same 10-field canonical series identity returned by `identity_for`; runtime behavior was not changed.
+- Owner approval: the detailed WebSocket reliability blueprint was explicitly approved on 2026-11-10. The separate security review remains required before ticket-exchange code.
+- The green CI run is repository evidence only. It does not satisfy the external Firebase/managed Redis integration, real deployment volume, encrypted off-host backup/restore, deployed HTTPS/WSS, monitoring/alert delivery, or market-data licensing/provider gates.
+
+**Current checklist accounting:** 30/40 criteria have repository implementation/test evidence or completed owner approval; 10/40 remain external production verification gates. This is a checklist count, not a production-readiness percentage. Stage 1 remains **not production-accepted**.
