@@ -437,5 +437,5 @@ def test_outbox_event_lookup_resolves_exact_source_and_derived_series_revision(t
     assert derived_event["eventId"] != source_event["eventId"]
 
     assert store.outbox_event_for_bar(
-        make_bar(start=0, event=100, sequence=1, timeframe="1s", close="999")
+        make_bar(start=0, event=100, sequence=1, timeframe="1s", close="102")
     ) is None
