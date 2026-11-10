@@ -95,7 +95,9 @@ def test_calendar_publication_timestamp_must_be_utc_and_is_normalized():
         effective_end=date(2024, 3, 31),
         source_id="official-cme-schedule-release",
         source_url="https://www.cmegroup.com/trading-hours.html",
-        published_at_utc=datetime(2024, 2, 1, 6, 0, tzinfo=ZoneInfo("America/Chicago")),
+        published_at_utc=datetime(
+            2024, 2, 1, 12, 0, tzinfo=timezone(timedelta(0), "UTC+00")
+        ),
         checksum="sha256:verified-release-digest",
         records={},
     )
