@@ -120,6 +120,13 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
     setState('closed');
   };
 
+  const refreshHandshakeTimer = () => {
+    clearTimer();
+    timer = setTimeout(() => {
+      fail(new Error('OHLCV WebSocket replay/snapshot handshake timed out.'));
+    }, timeoutMs);
+  };
+
   socket.addEventListener('open', () => {
     if (state !== 'connecting') return;
     socket.send(JSON.stringify({ type: 'auth', token: options.token }));
@@ -143,10 +150,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
 
     try {
       if (value.type === 'market_data.status' && state === 'connecting') {
-        clearTimer();
-        timer = setTimeout(() => {
-          fail(new Error('OHLCV WebSocket snapshot handshake timed out.'));
-        }, timeoutMs);
+        refreshHandshakeTimer();
         setState('authenticated');
         socket.send(JSON.stringify({
           type: 'market_data.subscribe',
@@ -185,8 +189,13 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
           (typeof value.streamId !== 'string' || value.streamId.trim().length === 0) ||
           !Number.isSafeInteger(value.count) ||
           (value.count as number) < 0 ||
+          typeof value.fromCursor !== 'string' ||
+          !/^\\d+$/.test(value.fromCursor) ||
           typeof value.throughCursor !== 'string' ||
-          !/^\\d+$/.test(value.throughCursor)
+          !/^\\d+$/.test(value.throughCursor) ||
+          (options.resumeCursor !== undefined &&
+            BigInt(value.fromCursor) !== BigInt(options.resumeCursor)) ||
+          BigInt(value.throughCursor) < BigInt(value.fromCursor)
         ) {
           throw new Error('OHLCV replay start message is invalid.');
         }
@@ -209,6 +218,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
         replayExpectedCount = value.count as number;
         replayReceivedCount = 0;
         replayEndCursor = value.throughCursor;
+        refreshHandshakeTimer();
         return;
       }
 
@@ -291,7 +301,10 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
         if (!candle) throw new Error('OHLCV update did not contain the subscribed series.');
         options.onUpdate(event, candle);
         if (event.cursor !== undefined) options.onCursor?.(event.cursor);
-        if (replayExpectedCount !== null) replayReceivedCount += 1;
+        if (replayExpectedCount !== null) {
+          replayReceivedCount += 1;
+          refreshHandshakeTimer();
+        }
         return;
       }
 
