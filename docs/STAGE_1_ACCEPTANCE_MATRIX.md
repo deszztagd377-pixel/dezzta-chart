@@ -225,3 +225,14 @@ This is an additional functional acceptance track **inside Stage 1**, not a sepa
 - Exact-commit Automated Tests run: [42816364225](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42816364225) — queued at the latest inspection.
 - Exact-commit CodeQL run: [42816364046](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42816364046) — analysis in progress at the latest inspection.
 - This hardening does not change the 30/40 checklist evidence count or close any production gate. Do not mark it CI-verified until both workflows finish successfully.
+
+
+## Latest exact-commit verification — calendar UTC test repair (2026-11-10)
+
+- Branch: `phase-2/market-data-foundation`.
+- Exact tested commit: `cc2914e95aa6646a4b5dcba9f5c76dfd60992d59`.
+- The production invariant is unchanged: `published_at_utc` must have a zero UTC offset and is normalized to canonical `timezone.utc`. The regression fixture was corrected to use a zero-offset timezone for the normalization case; a Chicago (UTC-6) timestamp remains explicitly rejected.
+- Automated Tests & Build: [run 42816899715](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42816899715) — **success**. Every step passed, including frontend audit/tests/build/secret scans, backend pytest/dependency audit, Docker build, Redis + persistent-volume smoke test, Trivy scan, and vulnerability report export/upload.
+- CodeQL: [run 42816899668](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42816899668) — **success** for both Python and JavaScript/TypeScript jobs.
+- This closes the pending CI verification for the UTC timestamp hardening only. It does not implement session-aware aggregation, verify the Databento SDK against a real account, or satisfy any external production gate.
+- Checklist accounting remains **30/40** with **10 external production verification gates** outstanding. Stage 1 remains **not production-accepted**.
