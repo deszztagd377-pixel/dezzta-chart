@@ -116,6 +116,18 @@ def create_app(
     resolver = InstrumentResolver()
     stream_hub = OhlcvStreamHub()
     ohlcv_store = SQLiteOhlcvStore(config.instrument_registry_db_path)
+
+    def publish_persisted_bar(bar) -> None:
+        # Ingestion is single-writer on this event loop. The bar and outbox event
+        # were committed together immediately before this callback.
+        cursor = ohlcv_store.outbox_high_water()
+        event_id = ohlcv_store.outbox_event_id(cursor)
+        if event_id is None:
+            raise RuntimeError("Persisted OHLCV outbox event is missing.")
+        stream_hub.publish(
+            bar, durable_cursor=cursor, durable_event_id=event_id,
+        )
+
     coverage_tracker = SQLiteCoverageTracker(config.instrument_registry_db_path)
     session_calendar_registry, session_calendar_status = load_session_calendar_runtime(
         artifact_path=config.session_calendar_artifact_path,
@@ -130,9 +142,7 @@ def create_app(
     ingestion = OhlcvIngestionService(
         pipeline=ohlcv_pipeline, resolver=resolver, coverage=coverage_tracker,
         dataset=config.databento_dataset, queue_max=config.ohlcv_queue_max,
-        on_bar_applied=lambda bar: stream_hub.publish(  # noqa: E731
-            bar, durable_cursor=ohlcv_store.outbox_high_water()
-        ),
+        on_bar_applied=publish_persisted_bar,
         persistence=ohlcv_store,
         bar_validator=session_bar_validator,
     )
