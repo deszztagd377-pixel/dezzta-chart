@@ -27,6 +27,7 @@ class OhlcvStreamSubscription:
     identity: SeriesIdentity
     queue: asyncio.Queue[dict[str, Any]]
     watermark: int = 0
+    durable_cursor: int = 0
     overflowed: bool = False
     closed: bool = False
 
@@ -63,6 +64,7 @@ class OhlcvStreamHub:
         bucket_policy: str = BUCKET_POLICY_UTC_LEGACY,
         calendar_id: str = "",
         calendar_version: str = "",
+        durable_cursor: int = 0,
     ) -> tuple[OhlcvStreamSubscription, list[OhlcvBar], int]:
         """Take the initial snapshot and register its stream without an await.
 
@@ -86,17 +88,24 @@ class OhlcvStreamHub:
             series_type="contract",
             limit=limit,
         )
+        if not isinstance(durable_cursor, int) or isinstance(durable_cursor, bool) or durable_cursor < 0:
+            raise ValueError("durable_cursor must be a non-negative integer")
         stream_id = uuid.uuid4().hex
         subscription = OhlcvStreamSubscription(
             stream_id=stream_id,
             identity=identity,
             queue=asyncio.Queue(maxsize=self._queue_capacity),
+            durable_cursor=durable_cursor,
         )
         self._subscriptions[stream_id] = subscription
         return subscription, bars, total
 
-    def publish(self, bar: OhlcvBar) -> None:
+    def publish(self, bar: OhlcvBar, *, durable_cursor: int | None = None) -> None:
         """Publish only an accepted pipeline revision to matching subscribers."""
+        if durable_cursor is not None and (
+            not isinstance(durable_cursor, int) or isinstance(durable_cursor, bool) or durable_cursor < 1
+        ):
+            raise ValueError("durable_cursor must be a positive integer")
         identity = self.identity_for(bar)
         payload_bar = {
             "dataset": bar.dataset,
@@ -133,6 +142,7 @@ class OhlcvStreamHub:
                 "streamId": subscription.stream_id,
                 "eventId": uuid.uuid4().hex,
                 "sequence": next_sequence,
+                **({"cursor": durable_cursor} if durable_cursor is not None else {}),
                 "emittedAtNs": str(self._clock_ns()),
                 "operation": "upsert",
                 "isFinal": bar.completeness == "complete",
@@ -157,6 +167,8 @@ class OhlcvStreamHub:
                 subscription.overflowed = True
                 continue
             subscription.watermark = next_sequence
+            if durable_cursor is not None:
+                subscription.durable_cursor = max(subscription.durable_cursor, durable_cursor)
 
     def unsubscribe(self, stream_id: str) -> None:
         subscription = self._subscriptions.pop(stream_id, None)
