@@ -584,6 +584,8 @@ def test_websocket_authenticates_then_sends_exact_ohlcv_snapshot_with_watermark(
         assert snapshot["state"] == "ready"
         assert snapshot["streamId"]
         assert snapshot["watermark"] == 0
+        assert snapshot["cursor"] == 0
+        assert snapshot["cursorScope"] == "global-outbox-filtered-by-exact-series"
         assert snapshot["count"] == 4
         assert snapshot["bars"][-1]["tsStartNs"] == str(_T0 + 3 * _NS)
 
@@ -922,6 +924,7 @@ def test_websocket_normalizes_raw_symbol_for_snapshot_and_live_stream_identity()
         assert update["series"]["rawSymbol"] == "ESZ6"
         assert update["bar"]["rawSymbol"] == "ESZ6"
         assert update["sequence"] == 1
+        assert update["cursor"] == 1
 
 
 def _open_authorized_websocket_subscription(application, client):
