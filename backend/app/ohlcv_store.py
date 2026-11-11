@@ -576,8 +576,10 @@ class SQLiteOhlcvStore:
     def outbox_event_for_bar(self, bar: OhlcvBar) -> dict[str, object] | None:
         """Resolve the exact committed outbox event for one persisted bar revision.
 
-        Do not use the global high-water here: derived bars can be committed
-        between a source bar's persistence and its live notification callback.
+        Several legitimate revisions can share timestamps and sequence values
+        (for example, an open derived bar becoming complete). Compare the full
+        canonical payload so a delayed callback cannot publish a different
+        revision merely because its OHLCV values happen to match.
         """
         if not isinstance(bar, OhlcvBar):
             raise TypeError("Expected an OhlcvBar instance.")
@@ -589,37 +591,46 @@ class SQLiteOhlcvStore:
                 f'%"tsReceivedNs":"{bar.ts_received_ns}"%',
                 f'%"sequence":{bar.sequence},"sequenceOrigin"%',
             )
-            row = db.execute(
+            rows = db.execute(
                 """SELECT cursor,event_id,event_json FROM ohlcv_outbox
                 WHERE provider=? AND dataset=? AND publisher_id=? AND instrument_id=?
                 AND series_type=? AND raw_symbol=? AND timeframe=? AND bucket_policy=?
                 AND calendar_id=? AND calendar_version=?
                 AND event_json LIKE ? AND event_json LIKE ?
                 AND event_json LIKE ? AND event_json LIKE ?
-                ORDER BY cursor DESC LIMIT 1""",
+                ORDER BY cursor DESC""",
                 (
                     bar.provider, bar.dataset, bar.publisher_id, bar.instrument_id,
                     bar.series_type, bar.raw_symbol, bar.timeframe, bar.bucket_policy,
                     bar.calendar_id, bar.calendar_version, *patterns,
                 ),
-            ).fetchone()
-            if row is None:
-                return None
-            payload = json.loads(row["event_json"])
-            stored_bar = payload.get("bar", {})
-            if (
-                stored_bar.get("tsStartNs") != str(bar.ts_start_ns)
-                or stored_bar.get("tsEventNs") != str(bar.ts_event_ns)
-                or stored_bar.get("tsReceivedNs") != str(bar.ts_received_ns)
-                or stored_bar.get("sequence") != bar.sequence
-                or stored_bar.get("open") != format(bar.open, "f")
-                or stored_bar.get("high") != format(bar.high, "f")
-                or stored_bar.get("low") != format(bar.low, "f")
-                or stored_bar.get("close") != format(bar.close, "f")
-                or stored_bar.get("volume") != format(bar.volume, "f")
-            ):
-                return None
-            return {"cursor": int(row["cursor"]), "eventId": str(row["event_id"])}
+            ).fetchall()
+            expected = {
+                "tsStartNs": str(bar.ts_start_ns),
+                "open": format(bar.open, "f"),
+                "high": format(bar.high, "f"),
+                "low": format(bar.low, "f"),
+                "close": format(bar.close, "f"),
+                "volume": format(bar.volume, "f"),
+                "tsEventNs": str(bar.ts_event_ns),
+                "tsReceivedNs": str(bar.ts_received_ns),
+                "tsProviderOutNs": (
+                    None if bar.ts_provider_out_ns is None
+                    else str(bar.ts_provider_out_ns)
+                ),
+                "sequence": bar.sequence,
+                "sequenceOrigin": bar.sequence_origin,
+                "origin": bar.origin,
+                "completeness": bar.completeness,
+            }
+            for row in rows:
+                payload = json.loads(row["event_json"])
+                stored_bar = payload.get("bar")
+                if isinstance(stored_bar, dict) and all(
+                    stored_bar.get(key) == value for key, value in expected.items()
+                ):
+                    return {"cursor": int(row["cursor"]), "eventId": str(row["event_id"])}
+            return None
         finally:
             db.close()
 

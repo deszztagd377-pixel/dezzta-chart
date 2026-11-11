@@ -439,3 +439,28 @@ def test_outbox_event_lookup_resolves_exact_source_and_derived_series_revision(t
     assert store.outbox_event_for_bar(
         make_bar(start=0, event=100, sequence=1, timeframe="1s", close="102")
     ) is None
+
+def test_outbox_event_lookup_does_not_confuse_same_timestamp_derived_revisions(tmp_path):
+    store = SQLiteOhlcvStore(str(tmp_path / "outbox-revision-lookup.sqlite3"))
+    open_bar = make_bar(
+        start=60 * NS, event=100, sequence=7, origin="derived",
+        completeness="open",
+    )
+    complete_bar = make_bar(
+        start=60 * NS, event=100, sequence=7, origin="derived",
+        completeness="complete",
+    )
+
+    assert store.apply(open_bar) == "inserted"
+    open_event = store.outbox_event_for_bar(open_bar)
+    assert open_event is not None
+    assert open_event["cursor"] == 1
+
+    assert store.apply(complete_bar) == "replaced"
+    complete_event = store.outbox_event_for_bar(complete_bar)
+    assert complete_event is not None
+    assert complete_event["cursor"] == 2
+
+    # A delayed callback for the earlier revision must not be mapped to the
+    # newer outbox event just because its timestamps, sequence and OHLCV match.
+    assert store.outbox_event_for_bar(open_bar) == open_event
