@@ -127,6 +127,31 @@ class InvalidSessionCalendar(ValueError):
     """Calendar metadata or a supplied session record is invalid."""
 
 
+def _validate_chicago_boundary(boundary: datetime, label: str) -> None:
+    """Reject invalid wall-clock times at calendar release boundaries.
+
+    ZoneInfo permits construction of nonexistent spring-forward times and
+    ambiguous fall-back times. A calendar must pin one unambiguous instant for
+    every boundary, so validate by UTC round-trip and both fold offsets.
+    """
+    if not isinstance(boundary, datetime):
+        raise InvalidSessionCalendar(f"{label} must be datetimes.")
+    if boundary.tzinfo is None or boundary.utcoffset() is None:
+        raise InvalidSessionCalendar(f"{label} must be timezone-aware.")
+    if getattr(boundary.tzinfo, "key", None) != "America/Chicago":
+        raise InvalidSessionCalendar(f"{label} must use America/Chicago.")
+
+    round_trip = boundary.astimezone(timezone.utc).astimezone(CHICAGO)
+    if round_trip.replace(tzinfo=None) != boundary.replace(tzinfo=None):
+        raise InvalidSessionCalendar(
+            f"{label} must be real America/Chicago local times."
+        )
+    if boundary.replace(fold=0).utcoffset() != boundary.replace(fold=1).utcoffset():
+        raise InvalidSessionCalendar(
+            f"{label} must not be ambiguous in America/Chicago."
+        )
+
+
 @dataclass(frozen=True, slots=True)
 class SessionSegment:
     """One explicitly tradable Chicago-local interval inside a trading session."""
@@ -136,12 +161,7 @@ class SessionSegment:
 
     def __post_init__(self) -> None:
         for boundary in (self.start_local, self.end_local):
-            if not isinstance(boundary, datetime):
-                raise InvalidSessionCalendar("Segment boundaries must be datetimes.")
-            if boundary.tzinfo is None or boundary.utcoffset() is None:
-                raise InvalidSessionCalendar("Segment boundaries must be timezone-aware.")
-            if getattr(boundary.tzinfo, "key", None) != "America/Chicago":
-                raise InvalidSessionCalendar("Segment boundaries must use America/Chicago.")
+            _validate_chicago_boundary(boundary, "Segment boundaries")
         if self.end_local.astimezone(timezone.utc) <= self.start_local.astimezone(timezone.utc):
             raise InvalidSessionCalendar("Segment end must be after segment start.")
 
@@ -176,12 +196,7 @@ class SessionRecord:
         if self.open_local is None or self.close_local is None:
             raise InvalidSessionCalendar("Open session records require both boundaries.")
         for boundary in (self.open_local, self.close_local):
-            if not isinstance(boundary, datetime):
-                raise InvalidSessionCalendar("Session boundaries must be datetimes.")
-            if boundary.tzinfo is None or boundary.utcoffset() is None:
-                raise InvalidSessionCalendar("Session boundaries must be timezone-aware.")
-            if getattr(boundary.tzinfo, "key", None) != "America/Chicago":
-                raise InvalidSessionCalendar("Session boundaries must use America/Chicago.")
+            _validate_chicago_boundary(boundary, "Session boundaries")
         if self.close_local.astimezone(timezone.utc) <= self.open_local.astimezone(timezone.utc):
             raise InvalidSessionCalendar("Session close must be after session open.")
         previous_end: datetime | None = None
