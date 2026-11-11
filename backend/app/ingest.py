@@ -110,6 +110,8 @@ class OhlcvIngestionService:
         self.pipeline = pipeline
         self.resolver = resolver
         self.bar_validator = bar_validator
+        self._session_validation_accepted = 0
+        self._last_session_validation: dict[str, str] | None = None
         self.coverage = coverage
         self._on_bar_applied = on_bar_applied
         self._live_bar_applied_callbacks: set[Callable[[OhlcvBar], None]] = set()
@@ -386,7 +388,35 @@ class OhlcvIngestionService:
             return
         if self.bar_validator is not None:
             try:
-                self.bar_validator(bar)
+                validation = self.bar_validator(bar)
+                if validation is not None:
+                    # Keep the exact pinned release result visible to operators.
+                    # Do not copy calendar metadata onto a UTC bar: that changes
+                    # its canonical series identity.
+                    calendar_id = getattr(validation, "calendar_id", None)
+                    calendar_version = getattr(validation, "calendar_version", None)
+                    trading_date = getattr(validation, "trading_date", None)
+                    session_state = getattr(validation, "session_state", None)
+                    interval_start_ns = getattr(validation, "interval_start_ns", None)
+                    interval_end_ns = getattr(validation, "interval_end_ns", None)
+                    if (
+                        not isinstance(calendar_id, str) or not calendar_id.strip()
+                        or not isinstance(calendar_version, str) or not calendar_version.strip()
+                        or not isinstance(trading_date, str) or not trading_date.strip()
+                        or session_state not in ("open", "special-session")
+                        or interval_start_ns != bar.ts_start_ns
+                        or not isinstance(interval_end_ns, int)
+                        or isinstance(interval_end_ns, bool)
+                        or interval_end_ns <= interval_start_ns
+                    ):
+                        raise ValueError("Session validator returned an invalid validation result.")
+                    self._session_validation_accepted += 1
+                    self._last_session_validation = {
+                        "calendar_id": calendar_id,
+                        "calendar_version": calendar_version,
+                        "trading_date": trading_date,
+                        "session_state": session_state,
+                    }
             except Exception as exc:
                 reason = getattr(exc, "reason", None)
                 if isinstance(reason, str) and reason and reason.replace("_", "").isalnum():
@@ -450,6 +480,13 @@ class OhlcvIngestionService:
             "provider_callback_errors": self._provider_callback_errors,
             "degraded_reasons": sorted(self.degraded_reasons),
             "counters": dict(sorted(self.counters.items())),
+            "session_validation": {
+                "accepted": self._session_validation_accepted,
+                "last_accepted": (
+                    None if self._last_session_validation is None
+                    else dict(self._last_session_validation)
+                ),
+            },
             "aggregation": dict(self.aggregator.stats),
             "pipeline": self.pipeline.stats(),
             "persistence": None if self.persistence is None else self.persistence.stats(),
