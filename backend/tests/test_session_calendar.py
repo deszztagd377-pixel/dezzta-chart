@@ -160,6 +160,37 @@ def test_maintenance_requires_explicit_records_on_both_sides():
     assert result.state == "maintenance"
 
 
+def test_explicit_segment_gap_is_classified_as_maintenance():
+    record = SessionRecord(
+        date(2024, 3, 11),
+        "regular",
+        datetime(2024, 3, 10, 17, 0, tzinfo=CHICAGO),
+        datetime(2024, 3, 11, 16, 0, tzinfo=CHICAGO),
+        segments=(
+            SessionSegment(
+                datetime(2024, 3, 10, 17, 0, tzinfo=CHICAGO),
+                datetime(2024, 3, 11, 10, 0, tzinfo=CHICAGO),
+            ),
+            SessionSegment(
+                datetime(2024, 3, 11, 10, 30, tzinfo=CHICAGO),
+                datetime(2024, 3, 11, 16, 0, tzinfo=CHICAGO),
+            ),
+        ),
+    )
+    calendar = make_calendar(
+        [record], start=date(2024, 3, 11), end=date(2024, 3, 11)
+    )
+
+    result = lookup_instant(
+        calendar, datetime(2024, 3, 11, 15, 15, tzinfo=timezone.utc)
+    )
+
+    assert result.state == "maintenance"
+    assert result.trading_date == date(2024, 3, 11)
+    assert result.session_open_ns == datetime_to_epoch_ns(record.open_local)
+    assert result.session_close_ns == datetime_to_epoch_ns(record.close_local)
+
+
 def test_missing_trading_date_is_unknown_not_assumed_regular_or_closed():
     monday = session(date(2024, 3, 11), "2024-03-10T17:00:00", "2024-03-11T16:00:00")
     calendar = make_calendar([monday])
