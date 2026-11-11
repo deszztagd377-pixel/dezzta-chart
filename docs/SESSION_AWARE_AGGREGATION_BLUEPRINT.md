@@ -15,7 +15,8 @@ The implementation must preserve exact canonical series identity, provider-bar p
 - `backend/app/aggregation.py` skips derivation for every `CME_SESSION_V1` child bar. This is intentional protection against incorrect exchange-session bucket labels.
 - `UTC_FIXED_V1` aggregation currently stops before `1d`, `1w`, `1M`, and `3M`.
 - `backend/app/session_calendar.py` provides immutable, provenance-bearing calendar releases and `session_bucket_bounds` for `1d`, `1w`, `1M`, and `3M`. It requires explicit records for every calendar date in a requested period; a missing record is UNKNOWN, not a closed day.
-- The current `SessionRecord` contains only one open/close pair. It does not model multiple tradable segments or explicit intraday breaks as first-class data.
+- `SessionRecord` supports an immutable tuple of explicit `SessionSegment` intervals. Schema-v2 artifacts can represent multiple tradable segments and breaks; schema-v1 remains supported as a single open/close interval for compatibility. Segment boundaries are validated for Chicago timezone validity, ordering, non-overlap, and containment within the session envelope.
+- `lookup_instant` classifies gaps between explicit tradable segments as `maintenance`, while retaining the owning trading-date/session envelope. The separate generic 16:00–17:00 maintenance classification remains conditional on explicit adjacent regular-session records; it is not a substitute for per-date segment data.
 - Existing tests assert that CME-session bars remain unaggregated and that UTC-fixed aggregation does not derive daily+ bars.
 
 ## 3. Proposed architecture
