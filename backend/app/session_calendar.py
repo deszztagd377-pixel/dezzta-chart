@@ -128,6 +128,25 @@ class InvalidSessionCalendar(ValueError):
 
 
 @dataclass(frozen=True, slots=True)
+class SessionSegment:
+    """One explicitly tradable Chicago-local interval inside a trading session."""
+
+    start_local: datetime
+    end_local: datetime
+
+    def __post_init__(self) -> None:
+        for boundary in (self.start_local, self.end_local):
+            if not isinstance(boundary, datetime):
+                raise InvalidSessionCalendar("Segment boundaries must be datetimes.")
+            if boundary.tzinfo is None or boundary.utcoffset() is None:
+                raise InvalidSessionCalendar("Segment boundaries must be timezone-aware.")
+            if getattr(boundary.tzinfo, "key", None) != "America/Chicago":
+                raise InvalidSessionCalendar("Segment boundaries must use America/Chicago.")
+        if self.end_local.astimezone(timezone.utc) <= self.start_local.astimezone(timezone.utc):
+            raise InvalidSessionCalendar("Segment end must be after segment start.")
+
+
+@dataclass(frozen=True, slots=True)
 class SessionRecord:
     """One explicitly sourced CME trading-date record.
 
@@ -139,6 +158,7 @@ class SessionRecord:
     kind: SessionKind
     open_local: datetime | None
     close_local: datetime | None
+    segments: tuple[SessionSegment, ...] = ()
 
     def __post_init__(self) -> None:
         if not isinstance(self.trading_date, date) or isinstance(self.trading_date, datetime):
@@ -148,8 +168,8 @@ class SessionRecord:
         }:
             raise InvalidSessionCalendar("Unsupported session record kind.")
         if self.kind == "closed":
-            if self.open_local is not None or self.close_local is not None:
-                raise InvalidSessionCalendar("Closed dates must not have session boundaries.")
+            if self.open_local is not None or self.close_local is not None or self.segments:
+                raise InvalidSessionCalendar("Closed dates must not have session boundaries or tradable segments.")
             return
         if self.open_local is None or self.close_local is None:
             raise InvalidSessionCalendar("Open session records require both boundaries.")
@@ -162,6 +182,31 @@ class SessionRecord:
                 raise InvalidSessionCalendar("Session boundaries must use America/Chicago.")
         if self.close_local.astimezone(timezone.utc) <= self.open_local.astimezone(timezone.utc):
             raise InvalidSessionCalendar("Session close must be after session open.")
+        if not isinstance(self.segments, tuple):
+            raise InvalidSessionCalendar("Session segments must be an immutable tuple.")
+        previous_end: datetime | None = None
+        for segment in self.segments:
+            if not isinstance(segment, SessionSegment):
+                raise InvalidSessionCalendar("Every session segment must be a SessionSegment.")
+            segment_start = segment.start_local.astimezone(timezone.utc)
+            segment_end = segment.end_local.astimezone(timezone.utc)
+            session_start = self.open_local.astimezone(timezone.utc)
+            session_end = self.close_local.astimezone(timezone.utc)
+            if segment_start < session_start or segment_end > session_end:
+                raise InvalidSessionCalendar("Tradable segments must remain inside the session envelope.")
+            if previous_end is not None and segment_start < previous_end:
+                raise InvalidSessionCalendar("Tradable segments must be ordered and non-overlapping.")
+            previous_end = segment_end
+
+    @property
+    def tradable_segments(self) -> tuple[SessionSegment, ...]:
+        """Return explicit segments, or the legacy v1 single open/close interval."""
+        if self.kind == "closed":
+            return ()
+        if self.segments:
+            return self.segments
+        assert self.open_local is not None and self.close_local is not None
+        return (SessionSegment(self.open_local, self.close_local),)
 
 
 @dataclass(frozen=True, slots=True)
@@ -264,6 +309,8 @@ class SessionLookup:
     session_close_ns: int | None = None
     calendar_id: str | None = None
     calendar_version: str | None = None
+    segment_start_ns: int | None = None
+    segment_end_ns: int | None = None
 
 
 def lookup_instant(calendar: SessionCalendar, instant: datetime) -> SessionLookup:
@@ -286,17 +333,23 @@ def lookup_instant(calendar: SessionCalendar, instant: datetime) -> SessionLooku
         if record is None or record.kind == "closed":
             continue
         assert record.open_local is not None and record.close_local is not None
-        if record.open_local.astimezone(timezone.utc) <= instant.astimezone(timezone.utc) < record.close_local.astimezone(timezone.utc):
-            if record.kind == "regular":
-                state: SessionState = "open"
-            else:
-                state = "special-session"
-            return SessionLookup(
-                state, record.trading_date,
-                datetime_to_epoch_ns(record.open_local),
-                datetime_to_epoch_ns(record.close_local),
-                calendar.calendar_id, calendar.version,
-            )
+        instant_utc = instant.astimezone(timezone.utc)
+        for segment in record.tradable_segments:
+            segment_start_utc = segment.start_local.astimezone(timezone.utc)
+            segment_end_utc = segment.end_local.astimezone(timezone.utc)
+            if segment_start_utc <= instant_utc < segment_end_utc:
+                if record.kind == "regular":
+                    state: SessionState = "open"
+                else:
+                    state = "special-session"
+                return SessionLookup(
+                    state, record.trading_date,
+                    datetime_to_epoch_ns(record.open_local),
+                    datetime_to_epoch_ns(record.close_local),
+                    calendar.calendar_id, calendar.version,
+                    datetime_to_epoch_ns(segment.start_local),
+                    datetime_to_epoch_ns(segment.end_local),
+                )
 
     # Classify non-session time only when the schedule explicitly covers
     # the relevant trading date(s). A neighboring record cannot fill a gap.

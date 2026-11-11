@@ -11,6 +11,7 @@ from app.session_calendar import (
     SessionCalendar,
     SessionCalendarRegistry,
     SessionRecord,
+    SessionSegment,
     datetime_to_epoch_ns,
 )
 from app.session_bar_validation import (
@@ -35,7 +36,7 @@ def future(calendar_id="CME_EQUITY_INDEX", *, active=True):
     )
 
 
-def record(day, opened, closed, kind="regular"):
+def record(day, opened, closed, kind="regular", segments=()):
     return SessionRecord(
         trading_date=day,
         kind=kind,
@@ -43,6 +44,7 @@ def record(day, opened, closed, kind="regular"):
         if opened else None,
         close_local=datetime.fromisoformat(closed).replace(tzinfo=CHICAGO)
         if closed else None,
+        segments=segments,
     )
 
 
@@ -120,6 +122,28 @@ def test_rejects_bar_interval_that_crosses_early_session_close():
     with pytest.raises(SessionBarRejected) as error:
         validator_for([early])(bar(start, timeframe="1h"))
     assert error.value.reason == "bar_crosses_session_close"
+
+
+def test_rejects_bar_crossing_explicit_intraday_segment_break():
+    monday = record(
+        date(2024, 3, 11),
+        "2024-03-10T17:00:00",
+        "2024-03-11T16:00:00",
+        segments=(
+            SessionSegment(
+                datetime.fromisoformat("2024-03-10T17:00:00").replace(tzinfo=CHICAGO),
+                datetime.fromisoformat("2024-03-11T10:30:00").replace(tzinfo=CHICAGO),
+            ),
+            SessionSegment(
+                datetime.fromisoformat("2024-03-11T11:00:00").replace(tzinfo=CHICAGO),
+                datetime.fromisoformat("2024-03-11T16:00:00").replace(tzinfo=CHICAGO),
+            ),
+        ),
+    )
+    start = datetime_to_epoch_ns(datetime(2024, 3, 11, 15, 29, tzinfo=timezone.utc))
+    with pytest.raises(SessionBarRejected) as error:
+        validator_for([monday])(bar(start, timeframe="5m"))
+    assert error.value.reason == "bar_crosses_session_segment"
 
 
 def test_rejects_maintenance_interval():

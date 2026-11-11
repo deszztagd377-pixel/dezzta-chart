@@ -18,6 +18,7 @@ from app.session_calendar import (
     InvalidSessionCalendar,
     SessionCalendar,
     SessionRecord,
+    SessionSegment,
 )
 
 _CHICAGO = ZoneInfo("America/Chicago")
@@ -28,7 +29,9 @@ _TOP_LEVEL_KEYS = {
     "effective_start", "effective_end", "timezone", "source", "records",
 }
 _SOURCE_KEYS = {"source_id", "source_url", "published_at_utc"}
-_RECORD_KEYS = {"trading_date", "kind", "open_local", "close_local"}
+_RECORD_KEYS_V1 = {"trading_date", "kind", "open_local", "close_local"}
+_RECORD_KEYS_V2 = _RECORD_KEYS_V1 | {"segments"}
+_SEGMENT_KEYS = {"start_local", "end_local"}
 
 
 class SessionCalendarArtifactError(ValueError):
@@ -159,7 +162,8 @@ def load_session_calendar_artifact(
         raise SessionCalendarArtifactError("Calendar artifact is not valid JSON.") from exc
 
     payload = _object(payload, "Calendar artifact", _TOP_LEVEL_KEYS)
-    if type(payload["schema_version"]) is not int or payload["schema_version"] != 1:
+    schema_version = payload["schema_version"]
+    if type(schema_version) is not int or schema_version not in {1, 2}:
         raise SessionCalendarArtifactError("Unsupported calendar artifact schema_version.")
     if payload["timezone"] != "America/Chicago":
         raise SessionCalendarArtifactError("Calendar timezone must be America/Chicago.")
@@ -179,26 +183,57 @@ def load_session_calendar_artifact(
 
     records: dict[date, SessionRecord] = {}
     for index, raw_record in enumerate(raw_records):
-        item = _object(raw_record, f"records[{index}]", _RECORD_KEYS)
+        record_keys = _RECORD_KEYS_V1 if schema_version == 1 else _RECORD_KEYS_V2
+        item = _object(raw_record, f"records[{index}]", record_keys)
         trading_date = _iso_date(item["trading_date"], f"records[{index}].trading_date")
         if trading_date in records:
             raise SessionCalendarArtifactError(f"Duplicate trading_date: {trading_date.isoformat()}")
         kind = item["kind"]
         if not isinstance(kind, str):
             raise SessionCalendarArtifactError(f"records[{index}].kind must be a string.")
+        segments: tuple[SessionSegment, ...] = ()
         if kind == "closed":
             if item["open_local"] is not None or item["close_local"] is not None:
                 raise SessionCalendarArtifactError("Closed records must have null session boundaries.")
+            if schema_version == 2 and item["segments"] != []:
+                raise SessionCalendarArtifactError("Closed records must have an empty segments array.")
             open_local = close_local = None
         else:
             open_local = _chicago_local_datetime(item["open_local"], f"records[{index}].open_local")
             close_local = _chicago_local_datetime(item["close_local"], f"records[{index}].close_local")
+            if schema_version == 2:
+                raw_segments = item["segments"]
+                if not isinstance(raw_segments, list) or not raw_segments:
+                    raise SessionCalendarArtifactError("Open schema v2 records require a non-empty segments array.")
+                parsed_segments: list[SessionSegment] = []
+                for segment_index, raw_segment in enumerate(raw_segments):
+                    segment = _object(
+                        raw_segment,
+                        f"records[{index}].segments[{segment_index}]",
+                        _SEGMENT_KEYS,
+                    )
+                    segment_start = _chicago_local_datetime(
+                        segment["start_local"],
+                        f"records[{index}].segments[{segment_index}].start_local",
+                    )
+                    segment_end = _chicago_local_datetime(
+                        segment["end_local"],
+                        f"records[{index}].segments[{segment_index}].end_local",
+                    )
+                    try:
+                        parsed_segments.append(SessionSegment(segment_start, segment_end))
+                    except InvalidSessionCalendar as exc:
+                        raise SessionCalendarArtifactError(
+                            f"Invalid session segment at record {index}, segment {segment_index}: {exc}"
+                        ) from exc
+                segments = tuple(parsed_segments)
         try:
             records[trading_date] = SessionRecord(
                 trading_date=trading_date,
                 kind=kind,  # validated by SessionRecord
                 open_local=open_local,
                 close_local=close_local,
+                segments=segments,
             )
         except (InvalidSessionCalendar, TypeError) as exc:
             raise SessionCalendarArtifactError(f"Invalid session record at index {index}: {exc}") from exc

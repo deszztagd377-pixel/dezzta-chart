@@ -65,6 +65,38 @@ def test_loads_complete_calendar_only_after_matching_sha256_pin():
     assert calendar.records[date(2026, 11, 3)].kind == "closed"
 
 
+def test_loads_schema_v2_with_explicit_non_overlapping_tradable_segments():
+    payload = artifact_payload()
+    payload["schema_version"] = 2
+    payload["records"][0]["segments"] = [
+        {"start_local": "2026-11-01T17:00:00", "end_local": "2026-11-02T10:00:00"},
+        {"start_local": "2026-11-02T10:30:00", "end_local": "2026-11-02T16:00:00"},
+    ]
+    payload["records"][1]["segments"] = []
+    raw, digest = pinned_bytes(payload)
+
+    calendar = load_session_calendar_artifact(raw, expected_sha256=digest)
+
+    record = calendar.records[date(2026, 11, 2)]
+    assert len(record.tradable_segments) == 2
+    assert record.tradable_segments[0].end_local.hour == 10
+    assert record.tradable_segments[1].start_local.minute == 30
+
+
+def test_schema_v2_rejects_overlapping_tradable_segments():
+    payload = artifact_payload()
+    payload["schema_version"] = 2
+    payload["records"][0]["segments"] = [
+        {"start_local": "2026-11-01T17:00:00", "end_local": "2026-11-02T11:00:00"},
+        {"start_local": "2026-11-02T10:30:00", "end_local": "2026-11-02T16:00:00"},
+    ]
+    payload["records"][1]["segments"] = []
+    raw, digest = pinned_bytes(payload)
+
+    with pytest.raises(SessionCalendarArtifactError, match="ordered and non-overlapping"):
+        load_session_calendar_artifact(raw, expected_sha256=digest)
+
+
 def test_rejects_digest_that_does_not_match_trusted_pin():
     raw, _ = pinned_bytes()
 

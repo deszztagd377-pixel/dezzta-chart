@@ -105,11 +105,20 @@ def validate_intraday_bar_session(
         raise SessionBarRejected("unknown_calendar_coverage")
     if lookup.state not in {"open", "special-session"}:
         raise SessionBarRejected("outside_trading_session", lookup.state)
-    if lookup.session_close_ns is None or lookup.trading_date is None:
+    if (
+        lookup.session_close_ns is None
+        or lookup.segment_end_ns is None
+        or lookup.trading_date is None
+    ):
         raise SessionBarRejected("invalid_calendar_resolution")
 
     interval_end_ns = bar.ts_start_ns + interval_seconds * 1_000_000_000
-    if interval_end_ns > lookup.session_close_ns:
+    if interval_end_ns > lookup.segment_end_ns:
+        if lookup.segment_end_ns < lookup.session_close_ns:
+            raise SessionBarRejected(
+                "bar_crosses_session_segment",
+                "The complete bar interval extends beyond the explicit tradable segment.",
+            )
         raise SessionBarRejected(
             "bar_crosses_session_close",
             "The complete bar interval extends beyond the explicit session close.",
