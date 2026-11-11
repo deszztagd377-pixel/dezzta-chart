@@ -366,6 +366,18 @@ def lookup_instant(calendar: SessionCalendar, instant: datetime) -> SessionLooku
                     datetime_to_epoch_ns(segment.end_local),
                 )
 
+        # A gap between explicitly declared tradable segments is a sourced
+        # non-trading interval inside this trading session, not generic closure.
+        session_start_utc = record.open_local.astimezone(timezone.utc)
+        session_end_utc = record.close_local.astimezone(timezone.utc)
+        if session_start_utc <= instant_utc < session_end_utc:
+            return SessionLookup(
+                "maintenance", record.trading_date,
+                datetime_to_epoch_ns(record.open_local),
+                datetime_to_epoch_ns(record.close_local),
+                calendar.calendar_id, calendar.version,
+            )
+
     # Classify non-session time only when the schedule explicitly covers
     # the relevant trading date(s). A neighboring record cannot fill a gap.
     wall_time = local.timetz().replace(tzinfo=None)
