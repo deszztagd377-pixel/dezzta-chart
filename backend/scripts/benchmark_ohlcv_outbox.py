@@ -12,9 +12,13 @@ import json
 import os
 import platform
 import statistics
+import sys
 import tempfile
 import time
 from pathlib import Path
+
+# Make direct execution from any working directory resolve backend/app.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.ohlcv import OhlcvBar
 from app.ohlcv_store import OUTBOX_MAX_EVENTS, SQLiteOhlcvStore
