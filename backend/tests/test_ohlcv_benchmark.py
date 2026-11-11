@@ -49,3 +49,26 @@ def test_local_outbox_benchmark_rejects_zero_bars():
     )
     assert result.returncode == 2
     assert "greater than zero" in result.stderr
+
+def test_local_outbox_benchmark_refuses_to_modify_existing_database(tmp_path):
+    backend_dir = Path(__file__).resolve().parents[1]
+    script = backend_dir / "scripts" / "benchmark_ohlcv_outbox.py"
+    database = tmp_path / "existing.sqlite3"
+    database.write_bytes(b"owner-data-must-remain-untouched")
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--bars",
+            "2",
+            "--database",
+            str(database),
+        ],
+        cwd=backend_dir,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result.returncode != 0
+    assert "refusing to modify an existing database" in result.stderr
+    assert database.read_bytes() == b"owner-data-must-remain-untouched"

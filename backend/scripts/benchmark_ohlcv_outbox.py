@@ -100,6 +100,10 @@ def run_benchmark(*, bars: int, batch_size: int, database_path: str | None = Non
     if database_path is None:
         temporary_directory = tempfile.TemporaryDirectory(prefix="dezzta-ohlcv-benchmark-")
         database_path = str(Path(temporary_directory.name) / "benchmark.sqlite3")
+    elif Path(database_path).exists():
+        raise FileExistsError(
+            "refusing to modify an existing database; choose a new benchmark path"
+        )
 
     try:
         store = SQLiteOhlcvStore(database_path)
