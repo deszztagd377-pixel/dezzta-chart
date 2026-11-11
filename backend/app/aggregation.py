@@ -91,7 +91,12 @@ class Aggregator:
         self._coverage = coverage
         self._on_derived_bar = on_derived_bar
         self._before_derived_apply = before_derived_apply
-        self.stats = {"derived_written": 0, "skipped_evicted": 0, "rejected": 0}
+        self.stats = {
+            "derived_written": 0,
+            "skipped_evicted": 0,
+            "skipped_cme_calendar_unresolved": 0,
+            "rejected": 0,
+        }
 
     def on_bar_applied(self, bar: OhlcvBar) -> int:
         """Rebuild every affected derived bucket; returns bars written."""
@@ -99,13 +104,15 @@ class Aggregator:
         stack = [bar]
         while stack:
             current = stack.pop()
+            # CME session bars are structurally identifiable, but deriving
+            # higher periods stays fail-closed until a verified calendar
+            # resolver supplies exact exchange bucket bounds. Count this once
+            # per input/derived bar, not once per possible parent timeframe.
+            if current.bucket_policy == BUCKET_POLICY_CME_SESSION_V1:
+                self.stats["skipped_cme_calendar_unresolved"] += 1
+                continue
             for child_tf in CHILDREN.get(current.timeframe, ()):
-                # UTC intraday bars must not be relabelled as CME sessions.
-                # CME session bars are structurally identifiable, but deriving
-                # higher periods stays fail-closed until a verified calendar
-                # resolver supplies exact exchange bucket bounds.
-                if current.bucket_policy == BUCKET_POLICY_CME_SESSION_V1:
-                    continue
+                # UTC intraday bars must not be relabelled as session buckets.
                 if current.bucket_policy == "UTC_FIXED_V1" and child_tf in ("1d", "1w", "1M", "3M"):
                     continue
                 start = bucket_start_ns(current.ts_start_ns, child_tf)
