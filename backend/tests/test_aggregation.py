@@ -191,6 +191,7 @@ def test_cme_session_bars_remain_unaggregated_until_calendar_bounds_are_resolved
     assert pipeline.list_bars(timeframe="1d", bucket_policy=BUCKET_POLICY_CME_SESSION_V1) == [daily]
     assert pipeline.list_bars(timeframe="1w", bucket_policy=BUCKET_POLICY_CME_SESSION_V1) == []
     assert pipeline.list_bars(timeframe="1M", bucket_policy=BUCKET_POLICY_CME_SESSION_V1) == []
+    assert aggregator.stats["skipped_cme_calendar_unresolved"] == 1
 
 
 def test_derived_intraday_bars_inherit_fixed_utc_policy_and_stop_before_daily():
