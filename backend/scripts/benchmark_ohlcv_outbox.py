@@ -12,6 +12,7 @@ import json
 import os
 import platform
 import statistics
+import sqlite3
 import sys
 import tempfile
 import time
@@ -129,6 +130,8 @@ def run_benchmark(*, bars: int, batch_size: int, database_path: str | None = Non
         high_water = store.outbox_high_water()
         replay_samples: list[float] = []
         replayed_events = 0
+        replayed_event_ids: set[str] = set()
+        last_event_cursor = 0
         cursor = 0
         while cursor < high_water:
             started = time.perf_counter_ns()
@@ -150,17 +153,73 @@ def run_benchmark(*, bars: int, batch_size: int, database_path: str | None = Non
             events = page.get("events")
             if not isinstance(events, list):
                 raise RuntimeError("replay returned an invalid events collection")
+            for event in events:
+                event_cursor = event.get("cursor")
+                event_id = event.get("eventId")
+                if (
+                    not isinstance(event_cursor, int)
+                    or isinstance(event_cursor, bool)
+                    or event_cursor <= last_event_cursor
+                    or event_cursor > high_water
+                ):
+                    raise RuntimeError("replay event cursor is invalid or out of order")
+                if not isinstance(event_id, str) or not event_id or event_id in replayed_event_ids:
+                    raise RuntimeError("replay event ID is missing or duplicated")
+                replayed_event_ids.add(event_id)
+                last_event_cursor = event_cursor
             replayed_events += len(events)
             next_cursor = page.get("next_cursor")
-            if not isinstance(next_cursor, int) or next_cursor <= cursor:
-                raise RuntimeError("replay cursor failed to advance")
+            if (
+                not isinstance(next_cursor, int)
+                or isinstance(next_cursor, bool)
+                or next_cursor <= cursor
+                or next_cursor > high_water
+            ):
+                raise RuntimeError("replay cursor failed to advance within the durable high-water")
+            has_more = page.get("has_more")
+            if not isinstance(has_more, bool):
+                raise RuntimeError("replay returned an invalid has_more flag")
+            if has_more and (not events or next_cursor != last_event_cursor):
+                raise RuntimeError("replay page cursor does not match its final event")
+            if not has_more and next_cursor != high_water:
+                raise RuntimeError("final replay page did not reach the durable high-water")
             cursor = next_cursor
-            if not page.get("has_more", False):
+            if not has_more:
                 break
 
-        if replayed_events != bars:
+        if replayed_events != bars or len(replayed_event_ids) != bars:
             raise RuntimeError(
                 f"replay count mismatch: expected {bars}, received {replayed_events}"
+            )
+        if cursor != high_water:
+            raise RuntimeError("replay terminated before the durable high-water")
+
+        # Validate persisted rows independently of the replay API so a broken
+        # query cannot make an incomplete benchmark look successful.
+        with sqlite3.connect(database_path) as verification_db:
+            integrity = verification_db.execute("PRAGMA integrity_check").fetchone()
+            if integrity is None or integrity[0] != "ok":
+                raise RuntimeError(f"SQLite integrity_check failed: {integrity}")
+            identity_params = (
+                _PROVIDER, _DATASET, _PUBLISHER_ID, _INSTRUMENT_ID,
+                "contract", _RAW_SYMBOL, _TIMEFRAME, _BUCKET_POLICY,
+            )
+            stored_bars = verification_db.execute(
+                """SELECT COUNT(*) FROM ohlcv_bars
+                WHERE provider=? AND dataset=? AND publisher_id=? AND instrument_id=?
+                AND series_type=? AND raw_symbol=? AND timeframe=? AND bucket_policy=?""",
+                identity_params,
+            ).fetchone()[0]
+            stored_events = verification_db.execute(
+                """SELECT COUNT(*) FROM ohlcv_outbox
+                WHERE provider=? AND dataset=? AND publisher_id=? AND instrument_id=?
+                AND series_type=? AND raw_symbol=? AND timeframe=? AND bucket_policy=?""",
+                identity_params,
+            ).fetchone()[0]
+        if stored_bars != bars or stored_events != bars:
+            raise RuntimeError(
+                "SQLite row-count mismatch: "
+                f"expected {bars} bars/events, found {stored_bars}/{stored_events}"
             )
 
         return {
