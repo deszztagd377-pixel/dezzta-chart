@@ -507,3 +507,48 @@ def test_optional_bar_validator_allows_only_records_it_accepts():
 
     assert validated == [T0, T0 + NS]
     assert len(pipeline.list_bars(timeframe="1s")) == 2
+
+ 
+def test_session_validation_release_is_exposed_without_changing_bar_identity():
+    from app.session_bar_validation import SessionBarValidation
+
+    def accept(bar):
+        return SessionBarValidation(
+            calendar_id="CME_EQUITY_INDEX",
+            calendar_version="2026.11.1",
+            trading_date="2026-11-10",
+            session_state="open",
+            interval_start_ns=bar.ts_start_ns,
+            interval_end_ns=bar.ts_start_ns + NS,
+        )
+
+    service, pipeline, _, _ = make_service(bar_validator=accept)
+    service.ingest_batch([rec(0)], "ohlcv-1s")
+
+    status = service.status()["session_validation"]
+    accepted = pipeline.list_bars(timeframe="1s")[0]
+    assert status == {
+        "accepted": 1,
+        "last_accepted": {
+            "calendar_id": "CME_EQUITY_INDEX",
+            "calendar_version": "2026.11.1",
+            "trading_date": "2026-11-10",
+            "session_state": "open",
+        },
+    }
+    assert accepted.bucket_policy == "UTC_FIXED_V1"
+    assert accepted.calendar_id == ""
+    assert accepted.calendar_version == ""
+
+
+def test_malformed_session_validation_result_fails_closed_before_pipeline_apply():
+    from types import SimpleNamespace
+
+    service, pipeline, _, _ = make_service(
+        bar_validator=lambda _bar: SimpleNamespace(calendar_id="CME_EQUITY_INDEX")
+    )
+    service.ingest_batch([rec(0)], "ohlcv-1s")
+
+    assert pipeline.list_bars() == []
+    assert service.counters["rejected_validation_error"] == 1
+    assert service.status()["session_validation"]["accepted"] == 0
