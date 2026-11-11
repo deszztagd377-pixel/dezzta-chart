@@ -132,7 +132,7 @@ def test_rejects_bar_crossing_explicit_intraday_segment_break():
         segments=(
             SessionSegment(
                 datetime.fromisoformat("2024-03-10T17:00:00").replace(tzinfo=CHICAGO),
-                datetime.fromisoformat("2024-03-11T10:30:00").replace(tzinfo=CHICAGO),
+                datetime.fromisoformat("2024-03-11T10:32:00").replace(tzinfo=CHICAGO),
             ),
             SessionSegment(
                 datetime.fromisoformat("2024-03-11T11:00:00").replace(tzinfo=CHICAGO),
@@ -140,7 +140,7 @@ def test_rejects_bar_crossing_explicit_intraday_segment_break():
             ),
         ),
     )
-    start = datetime_to_epoch_ns(datetime(2024, 3, 11, 15, 29, tzinfo=timezone.utc))
+    start = datetime_to_epoch_ns(datetime(2024, 3, 11, 15, 30, tzinfo=timezone.utc))
     with pytest.raises(SessionBarRejected) as error:
         validator_for([monday])(bar(start, timeframe="5m"))
     assert error.value.reason == "bar_crosses_session_segment"
