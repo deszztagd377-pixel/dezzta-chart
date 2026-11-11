@@ -167,6 +167,8 @@ class SessionRecord:
             "regular", "special", "early_close", "delayed_open", "closed"
         }:
             raise InvalidSessionCalendar("Unsupported session record kind.")
+        if not isinstance(self.segments, tuple):
+            raise InvalidSessionCalendar("Session segments must be an immutable tuple.")
         if self.kind == "closed":
             if self.open_local is not None or self.close_local is not None or self.segments:
                 raise InvalidSessionCalendar("Closed dates must not have session boundaries or tradable segments.")
@@ -182,8 +184,6 @@ class SessionRecord:
                 raise InvalidSessionCalendar("Session boundaries must use America/Chicago.")
         if self.close_local.astimezone(timezone.utc) <= self.open_local.astimezone(timezone.utc):
             raise InvalidSessionCalendar("Session close must be after session open.")
-        if not isinstance(self.segments, tuple):
-            raise InvalidSessionCalendar("Session segments must be an immutable tuple.")
         previous_end: datetime | None = None
         for segment in self.segments:
             if not isinstance(segment, SessionSegment):

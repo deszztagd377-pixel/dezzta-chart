@@ -8,7 +8,8 @@ WORKDIR /app
 
 COPY requirements.txt ./requirements.txt
 RUN python -m pip install -r requirements.txt \
-    && apk add --no-cache su-exec
+    && apk add --no-cache su-exec \
+    && apk upgrade --no-cache krb5-libs
 
 COPY app ./app
 

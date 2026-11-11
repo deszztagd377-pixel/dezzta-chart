@@ -453,3 +453,10 @@ def test_calendar_registry_rejects_malformed_lookup_keys(calendar_id, version):
     registry = SessionCalendarRegistry()
     with pytest.raises(TypeError):
         registry.get(calendar_id, version)
+
+
+def test_closed_session_rejects_mutable_segments_container():
+    with pytest.raises(InvalidSessionCalendar, match="immutable tuple"):
+        SessionRecord(
+            date(2024, 3, 12), "closed", None, None, segments=[]
+        )
