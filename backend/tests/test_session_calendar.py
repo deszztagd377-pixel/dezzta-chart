@@ -514,3 +514,93 @@ def test_closed_session_rejects_mutable_segments_container():
         SessionRecord(
             date(2024, 3, 12), "closed", None, None, segments=[]
         )
+
+def _complete_calendar_for_period(start, end, session_records):
+    records = []
+    for offset in range((end - start).days + 1):
+        trading_date = start + timedelta(days=offset)
+        records.append(
+            session_records.get(trading_date)
+            or session(trading_date, None, None, kind="closed")
+        )
+    return make_calendar(records, start=start, end=end)
+
+
+def test_daily_session_bucket_preserves_early_close_and_release_identity():
+    trading_date = date(2024, 3, 29)
+    early_close = session(
+        trading_date,
+        "2024-03-28T17:00:00",
+        "2024-03-29T12:00:00",
+        kind="early_close",
+    )
+    calendar = _complete_calendar_for_period(
+        trading_date, trading_date, {trading_date: early_close}
+    )
+
+    bounds = session_bucket_bounds(calendar, trading_date, "1d")
+
+    assert bounds is not None
+    assert bounds.start_ns == datetime_to_epoch_ns(early_close.open_local)
+    assert bounds.end_ns == datetime_to_epoch_ns(early_close.close_local)
+    assert bounds.calendar_id == calendar.calendar_id
+    assert bounds.calendar_version == calendar.version
+
+
+def test_monthly_session_bucket_uses_explicit_first_open_and_last_early_close_across_dst():
+    start, end = date(2024, 3, 1), date(2024, 3, 31)
+    first = session(
+        start, "2024-02-29T17:00:00", "2024-03-01T16:00:00"
+    )
+    last_date = date(2024, 3, 29)
+    last = session(
+        last_date, "2024-03-28T17:00:00", "2024-03-29T12:00:00",
+        kind="early_close",
+    )
+    calendar = _complete_calendar_for_period(
+        start, end, {start: first, last_date: last}
+    )
+
+    bounds = session_bucket_bounds(calendar, date(2024, 3, 15), "1M")
+
+    assert bounds is not None
+    assert bounds.trading_period_start == start
+    assert bounds.trading_period_end == end
+    assert bounds.start_ns == datetime_to_epoch_ns(first.open_local)
+    assert bounds.end_ns == datetime_to_epoch_ns(last.close_local)
+    assert first.open_local.utcoffset() != last.close_local.utcoffset()
+
+
+def test_quarterly_session_bucket_handles_year_rollover_with_complete_explicit_coverage():
+    start, end = date(2024, 10, 1), date(2024, 12, 31)
+    first = session(
+        start, "2024-09-30T17:00:00", "2024-10-01T16:00:00"
+    )
+    last = session(
+        end, "2024-12-30T17:00:00", "2024-12-31T13:00:00",
+        kind="early_close",
+    )
+    calendar = _complete_calendar_for_period(
+        start, end, {start: first, end: last}
+    )
+
+    bounds = session_bucket_bounds(calendar, date(2024, 11, 20), "3M")
+
+    assert bounds is not None
+    assert bounds.trading_period_start == start
+    assert bounds.trading_period_end == end
+    assert bounds.start_ns == datetime_to_epoch_ns(first.open_local)
+    assert bounds.end_ns == datetime_to_epoch_ns(last.close_local)
+
+
+def test_monthly_and_quarterly_buckets_refuse_partial_effective_range():
+    march = _complete_calendar_for_period(
+        date(2024, 3, 1), date(2024, 3, 31), {}
+    )
+    q4_partial = _complete_calendar_for_period(
+        date(2024, 10, 1), date(2024, 12, 30), {}
+    )
+
+    assert session_bucket_bounds(march, date(2024, 3, 15), "1M") is None
+    assert session_bucket_bounds(q4_partial, date(2024, 11, 20), "3M") is None
+
