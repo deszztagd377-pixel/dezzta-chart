@@ -72,3 +72,28 @@ def test_local_outbox_benchmark_refuses_to_modify_existing_database(tmp_path):
     assert result.returncode != 0
     assert "refusing to modify an existing database" in result.stderr
     assert database.read_bytes() == b"owner-data-must-remain-untouched"
+
+def test_local_outbox_benchmark_rejects_existing_symlink(tmp_path):
+    backend_dir = Path(__file__).resolve().parents[1]
+    script = backend_dir / "scripts" / "benchmark_ohlcv_outbox.py"
+    target = tmp_path / "target.sqlite3"
+    link = tmp_path / "linked.sqlite3"
+    link.symlink_to(target)
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--bars",
+            "2",
+            "--database",
+            str(link),
+        ],
+        cwd=backend_dir,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result.returncode != 0
+    assert "refusing to modify an existing database" in result.stderr
+    assert link.is_symlink()
+    assert not target.exists()
