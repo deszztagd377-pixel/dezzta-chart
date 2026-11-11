@@ -4,6 +4,8 @@ from pathlib import Path
 import subprocess
 import sys
 
+import pytest
+
 
 def test_local_outbox_benchmark_reports_synthetic_data_and_latency(tmp_path):
     backend_dir = Path(__file__).resolve().parents[1]
@@ -78,7 +80,10 @@ def test_local_outbox_benchmark_rejects_existing_symlink(tmp_path):
     script = backend_dir / "scripts" / "benchmark_ohlcv_outbox.py"
     target = tmp_path / "target.sqlite3"
     link = tmp_path / "linked.sqlite3"
-    link.symlink_to(target)
+    try:
+        link.symlink_to(target)
+    except (NotImplementedError, OSError) as exc:
+        pytest.skip(f"symlinks are unavailable on this platform: {exc}")
     result = subprocess.run(
         [
             sys.executable,
