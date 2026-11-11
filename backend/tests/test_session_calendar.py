@@ -10,6 +10,7 @@ from app.session_calendar import (
     SessionCalendar,
     SessionRecord,
     SessionCalendarRegistry,
+    SessionSegment,
     calendar_id_for_product_family,
     datetime_to_epoch_ns,
     lookup_instant,
@@ -206,6 +207,28 @@ def test_calendar_rejects_naive_or_wrong_timezone_boundaries():
             datetime(2024, 3, 10, 17, 0),
             datetime(2024, 3, 11, 16, 0, tzinfo=CHICAGO),
         )
+
+
+@pytest.mark.parametrize(
+    ("local_time", "message"),
+    [
+        ("2024-03-10T02:30:00", "real America/Chicago"),
+        ("2024-11-03T01:30:00", "must not be ambiguous"),
+    ],
+)
+def test_calendar_rejects_nonexistent_and_ambiguous_chicago_boundaries(
+    local_time, message
+):
+    boundary = datetime.fromisoformat(local_time).replace(tzinfo=CHICAGO)
+    valid_end = datetime(2024, 11, 4, 16, 0, tzinfo=CHICAGO)
+
+    with pytest.raises(InvalidSessionCalendar, match=message):
+        SessionRecord(
+            date(2024, 11, 4), "regular", boundary, valid_end
+        )
+
+    with pytest.raises(InvalidSessionCalendar, match=message):
+        SessionSegment(boundary, valid_end)
 
 
 def test_calendar_rejects_product_family_calendar_mismatch():
