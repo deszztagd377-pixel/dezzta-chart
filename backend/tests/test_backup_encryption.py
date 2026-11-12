@@ -123,3 +123,35 @@ def test_consistent_sqlite_backup_encrypts_and_restores_application_records(tmp_
     assert encrypted.read_bytes() != snapshot.read_bytes()
     assert list(tmp_path.rglob("*.encrypted-backup.tmp")) == []
     assert list(tmp_path.rglob("*.sqlite-backup.tmp")) == []
+
+
+def test_decryption_rejects_truncated_artifact_without_replacing_destination(tmp_path):
+    source = tmp_path / "source.sqlite3"
+    encrypted = tmp_path / "backup.enc"
+    restored = tmp_path / "restore.sqlite3"
+    source.write_bytes(b"valid database snapshot")
+    encrypt_backup_file(source, encrypted, PASSPHRASE)
+    encrypted.write_bytes(encrypted.read_bytes()[:-1])
+    restored.write_bytes(b"previous-good-restore")
+
+    with pytest.raises(ValueError, match="truncated"):
+        decrypt_backup_file(encrypted, restored, PASSPHRASE)
+
+    assert restored.read_bytes() == b"previous-good-restore"
+    assert list(tmp_path.glob(".restore.sqlite3.*.encrypted-backup.tmp")) == []
+
+
+def test_encryption_and_decryption_reject_same_source_and_destination(tmp_path):
+    source = tmp_path / "source.sqlite3"
+    encrypted = tmp_path / "backup.enc"
+    source.write_bytes(b"source data")
+
+    with pytest.raises(ValueError, match="must be different"):
+        encrypt_backup_file(source, source, PASSPHRASE)
+    assert source.read_bytes() == b"source data"
+
+    encrypt_backup_file(source, encrypted, PASSPHRASE)
+    original_encrypted = encrypted.read_bytes()
+    with pytest.raises(ValueError, match="must be different"):
+        decrypt_backup_file(encrypted, encrypted, PASSPHRASE)
+    assert encrypted.read_bytes() == original_encrypted
