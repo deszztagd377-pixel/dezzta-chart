@@ -1,9 +1,15 @@
 from decimal import Decimal
+from datetime import date, datetime, timezone
 
 from app.aggregation import CHILDREN, PARENT, Aggregator
 from app.coverage import CoverageTracker
 from app.ohlcv import FIXED_INTERVAL_SECONDS, OhlcvBar, OhlcvPipeline, bucket_start_ns
 from helpers import NS, T0, make_service, rec
+from app.session_bar_validation import SessionBarValidation
+from app.session_calendar import (
+    CHICAGO, SessionCalendar, SessionCalendarRegistry, SessionRecord,
+    datetime_to_epoch_ns,
+)
 
 ALL_TIMEFRAMES = [*FIXED_INTERVAL_SECONDS, "1w", "1M", "3M"]
 
@@ -283,3 +289,130 @@ def test_cme_session_calendar_derives_week_month_and_quarter_buckets():
     assert quarterly[0].volume == 40
     assert quarterly[0].completeness == "partial"
     assert aggregator.stats["skipped_cme_calendar_unresolved"] == 0
+
+
+
+def test_validated_cme_one_minute_bars_derive_session_daily_with_pinned_identity():
+    from app.ohlcv import BUCKET_POLICY_CME_SESSION_V1
+
+    trading_date = date(2024, 3, 11)
+    opened = datetime(2024, 3, 10, 17, 0, tzinfo=CHICAGO)
+    closed = datetime(2024, 3, 11, 16, 0, tzinfo=CHICAGO)
+    calendar = SessionCalendar(
+        calendar_id="CME_EQUITY_INDEX",
+        version="2024.03.1",
+        product_family="ES",
+        effective_start=trading_date,
+        effective_end=trading_date,
+        source_id="test-fixture-only",
+        source_url="https://example.invalid/test-calendar",
+        published_at_utc=datetime(2024, 2, 1, tzinfo=timezone.utc),
+        checksum="sha256:" + "b" * 64,
+        records={
+            trading_date: SessionRecord(
+                trading_date, "regular", opened, closed
+            )
+        },
+    )
+    registry = SessionCalendarRegistry((calendar,))
+    pipeline = OhlcvPipeline()
+    aggregator = Aggregator(pipeline, session_calendars=registry)
+    session_start = datetime_to_epoch_ns(opened)
+
+    source_bars = [
+        base_bar(
+            0, "100", "102", "99", "101", 10, 1,
+            tf="1m", base=session_start, bucket_policy="UTC_FIXED_V1",
+        ),
+        base_bar(
+            60, "101", "103", "100", "102", 20, 2,
+            tf="1m", base=session_start, bucket_policy="UTC_FIXED_V1",
+        ),
+    ]
+    for source in source_bars:
+        assert pipeline.apply(source) == "inserted"
+        validation = SessionBarValidation(
+            calendar_id="CME_EQUITY_INDEX",
+            calendar_version="2024.03.1",
+            trading_date=trading_date.isoformat(),
+            session_state="open",
+            interval_start_ns=source.ts_start_ns,
+            interval_end_ns=source.ts_start_ns + 60 * NS,
+        )
+        aggregator.on_bar_applied(source, session_validation=validation)
+
+    daily = pipeline.list_bars(
+        timeframe="1d",
+        bucket_policy=BUCKET_POLICY_CME_SESSION_V1,
+    )
+    assert len(daily) == 1
+    assert daily[0].ts_start_ns == session_start
+    assert (daily[0].open, daily[0].high, daily[0].low, daily[0].close) == (
+        Decimal("100"), Decimal("103"), Decimal("99"), Decimal("102")
+    )
+    assert daily[0].volume == Decimal("30")
+    assert daily[0].calendar_id == "CME_EQUITY_INDEX"
+    assert daily[0].calendar_version == "2024.03.1"
+    assert daily[0].completeness == "partial"
+    assert pipeline.list_bars(
+        timeframe="1d", bucket_policy="UTC_FIXED_V1"
+    ) == []
+
+
+def test_cme_daily_aggregation_rejects_children_crossing_session_segment():
+    from app.ohlcv import BUCKET_POLICY_CME_SESSION_V1
+    from app.session_calendar import SessionSegment
+
+    trading_date = date(2024, 3, 11)
+    first_start = datetime(2024, 3, 10, 17, 0, tzinfo=CHICAGO)
+    first_end = datetime(2024, 3, 10, 17, 0, 30, tzinfo=CHICAGO)
+    second_start = datetime(2024, 3, 10, 17, 1, tzinfo=CHICAGO)
+    close = datetime(2024, 3, 11, 16, 0, tzinfo=CHICAGO)
+    calendar = SessionCalendar(
+        calendar_id="CME_EQUITY_INDEX",
+        version="2024.03.segment-test",
+        product_family="ES",
+        effective_start=trading_date,
+        effective_end=trading_date,
+        source_id="test-fixture-only",
+        source_url="https://example.invalid/test-calendar",
+        published_at_utc=datetime(2024, 2, 1, tzinfo=timezone.utc),
+        checksum="sha256:" + "c" * 64,
+        records={
+            trading_date: SessionRecord(
+                trading_date, "regular", first_start, close,
+                segments=(
+                    SessionSegment(first_start, first_end),
+                    SessionSegment(second_start, close),
+                ),
+            )
+        },
+    )
+    pipeline = OhlcvPipeline()
+    aggregator = Aggregator(
+        pipeline, session_calendars=SessionCalendarRegistry((calendar,))
+    )
+    session_start = datetime_to_epoch_ns(first_start)
+    invalid_child = base_bar(
+        0, "100", "102", "99", "101", 10, 1,
+        tf="1m", base=session_start, bucket_policy="UTC_FIXED_V1",
+    )
+    valid_current = base_bar(
+        60, "101", "103", "100", "102", 20, 2,
+        tf="1m", base=session_start, bucket_policy="UTC_FIXED_V1",
+    )
+    assert pipeline.apply(invalid_child) == "inserted"
+    assert pipeline.apply(valid_current) == "inserted"
+    validation = SessionBarValidation(
+        calendar_id="CME_EQUITY_INDEX",
+        calendar_version="2024.03.segment-test",
+        trading_date=trading_date.isoformat(),
+        session_state="open",
+        interval_start_ns=valid_current.ts_start_ns,
+        interval_end_ns=valid_current.ts_start_ns + 60 * NS,
+    )
+    aggregator.on_bar_applied(valid_current, session_validation=validation)
+    assert pipeline.list_bars(
+        timeframe="1d", bucket_policy=BUCKET_POLICY_CME_SESSION_V1
+    ) == []
+    assert aggregator.stats["rejected_cme_daily_child"] == 1

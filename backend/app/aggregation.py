@@ -15,7 +15,7 @@ below the child series' evicted floor): that skip is counted, never silent.
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Callable
 
@@ -56,7 +56,9 @@ CHILDREN: dict[str, tuple[str, ...]] = {
 
 
 def derive_bar(
-    children: list[OhlcvBar], timeframe: str, bucket_start: int, completeness: str
+    children: list[OhlcvBar], timeframe: str, bucket_start: int, completeness: str,
+    *, bucket_policy: str | None = None, calendar_id: str | None = None,
+    calendar_version: str | None = None,
 ) -> OhlcvBar:
     """Pure: build one derived bar from distinct, same-series child bars."""
     ordered = sorted(children, key=lambda b: b.ts_start_ns)
@@ -73,9 +75,9 @@ def derive_bar(
         sequence=max(b.sequence for b in ordered), sequence_origin="local",
         provider=first.provider, series_type=first.series_type,
         origin=ORIGIN_DERIVED, completeness=completeness,
-        bucket_policy=first.bucket_policy,
-        calendar_id=first.calendar_id,
-        calendar_version=first.calendar_version,
+        bucket_policy=first.bucket_policy if bucket_policy is None else bucket_policy,
+        calendar_id=first.calendar_id if calendar_id is None else calendar_id,
+        calendar_version=first.calendar_version if calendar_version is None else calendar_version,
     )
 
 
@@ -99,11 +101,13 @@ class Aggregator:
             "derived_written": 0,
             "skipped_evicted": 0,
             "skipped_cme_calendar_unresolved": 0,
+            "skipped_cme_daily_unresolved": 0,
+            "rejected_cme_daily_child": 0,
             "rejected": 0,
         }
 
-    def on_bar_applied(self, bar: OhlcvBar) -> int:
-        """Rebuild every affected derived bucket; returns bars written."""
+    def on_bar_applied(self, bar: OhlcvBar, *, session_validation=None) -> int:
+        """Rebuild affected buckets; validated 1m CME inputs may seed session 1d."""
         written = 0
         stack = [bar]
         while stack:
@@ -118,6 +122,12 @@ class Aggregator:
                     continue
                 written += self._rebuild_session_parents(current, stack)
                 continue
+            if (
+                session_validation is not None
+                and current.timeframe == "1m"
+                and current.bucket_policy == "UTC_FIXED_V1"
+            ):
+                written += self._rebuild_session_daily(current, session_validation, stack)
             for child_tf in CHILDREN.get(current.timeframe, ()):
                 # UTC intraday bars must not be relabelled as session buckets.
                 if current.bucket_policy == "UTC_FIXED_V1" and child_tf in ("1d", "1w", "1M", "3M"):
@@ -126,6 +136,112 @@ class Aggregator:
                 written += self._rebuild(current.series_key, child_tf, start, stack)
                 written += self._close_previous(current.series_key, child_tf, start, stack)
         return written
+
+    def _rebuild_session_daily(self, current: OhlcvBar, validation, stack: list[OhlcvBar]) -> int:
+        """Derive CME 1d from validated UTC 1m source bars without changing source identity.
+
+        A single source timeframe (1m) is intentionally used for each daily
+        series so mixed-resolution provider feeds cannot overwrite one another.
+        Every retained child is rechecked against the pinned release before use.
+        """
+        if self._session_calendars is None:
+            self.stats["skipped_cme_daily_unresolved"] += 1
+            return 0
+        try:
+            calendar_id = validation.calendar_id
+            calendar_version = validation.calendar_version
+            trading_date = date.fromisoformat(validation.trading_date)
+            if (
+                not isinstance(calendar_id, str) or not calendar_id.strip()
+                or not isinstance(calendar_version, str) or not calendar_version.strip()
+                or validation.session_state not in ("open", "special-session")
+                or validation.interval_start_ns != current.ts_start_ns
+                or validation.interval_end_ns != current.ts_start_ns + 60 * 1_000_000_000
+            ):
+                raise ValueError("Session validation does not match the 1m source bar.")
+            calendar = self._session_calendars.get(calendar_id, calendar_version)
+            if calendar is None:
+                raise ValueError("Pinned calendar release is unavailable.")
+            seconds, nanos = divmod(current.ts_start_ns, 1_000_000_000)
+            instant = datetime.fromtimestamp(seconds, tz=timezone.utc) + timedelta(
+                microseconds=nanos // 1_000
+            )
+            lookup = lookup_instant(calendar, instant)
+            if (
+                lookup.trading_date != trading_date
+                or lookup.state not in ("open", "special-session")
+                or lookup.segment_end_ns is None
+                or validation.interval_end_ns > lookup.segment_end_ns
+            ):
+                raise ValueError("Source bar is outside its pinned tradable segment.")
+            bounds = session_bucket_bounds(calendar, trading_date, "1d")
+            if bounds is None:
+                raise ValueError("Daily session bounds are not fully covered by the release.")
+        except (AttributeError, TypeError, ValueError, OverflowError, OSError):
+            self.stats["skipped_cme_daily_unresolved"] += 1
+            return 0
+
+        source_series = current.series_key
+        if bounds.start_ns <= self._pipeline.evicted_floor(source_series):
+            self.stats["skipped_evicted"] += 1
+            return 0
+        children = self._pipeline.range_bars(source_series, bounds.start_ns, bounds.end_ns)
+        if not children:
+            return 0
+
+        # Validate all retained children, not just the latest callback. This
+        # protects against previously stored unvalidated or cross-segment bars.
+        for child in children:
+            child_seconds, child_nanos = divmod(child.ts_start_ns, 1_000_000_000)
+            child_instant = datetime.fromtimestamp(
+                child_seconds, tz=timezone.utc
+            ) + timedelta(microseconds=child_nanos // 1_000)
+            child_lookup = lookup_instant(calendar, child_instant)
+            child_end_ns = child.ts_start_ns + 60 * 1_000_000_000
+            if (
+                child_lookup.trading_date != trading_date
+                or child_lookup.state not in ("open", "special-session")
+                or child_lookup.segment_end_ns is None
+                or child_end_ns > child_lookup.segment_end_ns
+            ):
+                self.stats["rejected_cme_daily_child"] += 1
+                return 0
+
+        scope = source_series[:6]
+        completeness = (
+            "complete"
+            if self._coverage is not None
+            and self._coverage.status(scope, bounds.start_ns, bounds.end_ns) == "covered"
+            else "partial"
+        )
+        try:
+            derived = derive_bar(
+                children, "1d", bounds.start_ns, completeness,
+                bucket_policy=BUCKET_POLICY_CME_SESSION_V1,
+                calendar_id=calendar_id,
+                calendar_version=calendar_version,
+            )
+        except (InvalidOhlcvBar, IndexError):
+            self.stats["rejected"] += 1
+            return 0
+        if self._before_derived_apply is not None:
+            try:
+                if not self._before_derived_apply(derived):
+                    self.stats["persistence_rejected"] = self.stats.get("persistence_rejected", 0) + 1
+                    return 0
+            except Exception:
+                self.stats["persistence_error"] = self.stats.get("persistence_error", 0) + 1
+                return 0
+        if self._pipeline.apply(derived) in ("inserted", "replaced"):
+            self.stats["derived_written"] += 1
+            stack.append(derived)
+            if self._on_derived_bar is not None:
+                try:
+                    self._on_derived_bar(derived)
+                except Exception:
+                    self.stats["broadcast_callback_error"] = self.stats.get("broadcast_callback_error", 0) + 1
+            return 1
+        return 0
 
     def _rebuild_session_parents(self, current: OhlcvBar, stack: list[OhlcvBar]) -> int:
         """Derive CME weekly/monthly/quarterly bars from exact pinned session bounds."""

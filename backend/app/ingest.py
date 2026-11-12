@@ -389,6 +389,7 @@ class OhlcvIngestionService:
         except Exception:  # defensive: a bad record must never stop the consumer
             self._count("rejected_adapter_error")
             return
+        session_validation = None
         if self.bar_validator is not None:
             try:
                 validation = self.bar_validator(bar)
@@ -413,6 +414,7 @@ class OhlcvIngestionService:
                         or interval_end_ns <= interval_start_ns
                     ):
                         raise ValueError("Session validator returned an invalid validation result.")
+                    session_validation = validation
                     self._session_validation_accepted += 1
                     self._last_session_validation = {
                         "calendar_id": calendar_id,
@@ -469,7 +471,12 @@ class OhlcvIngestionService:
         # Live OHLCV omits intervals with no trades, so observed records do NOT
         # prove continuous coverage. Only successful historical query windows
         # may mark a range covered.
-        self.aggregator.on_bar_applied(bar)
+        if session_validation is None:
+            self.aggregator.on_bar_applied(bar)
+        else:
+            self.aggregator.on_bar_applied(
+                bar, session_validation=session_validation
+            )
         self._notify_bar_applied(bar)
         if live:
             self._notify_live_bar_applied(bar)
