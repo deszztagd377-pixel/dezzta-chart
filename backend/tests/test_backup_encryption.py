@@ -77,3 +77,49 @@ def test_decryption_rejects_invalid_header_without_publishing(tmp_path):
         decrypt_backup_file(encrypted, restored, PASSPHRASE)
 
     assert not restored.exists()
+
+
+def test_consistent_sqlite_backup_encrypts_and_restores_application_records(tmp_path):
+    import sqlite3
+
+    from app.sqlite_backup import create_consistent_sqlite_backup
+
+    source = tmp_path / "live.sqlite3"
+    snapshot = tmp_path / "snapshot.sqlite3"
+    encrypted = tmp_path / "off-host" / "snapshot.sqlite3.enc"
+    restored = tmp_path / "restore" / "market.sqlite3"
+
+    with sqlite3.connect(source) as database:
+        database.execute("PRAGMA journal_mode=WAL")
+        database.execute(
+            "CREATE TABLE instruments (symbol TEXT PRIMARY KEY, venue TEXT NOT NULL)"
+        )
+        database.execute(
+            "CREATE TABLE bars (symbol TEXT NOT NULL, timestamp TEXT NOT NULL, close TEXT NOT NULL)"
+        )
+        database.execute(
+            "INSERT INTO instruments VALUES (?, ?)", ("ES", "CME")
+        )
+        database.execute(
+            "INSERT INTO bars VALUES (?, ?, ?)",
+            ("ES", "2026-11-12T15:00:00Z", "6012.125000000000001"),
+        )
+
+    create_consistent_sqlite_backup(source, snapshot)
+    encrypt_backup_file(snapshot, encrypted, PASSPHRASE)
+    decrypt_backup_file(encrypted, restored, PASSPHRASE)
+
+    with sqlite3.connect(restored) as database:
+        assert database.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+        assert database.execute(
+            "SELECT symbol, venue FROM instruments"
+        ).fetchall() == [("ES", "CME")]
+        assert database.execute(
+            "SELECT symbol, timestamp, close FROM bars"
+        ).fetchall() == [
+            ("ES", "2026-11-12T15:00:00Z", "6012.125000000000001")
+        ]
+
+    assert encrypted.read_bytes() != snapshot.read_bytes()
+    assert list(tmp_path.rglob("*.encrypted-backup.tmp")) == []
+    assert list(tmp_path.rglob("*.sqlite-backup.tmp")) == []
