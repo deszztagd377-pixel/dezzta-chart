@@ -20,6 +20,7 @@ from app.ohlcv import (
     SUPPORTED_TIMEFRAMES,
     BUCKET_POLICY_UTC_LEGACY,
     BUCKET_POLICY_UTC_FIXED_V1,
+    BUCKET_POLICY_CME_SESSION_V1,
 )
 
 _SCHEMA = """
@@ -480,11 +481,12 @@ class SQLiteOhlcvStore:
         try:
             rows = db.execute(
                 """SELECT * FROM ohlcv_bars
-                WHERE bucket_policy IN (?,?) AND calendar_id='' AND calendar_version=''
+                WHERE (bucket_policy IN (?,?) AND calendar_id='' AND calendar_version='')
+                   OR bucket_policy=?
                 ORDER BY ts_start_ns,
                 CASE bucket_policy WHEN 'UTC_LEGACY' THEN 0 ELSE 1 END,
                 provider, dataset, publisher_id, instrument_id, series_type, timeframe""",
-                (BUCKET_POLICY_UTC_LEGACY, BUCKET_POLICY_UTC_FIXED_V1)
+                (BUCKET_POLICY_UTC_LEGACY, BUCKET_POLICY_UTC_FIXED_V1, BUCKET_POLICY_CME_SESSION_V1)
             ).fetchall()
             return [self._from_row(row) for row in rows]
         finally:
