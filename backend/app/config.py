@@ -5,6 +5,7 @@ Settings.__repr__ never includes the Databento key.
 """
 
 from dataclasses import dataclass, field
+import json
 import os
 from urllib.parse import urlsplit
 
@@ -17,6 +18,38 @@ def _parse_csv(value: str) -> tuple[str, ...]:
 
 def _parse_bool(value: str) -> bool:
     return value.strip().lower() in _TRUE
+
+
+def _unique_json_object(pairs):
+    result = {}
+    for key, item in pairs:
+        if key in result:
+            raise ValueError(f"Duplicate JSON key in session calendar manifest: {key}")
+        result[key] = item
+    return result
+
+
+def _parse_session_calendar_releases(value: str) -> tuple[tuple[str, str, str], ...]:
+    """Parse a strict JSON manifest of independently pinned calendar releases."""
+    if not value.strip():
+        return ()
+    try:
+        payload = json.loads(value, object_pairs_hook=_unique_json_object)
+    except json.JSONDecodeError as exc:
+        raise ValueError("SESSION_CALENDAR_RELEASES_JSON must be valid JSON.") from exc
+    if not isinstance(payload, list) or not payload or len(payload) > 32:
+        raise ValueError("SESSION_CALENDAR_RELEASES_JSON must be a non-empty array of at most 32 releases.")
+    parsed = []
+    for item in payload:
+        if not isinstance(item, dict) or set(item) != {"artifact_path", "sha256", "version"}:
+            raise ValueError("Each release must contain exactly artifact_path, sha256, and version.")
+        fields = (item["artifact_path"], item["sha256"], item["version"])
+        if any(not isinstance(field, str) or not field.strip() for field in fields):
+            raise ValueError("Session calendar release fields must be non-empty strings.")
+        parsed.append(tuple(field.strip() for field in fields))
+    if len(set(parsed)) != len(parsed):
+        raise ValueError("SESSION_CALENDAR_RELEASES_JSON contains duplicate descriptors.")
+    return tuple(parsed)
 
 
 def _parse_cors_origins(value: str, *, app_env: str) -> tuple[str, ...]:
@@ -84,6 +117,7 @@ class Settings:
     session_calendar_artifact_path: str = ""
     session_calendar_sha256: str = field(default="", repr=False)
     session_calendar_version: str = ""
+    session_calendar_releases: tuple[tuple[str, str, str], ...] = ()
     firebase_project_id: str = field(default="", repr=False)
     redis_url: str = field(default="", repr=False)
     http_rate_limit_per_client: int = 120
@@ -167,6 +201,9 @@ class Settings:
             session_calendar_artifact_path=os.getenv("SESSION_CALENDAR_ARTIFACT_PATH", "").strip(),
             session_calendar_sha256=os.getenv("SESSION_CALENDAR_SHA256", "").strip(),
             session_calendar_version=os.getenv("SESSION_CALENDAR_VERSION", "").strip(),
+            session_calendar_releases=_parse_session_calendar_releases(
+                os.getenv("SESSION_CALENDAR_RELEASES_JSON", "")
+            ),
             firebase_project_id=os.getenv("FIREBASE_PROJECT_ID", "").strip(),
             redis_url=os.getenv("REDIS_URL", "").strip(),
             http_rate_limit_per_client=_parse_int(os.getenv("HTTP_RATE_LIMIT_PER_CLIENT", "120"), 120),

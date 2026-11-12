@@ -136,11 +136,16 @@ def create_app(
         artifact_path=config.session_calendar_artifact_path,
         expected_sha256=config.session_calendar_sha256,
         expected_version=config.session_calendar_version,
+        releases=config.session_calendar_releases,
     )
     session_bar_validator = build_provider_session_bar_validator(
         instrument_registry,
         session_calendar_registry,
         calendar_version=config.session_calendar_version,
+        calendar_versions={
+            item["calendar_id"]: item["version"]
+            for item in session_calendar_status.get("releases", ())
+        },
     )
     ingestion = OhlcvIngestionService(
         pipeline=ohlcv_pipeline, resolver=resolver, coverage=coverage_tracker,

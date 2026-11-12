@@ -215,3 +215,76 @@ def test_app_rejects_bar_when_calendar_artifact_pin_is_invalid(tmp_path, monkeyp
     assert application.state.ingestion.counters["rejected_validation_calendar_unavailable"] == 1
     assert application.state.ohlcv_pipeline.list_bars(timeframe="1m") == []
     assert application.state.ohlcv_store.load_bars() == []
+
+
+def test_runtime_loads_multiple_pinned_calendar_releases_atomically(tmp_path):
+    equity_path = tmp_path / "equity.json"
+    gold_path = tmp_path / "gold.json"
+    equity_raw = _artifact_bytes()
+    gold_payload = _calendar_payload()
+    gold_payload["calendar_id"] = "COMEX_GOLD"
+    gold_payload["product_family"] = "GC"
+    gold_payload["version"] = "2026.11.gc1"
+    gold_raw = json.dumps(gold_payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    equity_path.write_bytes(equity_raw)
+    gold_path.write_bytes(gold_raw)
+    registry, status = load_session_calendar_runtime(
+        artifact_path="", expected_sha256="", expected_version="",
+        releases=((str(equity_path), hashlib.sha256(equity_raw).hexdigest(), "2026.11.1"),
+                  (str(gold_path), hashlib.sha256(gold_raw).hexdigest(), "2026.11.gc1")),
+    )
+    assert len(registry) == 2
+    assert registry.get("CME_EQUITY_INDEX", "2026.11.1") is not None
+    assert registry.get("COMEX_GOLD", "2026.11.gc1") is not None
+    assert status["state"] == "available"
+    assert status["release_count"] == 2
+
+
+def test_runtime_multi_release_manifest_fails_closed_on_one_bad_pin(tmp_path):
+    equity_path = tmp_path / "equity.json"
+    gold_path = tmp_path / "gold.json"
+    equity_raw = _artifact_bytes()
+    gold_payload = _calendar_payload()
+    gold_payload["calendar_id"] = "COMEX_GOLD"
+    gold_payload["product_family"] = "GC"
+    gold_raw = json.dumps(gold_payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    equity_path.write_bytes(equity_raw)
+    gold_path.write_bytes(gold_raw)
+    registry, status = load_session_calendar_runtime(
+        artifact_path="", expected_sha256="", expected_version="",
+        releases=((str(equity_path), hashlib.sha256(equity_raw).hexdigest(), "2026.11.1"),
+                  (str(gold_path), "0" * 64, "2026.11.1")),
+    )
+    assert len(registry) == 0
+    assert status == {"state": "unavailable", "reason": "release_validation_failed"}
+
+
+def test_runtime_rejects_multiple_versions_for_one_calendar_id(tmp_path):
+    first_path = tmp_path / "equity-v1.json"
+    second_path = tmp_path / "equity-v2.json"
+    first_raw = _artifact_bytes()
+    second_payload = _calendar_payload()
+    second_payload["version"] = "2026.11.2"
+    second_raw = json.dumps(second_payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    first_path.write_bytes(first_raw)
+    second_path.write_bytes(second_raw)
+    registry, status = load_session_calendar_runtime(
+        artifact_path="", expected_sha256="", expected_version="",
+        releases=((str(first_path), hashlib.sha256(first_raw).hexdigest(), "2026.11.1"),
+                  (str(second_path), hashlib.sha256(second_raw).hexdigest(), "2026.11.2")),
+    )
+    assert len(registry) == 0
+    assert status == {"state": "unavailable", "reason": "release_validation_failed"}
+
+
+def test_settings_rejects_ambiguous_multi_release_manifest():
+    from app.config import _parse_session_calendar_releases
+    import pytest
+    valid = {"artifact_path": "/data/es.json", "sha256": "a" * 64, "version": "v1"}
+    assert _parse_session_calendar_releases(json.dumps([valid])) == (("/data/es.json", "a" * 64, "v1"),)
+    with pytest.raises(ValueError):
+        _parse_session_calendar_releases(json.dumps([valid, valid]))
+    with pytest.raises(ValueError):
+        _parse_session_calendar_releases('[{"artifact_path":"/data/es.json","sha256":"bad"}]')
+    with pytest.raises(ValueError):
+        _parse_session_calendar_releases('[{"artifact_path":"/a","artifact_path":"/b","sha256":"' + "a" * 64 + '","version":"v1"}]')

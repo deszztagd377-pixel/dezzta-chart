@@ -30,9 +30,52 @@ def load_session_calendar_runtime(
     artifact_path: str,
     expected_sha256: str,
     expected_version: str,
+    releases: tuple[tuple[str, str, str], ...] = (),
 ) -> tuple[SessionCalendarRegistry, dict[str, Any]]:
-    """Load one exact pinned release; return an empty registry on any failure."""
+    """Load pinned calendar releases atomically; preserve the legacy single-release API."""
     registry = SessionCalendarRegistry()
+    if releases:
+        if any((artifact_path.strip(), expected_sha256.strip(), expected_version.strip())):
+            return registry, {"state": "unavailable", "reason": "mixed_release_configuration"}
+        if not isinstance(releases, tuple) or len(releases) > 32:
+            return registry, {"state": "unavailable", "reason": "invalid_release_manifest"}
+        calendars = []
+        release_status = []
+        seen_calendar_ids = set()
+        try:
+            for descriptor in releases:
+                if not isinstance(descriptor, tuple) or len(descriptor) != 3:
+                    raise SessionCalendarArtifactError("Invalid release descriptor.")
+                release_path, release_digest, release_version = descriptor
+                if any(not isinstance(value, str) or not value.strip() for value in descriptor):
+                    raise SessionCalendarArtifactError("Release descriptor fields must be non-empty strings.")
+                path = Path(release_path).expanduser()
+                size = path.stat().st_size
+                if size < 1 or size > _MAX_CALENDAR_ARTIFACT_BYTES:
+                    raise SessionCalendarArtifactError("Calendar artifact size is outside the supported limit.")
+                calendar = load_session_calendar_artifact(
+                    path.read_bytes(), expected_sha256=release_digest
+                )
+                if calendar.version != release_version:
+                    raise SessionCalendarArtifactError("Calendar artifact version does not match its explicit pin.")
+                if calendar.calendar_id in seen_calendar_ids:
+                    raise SessionCalendarArtifactError("Only one active pinned version per calendar_id is supported.")
+                seen_calendar_ids.add(calendar.calendar_id)
+                calendars.append(calendar)
+                release_status.append({
+                    "calendar_id": calendar.calendar_id,
+                    "version": calendar.version,
+                    "product_family": calendar.product_family,
+                    "source_id": calendar.source_id,
+                    "sha256": calendar.checksum.removeprefix("sha256:"),
+                })
+            registry = SessionCalendarRegistry(tuple(calendars))
+        except (OSError, ValueError, TypeError):
+            return SessionCalendarRegistry(), {"state": "unavailable", "reason": "release_validation_failed"}
+        if not calendars:
+            return registry, {"state": "unconfigured", "reason": "release_not_configured"}
+        return registry, {"state": "available", "release_count": len(calendars), "releases": release_status}
+
     configured = (artifact_path.strip(), expected_sha256.strip(), expected_version.strip())
     if not any(configured):
         return registry, {"state": "unconfigured", "reason": "release_not_configured"}
@@ -75,7 +118,8 @@ def build_provider_session_bar_validator(
     instrument_registry: SQLiteInstrumentRegistry,
     calendar_registry: SessionCalendarRegistry,
     *,
-    calendar_version: str,
+    calendar_version: str = "",
+    calendar_versions: dict[str, str] | None = None,
 ):
     """Validate durable provider identity and CME sessions before ingestion.
 
@@ -116,11 +160,14 @@ def build_provider_session_bar_validator(
         if instrument.asset_class != "future" or instrument.instrument_type != "future":
             return None
 
+        explicit_version = (calendar_versions or {}).get(
+            instrument.session_calendar_id or "", calendar_version
+        )
         return validate_intraday_bar_session(
             bar,
             instrument,
             calendar_registry,
-            calendar_version=calendar_version,
+            calendar_version=explicit_version,
         )
 
     return validate
