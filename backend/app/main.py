@@ -31,6 +31,7 @@ from app.identity import (
     VerifiedPrincipal,
 )
 from app.ohlcv import (
+    BUCKET_POLICY_CME_SESSION_V1,
     SUPPORTED_BUCKET_POLICIES,
     InvalidOhlcvBar,
     OhlcvPipeline,
@@ -84,6 +85,30 @@ def _parse_ns(value: str | None, name: str) -> int | None:
             detail=f"{name} exceeds the supported signed 64-bit nanosecond range.",
         )
     return timestamp_ns
+
+
+def _calendar_identity_matches(
+    instrument,
+    *,
+    timeframe: str,
+    bucket_policy: str,
+    calendar_id: str,
+    calendar_version: str,
+    calendar_registry,
+) -> bool:
+    """Require an exact loaded calendar release for CME series identity."""
+    if bucket_policy != BUCKET_POLICY_CME_SESSION_V1:
+        return not calendar_id and not calendar_version
+    if (
+        timeframe not in {"1d", "1w", "1M", "3M"}
+        or instrument.asset_class != "future"
+        or instrument.instrument_type != "future"
+        or not instrument.session_calendar_id
+        or calendar_id != instrument.session_calendar_id
+        or not calendar_version
+    ):
+        return False
+    return calendar_registry.get(calendar_id, calendar_version) is not None
 
 
 def create_app(
@@ -378,6 +403,9 @@ def create_app(
         normalized_symbol = raw_symbol.strip().upper()
         if not normalized_symbol:
             raise HTTPException(status_code=422, detail="raw_symbol is required.")
+        effective_bucket_policy = (
+            bucket_policy if bucket_policy is not None else bucket_policy_for_timeframe(timeframe)
+        )
 
         def authorized_series_type() -> str | None:
             mapping = application.state.instrument_registry.resolve_provider_mapping(
@@ -391,6 +419,15 @@ def create_app(
                 return None
             instrument = application.state.instrument_registry.get_instrument(mapping.canonical_id)
             if instrument is None or not instrument.is_active:
+                return None
+            if effective_bucket_policy in SUPPORTED_BUCKET_POLICIES and not _calendar_identity_matches(
+                instrument,
+                timeframe=timeframe,
+                bucket_policy=effective_bucket_policy,
+                calendar_id=calendar_id,
+                calendar_version=calendar_version,
+                calendar_registry=application.state.session_calendar_registry,
+            ):
                 return None
             if not application.state.instrument_entitlements.has_access(
                 subject=principal.subject, canonical_instrument_id=mapping.canonical_id,
@@ -409,10 +446,7 @@ def create_app(
             bucket_start_ns(0, timeframe)
         except InvalidOhlcvBar as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
-        effective_bucket_policy = (
-            bucket_policy if bucket_policy is not None else bucket_policy_for_timeframe(timeframe)
-        )
-        if effective_bucket_policy not in SUPPORTED_BUCKET_POLICIES or calendar_id or calendar_version:
+        if effective_bucket_policy not in SUPPORTED_BUCKET_POLICIES:
             raise HTTPException(status_code=422, detail="Unsupported OHLCV bucket identity.")
         start_value = _parse_ns(start_ns, "start_ns")
         end_value = _parse_ns(end_ns, "end_ns")
@@ -661,7 +695,6 @@ def create_app(
                         not isinstance(bucket_policy, str)
                         or bucket_policy not in SUPPORTED_BUCKET_POLICIES
                     ))
-                    or calendar_id != "" or calendar_version != ""
                     or not isinstance(publisher_id, int) or isinstance(publisher_id, bool) or publisher_id <= 0
                     or not isinstance(instrument_id, int) or isinstance(instrument_id, bool) or instrument_id <= 0
                     or not isinstance(canonical_id, str)
@@ -702,6 +735,15 @@ def create_app(
                         return False
                     instrument = application.state.instrument_registry.get_instrument(canonical_id)
                     if instrument is None or not instrument.is_active:
+                        return False
+                    if bucket_policy in SUPPORTED_BUCKET_POLICIES and not _calendar_identity_matches(
+                        instrument,
+                        timeframe=timeframe,
+                        bucket_policy=bucket_policy,
+                        calendar_id=calendar_id,
+                        calendar_version=calendar_version,
+                        calendar_registry=application.state.session_calendar_registry,
+                    ):
                         return False
                     return application.state.instrument_entitlements.has_access(
                         subject=principal.subject,

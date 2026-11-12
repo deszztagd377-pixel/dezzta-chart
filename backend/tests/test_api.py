@@ -363,6 +363,81 @@ def test_rest_snapshot_is_scoped_to_authorized_provider_series_type() -> None:
     assert denied.status_code == 403
 
 
+def test_cme_rest_snapshot_requires_exact_loaded_calendar_identity() -> None:
+    application = _app_with_bars()
+    client = TestClient(application)
+    headers = {"Authorization": "Bearer valid-firebase-token"}
+    base = (
+        "/v1/ohlcv?dataset=GLBX.MDP3&publisher_id=1&instrument_id=101"
+        "&raw_symbol=ESZ6&timeframe=1d&bucket_policy=CME_SESSION_V1"
+    )
+    valid = client.get(
+        base + "&calendar_id=CME_EQUITY_INDEX&calendar_version=test-only-2024.01",
+        headers=headers,
+    )
+    assert valid.status_code == 200
+    assert valid.json()["count"] == 0
+
+    wrong_calendar = client.get(
+        base + "&calendar_id=COMEX_GOLD&calendar_version=test-only-2024.01",
+        headers=headers,
+    )
+    assert wrong_calendar.status_code == 403
+
+    missing_release = client.get(
+        base + "&calendar_id=CME_EQUITY_INDEX&calendar_version=unknown-release",
+        headers=headers,
+    )
+    assert missing_release.status_code == 403
+
+
+def test_cme_websocket_snapshot_requires_exact_loaded_calendar_identity() -> None:
+    application = _app_with_bars()
+    client = TestClient(application)
+    with client.websocket_connect("/ws/market-data") as websocket:
+        websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+        assert websocket.receive_json()["type"] == "market_data.status"
+        websocket.send_json({
+            "type": "market_data.subscribe",
+            "version": 1,
+            "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+            "series": {
+                "dataset": "GLBX.MDP3",
+                "publisherId": 1,
+                "instrumentId": 101,
+                "rawSymbol": "ESZ6",
+                "timeframe": "1d",
+                "bucketPolicy": "CME_SESSION_V1",
+                "calendarId": "CME_EQUITY_INDEX",
+                "calendarVersion": "test-only-2024.01",
+            },
+        })
+        snapshot = websocket.receive_json()
+        assert snapshot["type"] == "market_data.ohlcv.snapshot"
+        assert snapshot["count"] == 0
+
+    with client.websocket_connect("/ws/market-data") as websocket:
+        websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+        assert websocket.receive_json()["type"] == "market_data.status"
+        websocket.send_json({
+            "type": "market_data.subscribe",
+            "version": 1,
+            "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+            "series": {
+                "dataset": "GLBX.MDP3",
+                "publisherId": 1,
+                "instrumentId": 101,
+                "rawSymbol": "ESZ6",
+                "timeframe": "1d",
+                "bucketPolicy": "CME_SESSION_V1",
+                "calendarId": "COMEX_GOLD",
+                "calendarVersion": "test-only-2024.01",
+            },
+        })
+        with pytest.raises(WebSocketDisconnect):
+            websocket.receive_json()
+
+
 def test_rest_and_websocket_snapshots_return_identical_ohlcv_bars() -> None:
     """REST and WebSocket bootstrap must serialize the same exact pipeline snapshot."""
     client = TestClient(_app_with_bars())
