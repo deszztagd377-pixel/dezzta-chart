@@ -112,15 +112,16 @@ def decrypt_backup_file(
         raise FileNotFoundError(source)
 
     source_size = source.stat().st_size
+    with source.open("rb") as input_file:
+        header = input_file.read(_HEADER_BYTES)
+    if len(header) != _HEADER_BYTES or not header.startswith(_MAGIC):
+        raise ValueError("Encrypted backup format is not recognized.")
     if source_size < _HEADER_BYTES + _TAG_BYTES:
-        raise ValueError("Encrypted backup is truncated or has an invalid header.")
+        raise ValueError("Encrypted backup is truncated.")
 
     descriptor, temporary = _temporary_file(destination)
     try:
         with source.open("rb") as input_file:
-            header = input_file.read(_HEADER_BYTES)
-            if len(header) != _HEADER_BYTES or not header.startswith(_MAGIC):
-                raise ValueError("Encrypted backup format is not recognized.")
             salt_start = len(_MAGIC)
             salt = header[salt_start : salt_start + _SALT_BYTES]
             nonce = header[salt_start + _SALT_BYTES :]
