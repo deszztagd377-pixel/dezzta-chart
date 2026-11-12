@@ -52,7 +52,8 @@ def test_cme_session_bars_restore_with_calendar_identity(tmp_path):
     path = str(tmp_path / "cme-restore.sqlite3")
     store = SQLiteOhlcvStore(path)
     daily = replace(
-        make_bar(timeframe="1d", bucket_policy=BUCKET_POLICY_CME_SESSION_V1),
+        make_bar(timeframe="1d"),
+        bucket_policy=BUCKET_POLICY_CME_SESSION_V1,
         calendar_id="CME_EQUITY_INDEX",
         calendar_version="2026.11.1",
     )
