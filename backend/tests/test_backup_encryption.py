@@ -131,7 +131,10 @@ def test_decryption_rejects_truncated_artifact_without_replacing_destination(tmp
     restored = tmp_path / "restore.sqlite3"
     source.write_bytes(b"valid database snapshot")
     encrypt_backup_file(source, encrypted, PASSPHRASE)
-    encrypted.write_bytes(encrypted.read_bytes()[:-1])
+    artifact = encrypted.read_bytes()
+    header_bytes = len(b"DZCBK01\\n") + 16 + 12
+    tag_bytes = 16
+    encrypted.write_bytes(artifact[: header_bytes + tag_bytes - 1])
     restored.write_bytes(b"previous-good-restore")
 
     with pytest.raises(ValueError, match="truncated"):
