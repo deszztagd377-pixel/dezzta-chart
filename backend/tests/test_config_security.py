@@ -139,3 +139,42 @@ def test_production_rejects_databento_credentials_and_paid_provider_access(
             firebase_project_id="dezzta-chart-prod",
             **provider_overrides,
         )
+
+
+@pytest.mark.parametrize(
+    ("variable", "value"),
+    [
+        ("DATABENTO_API_KEY", "must-not-be-used"),
+        ("DATABENTO_LIVE_ENABLED", "true"),
+        ("DATABENTO_HISTORICAL_ENABLED", "true"),
+    ],
+)
+def test_production_environment_rejects_databento_configuration(
+    monkeypatch, variable, value
+) -> None:
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("REDIS_URL", "rediss://redis.example:6380/0")
+    monkeypatch.setenv("FIREBASE_PROJECT_ID", "dezzta-chart-prod")
+    monkeypatch.setenv("CORS_ALLOWED_ORIGINS", "https://chart.example")
+    monkeypatch.setenv(variable, value)
+
+    with pytest.raises(ValueError, match="Databento.*disabled in production"):
+        Settings.from_environment()
+
+
+def test_production_environment_keeps_databento_disabled_by_default(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("REDIS_URL", "rediss://redis.example:6380/0")
+    monkeypatch.setenv("FIREBASE_PROJECT_ID", "dezzta-chart-prod")
+    monkeypatch.setenv("CORS_ALLOWED_ORIGINS", "https://chart.example")
+    monkeypatch.delenv("DATABENTO_API_KEY", raising=False)
+    monkeypatch.delenv("DATABENTO_LIVE_ENABLED", raising=False)
+    monkeypatch.delenv("DATABENTO_HISTORICAL_ENABLED", raising=False)
+
+    settings = Settings.from_environment()
+
+    assert settings.provider_configured is False
+    assert settings.databento_live_enabled is False
+    assert settings.databento_historical_enabled is False
