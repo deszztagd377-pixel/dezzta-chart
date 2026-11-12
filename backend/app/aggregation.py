@@ -129,8 +129,9 @@ class Aggregator:
 
     def _rebuild_session_parents(self, current: OhlcvBar, stack: list[OhlcvBar]) -> int:
         """Derive CME weekly/monthly/quarterly bars from exact pinned session bounds."""
+        # Weekly and quarterly outputs are terminal tiers in this aggregation
+        # graph; they do not require another calendar lookup.
         if current.timeframe not in ("1d", "1M"):
-            self.stats["skipped_cme_calendar_unresolved"] += 1
             return 0
         assert self._session_calendars is not None
         calendar = self._session_calendars.get(current.calendar_id, current.calendar_version)
