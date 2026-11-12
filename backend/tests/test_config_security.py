@@ -1,3 +1,5 @@
+import pytest
+
 from app.config import Settings
 
 
@@ -128,8 +130,6 @@ def test_production_requires_firebase_project_id() -> None:
 def test_production_rejects_databento_credentials_and_paid_provider_access(
     provider_overrides,
 ) -> None:
-    import pytest
-
     with pytest.raises(ValueError, match="Databento.*disabled in production"):
         Settings(
             app_env="production",
