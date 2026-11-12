@@ -1,9 +1,9 @@
 # Backend deployment preparation
 
-This guide packages the existing FastAPI service as a portable container. It does
-not select a hosting provider, configure a paid plan, or enable a market-data
-provider. Choose a hosting provider only after reviewing its current pricing,
-region, sleep/availability behavior, and secret-management controls.
+This guide packages the existing FastAPI service as a portable container. The
+mandatory ZERO MONEY policy permits only owner-controlled hardware and
+networking that create no new payment obligation. Do not provision paid hosting,
+managed Redis, paid identity, market-data, backup, or monitoring services.
 
 ## Safe default deployment
 
@@ -22,13 +22,36 @@ deployment-preparation step. Provider account entitlement, data licensing,
 symbol definitions, cost limits, and operational monitoring require a separate
 review before any real provider session is enabled.
 
+## Required zero-cost prerequisites
+
+Production mode requires both a Firebase project ID and a TLS Redis endpoint.
+This is a configuration requirement, not permission to enable billing or use a
+managed service.
+
+Before starting production mode, the owner must independently verify that:
+
+- the Firebase project remains on a no-billing configuration and the selected
+  authentication flow does not require a paid add-on;
+- Redis runs on existing owner-controlled hardware, uses TLS with certificate
+  and hostname validation, has ACLs restricted to the backend, and is not
+  exposed to the public network;
+- the existing host, network path, and certificate lifecycle introduce no
+  incremental charge.
+
+If any prerequisite cannot be verified, keep production deployment deferred.
+Do not substitute plaintext Redis, an in-memory limiter, a free trial, or a
+paid managed endpoint.
+
 ## Container build and local smoke test
 
-Run from the repository root. Production requires a managed Redis endpoint with TLS and a Firebase project ID. Export `REDIS_URL` and `FIREBASE_PROJECT_ID` from the appropriate backend configuration/secret manager into the current shell without echoing their values; `REDIS_URL` must begin with `rediss://`.
+Run from the repository root after configuring an owner-controlled self-hosted
+Redis TLS endpoint and a no-billing Firebase project. Export values only in the
+backend host's protected environment; never echo them or paste them into chat.
+The example intentionally uses variable names without embedding credentials.
 
 ```sh
-: "${REDIS_URL:?Export the managed Redis TLS URL from your secret manager first}"
-: "${FIREBASE_PROJECT_ID:?Export the Firebase project ID for the backend first}"
+: "${REDIS_URL:?Configure the owner-controlled self-hosted Redis TLS URL}"
+: "${FIREBASE_PROJECT_ID:?Configure the no-billing Firebase project ID}"
 case "$REDIS_URL" in rediss://*) ;; *) echo "REDIS_URL must use rediss:// in production" >&2; exit 1 ;; esac
 
 docker build -f backend/Dockerfile -t dezzta-chart-backend:local backend
@@ -37,10 +60,15 @@ docker run --rm -p 8000:8000 \
   -e REDIS_URL \
   -e FIREBASE_PROJECT_ID \
   -e CORS_ALLOWED_ORIGINS=https://dezzta-chart.vercel.app \
+  -v dezzta-chart-data:/data \
   dezzta-chart-backend:local
 ```
 
-The API intentionally fails startup if the Redis connection cannot be established. Do not replace this with a local in-memory limiter or use an unencrypted Redis URL in production. Keep the Redis URL in the backend hosting platform's secret manager only.
+The API intentionally fails startup if the Redis connection cannot be
+established. Do not replace this with a local in-memory limiter or use an
+unencrypted Redis URL in production. The named Docker volume above is local to
+the Docker host; it is not an off-host backup and must be included in the
+owner's tested backup/restore procedure.
 
 In a second terminal, verify:
 
@@ -51,34 +79,35 @@ curl -fsS http://127.0.0.1:8000/v1/instruments
 curl -fsS http://127.0.0.1:8000/v1/ohlcv
 ```
 
-The health response should be `{"status":"ok","service":"dezzta-chart-backend"}`.
-The other endpoints must retain their explicit empty/disconnected/unavailable
-semantics until trusted definitions or bars are actually ingested.
+The health response should be
+`{"status":"ok","service":"dezzta-chart-backend"}`. The other endpoints must
+retain their explicit empty/disconnected/unavailable semantics until trusted
+definitions or bars are actually ingested.
 
-## Hosting-provider settings
+## Owner-controlled host settings
 
-For a container-based Python web service, use:
+For a container-based Python service on existing owner hardware, use:
 
 - Dockerfile: `backend/Dockerfile`
 - Docker build context: `backend/`
 - Health-check path: `/health`
-- Port: the platform-provided `PORT` environment variable (defaults to 8000)
+- Port: the host-provided `PORT` environment variable (defaults to 8000)
 - `APP_ENV=production`
-- `CORS_ALLOWED_ORIGINS=https://dezzta-chart.vercel.app`
-- `FIREBASE_PROJECT_ID` supplied as backend-only configuration for the Firebase project used to verify ID tokens.
-- `REDIS_URL` supplied as a backend-only secret from managed Redis; require a `rediss://` TLS endpoint.
+- `CORS_ALLOWED_ORIGINS`: exact HTTPS browser origins only
+- `FIREBASE_PROJECT_ID`: backend-only project identifier for a verified
+  no-billing Firebase configuration
+- `REDIS_URL`: backend-only secret for the owner-controlled Redis TLS endpoint
 
-Add any Vercel preview origins only when needed, as comma-separated exact
-origins. Do not use `*` for production CORS. Set the frontend's
-`VITE_MARKET_DATA_API_BASE_URL` to the deployed HTTPS API origin in Vercel,
-then redeploy the frontend. Never put backend secrets in Vite variables.
+Do not use managed Redis, paid hosting, paid domains, a CDN, or any trial that
+can convert into a charge. Add preview origins only when needed, as
+comma-separated exact origins. Never put backend secrets in Vite variables.
 
 The `/ws/market-data` route currently authenticates with a Firebase ID token
-sent in the first JSON `auth` message. The backend verifies the token (including
-revocation checks) and periodically re-verifies both identity and instrument
-entitlement during the connection. This route does not read
-`MARKET_DATA_WS_TOKEN`; do not use that setting as evidence that this route is
-enabled or disabled.
+sent in the first JSON `auth` message. The backend verifies the token
+(including revocation checks) and periodically re-verifies both identity and
+instrument entitlement during the connection. This route does not read
+`MARKET_DATA_WS_TOKEN`; do not use that setting as evidence that this route
+is enabled or disabled.
 
 A route present in source is not proof of deployed WSS availability or client
 end-to-end compatibility. Before production acceptance, verify the HTTPS/WSS
@@ -90,10 +119,9 @@ its key lifecycle subject to an approved threat model before adding it.
 The `/v1/market-data/status` payload includes provider state, reconnect
 attempts, ingestion counters, queue depth, degraded reasons, persistence and
 coverage statistics, and bounded-window latency samples. This application
-status payload is not a substitute for external monitoring, durable log
+status payload is not a substitute for self-hosted monitoring, durable log
 retention, alert routing, or a tested incident/recovery procedure. Configure
-those controls in the hosting/monitoring platform and verify alert delivery
-before production acceptance.
+those controls on existing hardware or explicitly defer them.
 
 ## Security and operational notes
 
@@ -109,11 +137,14 @@ before production acceptance.
 - SQLite durability across container replacement exists only when
   `INSTRUMENT_REGISTRY_DB_PATH` points to a persistent writable volume. The
   default `./data/instrument_registry.sqlite3` is inside the container
-  filesystem and must be treated as ephemeral unless the hosting platform
-  mounts persistent storage there.
+  filesystem and must be treated as ephemeral unless the host mounts
+  persistent storage there.
 - The container runs as UID/GID `10001:10001`; a mounted database directory
   must be writable by that user. Back up the database and test restore before
   treating it as production-grade storage.
+- Use `backend/app/backup_encryption.py` to encrypt backup artifacts before
+  any off-host transfer. Keep the passphrase separately from both the source
+  database and encrypted backup; see [BACKUP_ENCRYPTION.md](BACKUP_ENCRYPTION.md).
 - SQLite persistence does not provide a durable WebSocket event outbox or
   replay cursor. After a disconnect or backend restart, clients still need a
   fresh authenticated snapshot/resubscription. Sustained write-rate and
@@ -121,6 +152,6 @@ before production acceptance.
 - A successful container health check proves process liveness only. It does
   not prove provider connectivity, contract-definition availability, OHLCV
   completeness, or market-data freshness.
-- Redis must be reachable from the backend region; review managed-service persistence, access controls, TLS certificate validation, private networking, and failover behavior.
-- Review hosting cost, free-tier sleep limits, region, TLS, access logs,
-  retention, and incident controls before creating a public service.
+- Redis must be reachable only over the owner's private network. Validate ACL
+  command scope, TLS certificates, persistence, restart and failure behavior
+  on the actual host before production acceptance.
