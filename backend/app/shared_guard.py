@@ -103,14 +103,22 @@ class RedisSharedGuard:
         if redis_client is None:
             from redis.asyncio import Redis
 
-            redis_client = Redis.from_url(
-                redis_url,
-                decode_responses=True,
-                socket_connect_timeout=2,
-                socket_timeout=2,
-                health_check_interval=30,
-                max_connections=100,
-            )
+            redis_options = {
+                "decode_responses": True,
+                "socket_connect_timeout": 2,
+                "socket_timeout": 2,
+                "health_check_interval": 30,
+                "max_connections": 100,
+            }
+            if redis_url.lower().startswith("rediss://"):
+                # redis-py 5.x defaults hostname verification off for
+                # backwards compatibility. Require both CA-chain and host
+                # identity validation for production TLS connections.
+                redis_options.update(
+                    ssl_cert_reqs="required",
+                    ssl_check_hostname=True,
+                )
+            redis_client = Redis.from_url(redis_url, **redis_options)
         self._redis = redis_client
 
     async def start(self) -> None:
