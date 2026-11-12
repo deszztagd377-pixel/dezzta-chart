@@ -15,10 +15,12 @@ below the child series' evicted floor): that skip is counted, never silent.
 """
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Callable
 
 from app.coverage import CoverageTracker
+from app.session_calendar import SessionCalendarRegistry, lookup_instant, session_bucket_bounds
 from app.ohlcv import (
     BUCKET_POLICY_CME_SESSION_V1,
     FIXED_INTERVAL_SECONDS,
@@ -86,8 +88,10 @@ class Aggregator:
         coverage: CoverageTracker | None = None,
         on_derived_bar: Callable[[OhlcvBar], None] | None = None,
         before_derived_apply: Callable[[OhlcvBar], bool] | None = None,
+        session_calendars: SessionCalendarRegistry | None = None,
     ) -> None:
         self._pipeline = pipeline
+        self._session_calendars = session_calendars
         self._coverage = coverage
         self._on_derived_bar = on_derived_bar
         self._before_derived_apply = before_derived_apply
@@ -109,7 +113,10 @@ class Aggregator:
             # resolver supplies exact exchange bucket bounds. Count this once
             # per input/derived bar, not once per possible parent timeframe.
             if current.bucket_policy == BUCKET_POLICY_CME_SESSION_V1:
-                self.stats["skipped_cme_calendar_unresolved"] += 1
+                if self._session_calendars is None:
+                    self.stats["skipped_cme_calendar_unresolved"] += 1
+                    continue
+                written += self._rebuild_session_parents(current, stack)
                 continue
             for child_tf in CHILDREN.get(current.timeframe, ()):
                 # UTC intraday bars must not be relabelled as session buckets.
@@ -119,6 +126,70 @@ class Aggregator:
                 written += self._rebuild(current.series_key, child_tf, start, stack)
                 written += self._close_previous(current.series_key, child_tf, start, stack)
         return written
+
+    def _rebuild_session_parents(self, current: OhlcvBar, stack: list[OhlcvBar]) -> int:
+        """Derive CME weekly/monthly/quarterly bars from exact pinned session bounds."""
+        if current.timeframe not in ("1d", "1M"):
+            self.stats["skipped_cme_calendar_unresolved"] += 1
+            return 0
+        assert self._session_calendars is not None
+        calendar = self._session_calendars.get(current.calendar_id, current.calendar_version)
+        if calendar is None:
+            self.stats["skipped_cme_calendar_unresolved"] += 1
+            return 0
+        seconds, nanos = divmod(current.ts_start_ns, 1_000_000_000)
+        instant = datetime.fromtimestamp(seconds, tz=timezone.utc) + timedelta(microseconds=nanos // 1_000)
+        lookup = lookup_instant(calendar, instant)
+        if lookup.trading_date is None or lookup.state not in ("open", "special-session"):
+            self.stats["skipped_cme_calendar_unresolved"] += 1
+            return 0
+        written = 0
+        for child_tf in CHILDREN.get(current.timeframe, ()):
+            if child_tf not in ("1w", "1M", "3M"):
+                continue
+            bounds = session_bucket_bounds(calendar, lookup.trading_date, child_tf)
+            if bounds is None:
+                self.stats["skipped_cme_calendar_unresolved"] += 1
+                continue
+            written += self._rebuild_session(current.series_key, child_tf, bounds.start_ns, bounds.end_ns, stack)
+        return written
+
+    def _rebuild_session(self, parent_series, child_tf: str, start: int, end: int, stack: list[OhlcvBar]) -> int:
+        """Recompute one session-aligned parent; never claim completeness without coverage."""
+        if start >= end:
+            self.stats["rejected"] += 1
+            return 0
+        if start <= self._pipeline.evicted_floor(parent_series):
+            self.stats["skipped_evicted"] += 1
+            return 0
+        children = self._pipeline.range_bars(parent_series, start, end)
+        if not children:
+            return 0
+        scope = parent_series[:6]
+        completeness = "complete" if self._coverage is not None and self._coverage.status(scope, start, end) == "covered" else "partial"
+        try:
+            derived = derive_bar(children, child_tf, start, completeness)
+        except (InvalidOhlcvBar, IndexError):
+            self.stats["rejected"] += 1
+            return 0
+        if self._before_derived_apply is not None:
+            try:
+                if not self._before_derived_apply(derived):
+                    self.stats["persistence_rejected"] = self.stats.get("persistence_rejected", 0) + 1
+                    return 0
+            except Exception:
+                self.stats["persistence_error"] = self.stats.get("persistence_error", 0) + 1
+                return 0
+        if self._pipeline.apply(derived) in ("inserted", "replaced"):
+            self.stats["derived_written"] += 1
+            stack.append(derived)
+            if self._on_derived_bar is not None:
+                try:
+                    self._on_derived_bar(derived)
+                except Exception:
+                    self.stats["broadcast_callback_error"] = self.stats.get("broadcast_callback_error", 0) + 1
+            return 1
+        return 0
 
     def _close_previous(self, parent_series, child_tf, start, stack) -> int:
         child_series = parent_series[:6] + (child_tf,) + parent_series[7:]

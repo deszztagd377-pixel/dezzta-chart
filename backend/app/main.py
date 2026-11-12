@@ -153,6 +153,7 @@ def create_app(
         on_bar_applied=publish_persisted_bar,
         persistence=ohlcv_store,
         bar_validator=session_bar_validator,
+        session_calendars=session_calendar_registry,
     )
     if live_source_factory is None and config.provider_configured:
         live_source_factory = lambda: DatabentoLiveSource(  # noqa: E731

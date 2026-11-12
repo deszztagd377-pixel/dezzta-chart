@@ -231,3 +231,55 @@ def test_utc_fixed_one_second_input_keeps_every_intraday_timeframe_available():
         assert pipeline.list_bars(
             timeframe=timeframe, bucket_policy="UTC_FIXED_V1"
         ) == []
+
+
+def test_cme_session_calendar_derives_week_month_and_quarter_buckets():
+    from datetime import date, datetime, timedelta, timezone
+    from app.session_calendar import CHICAGO, SessionCalendar, SessionCalendarRegistry, SessionRecord, datetime_to_epoch_ns
+    from app.ohlcv import BUCKET_POLICY_CME_SESSION_V1
+
+    records = []
+    day = date(2024, 1, 1)
+    while day <= date(2024, 3, 31):
+        if day.weekday() < 5:
+            opened = datetime.combine(day - timedelta(days=1), datetime.min.time()).replace(hour=17, tzinfo=CHICAGO)
+            closed = datetime.combine(day, datetime.min.time()).replace(hour=16, tzinfo=CHICAGO)
+            records.append(SessionRecord(day, "regular", opened, closed))
+        else:
+            records.append(SessionRecord(day, "closed", None, None))
+        day += timedelta(days=1)
+    calendar = SessionCalendar(
+        calendar_id="CME_EQUITY_INDEX", version="2024.Q1.test", product_family="ES",
+        effective_start=date(2024, 1, 1), effective_end=date(2024, 3, 31),
+        source_id="test-fixture", source_url="https://example.invalid/fixture",
+        published_at_utc=datetime(2023, 12, 1, tzinfo=timezone.utc),
+        checksum="sha256:" + "a" * 64, records={record.trading_date: record for record in records},
+    )
+    registry = SessionCalendarRegistry((calendar,))
+    pipeline = OhlcvPipeline()
+    aggregator = Aggregator(pipeline, session_calendars=registry)
+    for trading_day, price in ((date(2024, 1, 2), "100"), (date(2024, 1, 3), "101"),
+                               (date(2024, 2, 2), "102"), (date(2024, 3, 4), "103")):
+        record = calendar.records[trading_day]
+        start = datetime_to_epoch_ns(record.open_local)
+        bar = OhlcvBar(
+            dataset="GLBX.MDP3", publisher_id=1, instrument_id=101, raw_symbol="ESZ6",
+            timeframe="1d", ts_start_ns=start, open=price, high=str(int(price)+1),
+            low=str(int(price)-1), close=price, volume=10, ts_event_ns=start,
+            ts_received_ns=start+1, sequence=len(pipeline.list_bars(timeframe="1d"))+1,
+            bucket_policy=BUCKET_POLICY_CME_SESSION_V1,
+            calendar_id="CME_EQUITY_INDEX", calendar_version="2024.Q1.test",
+        )
+        assert pipeline.apply(bar) == "inserted"
+        aggregator.on_bar_applied(bar)
+    weekly = pipeline.list_bars(timeframe="1w", bucket_policy=BUCKET_POLICY_CME_SESSION_V1)
+    monthly = pipeline.list_bars(timeframe="1M", bucket_policy=BUCKET_POLICY_CME_SESSION_V1)
+    quarterly = pipeline.list_bars(timeframe="3M", bucket_policy=BUCKET_POLICY_CME_SESSION_V1)
+    assert len(weekly) == 3
+    assert len(monthly) == 3
+    assert len(quarterly) == 1
+    assert quarterly[0].calendar_id == "CME_EQUITY_INDEX"
+    assert quarterly[0].calendar_version == "2024.Q1.test"
+    assert quarterly[0].volume == 40
+    assert quarterly[0].completeness == "partial"
+    assert aggregator.stats["skipped_cme_calendar_unresolved"] == 0

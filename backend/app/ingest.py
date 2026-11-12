@@ -24,6 +24,7 @@ from app.freshness import InstrumentObservationTracker
 from app.ohlcv import OhlcvBar, OhlcvPipeline
 from app.symbology import InstrumentResolver
 from app.ohlcv_store import SQLiteOhlcvStore
+from app.session_calendar import SessionCalendarRegistry
 
 _NS = 1_000_000_000
 
@@ -106,6 +107,7 @@ class OhlcvIngestionService:
         on_bar_applied: Callable[[OhlcvBar], None] | None = None,
         persistence: SQLiteOhlcvStore | None = None,
         bar_validator: Callable[[OhlcvBar], Any] | None = None,
+        session_calendars: SessionCalendarRegistry | None = None,
     ) -> None:
         self.pipeline = pipeline
         self.resolver = resolver
@@ -121,6 +123,7 @@ class OhlcvIngestionService:
         self.aggregator = Aggregator(
             pipeline, coverage, on_derived_bar=self._notify_bar_applied,
             before_derived_apply=self._persist_derived,
+            session_calendars=session_calendars,
         )
         if self.persistence is not None:
             self.pipeline.replace_snapshot(self.persistence.load_bars())
