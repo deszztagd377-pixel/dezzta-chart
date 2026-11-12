@@ -115,3 +115,27 @@ def test_production_requires_firebase_project_id() -> None:
             redis_url="rediss://redis.example:6380/0",
             firebase_project_id="",
         )
+
+
+@pytest.mark.parametrize(
+    "provider_overrides",
+    [
+        {"databento_api_key": "must-not-be-used"},
+        {"databento_live_enabled": True},
+        {"databento_historical_enabled": True},
+    ],
+)
+def test_production_rejects_databento_credentials_and_paid_provider_access(
+    provider_overrides,
+) -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="Databento.*disabled in production"):
+        Settings(
+            app_env="production",
+            market_data_ws_token="",
+            cors_allowed_origins=("https://chart.example",),
+            redis_url="rediss://redis.example:6380/0",
+            firebase_project_id="dezzta-chart-prod",
+            **provider_overrides,
+        )

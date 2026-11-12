@@ -133,6 +133,15 @@ class Settings:
             raise ValueError(
                 "FIREBASE_PROJECT_ID is required in production; authenticated routes cannot verify identities without it."
             )
+        if self.app_env.strip().lower() == "production" and (
+            self.databento_api_key
+            or self.databento_live_enabled
+            or self.databento_historical_enabled
+        ):
+            raise ValueError(
+                "Databento credentials and provider access are disabled in production "
+                "by the ZERO MONEY policy."
+            )
         if self.redis_url:
             try:
                 parsed = urlsplit(self.redis_url)
