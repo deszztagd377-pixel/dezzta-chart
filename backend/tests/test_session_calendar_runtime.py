@@ -121,6 +121,91 @@ def _process_bar(application, monkeypatch, bar):
     )
 
 
+
+def test_ingestion_derives_and_persists_cme_daily_from_validated_intraday_and_revisions(
+    tmp_path, monkeypatch
+):
+    from dataclasses import replace
+    from app.ohlcv import BUCKET_POLICY_CME_SESSION_V1
+
+    path = tmp_path / "calendar.json"
+    raw = _artifact_bytes()
+    path.write_bytes(raw)
+    digest = hashlib.sha256(raw).hexdigest()
+    application = create_app(_settings(
+        tmp_path,
+        artifact_path=str(path),
+        digest=digest,
+        version="2026.11.1",
+    ))
+    _future_mapping(application)
+
+    first = _valid_bar()
+    second = replace(
+        first,
+        ts_start_ns=first.ts_start_ns + 60_000_000_000,
+        ts_event_ns=first.ts_event_ns + 60_000_000_000,
+        ts_received_ns=first.ts_received_ns + 60_000_000_000,
+        sequence=2,
+        open=Decimal("5000.5"),
+        high=Decimal("5002"),
+        low=Decimal("5000"),
+        close=Decimal("5001.5"),
+        volume=Decimal("20"),
+    )
+
+    _process_bar(application, monkeypatch, first)
+    _process_bar(application, monkeypatch, second)
+
+    daily = application.state.ohlcv_pipeline.list_bars(
+        timeframe="1d", bucket_policy=BUCKET_POLICY_CME_SESSION_V1
+    )
+    assert len(daily) == 1
+    assert (daily[0].open, daily[0].high, daily[0].low, daily[0].close) == (
+        Decimal("5000"), Decimal("5002"), Decimal("4999"), Decimal("5001.5")
+    )
+    assert daily[0].volume == Decimal("30")
+    assert daily[0].calendar_id == "CME_EQUITY_INDEX"
+    assert daily[0].calendar_version == "2026.11.1"
+    assert daily[0].completeness == "partial"
+
+    # A corrected first minute must rebuild the same daily identity from the
+    # retained child set, not add the corrected volume a second time.
+    corrected_first = replace(
+        first,
+        sequence=3,
+        high=Decimal("5003"),
+        close=Decimal("5000.75"),
+        volume=Decimal("15"),
+    )
+    _process_bar(application, monkeypatch, corrected_first)
+
+    revised_daily = application.state.ohlcv_pipeline.list_bars(
+        timeframe="1d", bucket_policy=BUCKET_POLICY_CME_SESSION_V1
+    )
+    assert len(revised_daily) == 1
+    assert revised_daily[0].high == Decimal("5003")
+    assert revised_daily[0].close == Decimal("5001.5")
+    assert revised_daily[0].volume == Decimal("35")
+    assert revised_daily[0].calendar_id == "CME_EQUITY_INDEX"
+    assert revised_daily[0].calendar_version == "2026.11.1"
+
+    persisted = application.state.ohlcv_store.load_bars()
+    persisted_daily = [
+        item for item in persisted
+        if item.timeframe == "1d"
+        and item.bucket_policy == BUCKET_POLICY_CME_SESSION_V1
+    ]
+    assert len(persisted_daily) == 1
+    assert persisted_daily[0] == revised_daily[0]
+
+    # The provider's one-minute source series keeps its original UTC identity.
+    source = application.state.ohlcv_pipeline.list_bars(
+        timeframe="1m", bucket_policy=BUCKET_POLICY_UTC_FIXED_V1
+    )
+    assert len(source) == 2
+    assert all(item.calendar_id == "" and item.calendar_version == "" for item in source)
+
 def test_runtime_without_release_is_explicitly_unconfigured():
     registry, status = load_session_calendar_runtime(
         artifact_path="", expected_sha256="", expected_version=""
