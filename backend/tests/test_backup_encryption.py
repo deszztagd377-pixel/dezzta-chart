@@ -132,7 +132,7 @@ def test_decryption_rejects_truncated_artifact_without_replacing_destination(tmp
     source.write_bytes(b"valid database snapshot")
     encrypt_backup_file(source, encrypted, PASSPHRASE)
     artifact = encrypted.read_bytes()
-    header_bytes = len(b"DZCBK01\\n") + 16 + 12
+    header_bytes = 8 + 16 + 12
     tag_bytes = 16
     encrypted.write_bytes(artifact[: header_bytes + tag_bytes - 1])
     restored.write_bytes(b"previous-good-restore")
