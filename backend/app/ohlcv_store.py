@@ -482,7 +482,8 @@ class SQLiteOhlcvStore:
             rows = db.execute(
                 """SELECT * FROM ohlcv_bars
                 WHERE (bucket_policy IN (?,?) AND calendar_id='' AND calendar_version='')
-                   OR bucket_policy=?
+                   OR (bucket_policy=? AND timeframe IN ('1d','1w','1M','3M')
+                       AND calendar_id<>'' AND calendar_version<>'')
                 ORDER BY ts_start_ns,
                 CASE bucket_policy WHEN 'UTC_LEGACY' THEN 0 ELSE 1 END,
                 provider, dataset, publisher_id, instrument_id, series_type, timeframe""",

@@ -44,6 +44,33 @@ def test_exact_decimal_and_nanosecond_values_survive_store_restart(tmp_path):
     assert restored[0].ts_event_ns == 1_790_000_000_123_456_789
 
 
+
+def test_cme_session_bars_restore_but_invalid_intraday_session_rows_stay_isolated(tmp_path):
+    from dataclasses import replace
+    from app.ohlcv import BUCKET_POLICY_CME_SESSION_V1
+
+    store = SQLiteOhlcvStore(str(tmp_path / "cme-restore.sqlite3"))
+    daily = replace(
+        make_bar(timeframe="1d", bucket_policy=BUCKET_POLICY_CME_SESSION_V1),
+        calendar_id="CME_EQUITY_INDEX",
+        calendar_version="2026.11.1",
+    )
+    invalid_intraday = replace(
+        make_bar(start=NS, timeframe="1m", bucket_policy=BUCKET_POLICY_CME_SESSION_V1),
+        calendar_id="CME_EQUITY_INDEX",
+        calendar_version="2026.11.1",
+    )
+    assert store.apply(daily) == "inserted"
+    # The storage loader must not resurrect structurally invalid CME intraday
+    # rows, while preserving valid session-bucket rows across restart.
+    assert store.apply(invalid_intraday) == "inserted"
+
+    restored = SQLiteOhlcvStore(str(tmp_path / "cme-restore.sqlite3")).load_bars()
+    assert restored == [daily]
+    assert restored[0].calendar_id == "CME_EQUITY_INDEX"
+    assert restored[0].calendar_version == "2026.11.1"
+
+
 def test_duplicate_revision_stale_and_provider_precedence_match_pipeline(tmp_path):
     store = SQLiteOhlcvStore(str(tmp_path / "market.sqlite3"))
     derived = make_bar(origin="derived", completeness="open")
