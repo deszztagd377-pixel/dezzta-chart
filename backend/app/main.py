@@ -403,6 +403,10 @@ def create_app(
         normalized_symbol = raw_symbol.strip().upper()
         if not normalized_symbol:
             raise HTTPException(status_code=422, detail="raw_symbol is required.")
+        try:
+            bucket_start_ns(0, timeframe)
+        except InvalidOhlcvBar as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
         effective_bucket_policy = (
             bucket_policy if bucket_policy is not None else bucket_policy_for_timeframe(timeframe)
         )
@@ -442,10 +446,6 @@ def create_app(
         if effective_series_type is None:
             raise HTTPException(status_code=403, detail="Instrument access denied.")
 
-        try:
-            bucket_start_ns(0, timeframe)
-        except InvalidOhlcvBar as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
         if effective_bucket_policy not in SUPPORTED_BUCKET_POLICIES:
             raise HTTPException(status_code=422, detail="Unsupported OHLCV bucket identity.")
         start_value = _parse_ns(start_ns, "start_ns")
