@@ -108,6 +108,7 @@ requires verified identity and instrument entitlement.
 - [x] Add automated high-confidence credential-pattern scans for frontend TS/JS source before bundling and for the generated production bundle.
 - [ ] Review frontend source and scan output manually for accidental credentials; regex scans cannot prove absence of unknown secret formats.
 - [ ] Confirm backend secrets are configured only through an owner-controlled, no-billing host secret-injection mechanism; no production host has been verified.
+- [x] Spot-audit the successful Criterion 8 CI job output for high-confidence private-key/token/credential-bearing URL patterns; zero matches were found in that job's log. This does not verify deployed runtime logs.
 - [ ] Verify HTTPS/WSS, trusted Origin allowlist, and deployment headers.
 - [ ] Decide whether health, status, and instrument-catalogue endpoints are public.
 - [x] Implement server-side Firebase Admin ID-token verification with project issuer/audience checks, bounded token input, revocation checking, normalized errors, and unit coverage for invalid claims and SDK initialization.
