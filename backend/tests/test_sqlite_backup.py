@@ -128,6 +128,58 @@ def test_backup_fails_closed_when_snapshot_cannot_be_flushed(tmp_path, monkeypat
     assert list(tmp_path.glob(".backup.sqlite3.*.sqlite-backup.tmp")) == []
 
 
+@pytest.mark.skipif(os.name != "posix", reason="POSIX directory fsync is required")
+def test_backup_flushes_parent_directory_after_atomic_replace(tmp_path, monkeypatch):
+    from app import sqlite_backup
+
+    source = tmp_path / "live.sqlite3"
+    destination = tmp_path / "backup.sqlite3"
+    with sqlite3.connect(source) as database:
+        database.execute("CREATE TABLE sample (value INTEGER)")
+        database.execute("INSERT INTO sample VALUES (7)")
+
+    flushed_directories = []
+
+    def record_directory_flush(directory):
+        flushed_directories.append(directory)
+
+    monkeypatch.setattr(sqlite_backup, "_fsync_directory", record_directory_flush)
+
+    create_consistent_sqlite_backup(source, destination)
+
+    assert flushed_directories == [destination.parent.resolve()]
+    with sqlite3.connect(destination) as database:
+        assert database.execute("SELECT value FROM sample").fetchone() == (7,)
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX directory fsync is required")
+def test_directory_flush_failure_is_reported_after_valid_snapshot_is_published(
+    tmp_path, monkeypatch
+):
+    from app import sqlite_backup
+
+    source = tmp_path / "live.sqlite3"
+    destination = tmp_path / "backup.sqlite3"
+    with sqlite3.connect(source) as database:
+        database.execute("CREATE TABLE sample (value INTEGER)")
+        database.execute("INSERT INTO sample VALUES (9)")
+
+    def deny_directory_flush(directory):
+        raise OSError("directory flush failed")
+
+    monkeypatch.setattr(sqlite_backup, "_fsync_directory", deny_directory_flush)
+
+    with pytest.raises(OSError, match="directory flush failed"):
+        create_consistent_sqlite_backup(source, destination)
+
+    # Atomic replacement already happened. The valid snapshot is visible, but
+    # the helper correctly reports that rename durability was not confirmed.
+    with sqlite3.connect(destination) as database:
+        assert database.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+        assert database.execute("SELECT value FROM sample").fetchone() == (9,)
+    assert list(tmp_path.glob(".backup.sqlite3.*.sqlite-backup.tmp")) == []
+
+
 def test_consistent_backup_can_be_restored_into_a_fresh_database(tmp_path):
     source = tmp_path / "live.sqlite3"
     snapshot = tmp_path / "backup.sqlite3"
