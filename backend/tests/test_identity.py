@@ -153,6 +153,42 @@ def test_admin_sdk_initializes_missing_named_project_app(monkeypatch):
     assert verified == [("valid-token", app, True)]
 
 
+def test_admin_sdk_recovers_if_another_worker_initializes_the_named_app(monkeypatch):
+    app = object()
+    get_app_calls = []
+    verified = []
+
+    def get_app(name):
+        assert name == PROJECT
+        get_app_calls.append(name)
+        if len(get_app_calls) == 1:
+            raise ValueError("app does not exist yet")
+        return app
+
+    def initialize_app(*, options, name):
+        assert options == {"projectId": PROJECT}
+        assert name == PROJECT
+        # Simulate another worker winning the initialization race.
+        raise ValueError("app already exists")
+
+    def verify_id_token(token, *, app, check_revoked):
+        verified.append((token, app, check_revoked))
+        return CLAIMS
+
+    _install_fake_firebase_admin(
+        monkeypatch,
+        get_app=get_app,
+        initialize_app=initialize_app,
+        verify_id_token=verify_id_token,
+    )
+
+    principal = FirebaseIdentityVerifier(PROJECT).verify("valid-token")
+
+    assert principal.subject == "firebase-user-123"
+    assert get_app_calls == [PROJECT, PROJECT]
+    assert verified == [("valid-token", app, True)]
+
+
 def test_admin_sdk_initialization_failure_is_normalized(monkeypatch):
     def get_app(name):
         raise ValueError("missing app")
