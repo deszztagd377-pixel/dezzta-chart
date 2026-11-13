@@ -178,3 +178,27 @@ def test_production_environment_keeps_databento_disabled_by_default(
     assert settings.provider_configured is False
     assert settings.databento_live_enabled is False
     assert settings.databento_historical_enabled is False
+
+
+def test_settings_repr_and_str_hide_all_runtime_secret_fields() -> None:
+    redis_url = "rediss://audit-user:audit-redis-secret@redis.example:6380/0"
+    settings = Settings(
+        app_env="test",
+        market_data_ws_token="audit-ws-secret",
+        cors_allowed_origins=("https://chart.example",),
+        databento_api_key="audit-provider-secret",
+        session_calendar_sha256="audit-calendar-secret",
+        firebase_project_id="audit-firebase-project",
+        redis_url=redis_url,
+    )
+
+    for rendered in (repr(settings), str(settings)):
+        for secret in (
+            "audit-ws-secret",
+            "audit-provider-secret",
+            "audit-calendar-secret",
+            "audit-firebase-project",
+            "audit-redis-secret",
+            redis_url,
+        ):
+            assert secret not in rendered
