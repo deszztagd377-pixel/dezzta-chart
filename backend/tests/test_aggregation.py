@@ -292,6 +292,60 @@ def test_cme_session_calendar_derives_week_month_and_quarter_buckets():
 
 
 
+def test_cme_daily_derivation_fails_closed_without_explicit_tradable_segments():
+    from app.ohlcv import BUCKET_POLICY_CME_SESSION_V1
+
+    trading_date = date(2024, 3, 11)
+    opened = datetime(2024, 3, 10, 17, 0, tzinfo=CHICAGO)
+    closed = datetime(2024, 3, 11, 16, 0, tzinfo=CHICAGO)
+    calendar = SessionCalendar(
+        calendar_id="CME_EQUITY_INDEX",
+        version="2024.03.legacy",
+        product_family="ES",
+        effective_start=trading_date,
+        effective_end=trading_date,
+        source_id="test-fixture-only",
+        source_url="https://example.invalid/legacy-calendar",
+        published_at_utc=datetime(2024, 2, 1, tzinfo=timezone.utc),
+        checksum="sha256:" + "0" * 64,
+        records={
+            trading_date: SessionRecord(
+                trading_date, "regular", opened, closed
+            )
+        },
+    )
+    pipeline = OhlcvPipeline()
+    aggregator = Aggregator(
+        pipeline, session_calendars=SessionCalendarRegistry((calendar,))
+    )
+    session_start = datetime_to_epoch_ns(opened)
+    source = base_bar(
+        0, "100", "102", "99", "101", 10, 1,
+        tf="1h", base=session_start, bucket_policy="UTC_FIXED_V1",
+    )
+    assert pipeline.apply(source) == "inserted"
+    validation = SessionBarValidation(
+        calendar_id="CME_EQUITY_INDEX",
+        calendar_version="2024.03.legacy",
+        trading_date=trading_date.isoformat(),
+        session_state="open",
+        interval_start_ns=source.ts_start_ns,
+        interval_end_ns=source.ts_start_ns + 3600 * NS,
+    )
+
+    aggregator.on_bar_applied(source, session_validation=validation)
+
+    assert pipeline.list_bars(
+        timeframe="1d", bucket_policy=BUCKET_POLICY_CME_SESSION_V1
+    ) == []
+    assert aggregator.stats["skipped_cme_daily_unresolved"] == 1
+
+    # The daily rebuild has its own guard in case it is called internally
+    # with a previously constructed validation object.
+    assert aggregator._rebuild_session_daily(source, validation, []) == 0
+    assert aggregator.stats["skipped_cme_daily_unresolved"] == 2
+
+
 def test_validated_cme_one_hour_bars_derive_session_daily_with_pinned_identity():
     from app.ohlcv import BUCKET_POLICY_CME_SESSION_V1
 
