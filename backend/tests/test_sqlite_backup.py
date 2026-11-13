@@ -105,6 +105,29 @@ def test_backup_fails_closed_when_owner_only_permissions_cannot_be_set(
     assert list(tmp_path.glob(".backup.sqlite3.*.sqlite-backup.tmp")) == []
 
 
+@pytest.mark.skipif(os.name != "posix", reason="POSIX fsync semantics are required")
+def test_backup_fails_closed_when_snapshot_cannot_be_flushed(tmp_path, monkeypatch):
+    from app import sqlite_backup
+
+    source = tmp_path / "live.sqlite3"
+    destination = tmp_path / "backup.sqlite3"
+    with sqlite3.connect(source) as database:
+        database.execute("CREATE TABLE sample (value INTEGER)")
+        database.execute("INSERT INTO sample VALUES (1)")
+    destination.write_bytes(b"previous-good-backup")
+
+    def deny_fsync(*args, **kwargs):
+        raise OSError("snapshot flush failed")
+
+    monkeypatch.setattr(sqlite_backup.os, "fsync", deny_fsync)
+
+    with pytest.raises(OSError, match="snapshot flush failed"):
+        create_consistent_sqlite_backup(source, destination)
+
+    assert destination.read_bytes() == b"previous-good-backup"
+    assert list(tmp_path.glob(".backup.sqlite3.*.sqlite-backup.tmp")) == []
+
+
 def test_consistent_backup_can_be_restored_into_a_fresh_database(tmp_path):
     source = tmp_path / "live.sqlite3"
     snapshot = tmp_path / "backup.sqlite3"
