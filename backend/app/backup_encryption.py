@@ -139,22 +139,25 @@ def decrypt_backup_file(
 
     descriptor, temporary = _temporary_file(destination)
     try:
-        with source.open("rb") as input_file:
-            salt_start = len(_MAGIC)
-            salt = header[salt_start : salt_start + _SALT_BYTES]
-            nonce = header[salt_start + _SALT_BYTES :]
-            input_file.seek(-_TAG_BYTES, os.SEEK_END)
-            tag = input_file.read(_TAG_BYTES)
-            ciphertext_remaining = source_size - _HEADER_BYTES - _TAG_BYTES
-            input_file.seek(_HEADER_BYTES)
+        # Take ownership of the temporary descriptor before any operation that
+        # can fail while reopening/reading the source. The context manager then
+        # guarantees it is closed on every exceptional path.
+        with os.fdopen(descriptor, "wb") as output:
+            with source.open("rb") as input_file:
+                salt_start = len(_MAGIC)
+                salt = header[salt_start : salt_start + _SALT_BYTES]
+                nonce = header[salt_start + _SALT_BYTES :]
+                input_file.seek(-_TAG_BYTES, os.SEEK_END)
+                tag = input_file.read(_TAG_BYTES)
+                ciphertext_remaining = source_size - _HEADER_BYTES - _TAG_BYTES
+                input_file.seek(_HEADER_BYTES)
 
-            decryptor = Cipher(
-                algorithms.AES(_derive_key(passphrase, salt)),
-                modes.GCM(nonce, tag),
-            ).decryptor()
-            decryptor.authenticate_additional_data(header)
+                decryptor = Cipher(
+                    algorithms.AES(_derive_key(passphrase, salt)),
+                    modes.GCM(nonce, tag),
+                ).decryptor()
+                decryptor.authenticate_additional_data(header)
 
-            with os.fdopen(descriptor, "wb") as output:
                 while ciphertext_remaining:
                     chunk = input_file.read(min(_CHUNK_BYTES, ciphertext_remaining))
                     if not chunk:
@@ -162,8 +165,8 @@ def decrypt_backup_file(
                     ciphertext_remaining -= len(chunk)
                     output.write(decryptor.update(chunk))
                 output.write(decryptor.finalize())
-                output.flush()
-                os.fsync(output.fileno())
+            output.flush()
+            os.fsync(output.fileno())
 
         _publish_private_file(temporary, destination)
         return destination
