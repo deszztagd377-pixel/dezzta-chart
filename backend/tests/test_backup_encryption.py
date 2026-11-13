@@ -127,6 +127,48 @@ def test_consistent_sqlite_backup_encrypts_and_restores_application_records(tmp_
     assert list(tmp_path.rglob("*.sqlite-backup.tmp")) == []
 
 
+def test_decryption_closes_temp_descriptor_if_source_reopen_fails(tmp_path, monkeypatch):
+    source = tmp_path / "source.sqlite3"
+    encrypted = tmp_path / "backup.enc"
+    restored = tmp_path / "restore.sqlite3"
+    source.write_bytes(b"valid backup payload")
+    encrypt_backup_file(source, encrypted, PASSPHRASE)
+
+    original_open = backup_encryption.Path.open
+    source_open_count = 0
+
+    def fail_second_source_open(path, *args, **kwargs):
+        nonlocal source_open_count
+        mode = args[0] if args else kwargs.get("mode", "r")
+        if path == encrypted and mode == "rb":
+            source_open_count += 1
+            if source_open_count == 2:
+                raise OSError("simulated source reopen failure")
+        return original_open(path, *args, **kwargs)
+
+    original_temporary_file = backup_encryption._temporary_file
+    captured = []
+
+    def capture_temporary_file(destination):
+        descriptor, temporary = original_temporary_file(destination)
+        captured.append((descriptor, temporary))
+        return descriptor, temporary
+
+    monkeypatch.setattr(backup_encryption.Path, "open", fail_second_source_open)
+    monkeypatch.setattr(backup_encryption, "_temporary_file", capture_temporary_file)
+
+    with pytest.raises(OSError, match="source reopen failure"):
+        decrypt_backup_file(encrypted, restored, PASSPHRASE)
+
+    assert source_open_count == 2
+    assert len(captured) == 1
+    descriptor, temporary = captured[0]
+    with pytest.raises(OSError):
+        os.fstat(descriptor)
+    assert not temporary.exists()
+    assert not restored.exists()
+
+
 def test_decryption_rejects_truncated_artifact_without_replacing_destination(tmp_path):
     source = tmp_path / "source.sqlite3"
     encrypted = tmp_path / "backup.enc"
