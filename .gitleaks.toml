@@ -1,0 +1,14 @@
+title = "DEZZTA CHART secret audit"
+
+[extend]
+useDefault = true
+
+# This exact token-shaped value is synthetic test data used only to verify
+# that the frontend scanner catches GitHub-token patterns. Scope the exception
+# to that exact value in that exact test file; do not suppress other findings.
+[[allowlists]]
+description = "Exact synthetic GitHub-token fixture in scanner regression test"
+condition = "AND"
+regexTarget = "match"
+regexes = ['''ghp_123456789012345678901234''']
+paths = ['''scripts/check-frontend-bundle-secrets\.node-test\.mjs$''']
