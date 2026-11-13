@@ -18,6 +18,8 @@ def test_local_outbox_benchmark_reports_synthetic_data_and_latency(tmp_path):
             "20",
             "--batch-size",
             "5",
+            "--readers",
+            "2",
         ],
         cwd=backend_dir,
         check=True,
@@ -36,6 +38,11 @@ def test_local_outbox_benchmark_reports_synthetic_data_and_latency(tmp_path):
     assert report["replay_page_latency"]["samples"] == 4
     assert report["persist_latency"]["p99_ms"] >= 0
     assert report["replay_page_latency"]["p99_ms"] >= 0
+    assert report["concurrent_replay_readers"] == 2
+    assert report["concurrent_replay_events_per_reader"] == [20, 20]
+    assert report["concurrent_replay_page_latency"]["samples"] >= 2
+    assert report["concurrent_replay_page_latency"]["p99_ms"] >= 0
+    assert any("one writer and concurrent reader threads" in note for note in report["notes"])
     assert any("Not a provider" in note for note in report["notes"])
 
 
@@ -51,6 +58,20 @@ def test_local_outbox_benchmark_rejects_zero_bars():
     )
     assert result.returncode == 2
     assert "greater than zero" in result.stderr
+
+def test_local_outbox_benchmark_rejects_more_than_four_readers():
+    backend_dir = Path(__file__).resolve().parents[1]
+    script = backend_dir / "scripts" / "benchmark_ohlcv_outbox.py"
+    result = subprocess.run(
+        [sys.executable, str(script), "--bars", "2", "--readers", "5"],
+        cwd=backend_dir,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result.returncode == 2
+    assert "--readers cannot exceed 4" in result.stderr
+
 
 def test_local_outbox_benchmark_refuses_to_modify_existing_database(tmp_path):
     backend_dir = Path(__file__).resolve().parents[1]

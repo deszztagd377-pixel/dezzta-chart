@@ -13,6 +13,8 @@ import os
 import platform
 import statistics
 import sqlite3
+from concurrent.futures import ThreadPoolExecutor
+from threading import Event
 import sys
 import tempfile
 import time
@@ -91,11 +93,97 @@ def _bar(index: int) -> OhlcvBar:
     )
 
 
-def run_benchmark(*, bars: int, batch_size: int, database_path: str | None = None) -> dict[str, object]:
+def _concurrent_replay_reader(
+    store: SQLiteOhlcvStore,
+    *,
+    reader_id: int,
+    batch_size: int,
+    writer_done: Event,
+) -> dict[str, object]:
+    """Replay one exact synthetic series while the single writer is active."""
+    cursor = 0
+    last_event_cursor = 0
+    replayed_events = 0
+    replayed_event_ids: set[str] = set()
+    page_samples_ms: list[float] = []
+
+    while True:
+        started = time.perf_counter_ns()
+        page = store.replay_outbox(
+            after_cursor=cursor,
+            provider=_PROVIDER,
+            dataset=_DATASET,
+            publisher_id=_PUBLISHER_ID,
+            instrument_id=_INSTRUMENT_ID,
+            series_type="contract",
+            raw_symbol=_RAW_SYMBOL,
+            timeframe=_TIMEFRAME,
+            bucket_policy=_BUCKET_POLICY,
+            limit=batch_size,
+        )
+        page_samples_ms.append((time.perf_counter_ns() - started) / 1_000_000)
+        if page.get("status") != "ok":
+            raise RuntimeError(f"concurrent replay reader {reader_id} was refused: {page}")
+
+        high_water = page.get("high_water")
+        next_cursor = page.get("next_cursor")
+        has_more = page.get("has_more")
+        events = page.get("events")
+        if (
+            not isinstance(high_water, int)
+            or isinstance(high_water, bool)
+            or high_water < cursor
+            or not isinstance(next_cursor, int)
+            or isinstance(next_cursor, bool)
+            or next_cursor < cursor
+            or next_cursor > high_water
+            or not isinstance(has_more, bool)
+            or not isinstance(events, list)
+        ):
+            raise RuntimeError(f"concurrent replay reader {reader_id} received invalid page metadata")
+
+        for event in events:
+            event_cursor = event.get("cursor")
+            event_id = event.get("eventId")
+            if (
+                not isinstance(event_cursor, int)
+                or isinstance(event_cursor, bool)
+                or event_cursor <= last_event_cursor
+                or event_cursor > high_water
+            ):
+                raise RuntimeError(f"concurrent replay reader {reader_id} received an invalid event cursor")
+            if not isinstance(event_id, str) or not event_id or event_id in replayed_event_ids:
+                raise RuntimeError(f"concurrent replay reader {reader_id} received a missing or duplicate event ID")
+            replayed_event_ids.add(event_id)
+            last_event_cursor = event_cursor
+
+        replayed_events += len(events)
+        if has_more and (not events or next_cursor != last_event_cursor):
+            raise RuntimeError(f"concurrent replay reader {reader_id} page boundary is inconsistent")
+        if not has_more and next_cursor != high_water:
+            raise RuntimeError(f"concurrent replay reader {reader_id} did not advance to high-water")
+
+        cursor = next_cursor
+        if writer_done.is_set() and cursor == high_water:
+            break
+        if not events and not has_more:
+            writer_done.wait(0.001)
+
+    return {
+        "reader_id": reader_id,
+        "cursor": cursor,
+        "replayed_events": replayed_events,
+        "page_latency_ms": page_samples_ms,
+    }
+
+
+def run_benchmark(*, bars: int, batch_size: int, readers: int = 2, database_path: str | None = None) -> dict[str, object]:
     if not 1 <= bars <= OUTBOX_MAX_EVENTS:
         raise ValueError(f"bars must be between 1 and {OUTBOX_MAX_EVENTS}")
     if not 1 <= batch_size <= 1_000:
         raise ValueError("batch_size must be between 1 and 1000")
+    if not 1 <= readers <= 4:
+        raise ValueError("readers must be between 1 and 4")
 
     temporary_directory = None
     if database_path is None:
@@ -119,13 +207,46 @@ def run_benchmark(*, bars: int, batch_size: int, database_path: str | None = Non
     try:
         store = SQLiteOhlcvStore(database_path)
         persist_samples: list[float] = []
-        for index in range(bars):
-            started = time.perf_counter_ns()
-            outcome = store.apply(_bar(index))
-            elapsed_ms = (time.perf_counter_ns() - started) / 1_000_000
-            if outcome != "inserted":
-                raise RuntimeError(f"synthetic bar {index} was not inserted: {outcome}")
-            persist_samples.append(elapsed_ms)
+        writer_done = Event()
+        with ThreadPoolExecutor(max_workers=readers) as reader_pool:
+            reader_futures = [
+                reader_pool.submit(
+                    _concurrent_replay_reader,
+                    store,
+                    reader_id=reader_id,
+                    batch_size=batch_size,
+                    writer_done=writer_done,
+                )
+                for reader_id in range(1, readers + 1)
+            ]
+            try:
+                # Preserve the architecture's single-writer contract while
+                # exercising concurrent durable replay readers.
+                for index in range(bars):
+                    started = time.perf_counter_ns()
+                    outcome = store.apply(_bar(index))
+                    elapsed_ms = (time.perf_counter_ns() - started) / 1_000_000
+                    if outcome != "inserted":
+                        raise RuntimeError(f"synthetic bar {index} was not inserted: {outcome}")
+                    persist_samples.append(elapsed_ms)
+            finally:
+                writer_done.set()
+            concurrent_reader_results = [future.result() for future in reader_futures]
+
+        for reader_result in concurrent_reader_results:
+            if (
+                reader_result["replayed_events"] != bars
+                or reader_result["cursor"] != store.outbox_high_water()
+            ):
+                raise RuntimeError(
+                    "concurrent replay reader did not consume the complete durable stream: "
+                    f"{reader_result}"
+                )
+        concurrent_replay_samples = [
+            sample
+            for reader_result in concurrent_reader_results
+            for sample in reader_result["page_latency_ms"]
+        ]
 
         high_water = store.outbox_high_water()
         replay_samples: list[float] = []
@@ -232,11 +353,16 @@ def run_benchmark(*, bars: int, batch_size: int, database_path: str | None = Non
             "outbox_high_water": high_water,
             "replay_batch_size": batch_size,
             "replayed_events": replayed_events,
+            "concurrent_replay_readers": readers,
+            "concurrent_replay_events_per_reader": [
+                result["replayed_events"] for result in concurrent_reader_results
+            ],
+            "concurrent_replay_page_latency": _summary(concurrent_replay_samples),
             "persist_latency": _summary(persist_samples),
             "replay_page_latency": _summary(replay_samples),
             "notes": [
-                "Single-process local SQLite measurement only.",
-                "Not a provider, WebSocket, reconnect-storm, or production-host benchmark.",
+                "Single-process SQLite measurement with one writer and concurrent reader threads.",
+                "Not a multi-process, provider, WebSocket, reconnect-storm, or production-host benchmark.",
                 "Do not infer provider latency, multi-worker capacity, or production SLOs.",
             ],
         }
@@ -249,15 +375,19 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bars", type=_positive_int, default=1_000)
     parser.add_argument("--batch-size", type=_positive_int, default=500)
+    parser.add_argument("--readers", type=_positive_int, default=2, help="concurrent replay readers (1-4); writer remains single-threaded")
     parser.add_argument("--database", default=None, help="optional explicit SQLite path")
     args = parser.parse_args()
     if args.bars > OUTBOX_MAX_EVENTS:
         parser.error(f"--bars cannot exceed {OUTBOX_MAX_EVENTS}")
     if args.batch_size > 1_000:
         parser.error("--batch-size cannot exceed 1000")
+    if args.readers > 4:
+        parser.error("--readers cannot exceed 4")
     report = run_benchmark(
         bars=args.bars,
         batch_size=args.batch_size,
+        readers=args.readers,
         database_path=args.database,
     )
     print(json.dumps(report, indent=2, sort_keys=True))

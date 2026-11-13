@@ -85,8 +85,8 @@ jobs:
         env:
           GITHUB_SHA: ${{ github.sha }}
         run: |
-          python scripts/benchmark_ohlcv_outbox.py --bars 1000 --batch-size 250 > outbox-benchmark.json
-          python -c 'import json; from pathlib import Path; report=json.loads(Path("outbox-benchmark.json").read_text()); assert report["data_source"] == "synthetic_only_not_market_data"; assert report["bars_inserted"] == 1000; assert report["replayed_events"] == 1000; assert report["persist_latency"]["samples"] == 1000; assert report["replay_page_latency"]["samples"] == 4; print(json.dumps(report, indent=2, sort_keys=True))'
+          python scripts/benchmark_ohlcv_outbox.py --bars 1000 --batch-size 250 --readers 2 > outbox-benchmark.json
+          python -c 'import json; from pathlib import Path; report=json.loads(Path("outbox-benchmark.json").read_text()); assert report["data_source"] == "synthetic_only_not_market_data"; assert report["bars_inserted"] == 1000; assert report["replayed_events"] == 1000; assert report["persist_latency"]["samples"] == 1000; assert report["replay_page_latency"]["samples"] == 4; assert report["concurrent_replay_readers"] == 2; assert report["concurrent_replay_events_per_reader"] == [1000, 1000]; assert report["concurrent_replay_page_latency"]["samples"] > 0; print(json.dumps(report, indent=2, sort_keys=True))'
 
       - name: Upload synthetic outbox benchmark report
         if: always()
