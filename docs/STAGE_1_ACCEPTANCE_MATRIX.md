@@ -346,3 +346,10 @@ The ten open production gates remain **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**. 
 - Localhost, CI, APK, and local-storage tests can strengthen evidence for criteria 8, 20, 25, 34, 35, 36, 38, and 39, but do not prove production host, public endpoint, independent monitoring, or operator delivery.
 
 No criterion is closed and the 30/40 provisional accounting is unchanged by this constraint record. Do not change the production acceptance definition or claim 40/40 without owner-approved scope revision and evidence.
+
+
+## Criterion 8 repository-side audit update — 2026-11-13
+
+Repository-side defense-in-depth now includes a pre-build scan of frontend JS/JSX/TS/TSX source, the existing post-build production-bundle scan, a TSX token-pattern regression test, and backend settings \`repr()\`/\`str()\` redaction tests. The exact-HEAD CI and CodeQL runs are recorded in \`docs/PROJECT_PROGRESS.md\`; their conclusions must be checked before acceptance.
+
+This does **not** change criterion 8 from **External verification required**. The owner-controlled host's secret-injection mechanism, deployed runtime/build logs, GitHub secret-scanning settings/alerts, and reachable repository history remain unverified. No paid secret manager or billing-enabled infrastructure may be introduced.
