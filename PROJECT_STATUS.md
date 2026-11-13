@@ -697,7 +697,7 @@ This section supersedes older status summaries in this file where they conflict 
 
 ## Latest Stage 1 blocker audit — 2026-11-13
 
-- Current working branch HEAD: `f82d1f8c38c7d0e70ea3fa75d40907d9260fcca6`.
+- Audit starting HEAD before this blocker-documentation pass: `f82d1f8c38c7d0e70ea3fa75d40907d9260fcca6`. Follow-up documentation-only commits: status `ff848589591c65c4eaf48100fb2903bdfcbef467` and progress `88d2e08fef17e0ab87626c8816c529965f358b19`; no application runtime source changed.
 - Vercel status on this exact HEAD: **success**.
 - No Automated Tests or CodeQL status is attached to this exact documentation HEAD. The latest recorded full source CI/CodeQL evidence remains the prior exact source checkpoint `f7728136a480925bca11feb51b56f3b59b67bbf6`; comparison shows the commits since that checkpoint changed documentation and one Android workflow comment only, not application source. Do not call the current HEAD a newly CI/CodeQL-verified commit.
 - Stage 1 remains **30/40 = 75.00% provisional**. The ten open criteria are exactly **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**. All require real owner-controlled operational evidence; local CI, docs, APK build, or an isolated test cannot substitute.
