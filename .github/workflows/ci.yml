@@ -58,6 +58,9 @@ jobs:
       - name: Test frontend bundle secret scanner
         run: node --test scripts/check-frontend-bundle-secrets.node-test.mjs
 
+      - name: Test read-only Android host preflight
+        run: node --test scripts/android-host-preflight.node-test.mjs
+
       - name: Scan production frontend bundle for server credentials
         run: node scripts/check-frontend-bundle-secrets.mjs dist
 
