@@ -207,3 +207,39 @@ The complete frontend workflow passed on commit `da7d000d789bdb445f0c551b7879bee
 - No Footprint, Heatmap, or Liquidation Maps visual implementation begins before the relevant owner reference image(s) and blueprint review.
 - No feature is marked complete solely because its calculation helper or unit test exists.
 - The exact-HEAD CI pass does not change the feature acceptance state or project completion percentage.
+
+
+## Indicator progress verification update — 2026-11-13 (latest available CI evidence)
+
+The latest inspected automated workflow job (run [#43420429575](https://github.com/deszztagd-pixel/dezzta-chart/actions/runs/43420429575)) reports:
+
+- Frontend: **26 test files / 211 tests passed**.
+- `src/indicators/indicatorCalculations.test.ts`: **7 tests passed**.
+- `src/education/simulatedFootprint.test.ts`: **8 tests passed**.
+- `src/education/simulatedFootprintFixtures.test.ts`: **4 tests passed**.
+- Backend: **776 tests passed**.
+- The workflow job completed successfully, including frontend build and backend/container checks.
+
+This is calculation/simulation regression evidence. It does **not** close any visible-chart acceptance item. The latest available evidence does not demonstrate user-facing indicator toggles, rendered overlays/panes, legends/current values, instrument/timeframe transition rendering, live provider order flow, or Android-native operation.
+
+### Current indicator acceptance matrix
+
+| Indicator / component | Calculation / engine | Automated evidence | User-facing chart acceptance | Current result |
+|---|---|---|---|---|
+| SMA 20 | Implemented; close-based; 20-bar warm-up | Included in 7 calculation tests | Toggle, overlay, legend/value, series/timeframe transitions, render tests | **Foundation verified; UI incomplete** |
+| EMA 20 | Implemented; close-based; SMA seed; 20-bar warm-up | Included in 7 calculation tests | Toggle, overlay, legend/value, series/timeframe transitions, render tests | **Foundation verified; UI incomplete** |
+| RSI 14 Wilder | Implemented; first output index 14; flat=50 and rising-only=100 edge cases | Included in 7 calculation tests | Oscillator pane, scale/guides, toggle, stale-series clearing, render tests | **Foundation verified; UI incomplete** |
+| MACD 12/26/9 | Implemented; MACD begins index 25; signal/histogram begin index 33 | Included in 7 calculation tests | Dedicated pane, line/histogram, controls, transition/render tests | **Foundation verified; UI incomplete** |
+| Bollinger 20,2 | Implemented; population standard deviation; first output index 19 | Included in 7 calculation tests | Overlay, legend/value, controls, boundary/timeframe render tests | **Foundation verified; UI incomplete** |
+| Shared market-indicator hook | Reads exact validated shared backend series; no DEMO fallback | Covered by frontend regression suite; stale/invalid states return no values | Visible controls and integration proof of immediate stale-value clearing | **Data hook implemented; UI incomplete** |
+| Footprint simulation | Bounded deterministic synthetic event accumulator; buy/sell/unknown separate; duplicate/invalid/capacity safeguards; SIMULATED provenance | 8 core + 4 fixture tests passed | Owner reference, reviewed blueprint, explicit mode, spaced clusters only while ON, visual/performance tests | **Simulation verified; visual/live implementation incomplete** |
+| Heatmap | No implementation verified | None | Owner reference, approved blueprint, source-data contract, calculation/render tests | **Not implemented** |
+| Liquidation Maps | No implementation verified | None | Owner reference, approved blueprint, source-data contract, calculation/render tests | **Not implemented** |
+
+### Progress accounting rule
+
+Do not calculate a single completion percentage by averaging test counts or by counting indicator helpers. No indicator is considered complete until its formula/data contract, controls, rendering, transition behavior, and applicable regression evidence satisfy its acceptance criteria. No progress percentage is awarded by this documentation update or by CI alone.
+
+### Required owner inputs and design gate
+
+Footprint, Heatmap, and Liquidation Maps visual implementation remains blocked on the owner's respective reference image(s). At the 40% overall project gate, prepare a scoped blueprint and obtain owner review before major UI implementation. Until then, preserve the current normal candlestick rendering and spacing when Footprint is OFF.
