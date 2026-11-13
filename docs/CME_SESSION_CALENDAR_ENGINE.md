@@ -1,61 +1,49 @@
 # CME Session Calendar Engine
 
-Status: **calendar primitives implemented; OHLCV aggregation integration pending**  
-Last verified: 2026-11-07  
+Status: **pinned calendar runtime, provider-session validation, and CME 1D/1W/1M/3M aggregation are implemented; an authoritative production schedule release is not configured.**
+Last verified: 2026-11-13
 Working branch: `phase-2/market-data-foundation`
 
 ## Purpose
 
-Daily and higher OHLCV bars for CME futures must follow exchange trading sessions, not UTC midnight boundaries. The initial product families are CME equity index futures (ES, NQ) and COMEX gold (GC). The calendar layer must distinguish a regular session, special session, early close, delayed open, explicit closure, maintenance interval, and unknown schedule coverage.
+Daily and higher OHLCV bars for CME futures must follow exchange trading sessions, not UTC midnight boundaries. The initial product families are CME equity index futures (ES, NQ) and COMEX Gold (GC). The calendar layer distinguishes regular sessions, special sessions, early closes, delayed opens, explicit closures, maintenance intervals, and unknown schedule coverage.
 
-This module is a data-integrity boundary for historical/educational chart data. It does not submit orders, connect to a live trading venue, or manufacture market observations.
+This is a data-integrity boundary for historical/educational chart data. It does not submit orders, connect to a live trading venue, or manufacture market observations.
 
-## Implemented primitives
+## Implemented components
 
-- `backend/app/session_calendar.py` defines immutable `SessionRecord`, `SessionCalendar`, `SessionLookup`, and `SessionBucket` records.
-- Session boundaries use timezone-aware `America/Chicago` datetimes. Conversion to epoch nanoseconds uses integer arithmetic.
-- Calendar ID and product-family validation currently recognizes `CME_EQUITY_INDEX` for ES/NQ and `COMEX_GOLD` for GC.
-- Each calendar release carries a version, source identifier, HTTPS source URL, publication timestamp, effective date range, and checksum.
-- A date missing from the supplied release resolves to **unknown**. It is never inferred to be a regular session or a holiday.
-- Weekly bounds use Monday-Sunday trading-date periods. Monthly and quarterly bounds use calendar months/quarters. Bounds are withheld unless every date in the period—including closed dates—is explicitly represented.
-- Calendar tests use synthetic, explicitly constructed records for deterministic test cases only. These fixtures are not production schedules.
+- `backend/app/session_calendar.py` defines immutable calendar releases, session records, explicit tradable segments, session lookup results, and session-aligned bucket bounds.
+- Session boundaries use timezone-aware `America/Chicago` datetimes. UTC epoch-nanosecond conversion uses integer arithmetic; nonexistent and ambiguous Chicago wall-clock boundaries are rejected.
+- Calendar mapping recognizes `CME_EQUITY_INDEX` for ES/NQ and `COMEX_GOLD` for GC. Instrument resolution uses the canonical instrument's explicit `session_calendar_id`; it never infers a calendar from a raw symbol.
+- `backend/app/session_calendar_loader.py` validates versioned JSON artifacts, duplicate keys/dates, explicit coverage for every effective date, Chicago DST boundaries, CME-domain HTTPS provenance, and a SHA-256 digest supplied as a trusted external pin. Schema v2 supports explicit non-overlapping tradable segments.
+- `backend/app/session_calendar_runtime.py` loads one explicitly pinned release per calendar ID atomically. A bad or incomplete release leaves the runtime registry unavailable; the loader does not fetch remote schedules.
+- Provider bars are resolved through the durable point-in-time provider mapping and validated against the exact canonical instrument calendar and pinned release before persistence.
+- CME daily bars use only complete UTC 1-minute child intervals that are fully contained in an explicit tradable segment. Smaller validated UTC intervals, including 1-second input, can cascade to a derived 1-minute bar; that complete minute is re-resolved against the same calendar release before daily aggregation.
+- CME weekly/monthly/quarterly bars are derived from session-aligned daily/monthly bars using explicit calendar bounds. Period bounds are withheld unless every civil date in the period, including closed dates, is represented in the release.
+- CME bars carry `CME_SESSION_V1`, `calendar_id`, and `calendar_version` in their series identity. The SQLite OHLCV store persists these identity fields; UTC legacy/fixed identities remain separate.
+- REST and WebSocket snapshots require an exact loaded calendar ID/version for CME-session series. A wrong calendar or unavailable release is rejected.
 
-## Current integration boundary
+## Important integration boundaries
 
-The calendar module is not yet wired into the OHLCV aggregation pipeline.
-
-Verified repository constraints at HEAD `001299360b038b1b85fdbf8c9e2cdda47afe7b5c`:
-
-1. `backend/app/aggregation.py` intentionally skips UTC-fixed derivation from intraday bars to `1d`, `1w`, `1M`, and `3M`.
-2. `backend/app/ohlcv.py` currently permits only `UTC_LEGACY` and `UTC_FIXED_V1` bucket policies.
-3. `OhlcvBar` currently rejects calendar ID/version metadata under the two enabled UTC policies, so the calendar-aware policy is not yet accepted by the model.
-4. The SQLite OHLCV store is already prepared to persist calendar identity: schema version 2 has `bucket_policy`, `calendar_id`, and `calendar_version` columns, and the composite primary key/index include them. Existing legacy migration and policy-isolation tests cover this storage contract. No new SQLite migration is currently indicated.
-5. No authoritative, versioned CME schedule has been loaded.
-
-Consequently, the existence of calendar primitives must not be described as active CME session aggregation.
+1. **No authoritative production schedule is loaded.** Current calendar artifacts in tests are synthetic test fixtures only. They are not official CME holiday/special-session data and must never be enabled as production releases.
+2. **Production remains fail-closed without a trusted release.** Missing, stale, malformed, partial, or incorrectly pinned calendar data must not be interpreted as a regular session or a closure.
+3. **Daily child-resolution design needs owner reconciliation.** The accepted design in `CME_SESSION_CALENDAR_DESIGN.md` initially specifies session-contained 1-hour children for 1D aggregation. The current implementation uses complete 1-minute children so the 1-second stream can feed session daily bars. This document records the implementation; it does not silently amend the accepted design. The owner must decide whether to retain 1-minute children or return to the 1-hour design before this choice is treated as final.
+4. **Completeness is separate from observed trades.** Live OHLCV observations do not prove continuous coverage because quiet intervals may contain no trades. A derived session bar is marked complete only when the coverage tracker has an accepted coverage basis; otherwise it remains partial.
+5. **Provider semantics remain limited.** Databento `ohlcv-1s` is vendor-aggregated one-second OHLCV, not raw tick-by-tick or MBO data. Provider entitlements, schedule quality, latency, and all-contract coverage are not established by local tests.
+6. **No paid infrastructure is authorized.** Do not buy market-data access, hosting, Redis, storage, domains, monitoring, or notification delivery to satisfy these remaining conditions.
 
 ## Required next engineering batch
 
-1. Define a distinct session bucket policy (for example, `CME_SESSION_V1`) and its validation rules. Intraday UTC-fixed bars must retain their current behavior.
-2. Permit calendar metadata only for the session policy; require a non-empty calendar ID and version, and reject mixed/mismatched identities.
-3. Enable a distinct session bucket policy in `OhlcvBar` and validate its required calendar ID/version. Preserve current UTC policies and legacy bar identities.
-4. Verify adapter/stream serialization retains the calendar identity fields; the SQLite OHLCV store already persists them, so do not add an unnecessary migration.
-5. Extend aggregation so child event times are mapped through a matching calendar release. Only fully covered sessions may create daily or higher bars. Unknown coverage must produce no derived bar.
-6. Define higher-timeframe grouping and retention behavior around exchange trading dates, including holiday/early-close weeks and calendar-version changes.
-7. Add deterministic tests for calendar-aware daily/weekly/monthly/quarterly aggregation, out-of-order revisions, provider-bar precedence, incomplete schedule coverage, and no synthetic candles.
-8. Load production schedules only from an authoritative source release. Record the exact source URL, publication/version, effective range, and cryptographic checksum. Do not use test fixtures as production data.
-
-## Acceptance conditions
-
-- No fabricated bars during closed, maintenance, or unknown periods.
-- No aggregation across different calendar IDs or versions.
-- Provider-sourced bars retain precedence for the same exact series identity.
-- Existing UTC intraday aggregation and existing persisted UTC identities remain unchanged.
-- Missing schedule data fails closed and is observable.
-- All frontend/backend CI checks pass on the exact branch HEAD.
+1. Obtain the owner's decision on the 1-minute versus 1-hour daily child-resolution divergence and update the accepted ADR only after explicit approval.
+2. Obtain a genuine, authoritative CME schedule release for the supported product families. Record its exact source, publication/version, effective date range, and checksum; obtain the expected digest through an independently trusted channel.
+3. Validate the release's holiday, early-close, delayed-open, and exceptional-session coverage. Do not replace missing schedule dates with guessed regular hours.
+4. Exercise the selected pinned release through the complete ingestion, REST, WebSocket, browser, and Android paths in a zero-cost owner-controlled environment.
+5. Keep production calendar acceptance open until the actual release and deployment evidence exist. Synthetic fixtures and green CI are repository evidence, not proof of official schedule correctness.
 
 ## Verification record
 
-- Calendar primitives and tests are present at the recorded HEAD.
-- GitHub Actions run [#42340030836](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/42340030836) completed successfully, including frontend tests/build, backend tests, and backend container build.
-- This document records the boundary and next acceptance work; it does not claim aggregation integration or authoritative CME schedule availability.
+- Code and regression-test commit: `ec907bf52fb5765856b98384450987aa378d7884`.
+- Automated Tests & Build: [run #999](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43410696656) — **success**. Frontend tests/build, backend pytest, dependency audits, synthetic outbox benchmark, Docker build, Redis + persistent-volume smoke test, Trivy scan, and vulnerability-report export/upload completed successfully.
+- CodeQL Security Analysis: [run #357](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43410696825) — **success** for Python and JavaScript/TypeScript.
+- Regression coverage includes 1-second-to-1-minute-to-CME-daily derivation, rejection of a derived minute crossing a tradable-segment end, exact calendar identity in REST/WebSocket snapshots, and rejection of an unknown release.
+- These checks do not prove an authoritative production schedule is loaded, live provider entitlement, production HTTPS/WSS, or production deployment readiness.
