@@ -92,6 +92,12 @@ requires verified identity and instrument entitlement.
   container image.
 - CodeQL runs for JavaScript/TypeScript and Python on pushes to the project
   branches, pull requests to `main`, and a weekly schedule.
+- CI checks out the complete reachable Git history (`fetch-depth: 0`) and runs
+  the standalone Gitleaks v8.30.1 CLI against all fetched refs (`--log-opts=\"--all\"`).
+  The release archive is verified against its pinned SHA-256 digest before use.
+  The 2026-11-13 audit scanned 1,133 commits (~2.57 MB) and reported no leaks.
+  `.gitleaks.toml` allows only one exact synthetic token fixture in its specific
+  scanner regression-test file; no broad path or commit exclusions are used.
 - These checks are verified on individual commits; they do not replace
   container image vulnerability scanning or runtime monitoring. The repository
   is public, user-owned, and was created after GitHub's default rollout for

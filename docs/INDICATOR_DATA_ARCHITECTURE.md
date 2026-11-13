@@ -302,3 +302,18 @@ The Criterion 8 secret-audit changes do not modify indicator calculations, data 
 - Heatmap and Liquidation Maps: not implemented; owner reference images and reviewed scoped blueprints remain prerequisites.
 
 No indicator progress is awarded for secret scanning, settings representation tests, documentation, or CI alone.
+
+
+## Indicator progress cross-check — Criterion 8 history audit (2026-11-13)
+
+The Gitleaks history audit, source/bundle scans, and secret-redaction tests do not change indicator calculation engines, chart rendering, data contracts, or indicator acceptance evidence. The complete indicator matrix and acceptance requirements documented above remain unchanged:
+
+- SMA 20 / EMA 20: calculation foundations tested; chart toggles, overlays, legends/values, and series/timeframe rendering acceptance remain incomplete.
+- Wilder RSI 14: calculation foundation tested; oscillator pane, scale/guides, controls, and stale-series transition acceptance remain incomplete.
+- MACD 12/26/9: calculation foundation tested; dedicated pane, line/histogram, controls, and transition/render acceptance remain incomplete.
+- Bollinger Bands 20,2: calculation foundation tested; overlay, controls, legend/value, and boundary/timeframe rendering acceptance remain incomplete.
+- Shared market-indicator hook: validated-backend-only data contract exists; visible controls and immediate stale-value clearing integration acceptance remain incomplete.
+- Footprint: bounded synthetic accumulator only, labelled `SIMULATED`; visual cluster implementation remains gated on owner reference images and reviewed blueprint. Normal candle spacing remains mandatory while OFF.
+- Heatmap and Liquidation Maps: no verified implementation; owner references and reviewed scoped blueprints remain prerequisites.
+
+No indicator percentage is awarded for security scanning, documentation, or CI. Stage 1 remains 30/40 provisional and overall project progress remains 20.9% historical.

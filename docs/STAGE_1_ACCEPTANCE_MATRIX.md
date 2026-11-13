@@ -353,3 +353,10 @@ No criterion is closed and the 30/40 provisional accounting is unchanged by this
 Repository-side defense-in-depth now includes a pre-build scan of frontend JS/JSX/TS/TSX source, the existing post-build production-bundle scan, a TSX token-pattern regression test, and backend settings \`repr()\`/\`str()\` redaction tests. The exact-HEAD CI and CodeQL runs are recorded in \`docs/PROJECT_PROGRESS.md\`; their conclusions must be checked before acceptance.
 
 This does **not** change criterion 8 from **External verification required**. The owner-controlled host's secret-injection mechanism, deployed runtime/build logs, GitHub secret-scanning settings/alerts, and reachable repository history remain unverified. No paid secret manager or billing-enabled infrastructure may be introduced.
+
+
+## Criterion 8 repository-side audit update — 2026-11-13 (verified)
+
+The full reachable Git-history scan is now implemented in CI using Gitleaks v8.30.1, a full-depth checkout, `--log-opts="--all"`, and a SHA-256-verified release archive. Dedicated run [#43451610210](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43451610210) scanned **1,133 commits (~2.57 MB)** and reported **no leaks**. Integrated CI [#43451610297](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43451610297) and CodeQL [#43451610192](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43451610192) both passed on commit `efdf9a9ecfa68647586cd89f819e76469e11d3df`.
+
+This closes the repository-side reachable-history scan subtask only. Criterion 8 remains **External verification required** until the owner-controlled production host's secret-injection mechanism and deployed logs are inspected, and GitHub native secret-scanning/push-protection settings plus alert inventory are verified. The history scan does not prove the absence of secrets in unreachable Git objects or external clones.

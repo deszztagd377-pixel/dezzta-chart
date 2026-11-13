@@ -718,3 +718,11 @@ The previous "existing owner-controlled host/second device" candidate is not ava
 - Current Stage 1 remains 30/40 = 75.00% provisional; no percentage changes. A 40/40 production result is not honestly achievable with the currently verified resources. A phone-only demo-stage scope change would require explicit owner approval and would be a different acceptance definition.
 
 Do not repeat the earlier request for a PC, laptop, or second phone. Do not buy or enable paid infrastructure. Keep the full indicator tracker in docs/INDICATOR_DATA_ARCHITECTURE.md; its acceptance status is unchanged.
+
+
+## Criterion 8 — repository security audit checkpoint (2026-11-13)
+
+- Full reachable Git history scanned by Gitleaks v8.30.1: 1,133 commits, ~2.57 MB, no leaks found.
+- Integrated CI #43451610297 and CodeQL #43451610192 passed on implementation/workflow commit `efdf9a9ecfa68647586cd89f819e76469e11d3df`.
+- Criterion 8 remains open because production host secret injection, deployed runtime/build-host logs, and GitHub native secret-scanning/push-protection settings plus alert inventory are not verified.
+- No change to Stage 1 (30/40 = 75% provisional), overall project progress (20.9% historical), or indicator acceptance. The complete indicator matrix remains in `docs/INDICATOR_DATA_ARCHITECTURE.md`.

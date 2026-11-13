@@ -1771,3 +1771,27 @@ The CI run was executed against the exact implementation/test/workflow commit ab
 ### CI build-output / workflow-log spot audit — 2026-11-13
 
 After successful CI attempt 2, the complete available workflow-job log for job \`131968105353\` (308,410 characters) was checked for high-confidence private-key PEM, AWS access-key, GitHub token, Stripe live-secret, credential-bearing Redis URL, and service-account private-key patterns. **Zero matches** were found. This is a bounded audit of this CI job's output only; it is not a scan of deployed runtime logs or every possible secret format.
+
+
+## Criterion 8 — full reachable Git history audit (2026-11-13)
+
+Implementation/workflow commit: `efdf9a9ecfa68647586cd89f819e76469e11d3df`
+
+- CI now checks out full Git history (`fetch-depth: 0`) and runs the standalone Gitleaks CLI against all fetched refs using `--log-opts="--all"`.
+- Gitleaks version: `8.30.1`; the Linux x64 release archive is SHA-256 verified before execution.
+- A narrowly scoped Gitleaks allowlist excludes only the exact synthetic GitHub-token fixture in `scripts/check-frontend-bundle-secrets.node-test.mjs`; it does not exclude the whole file, directory, or commit.
+- Dedicated full-history audit [run #43451610210](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43451610210): **1,133 commits scanned**, approximately **2.57 MB**, result **no leaks found**.
+- Integrated CI [run #43451610297](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43451610297): **success** on the implementation/workflow commit; the full-history scan, frontend scans, backend tests, dependency audits, container build, persistent-volume/Redis smoke test, and container vulnerability scan all passed.
+- CodeQL [run #43451610192](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43451610192): **success** on the same commit.
+
+### Remaining Criterion 8 acceptance gates
+
+- No owner-controlled production host has been inspected; runtime secret injection remains unverified.
+- Production runtime/build-host logs have not been reviewed.
+- GitHub's native secret-scanning/push-protection settings and alert inventory remain unverified.
+- The scan covers reachable Git refs fetched by CI; it cannot establish the state of unreachable Git objects, external clones, or secrets previously rotated outside this repository.
+- The automated regex/source scans are defense-in-depth, not proof that every possible credential format is absent.
+
+**Criterion 8 remains open / external verification required.** No Stage 1 or overall project progress credit is awarded by the repository-side scan.
+
+Stage 1 remains **30/40 = 75.00% provisional**. Overall project progress remains **20.9% historical**.
