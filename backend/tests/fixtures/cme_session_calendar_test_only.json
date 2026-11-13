@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "calendar_id": "CME_EQUITY_INDEX",
   "version": "test-only-2024.01",
   "product_family": "ES",
@@ -16,7 +16,13 @@
       "trading_date": "2024-01-01",
       "kind": "regular",
       "open_local": "2023-12-31T17:00:00",
-      "close_local": "2024-01-01T16:00:00"
+      "close_local": "2024-01-01T16:00:00",
+      "segments": [
+        {
+          "start_local": "2023-12-31T17:00:00",
+          "end_local": "2024-01-01T16:00:00"
+        }
+      ]
     }
   ]
 }
