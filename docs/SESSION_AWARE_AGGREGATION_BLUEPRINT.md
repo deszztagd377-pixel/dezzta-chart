@@ -37,6 +37,7 @@ The aggregation engine should depend on this contract rather than embed exchange
 Before enabling intraday futures aggregation, extend the versioned calendar artifact model to represent the actual tradable segments and non-trading breaks for each trading date. A single open/close pair is insufficient to safely encode all session boundaries and breaks.
 
 - Segment boundaries must be timezone-aware Chicago-local instants, converted to integer epoch nanoseconds without floating-point timestamps.
+- Legacy schema-v1 open/close records remain supported for compatibility and higher-timeframe interpretation, but they must not authorize CME intraday aggregation. Intraday validation requires explicit schema-v2 `segments`; even a continuous session must be represented by one explicit segment.
 - Validate ordering, non-overlap, containment within the trading date's declared session, and exact calendar provenance.
 - Early closes, delayed opens, special sessions, holidays, maintenance breaks, and DST transitions must be explicit source records.
 - Do not hardcode a generic 16:00–17:00 break as a substitute for sourced per-date schedule data.
