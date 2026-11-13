@@ -77,6 +77,23 @@ jobs:
           REDIS_TEST_URL: redis://localhost:6379/0
         run: python -m pytest -vv -ra --durations=20 --timeout=120 --timeout-method=signal -o faulthandler_timeout=120
 
+      - name: Run bounded synthetic SQLite outbox benchmark
+        working-directory: backend
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          python scripts/benchmark_ohlcv_outbox.py --bars 1000 --batch-size 250 > outbox-benchmark.json
+          python -c 'import json; from pathlib import Path; report=json.loads(Path("outbox-benchmark.json").read_text()); assert report["data_source"] == "synthetic_only_not_market_data"; assert report["bars_inserted"] == 1000; assert report["replayed_events"] == 1000; assert report["persist_latency"]["samples"] == 1000; assert report["replay_page_latency"]["samples"] == 4; print(json.dumps(report, indent=2, sort_keys=True))'
+
+      - name: Upload synthetic outbox benchmark report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: synthetic-outbox-benchmark
+          path: backend/outbox-benchmark.json
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Audit backend dependencies
         run: |
           python -m pip install pip-audit
