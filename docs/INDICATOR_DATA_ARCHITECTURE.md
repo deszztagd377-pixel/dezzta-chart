@@ -143,3 +143,42 @@ The following are verified calculation foundations, not finished chart UI:
 3. Wait for the owner's Heatmap and Liquidation Maps reference images before implementing those visual designs.
 4. Respect the 40% overall project gate: prepare and review a scoped blueprint before major visual feature implementation.
 5. Keep every study bound to the exact validated selected instrument/timeframe series. Never silently fall back to DEMO data for indicator calculations.
+
+
+---
+
+## Indicator status re-audit — 2026-11-13
+
+Audited against source files on `phase-2/market-data-foundation` at pre-documentation HEAD `600ff7ee7c5494ad894c762aa7e5644694de3175`.
+
+### Exact implemented calculation definitions
+
+| Study | Parameters | Input | Output alignment / warm-up |
+|---|---|---|---|
+| SMA | 20 | Close | One value per bar; first 19 entries null |
+| EMA | 20 | Close; SMA seed | One value per bar; first 19 entries null |
+| RSI | Wilder 14 | Close-to-close changes | First value at index 14; earlier entries null |
+| MACD | EMA 12 / EMA 26 / signal EMA 9 | Close | MACD line begins at index 25; signal/histogram begin at index 34 |
+| Bollinger Bands | 20 periods, 2 population standard deviations | Close | Middle/upper/lower begin at index 19 |
+
+The implementation rejects invalid periods and non-finite inputs. MACD rejects fast periods greater than or equal to slow periods. Bollinger deviation multipliers must be finite and non-negative.
+
+### Hook contract
+
+`useMarketIndicators()` exposes the exact market snapshot identity, status, source, revision, and calculated indicator arrays. It returns `indicators: null` unless the shared market-data store has a non-empty backend series in `ready` or `degraded` state. No DEMO fallback is allowed for calculations.
+
+### Footprint educational simulation contract
+
+The offline accumulator groups synthetic events by event-time interval and integer price tick. It keeps buy, sell, and unknown quantities separate, calculates delta only as buy volume minus sell volume, rejects duplicate event IDs, validates safe integer quantities/timestamps, and fails closed when its bounded unique-event ledger is full. Snapshots identify their origin as `SIMULATED`. This is not a live order-flow feed and must never be labelled as exchange-observed data.
+
+### Explicitly not implemented / not accepted
+
+- No visible indicator controls, chart overlays, or oscillator panes are wired into the current app.
+- No Heatmap implementation was found.
+- No Liquidation Maps implementation was found.
+- No Footprint visual layout is implemented.
+- No production provider feed or real bid/ask trade classification is connected to Footprint.
+- Fixture-only timeframe tests do not establish live support for every interval.
+- Indicator calculations are educational analysis tools, not predictions or buy/sell recommendations.
+
+Visual implementation remains gated on owner-provided references for Footprint, Heatmap, and Liquidation Maps, plus a reviewed scoped blueprint at the 40% project milestone. The ordinary candlestick chart must retain its existing spacing while Footprint is off.

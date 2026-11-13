@@ -1369,3 +1369,49 @@ Audited HEAD: `f26c3d8421814796ed954b2a804eaeba5aeeca2c`
 - No runtime code, production credentials, production infrastructure, or deployment configuration changed. These CI results do not substitute for production acceptance.
 - The six production gates remain open: authorized real Firebase signed-token E2E plus visible sign-in and scoped-ticket flow; actual Fly Volume permissions/restart; encrypted off-host backup/retention/restore; managed Redis TLS/private networking/failover; deployed HTTPS/WSS and Android/web smoke; production monitoring/fault recovery.
 - Stage 1 remains **75.00% provisional**. No progress increase is justified by documentation-only changes or CI success alone. The scoring method remains subject to owner approval; `main` remains untouched.
+
+
+---
+
+## Indicator progress audit — 2026-11-13
+
+Audit target before this documentation-only checkpoint: `600ff7ee7c5494ad894c762aa7e5644694de3175` on `phase-2/market-data-foundation`.
+This section records repository evidence, not a claim that indicator features are complete or visible to users.
+
+### Indicator status matrix
+
+| Indicator / study | Verified implementation | Verified tests / safeguards | User-visible status |
+|---|---|---|---|
+| SMA 20 | `src/indicators/indicatorCalculations.ts`; rolling arithmetic mean of close values | Source-index alignment; null warm-up for first 19 bars; positive safe-integer period and finite input validation | Not integrated into chart controls or rendered overlay |
+| EMA 20 | Same calculation module; SMA-seeded EMA with multiplier (2/(20+1)) | Source-index alignment; null warm-up for first 19 bars; invalid periods/non-finite values rejected | Not integrated into chart controls or rendered overlay |
+| RSI 14 (Wilder) | Same module; average gains/losses use Wilder smoothing | First value appears at source index 14; flat-series edge case returns 50; rising-only edge case returns 100; finite input checks | Not integrated into a visible oscillator pane |
+| MACD (12, 26, 9) | Same module; EMA(12) minus EMA(26), then EMA(9) signal and histogram | MACD line warm-up through index 24; signal warm-up through index 32; fast period must be smaller than slow | Not integrated into visible line/signal/histogram pane |
+| Bollinger Bands (20, 2) | Same module; 20-close mean and population standard deviation × 2 | First complete band at index 19; non-negative finite deviation multiplier; finite values | Not integrated into visible chart overlay |
+| Shared indicator hook | `src/indicators/useMarketIndicators.ts` | Reads `useMarketDataSnapshot()`; returns no indicator values unless source is backend, status is ready/degraded, and bars are non-empty; memoized by snapshot | Hook exists; no user-facing indicator selector or pane |
+| Footprint (educational simulation only) | `src/education/simulatedFootprint.ts`; deterministic event-time bucketing into price cells | Buy/sell/unknown kept separate; delta = buy − sell; duplicate IDs rejected; invalid input and capacity overflow fail closed; bounded 10,000-event default ledger; reset and deterministic fixture tests | No chart rendering. Must display SIMULATED if later shown; not real trades/order flow |
+| Heatmap | No implementation verified in source tree at this audit | No calculation/rendering test evidence found | Not implemented; await owner's reference image |
+| Liquidation Maps | No implementation verified in source tree at this audit | No calculation/rendering test evidence found | Not implemented; await owner's reference image |
+
+### Calculation and data-integrity details
+
+- All five conventional indicators currently use the selected bar series' `close` values. They do not independently fetch market data.
+- `calculateIndicators(bars)` returns arrays aligned one-to-one with the source bars. Warm-up entries are `null`, not synthetic or forward-filled values.
+- The unit test file `src/indicators/indicatorCalculations.test.ts` covers SMA/EMA alignment and warm-up, RSI flat/rising cases, MACD line/signal warm-up, Bollinger population standard deviation, combined output lengths, invalid periods/non-finite values, and all 18 declared timeframe labels (`1s` through `3M`) using generated 40-bar test inputs.
+- That timeframe test proves calculation helpers accept fixture bars labelled across those timeframe cases. It does **not** prove real backend data availability, timeframe selector enablement, exchange-session correctness, or deployed streaming support for every interval.
+- The shared market-data architecture binds the hook to the exact validated backend snapshot identity and revision. DEMO/loading/unavailable/error states intentionally produce no indicator values.
+- Footprint's fixture quantities are arbitrary simulation units. Unknown aggressor volume is never guessed into buy or sell. It has no provider/network adapter.
+
+### UI and acceptance boundary
+
+A source audit of `src/App.tsx` and `src/components/CandlestickChart.tsx` found the current app exposes chart, watchlist, settings, and timeframe navigation, but no indicator controls, indicator panes, or indicator overlay wiring. Therefore calculation foundations and tests are not equivalent to usable chart indicators.
+
+No visual implementation is authorized by this audit. Keep the existing standard candlestick layout and spacing unchanged when Footprint is OFF. Only an explicitly enabled Footprint mode may later switch to the separately designed spaced-candle/cluster layout. Do not begin Footprint, Heatmap, or Liquidation Maps visual work until the owner supplies the relevant reference image(s) and the scoped blueprint is reviewed at the 40% project gate.
+
+### Verification state and next actions
+
+- Calculation and Footprint test files are present in the branch. Their presence is not a test-pass claim.
+- At the time of this audit, Automated Tests run [43418208176](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43418208176) for `600ff7ee7c5494ad894c762aa7e5644694de3175` was pending with no jobs/results exposed yet.
+- CodeQL run [43418208169](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43418208169) for the same SHA completed successfully.
+- Next: obtain a completed exact-HEAD CI result; then add visible indicator controls/overlays/panes only under the approved scope, with interaction, timeframe-change, stale-series clearing, and rendering/performance tests.
+- No overall project percentage is increased by this audit. Preserve the existing recorded progress accounting and the separate Stage 1 acceptance disposition.
+
