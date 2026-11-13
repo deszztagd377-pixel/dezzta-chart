@@ -8,7 +8,7 @@ from helpers import NS, T0, make_service, rec
 from app.session_bar_validation import SessionBarValidation
 from app.session_calendar import (
     CHICAGO, SessionCalendar, SessionCalendarRegistry, SessionRecord,
-    datetime_to_epoch_ns,
+    SessionSegment, datetime_to_epoch_ns,
 )
 
 ALL_TIMEFRAMES = [*FIXED_INTERVAL_SECONDS, "1w", "1M", "3M"]
@@ -310,7 +310,8 @@ def test_validated_cme_one_hour_bars_derive_session_daily_with_pinned_identity()
         checksum="sha256:" + "b" * 64,
         records={
             trading_date: SessionRecord(
-                trading_date, "regular", opened, closed
+                trading_date, "regular", opened, closed,
+                segments=(SessionSegment(opened, closed),),
             )
         },
     )
@@ -375,7 +376,10 @@ def test_validated_cme_one_second_input_reaches_daily_through_open_hourly_child(
         source_url="https://example.invalid/test-calendar",
         published_at_utc=datetime(2024, 2, 1, tzinfo=timezone.utc),
         checksum="sha256:" + "d" * 64,
-        records={trading_date: SessionRecord(trading_date, "regular", opened, closed)},
+        records={trading_date: SessionRecord(
+            trading_date, "regular", opened, closed,
+            segments=(SessionSegment(opened, closed),),
+        )},
     )
     pipeline = OhlcvPipeline()
     aggregator = Aggregator(
@@ -433,7 +437,10 @@ def test_complete_minute_chain_derives_one_hour_then_cme_session_daily():
         source_url="https://example.invalid/test-calendar",
         published_at_utc=datetime(2024, 2, 1, tzinfo=timezone.utc),
         checksum="sha256:" + "f" * 64,
-        records={trading_date: SessionRecord(trading_date, "regular", opened, closed)},
+        records={trading_date: SessionRecord(
+            trading_date, "regular", opened, closed,
+            segments=(SessionSegment(opened, closed),),
+        )},
     )
     pipeline = OhlcvPipeline()
     aggregator = Aggregator(
