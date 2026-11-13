@@ -11,7 +11,9 @@ const SECRET_PATTERNS = [
   { name: 'backend-only credential identifier', expression: /\b(?:DATABENTO_API_KEY|MARKET_DATA_WS_TOKEN|FIREBASE_PRIVATE_KEY|GOOGLE_APPLICATION_CREDENTIALS)\b/ },
 ];
 
-const SCANNED_EXTENSIONS = new Set(['.js', '.mjs', '.cjs', '.html', '.css', '.json']);
+const SCANNED_EXTENSIONS = new Set([
+  '.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.html', '.css', '.json',
+]);
 
 async function collectFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -26,7 +28,7 @@ async function collectFiles(directory) {
 
 export async function scanFrontendBundle(directory) {
   const files = await collectFiles(directory);
-  if (files.length === 0) throw new Error('No frontend bundle files found to scan.');
+  if (files.length === 0) throw new Error('No frontend source or bundle files found to scan.');
   const findings = [];
   for (const file of files) {
     const content = await readFile(file, 'utf8');
@@ -45,12 +47,12 @@ async function main() {
   try {
     findings = await scanFrontendBundle(directory);
   } catch (error) {
-    process.stderr.write('Frontend bundle scan failed: ' + error.message + '\n');
+    process.stderr.write('Frontend source/bundle scan failed: ' + error.message + '\n');
     process.exitCode = 1;
     return;
   }
   if (findings.length > 0) {
-    process.stderr.write('Potential server-side credential material found in frontend bundle:\n');
+    process.stderr.write('Potential server-side credential material found in frontend source/bundle:\n');
     for (const finding of findings) {
       process.stderr.write('- ' + finding.file + ': ' + finding.pattern + '\n');
     }
@@ -58,7 +60,7 @@ async function main() {
     return;
   }
   const count = (await collectFiles(directory)).length;
-  process.stdout.write('Frontend bundle secret scan passed (' + count + ' files checked).\n');
+  process.stdout.write('Frontend source/bundle secret scan passed (' + count + ' files checked).\n');
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
