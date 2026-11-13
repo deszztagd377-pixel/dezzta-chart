@@ -158,7 +158,7 @@ Audited against source files on `phase-2/market-data-foundation` at pre-document
 | SMA | 20 | Close | One value per bar; first 19 entries null |
 | EMA | 20 | Close; SMA seed | One value per bar; first 19 entries null |
 | RSI | Wilder 14 | Close-to-close changes | First value at index 14; earlier entries null |
-| MACD | EMA 12 / EMA 26 / signal EMA 9 | Close | MACD line begins at index 25; signal/histogram begin at index 34 |
+| MACD | EMA 12 / EMA 26 / signal EMA 9 | Close | MACD line begins at index 25; signal/histogram begin at index 33 |
 | Bollinger Bands | 20 periods, 2 population standard deviations | Close | Middle/upper/lower begin at index 19 |
 
 The implementation rejects invalid periods and non-finite inputs. MACD rejects fast periods greater than or equal to slow periods. Bollinger deviation multipliers must be finite and non-negative.
