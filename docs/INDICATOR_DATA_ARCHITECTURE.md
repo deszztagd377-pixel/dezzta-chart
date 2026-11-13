@@ -243,3 +243,17 @@ Do not calculate a single completion percentage by averaging test counts or by c
 ### Required owner inputs and design gate
 
 Footprint, Heatmap, and Liquidation Maps visual implementation remains blocked on the owner's respective reference image(s). At the 40% overall project gate, prepare a scoped blueprint and obtain owner review before major UI implementation. Until then, preserve the current normal candlestick rendering and spacing when Footprint is OFF.
+
+
+## Android APK device evidence — owner confirmation (2026-11-13)
+
+The owner confirms installing the 4.23 MB APK on the Infinix GT20. The sole APK inside Android workflow run [#43442780935](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43442780935), artifact ID `14046691238`, is `app-debug.apk` with an extracted size of 4,233,778 bytes. This is a size/context match to the owner's report, not a cryptographic on-device identity verification.
+
+This device-installation report does not change indicator acceptance:
+- SMA 20, EMA 20, Wilder RSI 14, MACD 12/26/9, and Bollinger Bands 20,2 retain verified calculation foundations and the same incomplete visible UI acceptance.
+- Shared indicator hook retains its validated-backend-only/no-DEMO-fallback contract; visible controls and rendering remain incomplete.
+- Footprint remains a bounded synthetic educational simulation labelled SIMULATED; no visual cluster renderer or live order-flow source is accepted.
+- Heatmap and Liquidation Maps remain unimplemented.
+- Full calculation definitions, warm-up alignment, test evidence, rendering acceptance criteria, and owner-reference/blueprint gates above remain authoritative.
+
+Do not award indicator progress for APK file size or installation alone. The next indicator credit requires implementation plus exact-head regression evidence and the applicable user-visible acceptance checks. Preserve ordinary candle spacing while Footprint is OFF; spaced cluster layout is permitted only when Footprint is explicitly ON.
