@@ -1531,8 +1531,10 @@ Verified workflow file: `.github/workflows/android-apk.yml`.
 - Generates a temporary Android wrapper with application ID `com.dezzta.chart` and app name `DEZZTA CHART`.
 - Runs Gradle `assembleDebug`, verifies the APK exists and is non-empty, calculates SHA-256, and uploads artifact `dezzta-chart-android-debug-apk` for seven days.
 - This is a **zero-additional-build-fee CI route** using GitHub Actions; it does not establish a published APK artifact or successful installation on the owner's phone by itself.
-- Current audit did not retrieve an exact successful APK workflow run, artifact ID, APK SHA-256, or device installation evidence. Do not invent or reuse an old APK download URL. The APK acceptance sequence remains: exact branch/source SHA → successful workflow → artifact download → APK checksum/package identity → install and launch on Infinix GT20 → inspect chart, navigation, touch behavior, and offline/demo labels.
-- The user recalls previously downloading an APK link and seeing two photos. The exact artifact/run/link and the identity of those two photos were not available in the repository evidence inspected for this checkpoint; do not claim to know which build or screenshots they were. Preserve this as an owner-reported observation pending artifact/image evidence.
+- Current audit did not retrieve the exact successful Android APK workflow run, artifact ID, or APK SHA-256 for the APK previously downloaded by the owner. Do not invent or reuse an old APK download URL.
+- **New owner-reported device evidence (2026-11-13):** the owner confirms that a trial DEZZTA CHART APK was successfully installed on the Infinix GT20. Record this as an owner-reported installation result, not as independently verified package identity or exact source-SHA provenance. The owner cannot resend the two previously seen images because of the app's upload limit; do not require them to proceed.
+- Installation is now supported by owner report, but successful first launch, chart/navigation/touch behavior, persistence/restart, and correct offline/demo labelling remain unverified. The next APK acceptance step is to verify launch and core interactions on-device, then tie that result to a known APK artifact/checksum when available.
+- The owner-reported installation result is not used to increase Stage 1's 30/40 provisional score because the historical acceptance ledger has not been reconciled to map this observation to a specific criterion and artifact.
 
 ### Indicator progress — complete tracker retained
 
@@ -1570,3 +1572,15 @@ The authoritative current device evidence and corrected decision are in `docs/AN
 4. Keep indicator progress documentation synchronized after each real implementation/test milestone.
 
 No application source, dependency, encryption implementation, paid infrastructure, production credential, or `main` branch was changed by this documentation checkpoint.
+
+
+## Latest continuation evidence — 2026-11-13 (APK owner report and exact-HEAD CI)
+
+- Active branch HEAD verified as `f7728136a480925bca11feb51b56f3b59b67bbf6` on `phase-2/market-data-foundation`; `main` was not modified.
+- Automated Tests run [#1029](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43441589186) completed successfully on that exact HEAD. Its `Test and Build` job completed successfully.
+- CodeQL run [#387](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43441588920) completed successfully on the same exact HEAD. Vercel commit status is success.
+- The CI artifacts on #1029 are the synthetic outbox benchmark and container vulnerability reports; **they are not Android APK artifacts**. No Android APK artifact/checksum was inferred from these CI results.
+- Owner reports a trial APK was installed successfully on the Infinix GT20. This is useful device evidence, but exact APK workflow run, artifact identity, checksum, launch, and interaction evidence are not yet linked to it.
+- Stage 1 remains `30/40 = 75.00% provisional`; overall progress remains the historical `20.9%`. No score uplift is assigned until the acceptance ledger maps the owner report to a specific criterion and the remaining operational gates are evidenced.
+- Indicator status remains unchanged and is fully tracked in `docs/INDICATOR_DATA_ARCHITECTURE.md`: SMA 20, EMA 20, Wilder RSI 14, MACD 12/26/9, and Bollinger Bands 20,2 have tested calculation foundations but no visible chart controls/panes/overlays; the shared hook has no user-facing integration; Footprint is SIMULATED only; Heatmap and Liquidation Maps are not implemented. Do not claim visible/live indicator completion from CI tests.
+- No source code, dependency constraints, production credentials, paid infrastructure, encryption design, or `main` branch were changed.
