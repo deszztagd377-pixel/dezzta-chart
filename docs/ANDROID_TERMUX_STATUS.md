@@ -109,13 +109,13 @@ This is stronger evidence than the earlier stale-index hypothesis: the configure
 - https://github.com/termux/termux-packages/wiki/Mirrors
 - https://github.com/termux/termux-packages/wiki/Package-Management
 
-### Next safe device action
+### Next safe device action — SUPERSEDED; DO NOT FOLLOW
 
-Use the interactive `termux-change-repo` utility to change **Main repository only** from the legacy `termux.net` source to the current official primary host `packages.termux.dev` (or a mirror explicitly listed by the official Termux Mirrors page). Do not manually guess or paste an unverified mirror URL. After selecting the source, refresh metadata and re-check the package candidate before installing anything.
+The initial mirror-switch proposal below was invalid for the owner's Google Play Termux build and is retained only as historical audit context. **Do not run `termux-change-repo` and do not switch this installation to `packages.termux.dev`.** The exact device evidence and corrected safe decision are recorded in the later section titled `Owner-reported Google Play Termux repository/keyring resolution — 2026-11-13`.
 
-Do not run a broad package upgrade as part of this diagnostic step. First confirm that the candidate for `python-cryptography` is in the project's required range `>=50,<51`. If the candidate remains incompatible, stop and capture the exact repository/source output for further diagnosis. Never install 48.0.1, lower the project requirement, or change the encryption implementation as a workaround.
+The original proposal was to switch Main from `termux.net` to `packages.termux.dev` and re-check `python-cryptography`. That proposal was superseded after the owner demonstrated that `termux-change-repo` is absent and the upstream repository is rejected by APT with `NO_PUBKEY 5A897D96E57CF20C`. It must not be presented as an actionable instruction.
 
-No device package was installed and no application source/dependency was changed by this diagnosis. The encryption gate remains open until the exact project interpreter imports a compatible package and all encrypted-backup acceptance tests pass.
+Current safe state: retain the working Google Play source; do not bypass signature checks, install 48.0.1, lower `cryptography>=50,<51`, or modify the encryption design. The encryption gate remains open until a compatible authenticated package path is available and the encrypted-backup acceptance tests pass.
 
 ## Owner-reported Google Play Termux repository/keyring resolution — 2026-11-13
 
