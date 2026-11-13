@@ -1766,3 +1766,8 @@ The implementation commit \`733663c73669c10b695e6b455794d2f8f1d2c3b8\` was re-ru
 The CI run was executed against the exact implementation/test/workflow commit above. Later commits in the same branch only appended acceptance/progress/indicator documentation; they did not alter the tested application or scanner source.
 
 **Acceptance boundary unchanged:** green CI and CodeQL establish repository-side checks only. They do not verify production host secret injection, runtime/build logs from a deployed host, GitHub secret-scanning settings/alert inventory, or the full reachable Git history. Criterion 8 therefore remains **open / external verification required**. No Stage 1 or overall progress credit is awarded.
+
+
+### CI build-output / workflow-log spot audit — 2026-11-13
+
+After successful CI attempt 2, the complete available workflow-job log for job \`131968105353\` (308,410 characters) was checked for high-confidence private-key PEM, AWS access-key, GitHub token, Stripe live-secret, credential-bearing Redis URL, and service-account private-key patterns. **Zero matches** were found. This is a bounded audit of this CI job's output only; it is not a scan of deployed runtime logs or every possible secret format.
