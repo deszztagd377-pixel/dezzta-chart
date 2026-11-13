@@ -1584,3 +1584,31 @@ No application source, dependency, encryption implementation, paid infrastructur
 - Stage 1 remains `30/40 = 75.00% provisional`; overall progress remains the historical `20.9%`. No score uplift is assigned until the acceptance ledger maps the owner report to a specific criterion and the remaining operational gates are evidenced.
 - Indicator status remains unchanged and is fully tracked in `docs/INDICATOR_DATA_ARCHITECTURE.md`: SMA 20, EMA 20, Wilder RSI 14, MACD 12/26/9, and Bollinger Bands 20,2 have tested calculation foundations but no visible chart controls/panes/overlays; the shared hook has no user-facing integration; Footprint is SIMULATED only; Heatmap and Liquidation Maps are not implemented. Do not claim visible/live indicator completion from CI tests.
 - No source code, dependency constraints, production credentials, paid infrastructure, encryption design, or `main` branch were changed.
+
+
+## Verified Android APK build — 2026-11-13
+
+A fresh Android debug APK build completed successfully on the active branch.
+
+- Workflow run: [#43442780935](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43442780935)
+- Source branch: `phase-2/market-data-foundation`
+- Source commit: `ba05d72d87a6c228fd6fb242ea37507636d5081e`
+- Workflow job: `Build installable Android debug APK` — completed successfully.
+- All 14 substantive steps completed, including locked web dependency installation, web production build, pinned Capacitor Android wrapper generation, Gradle `assembleDebug`, APK non-empty verification, and artifact upload.
+- Artifact: `dezzta-chart-android-debug-apk`, artifact ID `14046691238`, 3,874,510-byte ZIP, expires 2026-11-20 14:28:37 UTC.
+- GitHub artifact ZIP SHA-256: `bdc373a056bb2d4fe7d0e228e851a0e15e85575b91d5685f17e546e8a3dd30d7`.
+- Artifact was downloaded and inspected in the audit environment. It contains `app-debug.apk` (4,233,778 bytes); ZIP integrity test passed.
+- Extracted APK SHA-256: `d1203014fc16bbfd0a823ceb2fdae2bab0f855f554bec3393fad44d2b0e1de49`.
+- APK file signature/container inspection identifies it as an Android package; the APK archive integrity test passed.
+- Workflow commit `ba05d72...` only adds a clarifying comment to the existing Android APK workflow. No app source, package manifest, dependency lock, encryption, or production configuration changed in that trigger commit.
+- Vercel status on the workflow source commit is success.
+- The owner's earlier trial APK installation on the Infinix GT20 remains owner-reported evidence. It is not yet proven to be this exact artifact. First launch, package identity on-device, chart interactions, persistence/restart, and offline/demo labelling remain unverified.
+
+### Acceptance and progress accounting after APK build
+
+- Android APK build/package artifact gate: **passed for this workflow run**.
+- APK installation/launch on target GT20 for this exact artifact: **not yet verified**.
+- This build does not by itself close the remaining Stage 1 external/operational gates.
+- Stage 1 remains **30/40 = 75.00% provisional** pending criterion-by-criterion ledger reconciliation. Do not award additional percentage solely for a successful CI APK build.
+- Overall project remains at historical **20.9%**; no new weighted ledger calculation is asserted.
+- Indicator status is unchanged. Refer to `docs/INDICATOR_DATA_ARCHITECTURE.md` for the full calculation definitions, test evidence, visual acceptance matrix, owner-reference prerequisites, and mode constraints. An APK package build is not evidence that visible indicators are implemented or accepted.
