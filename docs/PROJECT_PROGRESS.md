@@ -1625,3 +1625,49 @@ Evidence boundary:
 - Record installation on the target device as **owner-confirmed for the matching-size APK**. First launch, package identity, chart interaction, navigation, persistence/restart, and offline/demo provenance remain separate acceptance checks.
 
 No Stage 1 percentage uplift is applied automatically. The historical provisional Stage 1 score remains 30/40 (75.00%) until the ten-group scoring ledger is reconciled criterion by criterion. Overall progress remains the historical 20.9%.
+
+
+## APK static security review — 2026-11-13
+
+The exact Android artifact from workflow run [#43442780935](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43442780935) was downloaded again and inspected in the audit environment.
+
+### Artifact identity
+
+- Workflow artifact ID: `14046691238`; ZIP contains exactly one file, `app-debug.apk`.
+- APK size: **4,233,778 bytes**.
+- APK SHA-256: `d1203014fc16bbfd0a823ceb2fdae2bab0f855f554bec3393fad44d2b0e1de49`.
+- Package: `com.dezzta.chart`; version name `1.0`; version code `1`.
+- Android manifest: min SDK 23; target SDK 35.
+- The APK archive was readable and its ZIP integrity check passed.
+
+### Manifest and signing observations
+
+- Declared permissions observed: `android.permission.INTERNET` and the app-specific AndroidX dynamic-receiver permission `com.dezzta.chart.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`.
+- No camera, microphone, contacts, SMS, or location permission was present in the decoded manifest.
+- The application manifest has `android:debuggable=true` and `android:allowBackup=true`.
+- The embedded signer certificate identifies itself as **Android Debug** (self-issued), RSA 2048-bit, SHA256withRSA. Certificate SHA-256 fingerprint: `1E:01:30:B0:59:CE:8C:DE:F8:42:FC:7A:D0:90:4B:43:6A:2F:FE:FC:09:54:1B:08:1E:40:BD:94:C1:7E:42:5B`.
+- This matches the workflow's explicit `assembleDebug` output. A debug certificate and debuggable application are expected characteristics of a debug APK, but they are not suitable as the final public-release signing/configuration.
+
+### Antivirus-warning interpretation and limits
+
+The owner reports that the phone's antivirus still flags the installed APK, while a manual scan reports no virus. The debug signing identity and `debuggable=true` setting are plausible reasons for a generic sideload/debug-build warning. They do **not** establish that the warning is a false positive, and this static audit does **not** prove the APK malware-free.
+
+No third-party scanner upload was performed. The exact antivirus product, detection name, and detection category have not been supplied, so the specific warning cannot yet be attributed. Do not upload the APK to public scanning services without the owner's informed consent.
+
+### Release-hardening actions before any public/release APK
+
+1. Build a dedicated release variant with debugging disabled.
+2. Define explicit Android backup/data-extraction rules and review what app data may be backed up.
+3. Use a dedicated release signing key with a documented offline backup; never commit the key or passwords.
+4. Rebuild and verify the release APK's manifest, certificate fingerprint, permissions, package identity, and artifact checksum.
+5. Compare the exact antivirus detection label against the release artifact before drawing a conclusion.
+
+This audit does not change the installed APK on the owner's device and does not certify it as malware-free. The current artifact remains a **debug/test APK**, not a production release.
+
+### Progress and indicator accounting
+
+- No Stage 1 or overall project percentage is awarded for this static audit.
+- Stage 1 remains **30/40 = 75.00% provisional**; the ten zero-cost-constrained external acceptance gates remain open until their actual operational evidence exists.
+- Overall project progress remains the historical **20.9%**; no new weighted calculation is asserted.
+- Indicator acceptance is unchanged. The full current matrix, calculation definitions, test evidence, user-visible gaps, SIMULATED Footprint restrictions, and owner-reference prerequisites remain in `docs/INDICATOR_DATA_ARCHITECTURE.md`. No indicator receives credit from APK signing or antivirus analysis.
+- No application runtime source, dependency, production credential, provider setting, paid service, or `main` branch was changed by this documentation record.
