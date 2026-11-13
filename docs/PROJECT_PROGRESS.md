@@ -1415,3 +1415,17 @@ No visual implementation is authorized by this audit. Keep the existing standard
 - Next: obtain a completed exact-HEAD CI result; then add visible indicator controls/overlays/panes only under the approved scope, with interaction, timeframe-change, stale-series clearing, and rendering/performance tests.
 - No overall project percentage is increased by this audit. Preserve the existing recorded progress accounting and the separate Stage 1 acceptance disposition.
 
+
+
+---
+
+## Android / Termux readiness audit — 2026-11-13
+
+See [ANDROID_TERMUX_STATUS.md](./ANDROID_TERMUX_STATUS.md) for the full evidence matrix and acceptance gates.
+
+- The read-only Android/Termux host preflight script exists and its automated CI test passed on the audited source HEAD.
+- This only validates the inventory script and its safe behavior; it does not validate native backend execution on Android.
+- The user's last reported Termux environment used Python 3.13; backend encryption test collection was blocked because `cryptography` was unavailable. OpenSSL 3.6.3 was reported, but that alone does not prove Python cryptography compatibility.
+- Native Termux backend startup, complete backend tests on-device, SQLite restart persistence, Redis behavior, WebSocket/client connectivity, and Android background/recovery behavior remain unverified.
+- **Termux support is incomplete and not accepted.** Docker CI on Python 3.12 Alpine is not a substitute for Android/Bionic validation.
+- No percentage increase is awarded for this documentation audit. Stage 1 remains at its last recorded **75.00% provisional** and is not complete.
