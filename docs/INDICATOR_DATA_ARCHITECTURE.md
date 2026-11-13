@@ -257,3 +257,20 @@ This device-installation report does not change indicator acceptance:
 - Full calculation definitions, warm-up alignment, test evidence, rendering acceptance criteria, and owner-reference/blueprint gates above remain authoritative.
 
 Do not award indicator progress for APK file size or installation alone. The next indicator credit requires implementation plus exact-head regression evidence and the applicable user-visible acceptance checks. Preserve ordinary candle spacing while Footprint is OFF; spaced cluster layout is permitted only when Footprint is explicitly ON.
+
+
+## APK security-audit cross-check — 2026-11-13
+
+The Android debug APK static review is recorded in `docs/PROJECT_PROGRESS.md` under **APK static security review — 2026-11-13**. It confirms artifact/package metadata and identifies the debug signing certificate plus `debuggable=true`; it does not demonstrate indicator rendering or indicator behavior on-device.
+
+**Indicator acceptance remains unchanged:**
+
+- SMA 20 / EMA 20: calculation foundations tested; visible chart overlays, controls, legends, and transition acceptance remain open.
+- Wilder RSI 14: calculation foundation tested; visible oscillator pane, scale/guides, controls, and stale-series transition acceptance remain open.
+- MACD 12/26/9: calculation foundation tested; visible dedicated pane, line/histogram, controls, and transition acceptance remain open.
+- Bollinger Bands 20,2: calculation foundation tested; visible overlay, controls, legend/value, and boundary/timeframe rendering acceptance remain open.
+- Shared market-indicator hook: validated-backend-only data contract exists; visible user controls and integration acceptance remain open.
+- Footprint: bounded educational synthetic accumulator only, visibly labelled `SIMULATED`; no visual cluster renderer or live order-flow feed is accepted. Keep ordinary candlestick spacing unchanged while Footprint is OFF.
+- Heatmap and Liquidation Maps: no implementation verified; their visual work remains gated on the owner's references and scoped blueprint review.
+
+The APK's successful build, debug certificate, manifest review, and owner-reported antivirus scan result award **zero indicator completion credit**. The complete acceptance matrix and calculation/test definitions above remain authoritative.
