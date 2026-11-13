@@ -1700,3 +1700,23 @@ A criterion-by-criterion review of `docs/STAGE_1_ACCEPTANCE_MATRIX.md` confirms 
 ### Indicator progress
 
 No indicator code or acceptance evidence changed in this audit. The complete indicator matrix, formulas, warm-up/index alignment, test evidence, UI acceptance gaps, Footprint SIMULATED-only boundary, and Heatmap/Liquidation Maps owner-reference gates remain in `docs/INDICATOR_DATA_ARCHITECTURE.md`. No indicator progress is awarded for Stage 1 blocker analysis.
+
+
+## Owner-confirmed one-phone constraint — Stage 1 execution adjustment (2026-11-13)
+
+The owner has one Infinix GT20 (Android 15) and no second phone, PC, or laptop. This was already stated; do not ask again. All execution plans must be phone-only and ZERO COST.
+
+The ten external gates remain 8, 20, 25, 30, 31, 34, 35, 36, 38, and 39. Their revised phone-only feasibility is documented in docs/STAGE_1_ZERO_COST_GATE_PLAN.md and the matching acceptance-matrix addendum.
+
+**Immediate attainable target:** criterion 30's same-device SQLite restore-to-fresh-path drill. The project already has:
+- A standard-library SQLite Online Backup API helper with integrity checking, owner-only POSIX permissions, file fsync, atomic replacement, and parent-directory fsync.
+- Device smoke evidence of SQLite integrity ok and a restored/read-back value.
+- CI coverage that creates a consistent backup, encrypts/decrypts it, restores it, and verifies application-like instruments and bars records.
+
+The remaining evidence gap is a consolidated owner-device restore report that verifies representative application records on the phone. This can be advanced without the cryptography package by testing the unencrypted SQLite restore path separately; it does not close criterion 31 or prove off-host disaster recovery.
+
+**Hard limit:** criterion 31 cannot be accepted as encrypted off-host recovery with one device and no verified external destination. The Termux Play Store package/keyring mismatch continues to block the required cryptography>=50,<51 import on-device. Do not bypass signatures, lower the dependency, or weaken AES-GCM/PBKDF2.
+
+The other local/CI subtests may advance, but they do not replace actual production host, public HTTPS/WSS, mounted volume, independent monitoring, or external alert/operator evidence. Do not change the 40-item production acceptance definition to force 100%.
+
+Progress remains **30/40 = 75.00% provisional** and overall remains the historical **20.9%**; this constraint analysis awards no progress. Full indicator status remains in docs/INDICATOR_DATA_ARCHITECTURE.md and is unchanged: five calculation foundations tested but visible controls/rendering incomplete; shared hook UI incomplete; Footprint SIMULATED-only with visual reference/blueprint gate; Heatmap and Liquidation Maps unimplemented.
