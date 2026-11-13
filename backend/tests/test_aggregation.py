@@ -359,7 +359,7 @@ def test_validated_cme_one_hour_bars_derive_session_daily_with_pinned_identity()
     ) == []
 
 
-def test_validated_cme_one_second_input_reaches_daily_through_partial_hourly_child():
+def test_validated_cme_one_second_input_reaches_daily_through_open_hourly_child():
     from app.ohlcv import BUCKET_POLICY_CME_SESSION_V1
 
     trading_date = date(2024, 3, 11)
@@ -407,9 +407,9 @@ def test_validated_cme_one_second_input_reaches_daily_through_partial_hourly_chi
     assert minute[0].origin == "derived"
     assert len(hourly) == 1
     assert hourly[0].origin == "derived"
-    assert hourly[0].completeness == "partial"
+    assert hourly[0].completeness == "open"
     # The 1s input reaches daily only through a 1h child that is re-resolved
-    # against the pinned session and remains explicitly partial.
+    # against the pinned session; the in-progress daily result remains partial.
     assert len(daily) == 1
     assert daily[0].completeness == "partial"
     assert daily[0].ts_start_ns == session_start
