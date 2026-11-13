@@ -42,6 +42,14 @@ jobs:
           distribution: temurin
           java-version: '21'
 
+      - name: Setup Android SDK command-line tools
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+        with:
+          packages: ''
+
+      - name: Verify Android SDK manager
+        run: sdkmanager --version
+
       - name: Install locked web dependencies
         run: npm ci
 
@@ -64,9 +72,7 @@ jobs:
           npx cap sync android
 
       - name: Install Android SDK platform and build tools
-        run: |
-          sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
-          sdkmanager --licenses
+        run: sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
 
       - name: Assemble debug APK
         working-directory: android
