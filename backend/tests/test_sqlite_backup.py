@@ -204,3 +204,59 @@ def test_consistent_backup_can_be_restored_into_a_fresh_database(tmp_path):
         assert database.execute("SELECT close FROM bars").fetchall() == [
             ("123.450000000000000001",)
         ]
+
+
+
+def test_application_ohlcv_and_replay_outbox_survive_fresh_database_restore(tmp_path):
+    """Exercise the real SQLite OHLCV store, not only a hand-made sample table.
+
+    This test deliberately imports no encryption package so the local SQLite
+    restore path can be tested independently from the Android crypto blocker.
+    """
+    from decimal import Decimal
+
+    from app.ohlcv import OhlcvBar
+    from app.ohlcv_store import SQLiteOhlcvStore
+
+    source = tmp_path / "application-live.sqlite3"
+    snapshot = tmp_path / "application-snapshot.sqlite3"
+    restored = tmp_path / "fresh-restore" / "application.sqlite3"
+
+    original = OhlcvBar(
+        provider="databento",
+        dataset="GLBX.MDP3",
+        publisher_id=1,
+        instrument_id=123,
+        raw_symbol="ESZ6",
+        series_type="contract",
+        timeframe="1m",
+        ts_start_ns=60_000_000_000,
+        open=Decimal("100"),
+        high=Decimal("103"),
+        low=Decimal("99"),
+        close=Decimal("101.000000000000000001"),
+        volume=Decimal("12.500000000000000009"),
+        ts_event_ns=1_790_000_000_123_456_789,
+        ts_received_ns=1_790_000_000_123_456_799,
+        sequence=1,
+        sequence_origin="local",
+        origin="provider",
+        completeness="unknown",
+    )
+
+    live_store = SQLiteOhlcvStore(str(source))
+    assert live_store.apply(original) == "inserted"
+    assert live_store.outbox_high_water() == 1
+
+    create_consistent_sqlite_backup(source, snapshot)
+
+    with sqlite3.connect(snapshot) as backup, sqlite3.connect(restored) as target:
+        backup.backup(target)
+
+    restored_store = SQLiteOhlcvStore(str(restored))
+    assert restored_store.load_bars() == [original]
+    assert restored_store.outbox_high_water() == 1
+
+    event = restored_store.outbox_event_for_bar(original)
+    assert event is not None
+    assert restored_store.outbox_event_id(int(event["cursor"])) == event["eventId"]
