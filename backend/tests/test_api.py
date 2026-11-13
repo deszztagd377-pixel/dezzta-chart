@@ -376,7 +376,10 @@ def test_cme_rest_snapshot_requires_exact_loaded_calendar_identity() -> None:
         headers=headers,
     )
     assert valid.status_code == 200
-    assert valid.json()["count"] == 0
+    assert valid.json()["count"] == 1
+    valid_bar = valid.json()["bars"][0]
+    assert valid_bar["calendarId"] == "CME_EQUITY_INDEX"
+    assert valid_bar["calendarVersion"] == "test-only-2024.01"
 
     wrong_calendar = client.get(
         base + "&calendar_id=COMEX_GOLD&calendar_version=test-only-2024.01",
@@ -414,7 +417,9 @@ def test_cme_websocket_snapshot_requires_exact_loaded_calendar_identity() -> Non
         })
         snapshot = websocket.receive_json()
         assert snapshot["type"] == "market_data.ohlcv.snapshot"
-        assert snapshot["count"] == 0
+        assert snapshot["count"] == 1
+        assert snapshot["bars"][0]["calendarId"] == "CME_EQUITY_INDEX"
+        assert snapshot["bars"][0]["calendarVersion"] == "test-only-2024.01"
 
     with client.websocket_connect("/ws/market-data") as websocket:
         websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
@@ -432,6 +437,27 @@ def test_cme_websocket_snapshot_requires_exact_loaded_calendar_identity() -> Non
                 "bucketPolicy": "CME_SESSION_V1",
                 "calendarId": "COMEX_GOLD",
                 "calendarVersion": "test-only-2024.01",
+            },
+        })
+        with pytest.raises(WebSocketDisconnect):
+            websocket.receive_json()
+
+    with client.websocket_connect("/ws/market-data") as websocket:
+        websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+        assert websocket.receive_json()["type"] == "market_data.status"
+        websocket.send_json({
+            "type": "market_data.subscribe",
+            "version": 1,
+            "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+            "series": {
+                "dataset": "GLBX.MDP3",
+                "publisherId": 1,
+                "instrumentId": 101,
+                "rawSymbol": "ESZ6",
+                "timeframe": "1d",
+                "bucketPolicy": "CME_SESSION_V1",
+                "calendarId": "CME_EQUITY_INDEX",
+                "calendarVersion": "unknown-release",
             },
         })
         with pytest.raises(WebSocketDisconnect):
