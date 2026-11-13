@@ -14,6 +14,12 @@ test("Android host preflight is read-only and does not disclose environment valu
   assert.match(source, /PRECHECK ONLY/);
   assert.match(source, /"pytest"/);
   assert.match(source, /"cryptography"/);
+  assert.match(source, /report_command "clang" "clang"/);
+  assert.match(source, /report_command "make" "make"/);
+  assert.match(source, /report_command "pkg-config" "pkg-config"/);
+  assert.match(source, /TLS build-toolchain inventory/);
+  assert.match(source, /openssl_ssl_header/);
+  assert.match(source, /openssl_shared_libraries/);
   assert.doesNotMatch(source, /\b(pkg|apt|apt-get)\s+install\b/);
   assert.doesNotMatch(source, /curl[^\n]*\|\s*(sh|bash)/);
   assert.doesNotMatch(source, /printenv|env\s*$/);
