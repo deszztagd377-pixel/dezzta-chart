@@ -320,3 +320,16 @@ This plan is not production evidence and does not close any external criterion. 
 - No paid service, provider credential, production deployment, or feature removal was introduced by this work.
 
 **Checklist accounting remains 30/40, with 10 external production verification gates outstanding.** The new Android smoke test and green CI/CodeQL runs strengthen repository/device evidence but do not close external deployment gates. Stage 1 remains **not production-accepted**.
+
+
+## Latest verified checkpoint — 2026-11-13 (commit 08bdf52)
+
+- Branch: `phase-2/market-data-foundation`
+- Exact tested commit: `08bdf52cb60b2c98216df2437b3f9363cd4e2d66`
+- Automated Tests & Build: [run #1006](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43413442206) — **success**.
+- CodeQL Security Analysis: [run #364](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43413442133) — **success** for Python and JavaScript/TypeScript.
+- Backend regression suite: **774 passed in 24.03s**. Frontend tests/build, backend dependency audit, synthetic SQLite outbox benchmark, Docker build, Redis + persistent-volume smoke test, Trivy image scan, and vulnerability-report export/upload also passed.
+- CME daily aggregation now consumes only validated UTC 1-hour child bars, matching the accepted ADR. Finer bars continue through the normal UTC intraday hierarchy; each 1-hour interval is re-resolved against the pinned calendar and rejected if it crosses a tradable-segment boundary. Regression tests cover direct 1-hour input, 1-second cascade through an open 1-hour child, complete 1-minute-to-1-hour-to-daily derivation, and split-session rejection.
+- The synthetic CME calendar fixtures are test-only. No authoritative production CME schedule is loaded, and no live provider entitlement or production client path is established by this CI.
+- The synthetic outbox benchmark now exercises concurrent replay readers alongside the single SQLite writer; it remains a single-process benchmark, not a production or multi-process SLO.
+- **Acceptance accounting remains 30/40, with 10 external production gates open:** 8, 20, 25, 30, 31, 34, 35, 36, 38, and 39. No external gate is closed by this repository-only work. Stage 1 remains **not production-accepted**.

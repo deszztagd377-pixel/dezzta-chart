@@ -1,6 +1,6 @@
 # CME Session Calendar Design (ADR)
 
-Status: Accepted design; calendar-aware implementation in progress (2026-11-13)  
+Status: Accepted design; core calendar-aware implementation complete; production activation gated (2026-11-13)  
 Target branch: `phase-2/market-data-foundation`  
 Decision date: 2026-11-05
 

@@ -42,8 +42,8 @@ This is a data-integrity boundary for historical/educational chart data. It does
 
 ## Verification record
 
-- Code and regression-test commit: `ec907bf52fb5765856b98384450987aa378d7884`.
-- Automated Tests & Build: [run #999](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43410696656) — **success**. Frontend tests/build, backend pytest, dependency audits, synthetic outbox benchmark, Docker build, Redis + persistent-volume smoke test, Trivy scan, and vulnerability-report export/upload completed successfully.
-- CodeQL Security Analysis: [run #357](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43410696825) — **success** for Python and JavaScript/TypeScript.
-- Regression coverage includes the 1-second-to-1-minute path, complete 1-minute-to-1-hour-to-CME-daily derivation, rejection of an hourly child crossing a tradable-segment end, exact calendar identity in REST/WebSocket snapshots, and rejection of an unknown release.
+- Code and regression-test commit: `08bdf52cb60b2c98216df2437b3f9363cd4e2d66` (core aggregation change introduced in `a32ffe0dbf7eda05a1c69dfc41415b1da0274f79`).
+- Automated Tests & Build: [run #1006](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43413442206) — **success**; backend suite **774 passed in 24.03s**. Frontend tests/build, dependency audits, synthetic outbox benchmark, Docker build, Redis + persistent-volume smoke test, Trivy scan, and vulnerability-report export/upload also succeeded.
+- CodeQL Security Analysis: [run #364](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43413442133) — **success** for Python and JavaScript/TypeScript.
+- Regression coverage includes the 1-second-to-1-minute path, 1-minute-to-1-hour-to-CME-daily derivation, direct validated 1-hour inputs, open/partial completeness semantics, rejection of an hourly child crossing a tradable-segment end, exact calendar identity in REST/WebSocket snapshots, and rejection of an unknown release.
 - These checks do not prove an authoritative production schedule is loaded, live provider entitlement, production HTTPS/WSS, or production deployment readiness.
