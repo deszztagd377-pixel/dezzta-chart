@@ -2,6 +2,8 @@ import os
 import stat
 
 import pytest
+
+import app.backup_encryption as backup_encryption
 from cryptography.exceptions import InvalidTag
 
 from app.backup_encryption import decrypt_backup_file, encrypt_backup_file
@@ -158,3 +160,58 @@ def test_encryption_and_decryption_reject_same_source_and_destination(tmp_path):
     with pytest.raises(ValueError, match="must be different"):
         decrypt_backup_file(encrypted, encrypted, PASSPHRASE)
     assert encrypted.read_bytes() == original_encrypted
+
+
+
+@pytest.mark.skipif(os.name != "posix", reason="directory fsync is POSIX-specific")
+def test_encrypted_backup_publication_flushes_parent_directory(tmp_path, monkeypatch):
+    source = tmp_path / "source.sqlite3"
+    destination = tmp_path / "backup.enc"
+    source.write_bytes(b"backup payload")
+
+    flushed_directories = []
+
+    def record_directory_flush(directory):
+        flushed_directories.append(directory)
+
+    monkeypatch.setattr(
+        backup_encryption,
+        "_fsync_directory",
+        record_directory_flush,
+    )
+
+    encrypt_backup_file(source, destination, PASSPHRASE)
+
+    assert destination.is_file()
+    assert flushed_directories == [tmp_path]
+    assert list(tmp_path.glob(".backup.enc.*.encrypted-backup.tmp")) == []
+
+
+@pytest.mark.skipif(os.name != "posix", reason="directory fsync is POSIX-specific")
+def test_encryption_reports_directory_fsync_failure_after_publish(tmp_path, monkeypatch):
+    source = tmp_path / "source.sqlite3"
+    destination = tmp_path / "backup.enc"
+    restored = tmp_path / "restored.sqlite3"
+    source.write_bytes(b"valid backup payload")
+    destination.write_bytes(b"previous backup")
+
+    def fail_directory_flush(_directory):
+        raise OSError("simulated directory fsync failure")
+
+    monkeypatch.setattr(
+        backup_encryption,
+        "_fsync_directory",
+        fail_directory_flush,
+    )
+
+    with pytest.raises(OSError, match="directory fsync failure"):
+        encrypt_backup_file(source, destination, PASSPHRASE)
+
+    # Atomic rename already happened: the new artifact is visible, but the
+    # caller is told that crash durability of its directory entry is uncertain.
+    assert destination.read_bytes() != b"previous backup"
+    assert list(tmp_path.glob(".backup.enc.*.encrypted-backup.tmp")) == []
+
+    monkeypatch.undo()
+    decrypt_backup_file(destination, restored, PASSPHRASE)
+    assert restored.read_bytes() == b"valid backup payload"
