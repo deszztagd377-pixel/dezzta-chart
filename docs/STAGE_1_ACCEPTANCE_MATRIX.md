@@ -333,3 +333,16 @@ This plan is not production evidence and does not close any external criterion. 
 - The synthetic CME calendar fixtures are test-only. No authoritative production CME schedule is loaded, and no live provider entitlement or production client path is established by this CI.
 - The synthetic outbox benchmark now exercises concurrent replay readers alongside the single SQLite writer; it remains a single-process benchmark, not a production or multi-process SLO.
 - **Acceptance accounting remains 30/40, with 10 external production gates open:** 8, 20, 25, 30, 31, 34, 35, 36, 38, and 39. No external gate is closed by this repository-only work. Stage 1 remains **not production-accepted**.
+
+
+## Owner-confirmed one-phone/no-PC constraint — 2026-11-13
+
+The owner has one Android device (Infinix GT20, Android 15) and no second phone, PC, or laptop. This constraint supersedes all candidate remediation text above that assumes an additional owner-controlled host or second device. Do not ask the owner for a second device again and do not propose purchasing hardware or enabling paid infrastructure.
+
+The ten open production gates remain **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**. Their phone-only feasibility is classified in STAGE_1_ZERO_COST_GATE_PLAN.md, section **Owner-confirmed device constraint and phone-only disposition**.
+
+- Criterion **30** is the nearest same-device candidate: the SQLite Online Backup API and restore-to-fresh-path flow can run using Python/SQLite standard-library support. Existing device evidence covers integrity/readback smoke, and CI includes application-record restore tests; one consolidated application-record restore report from the owner's device is still missing. This does not satisfy off-host disaster recovery.
+- Criterion **31** remains blocked by lack of a second device/verified off-host destination and the unresolved Termux Play Store cryptography>=50,<51 package/keyring mismatch.
+- Localhost, CI, APK, and local-storage tests can strengthen evidence for criteria 8, 20, 25, 34, 35, 36, 38, and 39, but do not prove production host, public endpoint, independent monitoring, or operator delivery.
+
+No criterion is closed and the 30/40 provisional accounting is unchanged by this constraint record. Do not change the production acceptance definition or claim 40/40 without owner-approved scope revision and evidence.
