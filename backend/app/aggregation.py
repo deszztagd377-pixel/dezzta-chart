@@ -171,6 +171,12 @@ class Aggregator:
             calendar = self._session_calendars.get(calendar_id, calendar_version)
             if calendar is None or calendar.calendar_id != calendar_id:
                 return None
+            # Legacy schema-v1 open/close envelopes are not sufficient evidence
+            # for intraday futures buckets: they cannot describe maintenance gaps.
+            # Require at least one explicitly sourced tradable segment.
+            record = calendar.records.get(date.fromisoformat(trading_date))
+            if record is None or not record.segments:
+                return None
             seconds, nanos = divmod(current.ts_start_ns, 1_000_000_000)
             if nanos % 1_000:
                 return None
@@ -223,6 +229,11 @@ class Aggregator:
             calendar = self._session_calendars.get(calendar_id, calendar_version)
             if calendar is None:
                 raise ValueError("Pinned calendar release is unavailable.")
+            record = calendar.records.get(trading_date)
+            if record is None or not record.segments:
+                raise ValueError(
+                    "CME intraday aggregation requires explicit tradable segments."
+                )
             seconds, nanos = divmod(current.ts_start_ns, 1_000_000_000)
             instant = datetime.fromtimestamp(seconds, tz=timezone.utc) + timedelta(
                 microseconds=nanos // 1_000
