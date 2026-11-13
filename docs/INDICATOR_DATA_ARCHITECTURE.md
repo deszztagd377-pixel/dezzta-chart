@@ -211,7 +211,7 @@ The complete frontend workflow passed on commit `da7d000d789bdb445f0c551b7879bee
 
 ## Indicator progress verification update — 2026-11-13 (latest available CI evidence)
 
-The latest inspected automated workflow job (run [#43420429575](https://github.com/deszztagd-pixel/dezzta-chart/actions/runs/43420429575)) reports:
+The latest inspected automated workflow job (run [#43420429575](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43420429575)) reports:
 
 - Frontend: **26 test files / 211 tests passed**.
 - `src/indicators/indicatorCalculations.test.ts`: **7 tests passed**.
