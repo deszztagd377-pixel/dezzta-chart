@@ -287,3 +287,18 @@ Current indicator acceptance remains unchanged:
 - Heatmap and Liquidation Maps: not implemented; owner references and reviewed scoped blueprints remain prerequisites.
 
 No indicator percentage is awarded for the phone-only constraint analysis or Stage 1 documentation. This matrix remains the complete indicator acceptance record.
+
+
+## Indicator status cross-check — Criterion 8 security work (2026-11-13)
+
+The Criterion 8 secret-audit changes do not modify indicator calculations, data contracts, chart rendering, or indicator acceptance evidence. The full indicator acceptance matrix above remains authoritative and unchanged:
+
+- SMA 20 / EMA 20: calculation foundations tested; visible chart toggles, overlays, legends/values, and series/timeframe rendering acceptance remain incomplete.
+- Wilder RSI 14: calculation foundation tested; visible oscillator pane, scale/guides, controls, and stale-series transition acceptance remain incomplete.
+- MACD 12/26/9: calculation foundation tested; visible dedicated pane, line/histogram, controls, and transition/render acceptance remain incomplete.
+- Bollinger Bands 20,2: calculation foundation tested; visible overlay, controls, legend/value, and boundary/timeframe rendering acceptance remain incomplete.
+- Shared market-indicator hook: validated-backend-only data contract exists; visible controls and immediate stale-value clearing integration acceptance remain incomplete.
+- Footprint: bounded synthetic educational accumulator only, labelled \`SIMULATED\`; visual cluster implementation remains gated on the owner's reference image and reviewed blueprint. Ordinary candle spacing must remain unchanged while Footprint is OFF.
+- Heatmap and Liquidation Maps: not implemented; owner reference images and reviewed scoped blueprints remain prerequisites.
+
+No indicator progress is awarded for secret scanning, settings representation tests, documentation, or CI alone.
