@@ -534,8 +534,8 @@ def test_cme_daily_aggregation_rejects_children_crossing_session_segment():
 
     trading_date = date(2024, 3, 11)
     first_start = datetime(2024, 3, 10, 17, 0, tzinfo=CHICAGO)
-    first_end = datetime(2024, 3, 10, 17, 0, 30, tzinfo=CHICAGO)
-    second_start = datetime(2024, 3, 10, 17, 1, tzinfo=CHICAGO)
+    first_end = datetime(2024, 3, 10, 17, 30, tzinfo=CHICAGO)
+    second_start = datetime(2024, 3, 10, 18, 0, tzinfo=CHICAGO)
     close = datetime(2024, 3, 11, 16, 0, tzinfo=CHICAGO)
     calendar = SessionCalendar(
         calendar_id="CME_EQUITY_INDEX",
@@ -567,7 +567,7 @@ def test_cme_daily_aggregation_rejects_children_crossing_session_segment():
         tf="1h", base=session_start, bucket_policy="UTC_FIXED_V1",
     )
     valid_current = base_bar(
-        60, "101", "103", "100", "102", 20, 2,
+        3600, "101", "103", "100", "102", 20, 2,
         tf="1h", base=session_start, bucket_policy="UTC_FIXED_V1",
     )
     assert pipeline.apply(invalid_child) == "inserted"
