@@ -127,7 +127,15 @@ class Aggregator:
                 and current.timeframe == "1m"
                 and current.bucket_policy == "UTC_FIXED_V1"
             ):
-                written += self._rebuild_session_daily(current, session_validation, stack)
+                minute_validation = self._session_validation_for_minute(
+                    current, session_validation
+                )
+                if minute_validation is None:
+                    self.stats["skipped_cme_daily_unresolved"] += 1
+                else:
+                    written += self._rebuild_session_daily(
+                        current, minute_validation, stack
+                    )
             for child_tf in CHILDREN.get(current.timeframe, ()):
                 # UTC intraday bars must not be relabelled as session buckets.
                 if current.bucket_policy == "UTC_FIXED_V1" and child_tf in ("1d", "1w", "1M", "3M"):
@@ -136,6 +144,55 @@ class Aggregator:
                 written += self._rebuild(current.series_key, child_tf, start, stack)
                 written += self._close_previous(current.series_key, child_tf, start, stack)
         return written
+
+    def _session_validation_for_minute(self, current: OhlcvBar, validation):
+        """Resolve the complete UTC 1m interval under the already pinned release.
+
+        The incoming validation may belong to a 1s/5s/15s source bar that
+        produced this derived minute. Re-resolve the minute itself instead of
+        incorrectly reusing the source bar's shorter interval bounds.
+        """
+        if self._session_calendars is None:
+            return None
+        try:
+            calendar_id = validation.calendar_id
+            calendar_version = validation.calendar_version
+            trading_date = validation.trading_date
+            if (
+                not isinstance(calendar_id, str) or not calendar_id.strip()
+                or not isinstance(calendar_version, str) or not calendar_version.strip()
+                or not isinstance(trading_date, str) or not trading_date.strip()
+            ):
+                return None
+            calendar = self._session_calendars.get(calendar_id, calendar_version)
+            if calendar is None or calendar.calendar_id != calendar_id:
+                return None
+            seconds, nanos = divmod(current.ts_start_ns, 1_000_000_000)
+            if nanos % 1_000:
+                return None
+            instant = datetime.fromtimestamp(seconds, tz=timezone.utc).replace(
+                microsecond=nanos // 1_000
+            )
+            lookup = lookup_instant(calendar, instant)
+            interval_end_ns = current.ts_start_ns + 60 * 1_000_000_000
+            if (
+                lookup.trading_date is None
+                or lookup.trading_date.isoformat() != trading_date
+                or lookup.state not in ("open", "special-session")
+                or lookup.segment_end_ns is None
+                or interval_end_ns > lookup.segment_end_ns
+            ):
+                return None
+            return SessionBarValidation(
+                calendar_id=calendar_id,
+                calendar_version=calendar_version,
+                trading_date=trading_date,
+                session_state=lookup.state,
+                interval_start_ns=current.ts_start_ns,
+                interval_end_ns=interval_end_ns,
+            )
+        except (AttributeError, TypeError, ValueError, OverflowError, OSError):
+            return None
 
     def _rebuild_session_daily(self, current: OhlcvBar, validation, stack: list[OhlcvBar]) -> int:
         """Derive CME 1d from validated UTC 1m source bars without changing source identity.
