@@ -1720,3 +1720,32 @@ The remaining evidence gap is a consolidated owner-device restore report that ve
 The other local/CI subtests may advance, but they do not replace actual production host, public HTTPS/WSS, mounted volume, independent monitoring, or external alert/operator evidence. Do not change the 40-item production acceptance definition to force 100%.
 
 Progress remains **30/40 = 75.00% provisional** and overall remains the historical **20.9%**; this constraint analysis awards no progress. Full indicator status remains in docs/INDICATOR_DATA_ARCHITECTURE.md and is unchanged: five calculation foundations tested but visible controls/rendering incomplete; shared hook UI incomplete; Footprint SIMULATED-only with visual reference/blueprint gate; Heatmap and Liquidation Maps unimplemented.
+
+
+## Criterion 8 — repository-side secret leakage controls (2026-11-13)
+
+Working branch: \`phase-2/market-data-foundation\`  
+Implementation HEAD at this checkpoint: \`733663c73669c10b695e6b455794d2f8f1d2c3b8\`
+
+### Changes recorded
+
+- Extended \`scripts/check-frontend-bundle-secrets.mjs\` to inspect JavaScript, JSX, TypeScript, and TSX files as well as generated bundle formats.
+- Added a CI scan of \`src/\` before the production frontend build. The existing post-build scan of \`dist/\` remains in place.
+- Added a TSX regression fixture for a high-confidence GitHub token pattern. Findings contain only a relative path and pattern category; matched credential text is never returned.
+- Extended backend settings representation tests to cover both \`repr()\` and \`str()\` for WebSocket token, provider key, Firebase project field, Redis URL/password, and session-calendar hash fields.
+- Updated \`docs/SECURITY_CONFIGURATION.md\` to distinguish automated source/bundle checks from the remaining operational checks.
+
+### CI evidence status
+
+- Previous baseline commit \`4d1a3c5a79f02e248bd54afb1acbe80e92815ca5\` passed Automated Tests run [#43447996526](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43447996526) and CodeQL run [#43447996417](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43447996417).
+- New exact-HEAD Automated Tests run [#43449331315](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43449331315) and CodeQL run [#43449331425](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43449331425) were in progress when this record was prepared. Do not treat their results as passed until the final conclusion is checked.
+
+### Explicitly still open
+
+- No owner-controlled production host or runtime secret-injection mechanism has been inspected.
+- No runtime production logs/build-host logs have been reviewed from a real deployment.
+- GitHub secret-scanning/push-protection settings, alert inventory, and full reachable repository-history scan have not been independently verified.
+- The regex scanner covers selected high-confidence patterns only; it cannot prove absence of every credential format or obfuscated secret.
+- CI and settings-representation tests do not prove that production secrets are injected securely or never logged by a host/runtime.
+
+**Criterion 8 remains open / external verification required.** This work strengthens repository-side defense in depth only. It does not close Stage 1 criterion 8 or award Stage 1/overall project progress. Keep Stage 1 at **30/40 = 75.00% provisional** and overall progress at the historical **20.9%**; no fresh weighted percentage is calculated.
