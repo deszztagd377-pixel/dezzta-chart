@@ -362,7 +362,8 @@ def run_benchmark(*, bars: int, batch_size: int, readers: int = 2, database_path
             "replay_page_latency": _summary(replay_samples),
             "notes": [
                 "Single-process SQLite measurement with one writer and concurrent reader threads.",
-                "Not a multi-process, provider, WebSocket, reconnect-storm, or production-host benchmark.",
+                "Not a provider, WebSocket, reconnect-storm, or production-host benchmark.",
+                "Not a multi-process benchmark; reader threads share one process.",
                 "Do not infer provider latency, multi-worker capacity, or production SLOs.",
             ],
         }
