@@ -182,3 +182,28 @@ The offline accumulator groups synthetic events by event-time interval and integ
 - Indicator calculations are educational analysis tools, not predictions or buy/sell recommendations.
 
 Visual implementation remains gated on owner-provided references for Footprint, Heatmap, and Liquidation Maps, plus a reviewed scoped blueprint at the 40% project milestone. The ordinary candlestick chart must retain its existing spacing while Footprint is off.
+
+
+## Exact-HEAD regression verification — 2026-11-13
+
+The complete frontend workflow passed on commit `da7d000d789bdb445f0c551b7879beed89e5e7d4` (Automated Tests run [#43419736603](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43419736603)); CodeQL passed on the same SHA ([#43419736562](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43419736562)). The frontend workflow included the indicator calculation tests and simulated Footprint tests. This is regression evidence for the existing calculations and simulation module only. It is not visual, interaction, live-provider, or Android-device acceptance.
+
+### Indicator acceptance ledger
+
+| Area | Current verified state | Remaining acceptance evidence |
+|---|---|---|
+| SMA 20 / EMA 20 | Close-based calculation helpers; aligned output; null warm-up; unit-tested | User-facing enable/disable controls, overlay rendering, legend/value display, selected-series/timeframe change behavior, rendering tests |
+| RSI 14 Wilder | Calculation helper; index-14 first value; flat=50 and rising-only=100 edge cases tested | Dedicated oscillator pane, scale/guide presentation, controls, stale-series clearing and rendering tests |
+| MACD 12/26/9 | MACD line from index 25; signal and histogram from index 33; warm-up tested | Dedicated pane, line/histogram rendering, controls, timeframe/series transitions and rendering tests |
+| Bollinger Bands 20,2 | Close-based population-standard-deviation bands; first output at index 19; validation tested | Overlay rendering, legend/value display, controls, chart-boundary and timeframe tests |
+| Shared indicator hook | Uses only the exact validated backend snapshot; no DEMO fallback; regression coverage included in frontend workflow | Integration tests for visible controls and proving old values clear immediately on instrument/timeframe switch |
+| Footprint | Bounded deterministic educational accumulator; synthetic events; duplicate/invalid/capacity safeguards; SIMULATED provenance | Owner reference image, reviewed scoped blueprint, explicit mode control, spaced-cluster renderer only while ON, visual/performance tests; real provider order flow is a separate unimplemented data project |
+| Heatmap | Not implemented | Owner reference image, approved blueprint, source-data definition, calculation and rendering tests |
+| Liquidation Maps | Not implemented | Owner reference image, approved blueprint, source-data definition, calculation and rendering tests |
+
+### Release boundary
+
+- The ordinary candlestick chart remains unchanged when Footprint is OFF.
+- No Footprint, Heatmap, or Liquidation Maps visual implementation begins before the relevant owner reference image(s) and blueprint review.
+- No feature is marked complete solely because its calculation helper or unit test exists.
+- The exact-HEAD CI pass does not change the feature acceptance state or project completion percentage.
