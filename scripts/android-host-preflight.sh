@@ -66,7 +66,7 @@ report_command "redis-cli" "redis-cli"
 report_command "curl" "curl"
 report_command "termux-wake-lock" "termux-wake-lock"
 
-printf '\\n%s\\n' "TLS build-toolchain inventory (read-only):"
+printf '\n%s\n' "TLS build-toolchain inventory (read-only):"
 if command -v pkg-config >/dev/null 2>&1; then
   if pkg-config --exists openssl 2>/dev/null; then
     report_value "openssl_pkg_version" "$(pkg-config --modversion openssl 2>/dev/null || true)"
