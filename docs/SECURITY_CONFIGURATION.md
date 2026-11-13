@@ -82,7 +82,11 @@ requires verified identity and instrument entitlement.
   `.env.example`. Ignore rules do not remove secrets already committed.
 - CI installs frontend dependencies with `npm ci` from the committed
   `package-lock.json`, then runs `npm audit --audit-level=high`, frontend
-  unit tests, and the production build.
+  unit tests, scans frontend TypeScript/JavaScript source before bundling,
+  builds the production bundle, and scans the generated bundle. The scanner
+  reports finding categories and paths only; it never prints matched values.
+  These high-confidence patterns are defense-in-depth and cannot prove the
+  absence of every possible secret format.
 - CI installs Python development dependencies, runs backend tests, performs
   `pip-audit` against `backend/requirements-dev.txt`, and builds the backend
   container image.
@@ -101,8 +105,9 @@ requires verified identity and instrument entitlement.
 ## 6. Remaining release checklist
 
 - [x] Add an automated production-bundle scan for private-key material, common high-confidence secret formats, and backend-only credential identifiers. The scan is a defense-in-depth check, not a substitute for source review or deployment secret-store inspection.
-- [ ] Inspect frontend source and production bundle manually for accidental credentials.
-- [ ] Confirm backend secrets are configured only in the deployment secret store.
+- [x] Add automated high-confidence credential-pattern scans for frontend TS/JS source before bundling and for the generated production bundle.
+- [ ] Review frontend source and scan output manually for accidental credentials; regex scans cannot prove absence of unknown secret formats.
+- [ ] Confirm backend secrets are configured only through an owner-controlled, no-billing host secret-injection mechanism; no production host has been verified.
 - [ ] Verify HTTPS/WSS, trusted Origin allowlist, and deployment headers.
 - [ ] Decide whether health, status, and instrument-catalogue endpoints are public.
 - [x] Implement server-side Firebase Admin ID-token verification with project issuer/audience checks, bounded token input, revocation checking, normalized errors, and unit coverage for invalid claims and SDK initialization.
@@ -113,7 +118,7 @@ requires verified identity and instrument entitlement.
 - [ ] Verify those controls against the deployed managed Redis service and real client traffic; configure abuse monitoring, alert thresholds, and incident response.
 - [x] Add frontend and backend dependency vulnerability audits to CI.
 - [x] Add CodeQL analysis for JavaScript/TypeScript and Python.
-- [ ] Verify current repository secret-scanning and push-protection settings and review alert inventory; public-repository defaults are not proof of current state.
+- [ ] Verify current repository secret-scanning and push-protection settings, inspect alert inventory, and audit reachable Git history; these settings and historical scan results have not been independently verified.
 - [x] Add container-image vulnerability scanning through the pinned Trivy CI step (HIGH/CRITICAL OS and library findings fail the build).
 - [ ] Review SQLite file permissions, backup encryption, retention, and recovery.
 - [ ] Verify monitoring and incident-response procedures before production use.
