@@ -65,7 +65,7 @@ report_command "termux-wake-lock" "termux-wake-lock"
 
 if command -v python3 >/dev/null 2>&1; then
   printf '\n%s\n' "Python module availability (imports only; no network or writes):"
-  python3 -c 'import importlib.util; names=("fastapi","uvicorn","redis","cryptography","firebase_admin","databento"); [print(("FOUND " if importlib.util.find_spec(name) else "MISS  ") + name) for name in names]' 2>/dev/null || printf '%s\n' "INFO  python_import_probe      unavailable"
+  python3 -c 'import importlib.util; names=("fastapi","uvicorn","redis","pytest","cryptography","firebase_admin","databento"); [print(("FOUND " if importlib.util.find_spec(name) else "MISS  ") + name) for name in names]' 2>/dev/null || printf '%s\n' "INFO  python_import_probe      unavailable"
 else
   printf '\n%s\n' "INFO  python_import_probe      skipped (python3 missing)"
 fi
