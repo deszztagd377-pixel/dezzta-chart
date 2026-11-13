@@ -1612,3 +1612,16 @@ A fresh Android debug APK build completed successfully on the active branch.
 - Stage 1 remains **30/40 = 75.00% provisional** pending criterion-by-criterion ledger reconciliation. Do not award additional percentage solely for a successful CI APK build.
 - Overall project remains at historical **20.9%**; no new weighted ledger calculation is asserted.
 - Indicator status is unchanged. Refer to `docs/INDICATOR_DATA_ARCHITECTURE.md` for the full calculation definitions, test evidence, visual acceptance matrix, owner-reference prerequisites, and mode constraints. An APK package build is not evidence that visible indicators are implemented or accepted.
+
+
+## Owner confirmation — installation of the 4.23 MB APK (2026-11-13)
+
+The owner confirms they installed the **4.23 MB `app-debug.apk`** on the Infinix GT20. This matches the extracted APK file size (4,233,778 bytes) from the sole APK contained in workflow run [#43442780935](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43442780935), artifact ID `14046691238`.
+
+Evidence boundary:
+- The workflow run contains exactly one artifact, `dezzta-chart-android-debug-apk`, and the ZIP contains exactly one APK, `app-debug.apk`.
+- The owner-reported 4.23 MB installation therefore matches the only APK produced by that run by filename/size context.
+- File size alone is not a cryptographic identity check. Do not claim that the installed device package has been matched to SHA-256 `d1203014fc16bbfd0a823ceb2fdae2bab0f855f554bec3393fad44d2b0e1de49` unless an on-device digest/package inspection is later available.
+- Record installation on the target device as **owner-confirmed for the matching-size APK**. First launch, package identity, chart interaction, navigation, persistence/restart, and offline/demo provenance remain separate acceptance checks.
+
+No Stage 1 percentage uplift is applied automatically. The historical provisional Stage 1 score remains 30/40 (75.00%) until the ten-group scoring ledger is reconciled criterion by criterion. Overall progress remains the historical 20.9%.
