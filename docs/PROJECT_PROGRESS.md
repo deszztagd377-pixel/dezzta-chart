@@ -1455,3 +1455,16 @@ The earlier Termux status entry is refined by later user-reported device results
 - Official Termux package recipe `python-cryptography` version 50.0.2 satisfies the project's declared `cryptography>=50,<51` requirement and is the preferred native packaging route. Device repository availability and import under the project interpreter remain unverified.
 - Native full backend startup, Redis/WebSocket, frontend connection, and Android process-restart/background validation remain open. Termux support is **not yet accepted**.
 - No Stage 1 or overall percentage increase is assigned from these focused tests or documentation work.
+
+
+## Exact-HEAD verification follow-up — 2026-11-13 (Termux documentation checkpoint)
+
+Audited commit: `da7d000d789bdb445f0c551b7879beed89e5e7d4` on `phase-2/market-data-foundation`.
+
+- Automated Tests [#43419736603](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43419736603): **success** on the exact audited SHA. Every step completed successfully, including frontend dependency install/audit, frontend unit tests/build, frontend bundle secret scanning, read-only Android host preflight test, backend dependency install/tests/audit, bounded synthetic SQLite outbox benchmark, backend container build, Redis shared-guard + persistent-volume smoke test, container scan, vulnerability report export/upload, and cleanup.
+- CodeQL [#43419736562](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43419736562): **success** on the same exact SHA for JavaScript/TypeScript and Python.
+- This closes the previously pending CI verification for the documentation checkpoint. It does not certify native Android/Bionic behavior or production deployment.
+- Indicator calculation/simulation tests remain green on this exact HEAD through the full frontend test workflow. This confirms calculation/simulation regression coverage only; it does not add chart controls, overlays, oscillator panes, live Footprint data, Heatmap, or Liquidation Maps.
+- Android host preflight remains a read-only inventory and its automated test passed. It does not install or prove `cryptography` on the user's Termux interpreter.
+- No source code changed in this CI verification; no production infrastructure, credentials, or paid market-data provider was touched. `main` was not changed.
+- Stage 1 remains **75.00% provisional** and overall project progress remains at the last historical **20.9%** checkpoint. CI success alone does not satisfy the outstanding production or native-device acceptance gates.
