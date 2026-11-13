@@ -274,3 +274,16 @@ The Android debug APK static review is recorded in `docs/PROJECT_PROGRESS.md` un
 - Heatmap and Liquidation Maps: no implementation verified; their visual work remains gated on the owner's references and scoped blueprint review.
 
 The APK's successful build, debug certificate, manifest review, and owner-reported antivirus scan result award **zero indicator completion credit**. The complete acceptance matrix and calculation/test definitions above remain authoritative.
+
+
+## Owner hardware constraint cross-check — 2026-11-13
+
+The owner has one Android phone only and no PC, laptop, or second phone. This changes the feasible operational test environment but does not change any indicator formula or acceptance result. Indicator work must remain buildable and testable through the existing phone/CI workflow; no desktop-only requirement or paid service may be introduced.
+
+Current indicator acceptance remains unchanged:
+- SMA 20, EMA 20, RSI 14 Wilder, MACD 12/26/9, and Bollinger Bands 20,2: tested calculation foundations; visible controls, chart overlays/panes, legends/scales and transition/render acceptance remain incomplete.
+- Shared market-indicator hook: validated backend-series contract exists; visible chart controls and integration remain incomplete.
+- Footprint: bounded synthetic educational accumulator, labelled SIMULATED; visual cluster renderer remains gated on the owner's reference and reviewed blueprint. Normal candle spacing must remain unchanged while OFF.
+- Heatmap and Liquidation Maps: not implemented; owner references and reviewed scoped blueprints remain prerequisites.
+
+No indicator percentage is awarded for the phone-only constraint analysis or Stage 1 documentation. This matrix remains the complete indicator acceptance record.
