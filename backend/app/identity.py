@@ -67,6 +67,17 @@ class FirebaseIdentityVerifier:
                         options={"projectId": self._project_id},
                         name=self._project_id,
                     )
+                except ValueError:
+                    # Another worker or verifier instance may have initialized
+                    # this named app after get_app() reported it missing.
+                    # Re-read the registry before treating initialization as
+                    # unavailable; Firebase Admin rejects duplicate app names.
+                    try:
+                        self._firebase_app = firebase_admin.get_app(self._project_id)
+                    except Exception as exc:
+                        raise IdentityProviderUnavailable(
+                            "Firebase identity provider could not initialize."
+                        ) from exc
                 except Exception as exc:
                     raise IdentityProviderUnavailable(
                         "Firebase identity provider could not initialize."
