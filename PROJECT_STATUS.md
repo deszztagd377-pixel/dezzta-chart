@@ -704,3 +704,17 @@ This section supersedes older status summaries in this file where they conflict 
 - The ZERO MONEY policy forbids purchasing or activating hosting, managed Redis, paid Firebase, market-data feeds, backup storage, monitoring, domains/CDN, or paid alerts. Any criterion that cannot be safely exercised on existing owner-controlled resources remains constrained/deferred rather than waived or misrepresented.
 - The Termux Google Play repository/keyring mismatch remains unresolved: the configured source offers `python-cryptography 48.0.1-1`, below the backend's `cryptography>=50,<51`; the upstream repository is rejected with `NO_PUBKEY 5A897D96E57CF20C`. Preserve the working repository and do not bypass APT signature verification, lower the dependency, or alter AES-GCM/PBKDF2.
 - Indicator acceptance is unchanged and remains fully detailed in `docs/INDICATOR_DATA_ARCHITECTURE.md`. No indicator completion credit is assigned for this audit.
+
+
+## Owner environment correction — single-phone constraint (2026-11-13)
+
+The owner has already stated that the only available device is one Infinix GT20 running Android 15; there is no second phone, PC, or laptop. This is a confirmed constraint, not an unanswered question. Do not ask again or suggest purchasing hardware.
+
+The previous "existing owner-controlled host/second device" candidate is not available. The phone-only feasibility and gate-by-gate disposition are now recorded in docs/STAGE_1_ZERO_COST_GATE_PLAN.md and docs/STAGE_1_ACCEPTANCE_MATRIX.md.
+
+- Criterion 30 (SQLite restore to a fresh local database) is the nearest actionable same-device target; existing SQLite helper/device smoke and CI application-record tests are useful but still need a consolidated owner-device application-record restore report.
+- Criterion 31 (encrypted off-host recovery) cannot be demonstrated with only one device and no verified existing off-host destination; the Termux Google Play cryptography package/keyring mismatch remains an additional blocker.
+- Local CI/loopback/on-device tests can improve confidence for other gates but cannot be relabelled as production host, public HTTPS/WSS, persistent-volume, independent monitoring, or external alert-delivery evidence.
+- Current Stage 1 remains 30/40 = 75.00% provisional; no percentage changes. A 40/40 production result is not honestly achievable with the currently verified resources. A phone-only demo-stage scope change would require explicit owner approval and would be a different acceptance definition.
+
+Do not repeat the earlier request for a PC, laptop, or second phone. Do not buy or enable paid infrastructure. Keep the full indicator tracker in docs/INDICATOR_DATA_ARCHITECTURE.md; its acceptance status is unchanged.
