@@ -12,6 +12,8 @@ test("Android host preflight is read-only and does not disclose environment valu
   const source = await readFile(scriptPath, "utf8");
   assert.match(source, /No packages will be installed/);
   assert.match(source, /PRECHECK ONLY/);
+  assert.match(source, /"pytest"/);
+  assert.match(source, /"cryptography"/);
   assert.doesNotMatch(source, /\b(pkg|apt|apt-get)\s+install\b/);
   assert.doesNotMatch(source, /curl[^\n]*\|\s*(sh|bash)/);
   assert.doesNotMatch(source, /printenv|env\s*$/);
