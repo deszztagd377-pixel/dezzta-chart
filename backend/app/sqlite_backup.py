@@ -12,6 +12,18 @@ import sqlite3
 import tempfile
 
 
+def _fsync_directory(directory: Path) -> None:
+    """Persist directory-entry changes on POSIX filesystems."""
+    descriptor = os.open(
+        directory,
+        os.O_RDONLY | getattr(os, "O_DIRECTORY", 0),
+    )
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
 def create_consistent_sqlite_backup(
     source_path: str | Path,
     destination_path: str | Path,
@@ -22,9 +34,14 @@ def create_consistent_sqlite_backup(
 
     The destination is first written to a temporary file in the destination
     directory, checked with PRAGMA integrity_check, restricted to owner-only
-    permissions where supported, flushed to storage on POSIX, and then
-    atomically replaced. A failed backup leaves any previous destination file
-    untouched.
+    permissions where supported, and flushed before atomic replacement. On
+    POSIX, the containing directory is flushed after replacement so the
+    directory-entry update is persisted as well.
+
+    Failures before replacement leave any previous destination untouched. If
+    the post-replacement directory flush fails, the new valid snapshot may
+    already be visible, but crash durability of the rename is uncertain; the
+    error is raised rather than reported as a fully durable backup.
     """
     if not isinstance(pages, int) or isinstance(pages, bool) or pages < 1:
         raise ValueError("pages must be a positive integer.")
@@ -70,12 +87,15 @@ def create_consistent_sqlite_backup(
 
         if os.name == "posix":
             # Backups contain application data: never publish a POSIX snapshot
-            # if owner-only permissions cannot be applied or the completed
-            # database file cannot be flushed before its atomic publication.
+            # if owner-only permissions or the file flush cannot be completed.
             os.chmod(temporary, 0o600)
             with temporary.open("rb") as backup_file:
                 os.fsync(backup_file.fileno())
         os.replace(temporary, destination)
+        if os.name == "posix":
+            # The rename is already visible. If this fails, surface the
+            # durability uncertainty; do not pretend the backup is durable.
+            _fsync_directory(destination.parent)
         return destination
     finally:
         if destination_db is not None:
