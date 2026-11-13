@@ -21,6 +21,7 @@ from typing import Callable
 
 from app.coverage import CoverageTracker
 from app.session_calendar import SessionCalendarRegistry, lookup_instant, session_bucket_bounds
+from app.session_bar_validation import SessionBarValidation
 from app.ohlcv import (
     BUCKET_POLICY_CME_SESSION_V1,
     FIXED_INTERVAL_SECONDS,
