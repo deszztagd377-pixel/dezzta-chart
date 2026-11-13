@@ -125,7 +125,10 @@ requires verified identity and instrument entitlement.
 - [ ] Verify those controls against the deployed managed Redis service and real client traffic; configure abuse monitoring, alert thresholds, and incident response.
 - [x] Add frontend and backend dependency vulnerability audits to CI.
 - [x] Add CodeQL analysis for JavaScript/TypeScript and Python.
-- [ ] Verify current repository secret-scanning and push-protection settings, inspect alert inventory, and audit reachable Git history; these settings and historical scan results have not been independently verified.
+- [x] Scan all reachable Git refs and commit history with Gitleaks v8.30.1 in CI; the 2026-11-13 run scanned 1,134 commits (~2.58 MB) and reported no leaks.
+- [ ] Verify GitHub's native secret-scanning and push-protection settings.
+- [ ] Inspect the GitHub secret-scanning alert inventory.
+- [ ] Review deployed production runtime/build-host logs; the CI output spot check is not production log evidence.
 - [x] Add container-image vulnerability scanning through the pinned Trivy CI step (HIGH/CRITICAL OS and library findings fail the build).
 - [ ] Review SQLite file permissions, backup encryption, retention, and recovery.
 - [ ] Verify monitoring and incident-response procedures before production use.
