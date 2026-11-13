@@ -108,7 +108,7 @@ class Aggregator:
         }
 
     def on_bar_applied(self, bar: OhlcvBar, *, session_validation=None) -> int:
-        """Rebuild affected buckets; validated 1m CME inputs may seed session 1d."""
+        """Rebuild affected buckets; validated 1h CME inputs may seed session 1d."""
         written = 0
         stack = [bar]
         while stack:
@@ -125,17 +125,17 @@ class Aggregator:
                 continue
             if (
                 session_validation is not None
-                and current.timeframe == "1m"
+                and current.timeframe == "1h"
                 and current.bucket_policy == "UTC_FIXED_V1"
             ):
-                minute_validation = self._session_validation_for_minute(
-                    current, session_validation
+                hour_validation = self._session_validation_for_interval(
+                    current, session_validation, "1h"
                 )
-                if minute_validation is None:
+                if hour_validation is None:
                     self.stats["skipped_cme_daily_unresolved"] += 1
                 else:
                     written += self._rebuild_session_daily(
-                        current, minute_validation, stack
+                        current, hour_validation, stack
                     )
             for child_tf in CHILDREN.get(current.timeframe, ()):
                 # UTC intraday bars must not be relabelled as session buckets.
@@ -146,12 +146,12 @@ class Aggregator:
                 written += self._close_previous(current.series_key, child_tf, start, stack)
         return written
 
-    def _session_validation_for_minute(self, current: OhlcvBar, validation):
-        """Resolve the complete UTC 1m interval under the already pinned release.
+    def _session_validation_for_interval(self, current: OhlcvBar, validation, timeframe: str):
+        """Resolve a complete UTC child interval under the already pinned release.
 
-        The incoming validation may belong to a 1s/5s/15s source bar that
-        produced this derived minute. Re-resolve the minute itself instead of
-        incorrectly reusing the source bar's shorter interval bounds.
+        The incoming validation may belong to a finer source bar that produced
+        this interval. Re-resolve the complete interval instead of reusing the
+        source bar's shorter bounds.
         """
         if self._session_calendars is None:
             return None
@@ -159,10 +159,13 @@ class Aggregator:
             calendar_id = validation.calendar_id
             calendar_version = validation.calendar_version
             trading_date = validation.trading_date
+            interval_seconds = FIXED_INTERVAL_SECONDS.get(timeframe)
             if (
-                not isinstance(calendar_id, str) or not calendar_id.strip()
+                current.timeframe != timeframe
+                or not isinstance(calendar_id, str) or not calendar_id.strip()
                 or not isinstance(calendar_version, str) or not calendar_version.strip()
                 or not isinstance(trading_date, str) or not trading_date.strip()
+                or not isinstance(interval_seconds, int)
             ):
                 return None
             calendar = self._session_calendars.get(calendar_id, calendar_version)
@@ -175,7 +178,7 @@ class Aggregator:
                 microsecond=nanos // 1_000
             )
             lookup = lookup_instant(calendar, instant)
-            interval_end_ns = current.ts_start_ns + 60 * 1_000_000_000
+            interval_end_ns = current.ts_start_ns + interval_seconds * 1_000_000_000
             if (
                 lookup.trading_date is None
                 or lookup.trading_date.isoformat() != trading_date
@@ -196,10 +199,10 @@ class Aggregator:
             return None
 
     def _rebuild_session_daily(self, current: OhlcvBar, validation, stack: list[OhlcvBar]) -> int:
-        """Derive CME 1d from validated UTC 1m source bars without changing source identity.
+        """Derive CME 1d from validated UTC 1h source bars without changing source identity.
 
-        A single source timeframe (1m) is intentionally used for each daily
-        series so mixed-resolution provider feeds cannot overwrite one another.
+        A single source timeframe (1h) follows the accepted calendar design and
+        prevents mixed-resolution provider feeds from overwriting one another.
         Every retained child is rechecked against the pinned release before use.
         """
         if self._session_calendars is None:
@@ -214,9 +217,9 @@ class Aggregator:
                 or not isinstance(calendar_version, str) or not calendar_version.strip()
                 or validation.session_state not in ("open", "special-session")
                 or validation.interval_start_ns != current.ts_start_ns
-                or validation.interval_end_ns != current.ts_start_ns + 60 * 1_000_000_000
+                or validation.interval_end_ns != current.ts_start_ns + 3600 * 1_000_000_000
             ):
-                raise ValueError("Session validation does not match the 1m source bar.")
+                raise ValueError("Session validation does not match the 1h source bar.")
             calendar = self._session_calendars.get(calendar_id, calendar_version)
             if calendar is None:
                 raise ValueError("Pinned calendar release is unavailable.")
@@ -231,7 +234,7 @@ class Aggregator:
                 or lookup.segment_end_ns is None
                 or validation.interval_end_ns > lookup.segment_end_ns
             ):
-                raise ValueError("Source bar is outside its pinned tradable segment.")
+                raise ValueError("Source hour is outside its pinned tradable segment.")
             bounds = session_bucket_bounds(calendar, trading_date, "1d")
             if bounds is None:
                 raise ValueError("Daily session bounds are not fully covered by the release.")
@@ -255,7 +258,7 @@ class Aggregator:
                 child_seconds, tz=timezone.utc
             ) + timedelta(microseconds=child_nanos // 1_000)
             child_lookup = lookup_instant(calendar, child_instant)
-            child_end_ns = child.ts_start_ns + 60 * 1_000_000_000
+            child_end_ns = child.ts_start_ns + 3600 * 1_000_000_000
             if (
                 child_lookup.trading_date != trading_date
                 or child_lookup.state not in ("open", "special-session")

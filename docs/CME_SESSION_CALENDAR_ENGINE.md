@@ -18,7 +18,7 @@ This is a data-integrity boundary for historical/educational chart data. It does
 - `backend/app/session_calendar_loader.py` validates versioned JSON artifacts, duplicate keys/dates, explicit coverage for every effective date, Chicago DST boundaries, CME-domain HTTPS provenance, and a SHA-256 digest supplied as a trusted external pin. Schema v2 supports explicit non-overlapping tradable segments.
 - `backend/app/session_calendar_runtime.py` loads one explicitly pinned release per calendar ID atomically. A bad or incomplete release leaves the runtime registry unavailable; the loader does not fetch remote schedules.
 - Provider bars are resolved through the durable point-in-time provider mapping and validated against the exact canonical instrument calendar and pinned release before persistence.
-- CME daily bars use only complete UTC 1-minute child intervals that are fully contained in an explicit tradable segment. Smaller validated UTC intervals, including 1-second input, can cascade to a derived 1-minute bar; that complete minute is re-resolved against the same calendar release before daily aggregation.
+- CME daily bars use only complete UTC 1-hour child intervals that are fully contained in an explicit tradable segment, matching the accepted design. Smaller validated UTC intervals, including 1-second input, cascade through the normal intraday hierarchy to 1-hour; each complete hour is re-resolved against the same pinned calendar release before daily aggregation.
 - CME weekly/monthly/quarterly bars are derived from session-aligned daily/monthly bars using explicit calendar bounds. Period bounds are withheld unless every civil date in the period, including closed dates, is represented in the release.
 - CME bars carry `CME_SESSION_V1`, `calendar_id`, and `calendar_version` in their series identity. The SQLite OHLCV store persists these identity fields; UTC legacy/fixed identities remain separate.
 - REST and WebSocket snapshots require an exact loaded calendar ID/version for CME-session series. A wrong calendar or unavailable release is rejected.
@@ -27,14 +27,14 @@ This is a data-integrity boundary for historical/educational chart data. It does
 
 1. **No authoritative production schedule is loaded.** Current calendar artifacts in tests are synthetic test fixtures only. They are not official CME holiday/special-session data and must never be enabled as production releases.
 2. **Production remains fail-closed without a trusted release.** Missing, stale, malformed, partial, or incorrectly pinned calendar data must not be interpreted as a regular session or a closure.
-3. **Daily child-resolution design needs owner reconciliation.** The accepted design in `CME_SESSION_CALENDAR_DESIGN.md` initially specifies session-contained 1-hour children for 1D aggregation. The current implementation uses complete 1-minute children so the 1-second stream can feed session daily bars. This document records the implementation; it does not silently amend the accepted design. The owner must decide whether to retain 1-minute children or return to the 1-hour design before this choice is treated as final.
+3. **Daily child resolution follows the accepted design.** CME 1D aggregation consumes only validated 1-hour children. One-second and smaller intraday inputs may contribute through the ordinary UTC intraday aggregation hierarchy, but a partial minute or hour can never bypass the 1-hour session boundary check.
 4. **Completeness is separate from observed trades.** Live OHLCV observations do not prove continuous coverage because quiet intervals may contain no trades. A derived session bar is marked complete only when the coverage tracker has an accepted coverage basis; otherwise it remains partial.
 5. **Provider semantics remain limited.** Databento `ohlcv-1s` is vendor-aggregated one-second OHLCV, not raw tick-by-tick or MBO data. Provider entitlements, schedule quality, latency, and all-contract coverage are not established by local tests.
 6. **No paid infrastructure is authorized.** Do not buy market-data access, hosting, Redis, storage, domains, monitoring, or notification delivery to satisfy these remaining conditions.
 
 ## Required next engineering batch
 
-1. Obtain the owner's decision on the 1-minute versus 1-hour daily child-resolution divergence and update the accepted ADR only after explicit approval.
+1. Exercise the accepted 1-hour daily child-resolution path against authoritative session schedules, including early closes, delayed opens, and split tradable segments.
 2. Obtain a genuine, authoritative CME schedule release for the supported product families. Record its exact source, publication/version, effective date range, and checksum; obtain the expected digest through an independently trusted channel.
 3. Validate the release's holiday, early-close, delayed-open, and exceptional-session coverage. Do not replace missing schedule dates with guessed regular hours.
 4. Exercise the selected pinned release through the complete ingestion, REST, WebSocket, browser, and Android paths in a zero-cost owner-controlled environment.
@@ -45,5 +45,5 @@ This is a data-integrity boundary for historical/educational chart data. It does
 - Code and regression-test commit: `ec907bf52fb5765856b98384450987aa378d7884`.
 - Automated Tests & Build: [run #999](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43410696656) — **success**. Frontend tests/build, backend pytest, dependency audits, synthetic outbox benchmark, Docker build, Redis + persistent-volume smoke test, Trivy scan, and vulnerability-report export/upload completed successfully.
 - CodeQL Security Analysis: [run #357](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43410696825) — **success** for Python and JavaScript/TypeScript.
-- Regression coverage includes 1-second-to-1-minute-to-CME-daily derivation, rejection of a derived minute crossing a tradable-segment end, exact calendar identity in REST/WebSocket snapshots, and rejection of an unknown release.
+- Regression coverage includes the 1-second-to-1-minute path, complete 1-minute-to-1-hour-to-CME-daily derivation, rejection of an hourly child crossing a tradable-segment end, exact calendar identity in REST/WebSocket snapshots, and rejection of an unknown release.
 - These checks do not prove an authoritative production schedule is loaded, live provider entitlement, production HTTPS/WSS, or production deployment readiness.

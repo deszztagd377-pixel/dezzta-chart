@@ -1,6 +1,6 @@
 # CME Session Calendar Design (ADR)
 
-Status: Accepted design; implementation not started  
+Status: Accepted design; calendar-aware implementation in progress (2026-11-13)  
 Target branch: `phase-2/market-data-foundation`  
 Decision date: 2026-11-05
 
@@ -104,8 +104,8 @@ If official schedule data is unavailable, malformed, stale beyond the configured
 4. Add a primary key and indexes whose identity includes bucket policy, calendar ID, and calendar version. Persist the no-calendar case with empty strings, not SQL NULL. Ensure reads, writes, retention, revisions, and queries use the expanded identity consistently.
 5. Add calendar data storage and validation without changing the active aggregation policy.
 6. Add pure calendar boundary functions and DST/holiday tests.
-7. Add calendar-aware 1D aggregation from session-contained 1H bars, initially behind a disabled feature flag.
-8. Add 1W/1M/3M aggregation only after their trading-period boundaries and API semantics are tested.
+7. Calendar-aware 1D aggregation from session-contained 1H bars is implemented in the aggregation layer; production use remains fail-closed until an authoritative pinned schedule is configured and the full deployment gate is verified.
+8. Calendar-aware 1W/1M/3M aggregation and their trading-period boundaries are implemented and covered by synthetic regression fixtures; authoritative schedule and deployment verification remain outstanding.
 9. Enable the policy only after migration, rollback, restart, legacy-data preservation, and full regression checks pass.
 
 Each migration must be idempotent, transactional where SQLite permits, tested against a copy of a pre-migration database, and must preserve the shared instrument registry's `PRAGMA user_version` contract. A failed migration must leave the prior OHLCV table and all rows intact.
