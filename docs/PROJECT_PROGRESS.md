@@ -1503,3 +1503,70 @@ Latest inspected workflow evidence: frontend 26 files / 211 tests passed, includ
 - `docs/PROJECT_PROGRESS.md` — records the current blocker, indicator status, and unchanged progress accounting.
 
 No source code, dependency constraints, encryption algorithm, production credentials, or production infrastructure were changed. `main` was not modified.
+
+## Latest continuation checkpoint — 2026-11-13 (APK-first / ZERO COST)
+
+Working branch: `phase-2/market-data-foundation`. Do not modify `main`.
+
+### Owner's confirmed product direction
+
+- Immediate delivery target is an Android APK installable and usable on the owner's Infinix GT20 (Android 15, aarch64).
+- **ZERO COST** is a hard project constraint: prefer open-source/free tooling and avoid paid hosting, paid market-data subscriptions, paid APIs, paid build services, and paid publication. Disclose any unavoidable cost and seek a genuinely free alternative before proposing paid services.
+- Google Play Store publication is explicitly deferred. Do not begin Play Store publishing, developer-account setup, or fee-related work unless the owner later asks.
+- The owner is willing to consider a Termux distribution migration only if the project remains usable on the phone and a complete, verified backup/restore procedure exists. No uninstall, app-data clearing, or migration is authorized by this checkpoint.
+- Preserve all existing features and do not trade away functionality to satisfy a zero-cost implementation. Clearly distinguish offline/demo behavior from real market data.
+
+### Stage 1 and overall progress accounting
+
+- Stage 1 remains **30/40 acceptance criteria = 75.00% provisional**. Ten external/operational acceptance gates remain open. This is the same 75% value recorded in earlier checkpoints, not a new increase.
+- Overall project progress remains the latest owner-confirmed historical checkpoint **20.9%**. The newly proposed weighted ledger has not been approved/scored, so no freshly recalculated overall percentage is asserted.
+- Do not increase either percentage for documentation commits, test counts, or APK workflow configuration alone.
+
+### Android APK packaging audit
+
+Verified workflow file: `.github/workflows/android-apk.yml`.
+
+- Workflow supports manual dispatch and relevant source pushes on `phase-2/market-data-foundation`.
+- Uses GitHub-hosted Ubuntu runner, Node 20, Java 21, Android SDK platform 35/build-tools 35.0.0, locked web dependency installation, Vite production build, and pinned Capacitor 7.4.3 tooling.
+- Generates a temporary Android wrapper with application ID `com.dezzta.chart` and app name `DEZZTA CHART`.
+- Runs Gradle `assembleDebug`, verifies the APK exists and is non-empty, calculates SHA-256, and uploads artifact `dezzta-chart-android-debug-apk` for seven days.
+- This is a **zero-additional-build-fee CI route** using GitHub Actions; it does not establish a published APK artifact or successful installation on the owner's phone by itself.
+- Current audit did not retrieve an exact successful APK workflow run, artifact ID, APK SHA-256, or device installation evidence. Do not invent or reuse an old APK download URL. The APK acceptance sequence remains: exact branch/source SHA → successful workflow → artifact download → APK checksum/package identity → install and launch on Infinix GT20 → inspect chart, navigation, touch behavior, and offline/demo labels.
+- The user recalls previously downloading an APK link and seeing two photos. The exact artifact/run/link and the identity of those two photos were not available in the repository evidence inspected for this checkpoint; do not claim to know which build or screenshots they were. Preserve this as an owner-reported observation pending artifact/image evidence.
+
+### Indicator progress — complete tracker retained
+
+The detailed acceptance matrix remains in `docs/INDICATOR_DATA_ARCHITECTURE.md` and the 2026-11-13 audit above. No indicator implementation status is upgraded by this checkpoint:
+
+| Indicator / component | Verified calculation or engine | Visible feature status |
+|---|---|---|
+| SMA 20 | Implemented and covered by calculation tests; close-based, 20-bar warm-up | No chart toggle/overlay/legend integration |
+| EMA 20 | Implemented and covered by calculation tests; SMA-seeded, 20-bar warm-up | No chart toggle/overlay/legend integration |
+| RSI 14 Wilder | Implemented and covered by tests; first value at index 14 | No oscillator pane/scale/guides |
+| MACD 12/26/9 | Implemented and covered by tests; line begins index 25, signal/histogram index 33 | No dedicated rendered pane |
+| Bollinger Bands 20,2 | Implemented and covered by tests; population standard deviation, first band index 19 | No visible overlay/legend integration |
+| Shared market-indicator hook | Exact validated backend snapshot only; no DEMO fallback | No user-facing controls/panes; stale-value transition acceptance remains |
+| Footprint | Deterministic bounded synthetic educational simulation; buy/sell/unknown separated; SIMULATED provenance | No visual layout or live order-flow source; owner reference and reviewed blueprint required |
+| Heatmap | No implementation verified | Not implemented; owner reference and reviewed blueprint required |
+| Liquidation Maps | No implementation verified | Not implemented; owner reference and reviewed blueprint required |
+
+Latest recorded CI evidence remains workflow #43420429575: frontend 26 files/211 tests, including 7 indicator calculation tests, 8 Footprint core tests, 4 Footprint fixture tests; backend 776 tests. This is regression evidence, not visible UI, live market-data, or Android acceptance. The normal candlestick layout and spacing must remain unchanged while Footprint is OFF; only explicit Footprint ON may activate the dedicated spaced-cluster layout. Do not begin Footprint/Heatmap/Liquidation Maps visual implementation before the respective owner reference image(s) and scoped blueprint review at the 40% overall gate.
+
+### Termux blocker — corrected resolution
+
+The authoritative current device evidence and corrected decision are in `docs/ANDROID_TERMUX_STATUS.md`. This supersedes older instructions elsewhere in this progress history that recommended switching to upstream `packages.termux.dev`:
+
+- The owner's Termux is Google Play build `googleplay.2026.10.09`, `termux-tools 3.0.9`, `termux-keyring 3.15`, Android 15/aarch64.
+- Its original `https://termux.net` source verifies successfully and offers only `python-cryptography 48.0.1-1`.
+- Upstream `packages.termux.dev` requires a signing key absent from this Play build's keyring; APT rejected it with `NO_PUBKEY 5A897D96E57CF20C`. The original source was restored successfully.
+- Keep the working Play build and its original source for now. Never bypass signature checks, install 48.0.1, weaken `cryptography>=50,<51`, or change AES-GCM/PBKDF2.
+- SQLite backup tests previously passed 15/15, but encrypted-backup tests remain blocked until a compatible, authenticated package path is available. Any Termux migration requires a verified backup/restore plan and owner approval.
+
+### Immediate next execution sequence
+
+1. Reconcile and retrieve the exact APK workflow run/artifact the owner recalls, or dispatch a new workflow on the active branch if the connected GitHub Actions interface permits it. Do not claim an APK is ready until artifact and checksum are verified.
+2. Verify the exact APK on the Infinix GT20; keep Google Play publication out of scope.
+3. Continue closing Stage 1's remaining ten acceptance criteria with evidence, prioritizing no-cost paths and not claiming external production gates without owner-controlled credentials/resources.
+4. Keep indicator progress documentation synchronized after each real implementation/test milestone.
+
+No application source, dependency, encryption implementation, paid infrastructure, production credential, or `main` branch was changed by this documentation checkpoint.
