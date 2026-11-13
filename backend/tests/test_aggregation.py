@@ -359,7 +359,7 @@ def test_validated_cme_one_hour_bars_derive_session_daily_with_pinned_identity()
     ) == []
 
 
-def test_validated_cme_one_second_bar_cannot_bypass_the_hourly_daily_gate():
+def test_validated_cme_one_second_input_reaches_daily_through_partial_hourly_child():
     from app.ohlcv import BUCKET_POLICY_CME_SESSION_V1
 
     trading_date = date(2024, 3, 11)
@@ -399,12 +399,21 @@ def test_validated_cme_one_second_bar_cannot_bypass_the_hourly_daily_gate():
     aggregator.on_bar_applied(source, session_validation=validation)
 
     minute = pipeline.list_bars(timeframe="1m", bucket_policy="UTC_FIXED_V1")
+    hourly = pipeline.list_bars(timeframe="1h", bucket_policy="UTC_FIXED_V1")
     daily = pipeline.list_bars(
         timeframe="1d", bucket_policy=BUCKET_POLICY_CME_SESSION_V1
     )
     assert len(minute) == 1
     assert minute[0].origin == "derived"
-    assert daily == []
+    assert len(hourly) == 1
+    assert hourly[0].origin == "derived"
+    assert hourly[0].completeness == "partial"
+    # The 1s input reaches daily only through a 1h child that is re-resolved
+    # against the pinned session and remains explicitly partial.
+    assert len(daily) == 1
+    assert daily[0].completeness == "partial"
+    assert daily[0].ts_start_ns == session_start
+    assert daily[0].volume == Decimal("10")
 
 
 
