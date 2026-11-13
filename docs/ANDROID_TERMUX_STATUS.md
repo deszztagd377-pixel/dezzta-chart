@@ -74,3 +74,25 @@ No user device command is required for this documentation checkpoint. No package
 - Upstream official Termux packaging now provides a concrete, version-compatible route: `python-cryptography` recipe version 50.0.2 satisfies `cryptography>=50,<51`. The device's configured repository availability and successful import remain to be confirmed.
 - Next validation is narrowly scoped: confirm the package-manager-provided module is visible to the exact project interpreter, then run the encrypted-backup tests and verify AES-GCM round-trip, wrong-passphrase/tamper rejection, and private permissions on-device. No encryption fallback or weakened dependency range is accepted.
 - Full native backend startup, Redis/WebSocket, client connectivity, and Android background/restart behavior remain open.
+
+
+## Termux package-index observation — 2026-11-13 (latest device output)
+
+The owner queried the configured Termux APT package metadata and reported:
+
+- `pkg show python-cryptography` resolves to package version **48.0.1-1**.
+- The project interpreter still reports `ModuleNotFoundError` for `cryptography`.
+- The declared backend dependency is `cryptography>=50,<51`.
+- Therefore the package version currently advertised by the configured repository is **not compatible with the declared project dependency**, and the package is not installed/visible to the interpreter.
+
+This narrows the blocker: it is not an OpenSSL header/linker discovery issue and it is not a SQLite backup failure. The configured APT package index currently exposes an older package than the official Termux build recipe's 50.0.2 version.
+
+### Corrective decision
+
+- Do **not** install 48.0.1 as a workaround; it does not satisfy the declared `>=50,<51` dependency.
+- Do **not** weaken `backend/requirements.txt`, change AES-GCM/PBKDF2 behavior, or substitute a different crypto implementation merely to make the import pass.
+- First refresh the configured Termux package indexes and re-check the candidate version. If the refreshed configured mirror still exposes only 48.0.1, the mirror/repository source is stale relative to the current official Termux package recipe; resolve that repository mismatch before installing.
+- The official Termux package recipe at `termux/termux-packages/packages/python-cryptography/build.sh` declares **50.0.2** and includes Termux-specific Rust/PyO3/Python shared-library integration. A generic PyPI source build is not treated as equivalent.
+- After a compatible package is available, validate import using the exact interpreter/environment that runs the project, then run `backend/tests/test_backup_encryption.py`. Only a passing AES-GCM round-trip, wrong-passphrase rejection, ciphertext-tamper rejection, atomic-publication behavior, and private-permission checks close this dependency gate.
+
+No source code, dependency constraint, encryption format, or device package was changed by this observation. Termux native backend support remains **INCOMPLETE / NOT ACCEPTED**.
