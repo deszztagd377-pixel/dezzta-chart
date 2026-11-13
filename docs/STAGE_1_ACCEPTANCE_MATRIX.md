@@ -291,3 +291,14 @@ The following ten criteria are audited individually. ZERO MONEY is binding, so n
 The owner-mandated ZERO MONEY policy is binding across Stage 1 and all later stages. The gate-by-gate resolution plan is documented in [STAGE_1_ZERO_COST_GATE_PLAN.md](STAGE_1_ZERO_COST_GATE_PLAN.md). It specifies no-billing candidate approaches, required evidence, and explicit defer conditions for criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, and 39.
 
 This plan is not production evidence and does not close any external criterion. No paid provider, hosting, managed Redis, Firebase billing upgrade, paid backup/KMS, paid monitoring/alerting, domain, trial, or paid runner is authorized. If an existing owner-controlled environment cannot meet a gate safely at zero incremental cost, keep that gate open/constrained rather than weakening controls or creating a payment obligation.
+
+
+## Android debug APK — owner-reported smoke test (2026-11-13)
+
+- The owner installed the generated debug APK on the Infinix GT20 and confirmed that the app launches and displays the chart screen.
+- The owner opened Settings, cleared the app cache, relaunched the app, and reported that it remained operational without a visible issue.
+- The screenshot shows the chart's explicit `DEMO DATA · SAMPLE OHLC` label. This is evidence of Android packaging and a limited UI launch/cache-relaunch smoke test only; it is **not** evidence of live CME data, Firebase authentication, backend connectivity, production WSS, notification delivery, or production readiness.
+- This is owner-reported manual evidence, not an independently captured device test report. No Stage 1 criterion is closed or re-counted from this report.
+- Push/local notification delivery is intentionally deferred to its planned later stage. Stage 1 must not claim notification delivery as implemented or verified.
+- No app code was changed as part of recording this manual test. The existing APK build and CI evidence remain tied to their recorded commits and workflow runs.
+
