@@ -58,12 +58,40 @@ printf '\n%s\n' "Runtime command availability:"
 report_command "python3" "python3"
 report_command "pip" "pip"
 report_command "openssl" "openssl"
+report_command "clang" "clang"
+report_command "make" "make"
+report_command "pkg-config" "pkg-config"
 report_command "redis-server" "redis-server"
 report_command "redis-cli" "redis-cli"
 report_command "curl" "curl"
 report_command "termux-wake-lock" "termux-wake-lock"
 
-if command -v python3 >/dev/null 2>&1; then
+printf '\\n%s\\n' "TLS build-toolchain inventory (read-only):"
+if command -v pkg-config >/dev/null 2>&1; then
+  if pkg-config --exists openssl 2>/dev/null; then
+    report_value "openssl_pkg_version" "$(pkg-config --modversion openssl 2>/dev/null || true)"
+    report_value "openssl_link_flags" "$(pkg-config --libs openssl 2>/dev/null || true)"
+  else
+    report_value "openssl_pkg_config" "development metadata unavailable"
+  fi
+else
+  report_value "openssl_pkg_config" "pkg-config missing"
+fi
+
+if [ -n "${PREFIX:-}" ]; then
+  if [ -r "$PREFIX/include/openssl/ssl.h" ]; then
+    report_value "openssl_ssl_header" "FOUND"
+  else
+    report_value "openssl_ssl_header" "MISSING"
+  fi
+  if [ -r "$PREFIX/lib/libssl.so" ] && [ -r "$PREFIX/lib/libcrypto.so" ]; then
+    report_value "openssl_shared_libraries" "FOUND"
+  else
+    report_value "openssl_shared_libraries" "MISSING"
+  fi
+fi
+
+if command -v python3 >/dev/null 2>&1; then >/dev/null 2>&1; then
   printf '\n%s\n' "Python module availability (imports only; no network or writes):"
   python3 -c 'import importlib.util; names=("fastapi","uvicorn","redis","pytest","cryptography","firebase_admin","databento"); [print(("FOUND " if importlib.util.find_spec(name) else "MISS  ") + name) for name in names]' 2>/dev/null || printf '%s\n' "INFO  python_import_probe      unavailable"
 else
