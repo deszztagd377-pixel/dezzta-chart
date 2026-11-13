@@ -52,7 +52,7 @@ This matrix separates repository implementation from evidence that must come fro
 
 26. **Implemented / test present** — SQLite snapshots use the Online Backup API for transactionally consistent copies.
 27. **Implemented / test present** — backup output is checked with `PRAGMA integrity_check`.
-28. **Implemented / test present** — backup publication uses a temporary file and atomic replacement; a failed backup preserves the previous destination.
+28. **Implemented / test present** — backup publication uses a temporary file and atomic replacement; POSIX snapshot data is flushed before publication and the parent directory is flushed after rename; pre-publication failures preserve the previous destination. Directory-flush failure is surfaced because rename durability is uncertain.
 29. **Implemented / test present** — POSIX backup files are restricted to owner-only permissions, and failure to set permissions prevents publication.
 30. **External verification required** — perform and record a restore drill from a real production-like backup into a fresh database, verifying application-level records as well as SQLite integrity.
 31. **External verification required** — encrypt backups before off-host transfer, store encryption keys separately, enforce retention/access policy, and prove a restore using the documented key-recovery procedure.
@@ -302,3 +302,21 @@ This plan is not production evidence and does not close any external criterion. 
 - Push/local notification delivery is intentionally deferred to its planned later stage. Stage 1 must not claim notification delivery as implemented or verified.
 - No app code was changed as part of recording this manual test. The existing APK build and CI evidence remain tied to their recorded commits and workflow runs.
 
+
+
+
+## Latest verified checkpoint — SQLite backup durability on Android (2026-11-13)
+
+- Branch: `phase-2/market-data-foundation`
+- Exact tested branch-head commit: `58594459ee60113e75ea3c4d908e1d56ac3eec4b`
+- Code changes:
+  - `47c6c736` — flush the SQLite snapshot file before atomic publication; fail closed on flush failure.
+  - `f2ba7bde` — flush the parent directory after atomic replacement; surface directory-flush failure instead of claiming confirmed durability.
+  - `3ec67dcb` and `58594459` — regression tests for snapshot flush failure, parent-directory flush invocation, and post-replacement directory-flush failure semantics.
+- Automated Tests & Build: [run 43407628746](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43407628746) — **success** for the exact branch-head commit. All 28 job steps completed successfully, including frontend unit tests/build, backend pytest, dependency audits, synthetic SQLite outbox benchmark, Docker build, Redis + persistent-volume container smoke test, Trivy image scan, and vulnerability-report export/upload.
+- CodeQL Security Analysis: [run 43407628566](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43407628566) — **success** for the same commit.
+- Owner-device smoke test: the owner pulled the exact branch head into Termux on Android and ran the SQLite backup helper. Observed `PRAGMA integrity_check = ok`, restored/read value `DEZZTA_OK`, and `ANDROID_BACKUP_TEST: SUCCESS`. This verifies the basic backup and directory-fsync path on that device/filesystem.
+- Scope limitation: the Android smoke test used a temporary local source and backup file; it is not the production-like application restore drill in criterion 30, a power-loss test, or an off-host restore. Criteria 30 and 31 remain external verification gates.
+- No paid service, provider credential, production deployment, or feature removal was introduced by this work.
+
+**Checklist accounting remains 30/40, with 10 external production verification gates outstanding.** The new Android smoke test and green CI/CodeQL runs strengthen repository/device evidence but do not close external deployment gates. Stage 1 remains **not production-accepted**.
