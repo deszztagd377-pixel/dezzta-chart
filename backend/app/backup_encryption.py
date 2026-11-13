@@ -49,10 +49,28 @@ def _temporary_file(destination: Path) -> tuple[int, Path]:
     return descriptor, Path(name)
 
 
+def _fsync_directory(directory: Path) -> None:
+    """Flush a directory entry update to stable storage on POSIX."""
+    flags = os.O_RDONLY
+    if hasattr(os, "O_DIRECTORY"):
+        flags |= os.O_DIRECTORY
+    descriptor = os.open(directory, flags)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
 def _publish_private_file(temporary: Path, destination: Path) -> None:
     if os.name == "posix":
         os.chmod(temporary, 0o600)
     os.replace(temporary, destination)
+    if os.name == "posix":
+        # The file contents are fsynced before this rename. Flush the parent
+        # directory as well so the published name is durable across a crash.
+        # If this fails, the destination may already be visible; durability is
+        # uncertain and the error must be surfaced to the caller.
+        _fsync_directory(destination.parent)
 
 
 def encrypt_backup_file(
