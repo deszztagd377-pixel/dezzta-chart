@@ -1671,3 +1671,32 @@ This audit does not change the installed APK on the owner's device and does not 
 - Overall project progress remains the historical **20.9%**; no new weighted calculation is asserted.
 - Indicator acceptance is unchanged. The full current matrix, calculation definitions, test evidence, user-visible gaps, SIMULATED Footprint restrictions, and owner-reference prerequisites remain in `docs/INDICATOR_DATA_ARCHITECTURE.md`. No indicator receives credit from APK signing or antivirus analysis.
 - No application runtime source, dependency, production credential, provider setting, paid service, or `main` branch was changed by this documentation record.
+
+
+## Stage 1 blocker audit — ten external gates (2026-11-13)
+
+A criterion-by-criterion review of `docs/STAGE_1_ACCEPTANCE_MATRIX.md` confirms that the remaining ten open criteria are **8, 20, 25, 30, 31, 34, 35, 36, 38, and 39**. They are not ten missing unit tests; each requires reproducible evidence from an actual owner-controlled operational environment.
+
+| Criterion | Required operational evidence | Current blocker |
+|---:|---|---|
+| 8 | Host-side secret injection and leakage review | No production host configuration inspected |
+| 20 | Real Firebase sign-in, expiry/revocation, entitlement, browser and Android flows | No authorized real-project E2E on a verified no-billing configuration |
+| 25 | Self-hosted Redis TLS/ACL/private binding/persistence/failure test | No operational Redis host tested |
+| 30 | Production-like backup restore with application records | Prior SQLite helper/isolated smoke evidence is not a complete production-like drill |
+| 31 | Encrypted off-host backup, separate key custody, recovery and retention test | Termux Google Play package/keyring mismatch blocks the required `cryptography>=50,<51` dependency on-device; no verified second-device recovery drill |
+| 34 | Host persistent-volume ownership, restart and disk-pressure test | No operational host volume inspected |
+| 35 | HTTPS backend deployment and secret injection | No existing owner-controlled deployment endpoint verified |
+| 36 | Browser and Android WSS through a reverse proxy | Depends on the unverified host/proxy deployment |
+| 38 | Protected metrics/logs, bounded retention and dashboard | No self-hosted operational monitoring instance verified |
+| 39 | Observed alert, acknowledgement, escalation and recovery exercise | No operational alert path demonstrated |
+
+### Constraint resolution
+
+- ZERO MONEY remains mandatory. Do not create paid/trial infrastructure or enable billing to force completion.
+- Do not substitute local CI for production deployment evidence, or weaken authentication, TLS, backup encryption, or monitoring controls.
+- The Termux blocker remains safely contained: keep the original working repository source; do not bypass APT signature checks, install the incompatible 48.0.1 package, lower the backend dependency, or change the AES-GCM/PBKDF2 design.
+- This audit does not close any of the ten gates and awards no progress percentage. Stage 1 remains **30/40 = 75.00% provisional**; overall project progress remains the historical **20.9%**, not a new weighted calculation.
+
+### Indicator progress
+
+No indicator code or acceptance evidence changed in this audit. The complete indicator matrix, formulas, warm-up/index alignment, test evidence, UI acceptance gaps, Footprint SIMULATED-only boundary, and Heatmap/Liquidation Maps owner-reference gates remain in `docs/INDICATOR_DATA_ARCHITECTURE.md`. No indicator progress is awarded for Stage 1 blocker analysis.
