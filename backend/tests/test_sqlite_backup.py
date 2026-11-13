@@ -220,7 +220,9 @@ def test_application_ohlcv_and_replay_outbox_survive_fresh_database_restore(tmp_
 
     source = tmp_path / "application-live.sqlite3"
     snapshot = tmp_path / "application-snapshot.sqlite3"
-    restored = tmp_path / "fresh-restore" / "application.sqlite3"
+    restore_directory = tmp_path / "fresh-restore"
+    restore_directory.mkdir()
+    restored = restore_directory / "application.sqlite3"
 
     original = OhlcvBar(
         provider="databento",
