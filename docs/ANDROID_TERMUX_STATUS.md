@@ -116,3 +116,35 @@ Use the interactive `termux-change-repo` utility to change **Main repository onl
 Do not run a broad package upgrade as part of this diagnostic step. First confirm that the candidate for `python-cryptography` is in the project's required range `>=50,<51`. If the candidate remains incompatible, stop and capture the exact repository/source output for further diagnosis. Never install 48.0.1, lower the project requirement, or change the encryption implementation as a workaround.
 
 No device package was installed and no application source/dependency was changed by this diagnosis. The encryption gate remains open until the exact project interpreter imports a compatible package and all encrypted-backup acceptance tests pass.
+
+## Owner-reported Google Play Termux repository/keyring resolution — 2026-11-13
+
+This section supersedes the earlier instruction in this document to use `termux-change-repo` and switch the Google Play installation to the upstream Main repository.
+
+Exact device evidence reported by the owner:
+
+- Termux build: `googleplay.2026.10.09`.
+- Android: 15; ABI: `aarch64`; device: Infinix X6871.
+- `termux-tools`: 3.0.9; `termux-keyring`: 3.15.
+- `termux-change-repo` is absent from the installed `termux-tools` package.
+- The installed keyring file `$PREFIX/share/termux-keyring/termux-packages.gpg` is 219 bytes and is symlinked into `$PREFIX/etc/apt/trusted.gpg.d/`.
+- The Google Play build's original configured source was `https://termux.net`; `pkg update` succeeds against it.
+- Its package index offers `python-cryptography 48.0.1-1`, which does not satisfy `cryptography>=50,<51`.
+- Manually changing the source to `https://packages.termux.dev/apt/termux-main` produced `NO_PUBKEY 5A897D96E57CF20C`; APT correctly rejected the repository metadata. The owner restored the original `https://termux.net` source from a saved backup, and `pkg update` again succeeded.
+- The saved original source configuration is outside APT's source directory at `$HOME/termux.sources.original-backup`.
+
+A matching public report in `termux-play-store/termux-issues#1642` describes the same Google Play build, Android 15, aarch64, `termux-tools 3.0.9`, `termux-keyring 3.15`, 219-byte keyring, and missing key ID. The report explains that the Play Store keyring contains the Play repository signing key but not the upstream `termux-autobuilds` key required by `packages.termux.dev`. This is a build/repository signing-key mismatch, not evidence that the owner's keyring file is corrupt.
+
+### Corrected decision
+
+- Keep the currently working Google Play Termux installation and its original `https://termux.net` source for now.
+- Do not run `termux-change-repo`; it is absent in this installation.
+- Do not switch this build to `packages.termux.dev` unless a compatible signed keyring/update is officially provided for this Play build.
+- Never bypass APT signature checks, import an unverified key, or install packages from an unauthenticated source.
+- Do not install `python-cryptography 48.0.1-1` and do not lower `backend/requirements.txt` or alter the AES-GCM/PBKDF2 design.
+- The native encrypted-backup test gate remains blocked. SQLite-only backup tests remain passed evidence but are not encryption acceptance.
+- Any migration to a different Termux distribution would require a separately reviewed, verified backup/restore plan. No migration, uninstall, app-data clearing, or project deletion is authorized by this checkpoint.
+
+## Owner product constraint — ZERO COST
+
+The owner requires a ZERO COST direction for DEZZTA CHART. Prefer free/open-source tooling and a build/install/use workflow that does not depend on paid hosting, paid market-data subscriptions, paid APIs, or Play Store publication fees. Do not introduce paid infrastructure or services without explicit owner approval. The immediate product target is an installable APK on the owner's phone; Google Play publication is deferred until the owner explicitly decides to pursue it. Clearly disclose any unavoidable cost and investigate a genuinely free alternative before proposing a paid dependency.
