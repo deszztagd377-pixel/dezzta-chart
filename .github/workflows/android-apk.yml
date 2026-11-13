@@ -1,4 +1,5 @@
 name: DEZZTA CHART - Android APK Build (zero-cost CI)
+# Manual dispatch and branch updates to this workflow can produce a fresh, traceable debug APK artifact.
 
 on:
   workflow_dispatch:
