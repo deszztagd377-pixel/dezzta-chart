@@ -22,8 +22,9 @@ def create_consistent_sqlite_backup(
 
     The destination is first written to a temporary file in the destination
     directory, checked with PRAGMA integrity_check, restricted to owner-only
-    permissions where supported, and then atomically replaced. A failed
-    backup leaves any previous destination file untouched.
+    permissions where supported, flushed to storage on POSIX, and then
+    atomically replaced. A failed backup leaves any previous destination file
+    untouched.
     """
     if not isinstance(pages, int) or isinstance(pages, bool) or pages < 1:
         raise ValueError("pages must be a positive integer.")
@@ -69,8 +70,11 @@ def create_consistent_sqlite_backup(
 
         if os.name == "posix":
             # Backups contain application data: never publish a POSIX snapshot
-            # if owner-only permissions cannot be applied.
+            # if owner-only permissions cannot be applied or the completed
+            # database file cannot be flushed before its atomic publication.
             os.chmod(temporary, 0o600)
+            with temporary.open("rb") as backup_file:
+                os.fsync(backup_file.fileno())
         os.replace(temporary, destination)
         return destination
     finally:
