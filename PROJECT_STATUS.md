@@ -2,7 +2,7 @@
 
 > **Progress-history correction (2026-11-05):** The owner clarifies that conversational checkpoints progressed from **20.3% to 20.9%**. The older **19.60%** remains a historical formal estimate, not a later regression. **19.9% is not a verified calculation.** Do not publish a fresh overall percentage until the milestone ledger reconciles these records.
 
-Last audited: 2026-11-10
+Last audited: 2026-11-13
 Repository: deszztagd377-pixel/dezzta-chart
 Baseline branch: main
 Baseline main HEAD: e3841681bc69b73619058deaf939df82ae5116a1
@@ -693,3 +693,14 @@ This section supersedes older status summaries in this file where they conflict 
 - Indicator state is fully documented in `docs/INDICATOR_DATA_ARCHITECTURE.md`: SMA/EMA/RSI/MACD/Bollinger calculation foundations are tested but not wired to visible chart controls/panes/overlays; the shared indicator hook has no visible controls; Footprint is SIMULATED educational aggregation only; Heatmap and Liquidation Maps are unimplemented. No indicator progress is awarded for APK build, installation, or static security review.
 - Latest documentation commit Vercel statuses: `3e5cf784c8ad75dd7c0a93973d6a49e8fc0a068e` and `4ab240cefc0f1fbc7ccecaf92d00095ebb01de60` both report Vercel success. This is not a new full CI/CodeQL run, and must not be described as one.
 - No application source, dependency manifest, production secret, provider configuration, paid service, or `main` branch was changed by this reconciliation.
+
+
+## Latest Stage 1 blocker audit — 2026-11-13
+
+- Current working branch HEAD: `f82d1f8c38c7d0e70ea3fa75d40907d9260fcca6`.
+- Vercel status on this exact HEAD: **success**.
+- No Automated Tests or CodeQL status is attached to this exact documentation HEAD. The latest recorded full source CI/CodeQL evidence remains the prior exact source checkpoint `f7728136a480925bca11feb51b56f3b59b67bbf6`; comparison shows the commits since that checkpoint changed documentation and one Android workflow comment only, not application source. Do not call the current HEAD a newly CI/CodeQL-verified commit.
+- Stage 1 remains **30/40 = 75.00% provisional**. The ten open criteria are exactly **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**. All require real owner-controlled operational evidence; local CI, docs, APK build, or an isolated test cannot substitute.
+- The ZERO MONEY policy forbids purchasing or activating hosting, managed Redis, paid Firebase, market-data feeds, backup storage, monitoring, domains/CDN, or paid alerts. Any criterion that cannot be safely exercised on existing owner-controlled resources remains constrained/deferred rather than waived or misrepresented.
+- The Termux Google Play repository/keyring mismatch remains unresolved: the configured source offers `python-cryptography 48.0.1-1`, below the backend's `cryptography>=50,<51`; the upstream repository is rejected with `NO_PUBKEY 5A897D96E57CF20C`. Preserve the working repository and do not bypass APT signature verification, lower the dependency, or alter AES-GCM/PBKDF2.
+- Indicator acceptance is unchanged and remains fully detailed in `docs/INDICATOR_DATA_ARCHITECTURE.md`. No indicator completion credit is assigned for this audit.
