@@ -43,6 +43,7 @@ def _calendar_payload():
                 "kind": "closed",
                 "open_local": None,
                 "close_local": None,
+                "segments": [],
             },
         ],
     }
