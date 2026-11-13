@@ -1749,3 +1749,20 @@ Implementation HEAD at this checkpoint: \`733663c73669c10b695e6b455794d2f8f1d2c3
 - CI and settings-representation tests do not prove that production secrets are injected securely or never logged by a host/runtime.
 
 **Criterion 8 remains open / external verification required.** This work strengthens repository-side defense in depth only. It does not close Stage 1 criterion 8 or award Stage 1/overall project progress. Keep Stage 1 at **30/40 = 75.00% provisional** and overall progress at the historical **20.9%**; no fresh weighted percentage is calculated.
+
+
+### Criterion 8 — exact implementation CI result (2026-11-13 correction)
+
+The implementation commit \`733663c73669c10b695e6b455794d2f8f1d2c3b8\` was re-run after an earlier concurrency cancellation. The final attempt completed successfully:
+
+- Automated Tests & Build [run #43449331315, attempt 2](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43449331315): **success**.
+- CodeQL [run #43449331425](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43449331425): **success** for JavaScript/TypeScript and Python.
+- Frontend source scan: **74 files checked**, passed before bundling.
+- Production bundle scan: **3 files checked**, passed after bundling.
+- Frontend scanner regression tests and Android host preflight tests passed.
+- Backend suite: **780 passed in 24.40s**, including the expanded sensitive-settings representation test.
+- Frontend build, dependency audits, synthetic SQLite outbox benchmark, backend container build, Redis/persistent-volume smoke test, and HIGH/CRITICAL container vulnerability scan all passed.
+
+The CI run was executed against the exact implementation/test/workflow commit above. Later commits in the same branch only appended acceptance/progress/indicator documentation; they did not alter the tested application or scanner source.
+
+**Acceptance boundary unchanged:** green CI and CodeQL establish repository-side checks only. They do not verify production host secret injection, runtime/build logs from a deployed host, GitHub secret-scanning settings/alert inventory, or the full reachable Git history. Criterion 8 therefore remains **open / external verification required**. No Stage 1 or overall progress credit is awarded.
