@@ -1429,3 +1429,29 @@ See [ANDROID_TERMUX_STATUS.md](./ANDROID_TERMUX_STATUS.md) for the full evidence
 - Native Termux backend startup, complete backend tests on-device, SQLite restart persistence, Redis behavior, WebSocket/client connectivity, and Android background/recovery behavior remain unverified.
 - **Termux support is incomplete and not accepted.** Docker CI on Python 3.12 Alpine is not a substitute for Android/Bionic validation.
 - No percentage increase is awarded for this documentation audit. Stage 1 remains at its last recorded **75.00% provisional** and is not complete.
+
+
+---
+
+## Exact-HEAD verification follow-up — 2026-11-13
+
+Audited documentation/source HEAD: `b4a9a742a2a34bcd621a5a1f87efea7bd3ab01cf` on `phase-2/market-data-foundation`.
+
+- Automated Tests [#43419202810](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43419202810): **success** on this exact HEAD; all job steps and cleanup completed.
+- Frontend: **26 test files / 211 tests passed**. The indicator calculation suite passed **7 tests**; simulated Footprint core passed **8 tests**, and Footprint fixture tests passed **4 tests**. These are calculation/simulation tests, not chart-rendering acceptance.
+- Backend: **776 tests passed** on CI Python 3.12.16; backend dependency audit reported no known vulnerabilities; Docker image build, isolated Redis/shared-guard + persistent-volume smoke, container scan, and vulnerability-report export/upload all completed successfully.
+- CodeQL [#43419202809](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43419202809): **success** on the same exact HEAD.
+- No indicator UI was added by this verification. SMA/EMA/RSI/MACD/Bollinger calculations and Footprint simulation remain as recorded above; visible controls, overlays/panes, Heatmap, and Liquidation Maps remain incomplete.
+- This exact-HEAD CI result closes the pending automated verification item for the recorded indicator calculation/simulation test files. It does not close live-data, UI, or visual acceptance.
+- No progress percentage is increased from CI-only evidence. Stage 1 remains **75.00% provisional**; overall project progress remains at the last approved/historical **20.9%** checkpoint.
+
+## Termux native test evidence update — 2026-11-13
+
+The earlier Termux status entry is refined by later user-reported device results:
+
+- Python 3.13.13 and pytest 9.2.0 were present in the latest reported test session.
+- SQLite backup-focused tests passed **15/15**. Native backup/restore reported `INTEGRITY: ok`, `RESTORED_DATA: 6012.125`, `BACKUP_RESTORE_PASS`; file permission was `0o600`.
+- The encrypted-backup tests remain blocked because the project interpreter cannot import `cryptography`. Do not describe SQLite-only backup tests as encryption tests.
+- Official Termux package recipe `python-cryptography` version 50.0.2 satisfies the project's declared `cryptography>=50,<51` requirement and is the preferred native packaging route. Device repository availability and import under the project interpreter remain unverified.
+- Native full backend startup, Redis/WebSocket, frontend connection, and Android process-restart/background validation remain open. Termux support is **not yet accepted**.
+- No Stage 1 or overall percentage increase is assigned from these focused tests or documentation work.

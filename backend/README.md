@@ -225,3 +225,12 @@ For deployment, mount a persistent volume at the configured database path.
 An ephemeral container filesystem will lose its database when the instance is
 replaced. This adapter is intended for a single backend instance; review
 \`docs/PERSISTENT_INSTRUMENT_REGISTRY.md\` before production deployment.
+
+
+## Android / Termux compatibility
+
+Termux is an Android/Bionic environment and is not equivalent to the Linux container used by CI. For native Termux use, install platform-native Python dependencies through the official Termux package repository where available. In particular, the backend requires `cryptography>=50,<51`; the official Termux `python-cryptography` package recipe currently declares version 50.0.2 and includes Android-specific Rust/Python linking configuration.
+
+Prefer the Termux-maintained `python-cryptography` package over attempting a generic PyPI source build on-device. Verify that the installed package version satisfies the backend requirement and that the exact interpreter used to run the project can import `cryptography`. A standard isolated virtual environment does not automatically expose packages installed into Termux's system Python; if using a virtual environment, its system-site-package visibility must be configured intentionally. Do not relax the encryption dependency or replace AES-GCM with a weaker or custom implementation to work around installation issues.
+
+The native SQLite backup helper can be tested independently of encryption, but a successful SQLite snapshot/restore does not certify encrypted backup support. See [Android/Termux readiness](../docs/ANDROID_TERMUX_STATUS.md) for the current device evidence and acceptance gates.

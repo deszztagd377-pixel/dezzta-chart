@@ -10,7 +10,24 @@ Source HEAD before this documentation checkpoint: `a3e920d6ab49967b073c40d5181d7
 
 The user's previously reported Termux environment showed OpenSSL 3.6.3 and a Python 3.13 environment where the backend encryption test module could not be collected because the `cryptography` package was unavailable. That result identifies an unresolved Python dependency/runtime compatibility gate; it does not establish that OpenSSL itself is broken.
 
-## Evidence already present
+## Corrected device evidence — 2026-11-13
+
+The following later device results supersede the earlier incomplete preflight snapshot:
+
+- Termux Python: **3.13.13**.
+- Pytest: **9.2.0** was present in the latest reported device test session.
+- SQLite backup-focused test suite: **15/15 passed**.
+- Native SQLite backup/restore smoke: `INTEGRITY: ok`, `RESTORED_DATA: 6012.125`, `BACKUP_RESTORE_PASS`.
+- Backup file permission check: `0o600`; backup exists and restored data check passed.
+- `cryptography` remained unavailable to the Python interpreter in the reported preflight, and importing `app.backup_encryption` failed with `ModuleNotFoundError: No module named 'cryptography'`. Consequently, the encrypted-backup test module could not be collected. The successful SQLite-only tests do not test AES-GCM encryption.
+
+### Verified Termux package integration path
+
+The official `termux/termux-packages` repository's `packages/python-cryptography/build.sh` currently declares package version **50.0.2**, which satisfies this project's `cryptography>=50,<51` requirement. Its build recipe performs Termux-specific Rust target configuration, uses Termux's Python/OpenSSL paths, and adds the Termux Python shared library dependency to the Rust extension. This is materially different from a generic PyPI source build.
+
+Therefore, the preferred compatibility path is the official Termux package-manager build of `python-cryptography`, not an unverified pip source compilation. This is a verified upstream packaging route, **not proof that version 50.0.2 is already available in the user's configured mirror or installed on the device**. After the package is present, the same Python interpreter used for the project must be able to import it. An isolated virtual environment will not automatically see a system package unless it is deliberately configured to expose system site-packages.
+
+
 
 | Area | Evidence | Status |
 |---|---|---|
@@ -48,3 +65,12 @@ The Python requirement currently includes `cryptography>=50,<51`. Compatibility 
 - **Termux support overall:** **INCOMPLETE / NOT ACCEPTED**.
 
 No user device command is required for this documentation checkpoint. No package installation, production secret, paid provider, or production infrastructure was changed.
+
+## Updated decision after native-device evidence
+
+- SQLite backup/restore core on the user's Termux device: **15/15 focused tests passed**; native integrity/data/permission smoke passed.
+- Python 3.13.13 and pytest 9.2.0 were available in the latest reported session.
+- Encrypted backup remains blocked specifically by the missing `cryptography` import; encryption tests were not collected and must not be counted as passing.
+- Upstream official Termux packaging now provides a concrete, version-compatible route: `python-cryptography` recipe version 50.0.2 satisfies `cryptography>=50,<51`. The device's configured repository availability and successful import remain to be confirmed.
+- Next validation is narrowly scoped: confirm the package-manager-provided module is visible to the exact project interpreter, then run the encrypted-backup tests and verify AES-GCM round-trip, wrong-passphrase/tamper rejection, and private permissions on-device. No encryption fallback or weakened dependency range is accepted.
+- Full native backend startup, Redis/WebSocket, client connectivity, and Android background/restart behavior remain open.
