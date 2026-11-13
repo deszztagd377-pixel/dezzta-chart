@@ -96,3 +96,23 @@ This narrows the blocker: it is not an OpenSSL header/linker discovery issue and
 - After a compatible package is available, validate import using the exact interpreter/environment that runs the project, then run `backend/tests/test_backup_encryption.py`. Only a passing AES-GCM round-trip, wrong-passphrase rejection, ciphertext-tamper rejection, atomic-publication behavior, and private-permission checks close this dependency gate.
 
 No source code, dependency constraint, encryption format, or device package was changed by this observation. Termux native backend support remains **INCOMPLETE / NOT ACCEPTED**.
+
+## Confirmed repository-source mismatch — 2026-11-13 (after package-index refresh)
+
+The owner ran `pkg update` successfully and then queried the package metadata again. The output still showed:
+
+- Active APT source: `https://termux.net stable`.
+- Package candidate: `python-cryptography 48.0.1-1`.
+- APT reported all packages up to date.
+
+This is stronger evidence than the earlier stale-index hypothesis: the configured source itself is the legacy `termux.net` endpoint, while the current official Termux package mirror documentation lists `https://packages.termux.dev/apt/termux-main stable main` as the primary Main repository. The same documentation recommends using `termux-change-repo` to select a current Main mirror. See:
+- https://github.com/termux/termux-packages/wiki/Mirrors
+- https://github.com/termux/termux-packages/wiki/Package-Management
+
+### Next safe device action
+
+Use the interactive `termux-change-repo` utility to change **Main repository only** from the legacy `termux.net` source to the current official primary host `packages.termux.dev` (or a mirror explicitly listed by the official Termux Mirrors page). Do not manually guess or paste an unverified mirror URL. After selecting the source, refresh metadata and re-check the package candidate before installing anything.
+
+Do not run a broad package upgrade as part of this diagnostic step. First confirm that the candidate for `python-cryptography` is in the project's required range `>=50,<51`. If the candidate remains incompatible, stop and capture the exact repository/source output for further diagnosis. Never install 48.0.1, lower the project requirement, or change the encryption implementation as a workaround.
+
+No device package was installed and no application source/dependency was changed by this diagnosis. The encryption gate remains open until the exact project interpreter imports a compatible package and all encrypted-backup acceptance tests pass.
