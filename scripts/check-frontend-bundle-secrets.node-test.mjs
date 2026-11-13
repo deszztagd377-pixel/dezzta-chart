@@ -35,6 +35,7 @@ test('detects private key PEM material without returning its contents', async ()
     assert.equal(findings.length, 1);
     assert.equal(findings[0].pattern, 'private-key PEM block');
     assert.equal(findings[0].file, 'assets/app.js');
+    assert.equal(JSON.stringify(findings).includes('BEGIN PRIVATE KEY'), false);
   });
 });
 
@@ -45,6 +46,17 @@ test('detects backend-only credential identifiers', async () => {
     const findings = await scanFrontendBundle(directory);
     assert.equal(findings.length, 1);
     assert.equal(findings[0].pattern, 'backend-only credential identifier');
+  });
+});
+
+test('scans TypeScript and TSX source files before bundling', async () => {
+  await withBundle({
+    'components/Chart.tsx': 'const credential = "ghp_123456789012345678901234";',
+  }, async (directory) => {
+    const findings = await scanFrontendBundle(directory);
+    assert.equal(findings.length, 1);
+    assert.equal(findings[0].file, 'components/Chart.tsx');
+    assert.equal(findings[0].pattern, 'GitHub personal access token');
   });
 });
 
