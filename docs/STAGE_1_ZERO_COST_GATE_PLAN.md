@@ -77,3 +77,36 @@ Decision: owner-mandated ZERO MONEY. This plan is a constraint-resolution design
 All ten gates remain **OPEN / EXTERNAL VERIFICATION REQUIRED** until the evidence above exists on the actual owner-controlled environment. This plan does not increase the 30/40 checklist count and does not declare Stage 1 production accepted. A local CI pass, a written plan, or an open-source license is not proof of deployed operation or zero infrastructure cost.
 
 The 18 configured chart timeframes remain required, including 1-second. Provider/feed availability, licensing, latency, and history must be proven separately; no simulated or delayed feed may be represented as live.
+
+
+## Owner-confirmed device constraint and phone-only disposition — 2026-11-13
+
+**Authoritative owner environment:** one device only — Infinix GT20 (Android 15). The owner has no second phone, PC, or laptop. This is an existing constraint and must not be asked again. No new hardware, paid host, cloud trial, external storage purchase, or billing activation may be proposed as a prerequisite.
+
+The earlier candidate paths that assume "another existing owner-controlled host" or a "second device" are not available in the owner's current environment. The following phone-only classification supersedes those assumptions while preserving the original acceptance requirements; it does not waive or redefine production criteria.
+
+| Gate | What can be advanced with the single phone | What still prevents production acceptance |
+|---:|---|---|
+| 8 — secrets | Repository/frontend bundle/log scanning and local permission design can be reviewed from the phone/CI | No separately operated production host with an audited OS secret-injection mechanism |
+| 20 — Firebase | Browser and Android client paths can both be exercised on the same phone if an already-existing no-billing Firebase project and test identities are available | No verified no-billing project plus actual backend deployment/token-revocation path is evidenced; never enable billing to obtain it |
+| 25 — Redis | CI already exercises Redis-backed Lua limits and fail-closed behavior; additional isolated integration coverage can be added in CI | No stable, independently operated Redis host on the phone; one Android device cannot prove host-level failover/high availability. Do not replace Redis with in-memory state |
+| 30 — restore drill | **Best phone-only candidate.** SQLite Online Backup API uses Python/SQLite standard library and can restore to a fresh path on the same phone. Existing evidence includes SQLite integrity/readback smoke and CI application-record restore tests | Need one consolidated owner-device report covering representative application records, fresh-database restore, integrity, and post-restore reads. Same-device restore is not off-host disaster recovery |
+| 31 — encrypted off-host backup | Encryption design and CI tests can be reviewed; the current Android backup encryption dependency remains documented | Off-host copy and independent key recovery cannot be demonstrated with only one device and no verified existing external destination. Termux Play Store package/keyring mismatch also blocks cryptography>=50,<51 on-device |
+| 34 — persistent volume | Android app-private/Termux storage can be tested for persistence across process restarts | Android app storage is not equivalent to a separately mounted production host volume with host-level ownership, disk-pressure and recovery controls |
+| 35 — HTTPS backend | A loopback-only backend/TLS experiment can be designed for same-device testing | No verified production host, public HTTPS endpoint, or trusted deployment certificate/renewal path |
+| 36 — WSS proxy | Same-phone local client/proxy tests may be possible after a reviewed local proxy topology exists | No production reverse-proxy endpoint and no external host restart/network evidence |
+| 38 — monitoring | Bounded local logs/metrics and a local dashboard can be developed/tested on the phone or in CI | No independent monitoring host/operator path; same-device dashboard is not external production monitoring |
+| 39 — alerts | Local alert records and a manual on-device acknowledgement workflow can be tested | No independently reachable operator delivery/escalation channel is evidenced; push/notification delivery remains deferred to its planned stage |
+
+### Phone-only execution order
+
+1. Advance criterion 30 first using the existing SQLite standard-library backup path. Keep encrypted/off-host recovery (criterion 31) separate; do not make it a prerequisite for testing unencrypted local restore.
+2. Continue CI-only hardening for Redis ACL/TLS/failure behavior and backend secret-leak checks without pretending ephemeral CI resources are production hosts.
+3. Design a loopback-only HTTPS/WSS experiment only if it can be implemented and validated without changing the production fail-closed requirements or introducing a major unapproved UI change.
+4. Treat criteria 8, 20, 25, 31, 34, 35, 36, 38 and 39 as constrained for production acceptance until the missing host, account, storage or operator evidence exists. Their local subtests may improve confidence but do not close production gates.
+
+### Explicit decision boundary
+
+The owner wants Stage 1 completed at zero cost, but the current 40-item matrix defines production/operational acceptance. With one Android phone and no PC/second device, **a truthful 40/40 production-acceptance result is not currently achievable** unless an already-available, genuinely zero-cost external resource is independently verified. Do not fabricate a second host, reinterpret CI as production, lower security controls, or change the 40-item definition to force 100%.
+
+A separate owner-approved decision could later redefine Stage 1 as a phone-only development/demo milestone, but that would be a scope change and must not be presented as the existing production Stage 1 being complete. No such scope change is assumed here.
