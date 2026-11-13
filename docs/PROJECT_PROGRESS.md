@@ -1468,3 +1468,38 @@ Audited commit: `da7d000d789bdb445f0c551b7879beed89e5e7d4` on `phase-2/market-da
 - Android host preflight remains a read-only inventory and its automated test passed. It does not install or prove `cryptography` on the user's Termux interpreter.
 - No source code changed in this CI verification; no production infrastructure, credentials, or paid market-data provider was touched. `main` was not changed.
 - Stage 1 remains **75.00% provisional** and overall project progress remains at the last historical **20.9%** checkpoint. CI success alone does not satisfy the outstanding production or native-device acceptance gates.
+
+
+## Latest continuation checkpoint — 2026-11-13
+
+Working branch: `phase-2/market-data-foundation` (do not modify `main`).
+
+### Newly confirmed Termux blocker
+
+The latest owner-reported Termux package query returns `python-cryptography` **48.0.1-1**, while `backend/requirements.txt` requires `cryptography>=50,<51`; the project interpreter still cannot import `cryptography`. This is a concrete repository-candidate mismatch, not an OpenSSL failure and not a SQLite backup failure. Installing 48.0.1 or lowering the dependency range is not accepted. The next safe action is to refresh package indexes and verify the configured mirror exposes a compatible 50.x package; if it does not, resolve the stale mirror/repository before installation. Full details and acceptance checks are recorded in `docs/ANDROID_TERMUX_STATUS.md`.
+
+### Indicator progress documentation
+
+`docs/INDICATOR_DATA_ARCHITECTURE.md` now contains the complete indicator acceptance matrix and latest available test evidence. The audited state remains:
+
+- SMA 20, EMA 20, RSI 14 Wilder, MACD 12/26/9, and Bollinger Bands 20,2: calculation foundations implemented and unit-tested; visible chart controls/rendering/panes/legends/transition acceptance remain incomplete.
+- Shared indicator hook: exact validated backend series only; no DEMO fallback; visible controls and rendering integration remain incomplete.
+- Footprint: synthetic educational simulation only, marked SIMULATED; visual layout, owner reference image, approved blueprint, and live order-flow source remain unimplemented.
+- Heatmap and Liquidation Maps: not implemented; owner reference images and reviewed blueprints remain prerequisites.
+
+Latest inspected workflow evidence: frontend 26 files / 211 tests passed, including 7 indicator calculation tests, 8 Footprint core tests, and 4 Footprint fixture tests; backend 776 tests passed. These tests do not constitute visible indicator UI or Android-native acceptance.
+
+### Progress percentages and release gate
+
+- Stage 1 remains **75.00% provisional**, not complete, pending its remaining acceptance gates.
+- Overall project progress remains the last owner-confirmed historical checkpoint **20.9%**; a freshly reconciled weighted percentage is still not established because the proposed milestone ledger has not been approved and scored criterion-by-criterion.
+- No percentage increase is awarded for this documentation work, test-count totals, or commit count.
+- The major UI expansion gate remains **40% overall**, with a scoped blueprint and owner review required before major implementation.
+
+### Files updated in this continuation
+
+- `docs/ANDROID_TERMUX_STATUS.md` — records the exact 48.0.1-1 package candidate and the safe corrective decision.
+- `docs/INDICATOR_DATA_ARCHITECTURE.md` — records detailed acceptance states and latest inspected CI test totals.
+- `docs/PROJECT_PROGRESS.md` — records the current blocker, indicator status, and unchanged progress accounting.
+
+No source code, dependency constraints, encryption algorithm, production credentials, or production infrastructure were changed. `main` was not modified.
