@@ -13,7 +13,7 @@ from app.session_calendar_runtime import load_session_calendar_runtime
 
 def _calendar_payload():
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "calendar_id": "CME_EQUITY_INDEX",
         "version": "2026.11.1",
         "product_family": "ES",
@@ -31,6 +31,12 @@ def _calendar_payload():
                 "kind": "regular",
                 "open_local": "2026-11-01T17:00:00",
                 "close_local": "2026-11-02T16:00:00",
+                "segments": [
+                    {
+                        "start_local": "2026-11-01T17:00:00",
+                        "end_local": "2026-11-02T16:00:00",
+                    }
+                ],
             },
             {
                 "trading_date": "2026-11-03",
