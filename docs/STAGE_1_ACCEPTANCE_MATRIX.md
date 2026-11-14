@@ -651,3 +651,16 @@ The durable trigger outbox now supports worker-safe leasing and controlled retry
 ### Criterion 39 — lease-expiry acknowledgement correction (2026-11-14)
 
 A review of the delivery lease lifecycle found that a worker holding an expired lease could still acknowledge or reschedule an event if no replacement worker had claimed it yet. The acknowledgement and reschedule operations now require the caller's current timestamp and update only rows whose lease expiry is strictly later than that timestamp. Regression coverage checks the expiry boundary both before and after lease reclamation. This closes a stale-worker state-transition gap in the outbox primitive only; it does not provide a delivery worker or end-to-end notification. Criterion 39 remains open.
+
+
+### Gate 10 audit update — CI reconciliation and backup runtime constraint (2026-11-14)
+
+Exact audited code HEAD: `1b1db514f8250d4d833a4cd913d1f3abe4b227ee` on `phase-2/market-data-foundation`.
+
+- Automated Tests run [43598781643](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43598781643): **SUCCESS**; all job steps completed, including backend tests, frontend tests/build, secret scans, Android preflight, dependency audits, SQLite outbox benchmark, container build, Redis/shared-guard and persistent-volume restart smoke test, and image scan.
+- CodeQL [43598781648](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43598781648): **SUCCESS** for Python and JavaScript/TypeScript.
+- Full Git History Secret Audit [43598781686](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43598781686): **SUCCESS**.
+
+**Criterion 31 correction/clarification:** source and tests confirm AES-256-GCM + PBKDF2-HMAC-SHA256 backup encryption and authenticated recovery behavior; the recovery guide already requires offline separate passphrase custody. The outstanding requirements are real owner-controlled key custody, independent zero-cost off-host destination, retention/access enforcement, and an actual restore exercise. The tested Termux Python environment lacks `cryptography`; available package candidate 48.0.1 conflicts with the declared `cryptography>=50,<51` requirement. Do not downgrade, bypass signature verification, or alter package repositories/keyrings. Device encryption acceptance remains blocked until a compatible and verifiable runtime is available.
+
+The CI results are repository evidence only and do not close any external criterion. Stage 1 remains 30/40 criteria = 300/400 ticks = 75% provisional; criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain OPEN. Gate 10 remains 0/10 officially closed. Stage 2–6 remain NOT SCORED; overall 20.90% remains historical only. ZERO COST remains mandatory.
