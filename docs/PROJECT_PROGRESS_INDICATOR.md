@@ -323,8 +323,17 @@ Criterion 30 remains OPEN until the actual application database on the target de
 | Stage 5 — Professional UI & Interactive Tools | Not officially opened | **NOT SCORED** |
 | Stage 6 — Hardening, Validation & APK Release | Not officially opened | **NOT SCORED** |
 
-Stage 1 formula remains (30\times10=300\) earned ticks out of (40\times10=400\), so (300/400\times100=75\%\). Each fully accepted criterion is worth 10 ticks; no partial ticks are awarded. Open criteria remain **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39**.
+Stage 1 formula remains: `30 × 10 = 300`; `40 × 10 = 400`; `(300 ÷ 400) × 100 = 75%`. Each fully accepted criterion is worth 10 ticks; no partial ticks are awarded.
 
 The overall-project figure remains the historical owner-confirmed checkpoint **20.90%**, not a fresh weighted calculation. The M1–M8 weighted ledger remains unapproved/unscored. No progress increase is awarded for documentation or green CI alone.
 
 The six-stage card layout, stage colors, status vocabulary, empty NOT SCORED bars, and separate overall checkpoint footer remain unchanged. This tracker remains documentation-only and is not an APK feature.
+
+
+## Gate 10 batch 3 — restore helper integration tests — 2026-11-14
+
+The full shared-application-database restore regression now calls `restore_consistent_sqlite_backup()` itself instead of manually copying the snapshot with SQLite's Backup API. It verifies both integrity and foreign-key checks before reopening registry, entitlement, alert, coverage, OHLCV and outbox stores and performing a post-restore write.
+
+Two additional regression cases cover (1) directory-flush failure after atomic publication, where the valid destination remains visible but durability uncertainty is reported, and (2) a competing process creating the destination immediately before hard-link publication, where the competing file must remain untouched.
+
+These are repository-side test improvements only. The exact-HEAD CI result is pending at this snapshot. Stage 1 remains **300/400 = 75% provisional**, all ten external criteria remain open, and Stage 2–6 remain NOT SCORED. No tick is awarded by test additions alone.

@@ -448,3 +448,12 @@ Exact-HEAD CI:
 This closes the repository-side test/CI subtask only. Criterion 30 remains **OPEN** until the actual owner-device application database is restored to a fresh destination, integrity and foreign-key checks pass, durable application domains are read back, and a post-restore write is verified on the restored copy. The source database must remain untouched.
 
 No criterion tick is awarded by this CI result. Stage 1 remains **300/400 = 75% provisional** with criteria **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39** open.
+
+
+## Gate 10 batch 3 — criterion 30 restore-helper regression refinement — 2026-11-14
+
+The full shared-application-database restore test now invokes `restore_consistent_sqlite_backup()` directly rather than manually copying the snapshot. It verifies integrity and foreign-key checks, reopens every durable application store, checks representative application records, and proves a post-restore write on the restored copy.
+
+Two additional tests cover directory-flush failure after publication and a competing process creating the destination immediately before atomic publication. The intended guarantees are tested: durability uncertainty is surfaced without pretending publication was rolled back, and a destination created by another process is never overwritten.
+
+Exact-HEAD CI is pending. Criterion 30 remains OPEN pending the actual owner-device restore report; no acceptance ticks are awarded by these repository tests alone.

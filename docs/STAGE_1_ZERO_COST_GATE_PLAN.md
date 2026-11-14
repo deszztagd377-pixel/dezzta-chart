@@ -332,3 +332,19 @@ No external criterion is closed and no acceptance ticks are awarded by CI alone.
 | 39 | OPEN | No-incremental-cost alert delivery, acknowledgement/escalation and incident recovery exercise |
 
 Stage 1 remains **300/400 = 75% provisional**. Stage 2 remains unopened. The next practical owner-device evidence target remains criterion 30; it must use a fresh destination and must never overwrite or delete the source database.
+
+
+## Gate 10 batch 3 — restore-helper integration coverage — 2026-11-14
+
+The full shared-application-database regression has been strengthened to invoke `restore_consistent_sqlite_backup()` directly. The same test now checks integrity and foreign-key consistency before reopening every durable store and verifying representative registry, entitlement, alert-zone, coverage/gap, OHLCV and outbox/replay records, followed by a post-restore write.
+
+Additional restore tests exercise directory-flush failure after publication and a competing destination appearing immediately before atomic hard-link publication. The expected behavior is explicit: report uncertain durability after publication without hiding the valid file, and never overwrite a competing destination.
+
+### Criterion 30 database-path discovery (repository evidence only)
+
+- `Settings.from_environment()` reads `INSTRUMENT_REGISTRY_DB_PATH`; its code default is `./data/instrument_registry.sqlite3`.
+- `create_app()` initializes the instrument registry, price-alert store, entitlements, OHLCV store and coverage tracker against that same configured path.
+- This identifies the intended shared SQLite database file, but **does not establish the resolved path on the owner's device**. The actual runtime environment variable, process working directory, file existence and owner-controlled application instance must be confirmed before a device restore drill. Never assume the repository default is the live device path.
+- No device command is required for this repository-side preparation. The restore drill must continue to use a fresh destination and preserve the source database.
+
+The two new tests and integration change are pending exact-HEAD CI. No external criterion is closed and no Stage 1 tick is awarded by this implementation alone.

@@ -323,6 +323,7 @@ def test_full_application_database_restore_preserves_all_shared_sqlite_domains(t
     from app.alert_store import SQLitePriceAlertStore
     from app.coverage_store import SQLiteCoverageTracker
     from app.entitlements import SQLiteInstrumentEntitlementStore
+    from app.sqlite_backup import restore_consistent_sqlite_backup
     from app.instrument_identity import CanonicalInstrument
     from app.instrument_registry import SQLiteInstrumentRegistry
     from app.ohlcv import OhlcvBar
@@ -392,11 +393,11 @@ def test_full_application_database_restore_preserves_all_shared_sqlite_domains(t
     assert ohlcv.outbox_high_water() == 1
 
     create_consistent_sqlite_backup(source, snapshot)
-    with sqlite3.connect(snapshot) as backup, sqlite3.connect(restored) as target:
-        backup.backup(target)
+    restore_consistent_sqlite_backup(snapshot, restored)
 
     with sqlite3.connect(restored) as database:
         assert database.execute("PRAGMA integrity_check").fetchone() == ("ok",)
+        assert database.execute("PRAGMA foreign_key_check").fetchall() == []
 
     # Reopen every store against the fresh restore; constructors must not
     # silently recreate missing records or depend on the original source file.
@@ -619,4 +620,64 @@ def test_restore_fails_closed_when_atomic_publication_is_unavailable(
         sqlite_backup.restore_consistent_sqlite_backup(snapshot, destination)
 
     assert not destination.exists()
+    assert list(tmp_path.glob(".restored.sqlite3.*.sqlite-restore.tmp")) == []
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX directory fsync is required")
+def test_restore_reports_directory_flush_failure_after_valid_restore_is_published(
+    tmp_path, monkeypatch
+):
+    from app import sqlite_backup
+
+    source = tmp_path / "source.sqlite3"
+    snapshot = tmp_path / "snapshot.sqlite3"
+    destination = tmp_path / "restored.sqlite3"
+    with sqlite3.connect(source) as database:
+        database.execute("CREATE TABLE sample (value INTEGER)")
+        database.execute("INSERT INTO sample VALUES (11)")
+    create_consistent_sqlite_backup(source, snapshot)
+
+    def deny_directory_flush(directory):
+        raise OSError("restore directory flush failed")
+
+    monkeypatch.setattr(sqlite_backup, "_fsync_directory", deny_directory_flush)
+
+    with pytest.raises(OSError, match="restore directory flush failed"):
+        sqlite_backup.restore_consistent_sqlite_backup(snapshot, destination)
+
+    # Publication precedes directory fsync. The helper must surface uncertain
+    # crash durability while preserving the valid, already-published restore.
+    assert destination.is_file()
+    with sqlite3.connect(destination) as database:
+        assert database.execute("PRAGMA integrity_check").fetchall() == [("ok",)]
+        assert database.execute("SELECT value FROM sample").fetchone() == (11,)
+    assert list(tmp_path.glob(".restored.sqlite3.*.sqlite-restore.tmp")) == []
+
+
+def test_restore_does_not_overwrite_destination_created_before_atomic_publication(
+    tmp_path, monkeypatch
+):
+    from app import sqlite_backup
+    from pathlib import Path
+
+    source = tmp_path / "source.sqlite3"
+    snapshot = tmp_path / "snapshot.sqlite3"
+    destination = tmp_path / "restored.sqlite3"
+    with sqlite3.connect(source) as database:
+        database.execute("CREATE TABLE sample (value INTEGER)")
+        database.execute("INSERT INTO sample VALUES (12)")
+    create_consistent_sqlite_backup(source, snapshot)
+
+    original_link = sqlite_backup.os.link
+
+    def create_competing_destination(source_name, destination_name):
+        Path(destination_name).write_bytes(b"created-by-competing-process")
+        return original_link(source_name, destination_name)
+
+    monkeypatch.setattr(sqlite_backup.os, "link", create_competing_destination)
+
+    with pytest.raises(FileExistsError):
+        sqlite_backup.restore_consistent_sqlite_backup(snapshot, destination)
+
+    assert destination.read_bytes() == b"created-by-competing-process"
     assert list(tmp_path.glob(".restored.sqlite3.*.sqlite-restore.tmp")) == []

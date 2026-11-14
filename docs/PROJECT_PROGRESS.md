@@ -2165,3 +2165,10 @@ Criterion 30 remains OPEN until the actual application database on the target de
 - Stages 2–6 remain **NOT SCORED / not officially opened**.
 - Overall project progress remains at the historical owner-confirmed **20.90% checkpoint**; a fresh weighted score is not established because the M1–M8 model remains unapproved and unscored.
 - Termux remains on its known-good Google Play repository configuration. No device command or package operation is required by this repository-side cycle.
+
+
+## Gate 10 batch 3 — restore validation refinement — 2026-11-14
+
+The shared application database restore regression now uses the production restore helper directly and checks both SQLite integrity and foreign-key consistency before validating all durable domains. Two additional tests cover post-publication directory-flush failure and a competing destination race. The exact-HEAD CI run is pending.
+
+No progress percentage or Stage 1 tick is awarded by this code/test change alone. Stage 1 remains **300/400 = 75% provisional** with criteria **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39** open. Stages 2–6 remain NOT SCORED. The overall project remains at the historical owner-confirmed **20.90%** checkpoint; no new weighted score is established.
