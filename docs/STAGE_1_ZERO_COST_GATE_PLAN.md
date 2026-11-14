@@ -360,3 +360,12 @@ No stage ticks change: Stage 1 is 300/400 = 75% provisional; all ten external cr
 ## Latest Gate 10 workflow reconciliation — 2026-11-14
 
 The documentation commit `cf7044922df3cac0d2e9a52679509ea0aa957a81` is now fully green on its exact HEAD: Automated Tests #43571570406, CodeQL #43571570477 and Full Git History Secret Audit #43571570418 — all **SUCCESS**. This removes the prior CI-in-progress blocker for the documentation update. It does not close an external gate or add Stage 1 ticks. The next acceptance work remains external evidence collection for the ten open criteria. Termux remains unchanged and needs no command.
+
+
+## Gate 10 batch 5 — repository checkpoint and next safe actions (2026-11-14)
+
+The exact starting HEAD `cabf637bf2e48cb54983a98bd854416975272df5` passed all three workflows: Automated Tests [#43572423301](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43572423301), CodeQL [#43572423236](https://github.com/deszztagd-pixel/dezzta-chart/actions/runs/43572423236), and Full Git History Secret Audit [#43572423268](https://github.com/deszztagd-pixel/dezzta-chart/actions/runs/43572423268). Repository-side restore tests now also cover corrupt SQLite input, no publication, and temporary-file cleanup.
+
+This does not remove the owner-device dependency for criterion 30: the backend's live process and effective database path must first be positively identified. The frontend-only APK does not prove that a Python backend database exists on the phone. Do not guess a path or run a restore against the wrong file. No Termux package or repository change is required.
+
+No-cost disposition remains unchanged: do not create accounts, deploy hosts, enable paid plans/trials, or weaken TLS, package-signature, encryption, or secret-handling requirements to force a gate closed.

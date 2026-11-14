@@ -401,3 +401,14 @@ These tests make the repository's path contract explicit. They do not prove a li
 - Stage 2–6: **NOT SCORED**. Overall project: historical owner-confirmed **20.90%** only; no newly approved weighted calculation.
 
 No external acceptance gate is closed by this repository work or green CI alone.
+
+
+## Gate 10 work-cycle snapshot — 2026-11-14
+
+- Exact starting HEAD: `cabf637bf2e48cb54983a98bd854416975272df5`.
+- Exact-HEAD CI: Automated Tests #43572423301, CodeQL #43572423236, and Full Git History Secret Audit #43572423268 all completed **SUCCESS**.
+- Repository regression scope added in this cycle: reject a corrupt/non-SQLite restore source without publishing a destination and without leaving temporary files.
+- Stage 1 accounting is unchanged: **30/40 criteria, 300/400 ticks, 75% provisional**. The 10 open external criteria remain **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- Stages 2–6 remain **NOT SCORED** and officially unopened. Stage 1 remains not production-accepted.
+- Overall project progress remains **20.9% historical checkpoint only**; no fresh weighted calculation is approved. This CI/test batch earns no additional stage or overall ticks.
+- Termux: no action required. Keep the known-good Google Play source and package verification intact.

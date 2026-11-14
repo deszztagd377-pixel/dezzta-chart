@@ -681,3 +681,17 @@ def test_restore_does_not_overwrite_destination_created_before_atomic_publicatio
 
     assert destination.read_bytes() == b"created-by-competing-process"
     assert list(tmp_path.glob(".restored.sqlite3.*.sqlite-restore.tmp")) == []
+
+
+def test_restore_rejects_non_sqlite_backup_without_publishing(tmp_path):
+    from app.sqlite_backup import restore_consistent_sqlite_backup
+
+    backup = tmp_path / "corrupt-backup.sqlite3"
+    destination = tmp_path / "restored.sqlite3"
+    backup.write_bytes(b"this is not a SQLite database")
+
+    with pytest.raises(sqlite3.DatabaseError):
+        restore_consistent_sqlite_backup(backup, destination)
+
+    assert not destination.exists()
+    assert list(tmp_path.glob(".restored.sqlite3.*.sqlite-restore.tmp")) == []

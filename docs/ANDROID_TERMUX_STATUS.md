@@ -208,3 +208,12 @@ The DEZZTA CHART source branch HEAD `38309c377dc8ff9f800461a7890965ac7c46b958` p
 This validates repository CI only. It does not resolve the Google Play Termux package-signing mismatch, prove native backend runtime compatibility, or close encrypted off-host backup acceptance. Keep the existing working Termux repository configuration unchanged. No device command is required for this cycle.
 
 The repository backend database path is configured by `INSTRUMENT_REGISTRY_DB_PATH` (default `./data/instrument_registry.sqlite3`). The APK currently packages the frontend and does not bundle/supervise the Python backend or Redis. Thus the backend's actual live path on Android remains unverified; do not run a restore against an assumed path. Criterion 30 remains open until the live process/path is positively identified and a fresh-path restore report is completed.
+
+
+## Termux status — Gate 10 batch 5 (2026-11-14)
+
+- The repository HEAD `cabf637bf2e48cb54983a98bd854416975272df5` has completed Automated Tests, CodeQL, and full Git-history secret audit successfully.
+- CI success does not resolve the Google Play Termux package-signing-key mismatch or establish a compatible `cryptography>=50,<51` package source.
+- The existing working Google Play Termux source remains unchanged. Do not switch to the upstream repository, import an unverified key, bypass signature verification, downgrade cryptography, or alter the backup encryption design.
+- The SQLite restore helper and its tests use Python/SQLite standard-library functionality and are independent of the crypto package blocker.
+- **No Termux action is required for this batch.** A device-side step will be requested only after the actual backend process and database path are identified and a safe, minimal restore drill is prepared.

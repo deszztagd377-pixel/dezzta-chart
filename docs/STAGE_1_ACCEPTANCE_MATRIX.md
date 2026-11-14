@@ -500,3 +500,15 @@ These tests make the repository's path contract explicit. They do not prove a li
 - Stage 2–6: **NOT SCORED**. Overall project: historical owner-confirmed **20.90%** only; no newly approved weighted calculation.
 
 No external acceptance gate is closed by this repository work or green CI alone.
+
+
+## Gate 10 batch 5 — exact-HEAD CI and restore failure-path hardening (2026-11-14)
+
+- Starting HEAD: `cabf637bf2e48cb54983a98bd854416975272df5`.
+- Automated Tests & Build: [#43572423301](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43572423301) — **SUCCESS**.
+- CodeQL: [#43572423236](https://github.com/deszztagd-pixel/dezzta-chart/actions/runs/43572423236) — **SUCCESS**.
+- Full Git History Secret Audit: [#43572423268](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43572423268) — **SUCCESS**.
+- All three workflows completed against the same exact HEAD. Automated Tests completed frontend tests/build and secret scans, backend pytest, dependency audit, synthetic SQLite benchmark, backend container build, Redis/persistent-volume smoke test, and image vulnerability scanning.
+- Added regression coverage for a corrupt/non-SQLite restore source. The restore must raise a database error, publish no destination, and clean its temporary file.
+- This is repository-side failure-path coverage only. Criterion 30 still requires the actual owner-device application database path and a consolidated restore report. Criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain open; no external criterion or progress tick is awarded by this batch.
+- Stage 1 remains 30/40 provisional (300/400 ticks, 75%) and not production-accepted.

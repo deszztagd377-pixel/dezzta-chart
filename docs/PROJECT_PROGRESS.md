@@ -2225,3 +2225,17 @@ These tests make the repository's path contract explicit. They do not prove a li
 - Stage 2–6: **NOT SCORED**. Overall project: historical owner-confirmed **20.90%** only; no newly approved weighted calculation.
 
 No external acceptance gate is closed by this repository work or green CI alone.
+
+
+## Gate 10 work-cycle checkpoint — 2026-11-14
+
+Starting branch HEAD: `cabf637bf2e48cb54983a98bd854416975272df5`.
+
+All three exact-HEAD workflows completed successfully:
+- Automated Tests [#43572423301](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43572423301).
+- CodeQL [#43572423236](https://github.com/deszztagd-pixel/dezzta-chart/actions/runs/43572423236).
+- Full Git History Secret Audit [#43572423268](https://github.com/deszztagd-pixel/dezzta-chart/actions/runs/43572423268).
+
+The next repository regression batch adds a corrupt SQLite restore-source case and asserts fail-closed behavior, no destination publication, and temporary-file cleanup. This is supporting test coverage, not external restore acceptance.
+
+Progress accounting remains unchanged: Stage 1 is 30/40 provisional criteria (300/400 ticks, 75%); criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain external gates. The overall 20.9% value remains a historical owner-confirmed checkpoint, not a newly calculated figure. Stages 2–6 remain unopened and unscored.
