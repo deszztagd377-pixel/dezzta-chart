@@ -519,3 +519,21 @@ The earlier CI #1138 on `02842b9` failed at the backend-test step; later CI #114
 **Current six-stage display:** Stage 1 — ACTIVE, 75% PROVISIONAL (30/40); Stage 2 — NOT SCORED; Stage 3 — NOT SCORED; Stage 4 — NOT SCORED; Stage 5 — NOT SCORED; Stage 6 — NOT SCORED. Keep the six-card visual layout and stage colors defined above.
 
 **Gate 10 external acceptance:** 0/10 closed. Criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, and 39 remain open. The Android host architecture audit is documentation/evidence only; no owner-device acceptance tick is awarded. No Termux mutation or paid service was used.
+ 
+## Gate 10 batch 7 — 2026-11-14 exact-HEAD verification
+
+**Verified source/test checkpoint:** `462bca4342d6cb585b6b389ae5996020c4c47dd3` on `phase-2/market-data-foundation`.
+
+| Workflow | Run | Result |
+|---|---:|---|
+| Automated Tests | #1149 | SUCCESS |
+| CodeQL | #507 | SUCCESS |
+| Full Git History Secret Audit | #88 | SUCCESS |
+
+Evidence: [Automated Tests #1149](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43594614075), [CodeQL #507](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43594614165), [Secret Audit #88](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43594614104).
+
+The secret-audit issue was investigated using the redacted finding location and workflow logs. A public commit-SHA metadata line was a false positive for the generic-api-key detector. The allowlist is restricted to that exact metadata line in `PROJECT_STATUS.md`; it does not disable the detector globally. The first allowlist edit had a TOML syntax error and failed; the configuration was corrected and the exact-head audit then passed.
+
+**Stage 1 meter is unchanged:** 30/40 provisional criteria, 300/400 ticks, 75% provisional. External criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain OPEN (0/10 externally accepted). Green repository CI is not external device/host acceptance. Stages 2–6 remain NOT SCORED. Overall 20.90% remains historical only.
+
+No Termux package/repository/keyring changes, dependency downgrades, production secrets, paid services, or APK release were made.
