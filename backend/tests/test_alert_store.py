@@ -188,6 +188,8 @@ def _evaluate(store, price, event_id, timestamp_ns, **kwargs):
 
 def test_zone_entry_triggers_once_and_rearms_only_after_price_exits(store):
     zone = _create(store)
+    # First sample establishes the baseline; an entry requires a prior outside sample.
+    assert _evaluate(store, "111", "provider-event-baseline", 500) == []
     first = _evaluate(store, "105", "provider-event-1", 1_000)
     assert len(first) == 1
     assert first[0].zone_id == zone.zone_id
@@ -209,6 +211,7 @@ def test_zone_entry_triggers_once_and_rearms_only_after_price_exits(store):
 
 def test_duplicate_provider_event_is_idempotent_across_store_restart(store):
     zone = _create(store)
+    assert _evaluate(store, "111", "provider-event-baseline", 500) == []
     first = _evaluate(store, "105", "provider-event-unique", 1_000)
     restarted = SQLitePriceAlertStore(store.database_path)
     duplicate = _evaluate(restarted, "105", "provider-event-unique", 1_000)
@@ -220,7 +223,8 @@ def test_duplicate_provider_event_is_idempotent_across_store_restart(store):
 
 def test_out_of_order_stale_and_future_market_events_are_rejected(store):
     _create(store)
-    _evaluate(store, "111", "provider-event-new", 2_000)
+    _evaluate(store, "111", "provider-event-baseline", 1_000)
+    _evaluate(store, "105", "provider-event-new", 2_000)
     with pytest.raises(AlertMarketEventRejected, match="Out-of-order"):
         _evaluate(store, "105", "provider-event-old", 1_000)
 
@@ -256,6 +260,7 @@ def test_paused_zone_tracks_exit_without_triggering_until_next_entry(store):
 def test_only_matching_instrument_zones_are_evaluated(store):
     _create(store, owner="account-a", index=0)
     _create(store, owner="account-b", index=1)
+    assert _evaluate(store, "111", "matching-instrument-baseline", 500) == []
     triggered = _evaluate(store, "105", "matching-instrument-event", 1_000)
     assert len(triggered) == 1
     assert triggered[0].owner_id == "account-a"
@@ -263,7 +268,7 @@ def test_only_matching_instrument_zones_are_evaluated(store):
 
 def test_market_event_validation_rejects_invalid_prices_and_identifiers(store):
     _create(store)
-    for price in ("NaN", "Infinity", "-Infinity"):
+    for price in ("NaN", "Infinity", "-Infinity", "not-a-price"):
         with pytest.raises(AlertMarketEventRejected):
             _evaluate(store, price, f"invalid-{price}", 1_000)
     with pytest.raises(AlertMarketEventRejected):
