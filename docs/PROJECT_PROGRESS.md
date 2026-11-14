@@ -1907,3 +1907,19 @@ The Stage 1 tick meter is a **project-management progress display only**. It is 
 - Working branch: phase-2/market-data-foundation.
 - Baseline code checkpoint for this tick-accounting clarification: fa99fb7f4af1cfebfdc983124ddf7bc6ae3234b9.
 - The latest Redis ACL correction is awaiting exact-HEAD Automated Tests & Build and CodeQL completion; Gitleaks has passed on that SHA. Do not describe the latest CI as fully green until all runs finish successfully.
+
+## Exact branch-head CI verification — 2026-11-14
+
+- Branch: `phase-2/market-data-foundation`
+- Exact HEAD: `aa5d4ef70b234ae75ceb07909a61609e512211cb`
+- Automated Tests & Build: [run #43543969282](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43543969282) — **success**.
+- Frontend: 26 test files passed; build and production-bundle secret scan passed.
+- Backend: **803 tests passed in 33.19s**.
+- Backend dependency audit: **no known vulnerabilities found**.
+- Gitleaks reachable-history scan: **no leaks found**.
+- Redis ACL correction verified: the scoped ACL user now has the required `SELECT` permission for configured database 15. Smoke test confirms unauthenticated, wrong-password, and unrelated `SET` access are rejected; backend health, non-root runtime identity, persistent-volume ownership, SQLite integrity/restart persistence, and HTTP rate-limit rejection passed.
+- CodeQL [run #43543969220](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43543969220) — **success**.
+- Gitleaks [run #43543969222](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43543969222) — **success**.
+- Trivy container scan and JSON report export/upload completed. The report is available as [container-vulnerability-reports](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43543969282/artifacts/14093052960); findings must be inspected before describing severity/count.
+- This is repository/CI evidence only. It does not close any of the ten external production gates, and does not establish a production host, managed Redis failover, public HTTPS/WSS, real Firebase project flow, off-host encrypted backup, external monitoring, or alert delivery.
+- Stage 1 accounting remains **30/40 criteria = 300/400 ticks = 75% provisional**; the ten external gates **8, 20, 25, 30, 31, 34, 35, 36, 38, 39** remain open. No progress ticks are awarded from this CI pass alone.
