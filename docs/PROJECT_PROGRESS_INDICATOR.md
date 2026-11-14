@@ -690,3 +690,27 @@ The lease/retry API does not itself send notifications. No scheduled worker, loc
 - Gate 10 remains 0/10 officially closed; open criteria: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.
 - Stage 2–6 remain NOT SCORED; overall 20.90% remains historical only.
 - No paid service, external notification provider, new market-data subscription, Termux action, or APK release was introduced.
+
+## Gate 10 batch 19 — expired alert-worker lease enforcement (2026-11-14)
+
+### Defect found and corrected
+
+A focused review found a lease-lifecycle race: a worker could acknowledge or reschedule an event after its lease expired, provided no replacement worker had claimed it yet. That violates the intended lease boundary.
+
+- `backend/app/alert_store.py`: `mark_trigger_event_delivered` and `reschedule_trigger_event` now require `now_ns` and condition the atomic update on `lease_expires_ns > now_ns`. Expired leases are invalid even before another worker claims the event.
+- `backend/tests/test_alert_store.py`: added a regression test proving expired workers cannot acknowledge or reschedule; updated recovery and retry tests to pass explicit timestamps; verifies a replacement worker can reclaim the event with an incremented attempt count.
+- Commits: `e5196a54c3852c8160054a0a893cabf3350fe126` (lease-expiry enforcement), `fe6b225b6dacac4372f73cd1242320830c1a5e5d` (expiry tests), `fb026ad262d500ef5df796fd36892c4c4c83b2e9` (test argument correction).
+- Previous HEAD `67e066caf592e9a92ca098eab4ee728ae209b7fa`: Automated Tests, CodeQL Python/JS, and Full Git History Secret Audit all SUCCESS.
+- Current code HEAD `fb026ad262d500ef5df796fd36892c4c4c83b2e9`: Automated Tests, CodeQL and Secret Audit are queued/running. No pass is claimed for the lease-expiry fix until CI completes on the final documentation HEAD.
+
+### Acceptance boundary
+
+The outbox now has atomic claims, durable attempt counts, expiry recovery, token-guarded acknowledgements, strict expiry checks, bounded retry timestamps, and machine-safe error codes. Still absent: a scheduled/running delivery worker, verified live market-data event integration, actual Android/local notification adapter, per-user WSS notification route, and device delivery/recovery evidence. Criterion 39 remains OPEN with zero ticks.
+
+### Progress invariants
+
+- Stage 1 remains `300/400 = 75% provisional`; 30/40 accepted criteria.
+- Gate 10 remains `0/10` officially closed; open criteria: `8, 20, 25, 30, 31, 34, 35, 36, 38, 39`.
+- Stage 2–6 remain NOT SCORED; overall `20.90%` remains historical only.
+- ZERO COST: no paid market-data source, notification provider, hosted infrastructure, trial, or subscription added.
+- No Termux command, package install, Android service start, APK release, or signing change performed.
