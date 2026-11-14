@@ -162,7 +162,7 @@ jobs:
             return 1
           }
           wait_for_default_redis
-          docker exec "$redis_container_name" redis-cli ACL SETUSER "$redis_acl_username" on ">$redis_acl_password" "~dezzta:{guard-http}:*" "~dezzta:{guard-ws}:*" "+ping" "+eval" "+incr" "+expire" "+ttl" "+zremrangebyscore" "+zscore" "+zcard" "+zadd" "+pexpire" "+zrem" >/dev/null
+          docker exec "$redis_container_name" redis-cli ACL SETUSER "$redis_acl_username" on ">$redis_acl_password" "~dezzta:{guard-http}:*" "~dezzta:{guard-ws}:*" "+ping" "+select" "+eval" "+incr" "+expire" "+ttl" "+zremrangebyscore" "+zscore" "+zcard" "+zadd" "+pexpire" "+zrem" >/dev/null
           docker exec "$redis_container_name" redis-cli ACL SETUSER default off >/dev/null
           wait_for_redis() {
             for attempt in $(seq 1 20); do
