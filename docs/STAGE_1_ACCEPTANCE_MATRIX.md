@@ -669,3 +669,10 @@ The CI results are repository evidence only and do not close any external criter
 ### Evidence correction — latest documentation HEAD (2026-11-14)
 
 The Automated Tests workflow referenced above was still running when inspected; the prior statement that it had completed successfully was premature and is superseded by the status recorded here. CodeQL and Full Git History Secret Audit completed successfully. The Vercel combined status is a separate account build-rate-limit failure; no paid upgrade is permitted. These statuses do not close external acceptance criteria.
+
+
+### Vercel build-rate-limit investigation (2026-11-14)
+
+GitHub combined status reports Vercel `failure` with target `upgradeToPro=build-rate-limit`. The target is not a detailed error log, so the account's exact quota counter/error code is not proven. Vercel's official limits page lists 32 Hobby deployments per hour, 100 per day, one concurrent Hobby build, and a 45-minute per-build timeout; these are separate limits (https://vercel.com/docs/limits, https://vercel.com/docs/builds/build-queues). A community report documents the same target URL alongside `api-deployments-paid-per-hour`, but that is corroboration rather than account-specific proof (https://community.vercel.com/t/check-on-github-pr-not-updating-after-build-rate-limit-failure/28030).
+
+Most likely explanation: Vercel rejected a deployment creation because of a deployment-rate limit, not because the app source failed compilation. Exact account usage and reset window remain unknown without Vercel deployment logs/usage dashboard. No paid upgrade or hosting integration change is authorized. GitHub Actions CI remains independent. This failure does not close or reopen any Stage 1 acceptance criterion by itself.
