@@ -436,3 +436,15 @@ This CI/security pass validates repository regressions only; it did not implemen
 - Footprint: bounded synthetic simulation only, explicitly `SIMULATED`; owner visual reference(s), reviewed scoped blueprint, explicit mode control, spaced cluster renderer only when ON, and visual/performance tests remain outstanding. Standard candlestick spacing remains unchanged while OFF.
 - Heatmap and Liquidation Maps: no implementation verified; reference images, reviewed blueprint, source-data contract, calculations, rendering, and tests remain outstanding.
 - No indicator completion percentage or acceptance credit is awarded by this CI pass.
+
+
+## Latest exact-HEAD regression verification — 2026-11-14
+
+- Documentation HEAD tested: `6ec37c2b75c017832c636aad6adb737469042cb5`.
+- Automated Tests & Build [#43550752630](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43550752630): **success**; 26 frontend test files and **803 backend tests** passed (22.79s).
+- CodeQL [#43550752411](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43550752411): **success**.
+- Gitleaks [#43550752447](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43550752447): **success**, 1,167 commits / approximately 2.63 MB scanned, no leaks found.
+- Backend dependency audit: no known vulnerabilities.
+- Redis ACL and persistent-volume smoke test: passed.
+- Latest Trivy image report [artifact](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43550752630/artifacts/14096650758), image digest `sha256:17579dc8eb2f5fc1677af5ca576b0420e7f1dd810dccd1391dc9196c8613bbe9`: 0 OS-package vulnerabilities, 0 Python-package vulnerabilities, 0 secrets, and 0 misconfigurations.
+- These are regression/security checks only. They do not increase the technical indicator completion state above.

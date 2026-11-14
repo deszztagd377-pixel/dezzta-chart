@@ -1906,7 +1906,7 @@ The Stage 1 tick meter is a **project-management progress display only**. It is 
 
 - Working branch: phase-2/market-data-foundation.
 - Baseline code checkpoint for this tick-accounting clarification: fa99fb7f4af1cfebfdc983124ddf7bc6ae3234b9.
-- Exact-head follow-up on commit `5a5f12dd33b1409f3072b0b396a82b273d456b5e` is fully green: Automated Tests & Build, CodeQL, and Gitleaks all completed successfully. See the verified 2026-11-14 audit section below.
+- Exact-head follow-ups on commits `5a5f12dd33b1409f3072b0b396a82b273d456b5e` and `6ec37c2b75c017832c636aad6adb737469042cb5` are fully green: Automated Tests & Build, CodeQL, and Gitleaks all completed successfully. See the verified 2026-11-14 audit sections below.
 
 ## Exact branch-head CI verification — 2026-11-14
 
@@ -1920,7 +1920,7 @@ The Stage 1 tick meter is a **project-management progress display only**. It is 
 - Redis ACL correction verified: the scoped ACL user now has the required `SELECT` permission for configured database 15. Smoke test confirms unauthenticated, wrong-password, and unrelated `SET` access are rejected; backend health, non-root runtime identity, persistent-volume ownership, SQLite integrity/restart persistence, and HTTP rate-limit rejection passed.
 - CodeQL [run #43543969220](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43543969220) — **success**.
 - Gitleaks [run #43543969222](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43543969222) — **success**.
-- Trivy container scan and JSON report export/upload completed. The report is available as [container-vulnerability-reports](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43543969282/artifacts/14093052960); findings must be inspected before describing severity/count.
+- The earlier Trivy report was superseded by the inspected latest-HEAD scan documented below; do not infer findings for the earlier artifact from the later scan.
 - This is repository/CI evidence only. It does not close any of the ten external production gates, and does not establish a production host, managed Redis failover, public HTTPS/WSS, real Firebase project flow, off-host encrypted backup, external monitoring, or alert delivery.
 - Stage 1 accounting remains **30/40 criteria = 300/400 ticks = 75% provisional**; the ten external gates **8, 20, 25, 30, 31, 34, 35, 36, 38, 39** remain open. No progress ticks are awarded from this CI pass alone.
 
@@ -1940,3 +1940,18 @@ The Stage 1 tick meter is a **project-management progress display only**. It is 
 - Trivy report artifact: [container-vulnerability-reports](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43544575936/artifacts/14093542877). The downloaded JSON report for image digest `sha256:b398511affbe93b1a0cdd59daf9429ddd9bcf9b0e1fb973c5479f166c9069526` reports **0 OS-package vulnerabilities, 0 Python-package vulnerabilities, 0 secrets, and 0 misconfigurations** in the scanned image.
 - These results are CI/repository evidence. They do not prove production deployment, a managed Redis service, live Firebase, public HTTPS/WSS, off-host encrypted backup, independent monitoring, or external alert delivery.
 - Stage 1 accounting remains **30/40 criteria = 300/400 ticks = 75% provisional**. External criteria **8, 20, 25, 30, 31, 34, 35, 36, 38, 39** remain open. No ticks are awarded from CI/documentation success alone.
+
+
+## Latest documentation-head validation — 2026-11-14
+
+- Exact tested documentation HEAD: `6ec37c2b75c017832c636aad6adb737469042cb5`.
+- Automated Tests & Build [run #43550752630](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43550752630): **success**.
+- CodeQL [run #43550752411](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43550752411): **success**.
+- Gitleaks [run #43550752447](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43550752447): **success**, 1,167 commits / approximately 2.63 MB scanned, no leaks found.
+- Frontend: 26 test files passed; dependency audit, source scan, build, and production-bundle credential scan passed.
+- Backend: **803 tests passed in 22.79s**; backend dependency audit reported no known vulnerabilities.
+- Synthetic SQLite outbox benchmark: 1,000 synthetic bars inserted and 1,000 events replayed; two same-process reader threads each replayed 1,000 events. Not a provider/WebSocket, reconnect-storm, multi-process, or production-host benchmark.
+- Redis/container smoke test passed: ACL authentication and scoped command rejection, health, non-root UID/GID 10001, mounted-volume and SQLite ownership, SQLite integrity, restart persistence, and HTTP rate-limit rejection.
+- Latest Trivy report [artifact](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43550752630/artifacts/14096650758), for image digest `sha256:17579dc8eb2f5fc1677af5ca576b0420e7f1dd810dccd1391dc9196c8613bbe9`, was downloaded and inspected: **0 OS-package vulnerabilities, 0 Python-package vulnerabilities, 0 secrets, and 0 misconfigurations** in that scanned image.
+- This is repository/CI evidence only; it does not close any external production gate or prove production deployment.
+- Stage 1 remains **300/400 ticks (75% provisional)**. The ten external gates remain open: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
