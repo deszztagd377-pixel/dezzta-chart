@@ -25,8 +25,12 @@ _NS = 1_000_000_000
 _KEY_PATTERN = re.compile(r"db-[A-Za-z0-9]{8,}")
 _BEARER_PATTERN = re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]+")
 _URL_CREDENTIALS_PATTERN = re.compile(r"(?i)(://)[^/@\s]+@")
+# Include compound credential names explicitly: the underscore in
+# access_token/client_secret is a word character, so a plain \btoken or
+# \bsecret alternative would not match those common field names.
 _NAMED_SECRET_PATTERN = re.compile(
-    r"(?i)\b(password|passwd|token|api[_-]?key|secret|authorization)"
+    r"(?i)\b(password|passwd|token|access[_-]?token|refresh[_-]?token|"
+    r"id[_-]?token|api[_-]?key|client[_-]?secret|secret|authorization)"
     r"(\s*[=:]\s*)([^&\s,;]+)"
 )
 
