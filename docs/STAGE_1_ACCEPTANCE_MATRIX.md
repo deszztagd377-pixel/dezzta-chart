@@ -606,3 +606,8 @@ Audited the active branch source and the successful CI run for exact HEAD `37641
 - Full Git History Secret Audit #43596463929: **SUCCESS**.
 
 These CI results apply to code HEAD `37641c43b8ca6c10f5284d4680a654796f0a5380`; documentation changes after this audit will have their own CI runs. None of these results independently closes external criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 or 39. Stage 1 scoring therefore remains 30/40 criteria = 300/400 ticks = 75% provisional.
+
+
+### Audit correction — criterion 39 scope (2026-11-14)
+
+A deeper source review of `backend/app/alerts.py`, `backend/app/alert_store.py`, and the FastAPI route registration found that the current implementation provides alert-zone validation and durable SQLite storage only. It does **not** provide an active price-crossing evaluator, a local delivery adapter, a delivery worker/scheduler, or evidence of a delivered alert. Therefore do not describe alert storage as an implemented alert-delivery path. Criterion 39 remains externally open and also has an implementation gap to scope safely before claiming an end-to-end local alert path. No paid notification channel may be introduced.
