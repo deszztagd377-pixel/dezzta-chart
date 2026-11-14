@@ -186,3 +186,27 @@ Each project work cycle must record:
 | Date | Change |
 |---|---|
 | 2026-11-14 | Added explicit project-process progress indicator specification, six-stage dashboard, Stage 1 tick calculation, external blocker register, overall-percentage safeguards, work-cycle reporting contract and Termux/zero-cost constraints. |
+
+
+## Latest work-cycle evidence update — 2026-11-14
+
+### Criterion 30 — repository-side restore coverage audited
+
+The existing test `backend/tests/test_sqlite_backup.py::test_full_application_database_restore_preserves_all_shared_sqlite_domains` already exercises a full shared-application SQLite snapshot and fresh-path restore. It reopens and verifies representative instrument-registry, entitlement, price-alert, coverage, OHLCV, and durable outbox/replay records, then confirms a post-restore write advances the outbox sequence.
+
+This is meaningful repository/CI evidence and identifies the correct next phone-only restore-report target. It does **not** close criterion 30: the matrix still requires a timestamped owner-device restore report and application-level verification on the actual owner environment. No tick is added; Stage 1 remains 300/400 = 75% provisional.
+
+### Latest exact-HEAD CI update
+
+At HEAD `21eabf46bf51f076f074e8fc6c2eb55723111956`:
+- Full Git History Secret Audit — success.
+- CodeQL — success.
+- Automated Tests — still running; frontend tests/build, backend tests, bounded synthetic SQLite outbox benchmark, dependency audit, backend image build, and shared-Redis/persistent-volume container smoke test had completed successfully. Backend container image scan was still running at the last check.
+
+Do not mark the complete workflow successful until the image scan, report export/upload, and final job conclusion are complete.
+
+### Termux dependency gate
+
+A fresh check of the matching Google Play Termux issue tracker found the signing-key mismatch reports still open, including issues [#1642](https://github.com/termux-play-store/termux-issues/issues/1642) and [#1648](https://github.com/termux-play-store/termux-issues/issues/1648). The missing key is the upstream `termux-autobuilds` signing key, which is not included in the Play build's installed keyring. This confirms that the previously documented refusal to switch repositories or bypass signature checks remains correct.
+
+No Termux command is required for this cycle. Preserve the original working repository configuration and the `cryptography>=50,<51` security requirement.
