@@ -181,3 +181,59 @@ Workflow evidence:
 - Automated Tests: https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43566762952
 - CodeQL: https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43566763073
 - Gitleaks: https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43566762971
+
+
+## External-gate execution checkpoint — 2026-11-14 — exact HEAD `d64ad3fa1620f75b363b4f32e3df01b06a62c2d2`
+
+### Repository/CI entry prerequisites — all green on the same HEAD
+
+- Automated Tests #43568751544 — **SUCCESS**.
+- CodeQL #43568751559 — **SUCCESS** (Python and JavaScript/TypeScript).
+- Full Git History Secret Audit #43568751546 — **SUCCESS**.
+- The Automated Tests workflow completed the Redis/shared-guard and persistent-volume smoke test and Trivy scan/report steps. These are CI environment checks, not owner-host production proof.
+
+### Ten-gate live disposition
+
+| Gate | Repository/CI evidence now available | Actual acceptance still missing |
+|---:|---|---|
+| 8 | Frontend source/bundle secret scans, settings redaction tests, exact-HEAD full-history Gitleaks success | Audit of the real owner-host secret injection, deployed logs/build outputs, and repository security-setting/alert inventory |
+| 20 | Firebase client lifecycle and backend token/revocation/entitlement logic with fail-closed tests; owner previously selected Spark/no-billing and enabled sign-in methods | Confirm current no-billing project state and execute real sign-in, expiry/revocation, entitlement denial and reconnect through a deployed backend from browser and Android |
+| 25 | Production config enforces Redis TLS and ACL credentials; CI Redis guard/failure/persistence smoke passes | Real owner-host private binding/firewall, least-privilege ACL, trusted TLS certificate, persistent config and restart/failure/recovery evidence |
+| 30 | Exact-HEAD CI full shared-database restore test verifies registry, entitlement, alert zones, coverage/gaps, OHLCV, outbox cursor/event identity, integrity and post-restore writes | Timestamped restore drill against the actual application database available on the owner's device, with application-level readback |
+| 31 | AES-256-GCM/PBKDF2 encryption implementation and tamper/wrong-key tests exist | Secure off-host destination and separate key custody/recovery; current Google Play Termux signing-key mismatch blocks the required crypto dependency on-device |
+| 34 | Container UID/GID 10001 and CI named-volume ownership/restart persistence smoke pass | Actual owner-host mount, ownership/mode, process restart, disk-pressure and recovery evidence |
+| 35 | Container health endpoint, startup fail-closed behavior and backend-only configuration are covered in repository/CI | Actual owner-controlled backend host, HTTPS certificate/hostname lifecycle, health check and secret injection |
+| 36 | Authenticated WebSocket, origin, entitlement, revalidation and reconnect/replay logic have regression coverage | Real reverse-proxy WSS handshake and browser plus Android authentication/reconnect/resnapshot run |
+| 38 | Bounded application operational counters/status endpoint and CI build are present | Actual host-side log/metric collection, dashboard access control, retention/rotation, disk-pressure and secret-redaction evidence |
+| 39 | Durable alert-zone validation/storage exists | Operator-visible no-cost alert delivery, acknowledgement/escalation and tested incident recovery record |
+
+### First execution target: criterion 30
+
+Criterion 30 is the first practical target under the owner's confirmed single-device/no-PC constraint. Its SQLite snapshot/restore mechanism is separate from backup encryption; it must not be blocked by, or used to conceal, criterion 31's Termux cryptography issue.
+
+Acceptance evidence must be generated from the actual application database on the target device and include:
+1. Timestamp and device/runtime identification without secrets.
+2. Source database identity represented safely (do not publish personal paths or database contents).
+3. Consistent snapshot and restore into a new database path.
+4. SQLite `integrity_check` and foreign-key check results.
+5. Application-level readback for every available durable domain: canonical instrument registry, entitlements, alert zones, coverage/gaps, OHLCV bars and outbox/replay cursor/event identity.
+6. A post-restore read/write verification on the restored copy, not on the source database.
+7. Result totals, failure details and report hash.
+
+No existing source database may be overwritten or deleted. The test must use a fresh restore destination and must not expose database rows, account identifiers, credentials or encryption secrets in the report.
+
+The CI test already proves the repository implementation can exercise these domains using a synthetic fixture. It does not prove the owner's live database is available, that a device restore was performed, or that the target environment is production-like. Therefore criterion 30 remains OPEN and earns no ticks until the device report is independently reviewed.
+
+### Termux handling during gate execution
+
+- Criterion 30 uses SQLite/Python standard-library restore functionality; it does not require installing `cryptography` or changing APT sources.
+- Criterion 31 remains blocked by the Google Play Termux repository/keyring signing mismatch and lack of verified off-host/key-custody resources.
+- Preserve the working Google Play Termux source and the `cryptography>=50,<51` requirement. No repository switch, unverified key import, signature bypass, dependency downgrade, migration, uninstall or app-data clearing is authorized.
+
+### Stage and progress accounting
+
+- Official stage: **Stage 1 — unchanged**.
+- Stage 1 checklist: **30/40 criteria; 300/400 ticks = 75% provisional**.
+- External gates: **10/10 remain open**.
+- Overall project: **20.9% historical owner-confirmed checkpoint**; no fresh weighted total is approved.
+- CI success, documentation updates and local subtests add no Stage 1 ticks by themselves.

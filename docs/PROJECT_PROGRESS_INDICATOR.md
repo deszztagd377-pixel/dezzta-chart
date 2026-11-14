@@ -217,3 +217,33 @@ No Termux command is required for this cycle. Preserve the original working repo
 The prior Automated Tests run `43568430935` later reached a **cancelled** workflow conclusion. Its recorded frontend checks, backend tests, synthetic outbox benchmark, dependency audit, container build, Redis/persistent-volume smoke test, Trivy image scan, vulnerability report export, and artifact upload steps all show success; however, the enclosing job/run conclusion is cancelled, so it is not counted as a fully green workflow.
 
 The documentation-only follow-up HEAD `c63560ebf16bd16ab3de482df35c35b381fa009e` has fresh Automated Tests and CodeQL runs in progress and Full Git History Secret Audit pending. Their final conclusions must be checked on the exact latest HEAD before reporting full CI acceptance.
+
+
+## Authoritative exact-HEAD CI and external-gate entry — 2026-11-14
+
+This section supersedes earlier pending/in-progress CI snapshots above.
+
+- Audited branch: `phase-2/market-data-foundation`.
+- Exact HEAD: `d64ad3fa1620f75b363b4f32e3df01b06a62c2d2`.
+- Automated Tests #43568751544: **SUCCESS** on this exact HEAD. The completed workflow includes frontend tests/build and bundle-secret checks, backend tests, dependency audits, bounded SQLite outbox benchmark, backend container build, Redis/shared-guard and persistent-volume smoke test, Trivy image scan, report export/upload, and cleanup.
+- CodeQL #43568751559: **SUCCESS** on this exact HEAD for JavaScript/TypeScript and Python.
+- Full Git History Secret Audit #43568751546: **SUCCESS** on this exact HEAD.
+- Earlier cancelled runs on superseded commits are not treated as failures of this HEAD and are not used as proof.
+
+### Entry decision: ten external gates
+
+Repository/CI prerequisites for beginning the external-gate work are now green. Work may proceed against the ten open criteria without changing the official stage. **Stage 1 remains 300/400 ticks = 75% provisional; none of the ten external criteria has been awarded a tick.**
+
+The first viable phone-only evidence target is criterion 30 (fresh SQLite restore and application-record verification). Its local restore path uses Python/SQLite standard-library functionality and does not require the blocked `cryptography` package. The successful CI restore regression is supporting evidence only; the owner-device report remains outstanding.
+
+Criteria 8, 20, 25, 31, 34, 35, 36, 38 and 39 retain their distinct owner-host, provider, storage, operator or no-billing dependencies. Local/CI subtests must not be mislabeled as production acceptance.
+
+### Current dashboard snapshot
+
+- Stage 1 — emerald: **75% provisional**, 300/400 ticks, 30/40 criteria; 10 external gates open.
+- Stage 2 — cyan: **NOT SCORED**.
+- Stage 3 — violet: **NOT SCORED**.
+- Stage 4 — amber: **NOT SCORED**.
+- Stage 5 — pink: **NOT SCORED**.
+- Stage 6 — slate: **NOT SCORED**.
+- Overall project: **20.9% historical owner-confirmed checkpoint**; fresh weighted total remains unestablished.
