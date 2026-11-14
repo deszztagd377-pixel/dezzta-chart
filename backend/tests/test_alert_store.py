@@ -379,7 +379,7 @@ def test_outbox_rejects_untrusted_error_text_and_invalid_claim_limits(store):
         )
     with pytest.raises(ValueError):
         store.reschedule_trigger_event(
-            event_id="event", lease_token="lease", next_attempt_ns=0,
+            event_id="event", lease_token="lease", now_ns=0, next_attempt_ns=0,
             error_code="unicode-é",
         )
 
