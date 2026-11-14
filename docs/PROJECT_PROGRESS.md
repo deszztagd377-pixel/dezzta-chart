@@ -2075,3 +2075,8 @@ Every subsequent project work cycle must report:
 8. Termux/device action only when required by a specific acceptance test; never provide an unverified or error-prone command.
 
 This progress indicator is documentation/accounting only. Technical indicators inside the application remain governed by the six-stage roadmap and their separate indicator acceptance documentation.
+
+
+## Project-process indicator specification
+
+The complete six-stage **project-process progress indicator** is maintained in [PROJECT_PROGRESS_INDICATOR.md](PROJECT_PROGRESS_INDICATOR.md). It is explicitly separate from technical indicators inside the APK. The specification includes the six-stage dashboard, Stage 1 tick formula, ten external acceptance blockers, overall-percentage accounting safeguards, work-cycle evidence contract, and Termux/zero-cost rules.
