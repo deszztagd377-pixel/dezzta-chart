@@ -499,3 +499,23 @@ Termux disposition: no action required in this batch. Keep the known-good Google
 - Existing Termux signature/keyring mismatch remains a hard stop. No package/repository/key changes, dependency downgrade, encryption change, or Termux command was performed.
 - Added [Android Backend Host Architecture Audit](ANDROID_BACKEND_HOST_AUDIT.md) with blocker matrix and safe proof sequence. Documentation-only; no backend URL, secret, host, APK integration, or production security setting changed.
 - Criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, and 39 remain OPEN. Stage 1 remains 300/400 ticks = 75% provisional; no tick awarded. Stages 2–6 NOT SCORED; overall 20.90% historical only.
+
+ 
+## Gate 10 work-cycle evidence — 2026-11-14
+
+Latest observed push checkpoint: `b37c69d6aaee2f764c3357834e868a3e53bddbe1` on `phase-2/market-data-foundation`.
+
+| Verification | Run | Exact result |
+|---|---:|---|
+| Automated Tests | #1141 | SUCCESS |
+| CodeQL Python | #499 | SUCCESS |
+| CodeQL JavaScript/TypeScript | #499 | SUCCESS |
+| Full Git History Secret Audit | #80 | SUCCESS |
+
+Evidence: [CI #1141](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43593913966), [CodeQL #499](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43593913979), [secret audit #80](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43593913868).
+
+The earlier CI #1138 on `02842b9` failed at the backend-test step; later CI #1140 on `6c58dae` and #1141 on `b37c69d` passed. Do not erase the failure history.
+
+**Current six-stage display:** Stage 1 — ACTIVE, 75% PROVISIONAL (30/40); Stage 2 — NOT SCORED; Stage 3 — NOT SCORED; Stage 4 — NOT SCORED; Stage 5 — NOT SCORED; Stage 6 — NOT SCORED. Keep the six-card visual layout and stage colors defined above.
+
+**Gate 10 external acceptance:** 0/10 closed. Criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, and 39 remain open. The Android host architecture audit is documentation/evidence only; no owner-device acceptance tick is awarded. No Termux mutation or paid service was used.
