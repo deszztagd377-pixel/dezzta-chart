@@ -62,7 +62,7 @@ def test_owner_device_restore_drill_checks_application_domains_and_redacts_paths
     assert report["application_domain_readback"] == {
         "canonical_instruments": 1, "provider_mappings": 0,
         "entitlements": 1, "alert_zones": 1, "coverage_scopes": 1,
-        "coverage_intervals": 1, "coverage_gaps": 1,
+        "coverage_intervals": 2, "coverage_gaps": 1,
         "ohlcv_bars": 1, "ohlcv_series": 1, "outbox_high_water": 1,
     }
     assert source.read_bytes() == source_before

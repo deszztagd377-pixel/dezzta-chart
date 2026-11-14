@@ -163,11 +163,14 @@ def run_restore_drill(source_path: str | Path, backup_path: str | Path,
         raise sqlite3.DatabaseError("backup and restore table row counts differ")
     domains = _domain_readback(restored)
     _write_probe(restored)
-    with _ro(restored) as db:
-        probe_remains = db.execute(
+    probe_db = _ro(restored)
+    try:
+        probe_remains = probe_db.execute(
             "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
             ("__dezzta_restore_drill_probe",)
         ).fetchone()
+    finally:
+        probe_db.close()
     if probe_remains:
         raise sqlite3.DatabaseError("restore probe cleanup failed")
 
