@@ -56,6 +56,8 @@ test("Android host preflight is read-only and does not disclose environment valu
     assert.match(result.stdout, /PRECHECK ONLY/);
     assert.doesNotMatch(result.stdout, /must-never-appear/);
     assert.doesNotMatch(result.stdout, /DEZZTA_PREFLIGHT_SECRET_SENTINEL/);
+    assert.doesNotMatch(result.stdout, /\/data\/data\/com\.termux/);
+    assert.match(result.stdout, /FOUND\s+python3\s+available/);
   } finally {
     await rm(temp, { recursive: true, force: true });
   }
