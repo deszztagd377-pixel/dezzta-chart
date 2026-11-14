@@ -370,3 +370,14 @@ This change hardened production Redis ACL configuration only. It did not alter i
 
 No indicator or overall project progress credit is awarded for this security-only code, tests, CI, or documentation update.
 
+
+
+## Benchmark concurrency follow-up — 2026-11-14
+
+A backend CI run exposed one failure in the local synthetic SQLite outbox benchmark concurrency test: 797 backend tests passed and `test_local_outbox_benchmark_reports_synthetic_data_and_latency` failed. The initial audit identified a completion-boundary race: a replay reader could compare its cursor with a page high-water mark captured before the writer's final commit.
+
+A narrowly scoped correction was committed as `fd3eae1506b8efc2790cdda0eb498fde749cc714` in `backend/scripts/benchmark_ohlcv_outbox.py`. After the writer signals completion, the reader now compares its cursor with a fresh durable `store.outbox_high_water()` value before exiting.
+
+**Verification state: pending.** The failing run predates this correction; no passing CI result for the correction is recorded here. The fix does not change indicator calculations, market-data contracts, chart rendering, or user-facing controls. Therefore it awards no indicator or project completion credit.
+
+The indicator acceptance matrix above remains authoritative and unchanged: SMA 20, EMA 20, Wilder RSI 14, MACD 12/26/9, and Bollinger Bands 20,2 have tested calculation foundations but incomplete chart UI acceptance; the shared indicator hook lacks completed visible-control integration; Footprint remains a bounded synthetic accumulator labelled `SIMULATED` with visual implementation gated by owner reference and blueprint review; Heatmap and Liquidation Maps remain unimplemented and similarly gated.
