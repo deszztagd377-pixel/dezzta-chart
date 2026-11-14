@@ -583,3 +583,26 @@ This section makes the remaining external gates executable as evidence requests.
 3. CI evidence may support a gate but cannot replace device/host/provider evidence explicitly required above.
 4. A failed or unavailable check leaves the criterion OPEN; it does not earn partial ticks. Fix a safe repository-side defect before asking for any owner-device action.
 5. No criterion may be closed by an assumed free tier, trial, local mock, synthetic fixture, or unverified network path.
+
+
+## Gate 10 technical audit — source and CI reconciliation (2026-11-14)
+
+Audited the active branch source and the successful CI run for exact HEAD `37641c43b8ca6c10f5284d4680a654796f0a5380`.
+
+- **Criterion 8:** backend settings redact credential-bearing fields; frontend bundle scanning and full reachable Git-history scanning are in CI. This still does not prove owner-host secret injection or inspect a live host's logs/process environment. External host evidence remains required.
+- **Criterion 20:** Firebase frontend observer/sign-in lifecycle and backend Admin token verification are present. Backend verification uses revocation checking and validates issuer, audience, subject and auth time; tests exercise mocked SDK boundaries. Actual project billing state, real sign-in, revocation/expiry, entitlement denial and supported-client integration remain external.
+- **Criterion 25:** production config rejects non-TLS Redis and missing ACL credentials; the Redis client explicitly requires CA-chain and hostname validation. A regression test checks these client options. CI's Redis integration is not a substitute for the owner's actual private TLS Redis endpoint, ACL, persistence and restart/failure drill.
+- **Criterion 30:** the restore-drill implementation checks required application tables, integrity, foreign keys, schema, row content hashes, domain readback, post-restore write/read and cleanup while preserving the source. CI tests exercise a synthetic fixture only. The actual Android application DB path and owner-device drill remain outstanding.
+- **Criterion 31:** versioned AES-256-GCM backup encryption, PBKDF2-HMAC-SHA256 derivation, atomic publication and tamper/wrong-key rejection tests are present. Separate owner-controlled key custody, independent no-cost destination, retention/access controls and recovery drill are not proven by repository code.
+- **Criterion 34:** CI's container smoke test passed volume ownership, non-root runtime, SQLite integrity and container restart persistence. This is meaningful container evidence, but does not establish a persistent mount on the owner's intended long-lived host/device or disk-pressure recovery there.
+- **Criterion 35:** `/health` and a container healthcheck are present and the container smoke test passed. HTTPS termination, certificate lifecycle and real host startup/failure behavior remain external.
+- **Criterion 36:** authenticated Firebase WebSocket handshake, entitlement checks and periodic revalidation are implemented in source. No reverse-proxy deployment or actual browser/Android WSS end-to-end evidence was found in this audit.
+- **Criteria 38–39:** no deployed self-hosted monitoring/alert infrastructure or actual alert-delivery/recovery exercise was found. Application status payloads and unit tests are not operational monitoring or alert proof.
+
+### CI evidence for audited code HEAD
+
+- Automated Tests #43596463914: **SUCCESS**, including frontend tests/build, secret scans, Android preflight test, backend tests, dependency audit, synthetic SQLite outbox benchmark, Docker image build, persistent-volume/restart/Redis-guard smoke test, and HIGH/CRITICAL Trivy gate.
+- CodeQL #43596463973: **SUCCESS** for Python and JavaScript/TypeScript.
+- Full Git History Secret Audit #43596463929: **SUCCESS**.
+
+These CI results apply to code HEAD `37641c43b8ca6c10f5284d4680a654796f0a5380`; documentation changes after this audit will have their own CI runs. None of these results independently closes external criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 or 39. Stage 1 scoring therefore remains 30/40 criteria = 300/400 ticks = 75% provisional.
