@@ -31,7 +31,8 @@ _URL_CREDENTIALS_PATTERN = re.compile(r"(?i)(://)[^/@\s]+@")
 _NAMED_SECRET_PATTERN = re.compile(
     r"(?i)\b(password|passwd|token|access[_-]?token|refresh[_-]?token|"
     r"id[_-]?token|api[_-]?key|client[_-]?secret|secret|authorization)"
-    r"(\s*[=:]\s*)([^&\s,;]+)"
+    # Accept both unquoted key=value fields and quoted JSON-style keys/values.
+    r"(\s*['\"]?\s*[=:]\s*['\"]?)([^&\s,;'\"]+)"
 )
 
 
