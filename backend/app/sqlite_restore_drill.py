@@ -223,7 +223,7 @@ def run_restore_drill(source_path: str | Path, backup_path: str | Path,
     if restored.exists():
         raise FileExistsError("restore destination exists; refusing to overwrite")
 
-    create_consistent_sqlite_backup(source, backup)
+    create_consistent_sqlite_backup(source, backup, overwrite=False)
     restore_consistent_sqlite_backup(backup, restored)
     backup_inventory = _inventory(backup)
     restored_inventory = _inventory(restored)

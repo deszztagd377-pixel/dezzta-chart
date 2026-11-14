@@ -29,22 +29,26 @@ def create_consistent_sqlite_backup(
     destination_path: str | Path,
     *,
     pages: int = 256,
+    overwrite: bool = True,
 ) -> Path:
     """Create and atomically publish a consistent SQLite database snapshot.
 
     The destination is first written to a temporary file in the destination
     directory, checked with PRAGMA integrity_check, restricted to owner-only
-    permissions where supported, and flushed before atomic replacement. On
-    POSIX, the containing directory is flushed after replacement so the
-    directory-entry update is persisted as well.
+    permissions where supported, and flushed before publication. By default,
+    atomic replacement preserves the existing backup-helper behavior. Set
+    overwrite=False to publish with an atomic hard link that fails if another
+    process creates the destination first; unsupported filesystems fail closed.
+    On POSIX, the containing directory is flushed after publication.
 
-    Failures before replacement leave any previous destination untouched. If
-    the post-replacement directory flush fails, the new valid snapshot may
-    already be visible, but crash durability of the rename is uncertain; the
-    error is raised rather than reported as a fully durable backup.
+    If the post-publication directory flush fails, the valid snapshot may
+    already be visible, but crash durability of the directory entry is
+    uncertain; the error is raised rather than reported as fully durable.
     """
     if not isinstance(pages, int) or isinstance(pages, bool) or pages < 1:
         raise ValueError("pages must be a positive integer.")
+    if not isinstance(overwrite, bool):
+        raise ValueError("overwrite must be a boolean.")
 
     source = Path(source_path).expanduser().resolve()
     destination = Path(destination_path).expanduser().resolve()
@@ -53,6 +57,8 @@ def create_consistent_sqlite_backup(
         raise ValueError("source_path and destination_path must be different.")
     if not source.is_file():
         raise FileNotFoundError(source)
+    if not overwrite and destination.exists():
+        raise FileExistsError(destination)
 
     destination.parent.mkdir(parents=True, exist_ok=True)
     descriptor, temporary_name = tempfile.mkstemp(
@@ -91,10 +97,16 @@ def create_consistent_sqlite_backup(
             os.chmod(temporary, 0o600)
             with temporary.open("rb") as backup_file:
                 os.fsync(backup_file.fileno())
-        os.replace(temporary, destination)
+        if overwrite:
+            os.replace(temporary, destination)
+        else:
+            # Atomic no-overwrite publication: a concurrent destination
+            # creation makes link() fail without replacing the competing file.
+            os.link(temporary, destination)
+            temporary.unlink()
         if os.name == "posix":
-            # The rename is already visible. If this fails, surface the
-            # durability uncertainty; do not pretend the backup is durable.
+            # Publication is already visible. If this fails, surface the
+            # durability uncertainty rather than claiming a durable backup.
             _fsync_directory(destination.parent)
         return destination
     finally:

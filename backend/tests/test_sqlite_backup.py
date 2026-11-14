@@ -695,3 +695,45 @@ def test_restore_rejects_non_sqlite_backup_without_publishing(tmp_path):
 
     assert not destination.exists()
     assert list(tmp_path.glob(".restored.sqlite3.*.sqlite-restore.tmp")) == []
+
+
+
+def test_backup_no_overwrite_refuses_existing_destination_without_modifying_it(tmp_path):
+    source = tmp_path / "live.sqlite3"
+    destination = tmp_path / "backup.sqlite3"
+    with sqlite3.connect(source) as database:
+        database.execute("CREATE TABLE sample (value INTEGER)")
+        database.execute("INSERT INTO sample VALUES (21)")
+    destination.write_bytes(b"keep-existing-backup")
+
+    with pytest.raises(FileExistsError):
+        create_consistent_sqlite_backup(source, destination, overwrite=False)
+
+    assert destination.read_bytes() == b"keep-existing-backup"
+    assert list(tmp_path.glob(".backup.sqlite3.*.sqlite-backup.tmp")) == []
+
+
+def test_backup_no_overwrite_is_atomic_against_concurrent_destination_creation(
+    tmp_path, monkeypatch
+):
+    from app import sqlite_backup
+
+    source = tmp_path / "live.sqlite3"
+    destination = tmp_path / "backup.sqlite3"
+    with sqlite3.connect(source) as database:
+        database.execute("CREATE TABLE sample (value INTEGER)")
+        database.execute("INSERT INTO sample VALUES (34)")
+
+    original_link = sqlite_backup.os.link
+
+    def create_competing_destination(source_name, destination_name):
+        Path(destination_name).write_bytes(b"created-by-competing-process")
+        return original_link(source_name, destination_name)
+
+    monkeypatch.setattr(sqlite_backup.os, "link", create_competing_destination)
+
+    with pytest.raises(FileExistsError):
+        create_consistent_sqlite_backup(source, destination, overwrite=False)
+
+    assert destination.read_bytes() == b"created-by-competing-process"
+    assert list(tmp_path.glob(".backup.sqlite3.*.sqlite-backup.tmp")) == []
