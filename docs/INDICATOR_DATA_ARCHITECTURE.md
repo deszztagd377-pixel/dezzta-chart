@@ -448,3 +448,17 @@ This CI/security pass validates repository regressions only; it did not implemen
 - Redis ACL and persistent-volume smoke test: passed.
 - Latest Trivy image report [artifact](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43550752630/artifacts/14096650758), image digest `sha256:17579dc8eb2f5fc1677af5ca576b0420e7f1dd810dccd1391dc9196c8613bbe9`: 0 OS-package vulnerabilities, 0 Python-package vulnerabilities, 0 secrets, and 0 misconfigurations.
 - These are regression/security checks only. They do not increase the technical indicator completion state above.
+
+
+## Exact branch-head verification — 2026-11-14 (six-stage roadmap documentation head)
+
+- Working branch: `phase-2/market-data-foundation`.
+- Exact tested HEAD: `92bd8b32313db6141554d317902150b00b7f1da0`.
+- Automated Tests & Build [run #43551614294](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43551614294): **success**. Every job step succeeded, including frontend unit tests/build, backend tests, bounded synthetic SQLite outbox benchmark, backend dependency audit, Redis/persistent-volume container smoke test, and Trivy image scan/report upload.
+- CodeQL [run #43551614271](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43551614271): **success** for Python and JavaScript/TypeScript.
+- Gitleaks [run #43551614216](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43551614216): **success** for reachable Git history.
+- The benchmark concurrency completion-boundary check passed in the exact-head workflow. The earlier failure was not a permanent blocker; the current branch-head automated workflow passed the benchmark step.
+- This HEAD changes roadmap/indicator documentation only. It does not change indicator formulas, calculation outputs, chart rendering, shared data hooks, or visual controls. Consequently, **no technical indicator acceptance credit is awarded**.
+- The detailed acceptance matrix above remains unchanged: SMA 20, EMA 20, Wilder RSI 14, MACD 12/26/9 and Bollinger 20,2 have tested calculation foundations; visible chart controls/rendering and transition tests remain outstanding. The shared hook remains validated-backend-only without completed visible controls. Footprint remains synthetic and labelled `SIMULATED`, with visual work gated on owner reference images and scoped blueprint review. Heatmap and Liquidation Maps remain unimplemented and similarly gated.
+- Stage 1 accounting remains separate from indicator status: **300/400 ticks = 75% provisional**, with external criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 still open pending their required evidence.
+- `main` was not modified.
