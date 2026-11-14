@@ -297,12 +297,37 @@ def test_outbox_claim_is_exclusive_and_lease_expiry_allows_recovery(store):
 
     # The previous worker cannot acknowledge an event after its lease was replaced.
     assert not store.mark_trigger_event_delivered(
-        event_id=event_id, lease_token=first_claim[0].lease_token
+        event_id=event_id, lease_token=first_claim[0].lease_token, now_ns=10_100
     )
     assert store.mark_trigger_event_delivered(
-        event_id=event_id, lease_token=recovered[0].lease_token
+        event_id=event_id, lease_token=recovered[0].lease_token, now_ns=10_150
     )
     assert store.list_pending_trigger_events() == []
+
+
+def test_outbox_expired_lease_cannot_acknowledge_or_reschedule(store):
+    _create(store)
+    _evaluate(store, "111", "expired-lease-baseline", 500)
+    event = _evaluate(store, "105", "expired-lease-entry", 1_000)[0]
+    claimed = store.claim_pending_trigger_events(now_ns=30_000, lease_duration_ns=100)
+    assert len(claimed) == 1
+    lease = claimed[0]
+
+    # Expiry alone invalidates the lease, even before another worker reclaims it.
+    assert not store.mark_trigger_event_delivered(
+        event_id=event.event_id, lease_token=lease.lease_token, now_ns=30_100
+    )
+    assert not store.reschedule_trigger_event(
+        event_id=event.event_id,
+        lease_token=lease.lease_token,
+        now_ns=30_100,
+        next_attempt_ns=40_000,
+        error_code="expired_lease",
+    )
+
+    recovered = store.claim_pending_trigger_events(now_ns=30_100, lease_duration_ns=100)
+    assert len(recovered) == 1
+    assert recovered[0].attempt_count == 2
 
 
 def test_outbox_retry_schedule_and_terminal_failure_are_enforced(store):
@@ -317,6 +342,7 @@ def test_outbox_retry_schedule_and_terminal_failure_are_enforced(store):
     assert store.reschedule_trigger_event(
         event_id=event.event_id,
         lease_token=lease.lease_token,
+        now_ns=10_001,
         next_attempt_ns=20_000,
         error_code="temporary_delivery_error",
     )
@@ -328,6 +354,7 @@ def test_outbox_retry_schedule_and_terminal_failure_are_enforced(store):
     assert store.reschedule_trigger_event(
         event_id=event.event_id,
         lease_token=retried[0].lease_token,
+        now_ns=20_001,
         next_attempt_ns=20_000,
         error_code="permanent_delivery_error",
         terminal=True,
@@ -342,12 +369,12 @@ def test_outbox_rejects_untrusted_error_text_and_invalid_claim_limits(store):
         store.claim_pending_trigger_events(now_ns=0, limit=0)
     with pytest.raises(ValueError):
         store.reschedule_trigger_event(
-            event_id="event", lease_token="lease", next_attempt_ns=0,
+            event_id="event", lease_token="lease", now_ns=0, next_attempt_ns=0,
             error_code="raw exception contains secret",
         )
     with pytest.raises(ValueError):
         store.reschedule_trigger_event(
-            event_id="event", lease_token="lease", next_attempt_ns=2**63,
+            event_id="event", lease_token="lease", now_ns=0, next_attempt_ns=2**63,
             error_code="invalid_timestamp",
         )
     with pytest.raises(ValueError):
