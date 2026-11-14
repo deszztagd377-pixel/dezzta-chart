@@ -69,3 +69,17 @@ No vendor or architecture can promise zero downtime or permanent accuracy. The e
 Do not replace the static `MARKET_DATA_WS_TOKEN` with a browser-visible token or start production frontend WebSocket integration yet. The next implementation step is to prototype the selected identity provider behind a provider-neutral backend interface, add unit tests for valid/expired/wrong-audience/revoked identities, then implement scoped ticket issuance and per-series authorization. The provider choice must be explicitly confirmed before adding vendor SDKs or credentials.
 
 No credentials, provider secrets, user data, or billing configuration are stored in this document.
+
+
+## Implementation status correction — 2026-11-14
+
+The prototype implementation gate described above has since been executed in the repository. The owner registered a Firebase Web App, selected the Spark/no-billing path, and enabled Google Sign-In and Email/Password methods. Current source integration:
+
+- `src/services/firebase.ts`: initializes/reuses the default Firebase app only when the four public `VITE_FIREBASE_*` settings are present and match the existing app.
+- `src/auth/AuthProvider.tsx`: handles ID-token observer lifecycle, email sign-in/registration, Google redirect, sign-out, and current-user ID-token retrieval.
+- `src/main.tsx`: mounts `AuthProvider`; `src/components/SettingsPanel.tsx` renders `AuthPanel`.
+- `src/services/ohlcvStreamSupervisor.ts`: requests a fresh Firebase ID token on every connection attempt/reconnect.
+- `backend/app/identity.py`: Firebase Admin verification uses `check_revoked=True`, then validates issuer, audience, subject and auth time.
+- `backend/app/main.py`: authenticated REST/WebSocket paths check per-instrument entitlements and revalidate token/entitlement during long-lived streams.
+
+Automated tests are still mocked at the provider boundary. The real Firebase project billing state, deployed frontend config, backend Admin SDK credentials, live sign-in, expiry/revocation, entitlement denial and browser/Android WebSocket flow remain external integration acceptance. Do not enable Blaze, Phone/SMS billing, or commit service-account credentials. The old instruction to begin the frontend prototype is superseded; do not duplicate this integration.
