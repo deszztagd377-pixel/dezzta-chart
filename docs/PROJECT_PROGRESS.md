@@ -1968,3 +1968,14 @@ The Stage 1 tick meter is a **project-management progress display only**. It is 
 - Stage 1 remains **300/400 ticks = 75% provisional**. Open external criteria remain **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39**. No tick is awarded by CI alone.
 - Indicator status is unchanged: five calculation foundations (SMA20, EMA20, Wilder RSI14, MACD12/26/9, Bollinger20,2) remain tested but user-facing chart controls/rendering are incomplete; shared-hook UI integration remains incomplete; Footprint remains SIMULATED and visually gated; Heatmap and Liquidation Maps remain unimplemented. See `docs/INDICATOR_DATA_ARCHITECTURE.md` for the full acceptance ledger.
 - No runtime or indicator source was changed in this checkpoint. `main` was not modified.
+
+
+## Ten-gate remediation cycle — 2026-11-14 — source HEAD `4ab3579`
+
+- Re-audited the complete 40-point Stage 1 acceptance matrix and the zero-cost/single-phone gate plan rather than treating the ten open items as a single generic blocker.
+- Criterion 30 gap identified: existing fresh-database restore test covered OHLCV/outbox but not every durable adapter wired to the same `INSTRUMENT_REGISTRY_DB_PATH`.
+- Added a regression test to restore one shared application database and reopen/verify instrument registry, entitlements, alert zones, coverage intervals and gaps, OHLCV, outbox cursor/event identity, SQLite integrity, and post-restore write continuity. Exact-commit CI is pending.
+- Criterion 8: latest reachable-history Gitleaks scan passed on source HEAD; owner-host secret injection and GitHub native settings remain external.
+- Criterion 25: repository TLS/ACL/fail-closed protections and CI Redis smoke tests are present; owner-host network/persistence/restart proof remains external.
+- Criteria 20, 31, 34, 35, 36, 38 and 39 remain constrained by the verified single-phone/no-PC/no-second-device and ZERO MONEY conditions. No paid account, trial, host, storage, domain, notification provider, or hardware was introduced.
+- No Stage 1 tick change: **300/400 = 75% provisional**; all ten criteria remain open pending their complete acceptance evidence.

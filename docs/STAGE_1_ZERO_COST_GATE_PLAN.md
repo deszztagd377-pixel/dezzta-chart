@@ -124,3 +124,29 @@ The backend configuration now enforces the repository-side production baseline:
 
 **External acceptance remains OPEN.** The CI Redis instance is ephemeral. It does not prove the real host's private binding, firewall policy, least-privilege ACL user, persistent configuration, restart/failover recovery, or deployed TLS certificate. With the owner's single-phone/no-PC constraint and ZERO COST rule, do not invent a host or enable paid infrastructure to close this gate.
 
+
+
+## Ten-gate work-cycle audit — 2026-11-14 — repository head `4ab3579`
+
+This section records work actually present on the branch, what the current CI can prove, and the remaining external acceptance boundary. It does not award ticks.
+
+| Criterion | Repository-side progress verified | Remaining external evidence / disposition |
+|---:|---|---|
+| 8 — production secrets | Frontend source and built-bundle scans; settings redaction tests; full reachable-history Gitleaks scan. Gitleaks #43566090680 passed on `4ab3579`. | Still requires owner-host secret-injection, deployed log/build-output inspection, and GitHub native secret-scanning/push-protection setting and alert inventory. |
+| 20 — Firebase | Firebase Admin token/revocation and authorization logic plus fail-closed tests exist. | No verified no-billing Firebase project, production backend, real sign-in/revocation/entitlement/reconnect run, or browser/Android deployed WSS evidence. No billing upgrade. |
+| 25 — Redis | Production config enforces `rediss://`, ACL username/password, CA-chain and hostname validation; CI Redis ACL/failure/persistence smoke coverage exists. | Still requires a real owner-hosted Redis TLS endpoint, private binding/firewall/ACL review, persistent config, restart and failure/recovery evidence. Ephemeral CI Redis is not production. |
+| 30 — restore drill | Existing OHLCV/outbox restore test is extended by a shared-database recovery test covering instrument registry, entitlements, alert zones, coverage intervals/gaps, OHLCV, durable outbox cursor/event identity, integrity, and a post-restore write. | CI test is not the owner-device report. A timestamped run against a real application database on the target environment remains required; no production data is fabricated. |
+| 31 — encrypted off-host backup | AES-256-GCM/PBKDF2 streaming encryption, authenticated header, private atomic publication, wrong-key/tamper rejection and restore tests exist. | No second device or verified no-cost off-host destination/key custody; Android crypto dependency is blocked by the Play Store repository signing mismatch. |
+| 34 — persistent volume | Container runs UID/GID 10001; CI named-volume ownership, SQLite integrity and restart persistence tests pass. | Still requires actual owner-host mount, mount path/owner/mode, disk-pressure, restart/process-replacement and recovery evidence. |
+| 35 — HTTPS deployment | Production configuration and portable container/health-check preparation exist. | No verified host, TLS hostname/certificate lifecycle, backend-only secret injection or deployed HTTPS health check. |
+| 36 — WSS reverse proxy | Authenticated WebSocket route, origin checks, entitlement checks, revalidation and reconnect/replay code have repository tests. | No real reverse proxy and no deployed browser plus Android WSS handshake/reconnect/resnapshot test. |
+| 38 — monitoring | Bounded operational state/latency counters and market-data status endpoint exist. | No host-side collection, dashboard access-control, retention/rotation, disk-pressure or deployed redaction evidence. |
+| 39 — alerts and incident response | Alert-zone validation and durable SQLite storage exist. | No verified operator-facing delivery path, acknowledgement/escalation exercise, or recovery/incident record. Local records are not alert delivery. |
+
+### Current action result
+
+- The repository-side test expansion for criterion 30 is pending exact-commit CI.
+- Criteria 8 and 25 have strong repository-side coverage, but no owner-host production proof.
+- Criteria 20, 31, 34, 35, 36, 38 and 39 remain constrained by absent verified external project/host/storage/operator resources under the ZERO MONEY and single-phone constraints.
+- No external gate is marked complete. Stage 1 remains 300/400 ticks (75% provisional), and the ten open criteria remain open.
+- The next evidence-bearing opportunity is the criterion 30 owner-device restore report. The integrated test does not substitute for that report.

@@ -384,3 +384,10 @@ Open criteria (0/10 ticks each): **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**. Stag
 ### Tick change policy
 
 A future tick change must cite the criterion number, its full acceptance boundary, exact evidence/report, and exact tested commit. Repository work toward an external gate is progress in remediation but does not earn that gate's ticks before its external evidence exists. CI/documentation/commit volume alone never changes the tally. The tick scale is separate from the overall weighted project percentage and from the in-app technical indicator tracker.
+
+
+## Ten-gate work-cycle audit — 2026-11-14
+
+See [STAGE_1_ZERO_COST_GATE_PLAN.md](STAGE_1_ZERO_COST_GATE_PLAN.md) for the per-gate disposition. Repository-side test expansion now covers a single restored application database across instrument registry, entitlements, alert zones, coverage intervals/gaps, OHLCV and durable outbox, including a post-restore write. The new test is pending exact-commit CI.
+
+This strengthens criterion 30's repository-side evidence only. It does not satisfy the required target-environment restore drill. Criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 all remain **OPEN / external verification required**; no ticks are awarded by this test or its CI result alone.

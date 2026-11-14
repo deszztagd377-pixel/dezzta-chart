@@ -496,3 +496,20 @@ This CI/security pass validates repository regressions only; it did not implemen
 - Footprint, Heatmap and Liquidation Maps visual work remains blocked on the relevant owner reference image(s) and reviewed scoped blueprint.
 - Visible indicator controls, overlays and oscillator panes belong to Stage 4. Stage 1 remains the active official stage; the branch name does not change stage order.
 - No indicator completion percentage is inferred from passing general CI, test count, documentation, or APK installation. Acceptance requires the listed user-facing behavior and exact regression evidence.
+
+
+## Indicator ledger carry-forward — 2026-11-14 — Stage 1 remediation checkpoint
+
+This commit expands only Stage 1 shared-database restore regression coverage and its acceptance documentation. It does not change indicator algorithms, warm-up rules, output alignment, shared indicator hook, chart rendering, indicator controls, or visual acceptance. Therefore no technical indicator progress credit is added.
+
+The current detailed acceptance ledger remains:
+- **SMA 20:** close-based SMA, 20-bar warm-up; overlay/toggle/legend/current-value/series-timeframe transition/render acceptance remains open.
+- **EMA 20:** close-based EMA with SMA seed, 20-bar warm-up; overlay/toggle/legend/current-value/series-timeframe transition/render acceptance remains open.
+- **RSI 14 Wilder:** first output at index 14; oscillator pane, scale/guides, controls, stale-value clearing and render acceptance remain open.
+- **MACD 12/26/9:** MACD begins at index 25; signal/histogram begin at index 33; dedicated pane, lines/histogram, controls, transitions and render acceptance remain open.
+- **Bollinger 20,2:** close-based population-standard-deviation bands, first output at index 19; visible upper/middle/lower overlay, controls, legend/current values and render acceptance remain open.
+- **Shared indicator hook:** validated backend series only, no implicit DEMO fallback; visible controls and immediate stale-series clearing on instrument/timeframe change remain open.
+- **Footprint:** bounded deterministic output marked `SIMULATED`; owner reference image, reviewed scoped blueprint, explicit mode control and ON-only spaced cluster renderer remain gated. OFF must preserve normal candle spacing.
+- **Heatmap and Liquidation Maps:** no implementation verified; owner reference images, scoped blueprint review, data contract, calculations, rendering and tests remain prerequisites.
+
+Visible indicator implementation remains Stage 4 work and is not started during this Stage 1 remediation cycle. The full calculations/acceptance matrix above this carry-forward remains authoritative.
