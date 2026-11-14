@@ -1795,3 +1795,24 @@ Implementation/workflow commit: `efdf9a9ecfa68647586cd89f819e76469e11d3df`
 **Criterion 8 remains open / external verification required.** No Stage 1 or overall project progress credit is awarded by the repository-side scan.
 
 Stage 1 remains **30/40 = 75.00% provisional**. Overall project progress remains **20.9% historical**.
+
+## Exact branch-head checkpoint — 2026-11-14
+
+- Working branch: `phase-2/market-data-foundation`
+- Indicator documentation commit: `b1823004006aa58c332589563fa85c14bd7004ac`
+- Indicator architecture record: `docs/INDICATOR_DATA_ARCHITECTURE.md` now contains the complete calculation foundation/acceptance ledger for SMA 20, EMA 20, Wilder RSI 14, MACD 12/26/9, Bollinger Bands 20/2, shared indicator hook, simulated Footprint, Heatmap and Liquidation Maps. It also records warm-up indices, data-source restrictions, visual acceptance requirements and the owner-reference/blueprint gate.
+- Automated Tests & Build [run #43537645757](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43537645757): **success** on the exact documentation commit. Frontend: **26 test files / 211 tests passed**. Backend: **795 tests passed in 27.85s**.
+- The same exact-HEAD run completed frontend source/bundle secret scans, frontend production build, Android host preflight, backend dependency audit, synthetic SQLite outbox benchmark, backend container build, isolated Redis + persistent-volume smoke test, and HIGH/CRITICAL Trivy image scan. Trivy reported **0 HIGH/CRITICAL findings** for the scanned image.
+- CodeQL [run #43537645698](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43537645698): **success** for JavaScript/TypeScript and Python.
+- Full reachable Git-history Gitleaks [run #43537645629](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43537645629): **success**; the job log explicitly reports `no leaks found`.
+- The 795-test backend run includes the full Digest Authorization redaction regression. The frontend suite includes the indicator calculation and simulated Footprint regression tests. No indicator UI, live provider feed, or owner-device indicator rendering was introduced by these documentation/security changes.
+
+### Acceptance and progress accounting
+
+- Stage 1 remains **30/40 = 75.00% provisional**; external production/operational gates **8, 20, 25, 30, 31, 34, 35, 36, 38, 39** remain open.
+- Overall progress remains the **20.9% owner-confirmed historical checkpoint**, not a freshly recalculated weighted result. The proposed milestone ledger still requires reproducible scoring and owner review.
+- No progress credit is awarded for documentation-only changes, green CI by itself, test-count growth, or security scans alone.
+- Criterion 8 remains **open / external verification required**: production host secret injection, deployed runtime/build logs, and GitHub native secret-scanning/push-protection settings and alert inventory have not been independently verified.
+- Criteria 30/31 remain distinct: CI and previous Android SQLite smoke evidence do not replace a consolidated owner-device application restore report (30), and do not establish encrypted off-host backup/key recovery (31).
+- ZERO COST and one-phone/no-PC constraints remain binding. No Termux package/keyring workaround, billing activation, paid infrastructure, or extra hardware is authorized by this checkpoint.
+
