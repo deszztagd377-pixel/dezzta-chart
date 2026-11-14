@@ -62,7 +62,7 @@ def test_production_cors_requires_https(monkeypatch) -> None:
 
 def test_production_cors_accepts_exact_https_origins(monkeypatch) -> None:
     monkeypatch.setenv("APP_ENV", "production")
-    monkeypatch.setenv("REDIS_URL", "rediss://redis.example:6380/0")
+    monkeypatch.setenv("REDIS_URL", "rediss://dezzta_guard:redis-test-secret@redis.example:6380/0")
     monkeypatch.setenv("FIREBASE_PROJECT_ID", "dezzta-chart-prod")
     monkeypatch.setenv(
         "CORS_ALLOWED_ORIGINS",
@@ -93,6 +93,25 @@ def test_production_requires_tls_redis_url() -> None:
             firebase_project_id="dezzta-chart-prod",
         )
 
+@pytest.mark.parametrize(
+    "redis_url",
+    [
+        "rediss://redis.example:6380/0",
+        "rediss://:redis-test-secret@redis.example:6380/0",
+        "rediss://dezzta_guard@redis.example:6380/0",
+    ],
+)
+def test_production_requires_redis_acl_username_and_password(redis_url: str) -> None:
+    with pytest.raises(ValueError, match="ACL username and password"):
+        Settings(
+            app_env="production",
+            market_data_ws_token="",
+            cors_allowed_origins=("https://chart.example",),
+            redis_url=redis_url,
+            firebase_project_id="dezzta-chart-prod",
+        )
+
+
 def test_production_accepts_tls_redis_url_without_exposing_it_in_repr() -> None:
     redis_url="rediss://user:redis-secret@redis.example:6380/0"
     settings=Settings(
@@ -114,7 +133,7 @@ def test_production_requires_firebase_project_id() -> None:
             app_env="production",
             market_data_ws_token="",
             cors_allowed_origins=("https://chart.example",),
-            redis_url="rediss://redis.example:6380/0",
+            redis_url="rediss://dezzta_guard:redis-test-secret@redis.example:6380/0",
             firebase_project_id="",
         )
 
@@ -135,7 +154,7 @@ def test_production_rejects_databento_credentials_and_paid_provider_access(
             app_env="production",
             market_data_ws_token="",
             cors_allowed_origins=("https://chart.example",),
-            redis_url="rediss://redis.example:6380/0",
+            redis_url="rediss://dezzta_guard:redis-test-secret@redis.example:6380/0",
             firebase_project_id="dezzta-chart-prod",
             **provider_overrides,
         )
@@ -153,7 +172,7 @@ def test_production_environment_rejects_databento_configuration(
     monkeypatch, variable, value
 ) -> None:
     monkeypatch.setenv("APP_ENV", "production")
-    monkeypatch.setenv("REDIS_URL", "rediss://redis.example:6380/0")
+    monkeypatch.setenv("REDIS_URL", "rediss://dezzta_guard:redis-test-secret@redis.example:6380/0")
     monkeypatch.setenv("FIREBASE_PROJECT_ID", "dezzta-chart-prod")
     monkeypatch.setenv("CORS_ALLOWED_ORIGINS", "https://chart.example")
     monkeypatch.setenv(variable, value)
@@ -166,7 +185,7 @@ def test_production_environment_keeps_databento_disabled_by_default(
     monkeypatch,
 ) -> None:
     monkeypatch.setenv("APP_ENV", "production")
-    monkeypatch.setenv("REDIS_URL", "rediss://redis.example:6380/0")
+    monkeypatch.setenv("REDIS_URL", "rediss://dezzta_guard:redis-test-secret@redis.example:6380/0")
     monkeypatch.setenv("FIREBASE_PROJECT_ID", "dezzta-chart-prod")
     monkeypatch.setenv("CORS_ALLOWED_ORIGINS", "https://chart.example")
     monkeypatch.delenv("DATABENTO_API_KEY", raising=False)
