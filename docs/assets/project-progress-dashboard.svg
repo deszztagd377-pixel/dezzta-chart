@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="850" viewBox="0 0 1200 850" role="img" aria-labelledby="title desc">
+<title id="title">DEZZTA CHART — Six-stage project progress dashboard</title>
+<desc id="desc">Project-process dashboard. Stage 1 is active at 75 percent provisional, with 30 of 40 criteria accepted and 10 external criteria open. Stages 2 through 6 are not officially opened and are not scored. Overall 20.9 percent is a historical checkpoint, not a freshly recalculated value.</desc>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1220"/><stop offset="1" stop-color="#172554"/></linearGradient>
+  <linearGradient id="s1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#10b981"/><stop offset="1" stop-color="#34d399"/></linearGradient>
+  <linearGradient id="s2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0ea5e9"/><stop offset="1" stop-color="#38bdf8"/></linearGradient>
+  <linearGradient id="s3" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8b5cf6"/><stop offset="1" stop-color="#a78bfa"/></linearGradient>
+  <linearGradient id="s4" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f59e0b"/><stop offset="1" stop-color="#fbbf24"/></linearGradient>
+  <linearGradient id="s5" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ec4899"/><stop offset="1" stop-color="#f472b6"/></linearGradient>
+  <linearGradient id="s6" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#64748b"/><stop offset="1" stop-color="#94a3b8"/></linearGradient>
+  <style>
+    .h{font:700 34px system-ui,sans-serif;fill:#f8fafc}.sub{font:500 15px system-ui,sans-serif;fill:#cbd5e1}
+    .k{font:700 12px system-ui,sans-serif;letter-spacing:1.2px;fill:#94a3b8}
+    .num{font:800 28px system-ui,sans-serif;fill:#f8fafc}.name{font:700 19px system-ui,sans-serif;fill:#f8fafc}
+    .body{font:500 14px system-ui,sans-serif;fill:#cbd5e1}.small{font:600 12px system-ui,sans-serif;fill:#cbd5e1}
+    .pill{font:700 11px system-ui,sans-serif;letter-spacing:.5px}
+  </style>
+</defs>
+<rect width="1200" height="850" rx="28" fill="url(#bg)"/>
+<circle cx="1080" cy="65" r="130" fill="#2563eb" opacity=".10"/>
+<circle cx="20" cy="820" r="180" fill="#10b981" opacity=".07"/>
+<text x="54" y="65" class="k">PROJECT PROCESS TRACKER • ZERO-COST ROADMAP</text>
+<text x="54" y="112" class="h">DEZZTA CHART</text>
+<text x="54" y="143" class="sub">Six official stages • one consistent progress dashboard • not an in-app indicator</text>
+<rect x="54" y="174" width="1092" height="84" rx="18" fill="#1e293b" stroke="#334155"/>
+<rect x="74" y="193" width="8" height="46" rx="4" fill="#34d399"/>
+<text x="101" y="205" class="k">CURRENT OFFICIAL STAGE</text>
+<text x="101" y="232" style="font:700 20px system-ui,sans-serif;fill:#f8fafc">STAGE 1 — FOUNDATION, SECURITY &amp; DATA INTEGRITY</text>
+<rect x="825" y="191" width="290" height="49" rx="12" fill="#064e3b"/>
+<text x="845" y="211" class="k" style="fill:#a7f3d0">STAGE 1 CHECKLIST METER</text>
+<text x="845" y="232" style="font:800 20px system-ui,sans-serif;fill:#6ee7b7">75% PROVISIONAL</text>
+<!-- Stage cards -->
+<g transform="translate(54 290)">
+  <rect width="350" height="220" rx="18" fill="#132b2b" stroke="#10b981" stroke-width="1.5"/>
+  <rect width="350" height="7" rx="4" fill="url(#s1)"/>
+  <text x="22" y="42" class="k">STAGE 01 • ACTIVE</text><text x="22" y="78" class="name">Foundation &amp; Security</text>
+  <text x="22" y="105" class="body">Foundation, Security &amp; Data Integrity</text>
+  <text x="22" y="151" class="num">75%</text><text x="108" y="150" class="small">300 / 400 ticks</text>
+  <rect x="22" y="169" width="306" height="10" rx="5" fill="#334155"/><rect x="22" y="169" width="229.5" height="10" rx="5" fill="url(#s1)"/>
+  <text x="22" y="203" class="small" style="fill:#6ee7b7">30 / 40 criteria • 10 external gates open</text>
+</g>
+<g transform="translate(425 290)">
+  <rect width="350" height="220" rx="18" fill="#102438" stroke="#0ea5e9" stroke-width="1.2"/>
+  <rect width="350" height="7" rx="4" fill="url(#s2)"/>
+  <text x="22" y="42" class="k">STAGE 02 • LOCKED</text><text x="22" y="78" class="name">Market Data Infrastructure</text>
+  <text x="22" y="112" class="body">Provider-neutral ingestion &amp; validation</text>
+  <rect x="22" y="145" width="136" height="28" rx="14" fill="#0c4a6e"/><text x="38" y="164" class="pill" fill="#bae6fd">NOT SCORED</text>
+  <text x="22" y="203" class="small">Preparatory code exists • stage not opened</text>
+</g>
+<g transform="translate(796 290)">
+  <rect width="350" height="220" rx="18" fill="#211b38" stroke="#8b5cf6" stroke-width="1.2"/>
+  <rect width="350" height="7" rx="4" fill="url(#s3)"/>
+  <text x="22" y="42" class="k">STAGE 03 • LOCKED</text><text x="22" y="78" class="name">Chart Engine &amp; Timeframe</text>
+  <text x="22" y="112" class="body">Rendering, timeframes &amp; interactions</text>
+  <rect x="22" y="145" width="136" height="28" rx="14" fill="#4c1d95"/><text x="38" y="164" class="pill" fill="#ddd6fe">NOT SCORED</text>
+  <text x="22" y="203" class="small">Awaiting Stage 2 acceptance</text>
+</g>
+<g transform="translate(54 535)">
+  <rect width="350" height="220" rx="18" fill="#302514" stroke="#f59e0b" stroke-width="1.2"/>
+  <rect width="350" height="7" rx="4" fill="url(#s4)"/>
+  <text x="22" y="42" class="k">STAGE 04 • LOCKED</text><text x="22" y="78" class="name">Indicators &amp; Analytics</text>
+  <text x="22" y="112" class="body">Educational calculations &amp; chart visuals</text>
+  <rect x="22" y="145" width="136" height="28" rx="14" fill="#78350f"/><text x="38" y="164" class="pill" fill="#fde68a">NOT SCORED</text>
+  <text x="22" y="203" class="small">Calculation groundwork is not UI completion</text>
+</g>
+<g transform="translate(425 535)">
+  <rect width="350" height="220" rx="18" fill="#301a2b" stroke="#ec4899" stroke-width="1.2"/>
+  <rect width="350" height="7" rx="4" fill="url(#s5)"/>
+  <text x="22" y="42" class="k">STAGE 05 • LOCKED</text><text x="22" y="78" class="name">Professional UI &amp; Tools</text>
+  <text x="22" y="112" class="body">Advanced UX, drawing &amp; interaction tools</text>
+  <rect x="22" y="145" width="136" height="28" rx="14" fill="#831843"/><text x="38" y="164" class="pill" fill="#fbcfe8">NOT SCORED</text>
+  <text x="22" y="203" class="small">40% overall gate + scoped owner review</text>
+</g>
+<g transform="translate(796 535)">
+  <rect width="350" height="220" rx="18" fill="#202938" stroke="#64748b" stroke-width="1.2"/>
+  <rect width="350" height="7" rx="4" fill="url(#s6)"/>
+  <text x="22" y="42" class="k">STAGE 06 • LOCKED</text><text x="22" y="78" class="name">Hardening &amp; APK Release</text>
+  <text x="22" y="112" class="body">Final validation, device tests &amp; delivery</text>
+  <rect x="22" y="145" width="136" height="28" rx="14" fill="#334155"/><text x="38" y="164" class="pill" fill="#e2e8f0">NOT SCORED</text>
+  <text x="22" y="203" class="small">Release only after preceding gates pass</text>
+</g>
+<text x="54" y="802" class="small">Overall checkpoint: 20.9% historical • fresh weighted total not established • stage percentages are never inferred</text>
+<text x="1146" y="825" text-anchor="end" class="k">UPDATED 2026-11-14</text>
+</svg>
