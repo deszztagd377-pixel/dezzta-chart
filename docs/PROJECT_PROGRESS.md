@@ -2187,3 +2187,10 @@ Latest branch HEAD: `ba01807b043de1f446b0630002ff607ac48a069a`.
 Batch 3 directly integrates the safe restore helper into the shared-application-database regression and adds directory-flush failure and competing-destination race tests. This completes the repository-side batch; it does not close criterion 30 without the actual owner-device application database report.
 
 Stage 1 remains 300/400 = 75% provisional. Criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain open. Stages 2–6 remain NOT SCORED. Historical overall checkpoint remains 20.9%; no fresh weighted total is approved.
+
+
+## Latest CI completion and visible project indicator — 2026-11-14
+
+The previously pending CI for documentation HEAD `cf7044922df3cac0d2e9a52679509ea0aa957a81` has now completed: Automated Tests #43571570406, CodeQL #43571570477, and Full Git History Secret Audit #43571570418 are all **SUCCESS** on the exact same commit. The project progress dashboard SVG and indicator documentation have been refreshed to show this result. This documentation refresh does not award acceptance ticks.
+
+Official Stage 1 meter: **300/400 = 75% provisional** (30/40 criteria). Open external criteria: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**. Stage 2–6: **NOT SCORED**. Overall project: historical owner-confirmed **20.90%** only; no new weighted score. Termux requires no action and remains on the known-good configuration.

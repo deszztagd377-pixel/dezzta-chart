@@ -355,3 +355,8 @@ The two new tests and integration change are pending exact-HEAD CI. No external 
 Exact HEAD `ba01807b043de1f446b0630002ff607ac48a069a` passed all three repository workflows: Automated Tests [#43571145976](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43571145976), CodeQL [#43571145954](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43571145954), and Full Git History Secret Audit [#43571145944](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43571145944). The shared-application-database regression now calls the production restore helper and verifies durable domains plus post-restore write behavior; additional tests cover directory-flush failure and a competing destination. These are repository/CI evidence only. Criterion 30 remains OPEN pending the actual owner-device restore report.
 
 No stage ticks change: Stage 1 is 300/400 = 75% provisional; all ten external criteria remain open. The process progress indicator remains documentation-only, never an APK feature.
+
+
+## Latest Gate 10 workflow reconciliation — 2026-11-14
+
+The documentation commit `cf7044922df3cac0d2e9a52679509ea0aa957a81` is now fully green on its exact HEAD: Automated Tests #43571570406, CodeQL #43571570477 and Full Git History Secret Audit #43571570418 — all **SUCCESS**. This removes the prior CI-in-progress blocker for the documentation update. It does not close an external gate or add Stage 1 ticks. The next acceptance work remains external evidence collection for the ten open criteria. Termux remains unchanged and needs no command.

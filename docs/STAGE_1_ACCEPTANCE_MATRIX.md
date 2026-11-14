@@ -464,3 +464,8 @@ Exact-HEAD CI is pending. Criterion 30 remains OPEN pending the actual owner-dev
 The shared-application-database restore regression now invokes `restore_consistent_sqlite_backup()` directly, validates SQLite integrity and foreign-key consistency, reopens durable application stores, checks representative records across registry, entitlement, alert-zone, coverage/gap, OHLCV and outbox/replay domains, and verifies a post-restore write on the restored copy. Directory-flush failure after publication and a competing destination race are also covered.
 
 Exact-HEAD CI on `ba01807b043de1f446b0630002ff607ac48a069a` passed Automated Tests #43571145976, CodeQL #43571145954 and Full Git History Secret Audit #43571145944. This is repository-side evidence only. Criterion 30 remains OPEN until the actual owner-device application database is restored to a fresh destination and a secret-free report verifies all available durable domains and a post-restore write. Do not overwrite or delete the source DB; do not assume the repository's default DB path is the live Android path.
+
+
+## Documentation HEAD CI completion — 2026-11-14
+
+The documentation commit `cf7044922df3cac0d2e9a52679509ea0aa957a81` has now passed all exact-HEAD workflows: Automated Tests #43571570406, CodeQL #43571570477, and Full Git History Secret Audit #43571570418 — all **SUCCESS**. This validates the documentation revision and does not change the acceptance state of any criterion. Stage 1 remains **300/400 = 75% provisional**; criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain OPEN pending external evidence.

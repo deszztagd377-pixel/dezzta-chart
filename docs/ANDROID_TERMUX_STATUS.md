@@ -191,3 +191,8 @@ The matching Google Play issue tracker still reports the signing-key mismatch as
 **Decision unchanged:** keep the user's working original Termux source and backup `$HOME/termux.sources.original-backup`; do not switch to `packages.termux.dev`, import an unverified key, bypass signature checks, downgrade `cryptography>=50,<51`, or migrate/uninstall/clear app data. A source migration has a different APK signature and is not a harmless in-place update; it would require a separately authorized, verified backup-and-restore plan. No Termux command is required for this cycle.
 
 Criterion 31 remains blocked by the unavailable verified compatible crypto package path and lack of a verified off-host destination/key-custody route. SQLite restore work for criterion 30 remains independent and does not require changing Termux packages.
+
+
+## Termux disposition after latest CI reconciliation — 2026-11-14
+
+The repository documentation HEAD `cf7044922df3cac0d2e9a52679509ea0aa957a81` has passed Automated Tests #43571570406, CodeQL #43571570477 and Full Git History Secret Audit #43571570418. These CI results do not alter the Android package signing-key compatibility status. No verified compatible Google Play keyring recovery path is established here; retain the known-good Termux source and do not switch repositories or weaken package verification. **No device action is required.**
