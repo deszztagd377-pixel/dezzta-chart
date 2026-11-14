@@ -21,7 +21,7 @@ report_command() {
   label=$1
   command_name=$2
   if command -v "$command_name" >/dev/null 2>&1; then
-    printf 'FOUND %-24s %s\n' "$label" "$(command -v "$command_name")"
+    printf 'FOUND %-24s available\n' "$label"
   else
     printf 'MISS  %-24s %s\n' "$label" "$command_name"
   fi
