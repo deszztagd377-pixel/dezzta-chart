@@ -18,6 +18,8 @@ paths = ['''scripts/check-frontend-bundle-secrets\.node-test\.mjs$''']
 [[allowlists]]
 description = "Exact public commit SHA false positive in project status metadata"
 condition = "AND"
-regexTarget = "match"
-regexes = ['''6bfd05f6752549dd2f891e6dcf322b81224d6205''']
-paths = ['''PROJECT_STATUS\.md$''']
+regexTarget = "line"
+regexes = ['''^Latest observed exact-head CI/CodeQL/secret-audit checkpoint: b37c69d6aaee2f764c3357834e868a3e53bddbe1 \(CI #1141, CodeQL #499, secret audit #80 passed\)
+'']
+paths = ['''PROJECT_STATUS\.md
+'']
