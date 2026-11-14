@@ -869,3 +869,24 @@ Commit `37977f6d21eb97047068b21013f840badbbb2b5d` completed all available automa
 These results apply to the CI environment and do not establish owner-host TLS Redis, Firebase live authentication, HTTPS/WSS reverse-proxy deployment, self-hosted monitoring, Android database recovery, external backup key custody, or real alert notification delivery.
 
 Progress remains unchanged: Stage 1 30/40 criteria, 300/400 ticks, 75% provisional; Gate 10 0/10 officially closed; open criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, 39. Stage 2–6 NOT SCORED; overall 20.90% is historical only. ZERO COST maintained; no Termux action, dependency change, paid service, APK release, or main-branch change.
+
+
+## Gate 10 hardening — validate outbox acknowledgement/retry clock range (2026-11-14)
+
+### Defect and correction
+- Follow-up source audit found that `mark_trigger_event_delivered` and `reschedule_trigger_event` rejected negative, boolean, and non-integer `now_ns` values, but did not enforce SQLite's signed 64-bit upper bound.
+- A direct caller could pass `2**63` and trigger a low-level SQLite integer-binding overflow instead of a controlled validation error.
+- Both store methods now enforce the shared `_SQLITE_INT64_MAX` bound before opening a database connection.
+- Added parameterized regression coverage for both acknowledgement and retry scheduling. The tests also assert the original pending event and lease remain intact after rejection.
+
+### Verification boundary
+- Source, regression tests, and this progress record are committed as one revision.
+- CI for this revision is pending; no test pass is claimed until the workflow completes.
+- No runtime worker activation, delivery adapter, scheduler, provider, dependency, or external service was introduced.
+
+### Progress accounting
+- Stage 1 remains 30/40 criteria, 300/400 ticks, 75% provisional.
+- Gate 10 remains 0/10 officially closed; open criteria: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.
+- Criterion 39 receives an additional store-boundary regression but remains OPEN pending safe lifecycle integration, authenticated recipient routing, a real idempotent sender adapter, and delivery/recovery evidence.
+- Stage 2–6 remain NOT SCORED; overall 20.90% remains a historical checkpoint only.
+- ZERO COST maintained. No Termux action, paid service, APK release, dependency change, or main-branch modification.

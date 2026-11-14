@@ -514,3 +514,30 @@ def test_alert_delivery_worker_rejects_invalid_clock_values(store, clock_value):
             lambda _event: None,
             clock_ns=lambda: clock_value,
         )
+
+
+@pytest.mark.parametrize("operation", ["acknowledge", "reschedule"])
+def test_outbox_rejects_now_timestamp_above_sqlite_int64(store, operation):
+    event = _create_pending_trigger_event(store)
+    claimed = store.claim_pending_trigger_events(now_ns=10_000)
+    assert len(claimed) == 1
+    lease = claimed[0]
+
+    with pytest.raises(ValueError, match="now_ns.*SQLite integer range"):
+        if operation == "acknowledge":
+            store.mark_trigger_event_delivered(
+                event_id=event.event_id,
+                lease_token=lease.lease_token,
+                now_ns=2**63,
+            )
+        else:
+            store.reschedule_trigger_event(
+                event_id=event.event_id,
+                lease_token=lease.lease_token,
+                now_ns=2**63,
+                next_attempt_ns=10_001,
+                error_code="test.invalid_clock",
+            )
+
+    # Rejection occurs before SQL binding; the existing lease remains intact.
+    assert store.list_pending_trigger_events() == [event]

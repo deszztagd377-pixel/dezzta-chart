@@ -529,116 +529,17 @@ class SQLitePriceAlertStore:
     ) -> list[ClaimedPriceAlertTriggerEvent]:
         """Atomically lease due outbox events to one delivery worker."""
         if not isinstance(now_ns, int) or isinstance(now_ns, bool) or now_ns < 0:
-            raise ValueError("now_ns must be a non-negative integer.")
-        if (
-            not isinstance(lease_duration_ns, int)
-            or isinstance(lease_duration_ns, bool)
-            or lease_duration_ns < 1
-            or now_ns + lease_duration_ns > 9_223_372_036_854_775_807
+            raise ValueError("now_ns must be a non-negative integer.")if (
+            not isinstance(now_ns, int)
+            or isinstance(now_ns, bool)
+            or not 0 <= now_ns <= _SQLITE_INT64_MAX
         ):
-            raise ValueError("lease_duration_ns is outside the supported range.")
-        if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 1000:
-            raise ValueError("limit must be between 1 and 1000.")
-        lease_token = str(uuid4())
-        connection = self._connect()
-        try:
-            connection.execute("BEGIN IMMEDIATE")
-            rows = connection.execute(
-                """
-                SELECT * FROM price_alert_trigger_events
-                WHERE delivery_status = 'pending'
-                  AND next_attempt_ns <= ?
-                  AND (lease_token IS NULL OR lease_expires_ns <= ?)
-                ORDER BY created_at_utc, event_id
-                LIMIT ?
-                """,
-                (now_ns, now_ns, limit),
-            ).fetchall()
-            claimed: list[ClaimedPriceAlertTriggerEvent] = []
-            for row in rows:
-                cursor = connection.execute(
-                    """
-                    UPDATE price_alert_trigger_events
-                    SET lease_token = ?, lease_expires_ns = ?, attempt_count = attempt_count + 1
-                    WHERE event_id = ? AND delivery_status = 'pending'
-                      AND (lease_token IS NULL OR lease_expires_ns <= ?)
-                    """,
-                    (lease_token, now_ns + lease_duration_ns, row["event_id"], now_ns),
-                )
-                if cursor.rowcount != 1:
-                    continue
-                claimed.append(
-                    ClaimedPriceAlertTriggerEvent(
-                        event=PriceAlertTriggerEvent(
-                            event_id=row["event_id"],
-                            zone_id=row["zone_id"],
-                            owner_id=row["owner_id"],
-                            canonical_instrument_id=row["canonical_instrument_id"],
-                            trigger_price=Decimal(row["trigger_price"]),
-                            provider_event_id=row["provider_event_id"],
-                            source_timestamp_ns=row["source_timestamp_ns"],
-                            delivery_status="pending",
-                        ),
-                        lease_token=lease_token,
-                        attempt_count=row["attempt_count"] + 1,
-                    )
-                )
-            connection.commit()
-            return claimed
-        except Exception:
-            if connection.in_transaction:
-                connection.rollback()
-            raise
-        finally:
-            connection.close()
-
-    def mark_trigger_event_delivered(
-        self, *, event_id: str, lease_token: str, now_ns: int
-    ) -> bool:
-        """Acknowledge delivery only while the worker's lease is still active."""
-        if not isinstance(event_id, str) or not event_id.strip():
-            raise ValueError("event_id is required.")
-        if not isinstance(lease_token, str) or not lease_token.strip():
-            raise ValueError("lease_token is required.")
-        if not isinstance(now_ns, int) or isinstance(now_ns, bool) or now_ns < 0:
-            raise ValueError("now_ns must be a non-negative integer.")
-        connection = self._connect()
-        try:
-            cursor = connection.execute(
-                """
-                UPDATE price_alert_trigger_events
-                SET delivery_status = 'delivered', lease_token = NULL,
-                    lease_expires_ns = NULL, last_error_code = NULL
-                WHERE event_id = ? AND delivery_status = 'pending'
-                  AND lease_token = ? AND lease_expires_ns > ?
-                """,
-                (event_id.strip(), lease_token.strip(), now_ns),
-            )
-            return cursor.rowcount == 1
-        finally:
-            connection.close()
-
-    def reschedule_trigger_event(
-        self,
-        *,
-        event_id: str,
-        lease_token: str,
-        now_ns: int,
-        next_attempt_ns: int,
-        error_code: str,
-        terminal: bool = False,
-    ) -> bool:
-        """Release a lease and schedule retry, or mark a terminal delivery failure.
-
-        Only a short machine-readable error code is stored; raw exceptions,
-        credentials, provider responses and personal data must not be persisted.
-        """
-        if not isinstance(event_id, str) or not event_id.strip():
-            raise ValueError("event_id is required.")
-        if not isinstance(lease_token, str) or not lease_token.strip():
-            raise ValueError("lease_token is required.")
-        if not isinstance(now_ns, int) or isinstance(now_ns, bool) or now_ns < 0:
-            raise ValueError("now_ns must be a non-negative integer.")
+            raise ValueError("now_ns is outside the supported SQLite integer range.")if (
+            not isinstance(now_ns, int)
+            or isinstance(now_ns, bool)
+            or not 0 <= now_ns <= _SQLITE_INT64_MAX
+        ):
+            raise ValueError("now_ns is outside the supported SQLite integer range.")
         if (
             not isinstance(next_attempt_ns, int)
             or isinstance(next_attempt_ns, bool)
