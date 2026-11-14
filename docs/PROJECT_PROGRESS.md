@@ -2004,3 +2004,74 @@ Workflow evidence:
 - Automated Tests: https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43566762952
 - CodeQL: https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43566763073
 - Gitleaks: https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43566762971
+
+
+## Project-process progress indicator clarification and latest-head audit — 2026-11-14
+
+The owner clarified that the requested progress indicator is a **project-management indicator**, not an indicator feature rendered inside the DEZZTA CHART APK. It tracks delivery progress across the official six-stage roadmap and Stage 1 acceptance evidence. It does not add UI, chart overlays, market-price ticks, or technical-indicator controls.
+
+### Official stage position
+
+- Current official stage: **Stage 1 — Foundation, Security & Data Integrity**.
+- The branch name `phase-2/market-data-foundation` is a technical workstream label and does not advance the official roadmap to Stage 2.
+- Stage 2: Market Data Infrastructure.
+- Stage 3: Chart Engine & Timeframe.
+- Stage 4: Indicators & Analytics.
+- Stage 5: Professional UI & Interactive Tools.
+- Stage 6: Hardening, Validation & APK Release.
+- No stage transition is inferred from branch naming, commits, documentation, or unrelated CI success.
+
+### Project progress indicator — current Stage 1 meter
+
+| Measure | Current value | Calculation / interpretation |
+|---|---:|---|
+| Stage 1 acceptance criteria | 40 | Fixed acceptance scope |
+| Display ticks per criterion | 10 | Awarded only when the full criterion and its evidence are accepted |
+| Total Stage 1 scale | 400 ticks | 40 × 10 |
+| Provisionally accepted criteria | 30 / 40 | Existing provisional checklist tally |
+| Earned display ticks | **300 / 400** | 30 × 10 |
+| Stage 1 progress | **75% provisional** | 300 ÷ 400 × 100 |
+| Open external-verification criteria | **10 / 40** | 8, 20, 25, 30, 31, 34, 35, 36, 38, 39 |
+| Remaining ticks | **100 / 400** | 10 × 10 |
+| Stage 1 production acceptance | **Not accepted** | External acceptance evidence is still missing |
+
+One display tick equals 0.25 percentage points of Stage 1 progress. A criterion receives either 10 accepted ticks or 0 until its complete acceptance boundary is evidenced. No fractional ticks are inferred.
+
+### Overall project percentage — accounting guardrail
+
+- **20.3% → 20.9%** remains the owner-confirmed historical conversational sequence.
+- A freshly reconciled overall percentage is **not established** because the proposed M1–M8 weighted milestone ledger remains unapproved and unscored criterion-by-criterion.
+- Do not convert Stage 1's 75% into the overall project percentage.
+- Do not award overall progress for commits, file count, documentation volume, or passing CI alone.
+- The proposed overall ledger weights total 100%, but require owner review and verified criterion-level scoring before a new overall figure can be published.
+- Major UI/feature expansion remains gated at **40% overall project progress**, followed by a scoped blueprint and owner review. This does not waive the six-stage order.
+
+### Exact latest branch-head verification — 2026-11-14
+
+- Repository: `deszztagd377-pixel/dezzta-chart`.
+- Working branch: `phase-2/market-data-foundation`.
+- Exact branch HEAD: `10046851065e41fa73bdcf757eb87b02e5a12b6d`.
+- Commit message: `fix: restore shared database test and Firebase evaluation history`.
+- Automated Tests [run #43567126816](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43567126816): **success** on the exact HEAD.
+- CodeQL [run #43567126843](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43567126843): **success** on the exact HEAD.
+- Full Git History Secret Audit [run #43567126815](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43567126815): **success** on the exact HEAD.
+- The combined commit status also reports Vercel **success**.
+- The immediately preceding duplicate runs on parent commit `347b58296751b9fdafb2096600594ed32de13730` were cancelled when the new commit superseded them; the exact-HEAD runs above completed successfully and are the evidence used here.
+- The latest source commit adds the shared-application-database restore regression and updates Firebase evaluation history. This is repository/CI evidence, not a target-device or production restore report.
+- CI success does **not** close any of the ten external Stage 1 criteria and awards **zero additional Stage 1 ticks**.
+- Therefore Stage 1 remains **300/400 ticks = 75% provisional**; the ten external criteria remain open.
+- No new overall project percentage is calculated from this CI run.
+
+### Work-cycle reporting contract
+
+Every subsequent project work cycle must report:
+1. Official stage and active branch/HEAD.
+2. The project-process progress meter (Stage 1 ticks and provisional percentage).
+3. Overall historical percentage separately from any newly approved/recalculated score.
+4. Completed, in-progress, blocked, and unverified acceptance criteria.
+5. Evidence links and exact tested commit for each acceptance claim.
+6. Problems found and the concrete remediation applied or the exact external dependency that prevents closure.
+7. Files changed, validation results, CI status, and commit SHA.
+8. Termux/device action only when required by a specific acceptance test; never provide an unverified or error-prone command.
+
+This progress indicator is documentation/accounting only. Technical indicators inside the application remain governed by the six-stage roadmap and their separate indicator acceptance documentation.
