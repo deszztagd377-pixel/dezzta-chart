@@ -1,7 +1,16 @@
 # DEZZTA CHART — Indicator UI implementation blueprint
 
-Status: **DRAFT — owner review required before implementation**  
+Status: **PARKED — Stage 4 preparation draft; not active during Stage 1**  
+Implementation authorization: **NOT GRANTED**. Revisit this document only when the official roadmap reaches Stage 4 and the applicable owner review/acceptance gates are satisfied.  
 Scope: standard educational chart indicators only. This blueprint does not authorize trading, order execution, signal recommendations, or any broker integration.
+
+## Roadmap placement
+
+- The official project roadmap has six stages. The current active stage remains **Stage 1 — Foundation, Security & Data Integrity**.
+- Visible indicator controls, chart overlays and oscillator panes belong to **Stage 4 — Indicators & Analytics**, not Stage 1.
+- The branch name `phase-2/market-data-foundation` is not evidence that the official project has advanced to Stage 2.
+- The separate 40% overall-project gate applies to broader professional UI/feature expansion. It does not authorize skipping stages or implementing indicator UI during Stage 1.
+- This file is retained only as a future preparation draft. No implementation work should be started from it during Stage 1.
 
 ## 1. Existing verified foundation
 
@@ -11,7 +20,7 @@ Scope: standard educational chart indicators only. This blueprint does not autho
 - `src/components/CandlestickChart.tsx` currently creates only the candlestick series. It does not import or render `useMarketIndicators`.
 - `lightweight-charts` is declared as `^5.0.0`; exact installed type/API signatures must be inspected from the lockfile and dependency package before any chart-series or pane implementation. Do not guess API signatures.
 
-## 2. Proposed user-facing scope
+## 2. Proposed Stage 4 user-facing scope
 
 ### Main price pane — default OFF
 
@@ -32,7 +41,7 @@ Scope: standard educational chart indicators only. This blueprint does not autho
 - A compact indicator control row is placed within the chart view without covering the latest candles or the market-data status badge.
 - Controls remain usable on a narrow mobile viewport; horizontal scrolling is preferable to shrinking labels into unreadable text.
 - All toggles are keyboard-operable and expose `aria-pressed`/accessible names.
-- Proposed initial state: every indicator OFF, preserving the current candlestick-only experience. Owner confirmation is required.
+- Proposed initial state: every indicator OFF, preserving the current candlestick-only experience. Owner confirmation is required at the Stage 4 review gate.
 
 ## 3. Data and lifecycle contract
 
@@ -54,7 +63,7 @@ Scope: standard educational chart indicators only. This blueprint does not autho
 - Do not add a fallback to demo or synthetic values when backend data is missing.
 - No indicator may create entry/exit signals, recommendations, automated actions, or broker requests.
 
-## 5. Required acceptance tests before completion
+## 5. Required acceptance tests before Stage 4 completion
 
 - Each toggle changes only its own series visibility.
 - All controls default OFF and the existing candlestick-only layout is unchanged.
@@ -74,6 +83,6 @@ Scope: standard educational chart indicators only. This blueprint does not autho
 - Provider order-flow data, exchange subscriptions, trade execution, broker connections, auto-trading, copy-trading, or paid services.
 - Changing existing indicator formulas or defaults without a separate review.
 
-## 7. Approval gate
+## 7. Stage 4 approval gate
 
-This document is a proposed implementation plan only. No chart UI, pane, overlay, hook, or calculation source is changed by adding this blueprint. Implementation begins only after the owner reviews and approves this scope and the initial all-OFF behavior.
+This is a future proposal only. No chart UI, pane, overlay, hook, or calculation source is changed by retaining this document. Implementation must not begin during Stage 1. At the Stage 4 entry/review gate, the owner must review and approve the scope, initial all-OFF behavior, exact data lifecycle contract and acceptance tests before implementation.
