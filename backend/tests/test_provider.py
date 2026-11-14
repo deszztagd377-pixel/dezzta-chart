@@ -755,3 +755,20 @@ def test_startup_reconciliation_resumes_after_partial_failure_and_process_restar
     assert resumed["ranges_reconciled"] == 1
     assert resumed["ranges_remaining"] == 0
     assert coverage.intervals(scope) == [(T0, T0 + 150 * NS)]
+
+
+@pytest.mark.parametrize(
+    ("message", "sensitive"),
+    [
+        ("request failed: Bearer eyJhbGciOiJIUzI1NiJ9.payload.signature", "eyJhbGciOiJIUzI1NiJ9.payload.signature"),
+        ("redis://audit-user:redis-pass@cache.example:6379/0", "redis-pass"),
+        ("provider error api_key=provider-private-value", "provider-private-value"),
+        ("authorization: Basic dXNlcjpwYXNz", "dXNlcjpwYXNz"),
+        ("password = p@ssword-value", "p@ssword-value"),
+        ("?access_token=query-token-value&retry=1", "query-token-value"),
+    ],
+)
+def test_redaction_helpers_remove_common_credential_forms(message, sensitive):
+    rendered = redact(message)
+    assert sensitive not in rendered
+    assert "[REDACTED]" in rendered
