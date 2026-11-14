@@ -772,3 +772,8 @@ Assessment: the most likely cause is a Vercel deployment-creation rate limit (po
 Impact: Vercel preview/deployment check is failing; the separate GitHub Actions Automated Tests, CodeQL, and secret-audit workflows can still pass independently. This does not prove production deployment or affect the repository's local Android APK build status. Treat the Vercel check as an external deployment limitation, not as a passed check.
 
 ZERO COST decision: retain the existing free workflow; avoid unnecessary commits solely to retrigger Vercel; do not repeatedly retry within a rate-limit window. Consider changing or disabling automatic Vercel preview triggers only after reviewing the current project integration and obtaining explicit approval, because that changes the deployment workflow.
+
+
+## Git commit capability check — Vercel deployment limit (2026-11-14)
+
+The owner asked whether Git commits can continue while the Vercel status reports `build-rate-limit`. A documentation commit was successfully created directly on `phase-2/market-data-foundation` after the Vercel failure was observed. This confirms that the Vercel deployment limit does not block GitHub repository writes/commits on this branch. It does not prove that every GitHub Actions workflow will pass, nor does it clear the Vercel deployment check. Continue normal scoped commits and pushes on this branch; treat Vercel preview deployment as independently rate-limited. Do not switch to `main`, purchase an upgrade, or create empty/retry-only commits. Stage 1 scoring is unchanged: 300/400 ticks = 75% provisional; Gate 10 0/10 closed; open criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, 39. Stage 2–6 remain NOT SCORED; overall 20.90% remains historical only.
