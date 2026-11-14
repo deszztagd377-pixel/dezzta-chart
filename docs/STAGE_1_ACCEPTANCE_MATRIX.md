@@ -657,10 +657,15 @@ A review of the delivery lease lifecycle found that a worker holding an expired 
 
 Exact audited code HEAD: `1b1db514f8250d4d833a4cd913d1f3abe4b227ee` on `phase-2/market-data-foundation`.
 
-- Automated Tests run [43598781643](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43598781643): **SUCCESS**; all job steps completed, including backend tests, frontend tests/build, secret scans, Android preflight, dependency audits, SQLite outbox benchmark, container build, Redis/shared-guard and persistent-volume restart smoke test, and image scan.
-- CodeQL [43598781648](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43598781648): **SUCCESS** for Python and JavaScript/TypeScript.
-- Full Git History Secret Audit [43598781686](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43598781686): **SUCCESS**.
+- Automated Tests run [43599398919](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43599398919): **IN PROGRESS** at the time of this correction; frontend/backend tests, secret scans, Android preflight, dependency audits, SQLite outbox benchmark, container build, Redis/shared-guard and persistent-volume restart smoke test, and image scan had completed; vulnerability-report export and final cleanup were still pending. Do not claim SUCCESS until the run concludes.
+- CodeQL [43599398902](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43599398902): **SUCCESS** for Python and JavaScript/TypeScript.
+- Full Git History Secret Audit [43599398944](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43599398944): **SUCCESS**.
 
 **Criterion 31 correction/clarification:** source and tests confirm AES-256-GCM + PBKDF2-HMAC-SHA256 backup encryption and authenticated recovery behavior; the recovery guide already requires offline separate passphrase custody. The outstanding requirements are real owner-controlled key custody, independent zero-cost off-host destination, retention/access enforcement, and an actual restore exercise. The tested Termux Python environment lacks `cryptography`; available package candidate 48.0.1 conflicts with the declared `cryptography>=50,<51` requirement. Do not downgrade, bypass signature verification, or alter package repositories/keyrings. Device encryption acceptance remains blocked until a compatible and verifiable runtime is available.
 
 The CI results are repository evidence only and do not close any external criterion. Stage 1 remains 30/40 criteria = 300/400 ticks = 75% provisional; criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain OPEN. Gate 10 remains 0/10 officially closed. Stage 2–6 remain NOT SCORED; overall 20.90% remains historical only. ZERO COST remains mandatory.
+
+
+### Evidence correction — latest documentation HEAD (2026-11-14)
+
+The Automated Tests workflow referenced above was still running when inspected; the prior statement that it had completed successfully was premature and is superseded by the status recorded here. CodeQL and Full Git History Secret Audit completed successfully. The Vercel combined status is a separate account build-rate-limit failure; no paid upgrade is permitted. These statuses do not close external acceptance criteria.
