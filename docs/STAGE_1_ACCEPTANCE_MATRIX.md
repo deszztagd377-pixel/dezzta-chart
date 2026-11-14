@@ -557,3 +557,29 @@ The owner-device drill report now includes a generated drill ID and SHA-256 over
 - No external criterion is closed by these repository checks. Criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain open pending their exact host/device/provider evidence. No Stage 1 tick is awarded by this batch.
 - Stage 1 remains **30/40 provisional = 300/400 ticks = 75% provisional**. Stage 2–6 remain **NOT SCORED**. Overall 20.90% remains a historical checkpoint only.
 - No Termux package, repository, keyring, crypto dependency, runtime, production secret, paid service, or APK release was changed.
+
+
+## Gate 10 — consolidated evidence packet contract (2026-11-14)
+
+This section makes the remaining external gates executable as evidence requests. It does not mark any gate complete and awards no ticks by itself. Every packet must be redacted, tied to a date and exact software/configuration revision, and reviewed against the pass conditions below.
+
+| Criterion | Minimum evidence packet | Pass condition | Immediate fail/defer condition |
+|---:|---|---|---|
+| 8 | Host/service secret-injection method; redacted service configuration; frontend bundle scan; repository-history scan; log/build-output scan | Secret values are injected only at runtime, never shipped to clients or emitted in logs/build artifacts/history | Any secret in a client artifact/log/history, or no verified host-side injection mechanism |
+| 20 | No-billing Firebase project settings; redacted sign-in results; valid, expired, revoked, wrong-project token cases; entitlement-denial case; browser and Android reconnect results | All identity and authorization cases behave as designed without enabling paid billing | Billing state is unclear, a negative case is accepted, or any paid plan is required |
+| 25 | Redis version/config fingerprint; certificate-validation result; ACL identity/permission test; private-bind check; persistence/restart/failure test | TLS verification and least-privilege ACLs succeed; Redis is not publicly exposed; persisted state survives the defined restart drill | Plaintext transport, disabled certificate validation, broad ACL, public bind, or lost required state |
+| 30 | Actual backend process identity; effective working directory and DB-path source; redacted restore-drill JSON; source-before/after hash; fresh restore integrity and application readback | Correct live DB is positively identified; source remains unchanged; fresh restore passes integrity, FK, domain readback, and post-restore write/read/cleanup | DB path is guessed, source changes, output overwrites an existing file, or any verification fails |
+| 31 | Encrypted artifact hash/format; separate key-custody location description (never the key); retention/access policy; successful restore result from encrypted artifact | Authenticated decryption and database restore succeed using a separately controlled recovery key, with no incremental cost | Key is stored beside the artifact, key is lost/unrecoverable, destination is not independently controlled, or paid storage is needed |
+| 34 | Volume/mount identity; ownership and mode; write/read marker; restart result; disk-pressure/recovery result | Correct persistent volume remains mounted with restrictive permissions and data survives the required restart/recovery cases | Data resides only in ephemeral container storage, permissions are broad, or restart loses required data |
+| 35 | Backend startup/health output; HTTPS certificate-chain result; failure-injection result; redacted runtime-secret source | Health check succeeds over verified HTTPS; startup fails closed when required config is absent; secrets remain backend-only | HTTP-only production exposure, invalid TLS, secrets in frontend, or paid public exposure required |
+| 36 | Reverse-proxy config (redacted); WSS handshake; Firebase-authenticated subscription; unauthorized/expired-token rejection; web and Android client results | Both supported clients establish verified WSS and only authorized subscriptions succeed | Insecure transport outside local development, token in URL/logs, auth bypass, or only mocked client evidence |
+| 38 | Self-hosted metrics/log config; retention limits; access-control test; disk/resource budget; sample redacted incident trace | Operational data is locally collected, bounded, access-controlled, and sustainable on existing hardware | Unbounded logs, exposed sensitive data, resource exhaustion, or paid observability dependency |
+| 39 | Local alert route test; failure-to-alert and alert-delivery timestamps; incident owner/escalation/recovery runbook; recovery exercise | A no-cost alert is actually received and the documented recovery drill succeeds | Alert route is merely configured but untested, depends on paid delivery, or has no accountable recovery procedure |
+
+### Gate evidence review rules
+
+1. Keep raw secrets, Firebase tokens, Redis credentials, encryption passphrases, private keys, personal account data, and absolute private-storage paths out of chat, commits, screenshots, and reports.
+2. A report must identify the tested environment and revision without disclosing secret values. Screenshots alone are insufficient where a machine-readable redacted result is available.
+3. CI evidence may support a gate but cannot replace device/host/provider evidence explicitly required above.
+4. A failed or unavailable check leaves the criterion OPEN; it does not earn partial ticks. Fix a safe repository-side defect before asking for any owner-device action.
+5. No criterion may be closed by an assumed free tier, trial, local mock, synthetic fixture, or unverified network path.
