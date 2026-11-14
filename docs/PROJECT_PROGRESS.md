@@ -2097,3 +2097,9 @@ The project-process indicator now has a fixed, colorful six-card visual referenc
 - Exact-HEAD CI: Full Git History Secret Audit and CodeQL passed. Automated Tests had passed frontend tests/build, backend tests, synthetic outbox benchmark, dependency audit, container build and Redis/persistent-volume smoke test; backend image scanning was still running at the last check. Do not mark the run fully green until its final conclusion.
 - Termux: current Google Play signing-key mismatch reports remain open upstream (#1642 and #1648). No safe compatible package path was verified; no device commands were needed or issued. Do not switch repository, bypass APT verification, install cryptography 48.0.1, or weaken the dependency.
 - No source code, application behavior, dependencies, credentials, paid services, or `main` branch were changed in this audit cycle.
+
+
+### CI status correction — 2026-11-14
+
+- Prior Automated Tests run `43568430935` on `21eabf46bf51f076f074e8fc6c2eb55723111956` ultimately concluded **cancelled**. The individual core test/build/security steps, Docker/Redis persistent-volume smoke test, Trivy image scan, report export and upload all recorded success, but a cancelled workflow is not a green acceptance run.
+- New documentation-only HEAD at the time of this entry: `c63560ebf16bd16ab3de482df35c35b381fa009e`. Its Automated Tests and CodeQL workflows were in progress and Full Git History Secret Audit was pending. Verify final status against the latest branch HEAD.
