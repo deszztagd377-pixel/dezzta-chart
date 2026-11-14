@@ -148,3 +148,13 @@ A matching public report in `termux-play-store/termux-issues#1642` describes the
 ## Owner product constraint — ZERO COST
 
 The owner requires a ZERO COST direction for DEZZTA CHART. Prefer free/open-source tooling and a build/install/use workflow that does not depend on paid hosting, paid market-data subscriptions, paid APIs, or Play Store publication fees. Do not introduce paid infrastructure or services without explicit owner approval. The immediate product target is an installable APK on the owner's phone; Google Play publication is deferred until the owner explicitly decides to pursue it. Clearly disclose any unavoidable cost and investigate a genuinely free alternative before proposing a paid dependency.
+
+
+## Follow-up verification — Google Play signing-key issue remains open (2026-11-14)
+
+The matching upstream Google Play issue tracker was checked again through the GitHub repository API:
+- [Issue #1642](https://github.com/termux-play-store/termux-issues/issues/1642) — still open; last updated 2026-11-10.
+- [Issue #1648](https://github.com/termux-play-store/termux-issues/issues/1648) — still open; last updated 2026-10-15.
+- The reported missing key `5A897D96E57CF20C` is the upstream `termux-autobuilds` signing key. The Play Store build's installed keyring does not contain it.
+
+**Decision unchanged:** keep the working Google Play repository configuration; do not switch to `packages.termux.dev`, import an unverified key, bypass APT signature verification, or install the incompatible `python-cryptography 48.0.1-1`. Do not reduce `cryptography>=50,<51` or modify AES-GCM/PBKDF2. No Termux action is required from the owner in this checkpoint. Revisit only when the Play build provides an officially compatible signed keyring/repository path.
