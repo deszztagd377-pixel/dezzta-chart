@@ -234,3 +234,12 @@ The current Android workflow `.github/workflows/android-apk.yml` creates a tempo
 - Actual phone installation and launch must be separately tested.
 - Full market-data/backend-connected operation is not accepted until the backend runtime, secure local connection, and lifecycle are validated on-device.
 - No Play Console, signing-for-store, listing, or publication task is in the current delivery path.
+
+
+## Android backend preflight and restore-drill tooling — 2026-11-14
+
+The read-only Android host preflight now reports Python, SQLite, and OpenSSL runtime versions plus installed distribution versions for FastAPI, Uvicorn, Redis, pytest, cryptography, Firebase Admin, and Databento. It still installs nothing, starts no service, performs no network probe, and does not print environment variables or secrets.
+
+A reusable owner-device SQLite restore drill is available as app.sqlite_restore_drill. It requires the actual source DB plus two new output paths, refuses existing backup/restore destinations, uses the consistent SQLite backup helper and safe fresh-path restore helper, verifies required application tables, integrity and foreign keys, compares per-table row counts, reopens all durable application adapters, validates domain counts and outbox identity uniqueness, and performs a write/read/cleanup probe only on the restored copy. Its JSON report contains basenames, runtime versions, hashes, counts, and timing only; it excludes absolute paths and row/account values.
+
+This tool is prepared procedure, not evidence that the owner's actual Android database has been restored. Do not run it until the live backend process, effective working directory, and actual database path have been confirmed. No Termux package/repository change is required for these code additions.

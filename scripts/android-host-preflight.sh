@@ -92,8 +92,32 @@ if [ -n "${PREFIX:-}" ]; then
 fi
 
 if command -v python3 >/dev/null 2>&1; then
-  printf '\n%s\n' "Python module availability (imports only; no network or writes):"
-  python3 -c 'import importlib.util; names=("fastapi","uvicorn","redis","pytest","cryptography","firebase_admin","databento"); [print(("FOUND " if importlib.util.find_spec(name) else "MISS  ") + name) for name in names]' 2>/dev/null || printf '%s\n' "INFO  python_import_probe      unavailable"
+  printf '\n%s\n' "Python runtime and package versions (local metadata only; no network or writes):"
+  python3 - <<'PYTHON_PREFLIGHT'
+import importlib.metadata
+import importlib.util
+import platform
+import sqlite3
+import ssl
+
+print("INFO  python_runtime          " + platform.python_version())
+print("INFO  python_machine          " + platform.machine())
+print("INFO  sqlite_runtime          " + sqlite3.sqlite_version)
+print("INFO  python_ssl_runtime      " + ssl.OPENSSL_VERSION)
+for module, distribution in (
+    ("fastapi", "fastapi"), ("uvicorn", "uvicorn"), ("redis", "redis"),
+    ("pytest", "pytest"), ("cryptography", "cryptography"),
+    ("firebase_admin", "firebase-admin"), ("databento", "databento"),
+):
+    if importlib.util.find_spec(module) is None:
+        print("MISS  python_package          " + distribution)
+        continue
+    try:
+        version = importlib.metadata.version(distribution)
+    except importlib.metadata.PackageNotFoundError:
+        version = "installed-version-unavailable"
+    print("FOUND python_package          " + distribution + " " + version)
+PYTHON_PREFLIGHT
 else
   printf '\n%s\n' "INFO  python_import_probe      skipped (python3 missing)"
 fi

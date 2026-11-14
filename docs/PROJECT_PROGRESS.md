@@ -2268,3 +2268,12 @@ Termux disposition: no action required in this batch. Keep the known-good Google
 ## Owner-confirmed Android delivery target (2026-11-14)
 
 The near-term release target is a directly installable APK for the owner's Infinix GT20 via manual sideload. Google Play Store publication is deferred and is not part of the current work plan or cost model. The existing debug APK workflow packages the frontend only; actual phone installation/launch and backend-connected operation remain separate acceptance checks.
+
+
+## Gate 10 batch 8 — APK download hardening and actual SQLite restore-drill procedure (2026-11-14)
+
+The Android release workflow's GitHub expressions were corrected and are now covered by a regression test. The manually dispatched preview release remains opt-in and creates a commit-specific GitHub prerelease with APK and checksum assets; ordinary pushes do not publish releases.
+
+The read-only Termux preflight now reports exact Python, SQLite, OpenSSL, and installed package versions. A reusable actual-database SQLite restore-drill module was added. It refuses pre-existing output paths, uses a consistent snapshot and fresh-path restore, verifies required application tables, integrity/foreign keys, row counts, durable adapter reads, outbox identities, and a post-restore write/read/cleanup probe. It emits only redacted aggregate evidence and never writes to the live source.
+
+The drill has not been run on the owner's phone because the live backend runtime and effective DB path have not yet been established. Criterion 30 remains OPEN. APK is still frontend-only and not published. Stage 1 remains 300/400 ticks (75% provisional), with ten external gates open. Stages 2–6 remain NOT SCORED; overall remains the historical 20.90% checkpoint. No progress ticks are awarded.

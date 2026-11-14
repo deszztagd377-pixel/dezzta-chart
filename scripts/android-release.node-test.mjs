@@ -74,3 +74,16 @@ test('rejects invalid repository, commit SHA and empty APK before network', asyn
     assert.equal(called, false);
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
+
+test('Android workflow uses valid expressions and opt-in release publication', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const workflow = await readFile(new URL('../.github/workflows/android-apk.yml', import.meta.url), 'utf8');
+  assert.match(workflow, /group: android-apk-\$\{\{ github\.ref \}\}/);
+  assert.match(workflow, /GITHUB_REPOSITORY: \$\{\{ github\.repository \}\}/);
+  assert.match(workflow, /GITHUB_TOKEN: \$\{\{ github\.token \}\}/);
+  assert.match(workflow, /GITHUB_SHA: \$\{\{ github\.sha \}\}/);
+  assert.match(workflow, /inputs\.publish_preview_release == true/);
+  assert.doesNotMatch(workflow, /\$\{ github\./);
+  assert.doesNotMatch(workflow, /GITHUB_OUTPUT:/);
+  assert.doesNotMatch(workflow, /GITHUB_STEP_SUMMARY:/);
+});

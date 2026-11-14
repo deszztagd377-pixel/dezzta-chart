@@ -87,6 +87,10 @@ jobs:
       - name: Test immutable Android preview release publisher
         run: node --test scripts/android-release.node-test.mjs
 
+      - name: Test owner-device SQLite restore drill
+        working-directory: backend
+        run: python -m pytest -q tests/test_sqlite_restore_drill.py
+
       - name: Scan production frontend bundle for server credentials
         run: node scripts/check-frontend-bundle-secrets.mjs dist
 

@@ -24,7 +24,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: android-apk-${ github.ref }
+  group: android-apk-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   build-debug-apk:
@@ -93,10 +93,8 @@ jobs:
       - name: Publish immutable, versioned GitHub preview release
         if: github.event_name == 'workflow_dispatch' && inputs.publish_preview_release == true
         env:
-          GITHUB_REPOSITORY: ${ github.repository }
-          GITHUB_TOKEN: ${ github.token }
-          GITHUB_SHA: ${ github.sha }
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_SHA: ${{ github.sha }}
           APK_PATH: android/app/build/outputs/apk/debug/app-debug.apk
-          GITHUB_OUTPUT: ${ github.output }
-          GITHUB_STEP_SUMMARY: ${ github.step_summary }
         run: node scripts/publish-android-preview-release.mjs

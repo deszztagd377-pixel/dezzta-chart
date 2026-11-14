@@ -116,3 +116,12 @@ After approval, implementation must be incremental, on `phase-2/market-data-foun
 - Important limitation: the current APK packages the built web frontend only. It does not bundle or supervise the Python backend or Redis. APK installation/launch success must not be described as full backend-connected product acceptance.
 - Future device acceptance must verify APK artifact integrity, install on the actual Android 15 / arm64 target, launch and navigation, WebView/network behavior, lifecycle/restart, and honest offline/backend-unavailable states. Backend connectivity is a separate gate until a safe local-host topology is approved and proven.
 - This distribution clarification does not redefine Stage 1's 40-point production acceptance matrix or award progress ticks.
+
+
+## Direct APK download path and restore drill implementation — 2026-11-14
+
+- The Android workflow supports a manual, opt-in, commit-specific GitHub prerelease with the APK and SHA-256 sidecar. Ordinary pushes never publish a release.
+- The release publisher is covered by offline tests and refuses to overwrite assets on an existing tag.
+- The current APK remains frontend-only. Do not publish it as the final app or claim backend-connected operation.
+- The final official download link will be a GitHub Release asset URL after device and backend acceptance. A stable latest-download URL is reserved for the first approved non-prerelease final release.
+- A reusable SQLite restore-drill module prepares criterion 30 for the actual owner-controlled database. It is deliberately not executed until the real backend process and effective database path are identified; it never overwrites the source database.

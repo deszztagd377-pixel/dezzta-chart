@@ -534,3 +534,8 @@ Acceptance accounting is unchanged:
 - Overall project remains the historical **20.90%** checkpoint; no new weighted score is approved.
 
 Termux disposition: no action required in this batch. Keep the known-good Google Play repository and signature verification unchanged. No device command, repository switch, key import, or crypto downgrade is authorized or needed.
+
+
+### Criterion 30 — owner-device drill tooling (2026-11-14)
+
+A reusable report-producing procedure is implemented in backend/app/sqlite_restore_drill.py. It snapshots the actual source database through SQLite Online Backup, restores to a fresh path through restore_consistent_sqlite_backup, checks required shared-application tables, integrity and foreign keys, compares per-table counts, reopens registry/entitlement/alert/coverage/OHLCV adapters, validates outbox event identity uniqueness, and tests a write/read/cleanup operation on the restored copy only. Automated tests use a synthetic application database and are repository evidence only. Criterion 30 remains OPEN until the tool is executed against the actual owner-controlled Android backend database and a redacted report is reviewed.
