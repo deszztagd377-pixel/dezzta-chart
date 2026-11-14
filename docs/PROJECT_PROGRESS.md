@@ -2080,3 +2080,8 @@ This progress indicator is documentation/accounting only. Technical indicators i
 ## Project-process indicator specification
 
 The complete six-stage **project-process progress indicator** is maintained in [PROJECT_PROGRESS_INDICATOR.md](PROJECT_PROGRESS_INDICATOR.md). It is explicitly separate from technical indicators inside the APK. The specification includes the six-stage dashboard, Stage 1 tick formula, ten external acceptance blockers, overall-percentage accounting safeguards, work-cycle evidence contract, and Termux/zero-cost rules.
+
+
+## Permanent six-stage visual dashboard (2026-11-14)
+
+The project-process indicator now has a fixed, colorful six-card visual reference at [project-progress-dashboard.svg](assets/project-progress-dashboard.svg), embedded in [PROJECT_PROGRESS_INDICATOR.md](PROJECT_PROGRESS_INDICATOR.md). Keep this same layout, stage order, and stage-specific colors in progress reports through Stage 6. Unopened stages remain **NOT SCORED** until evidence-backed criteria and a scoring model exist. This is project documentation only, not APK UI.
