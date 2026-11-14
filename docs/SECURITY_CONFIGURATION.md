@@ -40,7 +40,7 @@ remain server-side and must never be packaged into the browser app or Android AP
   for deployment-side HTTPS/WSS and Origin smoke tests.
 - Keep the WebSocket Origin allowlist explicit. Origin checks supplement, but do
   not replace, token verification.
-- In `APP_ENV=production`, startup requires both a TLS `REDIS_URL` and a non-empty `FIREBASE_PROJECT_ID`; the backend refuses to start with an incomplete identity-verification configuration.
+- In `APP_ENV=production`, startup requires a TLS `rediss://` `REDIS_URL` containing a non-empty Redis ACL username and password, plus a non-empty `FIREBASE_PROJECT_ID`; the backend refuses to start with an incomplete shared-guard or identity-verification configuration. `Settings.redis_url` is excluded from `repr()`/`str()` so the ACL secret is not exposed by settings diagnostics.
 - `FIREBASE_PROJECT_ID` identifies the Firebase project and is not an Admin credential. The Firebase Admin SDK must still obtain valid server-side application credentials through the deployment runtime.
 - HTTP authentication uses a Firebase Bearer ID token verified by the backend.
   The `GET /v1/ohlcv` route also resolves the exact provider mapping and checks
