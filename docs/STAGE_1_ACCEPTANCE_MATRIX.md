@@ -611,3 +611,18 @@ These CI results apply to code HEAD `37641c43b8ca6c10f5284d4680a654796f0a5380`; 
 ### Audit correction — criterion 39 scope (2026-11-14)
 
 A deeper source review of `backend/app/alerts.py`, `backend/app/alert_store.py`, and the FastAPI route registration found that the current implementation provides alert-zone validation and durable SQLite storage only. It does **not** provide an active price-crossing evaluator, a local delivery adapter, a delivery worker/scheduler, or evidence of a delivered alert. Therefore do not describe alert storage as an implemented alert-delivery path. Criterion 39 remains externally open and also has an implementation gap to scope safely before claiming an end-to-end local alert path. No paid notification channel may be introduced.
+
+
+### Criterion 39 implementation increment — durable entry evaluator (2026-11-14)
+
+The alert repository now contains an internal, transaction-safe price-zone entry evaluator and durable pending trigger-event outbox.
+
+- Evaluates a canonical instrument's finite decimal price against active/triggered/paused zone intervals.
+- Requires an initial outside/inside observation baseline; the first sample never fabricates an entry.
+- Emits one event on an observed outside-to-inside transition, suppresses duplicate provider event IDs, and re-arms only after an observed exit.
+- Persists per-instrument source timestamp high-water marks and rejects stale, future-skewed, and out-of-order events.
+- Tracks paused zones' boundary state without triggering while paused.
+- Persists trigger payload fields and `pending` delivery status for later delivery processing.
+- Adds regression coverage for entry, no-repeat while inside, exit/re-entry, restart durability, duplicate IDs, stale/future/out-of-order rejection, paused behavior, instrument isolation, and invalid prices.
+
+**Not yet complete:** the evaluator is not wired to a verified live tick/event source; no worker claims and delivers pending events; no FCM device registration, permission, sender, retry/dead-letter handling, Android background/closed-app evidence, or operational alert/recovery exercise exists. The method is internal and is not exposed through an API. Its caller must establish provider provenance and canonical identity before invoking it. Therefore criterion 39 remains open and receives no Stage 1 ticks.
