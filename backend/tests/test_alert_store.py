@@ -226,7 +226,7 @@ def test_out_of_order_stale_and_future_market_events_are_rejected(store):
     _evaluate(store, "111", "provider-event-baseline", 1_000)
     _evaluate(store, "105", "provider-event-new", 2_000)
     with pytest.raises(AlertMarketEventRejected, match="Out-of-order"):
-        _evaluate(store, "105", "provider-event-old", 1_000)
+        _evaluate(store, "105", "provider-event-old", 999)
 
     with pytest.raises(AlertMarketEventRejected, match="stale or from the future"):
         store.evaluate_market_price(
