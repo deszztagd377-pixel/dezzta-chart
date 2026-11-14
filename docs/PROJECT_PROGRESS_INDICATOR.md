@@ -650,3 +650,29 @@ This is a repository-level evaluator and durable pending-event outbox only. It i
 - Open criteria remain `8, 20, 25, 30, 31, 34, 35, 36, 38, 39`.
 - Stage 2–6 remain NOT SCORED; overall `20.90%` remains the historical checkpoint only.
 - ZERO COST: no paid provider, notification service, managed host, trial, or subscription added. No Termux operation or APK release change.
+
+
+## Gate 10 batch 17 — alert outbox leases and retry safety (2026-11-14)
+
+### Changes
+
+- `backend/app/alert_store.py`: added additive SQLite migration for outbox attempt count, lease token/expiry, next-attempt time and bounded error code.
+- Added atomic `claim_pending_trigger_events` with `BEGIN IMMEDIATE`, bounded batch size, worker lease duration, durable attempt counter and recovery after lease expiry.
+- Added lease-token-guarded acknowledgement `mark_trigger_event_delivered`.
+- Added `reschedule_trigger_event` for delayed retry or terminal failure. Only constrained machine-readable error codes are stored; raw exception strings and potentially sensitive provider/credential content are rejected.
+- Added tests for exclusive claims, expired-lease recovery, attempt count, stale worker rejection, retry scheduling, terminal failure and invalid/untrusted error inputs.
+- Code commits: `568a5a018db03523f286a101328a6ebcc4407c8d` (lease/retry implementation), `02fd3f7e6f5d2ae555419002abdc600418e1d2ce` (regression tests).
+- On pre-outbox HEAD `799d61f789131824d229b356363258767c3afdce`, Automated Tests completed SUCCESS; CodeQL Python and JavaScript/TypeScript completed SUCCESS; Full Git History Secret Audit completed SUCCESS. These runs validate the earlier evaluator foundation, not the lease/retry changes.
+- On current code HEAD `02fd3f7e6f5d2ae555419002abdc600418e1d2ce`, Secret Audit completed SUCCESS; Automated Tests and CodeQL were still running at documentation time. Do not claim them passed until they complete for the final documentation HEAD.
+
+### Scope and remaining delivery gap
+
+The lease/retry API does not itself send notifications. No scheduled worker, local Android notification adapter, verified provider tick source, websocket per-account delivery, or Android background/closed-app evidence is present. It is intentionally not exposed as a public API. Criterion 39 remains OPEN with zero ticks.
+
+### Progress invariants
+
+- Stage 1: `300/400 ticks = 75% provisional`; still 30/40 criteria accepted.
+- Gate 10: `0/10` officially closed; open criteria remain `8, 20, 25, 30, 31, 34, 35, 36, 38, 39`.
+- Stage 2–6: NOT SCORED. Overall `20.90%` is a historical checkpoint, not recalculated.
+- ZERO COST: no paid notification service, paid market-data provider, trial, subscription, managed hosting or external infrastructure was added.
+- No Termux command, package installation, APK publication, or release-signing change was performed.
