@@ -12,14 +12,12 @@ condition = "AND"
 regexTarget = "match"
 regexes = ['''ghp_123456789012345678901234''']
 paths = ['''scripts/check-frontend-bundle-secrets\.node-test\.mjs$''']
-
-# Exact Git commit SHA in project-status metadata; this is a public identifier,
-# not a credential. Scope the exception to this one value and one documentation file.
+ 
+# Exact public commit-metadata line falsely matches the generic-api-key detector.
+# Scope this exception to that one historical line in the project-status file.
 [[allowlists]]
-description = "Exact public commit SHA false positive in project status metadata"
+description = "Exact public commit metadata line false positive"
 condition = "AND"
 regexTarget = "line"
-regexes = ['''^Latest observed exact-head CI/CodeQL/secret-audit checkpoint: b37c69d6aaee2f764c3357834e868a3e53bddbe1 \(CI #1141, CodeQL #499, secret audit #80 passed\)
-'']
-paths = ['''PROJECT_STATUS\.md
-'']
+regexes = ['''^Latest observed exact-head CI/CodeQL/secret-audit checkpoint: b37c69d6aaee2f764c3357834e868a3e53bddbe1 .*$''']
+paths = ['''PROJECT_STATUS.md$''']
