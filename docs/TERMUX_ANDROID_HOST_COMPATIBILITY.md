@@ -12,7 +12,7 @@ The owner's previously reported environment is:
 - Termux Google Play build: `googleplay.2026.10.09`.
 - Android: 15; architecture: `aarch64`.
 - Installed `termux-keyring`: 3.15.
-- Configured package repository: `https://packages.termux.dev/apt/termux-main`.
+- Owner-restored, working configured package repository: `https://termux.net` (the Google Play build's original source). A separate report in issue #1648 describes a stock `packages.termux.dev` source on another affected setup; do not conflate that report with the owner's restored active source.
 - APT failure: `NO_PUBKEY 5A897D96E57CF20C`.
 - The required backend dependency is `cryptography>=50,<51`; the previously observed repository candidate was `48.0.1-1`, which does not satisfy that range.
 
@@ -66,3 +66,10 @@ References:
 - https://github.com/termux-play-store/termux-issues/issues/1642
 - https://github.com/termux-play-store/termux-issues/issues/1648
 - https://github.com/termux-play-store/termux-apps/releases
+
+
+## Owner-confirmed delivery scope — direct APK sideload, not Play Store (2026-11-14)
+
+The current delivery target is an Android APK installable directly on the owner's Infinix GT20 by manual sideload. Google Play Store publication is deferred and excluded from current cost and acceptance planning.
+
+The existing Android workflow builds a debug APK from a temporary Capacitor wrapper and packages the frontend only. It does not prove native Termux backend hosting, Redis availability, or a live market-data connection. Treat APK packaging, on-device install/launch, and full backend-connected functionality as three separate evidence items.

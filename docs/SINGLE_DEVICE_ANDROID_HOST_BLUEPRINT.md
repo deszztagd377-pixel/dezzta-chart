@@ -106,3 +106,13 @@ Before code changes, review and approve:
 - Whether public HTTPS/WSS production acceptance remains open if only local loopback TLS can be proven.
 
 After approval, implementation must be incremental, on `phase-2/market-data-foundation`, with tests for every changed behavior. Do not touch `main`.
+
+
+## Owner-confirmed distribution decision — 2026-11-14
+
+- The near-term delivery target is a working Android APK that can be installed directly on the owner's Infinix GT20 by manual sideload.
+- **Google Play Store publication is deferred** until the owner independently decides to pursue it. Do not include Play Console registration, publication fees, store listing, or release-track work in the current critical path.
+- The existing `.github/workflows/android-apk.yml` builds a debug APK using a temporary Capacitor wrapper and uploads the artifact for a limited retention period. This is an installable packaging path, not a Play Store release pipeline.
+- Important limitation: the current APK packages the built web frontend only. It does not bundle or supervise the Python backend or Redis. APK installation/launch success must not be described as full backend-connected product acceptance.
+- Future device acceptance must verify APK artifact integrity, install on the actual Android 15 / arm64 target, launch and navigation, WebView/network behavior, lifecycle/restart, and honest offline/backend-unavailable states. Backend connectivity is a separate gate until a safe local-host topology is approved and proven.
+- This distribution clarification does not redefine Stage 1's 40-point production acceptance matrix or award progress ticks.

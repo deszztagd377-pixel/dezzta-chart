@@ -223,3 +223,14 @@ The repository backend database path is configured by `INSTRUMENT_REGISTRY_DB_PA
 Exact source/test HEAD `8a159274eaa35339b8f68a1948f0bab002bc998c` passed all three workflows: Automated Tests [#43582913692](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43582913692), CodeQL [#43582913713](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43582913713), and Full Git History Secret Audit [#43582913733](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43582913733). The Automated Tests workflow completed backend tests, container build, Redis/persistent-volume smoke test, image scan and vulnerability-report export successfully.
 
 This does not fix the Google Play Termux signing-key mismatch. Retain the current working source and package verification. No Termux action is required for this batch; the SQLite restore test is independent of the cryptography package dependency.
+
+
+## Owner-confirmed APK distribution target — 2026-11-14
+
+The immediate product delivery is a directly installable Android APK for the owner's Infinix GT20 (Android 15, arm64). Install by manual sideload; **Google Play Store publication is explicitly deferred** and is not a current requirement or cost item.
+
+The current Android workflow `.github/workflows/android-apk.yml` creates a temporary Capacitor wrapper, builds a debug APK, verifies the artifact exists, and uploads it for 7 days. It packages the web frontend only; it does not include or supervise the Python backend or Redis. Therefore:
+- APK build success proves packaging only.
+- Actual phone installation and launch must be separately tested.
+- Full market-data/backend-connected operation is not accepted until the backend runtime, secure local connection, and lifecycle are validated on-device.
+- No Play Console, signing-for-store, listing, or publication task is in the current delivery path.

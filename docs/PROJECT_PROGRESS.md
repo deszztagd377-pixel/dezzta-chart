@@ -2234,7 +2234,7 @@ Starting branch HEAD: `cabf637bf2e48cb54983a98bd854416975272df5`.
 All three exact-HEAD workflows completed successfully:
 - Automated Tests [#43572423301](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43572423301).
 - CodeQL [#43572423236](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43572423236).
-- Full Git History Secret Audit [#43572423268](https://github.com/deszztagd-pixel/dezzta-chart/actions/runs/43572423268).
+- Full Git History Secret Audit [#43572423268](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43572423268).
 
 The next repository regression batch adds a corrupt SQLite restore-source case and asserts fail-closed behavior, no destination publication, and temporary-file cleanup. This is supporting test coverage, not external restore acceptance.
 
@@ -2263,3 +2263,8 @@ Acceptance accounting is unchanged:
 
 Termux disposition: no action required in this batch. Keep the known-good Google Play repository and signature verification unchanged. No device command, repository switch, key import, or crypto downgrade is authorized or needed.
 
+
+
+## Owner-confirmed Android delivery target (2026-11-14)
+
+The near-term release target is a directly installable APK for the owner's Infinix GT20 via manual sideload. Google Play Store publication is deferred and is not part of the current work plan or cost model. The existing debug APK workflow packages the frontend only; actual phone installation/launch and backend-connected operation remain separate acceptance checks.
