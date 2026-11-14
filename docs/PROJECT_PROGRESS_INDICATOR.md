@@ -744,3 +744,16 @@ The outbox now has atomic claims, durable attempt counts, expiry recovery, token
 - Stage 2–6 remain **NOT SCORED**. Overall **20.90%** remains a historical checkpoint only and is not recalculated here.
 - ZERO COST maintained: no paid service, trial, billing activation, paid market-data feed, hosting, storage/KMS, monitoring, notification channel, or publication fee.
 - No Termux command, package installation, repository/keyring change, service start, APK release, or signing change was performed.
+
+
+## Gate 10 batch 20 — exact-HEAD evidence correction (2026-11-14)
+
+- Branch: `phase-2/market-data-foundation`.
+- Documentation/source checkpoint before this correction: `de50cad359e6fba6e6f3f4b09b55c63e4363bcb9`; the source-code checkpoint referenced by the previous audit is `1b1db514f8250d4d833a4cd913d1f3abe4b227ee`.
+- Automated Tests run [#43599398919](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43599398919): **IN PROGRESS** at the time of this entry. Frontend tests/build and secret scans, Android preflight, backend tests, synthetic outbox benchmark, dependency audit, container build, Redis/shared-guard + persistent-volume smoke test, and image scan had completed successfully; vulnerability-report export was still running. Do not label the enclosing workflow successful until final conclusion and cleanup complete.
+- CodeQL run [#43599398902](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43599398902): **SUCCESS** for Python and JavaScript/TypeScript.
+- Full Git History Secret Audit [#43599398944](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43599398944): **SUCCESS**.
+- The commit `de50cad` changed only `docs/STAGE_1_ACCEPTANCE_MATRIX.md`; it did not update this progress-indicator document. This batch corrects that documentation gap and records the exact evidence boundary.
+- GitHub combined status also reports Vercel **FAILURE** with an account build-rate-limit/upgrade target. Treat this as a separate external preview-deployment limitation, not as a failed backend test and not as a successful deployment. No paid upgrade is authorized under ZERO COST.
+- No Gate 10 criterion is closed by these CI results. Stage 1 remains 300/400 ticks = 75% provisional; Gate 10 remains 0/10 closed; open criteria remain 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. Stage 2–6 remain NOT SCORED. Overall 20.90% remains a historical checkpoint only.
+- No Termux command, package installation, repository/keyring change, APK publication, or paid service was used.
