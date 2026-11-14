@@ -9,7 +9,7 @@ from app.alert_store import (
     SQLitePriceAlertStore,
 )
 from app.alerts import AlertZoneQuotaExceeded
-from app.alert_store import AlertMarketEventRejected
+from app.alert_store import AlertMarketEventRejected\nfrom app.alert_delivery import run_alert_delivery_batch
 from app.instrument_identity import CanonicalInstrument
 from app.instrument_registry import SQLiteInstrumentRegistry
 
@@ -404,3 +404,102 @@ def test_market_event_rejects_source_timestamp_outside_sqlite_integer_range(stor
     with pytest.raises(AlertMarketEventRejected, match="SQLite's signed 64-bit integer range"):
         _evaluate(store, "105", "timestamp-overflow", 2**63)
 
+def _create_pending_trigger_event(store):
+    _create(store)
+    _evaluate(store, "111", "worker-baseline", 500)
+    events = _evaluate(store, "105", "worker-trigger", 1_000)
+    assert len(events) == 1
+    return events[0]
+
+
+def test_alert_delivery_worker_acknowledges_successful_idempotent_sender(store):
+    event = _create_pending_trigger_event(store)
+    delivered_ids = []
+
+    result = run_alert_delivery_batch(
+        store,
+        lambda item: delivered_ids.append(item.event_id),
+        clock_ns=lambda: 10_000,
+    )
+
+    assert delivered_ids == [event.event_id]
+    assert result.claimed == 1
+    assert result.delivered == 1
+    assert result.retry_scheduled == 0
+    assert result.terminal_failed == 0
+    assert result.lease_lost == 0
+    assert store.list_pending_trigger_events() == []
+
+
+def test_alert_delivery_worker_schedules_retry_then_terminal_failure(store):
+    _create_pending_trigger_event(store)
+
+    def fail_sender(_event):
+        raise RuntimeError("private adapter detail must never be persisted")
+
+    first = run_alert_delivery_batch(
+        store,
+        fail_sender,
+        clock_ns=lambda: 10_000,
+        lease_duration_ns=100,
+        base_retry_delay_ns=100,
+        max_retry_delay_ns=500,
+        max_attempts=2,
+    )
+    assert first.retry_scheduled == 1
+    assert first.terminal_failed == 0
+    assert store.claim_pending_trigger_events(now_ns=10_099) == []
+
+    second = run_alert_delivery_batch(
+        store,
+        fail_sender,
+        clock_ns=lambda: 10_100,
+        lease_duration_ns=100,
+        base_retry_delay_ns=100,
+        max_retry_delay_ns=500,
+        max_attempts=2,
+    )
+    assert second.terminal_failed == 1
+    assert second.retry_scheduled == 0
+    assert store.list_pending_trigger_events() == []
+    with sqlite3.connect(store.database_path) as db:
+        row = db.execute(
+            "SELECT delivery_status, last_error_code FROM price_alert_trigger_events"
+        ).fetchone()
+    assert row == ("failed", "delivery.error")
+    assert "private adapter detail" not in repr(row)
+
+
+def test_alert_delivery_worker_does_not_acknowledge_after_lease_expiry(store):
+    event = _create_pending_trigger_event(store)
+    clock_values = iter((10_000, 10_010))
+
+    result = run_alert_delivery_batch(
+        store,
+        lambda _event: None,
+        clock_ns=lambda: next(clock_values),
+        lease_duration_ns=10,
+    )
+
+    assert result.claimed == 1
+    assert result.delivered == 0
+    assert result.lease_lost == 1
+    reclaimed = store.claim_pending_trigger_events(now_ns=10_010)
+    assert len(reclaimed) == 1
+    assert reclaimed[0].event.event_id == event.event_id
+
+
+def test_alert_delivery_worker_validates_bounded_configuration(store):
+    with pytest.raises(ValueError, match="batch_size"):
+        run_alert_delivery_batch(
+            store, lambda _event: None, clock_ns=lambda: 1, batch_size=0
+        )
+    with pytest.raises(ValueError, match="max_retry_delay_ns"):
+        run_alert_delivery_batch(
+            store,
+            lambda _event: None,
+            clock_ns=lambda: 1,
+            base_retry_delay_ns=10,
+            max_retry_delay_ns=9,
+        )
+\n

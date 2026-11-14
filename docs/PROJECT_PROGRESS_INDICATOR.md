@@ -798,3 +798,27 @@ The owner asked whether Git commits can continue while the Vercel status reports
 - Still open: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.
 - Stage 2–6: NOT SCORED. Overall 20.90% remains a historical checkpoint only.
 - ZERO COST maintained. No Termux command, dependency installation, runtime change, paid service, APK release, or main branch change.
+
+
+## Gate 10 work cycle — bounded alert outbox delivery worker (2026-11-14)
+
+### Implemented repository-side capability
+- Added backend/app/alert_delivery.py with a bounded, injectable worker that claims pending outbox rows through the existing atomic lease API.
+- Successful sender calls are acknowledged only while the lease is still active.
+- Failed sender calls schedule capped exponential retry; attempts reaching the configured maximum transition to terminal delivery failure.
+- Only the fixed machine-readable error code delivery.error is persisted. Raw exception text, provider responses, credentials, and account details are not stored.
+- The sender contract is explicitly at-least-once and requires idempotency keyed by event.event_id. A send may succeed immediately before lease expiry or process interruption, so duplicate prevention belongs at the adapter boundary.
+- Added regression tests for successful acknowledgement, retry then terminal failure, lease expiry/reclaim, and invalid worker bounds.
+
+### Integration boundary and remaining evidence
+- This worker is callable and CI-testable, but it is not yet started by application lifespan, a scheduler, or a background service.
+- No platform notification adapter, per-user WebSocket delivery, live provider tick wiring, owner-device delivery, or recovery exercise is claimed.
+- The worker therefore improves criterion 39 but does not close it. The next integration must select a zero-cost adapter and establish authenticated recipient routing before enabling delivery.
+
+### Verification and progress accounting
+- The prior commit 803abde172ea6db69d230e1c630b385665aad418 completed Automated Tests, container build, Redis-guard/persistent-volume smoke test, image scan, CodeQL, and full Git-history secret audit successfully.
+- This new worker commit must pass its own CI before its tests are considered verified.
+- Stage 1 remains 30/40 criteria; 300/400 ticks; 75% provisional.
+- Gate 10 remains 0/10 officially closed; open criteria remain 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.
+- Stage 2–6 remain NOT SCORED; overall 20.90% remains historical only.
+- ZERO COST maintained. No Termux commands, dependency changes, paid services, APK release, or main-branch changes.
