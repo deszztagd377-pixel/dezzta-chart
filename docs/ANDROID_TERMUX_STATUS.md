@@ -182,3 +182,12 @@ The successful repository CI run does not change the Android package-manager com
 - These are GitHub CI results; they do not install packages on Android and do not validate the native Termux backend or Python cryptography import.
 
 **Device action required now: none.** Keep the existing source and package state unchanged. Do not run a repository switch, import a key, bypass signature verification, downgrade cryptography, change encryption semantics, migrate Termux, uninstall the app, or clear its data. Criterion 30's SQLite restore drill is independent of the missing cryptography package; criterion 31's encrypted off-host backup/key-recovery gate remains blocked.
+
+
+## Termux re-audit — 2026-11-14
+
+The matching Google Play issue tracker still reports the signing-key mismatch as open: [issue #1642](https://github.com/termux-play-store/termux-issues/issues/1642) (last updated 2026-11-10 in this audit) and [issue #1648](https://github.com/termux-play-store/termux-issues/issues/1648) (last updated 2026-10-15). The latest visible Google Play release remains `googleplay.2026.10.09` / `termux-app-googleplay.2026.10.09` (published 2026-10-09). The error `NO_PUBKEY 5A897D96E57CF20C` occurs because the upstream repository signing key is not in the Play build's installed keyring; this is a repository/build signing mismatch, not a reason to bypass APT verification.
+
+**Decision unchanged:** keep the user's working original Termux source and backup `$HOME/termux.sources.original-backup`; do not switch to `packages.termux.dev`, import an unverified key, bypass signature checks, downgrade `cryptography>=50,<51`, or migrate/uninstall/clear app data. A source migration has a different APK signature and is not a harmless in-place update; it would require a separately authorized, verified backup-and-restore plan. No Termux command is required for this cycle.
+
+Criterion 31 remains blocked by the unavailable verified compatible crypto package path and lack of a verified off-host destination/key-custody route. SQLite restore work for criterion 30 remains independent and does not require changing Termux packages.

@@ -2172,3 +2172,18 @@ Criterion 30 remains OPEN until the actual application database on the target de
 The shared application database restore regression now uses the production restore helper directly and checks both SQLite integrity and foreign-key consistency before validating all durable domains. Two additional tests cover post-publication directory-flush failure and a competing destination race. The exact-HEAD CI run is pending.
 
 No progress percentage or Stage 1 tick is awarded by this code/test change alone. Stage 1 remains **300/400 = 75% provisional** with criteria **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39** open. Stages 2–6 remain NOT SCORED. The overall project remains at the historical owner-confirmed **20.90%** checkpoint; no new weighted score is established.
+
+
+## Gate 10 batch 3 — exact-HEAD status — 2026-11-14
+
+Latest branch HEAD: `ba01807b043de1f446b0630002ff607ac48a069a`.
+
+| Workflow | Run | Exact-HEAD result |
+|---|---:|---|
+| Automated Tests | [#43571145976](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43571145976) | **SUCCESS** |
+| CodeQL | [#43571145954](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43571145954) | **SUCCESS** |
+| Full Git History Secret Audit | [#43571145944](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43571145944) | **SUCCESS** |
+
+Batch 3 directly integrates the safe restore helper into the shared-application-database regression and adds directory-flush failure and competing-destination race tests. This completes the repository-side batch; it does not close criterion 30 without the actual owner-device application database report.
+
+Stage 1 remains 300/400 = 75% provisional. Criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain open. Stages 2–6 remain NOT SCORED. Historical overall checkpoint remains 20.9%; no fresh weighted total is approved.

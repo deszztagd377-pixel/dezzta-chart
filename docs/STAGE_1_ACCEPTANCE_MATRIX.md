@@ -457,3 +457,10 @@ The full shared-application-database restore test now invokes `restore_consisten
 Two additional tests cover directory-flush failure after publication and a competing process creating the destination immediately before atomic publication. The intended guarantees are tested: durability uncertainty is surfaced without pretending publication was rolled back, and a destination created by another process is never overwritten.
 
 Exact-HEAD CI is pending. Criterion 30 remains OPEN pending the actual owner-device restore report; no acceptance ticks are awarded by these repository tests alone.
+
+
+## Criterion 30 — Gate 10 batch 3 evidence boundary — 2026-11-14
+
+The shared-application-database restore regression now invokes `restore_consistent_sqlite_backup()` directly, validates SQLite integrity and foreign-key consistency, reopens durable application stores, checks representative records across registry, entitlement, alert-zone, coverage/gap, OHLCV and outbox/replay domains, and verifies a post-restore write on the restored copy. Directory-flush failure after publication and a competing destination race are also covered.
+
+Exact-HEAD CI on `ba01807b043de1f446b0630002ff607ac48a069a` passed Automated Tests #43571145976, CodeQL #43571145954 and Full Git History Secret Audit #43571145944. This is repository-side evidence only. Criterion 30 remains OPEN until the actual owner-device application database is restored to a fresh destination and a secret-free report verifies all available durable domains and a post-restore write. Do not overwrite or delete the source DB; do not assume the repository's default DB path is the live Android path.
