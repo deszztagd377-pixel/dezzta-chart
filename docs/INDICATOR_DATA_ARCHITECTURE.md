@@ -513,3 +513,8 @@ The current detailed acceptance ledger remains:
 - **Heatmap and Liquidation Maps:** no implementation verified; owner reference images, scoped blueprint review, data contract, calculations, rendering and tests remain prerequisites.
 
 Visible indicator implementation remains Stage 4 work and is not started during this Stage 1 remediation cycle. The full calculations/acceptance matrix above this carry-forward remains authoritative.
+
+
+## Indicator status carry-forward — Firebase and Stage 1 restore audit
+
+The current Stage 1 work cycle updates Firebase-authentication and SQLite-restore acceptance evidence only. No SMA/EMA/RSI/MACD/Bollinger formula, indicator hook, chart renderer, Footprint, Heatmap or Liquidation Maps source was changed. The full indicator acceptance matrix remains unchanged; no technical indicator progress credit is awarded.

@@ -1979,3 +1979,12 @@ The Stage 1 tick meter is a **project-management progress display only**. It is 
 - Criterion 25: repository TLS/ACL/fail-closed protections and CI Redis smoke tests are present; owner-host network/persistence/restart proof remains external.
 - Criteria 20, 31, 34, 35, 36, 38 and 39 remain constrained by the verified single-phone/no-PC/no-second-device and ZERO MONEY conditions. No paid account, trial, host, storage, domain, notification provider, or hardware was introduced.
 - No Stage 1 tick change: **300/400 = 75% provisional**; all ten criteria remain open pending their complete acceptance evidence.
+
+
+## Criterion 20 source audit correction — 2026-11-14
+
+- Corrected stale project notes: Firebase client integration is already mounted in `src/main.tsx`; email registration/sign-in, Google redirect, ID-token observer and token retrieval are implemented in `src/auth/AuthProvider.tsx`.
+- The authenticated WebSocket supervisor requests a fresh token on each reconnect. Backend Firebase Admin verification requests revocation checking; API tests cover entitlement denial/revocation, token revalidation, identity drift and reconnect/resnapshot paths.
+- Owner context records an existing registered Firebase Web App, Spark/no-billing choice, and enabled Google Sign-In + Email/Password methods. This is not a substitute for checking the live billing state or a real deployed end-to-end run.
+- Criterion 20 remains OPEN until the actual project/runtime configuration, backend Admin credential injection, real sign-in, expired/revoked-token behavior, entitlement denial, and browser/Android WSS flows are exercised. No billing upgrade.
+- Criterion 30 test fixture correction: CI run #43566514902 caught an invalid `OhlcvBar.series_type="instrument"`; the accepted contract values are `contract` and `continuous`. The fixture is corrected to `contract` in the next commit. The other 803 backend tests passed on the failed attempt; this is not a passing CI result.

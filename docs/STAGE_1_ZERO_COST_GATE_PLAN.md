@@ -150,3 +150,18 @@ This section records work actually present on the branch, what the current CI ca
 - Criteria 20, 31, 34, 35, 36, 38 and 39 remain constrained by absent verified external project/host/storage/operator resources under the ZERO MONEY and single-phone constraints.
 - No external gate is marked complete. Stage 1 remains 300/400 ticks (75% provisional), and the ten open criteria remain open.
 - The next evidence-bearing opportunity is the criterion 30 owner-device restore report. The integrated test does not substitute for that report.
+
+
+## Criterion 20 — Firebase prototype implementation update — 2026-11-14
+
+The earlier prototype-only implementation note is superseded by the current source state and owner-approved setup:
+
+- The owner registered the DEZZTA CHART Firebase Web App and supplied its public web configuration in the earlier project work.
+- The owner selected the Firebase Spark/no-billing path and explicitly excluded payment-card/billing upgrades.
+- Google Sign-In and Email/Password sign-in methods were enabled in the Firebase project.
+- Frontend integration is present: `src/services/firebase.ts` reads the four `VITE_FIREBASE_*` public configuration values and rejects a mismatched pre-existing default app; `src/auth/AuthProvider.tsx` owns the auth observer, email registration/sign-in, Google redirect, sign-out and ID-token retrieval; `src/main.tsx` mounts the provider; `src/components/SettingsPanel.tsx` exposes the account panel.
+- The authenticated market-data client obtains a fresh ID token for every stream connection/reconnect. The backend verifies Firebase ID tokens with revocation checking, validates issuer/audience/subject/authentication time, checks per-instrument entitlements and periodically revalidates token and entitlement state during active WebSocket subscriptions.
+- Automated tests cover client initialization, email/Google action wiring, token-observer lifecycle, backend claim validation, revocation-check invocation, entitlement denial/revocation, WebSocket reconnect and fail-closed behavior.
+
+**Remaining acceptance boundary:** the source tests use mocks for Firebase SDK and identity-verifier behavior. The actual Firebase project billing state, deployed frontend environment values, backend Admin SDK credential injection, real sign-in, real expired/revoked-token rejection, entitlement denial and reconnect must still be exercised against a running backend from the supported browser and Android client paths. The Firebase project being registered and auth methods being enabled is not itself that integration evidence. Keep Spark/no-billing; do not enable Blaze or phone/SMS billing.
+

@@ -362,7 +362,7 @@ def test_full_application_database_restore_preserves_all_shared_sqlite_domains(t
         upper_price="110.75",
     )
     coverage = SQLiteCoverageTracker(str(source))
-    scope = ("test-provider", "TEST.DATA", 1, 9001, "instrument", "AAPL")
+    scope = ("test-provider", "TEST.DATA", 1, 9001, "contract", "AAPL")
     coverage.add_covered(scope, 1_000, 2_000)
     coverage.add_gap(scope, 1_400, 1_600)
 
@@ -372,7 +372,7 @@ def test_full_application_database_restore_preserves_all_shared_sqlite_domains(t
         publisher_id=1,
         instrument_id=9001,
         raw_symbol="AAPL",
-        series_type="instrument",
+        series_type="contract",
         timeframe="1m",
         ts_start_ns=60_000_000_000,
         open=Decimal("100"),

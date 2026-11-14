@@ -391,3 +391,10 @@ A future tick change must cite the criterion number, its full acceptance boundar
 See [STAGE_1_ZERO_COST_GATE_PLAN.md](STAGE_1_ZERO_COST_GATE_PLAN.md) for the per-gate disposition. Repository-side test expansion now covers a single restored application database across instrument registry, entitlements, alert zones, coverage intervals/gaps, OHLCV and durable outbox, including a post-restore write. The new test is pending exact-commit CI.
 
 This strengthens criterion 30's repository-side evidence only. It does not satisfy the required target-environment restore drill. Criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 all remain **OPEN / external verification required**; no ticks are awarded by this test or its CI result alone.
+
+
+## Criterion 20 implementation status correction — 2026-11-14
+
+The source audit confirms the Firebase client prototype is already integrated and mounted; the previous statement that the frontend had not yet been connected is stale. Owner setup context records a registered Firebase Web App on the Spark/no-billing path with Google Sign-In and Email/Password methods enabled. The source includes email registration/sign-in, Google redirect, auth-state/ID-token observer, fresh token acquisition for WebSocket reconnect, backend Firebase Admin verification with `check_revoked=True`, entitlement enforcement and periodic WebSocket revalidation.
+
+This is **repository implementation plus owner-configured provider setup**, not a completed real-provider integration drill. Live project billing state, actual frontend runtime configuration, backend Admin credential injection, real sign-in, revocation/expiry, entitlement denial and browser/Android WSS reconnect evidence remain required. Criterion 20 stays OPEN and receives no acceptance ticks.
