@@ -148,3 +148,24 @@ def test_shared_security_limits_reject_non_integer_and_invalid_values(
 ):
     with pytest.raises(ValueError, match="positive integers"):
         make_settings(**{field: invalid_value})
+
+
+@pytest.mark.parametrize(
+    "field,value,secret",
+    [
+        ("market_data_ws_token", "ws-token-never-log-7f31", "ws-token-never-log-7f31"),
+        ("databento_api_key", "db-credential-never-log-8a42", "db-credential-never-log-8a42"),
+        ("session_calendar_sha256", "calendar-digest-never-log-9c53", "calendar-digest-never-log-9c53"),
+        ("firebase_project_id", "firebase-project-private-6d64", "firebase-project-private-6d64"),
+        (
+            "redis_url",
+            "rediss://acl-user:redis-password-never-log@redis.example.invalid:6380/0",
+            "redis-password-never-log",
+        ),
+    ],
+)
+def test_sensitive_settings_are_excluded_from_repr_and_str(field, value, secret):
+    settings = make_settings(**{field: value})
+
+    assert secret not in repr(settings)
+    assert secret not in str(settings)
