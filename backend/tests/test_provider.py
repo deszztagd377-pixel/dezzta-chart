@@ -766,6 +766,9 @@ def test_startup_reconciliation_resumes_after_partial_failure_and_process_restar
         ("authorization: Basic dXNlcjpwYXNz", "dXNlcjpwYXNz"),
         ("password = p@ssword-value", "p@ssword-value"),
         ("?access_token=query-token-value&retry=1", "query-token-value"),
+        ("refresh_token=refresh-token-value", "refresh-token-value"),
+        ("id_token=id-token-value", "id-token-value"),
+        ('{"client_secret":"client-secret-value"}', "client-secret-value"),
     ],
 )
 def test_redaction_helpers_remove_common_credential_forms(message, sensitive):
