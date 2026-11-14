@@ -364,8 +364,30 @@ The documentation commit `cf7044922df3cac0d2e9a52679509ea0aa957a81` is now fully
 
 ## Gate 10 batch 5 — repository checkpoint and next safe actions (2026-11-14)
 
-The exact starting HEAD `cabf637bf2e48cb54983a98bd854416975272df5` passed all three workflows: Automated Tests [#43572423301](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43572423301), CodeQL [#43572423236](https://github.com/deszztagd-pixel/dezzta-chart/actions/runs/43572423236), and Full Git History Secret Audit [#43572423268](https://github.com/deszztagd-pixel/dezzta-chart/actions/runs/43572423268). Repository-side restore tests now also cover corrupt SQLite input, no publication, and temporary-file cleanup.
+The exact starting HEAD `cabf637bf2e48cb54983a98bd854416975272df5` passed all three workflows: Automated Tests [#43572423301](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43572423301), CodeQL [#43572423236](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43572423236), and Full Git History Secret Audit [#43572423268](https://github.com/deszztagd-pixel/dezzta-chart/actions/runs/43572423268). Repository-side restore tests now also cover corrupt SQLite input, no publication, and temporary-file cleanup.
 
 This does not remove the owner-device dependency for criterion 30: the backend's live process and effective database path must first be positively identified. The frontend-only APK does not prove that a Python backend database exists on the phone. Do not guess a path or run a restore against the wrong file. No Termux package or repository change is required.
 
 No-cost disposition remains unchanged: do not create accounts, deploy hosts, enable paid plans/trials, or weaken TLS, package-signature, encryption, or secret-handling requirements to force a gate closed.
+
+## Gate 10 batch 6 — exact-HEAD CI reconciliation and documentation link repair (2026-11-14)
+
+**Exact source/test HEAD:** `8a159274eaa35339b8f68a1948f0bab002bc998c` on `phase-2/market-data-foundation`.
+
+All three workflows completed successfully against this exact commit:
+- Automated Tests [#43582913692](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43582913692) — **SUCCESS**.
+- CodeQL [#43582913713](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43582913713) — **SUCCESS**.
+- Full Git History Secret Audit [#43582913733](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43582913733) — **SUCCESS**.
+
+Automated Tests passed frontend tests/build and secret scanning, Android host preflight, backend tests (including corrupt SQLite restore rejection), synthetic outbox benchmark, dependency audits, backend container build, Redis/persistent-volume smoke test, backend image scan and vulnerability-report export. No workflow failure was reported.
+
+Documentation repair: corrected the malformed CodeQL run URL in this batch's earlier Gate 10 references. This is a documentation integrity correction, not a change to application behavior.
+
+Acceptance accounting is unchanged:
+- Stage 1: **30/40 provisional criteria = 300/400 ticks = 75% provisional**.
+- External criteria still open: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- Criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 are not closed by CI alone. Criterion 30 still needs an owner-device restore report; criterion 31 remains blocked by the unverified Termux-compatible encrypted off-host/key-custody path.
+- Stages 2–6 remain **NOT SCORED** and officially unopened.
+- Overall project remains the historical **20.90%** checkpoint; no new weighted score is approved.
+
+Termux disposition: no action required in this batch. Keep the known-good Google Play repository and signature verification unchanged. No device command, repository switch, key import, or crypto downgrade is authorized or needed.

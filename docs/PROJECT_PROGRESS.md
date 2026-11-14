@@ -2233,9 +2233,33 @@ Starting branch HEAD: `cabf637bf2e48cb54983a98bd854416975272df5`.
 
 All three exact-HEAD workflows completed successfully:
 - Automated Tests [#43572423301](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43572423301).
-- CodeQL [#43572423236](https://github.com/deszztagd-pixel/dezzta-chart/actions/runs/43572423236).
+- CodeQL [#43572423236](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43572423236).
 - Full Git History Secret Audit [#43572423268](https://github.com/deszztagd-pixel/dezzta-chart/actions/runs/43572423268).
 
 The next repository regression batch adds a corrupt SQLite restore-source case and asserts fail-closed behavior, no destination publication, and temporary-file cleanup. This is supporting test coverage, not external restore acceptance.
 
 Progress accounting remains unchanged: Stage 1 is 30/40 provisional criteria (300/400 ticks, 75%); criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain external gates. The overall 20.9% value remains a historical owner-confirmed checkpoint, not a newly calculated figure. Stages 2–6 remain unopened and unscored.
+
+
+## Gate 10 batch 6 — exact-HEAD CI reconciliation and documentation link repair (2026-11-14)
+
+**Exact source/test HEAD:** `8a159274eaa35339b8f68a1948f0bab002bc998c` on `phase-2/market-data-foundation`.
+
+All three workflows completed successfully against this exact commit:
+- Automated Tests [#43582913692](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43582913692) — **SUCCESS**.
+- CodeQL [#43582913713](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43582913713) — **SUCCESS**.
+- Full Git History Secret Audit [#43582913733](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43582913733) — **SUCCESS**.
+
+Automated Tests passed frontend tests/build and secret scanning, Android host preflight, backend tests (including corrupt SQLite restore rejection), synthetic outbox benchmark, dependency audits, backend container build, Redis/persistent-volume smoke test, backend image scan and vulnerability-report export. No workflow failure was reported.
+
+Documentation repair: corrected the malformed CodeQL run URL in this batch's earlier Gate 10 references. This is a documentation integrity correction, not a change to application behavior.
+
+Acceptance accounting is unchanged:
+- Stage 1: **30/40 provisional criteria = 300/400 ticks = 75% provisional**.
+- External criteria still open: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- Criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 are not closed by CI alone. Criterion 30 still needs an owner-device restore report; criterion 31 remains blocked by the unverified Termux-compatible encrypted off-host/key-custody path.
+- Stages 2–6 remain **NOT SCORED** and officially unopened.
+- Overall project remains the historical **20.90%** checkpoint; no new weighted score is approved.
+
+Termux disposition: no action required in this batch. Keep the known-good Google Play repository and signature verification unchanged. No device command, repository switch, key import, or crypto downgrade is authorized or needed.
+

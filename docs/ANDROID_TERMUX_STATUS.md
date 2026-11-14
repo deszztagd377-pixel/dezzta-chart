@@ -217,3 +217,9 @@ The repository backend database path is configured by `INSTRUMENT_REGISTRY_DB_PA
 - The existing working Google Play Termux source remains unchanged. Do not switch to the upstream repository, import an unverified key, bypass signature verification, downgrade cryptography, or alter the backup encryption design.
 - The SQLite restore helper and its tests use Python/SQLite standard-library functionality and are independent of the crypto package blocker.
 - **No Termux action is required for this batch.** A device-side step will be requested only after the actual backend process and database path are identified and a safe, minimal restore drill is prepared.
+
+## Gate 10 batch 6 — CI and Termux status (2026-11-14)
+
+Exact source/test HEAD `8a159274eaa35339b8f68a1948f0bab002bc998c` passed all three workflows: Automated Tests [#43582913692](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43582913692), CodeQL [#43582913713](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43582913713), and Full Git History Secret Audit [#43582913733](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43582913733). The Automated Tests workflow completed backend tests, container build, Redis/persistent-volume smoke test, image scan and vulnerability-report export successfully.
+
+This does not fix the Google Play Termux signing-key mismatch. Retain the current working source and package verification. No Termux action is required for this batch; the SQLite restore test is independent of the cryptography package dependency.

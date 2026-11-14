@@ -412,3 +412,27 @@ No external acceptance gate is closed by this repository work or green CI alone.
 - Stages 2–6 remain **NOT SCORED** and officially unopened. Stage 1 remains not production-accepted.
 - Overall project progress remains **20.9% historical checkpoint only**; no fresh weighted calculation is approved. This CI/test batch earns no additional stage or overall ticks.
 - Termux: no action required. Keep the known-good Google Play source and package verification intact.
+
+
+## Gate 10 batch 6 — exact-HEAD CI reconciliation and documentation link repair (2026-11-14)
+
+**Exact source/test HEAD:** `8a159274eaa35339b8f68a1948f0bab002bc998c` on `phase-2/market-data-foundation`.
+
+All three workflows completed successfully against this exact commit:
+- Automated Tests [#43582913692](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43582913692) — **SUCCESS**.
+- CodeQL [#43582913713](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43582913713) — **SUCCESS**.
+- Full Git History Secret Audit [#43582913733](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43582913733) — **SUCCESS**.
+
+Automated Tests passed frontend tests/build and secret scanning, Android host preflight, backend tests (including corrupt SQLite restore rejection), synthetic outbox benchmark, dependency audits, backend container build, Redis/persistent-volume smoke test, backend image scan and vulnerability-report export. No workflow failure was reported.
+
+Documentation repair: corrected the malformed CodeQL run URL in this batch's earlier Gate 10 references. This is a documentation integrity correction, not a change to application behavior.
+
+Acceptance accounting is unchanged:
+- Stage 1: **30/40 provisional criteria = 300/400 ticks = 75% provisional**.
+- External criteria still open: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- Criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 are not closed by CI alone. Criterion 30 still needs an owner-device restore report; criterion 31 remains blocked by the unverified Termux-compatible encrypted off-host/key-custody path.
+- Stages 2–6 remain **NOT SCORED** and officially unopened.
+- Overall project remains the historical **20.90%** checkpoint; no new weighted score is approved.
+
+Termux disposition: no action required in this batch. Keep the known-good Google Play repository and signature verification unchanged. No device command, repository switch, key import, or crypto downgrade is authorized or needed.
+
