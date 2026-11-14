@@ -1,6 +1,6 @@
 ## Latest exact-head audit — 2026-11-14 (Gate 10 work cycle)
 
-- Latest observed push checkpoint on `phase-2/market-data-foundation`: `b37c69d6aaee2f764c3357834e868a3e53bddbe1` (`docs(stage-1): audit Android backend host feasibility`). This is the newest SHA represented in the retrieved workflow-run list; the runs below all target this exact SHA.
+- Latest exact-HEAD verified source/test checkpoint on `phase-2/market-data-foundation`: `462bca4342d6cb585b6b389ae5996020c4c47dd3` (`fix(security): correct scoped Gitleaks allowlist syntax`). The exact-head Automated Tests #1149, CodeQL #507 and Full Git History Secret Audit #88 all completed successfully.
 - Automated Tests run #1141: **success** — https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43593913966
 - CodeQL run #499: **success** for Python and JavaScript/TypeScript — https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43593913979. A successful analysis is not a claim of zero alerts.
 - Full Git History Secret Audit run #80: **success** — https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43593913868.
@@ -738,3 +738,14 @@ Do not repeat the earlier request for a PC, laptop, or second phone. Do not buy 
 - Integrated CI #43451610297 and CodeQL #43451610192 passed on implementation/workflow commit `efdf9a9ecfa68647586cd89f819e76469e11d3df`.
 - Criterion 8 remains open because production host secret injection, deployed runtime/build-host logs, and GitHub native secret-scanning/push-protection settings plus alert inventory are not verified.
 - No change to Stage 1 (30/40 = 75% provisional), overall project progress (20.9% historical), or indicator acceptance. The complete indicator matrix remains in `docs/INDICATOR_DATA_ARCHITECTURE.md`.
+ 
+## Latest Gate 10 exact-head verification — 2026-11-14
+
+- Verified source/test HEAD: `462bca4342d6cb585b6b389ae5996020c4c47dd3`.
+- Automated Tests #1149: **SUCCESS** — https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43594614075.
+- CodeQL #507: **SUCCESS** — https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43594614165.
+- Full Git History Secret Audit #88: **SUCCESS** — https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43594614104.
+- Secret scan remediation: investigated the redacted Gitleaks finding and fixed the narrow metadata false-positive allowlist. An intermediate TOML syntax failure was corrected; final exact-head audit passed.
+- Stage 1 remains 30/40 provisional criteria = 300/400 ticks = 75% provisional. External criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain OPEN; no external tick was awarded.
+- Stages 2–6 remain NOT SCORED. Overall 20.90% remains a historical owner-confirmed checkpoint, not a fresh weighted calculation.
+- No Termux package/repository/keyring changes, crypto downgrade, production secret, paid service, or APK release occurred.
