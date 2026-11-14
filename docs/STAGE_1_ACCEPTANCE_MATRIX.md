@@ -626,3 +626,17 @@ The alert repository now contains an internal, transaction-safe price-zone entry
 - Adds regression coverage for entry, no-repeat while inside, exit/re-entry, restart durability, duplicate IDs, stale/future/out-of-order rejection, paused behavior, instrument isolation, and invalid prices.
 
 **Not yet complete:** the evaluator is not wired to a verified live tick/event source; no worker claims and delivers pending events; no FCM device registration, permission, sender, retry/dead-letter handling, Android background/closed-app evidence, or operational alert/recovery exercise exists. The method is internal and is not exposed through an API. Its caller must establish provider provenance and canonical identity before invoking it. Therefore criterion 39 remains open and receives no Stage 1 ticks.
+
+
+### Criterion 39 implementation increment — leased delivery outbox foundation (2026-11-14)
+
+The durable trigger outbox now supports worker-safe leasing and controlled retry state:
+
+- Atomic batch claims use SQLite `BEGIN IMMEDIATE`; an active lease prevents a second worker from claiming the same event.
+- Lease expiry permits recovery after a worker interruption; attempt counts persist across claims.
+- A stale worker cannot acknowledge an event after another worker has acquired a replacement lease.
+- A worker can acknowledge delivery, schedule a retry for a future nanosecond timestamp, or mark a terminal failure.
+- Stored failure information is constrained to a short lowercase machine-readable error code. Raw exception text, credentials, provider response bodies and personal data are not accepted.
+- Additive column migration preserves existing trigger-event rows when opening databases created before lease/retry fields existed.
+
+**Not yet complete:** no delivery worker is scheduled or running, no local Android notification/WebSocket delivery adapter exists, and no verified live tick source is connected. The lease/retry API is a backend reliability primitive only. Criterion 39 remains open and receives no Stage 1 ticks until actual end-to-end delivery and recovery evidence exists.
