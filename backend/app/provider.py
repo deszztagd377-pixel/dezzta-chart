@@ -23,11 +23,11 @@ from app.databento_definition_sync import DatabentoDefinitionSynchronizer
 
 _NS = 1_000_000_000
 _KEY_PATTERN = re.compile(r"db-[A-Za-z0-9]{8,}")
-_BEARER_PATTERN = re.compile(r"(?i)\\bBearer\\s+[A-Za-z0-9._~+/=-]+")
-_URL_CREDENTIALS_PATTERN = re.compile(r"(?i)(://)[^/@\\s]+@")
+_BEARER_PATTERN = re.compile(r"(?i)\bBearer\s+[A-Za-z0-9._~+/=-]+")
+_URL_CREDENTIALS_PATTERN = re.compile(r"(?i)(://)[^/@\s]+@")
 _NAMED_SECRET_PATTERN = re.compile(
-    r"(?i)\\b(password|passwd|token|api[_-]?key|secret|authorization)"
-    r"(\\s*[=:]\\s*)([^&\\s,;]+)"
+    r"(?i)\b(password|passwd|token|api[_-]?key|secret|authorization)"
+    r"(\s*[=:]\s*)([^&\s,;]+)"
 )
 
 
@@ -37,8 +37,8 @@ def redact(text: str, secret: str = "") -> str:
         text = text.replace(secret, "[REDACTED]")
     text = _KEY_PATTERN.sub("[REDACTED]", text)
     text = _BEARER_PATTERN.sub("Bearer [REDACTED]", text)
-    text = _URL_CREDENTIALS_PATTERN.sub(r"\\1[REDACTED]@", text)
-    text = _NAMED_SECRET_PATTERN.sub(r"\\1\\2[REDACTED]", text)
+    text = _URL_CREDENTIALS_PATTERN.sub(r"\1[REDACTED]@", text)
+    text = _NAMED_SECRET_PATTERN.sub(r"\1\2[REDACTED]", text)
     return text[:300]
 
 
