@@ -850,3 +850,22 @@ The owner asked whether Git commits can continue while the Vercel status reports
 - Criterion 39 gains additional tested input-boundary protection but remains OPEN because application lifecycle integration, a real sender adapter, authenticated recipient routing, and actual delivery/recovery evidence are not yet present.
 - Stage 2–6 remain NOT SCORED. Overall 20.90% remains a historical checkpoint only.
 - ZERO COST: no dependency, hosting, provider, Termux, APK, or main-branch change.
+
+
+## Verification result — alert-worker clock hardening (2026-11-14)
+
+Commit `37977f6d21eb97047068b21013f840badbbb2b5d` completed all available automated repository checks successfully:
+- Automated Tests workflow: SUCCESS; all 32 steps completed with no failed steps.
+- Backend pytest: SUCCESS, including alert delivery worker tests and four invalid-clock regression cases.
+- Synthetic SQLite outbox benchmark: SUCCESS.
+- Backend dependency audit: SUCCESS.
+- Backend container build: SUCCESS.
+- Container smoke test: SUCCESS, including Redis ACL negative checks, persistent-volume ownership, SQLite integrity, health endpoint, and container restart recovery.
+- Backend container image scan and vulnerability-report export: SUCCESS.
+- CodeQL Security Analysis: SUCCESS.
+- Full Git History Secret Audit: SUCCESS.
+- GitHub combined commit status, including Vercel: SUCCESS at verification time.
+
+These results apply to the CI environment and do not establish owner-host TLS Redis, Firebase live authentication, HTTPS/WSS reverse-proxy deployment, self-hosted monitoring, Android database recovery, external backup key custody, or real alert notification delivery.
+
+Progress remains unchanged: Stage 1 30/40 criteria, 300/400 ticks, 75% provisional; Gate 10 0/10 officially closed; open criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, 39. Stage 2–6 NOT SCORED; overall 20.90% is historical only. ZERO COST maintained; no Termux action, dependency change, paid service, APK release, or main-branch change.
