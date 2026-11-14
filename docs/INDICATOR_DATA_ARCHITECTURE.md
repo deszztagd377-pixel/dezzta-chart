@@ -355,3 +355,18 @@ This exact-HEAD workflow reran the existing frontend suite, including indicator 
 
 **Indicator acceptance is unchanged by this CI run:** calculation foundations are verified; user-facing indicator implementation remains incomplete.
 
+## Indicator progress checkpoint — security-only branch update (2026-11-14)
+
+The exact branch-head security/configuration update `ed62578eafad89b0d27ec233c06e5503c9f00123` passed its full automated workflow:
+
+- Frontend regression: **26 test files / 211 tests passed**.
+- Backend regression: **798 tests passed in 26.48s**.
+- CodeQL: Python and JavaScript/TypeScript **success**.
+- Gitleaks: **1,150 reachable commits / ~2.59 MB scanned; no leaks found**.
+- Trivy HIGH/CRITICAL backend image scan: **0 findings**.
+- CI Redis + persistent-volume smoke test: **success**.
+
+This change hardened production Redis ACL configuration only. It did not alter indicator formulas, market-data series, chart components, indicator hooks, or visual rendering. Therefore the indicator acceptance ledger above is **unchanged**: SMA 20, EMA 20, Wilder RSI 14, MACD 12/26/9, and Bollinger Bands 20,2 retain their tested calculation foundations while their chart UI acceptance remains incomplete; the shared hook still lacks visible control integration; Footprint remains synthetic and visual work remains gated by owner reference image(s) and reviewed blueprint; Heatmap and Liquidation Maps remain unimplemented.
+
+No indicator or overall project progress credit is awarded for this security-only code, tests, CI, or documentation update.
+

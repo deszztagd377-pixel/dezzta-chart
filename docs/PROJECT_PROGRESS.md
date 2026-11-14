@@ -1816,3 +1816,25 @@ Stage 1 remains **30/40 = 75.00% provisional**. Overall project progress remains
 - Criteria 30/31 remain distinct: CI and previous Android SQLite smoke evidence do not replace a consolidated owner-device application restore report (30), and do not establish encrypted off-host backup/key recovery (31).
 - ZERO COST and one-phone/no-PC constraints remain binding. No Termux package/keyring workaround, billing activation, paid infrastructure, or extra hardware is authorized by this checkpoint.
 
+## Criterion 25 repository-side Redis ACL hardening — 2026-11-14
+
+- Working branch: `phase-2/market-data-foundation`
+- Exact tested commit: `ed62578eafad89b0d27ec233c06e5503c9f00123`
+- Production settings now fail closed unless `REDIS_URL` uses `rediss://` and contains both a non-empty ACL username and password. Development/test environments retain their existing local configuration flexibility.
+- Redis TLS client configuration explicitly requires CA-chain validation and hostname verification. Redis URL credentials remain excluded from Settings `repr()` and `str()`.
+- Added regression coverage for missing ACL username, missing ACL password, and missing both credentials. The exact tested run confirms all three rejection cases pass.
+- Automated Tests & Build [run #43538598583](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43538598583): **success**. Frontend: **26 test files / 211 tests passed**. Backend: **798 tests passed in 26.48s**.
+- CodeQL [run #43538598765](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43538598765): **success** for Python and JavaScript/TypeScript.
+- Full reachable Git-history Gitleaks [run #43538598582](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43538598582): **success**; **1,150 commits / ~2.59 MB scanned**, with `no leaks found`.
+- Trivy HIGH/CRITICAL scan in the same automated run reported **0 findings** for the backend CI image. The isolated Redis + persistent-volume container smoke test also passed.
+
+### Criterion 25 acceptance boundary
+
+This closes the missing **repository configuration guard** for production Redis ACL credentials; it does **not** close criterion 25. The actual production Redis host, private-interface binding, firewall restriction, least-privilege ACL permissions, persistence configuration, restart/recovery, failover, and production TLS endpoint have not been independently observed. Keep criterion 25 **OPEN / EXTERNAL VERIFICATION REQUIRED**.
+
+### Progress accounting
+
+- Stage 1 remains **30/40 = 75.00% provisional**; the ten external gates remain open.
+- Overall project progress remains **20.9% historical**; no percentage is awarded for configuration hardening, tests, CI, or documentation alone.
+- No paid Redis, hosting, billing activation, cloud trial, extra hardware, or Termux trust bypass was introduced.
+

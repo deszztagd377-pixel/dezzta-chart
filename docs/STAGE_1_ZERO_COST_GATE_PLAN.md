@@ -110,3 +110,17 @@ The earlier candidate paths that assume "another existing owner-controlled host"
 The owner wants Stage 1 completed at zero cost, but the current 40-item matrix defines production/operational acceptance. With one Android phone and no PC/second device, **a truthful 40/40 production-acceptance result is not currently achievable** unless an already-available, genuinely zero-cost external resource is independently verified. Do not fabricate a second host, reinterpret CI as production, lower security controls, or change the 40-item definition to force 100%.
 
 A separate owner-approved decision could later redefine Stage 1 as a phone-only development/demo milestone, but that would be a scope change and must not be presented as the existing production Stage 1 being complete. No such scope change is assumed here.
+
+## Criterion 25 repository-side hardening update — 2026-11-14
+
+The backend configuration now enforces the repository-side production baseline:
+
+- Production `REDIS_URL` must use `rediss://` TLS.
+- Production URL must include a non-empty Redis ACL username and password; no-auth and partial-auth configurations fail startup validation.
+- `RedisSharedGuard` configures CA-chain validation and hostname verification for `rediss://`.
+- Settings diagnostics exclude the complete Redis URL, including ACL credentials.
+- Regression tests cover missing username, missing password, missing both, credential redaction, and TLS certificate/hostname validation.
+- Exact tested commit `ed62578eafad89b0d27ec233c06e5503c9f00123`: [Automated Tests #43538598583](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43538598583) succeeded; 798 backend tests passed. The isolated Redis/persistent-volume smoke test and Trivy HIGH/CRITICAL scan also succeeded with zero findings.
+
+**External acceptance remains OPEN.** The CI Redis instance is ephemeral. It does not prove the real host's private binding, firewall policy, least-privilege ACL user, persistent configuration, restart/failover recovery, or deployed TLS certificate. With the owner's single-phone/no-PC constraint and ZERO COST rule, do not invent a host or enable paid infrastructure to close this gate.
+
