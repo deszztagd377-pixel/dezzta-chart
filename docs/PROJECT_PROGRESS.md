@@ -1861,3 +1861,49 @@ This closes the missing **repository configuration guard** for production Redis 
 - Stage 1 remains **30/40 = 75.00% provisional**. Overall progress remains **20.9% owner-confirmed historical checkpoint**; neither percentage is recalculated or increased by this CI run.
 - ZERO COST, no paid services, no billing activation, no new hardware, no weakening of TLS/ACL/security, and no Termux trust bypass remain binding.
 - No user action or shell command is required for this repository CI result.
+## Stage 1 project progress tick meter — owner clarification (2026-11-14)
+
+The owner clarified that the requested “tick” value refers to the **project progress indicator**, not to technical indicators rendered inside the DEZZTA CHART application. This section defines a more granular, auditable display for Stage 1 only. It does not add or change any in-app chart feature.
+
+### Fixed scale and formula
+
+- Stage 1 contains 40 acceptance criteria.
+- Each criterion is represented by exactly 10 progress ticks.
+- Total Stage 1 scale: **400 ticks**.
+- One tick represents 0.25 percentage points of Stage 1 completion.
+- One fully accepted criterion contributes 10 ticks (2.5 percentage points of Stage 1).
+- Formula: Stage 1 ticks = accepted criteria × 10; Stage 1 percentage = earned ticks ÷ 400 × 100.
+- A criterion earns its 10 ticks only when its own acceptance condition and required evidence are satisfied. No fractional ticks are awarded merely for partial code, documentation, a passing unrelated CI job, or work-in-progress.
+- If a criterion is split into smaller evidence checks in a future revision, those checks must be explicitly listed and owner-reviewed before fractional ticks are used. Do not infer sub-ticks.
+
+### Current Stage 1 tick snapshot
+
+| Measure | Value |
+|---|---:|
+| Accepted/provisionally implemented checklist criteria | 30 / 40 |
+| Earned Stage 1 ticks | **300 / 400** |
+| Outstanding external criteria | 10 / 40 |
+| Outstanding Stage 1 ticks | **100 / 400** |
+| Stage 1 completion | **75% (provisional)** |
+| Production acceptance | **Not accepted** |
+
+The ten outstanding criteria are **8, 20, 25, 30, 31, 34, 35, 36, 38, and 39**. Each currently contributes 0/10 ticks because its required external evidence has not been demonstrated. The other 30 criteria account for the provisional 300/400 checklist ticks; this does not mean Stage 1 is production-ready.
+
+### Counting safeguards
+
+1. The tick meter is a finer display of the existing 30/40 Stage 1 checklist; it does not create additional acceptance criteria or inflate the score.
+2. Ten ticks per criterion are a display scale, **not ten assumed sub-tasks**. A criterion is either accepted for 10 ticks or remains at 0 until its acceptance boundary is met.
+3. Repository-side remediation can improve evidence for an external criterion but cannot earn its ticks until the external acceptance requirement is proven.
+4. CI success, documentation changes, commit count, APK size, or a local smoke test never automatically increase Stage 1 ticks.
+5. A tick update must identify the changed criterion, exact evidence, tested commit, and calculation. Preserve previous snapshots rather than silently rewriting history.
+6. Stage 1 ticks must never be converted into the overall project percentage. The proposed weighted project milestone ledger remains unapproved/unscored; 20.9% remains a historical owner-confirmed conversational checkpoint, not a newly recalculated overall score.
+
+### Relationship to technical indicator progress
+
+The Stage 1 tick meter is a **project-management progress display only**. It is not an SMA/EMA/RSI/MACD/Bollinger/Footprint/Heatmap/Liquidation Maps value, data tick, price tick, market-data update, or in-app indicator feature. The detailed technical indicator acceptance matrix remains separately maintained in docs/INDICATOR_DATA_ARCHITECTURE.md and is not awarded completion credit by this project tick scale.
+
+### Current audit reference
+
+- Working branch: phase-2/market-data-foundation.
+- Baseline code checkpoint for this tick-accounting clarification: fa99fb7f4af1cfebfdc983124ddf7bc6ae3234b9.
+- The latest Redis ACL correction is awaiting exact-HEAD Automated Tests & Build and CodeQL completion; Gitleaks has passed on that SHA. Do not describe the latest CI as fully green until all runs finish successfully.
