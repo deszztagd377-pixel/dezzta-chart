@@ -306,7 +306,10 @@ class SQLitePriceAlertStore:
         separate pending outbox responsibility.
         """
         canonical_id = self._normalize_canonical_id(canonical_instrument_id)
-        parsed_price = Decimal(str(price))
+        try:
+            parsed_price = Decimal(str(price))
+        except (ArithmeticError, TypeError, ValueError):
+            raise AlertMarketEventRejected("Market price must be a valid decimal.") from None
         if not parsed_price.is_finite():
             raise AlertMarketEventRejected("Market price must be finite.")
         if (
@@ -388,9 +391,12 @@ class SQLitePriceAlertStore:
                     """,
                     (zone["zone_id"],),
                 ).fetchone()
-                was_inside = bool(previous["is_inside"]) if previous else False
+                has_baseline = previous is not None
+                was_inside = bool(previous["is_inside"]) if has_baseline else False
 
-                if is_inside and not was_inside and zone["status"] != "paused":
+                # The first observation establishes a baseline; it is not
+                # evidence that the market entered the zone.
+                if is_inside and has_baseline and not was_inside and zone["status"] != "paused":
                     event_id = str(uuid4())
                     connection.execute(
                         """
