@@ -262,3 +262,46 @@ def test_application_ohlcv_and_replay_outbox_survive_fresh_database_restore(tmp_
     event = restored_store.outbox_event_for_bar(original)
     assert event is not None
     assert restored_store.outbox_event_id(int(event["cursor"])) == event["eventId"]
+
+    # Continue writing after restore, then replay from the restored outbox.
+    # This verifies that recovery preserves both application rows and the
+    # durable event sequence needed by downstream consumers.
+    from dataclasses import replace
+
+    continued = replace(
+        original,
+        ts_start_ns=120_000_000_000,
+        open=Decimal("101"),
+        high=Decimal("104"),
+        low=Decimal("100"),
+        close=Decimal("102"),
+        volume=Decimal("13"),
+        ts_event_ns=original.ts_event_ns + 60_000_000_000,
+        ts_received_ns=original.ts_received_ns + 60_000_000_000,
+        sequence=2,
+    )
+    assert restored_store.apply(continued) == "inserted"
+    assert restored_store.outbox_high_water() == 2
+    assert restored_store.load_bars() == [original, continued]
+
+    replay = restored_store.replay_outbox(
+        after_cursor=0,
+        provider=original.provider,
+        dataset=original.dataset,
+        publisher_id=original.publisher_id,
+        instrument_id=original.instrument_id,
+        series_type=original.series_type,
+        raw_symbol=original.raw_symbol,
+        timeframe=original.timeframe,
+        bucket_policy=original.bucket_policy,
+        limit=10,
+    )
+    assert replay["status"] == "ok"
+    assert [item["cursor"] for item in replay["events"]] == [1, 2]
+    assert [item["eventId"] for item in replay["events"]] == [
+        restored_store.outbox_event_id(1),
+        restored_store.outbox_event_id(2),
+    ]
+    assert replay["next_cursor"] == 2
+    assert replay["high_water"] == 2
+
