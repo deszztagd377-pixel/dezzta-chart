@@ -626,3 +626,27 @@ The next owner-device interaction, when requested, is limited to the existing re
 - CI evidence for these two new commits is pending at the time of this note; no pass is claimed until the final HEAD's workflows complete.
 - Scoring remains unchanged: Stage 1 `300/400 ticks = 75% provisional`; ten external criteria remain open. This privacy fix does not close criterion 30 without the actual owner-device restore drill.
 - No Termux action, installation, service start, paid provider, or alert delivery service was introduced.
+
+
+## Gate 10 batch 16 — durable alert entry evaluator foundation (2026-11-14)
+
+### Implementation changes
+
+- `backend/app/alert_store.py`: added SQLite-persisted per-zone boundary state, per-instrument market-event high-water cursor, provider-event deduplication ledger, trigger-event records, and pending-delivery query.
+- Added internal `evaluate_market_price(...)` operation. It validates finite decimal prices and event identifiers; rejects stale (>5 seconds by default), future-skewed (>1 second by default), and out-of-order source timestamps; establishes an observation baseline before considering a subsequent outside-to-inside transition; emits one durable trigger per entry; suppresses duplicate provider event IDs; and re-arms only after an observed exit.
+- Paused zones update their observed boundary state but never emit a trigger while paused.
+- `backend/tests/test_alert_store.py`: expanded regression coverage for transitions, dedupe across restart, freshness/order validation, paused zones, canonical-instrument isolation and invalid values.
+- Code commits: `f45b3ed5f79b5b5bc3c763473d6fd4338a6c0612` (initial evaluator/outbox), `d9d2b447773e0b811b04646512331f9feaa46e13` (paused-state correction), `53ac2c32a904f5759a90f9389400b614d07fc785` (baseline and validation hardening), `01795d2cd455bc94fd8053c71c4f40d0307eb297` (regression tests), `1e7e1659a5f9aa687489296653fe782ca58fb9fd` (strict out-of-order test timestamp).
+- CI on prior code HEAD `912bd202f7819d9f11692656593ef40c99bd5c9e`: Automated Tests, CodeQL (both languages), and full Git history Secret Audit all completed SUCCESS. These do not verify the new evaluator commits.
+- CI for the current code HEAD `1e7e1659a5f9aa687489296653fe782ca58fb9fd` is running; no test pass is claimed yet.
+
+### Criterion 39 acceptance boundary
+
+This is a repository-level evaluator and durable pending-event outbox only. It is not connected to a verified live provider tick stream, has no pending-event delivery worker, no FCM registration/sender/retry integration, and no Android background/closed-app or local alert delivery evidence. The method remains internal and must only be called after its caller verifies provider provenance and canonical instrument identity. It is not a public API. Criterion 39 remains open and receives zero ticks.
+
+### Scoring invariants
+
+- Stage 1 remains `300/400 ticks = 75% provisional`; no Stage 1 points are added for this evaluator foundation.
+- Open criteria remain `8, 20, 25, 30, 31, 34, 35, 36, 38, 39`.
+- Stage 2–6 remain NOT SCORED; overall `20.90%` remains the historical checkpoint only.
+- ZERO COST: no paid provider, notification service, managed host, trial, or subscription added. No Termux operation or APK release change.
