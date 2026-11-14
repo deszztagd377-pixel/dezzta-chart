@@ -239,7 +239,7 @@ jobs:
             echo "FAIL: Redis accepted an incorrect ACL password."
             exit 1
           fi
-          if docker exec -e REDISCLI_AUTH="$redis_acl_password" "$redis_container_name" \\
+          if docker exec -e REDISCLI_AUTH="$redis_acl_password" "$redis_container_name" \
             redis-cli --user "$redis_acl_username" -e set dezzta:ci:forbidden probe >/dev/null 2>&1; then
             echo "FAIL: Redis ACL unexpectedly permits unrelated SET commands."
             exit 1
