@@ -1,0 +1,52 @@
+# Termux Android host compatibility and safe recovery status
+
+Audit date: 2026-11-14  
+Project: DEZZTA CHART  
+Owner environment: one Infinix GT20, Android 15; no second phone, PC or laptop.  
+Cost rule: zero incremental cost.
+
+## Observed local environment and blocker
+
+The owner's previously reported environment is:
+
+- Termux Google Play build: `googleplay.2026.10.09`.
+- Android: 15; architecture: `aarch64`.
+- Installed `termux-keyring`: 3.15.
+- Configured package repository: `https://packages.termux.dev/apt/termux-main`.
+- APT failure: `NO_PUBKEY 5A897D96E57CF20C`.
+- The required backend dependency is `cryptography>=50,<51`; the previously observed repository candidate was `48.0.1-1`, which does not satisfy that range.
+
+This is a package-repository signature trust failure, not evidence that the user's project code or Python environment is corrupt. Until package metadata is verifiably signed and current, package installation and dependency-candidate conclusions from that repository are not trusted.
+
+## External issue evidence reviewed
+
+- [Termux Play Store issue #1642](https://github.com/termux-play-store/termux-issues/issues/1642) reports the same Android 15, `googleplay.2026.10.09`, aarch64, keyring 3.15 and exact missing key. It remained open at the time of this audit.
+- [Termux Play Store issue #1648](https://github.com/termux-play-store/termux-issues/issues/1648) reports the same missing key on the same Play Store app build. The discussion identifies a possible mismatch between the repository signing key and the keyring packaged in the Play build; this is community issue discussion, not a verified maintainer-issued recovery procedure.
+- The [official Play Store build release page](https://github.com/termux-play-store/termux-apps/releases) lists `googleplay.2026.10.09` as the latest app release reviewed for this audit. Its release notes do not document a keyring recovery fix.
+
+## Safe disposition
+
+**Status: BLOCKED — WAIT FOR VERIFIED OFFICIAL REPOSITORY/KEYRING FIX OR MAINTAINER-CONFIRMED PROCEDURE.**
+
+Do not:
+- disable APT signature verification;
+- use `trusted=yes`, `--allow-unauthenticated`, or equivalent bypasses;
+- import a signing key from an unverified source;
+- manually replace trusted keyring files based only on a forum comment;
+- downgrade the project's `cryptography>=50,<51` requirement to fit an older candidate;
+- install unsigned or unverified package files.
+
+Switching from the Play Store build to another distribution may involve a different Android signing identity and uninstall/reinstall. With one phone and project data in Termux, that is a consequential migration and is **not** treated as the immediate fix. No migration is authorized by this document.
+
+## DEZZTA CHART impact and workarounds
+
+- Termux-based encrypted-backup verification requiring `cryptography>=50,<51` remains blocked on this device.
+- Existing SQLite standard-library backup/restore checks can continue independently where the already-installed Python/SQLite environment supports them; this does not close encrypted offsite-backup acceptance.
+- CI remains the trusted location for repository tests that do not require changing the phone's package trust configuration.
+- No user command is required for this checkpoint. Reassess only after a signed Play Store update or a recovery procedure explicitly confirmed by Termux maintainers is available.
+- The Termux issue does not justify changing DEZZTA CHART's encryption algorithm, weakening dependency constraints, or claiming external backup acceptance.
+
+## Re-audit triggers
+
+Recheck the official Play Store release notes, issue #1642/#1648 maintainer responses, repository signing metadata and the installed keyring compatibility before any package operation. Record the exact app build, keyring version, repository URL, signature result and package candidate. If any of these cannot be verified, keep the blocker open.
+

@@ -1955,3 +1955,16 @@ The Stage 1 tick meter is a **project-management progress display only**. It is 
 - Latest Trivy report [artifact](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43550752630/artifacts/14096650758), for image digest `sha256:17579dc8eb2f5fc1677af5ca576b0420e7f1dd810dccd1391dc9196c8613bbe9`, was downloaded and inspected: **0 OS-package vulnerabilities, 0 Python-package vulnerabilities, 0 secrets, and 0 misconfigurations** in that scanned image.
 - This is repository/CI evidence only; it does not close any external production gate or prove production deployment.
 - Stage 1 remains **300/400 ticks (75% provisional)**. The ten external gates remain open: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+
+
+## Exact branch-head CI checkpoint — 2026-11-14 — `00ac447`
+
+- Active branch: `phase-2/market-data-foundation`; exact tested HEAD: `00ac44791345f714f1a9f4a0f8d3dce75d99075e`.
+- Automated Tests & Build [#43565730118](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43565730118): **success**. Frontend unit tests/build and dependency audit; frontend source and production-bundle credential scans; backend tests; bounded synthetic SQLite outbox benchmark; backend dependency audit; backend container build; Redis + persistent-volume smoke test; Trivy image scan and report export/upload all completed successfully.
+- CodeQL [#43565730126](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43565730126): **success** for Python and JavaScript/TypeScript.
+- Gitleaks [#43565730158](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43565730158): **success** for reachable Git history.
+- The benchmark concurrency regression is now verified passing on this exact HEAD. This supersedes earlier interim notes that described verification as pending.
+- This is repository/CI evidence only. It does not prove production Firebase, managed Redis, host volume, encrypted offsite backup, deployed HTTPS/WSS, monitoring or external alert delivery.
+- Stage 1 remains **300/400 ticks = 75% provisional**. Open external criteria remain **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39**. No tick is awarded by CI alone.
+- Indicator status is unchanged: five calculation foundations (SMA20, EMA20, Wilder RSI14, MACD12/26/9, Bollinger20,2) remain tested but user-facing chart controls/rendering are incomplete; shared-hook UI integration remains incomplete; Footprint remains SIMULATED and visually gated; Heatmap and Liquidation Maps remain unimplemented. See `docs/INDICATOR_DATA_ARCHITECTURE.md` for the full acceptance ledger.
+- No runtime or indicator source was changed in this checkpoint. `main` was not modified.

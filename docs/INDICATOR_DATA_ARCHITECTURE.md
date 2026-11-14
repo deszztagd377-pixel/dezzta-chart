@@ -462,3 +462,37 @@ This CI/security pass validates repository regressions only; it did not implemen
 - The detailed acceptance matrix above remains unchanged: SMA 20, EMA 20, Wilder RSI 14, MACD 12/26/9 and Bollinger 20,2 have tested calculation foundations; visible chart controls/rendering and transition tests remain outstanding. The shared hook remains validated-backend-only without completed visible controls. Footprint remains synthetic and labelled `SIMULATED`, with visual work gated on owner reference images and scoped blueprint review. Heatmap and Liquidation Maps remain unimplemented and similarly gated.
 - Stage 1 accounting remains separate from indicator status: **300/400 ticks = 75% provisional**, with external criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 still open pending their required evidence.
 - `main` was not modified.
+
+
+## Exact branch-head verification — 2026-11-14 (commit 00ac447)
+
+- Branch: `phase-2/market-data-foundation`.
+- Exact tested commit: `00ac44791345f714f1a9f4a0f8d3dce75d99075e`.
+- Automated Tests & Build [run #43565730118](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43565730118): **success**. The workflow completed frontend dependency audit, frontend unit tests/build, frontend source and production-bundle credential scans, backend tests, bounded synthetic SQLite outbox benchmark, backend dependency audit, backend container build, Redis/persistent-volume smoke test, Trivy image scan, vulnerability-report export/upload, and container cleanup.
+- CodeQL [run #43565730126](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43565730126): **success** for JavaScript/TypeScript and Python.
+- Gitleaks [run #43565730158](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43565730158): **success** for reachable Git history.
+- All three workflows refer to the same exact commit `00ac44791345f714f1a9f4a0f8d3dce75d99075e`. This is repository CI/security evidence, not production deployment evidence.
+- The passing benchmark closes the previously documented benchmark concurrency regression at repository-CI level. The earlier failure and its correction remain part of the audit trail; the exact-head run is the authoritative latest verification.
+- No indicator formula, calculation engine, shared indicator hook, chart component, indicator control, or visual renderer changed in this documentation checkpoint. **No indicator progress credit is awarded.**
+
+### Indicator acceptance status at this exact HEAD
+
+| Study / component | Verified foundation | Remaining acceptance |
+|---|---|---|
+| SMA 20 | Close-based calculation; 20-bar warm-up; aligned output; unit-tested | Visible toggle, candlestick overlay, legend/current value, series/timeframe transition behavior, render tests |
+| EMA 20 | Close-based EMA with SMA seed; 20-bar warm-up; aligned output; unit-tested | Visible toggle, candlestick overlay, legend/current value, series/timeframe transition behavior, render tests |
+| RSI 14 Wilder | Wilder smoothing; first output at index 14; flat and rising-only edge cases tested | Dedicated oscillator pane, scale/guides, controls, stale-value clearing, render tests |
+| MACD 12/26/9 | MACD starts at index 25; signal/histogram start at index 33; warm-up alignment tested | Dedicated pane, MACD/signal lines and histogram, controls, series/timeframe transitions, render tests |
+| Bollinger Bands 20,2 | Close-based population-standard-deviation bands; first output at index 19 | Upper/middle/lower overlay, controls, legend/current values, chart-boundary and timeframe render tests |
+| Shared indicator hook | Exact validated backend series only; no DEMO fallback; invalid/loading/unavailable states produce no indicator values | Visible controls and integration proof that old values clear immediately on instrument/timeframe change |
+| Footprint | Bounded deterministic synthetic accumulator; duplicate/invalid/capacity safeguards; provenance `SIMULATED` | Owner reference image, reviewed scoped blueprint, explicit mode control, spaced cluster renderer only while ON, visual/performance tests; live provider order flow is not implemented |
+| Heatmap | No implementation verified | Owner reference image, reviewed scoped blueprint, source-data contract, calculations, rendering, tests |
+| Liquidation Maps | No implementation verified | Owner reference image, reviewed scoped blueprint, source-data contract, calculations, rendering, tests |
+
+### Visual and data-integrity gates
+
+- Footprint OFF preserves standard candlestick layout and ordinary spacing; only explicit ON may activate spaced candle/cluster rendering.
+- Footprint synthetic output remains labelled `SIMULATED`; it is not exchange-observed order flow.
+- Footprint, Heatmap and Liquidation Maps visual work remains blocked on the relevant owner reference image(s) and reviewed scoped blueprint.
+- Visible indicator controls, overlays and oscillator panes belong to Stage 4. Stage 1 remains the active official stage; the branch name does not change stage order.
+- No indicator completion percentage is inferred from passing general CI, test count, documentation, or APK installation. Acceptance requires the listed user-facing behavior and exact regression evidence.
