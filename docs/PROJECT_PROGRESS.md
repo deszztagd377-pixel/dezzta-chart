@@ -2085,3 +2085,15 @@ The complete six-stage **project-process progress indicator** is maintained in [
 ## Permanent six-stage visual dashboard (2026-11-14)
 
 The project-process indicator now has a fixed, colorful six-card visual reference at [project-progress-dashboard.svg](assets/project-progress-dashboard.svg), embedded in [PROJECT_PROGRESS_INDICATOR.md](PROJECT_PROGRESS_INDICATOR.md). Keep this same layout, stage order, and stage-specific colors in progress reports through Stage 6. Unopened stages remain **NOT SCORED** until evidence-backed criteria and a scoring model exist. This is project documentation only, not APK UI.
+
+
+## Work-cycle checkpoint — 2026-11-14 (restore coverage + Termux + CI)
+
+- Active branch: `phase-2/market-data-foundation`.
+- Exact audited HEAD: `21eabf46bf51f076f074e8fc6c2eb55723111956`.
+- Dashboard presentation remains fixed: six colored cards, fixed stage order and color mapping, numeric progress only when evidence-backed; project-process tracker only, not APK UI.
+- Stage 1 remains 30/40 criteria = 300/400 ticks = 75% provisional. No acceptance tick was added.
+- Criterion 30 audit found the existing full shared-database restore regression test in `backend/tests/test_sqlite_backup.py`. It covers registry, entitlement, alerts, coverage, OHLCV, outbox/replay continuity, and a post-restore write. This is repository/CI evidence; a timestamped owner-device restore report remains outstanding.
+- Exact-HEAD CI: Full Git History Secret Audit and CodeQL passed. Automated Tests had passed frontend tests/build, backend tests, synthetic outbox benchmark, dependency audit, container build and Redis/persistent-volume smoke test; backend image scanning was still running at the last check. Do not mark the run fully green until its final conclusion.
+- Termux: current Google Play signing-key mismatch reports remain open upstream (#1642 and #1648). No safe compatible package path was verified; no device commands were needed or issued. Do not switch repository, bypass APT verification, install cryptography 48.0.1, or weaken the dependency.
+- No source code, application behavior, dependencies, credentials, paid services, or `main` branch were changed in this audit cycle.
