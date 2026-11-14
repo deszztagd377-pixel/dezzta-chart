@@ -81,5 +81,5 @@
   <text x="22" y="203" class="small">Release only after preceding gates pass</text>
 </g>
 <text x="54" y="802" class="small">Overall: 20.9% historical • Stage 1 75% provisional • CI 3/3 on 5ca037f • 823 backend tests passed</text>
-<text x="1146" y="825" text-anchor="end" class="k">UPDATED 2026-11-14 • GATE 10 • ATOMIC NO-OVERWRITE BACKUP</text>
+<text x="1146" y="825" text-anchor="end" class="k">UPDATED 2026-11-14 • GATE 10 • ANDROID HOST AUDIT</text>
 </svg>
