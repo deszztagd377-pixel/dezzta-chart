@@ -911,3 +911,14 @@ Progress remains unchanged: Stage 1 30/40 criteria, 300/400 ticks, 75% provision
 - Criterion 30 gains stronger synthetic schema-completeness coverage but remains OPEN pending actual Android DB path, owner-device backup/restore, and post-restore read/write evidence.
 - Stage 2–6 remain NOT SCORED; overall 20.90% remains a historical checkpoint only.
 - ZERO COST maintained. No Termux action, paid service, APK release, dependency change, or main-branch modification.
+
+
+## Immediate CI blocker correction — alert-store validator patch (2026-11-14)
+
+- The Automated Tests workflow for commit `b5c0dd734c63a5f1ebb26b391f5a4fc4532c133c` failed during Python test collection with a SyntaxError in `backend/app/alert_store.py` line 536. No backend tests ran on that revision.
+- Root cause: patch assembly accidentally concatenated two validation blocks into the preceding claim method and omitted the intervening source segment. This was an assistant-authored patch-construction error.
+- Corrective action: restored the complete alert-store source from the last known-good revision and reapplied the signed-64-bit guard only within the acknowledgement and retry methods, preserving the claim method and all intervening functions.
+- Structural verification before commit: exactly two new upper-bound validators, exactly one original claim validator, intact method order, and no malformed validator concatenation.
+- Existing overflow regression tests and the independent restore-drill schema change from commit `e8e590d934dd525c672fc28a23f4cc9e7a4da451` are retained.
+- CI on the corrective commit is required before declaring the blocker resolved. The failed revision remains visible in history and is not represented as passing.
+- Progress remains Stage 1 30/40 (300/400 ticks, 75% provisional); Gate 10 0/10 closed. No ticks awarded. Stage 2–6 NOT SCORED; overall 20.90% remains historical. ZERO COST, no Termux action, no main-branch change.
