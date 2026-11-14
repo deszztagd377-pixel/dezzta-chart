@@ -146,11 +146,16 @@ jobs:
           trap cleanup EXIT
           docker network create "$network_name" >/dev/null
           docker volume create "$volume_name" >/dev/null
-          docker run --detach --name "$redis_container_name" --network "$network_name" redis:7-alpine >/dev/null
+          redis_acl_username=dezzta_ci
+          redis_acl_password=dezzta-ci-acl-only-2026
+          docker run --detach --name "$redis_container_name" --network "$network_name" \
+            redis:7-alpine sh -c \
+            "printf '%s\\n' 'user default off' 'user $redis_acl_username on >$redis_acl_password ~* +@all' > /tmp/redis-users.acl && exec redis-server --aclfile /tmp/redis-users.acl" >/dev/null
           wait_for_redis() {
             for attempt in $(seq 1 20); do
-              if docker exec "$redis_container_name" redis-cli ping 2>/dev/null | grep -Fxq PONG; then
-                echo "Isolated smoke-test Redis is ready."
+              if docker exec -e REDISCLI_AUTH="$redis_acl_password" "$redis_container_name" \
+                redis-cli --user "$redis_acl_username" ping 2>/dev/null | grep -Fxq PONG; then
+                echo "Isolated ACL-authenticated smoke-test Redis is ready."
                 return 0
               fi
               sleep 1
@@ -166,7 +171,7 @@ jobs:
               --mount "type=volume,src=$volume_name,dst=/data" \
               -e APP_ENV=development \
               -e PORT=18000 \
-              -e REDIS_URL="redis://$redis_container_name:6379/15" \
+              -e REDIS_URL="redis://$redis_acl_username:$redis_acl_password@$redis_container_name:6379/15" \
               -e HTTP_RATE_LIMIT_PER_CLIENT=1 \
               -e HTTP_RATE_LIMIT_GLOBAL=10 \
               -e INSTRUMENT_REGISTRY_DB_PATH=/data/dezzta-chart-smoke.sqlite3 \
@@ -212,6 +217,16 @@ jobs:
             echo "Backend health JSON validation passed."
           }
           wait_for_redis
+          if docker exec "$redis_container_name" redis-cli ping >/dev/null 2>&1; then
+            echo "FAIL: Redis accepted unauthenticated default-user access."
+            exit 1
+          fi
+          if docker exec -e REDISCLI_AUTH="incorrect-ci-only" "$redis_container_name" \
+            redis-cli --user "$redis_acl_username" ping >/dev/null 2>&1; then
+            echo "FAIL: Redis accepted an incorrect ACL password."
+            exit 1
+          fi
+          echo "PASS: Redis ACL rejects unauthenticated and incorrect-password requests."
           start_container
           wait_for_health
 
@@ -254,7 +269,7 @@ jobs:
           start_container
           wait_for_health
           docker exec "$container_name" python -c 'import sqlite3; c=sqlite3.connect("/data/dezzta-chart-smoke.sqlite3"); assert c.execute("PRAGMA integrity_check").fetchone()[0] == "ok"; assert c.execute("SELECT 1 FROM sqlite_master WHERE type=\u0027table\u0027 LIMIT 1").fetchone()'
-          echo "Container health, isolated Redis guard, non-root UID/GID, mounted-volume ownership, SQLite integrity and restart persistence, and HTTP rate-limit rejection passed."
+          echo "Container health, Redis ACL authentication, shared guard, non-root UID/GID, mounted-volume ownership, SQLite integrity and restart persistence, and HTTP rate-limit rejection passed."
 
       - name: Scan backend container image
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
