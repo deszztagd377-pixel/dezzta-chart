@@ -829,3 +829,24 @@ The owner asked whether Git commits can continue while the Vercel status reports
 - Normalized the file ending to a single newline.
 - No runtime behavior changed. This correction is committed separately so CI evaluates the exact corrected source.
 - Progress remains Stage 1 300/400 ticks (75% provisional), Gate 10 0/10 officially closed; criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, 39 remain open pending their required evidence.
+
+
+## Gate 10 hardening — validate alert-worker clock boundaries (2026-11-14)
+
+### Defect and correction
+- The alert delivery worker accepted an injected clock callback but previously passed its return value directly into the outbox store.
+- Invalid callback values (boolean, negative, non-integer, or greater than SQLite's signed 64-bit maximum) could therefore fail later in persistence code rather than at the worker boundary.
+- Added a single clock-reading validator used for claim, acknowledgement, and retry scheduling. It accepts only non-boolean integers in the supported 0..2^63-1 range.
+- Added parameterized regression tests for boolean, negative, overflow, and non-integer clock values.
+
+### Verification
+- This change is scoped to input validation; no runtime adapter, scheduler, provider, or dependency is introduced.
+- The preceding worker revision f8f74bfd9b24bd9c190acea5974c3d92152cd339 completed the full Automated Tests workflow successfully, including backend tests, container build, Redis ACL/persistent-volume/restart smoke test, and image scan. CodeQL and full-history secret audit also succeeded.
+- The new clock-boundary tests remain pending until CI evaluates this commit.
+
+### Progress accounting
+- Stage 1 remains 30/40 criteria, 300/400 ticks, 75% provisional.
+- Gate 10 remains 0/10 officially closed; open criteria: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.
+- Criterion 39 gains additional tested input-boundary protection but remains OPEN because application lifecycle integration, a real sender adapter, authenticated recipient routing, and actual delivery/recovery evidence are not yet present.
+- Stage 2–6 remain NOT SCORED. Overall 20.90% remains a historical checkpoint only.
+- ZERO COST: no dependency, hosting, provider, Termux, APK, or main-branch change.

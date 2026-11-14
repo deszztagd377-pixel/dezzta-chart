@@ -504,3 +504,13 @@ def test_alert_delivery_worker_validates_bounded_configuration(store):
             max_retry_delay_ns=9,
         )
 
+
+
+@pytest.mark.parametrize("clock_value", [True, -1, 2**63, "not-an-integer"])
+def test_alert_delivery_worker_rejects_invalid_clock_values(store, clock_value):
+    with pytest.raises(ValueError, match="clock_ns"):
+        run_alert_delivery_batch(
+            store,
+            lambda _event: None,
+            clock_ns=lambda: clock_value,
+        )

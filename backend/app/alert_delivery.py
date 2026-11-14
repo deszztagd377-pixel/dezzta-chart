@@ -25,6 +25,17 @@ class AlertDeliveryBatchResult:
     lease_lost: int
 
 
+def _read_clock_ns(clock_ns: Callable[[], int]) -> int:
+    value = clock_ns()
+    if (
+        not isinstance(value, int)
+        or isinstance(value, bool)
+        or not 0 <= value <= _SQLITE_INT64_MAX
+    ):
+        raise ValueError("clock_ns must return a signed 64-bit non-negative integer.")
+    return value
+
+
 def run_alert_delivery_batch(
     store: SQLitePriceAlertStore,
     sender: Callable[[PriceAlertTriggerEvent], None],
@@ -66,7 +77,7 @@ def run_alert_delivery_batch(
         raise ValueError("batch_size must be between 1 and 1000.")
 
     claimed = store.claim_pending_trigger_events(
-        now_ns=clock_ns(),
+        now_ns=_read_clock_ns(clock_ns),
         lease_duration_ns=lease_duration_ns,
         limit=batch_size,
     )
@@ -77,7 +88,7 @@ def run_alert_delivery_batch(
         try:
             sender(event)
         except Exception:
-            completed_at_ns = clock_ns()
+            completed_at_ns = _read_clock_ns(clock_ns)
             exhausted = item.attempt_count >= max_attempts
             exponent = min(item.attempt_count - 1, 62)
             retry_delay = min(
@@ -106,7 +117,7 @@ def run_alert_delivery_batch(
             acknowledged = store.mark_trigger_event_delivered(
                 event_id=event.event_id,
                 lease_token=item.lease_token,
-                now_ns=clock_ns(),
+                now_ns=_read_clock_ns(clock_ns),
             )
             if acknowledged:
                 delivered += 1
