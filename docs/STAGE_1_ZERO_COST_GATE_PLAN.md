@@ -237,3 +237,40 @@ The CI test already proves the repository implementation can exercise these doma
 - External gates: **10/10 remain open**.
 - Overall project: **20.9% historical owner-confirmed checkpoint**; no fresh weighted total is approved.
 - CI success, documentation updates and local subtests add no Stage 1 ticks by themselves.
+
+
+## Gate 10 execution batch 1 — criterion 30 restore safety
+
+Owner authorization to begin the ten external gates was received on 2026-11-14. The ten gates are now an active execution register; this does not waive any external evidence requirement.
+
+### Implemented repository improvement
+
+Added `restore_consistent_sqlite_backup(backup_path, destination_path)` to `backend/app/sqlite_backup.py`.
+
+Safety properties:
+- Read-only backup source.
+- Restore to a separate fresh destination.
+- Refuses an already-existing destination and uses same-directory hard-link publication so a concurrent destination cannot be overwritten.
+- Validates SQLite `integrity_check` and `foreign_key_check` before publication.
+- POSIX restore artifact is owner-only (0600) and file-flushed before publication.
+- Destination directory is flushed after publication; durability uncertainty is surfaced as an error.
+- Temporary files are cleaned on failure.
+- Filesystems without hard-link support fail closed; no overwrite-prone fallback is used.
+
+Added regression tests for successful restore, existing-destination preservation, foreign-key rejection, same/missing path rejection, cleanup and owner-only permissions.
+
+### Acceptance boundary
+
+This implementation strengthens the local restore mechanism for criterion 30. It does not itself close criterion 30. Closure still requires:
+1. Exact-HEAD CI success for the implementation and tests.
+2. Restore of the actual owner-controlled application database into a fresh destination on the target device/environment.
+3. SQLite integrity and foreign-key checks.
+4. Application-level readback for registry, entitlements, price alerts, coverage/gaps, OHLCV and durable outbox/replay state as applicable.
+5. Post-restore write verification on the restored copy.
+6. Timestamped, secret-free evidence report reviewed against the acceptance matrix.
+
+The original database must not be modified, replaced or deleted. Do not count synthetic CI fixtures as owner-device evidence. No tick is awarded at implementation time.
+
+### Remaining gate execution order
+
+After criterion 30's target-device proof is obtained, work proceeds through criteria 20, 8, 25, 34, 35, 36, 38, 39 and 31, while repository-side preparation for all gates continues in parallel where it does not require external access. Criteria 31 retains the separate Google Play Termux signing-key and off-host key-custody blocker.

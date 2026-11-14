@@ -106,3 +106,94 @@ def create_consistent_sqlite_backup(
             temporary.unlink()
         except FileNotFoundError:
             pass
+
+
+def restore_consistent_sqlite_backup(
+    backup_path: str | Path,
+    destination_path: str | Path,
+) -> Path:
+    """Restore a verified SQLite backup to a new path without overwriting data.
+
+    The backup is opened read-only and copied through SQLite's Online Backup
+    API into a temporary file in the destination directory. The copy must pass
+    integrity_check and foreign_key_check before it is published. On POSIX,
+    the temporary file is owner-only and flushed before publication.
+
+    Publication uses a same-directory hard link, which atomically fails if the
+    destination already exists. Filesystems that do not support hard links fail
+    closed rather than falling back to an overwrite-prone operation. The
+    destination directory is flushed after publication on POSIX. If that final
+    flush fails, the restored file may already be visible but crash durability
+    of the directory entry is uncertain; the error is raised.
+    """
+    backup = Path(backup_path).expanduser().resolve()
+    destination = Path(destination_path).expanduser().resolve()
+
+    if backup == destination:
+        raise ValueError("backup_path and destination_path must be different.")
+    if not backup.is_file():
+        raise FileNotFoundError(backup)
+    if destination.exists():
+        raise FileExistsError(destination)
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary_name = tempfile.mkstemp(
+        prefix=f".{destination.name}.",
+        suffix=".sqlite-restore.tmp",
+        dir=destination.parent,
+    )
+    os.close(descriptor)
+    temporary = Path(temporary_name)
+    source_db: sqlite3.Connection | None = None
+    destination_db: sqlite3.Connection | None = None
+
+    try:
+        source_db = sqlite3.connect(
+            f"{backup.as_uri()}?mode=ro",
+            uri=True,
+            timeout=30,
+        )
+        destination_db = sqlite3.connect(str(temporary), timeout=30)
+        source_db.backup(destination_db)
+
+        integrity_rows = destination_db.execute(
+            "PRAGMA integrity_check"
+        ).fetchall()
+        if integrity_rows != [("ok",)]:
+            raise sqlite3.DatabaseError(
+                "SQLite restore integrity check failed."
+            )
+        foreign_key_errors = destination_db.execute(
+            "PRAGMA foreign_key_check"
+        ).fetchmany(1)
+        if foreign_key_errors:
+            raise sqlite3.DatabaseError(
+                "SQLite restore foreign-key check failed."
+            )
+
+        destination_db.close()
+        destination_db = None
+        source_db.close()
+        source_db = None
+
+        if os.name == "posix":
+            os.chmod(temporary, 0o600)
+            with temporary.open("rb") as restored_file:
+                os.fsync(restored_file.fileno())
+
+        # A hard link publishes the completed file atomically and never
+        # replaces a destination created concurrently by another process.
+        os.link(temporary, destination)
+        temporary.unlink()
+        if os.name == "posix":
+            _fsync_directory(destination.parent)
+        return destination
+    finally:
+        if destination_db is not None:
+            destination_db.close()
+        if source_db is not None:
+            source_db.close()
+        try:
+            temporary.unlink()
+        except FileNotFoundError:
+            pass

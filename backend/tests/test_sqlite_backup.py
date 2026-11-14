@@ -444,3 +444,102 @@ def test_full_application_database_restore_preserves_all_shared_sqlite_domains(t
     assert restored_ohlcv.apply(next_bar) == "inserted"
     assert restored_ohlcv.outbox_high_water() == 2
     assert restored_ohlcv.load_bars() == [bar, next_bar]
+
+
+def test_restore_publishes_verified_backup_to_a_fresh_path(tmp_path):
+    from app.sqlite_backup import restore_consistent_sqlite_backup
+
+    source = tmp_path / "source.sqlite3"
+    snapshot = tmp_path / "snapshot.sqlite3"
+    restored = tmp_path / "restore" / "application.sqlite3"
+    with sqlite3.connect(source) as database:
+        database.execute("PRAGMA foreign_keys=ON")
+        database.execute("CREATE TABLE parent (id INTEGER PRIMARY KEY)")
+        database.execute(
+            "CREATE TABLE child (id INTEGER PRIMARY KEY, parent_id INTEGER "
+            "REFERENCES parent(id))"
+        )
+        database.execute("INSERT INTO parent VALUES (1)")
+        database.execute("INSERT INTO child VALUES (2, 1)")
+    create_consistent_sqlite_backup(source, snapshot)
+
+    result = restore_consistent_sqlite_backup(snapshot, restored)
+
+    assert result == restored.resolve()
+    with sqlite3.connect(restored) as database:
+        assert database.execute("PRAGMA integrity_check").fetchall() == [("ok",)]
+        assert database.execute("PRAGMA foreign_key_check").fetchall() == []
+        assert database.execute("SELECT * FROM child").fetchall() == [(2, 1)]
+
+
+def test_restore_refuses_to_overwrite_existing_destination(tmp_path):
+    from app.sqlite_backup import restore_consistent_sqlite_backup
+
+    source = tmp_path / "source.sqlite3"
+    snapshot = tmp_path / "snapshot.sqlite3"
+    destination = tmp_path / "existing.sqlite3"
+    with sqlite3.connect(source) as database:
+        database.execute("CREATE TABLE sample (value INTEGER)")
+        database.execute("INSERT INTO sample VALUES (1)")
+    create_consistent_sqlite_backup(source, snapshot)
+    destination.write_bytes(b"preserve-existing-file")
+
+    with pytest.raises(FileExistsError):
+        restore_consistent_sqlite_backup(snapshot, destination)
+
+    assert destination.read_bytes() == b"preserve-existing-file"
+    assert list(tmp_path.glob(".existing.sqlite3.*.sqlite-restore.tmp")) == []
+
+
+def test_restore_rejects_foreign_key_violations_without_publishing(tmp_path):
+    from app.sqlite_backup import restore_consistent_sqlite_backup
+
+    source = tmp_path / "invalid-source.sqlite3"
+    snapshot = tmp_path / "invalid-snapshot.sqlite3"
+    destination = tmp_path / "restored.sqlite3"
+    with sqlite3.connect(source) as database:
+        database.execute("PRAGMA foreign_keys=OFF")
+        database.execute("CREATE TABLE parent (id INTEGER PRIMARY KEY)")
+        database.execute(
+            "CREATE TABLE child (id INTEGER PRIMARY KEY, parent_id INTEGER "
+            "REFERENCES parent(id))"
+        )
+        database.execute("INSERT INTO child VALUES (1, 999)")
+    create_consistent_sqlite_backup(source, snapshot)
+
+    with pytest.raises(sqlite3.DatabaseError, match="foreign-key check failed"):
+        restore_consistent_sqlite_backup(snapshot, destination)
+
+    assert not destination.exists()
+    assert list(tmp_path.glob(".restored.sqlite3.*.sqlite-restore.tmp")) == []
+
+
+def test_restore_rejects_same_path_and_missing_backup(tmp_path):
+    from app.sqlite_backup import restore_consistent_sqlite_backup
+
+    database = tmp_path / "database.sqlite3"
+    with sqlite3.connect(database) as connection:
+        connection.execute("CREATE TABLE sample (value INTEGER)")
+
+    with pytest.raises(ValueError, match="must be different"):
+        restore_consistent_sqlite_backup(database, database)
+    with pytest.raises(FileNotFoundError):
+        restore_consistent_sqlite_backup(tmp_path / "missing.sqlite3", tmp_path / "new.sqlite3")
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX permission bits are required")
+def test_restore_is_published_with_owner_only_permissions(tmp_path):
+    import stat
+    from app.sqlite_backup import restore_consistent_sqlite_backup
+
+    source = tmp_path / "source.sqlite3"
+    snapshot = tmp_path / "snapshot.sqlite3"
+    restored = tmp_path / "restored.sqlite3"
+    with sqlite3.connect(source) as database:
+        database.execute("CREATE TABLE sample (value INTEGER)")
+        database.execute("INSERT INTO sample VALUES (7)")
+    create_consistent_sqlite_backup(source, snapshot)
+
+    restore_consistent_sqlite_backup(snapshot, restored)
+
+    assert stat.S_IMODE(restored.stat().st_mode) == 0o600

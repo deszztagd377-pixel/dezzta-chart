@@ -247,3 +247,24 @@ Criteria 8, 20, 25, 31, 34, 35, 36, 38 and 39 retain their distinct owner-host, 
 - Stage 5 — pink: **NOT SCORED**.
 - Stage 6 — slate: **NOT SCORED**.
 - Overall project: **20.9% historical owner-confirmed checkpoint**; fresh weighted total remains unestablished.
+
+
+## Gate 10 authorization and execution checkpoint — 2026-11-14
+
+The owner explicitly authorized opening the ten external acceptance gates. This is an execution authorization, not an acceptance waiver and not a stage transition.
+
+- Official stage remains Stage 1.
+- Stage 1 remains 300/400 ticks = 75% provisional.
+- The ten external criteria remain open until their individual evidence packages are reviewed.
+- First active workstream: criterion 30, fresh SQLite restore and application-level verification.
+- The restore helper now has a no-overwrite publication design, integrity and foreign-key checks, private POSIX permissions, and failure-cleanup tests. It is still repository implementation until the exact-HEAD CI passes and the owner-device restore report is produced.
+- The process indicator is documentation-only; it is not an APK technical indicator.
+
+### Current exact HEAD before this implementation batch
+
+`a6fa0d68691bdf943101e71c5be70df0ba30d591` — all three workflows passed on this exact HEAD:
+- Automated Tests #43569290818 — success.
+- CodeQL #43569290707 — success.
+- Full Git History Secret Audit #43569290886 — success.
+
+The next implementation commit must receive its own fresh CI results before any code acceptance is claimed.

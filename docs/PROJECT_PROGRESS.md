@@ -2103,3 +2103,18 @@ The project-process indicator now has a fixed, colorful six-card visual referenc
 
 - Prior Automated Tests run `43568430935` on `21eabf46bf51f076f074e8fc6c2eb55723111956` ultimately concluded **cancelled**. The individual core test/build/security steps, Docker/Redis persistent-volume smoke test, Trivy image scan, report export and upload all recorded success, but a cancelled workflow is not a green acceptance run.
 - New documentation-only HEAD at the time of this entry: `c63560ebf16bd16ab3de482df35c35b381fa009e`. Its Automated Tests and CodeQL workflows were in progress and Full Git History Secret Audit was pending. Verify final status against the latest branch HEAD.
+
+
+## Gate 10 authorization — execution batch 1 — 2026-11-14
+
+The owner formally authorized execution of the ten external Stage 1 gates. The authorization permits beginning evidence collection and remediation; it does not mark any gate accepted and does not authorize a stage transition.
+
+First implementation target: criterion 30. Repository restore support now includes a dedicated fresh-destination restore function that:
+- refuses destination overwrite, including a concurrent create race through atomic hard-link publication;
+- verifies SQLite integrity and foreign-key consistency;
+- applies owner-only POSIX permissions and flushes the restored file;
+- cleans temporary files and fails closed if safe publication is unavailable.
+
+Regression tests cover success, destination preservation, invalid foreign keys, path validation and permissions. Exact-HEAD CI is required before the code change is accepted. Actual owner-device restore and application readback remain necessary to close criterion 30.
+
+Stage 1 accounting is unchanged: 30/40 criteria, 300/400 ticks, 75% provisional; 10 external gates open. Overall 20.9% remains a historical checkpoint, not a new weighted calculation. No Stage 2 transition.
