@@ -676,3 +676,17 @@ The lease/retry API does not itself send notifications. No scheduled worker, loc
 - Stage 2–6: NOT SCORED. Overall `20.90%` is a historical checkpoint, not recalculated.
 - ZERO COST: no paid notification service, paid market-data provider, trial, subscription, managed hosting or external infrastructure was added.
 - No Termux command, package installation, APK publication, or release-signing change was performed.
+
+## Gate 10 batch 18 — outbox concurrency and input-boundary hardening (2026-11-14)
+
+- backend/app/alert_store.py: retry timestamps now enforce SQLite signed-64-bit bounds; error codes are ASCII-only lowercase machine-safe identifiers, not arbitrary Unicode/free-form exception text.
+- backend/tests/test_alert_store.py: added an eight-worker concurrent claim regression proving only one worker leases the same pending event; added invalid retry timestamp and Unicode error-code rejection.
+- Commits: 3249822e4b7d09574e14da82cc8346fc7261248f (implementation hardening), 550d955103a879a77644c4104ea7ad6f77fe2dfd (tests).
+- CI on this exact final documentation HEAD must be checked before reporting pass. Earlier run 43598101352 for Secret Audit passed on HEAD 6a1ca057c778f217d7b4d3bc30f732b55257a58a; Automated Tests and CodeQL for that older HEAD were still running and do not cover this latest patch.
+
+### Scoring and boundaries
+
+- Stage 1 remains 300/400 = 75% provisional; no ticks are awarded for implementation-only outbox work.
+- Gate 10 remains 0/10 officially closed; open criteria: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.
+- Stage 2–6 remain NOT SCORED; overall 20.90% remains historical only.
+- No paid service, external notification provider, new market-data subscription, Termux action, or APK release was introduced.
