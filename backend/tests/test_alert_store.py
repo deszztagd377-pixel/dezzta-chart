@@ -9,6 +9,7 @@ from app.alert_store import (
     SQLitePriceAlertStore,
 )
 from app.alerts import AlertZoneQuotaExceeded
+from app.alert_store import AlertMarketEventRejected
 from app.instrument_identity import CanonicalInstrument
 from app.instrument_registry import SQLiteInstrumentRegistry
 
@@ -172,3 +173,98 @@ def test_invalid_price_ranges_are_rejected(store, lower, upper):
             lower_price=lower,
             upper_price=upper,
         )
+
+
+def _evaluate(store, price, event_id, timestamp_ns, **kwargs):
+    return store.evaluate_market_price(
+        canonical_instrument_id=INSTRUMENTS[0],
+        price=price,
+        provider_event_id=event_id,
+        source_timestamp_ns=timestamp_ns,
+        now_ns=timestamp_ns,
+        **kwargs,
+    )
+
+
+def test_zone_entry_triggers_once_and_rearms_only_after_price_exits(store):
+    zone = _create(store)
+    first = _evaluate(store, "105", "provider-event-1", 1_000)
+    assert len(first) == 1
+    assert first[0].zone_id == zone.zone_id
+    assert first[0].trigger_price == Decimal("105")
+    assert first[0].delivery_status == "pending"
+
+    # Remaining inside the same zone does not create another trigger.
+    assert _evaluate(store, "106", "provider-event-2", 2_000) == []
+    assert len(store.list_pending_trigger_events()) == 1
+    assert store.list_zones(owner_id="account-a")[0].status == "triggered"
+
+    # Leaving the interval re-arms it; the next entry creates one new event.
+    assert _evaluate(store, "111", "provider-event-3", 3_000) == []
+    assert store.list_zones(owner_id="account-a")[0].status == "active"
+    second = _evaluate(store, "109", "provider-event-4", 4_000)
+    assert len(second) == 1
+    assert len(store.list_pending_trigger_events()) == 2
+
+
+def test_duplicate_provider_event_is_idempotent_across_store_restart(store):
+    zone = _create(store)
+    first = _evaluate(store, "105", "provider-event-unique", 1_000)
+    restarted = SQLitePriceAlertStore(store.database_path)
+    duplicate = _evaluate(restarted, "105", "provider-event-unique", 1_000)
+    assert len(first) == 1
+    assert duplicate == []
+    assert len(restarted.list_pending_trigger_events()) == 1
+    assert restarted.list_zones(owner_id="account-a")[0].zone_id == zone.zone_id
+
+
+def test_out_of_order_stale_and_future_market_events_are_rejected(store):
+    _create(store)
+    _evaluate(store, "111", "provider-event-new", 2_000)
+    with pytest.raises(AlertMarketEventRejected, match="Out-of-order"):
+        _evaluate(store, "105", "provider-event-old", 1_000)
+
+    with pytest.raises(AlertMarketEventRejected, match="stale or from the future"):
+        store.evaluate_market_price(
+            canonical_instrument_id=INSTRUMENTS[0],
+            price="105", provider_event_id="provider-event-stale",
+            source_timestamp_ns=1_000, now_ns=10_000_000_000,
+            max_age_ns=1_000,
+        )
+
+    with pytest.raises(AlertMarketEventRejected, match="stale or from the future"):
+        store.evaluate_market_price(
+            canonical_instrument_id=INSTRUMENTS[0],
+            price="105", provider_event_id="provider-event-future",
+            source_timestamp_ns=20_000, now_ns=1_000,
+            future_skew_ns=100,
+        )
+
+
+def test_paused_zone_tracks_exit_without_triggering_until_next_entry(store):
+    zone = _create(store)
+    assert store.set_status(owner_id="account-a", zone_id=zone.zone_id, status="paused")
+    assert _evaluate(store, "105", "paused-inside", 1_000) == []
+    assert store.set_status(owner_id="account-a", zone_id=zone.zone_id, status="active")
+    # Still inside: no new entry occurred while the zone was paused.
+    assert _evaluate(store, "106", "still-inside", 2_000) == []
+    # An observed exit while active re-arms the zone.
+    assert _evaluate(store, "111", "exit-after-resume", 3_000) == []
+    assert len(_evaluate(store, "105", "entry-after-resume", 4_000)) == 1
+
+
+def test_only_matching_instrument_zones_are_evaluated(store):
+    _create(store, owner="account-a", index=0)
+    _create(store, owner="account-b", index=1)
+    triggered = _evaluate(store, "105", "matching-instrument-event", 1_000)
+    assert len(triggered) == 1
+    assert triggered[0].owner_id == "account-a"
+
+
+def test_market_event_validation_rejects_invalid_prices_and_identifiers(store):
+    _create(store)
+    for price in ("NaN", "Infinity", "-Infinity"):
+        with pytest.raises(AlertMarketEventRejected):
+            _evaluate(store, price, f"invalid-{price}", 1_000)
+    with pytest.raises(AlertMarketEventRejected):
+        _evaluate(store, "105", " ", 2_000)
