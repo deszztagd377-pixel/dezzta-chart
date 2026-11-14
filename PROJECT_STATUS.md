@@ -1,13 +1,25 @@
+## Latest exact-head audit — 2026-11-14 (Gate 10 work cycle)
+
+- Latest observed push checkpoint on `phase-2/market-data-foundation`: `b37c69d6aaee2f764c3357834e868a3e53bddbe1` (`docs(stage-1): audit Android backend host feasibility`). This is the newest SHA represented in the retrieved workflow-run list; the runs below all target this exact SHA.
+- Automated Tests run #1141: **success** — https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43593913966
+- CodeQL run #499: **success** for Python and JavaScript/TypeScript — https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43593913979. A successful analysis is not a claim of zero alerts.
+- Full Git History Secret Audit run #80: **success** — https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43593913868.
+- A prior Automated Tests run #1138 on `02842b97c70bc6ea82841ea62953a406d1205d17` failed in **Run backend tests**; subsequent commits `6c58daea1312e78d51956323ca03a2a9b6375e20` and `b37c69d6aaee2f764c3357834e868a3e53bddbe1` have successful full CI runs. The failed run is retained as history, not hidden or described as a pass.
+- The Gate 10 Android-host architecture audit is repository evidence only. It confirms the current APK workflow packages the frontend and does not bundle/supervise FastAPI or Redis. Android/Bionic, Termux package trust, cryptography import, Redis TLS/ACL/persistence, Firebase lifecycle, Android TLS trust, SQLite durability, and Android process recovery remain unproven on the actual phone.
+- No Termux command/package/repository/keyring change, backend runtime change, production secret, paid service, provider subscription, or APK release was made in this audit.
+- Stage 1 remains **300/400 ticks = 75% provisional**. External criteria **8, 20, 25, 30, 31, 34, 35, 36, 38, 39** remain OPEN (0/10 externally accepted). Stages 2–6 remain NOT SCORED. Overall **20.90%** remains a historical checkpoint only; no new weighted overall percentage is claimed.
+- `main` remains untouched; all work remains on `phase-2/market-data-foundation`.
+
 # DEZZTA CHART — Project Status
 
 > **Progress-history correction (2026-11-05):** The owner clarifies that conversational checkpoints progressed from **20.3% to 20.9%**. The older **19.60%** remains a historical formal estimate, not a later regression. **19.9% is not a verified calculation.** Do not publish a fresh overall percentage until the milestone ledger reconciles these records.
 
-Last audited: 2026-11-13
+Last audited: 2026-11-14
 Repository: deszztagd377-pixel/dezzta-chart
 Baseline branch: main
 Baseline main HEAD: e3841681bc69b73619058deaf939df82ae5116a1
 Working branch: phase-2/market-data-foundation
-Latest completed CI/CodeQL/Vercel-verified checkpoint: a10414984b78e4782c127b3feb30ae498ddc0c07 (CI #811, CodeQL #169, and Vercel passed)
+Latest observed exact-head CI/CodeQL/secret-audit checkpoint: b37c69d6aaee2f764c3357834e868a3e53bddbe1 (CI #1141, CodeQL #499, secret audit #80 passed)
 Audited application-source baseline: 436f8b374b8bf5ef1ef4b51944f0c99603acd12c
 `main` remains the protected baseline and is not a work target.
 
