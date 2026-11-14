@@ -1838,3 +1838,26 @@ This closes the missing **repository configuration guard** for production Redis 
 - Overall project progress remains **20.9% historical**; no percentage is awarded for configuration hardening, tests, CI, or documentation alone.
 - No paid Redis, hosting, billing activation, cloud trial, extra hardware, or Termux trust bypass was introduced.
 
+
+
+## Exact branch-head verification — Redis ACL smoke-test correction — 2026-11-14
+
+- Branch: `phase-2/market-data-foundation`
+- Exact tested commit: `290dd2a812ef9068fce82b9dd78bbfdb2d990d1e`
+- Automated Tests & Build [run #43542532632](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43542532632): **success**.
+- Frontend: **26 test files / 211 tests passed**. Frontend dependency audit, source/bundle secret scans, production build, scanner regression tests, and Android host preflight passed.
+- Backend: **803 tests passed in 19.85s**. The previously failing synthetic SQLite outbox benchmark concurrency test passed on this exact commit.
+- Bounded synthetic outbox benchmark: **1,000 bars inserted and 1,000 events replayed**; two concurrent in-process reader threads each replayed 1,000 events. Report explicitly limits its scope: this is not a provider/WebSocket/reconnect-storm/production-host benchmark and is not a multi-process test.
+- Backend dependency audit reported no known vulnerabilities.
+- Redis ACL + persistent-volume container smoke test: **success** on this exact commit. The workflow now uses `redis-cli -e` for authentication-denial assertions and generates a random CI-only ACL password at runtime.
+- CodeQL [run #43542532635](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43542532635): **success** for JavaScript/TypeScript and Python.
+- Full reachable Git-history Gitleaks [run #43542532618](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43542532618): **success**; **1,158 commits / ~2.60 MB scanned**, with `no leaks found`.
+- Container image vulnerability scan and report export completed successfully in the automated workflow. This checkpoint does not claim a zero-finding count unless the report is separately inspected.
+- The run validates repository/CI behavior only. It does not establish production Redis hosting, production secrets, production volume, external backup, HTTPS/WSS, external monitoring, or operator alert delivery.
+
+### Acceptance and progress accounting
+
+- The ten external acceptance gates **8, 20, 25, 30, 31, 34, 35, 36, 38, 39 remain OPEN / EXTERNAL VERIFICATION REQUIRED**. This CI run improves repository evidence for gates 8, 25, 30 and 34 but does not substitute for owner-host/device/production evidence.
+- Stage 1 remains **30/40 = 75.00% provisional**. Overall progress remains **20.9% owner-confirmed historical checkpoint**; neither percentage is recalculated or increased by this CI run.
+- ZERO COST, no paid services, no billing activation, no new hardware, no weakening of TLS/ACL/security, and no Termux trust bypass remain binding.
+- No user action or shell command is required for this repository CI result.
