@@ -585,12 +585,16 @@ class SQLitePriceAlertStore:
         finally:
             connection.close()
 
-    def mark_trigger_event_delivered(self, *, event_id: str, lease_token: str) -> bool:
-        """Acknowledge delivery only for the worker holding the active lease."""
+    def mark_trigger_event_delivered(
+        self, *, event_id: str, lease_token: str, now_ns: int
+    ) -> bool:
+        """Acknowledge delivery only while the worker's lease is still active."""
         if not isinstance(event_id, str) or not event_id.strip():
             raise ValueError("event_id is required.")
         if not isinstance(lease_token, str) or not lease_token.strip():
             raise ValueError("lease_token is required.")
+        if not isinstance(now_ns, int) or isinstance(now_ns, bool) or now_ns < 0:
+            raise ValueError("now_ns must be a non-negative integer.")
         connection = self._connect()
         try:
             cursor = connection.execute(
@@ -598,9 +602,10 @@ class SQLitePriceAlertStore:
                 UPDATE price_alert_trigger_events
                 SET delivery_status = 'delivered', lease_token = NULL,
                     lease_expires_ns = NULL, last_error_code = NULL
-                WHERE event_id = ? AND delivery_status = 'pending' AND lease_token = ?
+                WHERE event_id = ? AND delivery_status = 'pending'
+                  AND lease_token = ? AND lease_expires_ns > ?
                 """,
-                (event_id.strip(), lease_token.strip()),
+                (event_id.strip(), lease_token.strip(), now_ns),
             )
             return cursor.rowcount == 1
         finally:
@@ -611,6 +616,7 @@ class SQLitePriceAlertStore:
         *,
         event_id: str,
         lease_token: str,
+        now_ns: int,
         next_attempt_ns: int,
         error_code: str,
         terminal: bool = False,
@@ -624,6 +630,8 @@ class SQLitePriceAlertStore:
             raise ValueError("event_id is required.")
         if not isinstance(lease_token, str) or not lease_token.strip():
             raise ValueError("lease_token is required.")
+        if not isinstance(now_ns, int) or isinstance(now_ns, bool) or now_ns < 0:
+            raise ValueError("now_ns must be a non-negative integer.")
         if (
             not isinstance(next_attempt_ns, int)
             or isinstance(next_attempt_ns, bool)
@@ -646,9 +654,10 @@ class SQLitePriceAlertStore:
                 UPDATE price_alert_trigger_events
                 SET delivery_status = ?, next_attempt_ns = ?,
                     lease_token = NULL, lease_expires_ns = NULL, last_error_code = ?
-                WHERE event_id = ? AND delivery_status = 'pending' AND lease_token = ?
+                WHERE event_id = ? AND delivery_status = 'pending'
+                  AND lease_token = ? AND lease_expires_ns > ?
                 """,
-                (status, next_attempt_ns, error_code, event_id.strip(), lease_token.strip()),
+                (status, next_attempt_ns, error_code, event_id.strip(), lease_token.strip(), now_ns),
             )
             return cursor.rowcount == 1
         finally:
