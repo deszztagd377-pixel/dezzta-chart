@@ -568,3 +568,15 @@ This batch adds a concrete, redacted evidence contract for all ten remaining Sta
 ### Next action dependency
 
 The next owner-device interaction, when requested, is limited to the existing read-only Android/Termux preflight. It installs nothing, starts no service, changes no repository, and prints no environment secrets. Its output must be reviewed before any later device action is prepared. No Termux action is requested by this documentation batch.
+
+
+## Gate 10 batch 13 — private-path redaction in Android host preflight (2026-11-14)
+
+- Security/privacy review found that the read-only host preflight used `command -v` output as a displayed value. On Termux this can reveal the absolute private executable prefix even though the script does not dump environment variables or secrets.
+- Updated `scripts/android-host-preflight.sh` so command inventory reports only `available` or `missing`, never executable paths. It still checks tool availability and does not install packages, start services, access the network, or print environment values.
+- Added a regression assertion in `scripts/android-host-preflight.node-test.mjs` that rejects the Termux private prefix in output and verifies the concise availability result.
+- Code commits: `68b0b26bcb42382bb674d9ea39931102a4035542` (preflight redaction) and `7948f56bef9675893d1fb1314fc0c388a287e57f` (regression test; current code HEAD before this documentation update).
+- Validation status at documentation time: the full-history secret audit for the code HEAD completed SUCCESS; Automated Tests and CodeQL were still running. The preceding Automated Tests run was cancelled automatically when the newer commit superseded it. Do not count a pending/cancelled run as a pass; reconcile all three workflows against the final documentation HEAD.
+- This is repository-side privacy hardening only. It does not prove host secret injection or Android runtime readiness, and it awards no Stage 1 ticks.
+- Stage 1 remains `300/400 ticks = 75% provisional`; open criteria remain `8, 20, 25, 30, 31, 34, 35, 36, 38, 39`. Stage 2–6 remain NOT SCORED; overall `20.90%` remains historical only.
+- No Termux command, package, repository, keyring, signing key, crypto dependency, paid service, backend deployment, or APK release was changed.
