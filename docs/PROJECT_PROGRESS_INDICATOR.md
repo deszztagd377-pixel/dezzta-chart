@@ -580,3 +580,39 @@ The next owner-device interaction, when requested, is limited to the existing re
 - This is repository-side privacy hardening only. It does not prove host secret injection or Android runtime readiness, and it awards no Stage 1 ticks.
 - Stage 1 remains `300/400 ticks = 75% provisional`; open criteria remain `8, 20, 25, 30, 31, 34, 35, 36, 38, 39`. Stage 2–6 remain NOT SCORED; overall `20.90%` remains historical only.
 - No Termux command, package, repository, keyring, signing key, crypto dependency, paid service, backend deployment, or APK release was changed.
+
+
+## Gate 10 batch 14 — multi-criterion source audit and CI verification (2026-11-14)
+
+### Audited code checkpoint
+
+- Audited source at `37641c43b8ca6c10f5284d4680a654796f0a5380`.
+- Automated Tests run `43596463914`: SUCCESS.
+- CodeQL run `43596463973`: SUCCESS (Python and JavaScript/TypeScript).
+- Full Git History Secret Audit run `43596463929`: SUCCESS.
+- Automated Tests included backend pytest, frontend tests/build, frontend secret scans, read-only Android preflight regression, dependency audit, synthetic SQLite outbox benchmark, Docker build, container health + Redis shared-guard + persistent-volume ownership/restart smoke test, and HIGH/CRITICAL Trivy image scan.
+- The workflow uploaded container vulnerability and synthetic benchmark artifacts. Artifact retention is time-limited; these are CI artifacts, not permanent deployment evidence.
+
+### Multi-criterion audit disposition
+
+| Criterion | Source/CI evidence confirmed | Remaining external acceptance |
+|---:|---|---|
+| 8 | Credential redaction, frontend bundle scan, reachable Git history scan | Owner-host secret injection and live host log/build verification |
+| 20 | Firebase UI lifecycle, Admin verification, revocation check, claim validation and mocked tests | Actual no-billing project state and real sign-in/revocation/entitlement/browser/Android flows |
+| 25 | Production requires `rediss://` plus ACL credentials; CA and hostname validation enforced and regression-tested | Owner-host private Redis TLS/ACL/persistence/restart/failure drill |
+| 30 | Restore drill validates SQLite integrity/FKs/schema/row hashes/domain readback/write-read-cleanup; synthetic CI tests pass | Actual Android application DB identification and device restore drill |
+| 31 | AES-256-GCM + PBKDF2-HMAC-SHA256 backup encryption and tamper/wrong-key tests | Separate key custody, independent zero-cost destination, retention/access and real recovery |
+| 34 | CI container smoke verifies volume ownership, non-root app, integrity and restart persistence | Persistent volume and disk-pressure/recovery on intended owner host/device |
+| 35 | `/health`, container healthcheck and CI smoke pass | Actual HTTPS reverse-proxy/certificate and host startup/failure evidence |
+| 36 | Authenticated WSS route and periodic token/entitlement checks exist | Real reverse-proxy WSS from web and Android clients |
+| 38 | Bounded application status exists | Self-hosted metrics/log retention/dashboard/access controls on existing hardware |
+| 39 | Alert storage/rules exist in source | Real no-cost alert delivery, incident runbook and recovery exercise |
+
+### Scoring and safety invariants
+
+- This audit adds **zero Stage 1 ticks**: the ten listed criteria still require external acceptance evidence.
+- Stage 1 remains `30/40 = 300/400 = 75% provisional`; open criteria are exactly `8, 20, 25, 30, 31, 34, 35, 36, 38, 39`.
+- Stage 2–6 remain NOT SCORED. Overall `20.90%` remains the historical checkpoint; no fresh weighted overall score is claimed.
+- Do not infer a real Firebase integration, host TLS, Android restore, or operational monitoring from mocked tests or CI container fixtures.
+- No Termux commands or package installation are required by this source audit. The next owner-device step, when needed, remains a read-only preflight before any environment-specific plan is proposed.
+- ZERO COST remains mandatory. No paid service, trial, managed Redis, hosted monitoring, paid backup destination, or market-data subscription was introduced.
