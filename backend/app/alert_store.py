@@ -624,12 +624,16 @@ class SQLitePriceAlertStore:
             raise ValueError("event_id is required.")
         if not isinstance(lease_token, str) or not lease_token.strip():
             raise ValueError("lease_token is required.")
-        if not isinstance(next_attempt_ns, int) or isinstance(next_attempt_ns, bool) or next_attempt_ns < 0:
-            raise ValueError("next_attempt_ns must be a non-negative integer.")
+        if (
+            not isinstance(next_attempt_ns, int)
+            or isinstance(next_attempt_ns, bool)
+            or not 0 <= next_attempt_ns <= 9_223_372_036_854_775_807
+        ):
+            raise ValueError("next_attempt_ns is outside the supported range.")
         if (
             not isinstance(error_code, str)
             or not 1 <= len(error_code) <= 64
-            or any(not (ch.islower() or ch.isdigit() or ch in "._-") for ch in error_code)
+            or any(ch not in "abcdefghijklmnopqrstuvwxyz0123456789._-" for ch in error_code)
         ):
             raise ValueError("error_code must be a short lowercase machine-readable code.")
         if not isinstance(terminal, bool):
