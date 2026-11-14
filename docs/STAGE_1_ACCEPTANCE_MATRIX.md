@@ -647,3 +647,7 @@ The durable trigger outbox now supports worker-safe leasing and controlled retry
 - Retry timestamps are bounded to SQLite's signed 64-bit integer range.
 - Persisted error codes are restricted to ASCII lowercase machine-safe characters, excluding free-form Unicode text and raw exception content.
 - This strengthens the internal outbox only; it does not establish a running delivery worker or delivered notification. Criterion 39 remains open.
+
+### Criterion 39 — lease-expiry acknowledgement correction (2026-11-14)
+
+A review of the delivery lease lifecycle found that a worker holding an expired lease could still acknowledge or reschedule an event if no replacement worker had claimed it yet. The acknowledgement and reschedule operations now require the caller's current timestamp and update only rows whose lease expiry is strictly later than that timestamp. Regression coverage checks the expiry boundary both before and after lease reclamation. This closes a stale-worker state-transition gap in the outbox primitive only; it does not provide a delivery worker or end-to-end notification. Criterion 39 remains open.
