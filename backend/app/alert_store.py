@@ -19,6 +19,9 @@ from app.alerts import (
     validate_zone_creation,
 )
 
+_SQLITE_INT64_MAX = 9_223_372_036_854_775_807
+
+
 _ALLOWED_STATUSES = frozenset({"active", "paused", "triggered", "delivery_failed"})
 
 
@@ -354,6 +357,10 @@ class SQLitePriceAlertStore:
             for value in numeric_values
         ) or source_timestamp_ns == 0 or max_age_ns == 0:
             raise AlertMarketEventRejected("Market event timestamps and age limits are invalid.")
+        if source_timestamp_ns > _SQLITE_INT64_MAX:
+            raise AlertMarketEventRejected(
+                "source_timestamp_ns exceeds SQLite's signed 64-bit integer range."
+            )
         age_ns = now_ns - source_timestamp_ns
         if age_ns > max_age_ns or age_ns < -future_skew_ns:
             raise AlertMarketEventRejected("Market event is stale or from the future.")

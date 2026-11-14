@@ -399,3 +399,8 @@ def test_concurrent_outbox_claims_never_lease_one_event_to_two_workers(store):
     assert len(non_empty) == 1
     assert len(non_empty[0]) == 1
     assert sum(len(claim_batch) for claim_batch in claims) == 1
+
+def test_market_event_rejects_source_timestamp_outside_sqlite_integer_range(store):
+    with pytest.raises(AlertMarketEventRejected, match="SQLite's signed 64-bit integer range"):
+        _evaluate(store, "105", "timestamp-overflow", 2**63)
+

@@ -777,3 +777,24 @@ ZERO COST decision: retain the existing free workflow; avoid unnecessary commits
 ## Git commit capability check — Vercel deployment limit (2026-11-14)
 
 The owner asked whether Git commits can continue while the Vercel status reports `build-rate-limit`. A documentation commit was successfully created directly on `phase-2/market-data-foundation` after the Vercel failure was observed. This confirms that the Vercel deployment limit does not block GitHub repository writes/commits on this branch. It does not prove that every GitHub Actions workflow will pass, nor does it clear the Vercel deployment check. Continue normal scoped commits and pushes on this branch; treat Vercel preview deployment as independently rate-limited. Do not switch to `main`, purchase an upgrade, or create empty/retry-only commits. Stage 1 scoring is unchanged: 300/400 ticks = 75% provisional; Gate 10 0/10 closed; open criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, 39. Stage 2–6 remain NOT SCORED; overall 20.90% remains historical only.
+
+
+## Gate 10 work cycle — SQLite market-event timestamp boundary (2026-11-14)
+
+### Source defect found and corrected
+- The alert evaluator persists source_timestamp_ns in SQLite INTEGER columns, whose supported signed range ends at 9,223,372,036,854,775,807.
+- Prior validation rejected negative, boolean, zero, stale, and excessively future-dated values, but did not reject a positive timestamp above SQLite's signed 64-bit maximum before binding it to SQLite. Such input could escape the domain-validation boundary and fail as a low-level SQLite integer-overflow exception.
+- Added an explicit upper-bound guard in backend/app/alert_store.py. Out-of-range timestamps now fail as the domain-specific AlertMarketEventRejected before a database transaction is opened.
+- Added regression coverage in backend/tests/test_alert_store.py for the first out-of-range value (2**63).
+
+### Verification state
+- Source change, regression test, and this progress record are committed together so CI evaluates one coherent revision.
+- CI status: pending verification for the new commit. No test pass is claimed before the workflow reports success.
+- This is a repository-side robustness fix only. It does not prove a live provider feed or alert delivery worker, and it does not close criterion 39.
+
+### Progress accounting
+- Stage 1: 30/40 criteria; 300/400 ticks; 75% provisional — unchanged.
+- Gate 10: 0/10 criteria officially closed — unchanged.
+- Still open: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.
+- Stage 2–6: NOT SCORED. Overall 20.90% remains a historical checkpoint only.
+- ZERO COST maintained. No Termux command, dependency installation, runtime change, paid service, APK release, or main branch change.
