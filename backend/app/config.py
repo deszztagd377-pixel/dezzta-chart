@@ -150,8 +150,13 @@ class Settings:
                 raise ValueError("REDIS_URL is invalid.") from exc
             if parsed.scheme not in ("redis", "rediss") or not parsed.hostname:
                 raise ValueError("REDIS_URL must be a valid redis:// or rediss:// URL.")
-            if self.app_env.strip().lower() == "production" and parsed.scheme != "rediss":
+            production = self.app_env.strip().lower() == "production"
+            if production and parsed.scheme != "rediss":
                 raise ValueError("Production REDIS_URL must use rediss:// TLS.")
+            if production and (not parsed.username or not parsed.password):
+                raise ValueError(
+                    "Production REDIS_URL must include a non-empty Redis ACL username and password."
+                )
         limits = (
             self.http_rate_limit_per_client, self.http_rate_limit_global,
             self.websocket_connection_limit_global,
