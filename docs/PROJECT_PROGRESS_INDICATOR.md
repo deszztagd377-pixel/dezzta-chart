@@ -757,3 +757,18 @@ The outbox now has atomic claims, durable attempt counts, expiry recovery, token
 - GitHub combined status also reports Vercel **FAILURE** with an account build-rate-limit/upgrade target. Treat this as a separate external preview-deployment limitation, not as a failed backend test and not as a successful deployment. No paid upgrade is authorized under ZERO COST.
 - No Gate 10 criterion is closed by these CI results. Stage 1 remains 300/400 ticks = 75% provisional; Gate 10 remains 0/10 closed; open criteria remain 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. Stage 2–6 remain NOT SCORED. Overall 20.90% remains a historical checkpoint only.
 - No Termux command, package installation, repository/keyring change, APK publication, or paid service was used.
+
+
+## Vercel build-rate-limit investigation — 2026-11-14
+
+Observed repository evidence: GitHub combined commit status for the documentation HEAD reports context `Vercel`, state `failure`, target URL `https://vercel.com/deszztagd377-pixel?upgradeToPro=build-rate-limit`. This target is an upgrade-routing URL, not a detailed deployment log; it does not expose the account's exact quota counter, usage window, or Vercel error code.
+
+Official Vercel limits documentation (checked 2026-11-14): Hobby allows 32 deployments/builds per hour and 100 deployments per day; Hobby has one concurrent build slot; build timeout is 45 minutes. These are distinct limits and must not be conflated. Official references: https://vercel.com/docs/limits and https://vercel.com/docs/builds/build-queues.
+
+A Vercel community report describes the same `upgradeToPro=build-rate-limit` target with an explicit `api-deployments-paid-per-hour` response and a short retry window. This is corroborating anecdotal evidence only, not proof of this repository account's exact cause: https://community.vercel.com/t/check-on-github-pr-not-updating-after-build-rate-limit-failure/28030.
+
+Assessment: the most likely cause is a Vercel deployment-creation rate limit (possibly the per-hour Hobby limit), rather than a source-code compilation defect. Exact account-level diagnosis remains unconfirmed because Vercel deployment logs and usage dashboard are not available through the connected GitHub evidence. Do not upgrade, enable paid on-demand concurrency, or authorize spending. No change to hosting integration is made in this investigation.
+
+Impact: Vercel preview/deployment check is failing; the separate GitHub Actions Automated Tests, CodeQL, and secret-audit workflows can still pass independently. This does not prove production deployment or affect the repository's local Android APK build status. Treat the Vercel check as an external deployment limitation, not as a passed check.
+
+ZERO COST decision: retain the existing free workflow; avoid unnecessary commits solely to retrigger Vercel; do not repeatedly retry within a rate-limit window. Consider changing or disabling automatic Vercel preview triggers only after reviewing the current project integration and obtaining explicit approval, because that changes the deployment workflow.
