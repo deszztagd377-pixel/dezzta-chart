@@ -414,3 +414,15 @@ Workflow evidence:
 - Automated Tests: https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43566762952
 - CodeQL: https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43566763073
 - Gitleaks: https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43566762971
+
+
+## Criterion 30 — exact-HEAD CI passed; target-device evidence still required — 2026-11-14
+
+The fresh-destination restore implementation in `backend/app/sqlite_backup.py` passed the exact-HEAD CI workflows on `13f489aebffa193affcb8eae619503e78e512b29`:
+- Automated Tests #43569886961 — SUCCESS.
+- CodeQL #43569886954 — SUCCESS.
+- Full Git History Secret Audit #43569886911 — SUCCESS.
+
+The helper verifies SQLite integrity and foreign-key consistency, refuses to overwrite a destination, publishes through an atomic same-directory hard link, applies owner-only POSIX permissions, flushes the restored file and parent directory, and cleans temporary files on failure.
+
+This is repository implementation evidence only. Criterion 30 remains **OPEN** until an actual owner-device application database restore is completed into a fresh destination, with application-level readback of the durable domains and a post-restore write on the restored copy. The source database must remain untouched. No tick is awarded by CI alone.

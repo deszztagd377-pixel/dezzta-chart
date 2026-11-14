@@ -268,3 +268,35 @@ The owner explicitly authorized opening the ten external acceptance gates. This 
 - Full Git History Secret Audit #43569290886 — success.
 
 The next implementation commit must receive its own fresh CI results before any code acceptance is claimed.
+
+
+## Gate 10 execution batch 2 — exact-HEAD CI reconciliation — 2026-11-14
+
+**Authoritative exact HEAD:** `13f489aebffa193affcb8eae619503e78e512b29` on `phase-2/market-data-foundation`.
+
+All three workflows completed successfully on this exact commit:
+- Automated Tests #43569886961 — SUCCESS (frontend checks/build, backend tests including the new restore helper tests, benchmark, dependency audit, backend image build, Redis/persistent-volume smoke, Trivy scan/report and cleanup).
+- CodeQL #43569886954 — SUCCESS (Python and JavaScript/TypeScript).
+- Full Git History Secret Audit #43569886911 — SUCCESS.
+
+This clears the repository CI prerequisite for the restore implementation. It is not an owner-device restore drill and does not close criterion 30.
+
+### Batch 2 additional hardening
+
+Three further restore failure-path tests are now being added:
+- POSIX owner-only permission failure must not publish a destination and must clean the temporary file.
+- Restored-file flush failure must not publish a destination and must clean the temporary file.
+- Atomic hard-link publication failure must fail closed, preserve absence of the destination, and clean the temporary file.
+
+These tests are not accepted until the next exact-HEAD Automated Tests workflow succeeds.
+
+### Current acceptance boundary
+
+Criterion 30 remains OPEN until the actual application database on the target device/environment is backed up and restored to a fresh path, then validated with SQLite integrity/foreign-key checks, durable-domain readback and a post-restore write on the restored copy. The original database must remain untouched.
+
+### Stage accounting
+
+- Stage 1: 30/40 criteria; 300/400 ticks; 75% provisional.
+- External gates: 10 open; no gate tick awarded by CI or documentation alone.
+- Stage 2–6: NOT SCORED.
+- Overall project: 20.9% historical checkpoint only; no new weighted calculation.

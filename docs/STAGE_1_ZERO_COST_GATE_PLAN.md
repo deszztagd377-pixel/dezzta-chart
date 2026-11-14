@@ -274,3 +274,19 @@ The original database must not be modified, replaced or deleted. Do not count sy
 ### Remaining gate execution order
 
 After criterion 30's target-device proof is obtained, work proceeds through criteria 20, 8, 25, 34, 35, 36, 38, 39 and 31, while repository-side preparation for all gates continues in parallel where it does not require external access. Criteria 31 retains the separate Google Play Termux signing-key and off-host key-custody blocker.
+
+
+## Gate 10 execution batch 2 — CI passed, restore failure paths hardened — 2026-11-14
+
+Exact implementation commit `13f489aebffa193affcb8eae619503e78e512b29` now has all three required CI workflows green:
+- Automated Tests #43569886961 — SUCCESS.
+- CodeQL #43569886954 — SUCCESS.
+- Full Git History Secret Audit #43569886911 — SUCCESS.
+
+The restore helper implementation has therefore passed repository CI on its exact commit. This does not close criterion 30 because actual owner-device application database restore evidence is still required.
+
+Additional tests are being added for fail-closed behavior when POSIX permission setting fails, file flush fails, or atomic hard-link publication is unavailable. No test may overwrite the source database or publish an incomplete destination.
+
+Termux was re-audited: upstream issues #1642 and #1648 remain open; the latest visible Play Store app release remains `googleplay.2026.10.09`. No verified compatible signing-key fix exists. No Termux command is required for this batch.
+
+Stage 1 remains 300/400 = 75% provisional; all ten external gates remain open pending their respective evidence. Stages 2–6 remain NOT SCORED. The process indicator remains documentation-only, not an APK feature.

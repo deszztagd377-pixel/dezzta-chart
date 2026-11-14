@@ -158,3 +158,13 @@ The matching upstream Google Play issue tracker was checked again through the Gi
 - The reported missing key `5A897D96E57CF20C` is the upstream `termux-autobuilds` signing key. The Play Store build's installed keyring does not contain it.
 
 **Decision unchanged:** keep the working Google Play repository configuration; do not switch to `packages.termux.dev`, import an unverified key, bypass APT signature verification, or install the incompatible `python-cryptography 48.0.1-1`. Do not reduce `cryptography>=50,<51` or modify AES-GCM/PBKDF2. No Termux action is required from the owner in this checkpoint. Revisit only when the Play build provides an officially compatible signed keyring/repository path.
+
+
+## Gate 10 Termux re-audit — 2026-11-14 (after restore implementation)
+
+The upstream tracker and official release list were rechecked after the Gate 10 implementation batch:
+- Issue [#1642](https://github.com/termux-play-store/termux-issues/issues/1642): still OPEN; updated 2026-11-10.
+- Issue [#1648](https://github.com/termux-play-store/termux-issues/issues/1648): still OPEN; updated 2026-10-15.
+- Latest official Google Play app release visible in the release list remains `termux-app-googleplay.2026.10.09`, published 2026-10-09. No newer release entry was present in the five most recent releases reviewed.
+
+No maintainer-confirmed signing-key recovery path or compatible signed keyring update was identified in this recheck. Keep the existing verified configuration unchanged. No command or package operation is needed for Gate 10 batch 2. The SQLite restore path is independent of the `cryptography>=50,<51` package; the encrypted off-host backup path for criterion 31 remains blocked. Never bypass signature verification, import an unverified key, switch repositories, downgrade cryptography, or migrate the app as a workaround.

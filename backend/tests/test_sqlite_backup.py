@@ -543,3 +543,80 @@ def test_restore_is_published_with_owner_only_permissions(tmp_path):
     restore_consistent_sqlite_backup(snapshot, restored)
 
     assert stat.S_IMODE(restored.stat().st_mode) == 0o600
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX permission bits are required")
+def test_restore_fails_closed_when_owner_only_permissions_cannot_be_set(
+    tmp_path, monkeypatch
+):
+    from app import sqlite_backup
+
+    source = tmp_path / "source.sqlite3"
+    snapshot = tmp_path / "snapshot.sqlite3"
+    destination = tmp_path / "restored.sqlite3"
+    with sqlite3.connect(source) as database:
+        database.execute("CREATE TABLE sample (value INTEGER)")
+        database.execute("INSERT INTO sample VALUES (8)")
+    create_consistent_sqlite_backup(source, snapshot)
+
+    def deny_chmod(*args, **kwargs):
+        raise PermissionError("restore permission change denied")
+
+    monkeypatch.setattr(sqlite_backup.os, "chmod", deny_chmod)
+
+    with pytest.raises(PermissionError, match="restore permission change denied"):
+        sqlite_backup.restore_consistent_sqlite_backup(snapshot, destination)
+
+    assert not destination.exists()
+    assert list(tmp_path.glob(".restored.sqlite3.*.sqlite-restore.tmp")) == []
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX fsync semantics are required")
+def test_restore_fails_closed_when_restored_file_cannot_be_flushed(
+    tmp_path, monkeypatch
+):
+    from app import sqlite_backup
+
+    source = tmp_path / "source.sqlite3"
+    snapshot = tmp_path / "snapshot.sqlite3"
+    destination = tmp_path / "restored.sqlite3"
+    with sqlite3.connect(source) as database:
+        database.execute("CREATE TABLE sample (value INTEGER)")
+        database.execute("INSERT INTO sample VALUES (9)")
+    create_consistent_sqlite_backup(source, snapshot)
+
+    def deny_fsync(*args, **kwargs):
+        raise OSError("restore file flush failed")
+
+    monkeypatch.setattr(sqlite_backup.os, "fsync", deny_fsync)
+
+    with pytest.raises(OSError, match="restore file flush failed"):
+        sqlite_backup.restore_consistent_sqlite_backup(snapshot, destination)
+
+    assert not destination.exists()
+    assert list(tmp_path.glob(".restored.sqlite3.*.sqlite-restore.tmp")) == []
+
+
+def test_restore_fails_closed_when_atomic_publication_is_unavailable(
+    tmp_path, monkeypatch
+):
+    from app import sqlite_backup
+
+    source = tmp_path / "source.sqlite3"
+    snapshot = tmp_path / "snapshot.sqlite3"
+    destination = tmp_path / "restored.sqlite3"
+    with sqlite3.connect(source) as database:
+        database.execute("CREATE TABLE sample (value INTEGER)")
+        database.execute("INSERT INTO sample VALUES (10)")
+    create_consistent_sqlite_backup(source, snapshot)
+
+    def deny_link(*args, **kwargs):
+        raise OSError("atomic hard-link publication unavailable")
+
+    monkeypatch.setattr(sqlite_backup.os, "link", deny_link)
+
+    with pytest.raises(OSError, match="atomic hard-link publication unavailable"):
+        sqlite_backup.restore_consistent_sqlite_backup(snapshot, destination)
+
+    assert not destination.exists()
+    assert list(tmp_path.glob(".restored.sqlite3.*.sqlite-restore.tmp")) == []
