@@ -544,3 +544,16 @@ A reusable report-producing procedure is implemented in backend/app/sqlite_resto
 ### Criterion 30 — report integrity and latest repository evidence (2026-11-14)
 
 The owner-device drill report now includes a generated drill ID and SHA-256 over canonical redacted JSON, plus passed/failed check metadata. Automated tests validate the report hash, domain counts, source immutability, and no-overwrite behavior. Exact HEAD 86cc42f passed all three CI workflows; the complete backend suite reported 819 passing tests. This does not close criterion 30: the actual owner-controlled Android database, live process path, and device restore report are still outstanding.
+ 
+## Gate 10 batch 7 — secret-audit false-positive remediation and exact-HEAD CI (2026-11-14)
+
+- Audited the full-history secret-scan failure rather than suppressing it blindly. The reported finding was the public commit SHA embedded in a historical project-status metadata line, classified by Gitleaks as `generic-api-key`; the report did not establish that a credential was present.
+- Added a narrow line-and-file-scoped Gitleaks allowlist for that exact metadata line. Corrected a TOML quoting/newline issue after the first remediation attempt; the failing workflow log identified the configuration parse error, and the corrected configuration was re-run.
+- Exact HEAD: `462bca4342d6cb585b6b389ae5996020c4c47dd3`.
+- Automated Tests #1149: **SUCCESS** — https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43594614075.
+- CodeQL #507: **SUCCESS** — https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43594614165.
+- Full Git History Secret Audit #88: **SUCCESS** — https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43594614104.
+- The automated workflow completed frontend tests/build and source/bundle secret checks, read-only Android preflight tests, backend pytest, synthetic SQLite outbox benchmark, dependency audits, backend container build, Redis/persistent-volume smoke test, and container vulnerability scanning/report export.
+- No external criterion is closed by these repository checks. Criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain open pending their exact host/device/provider evidence. No Stage 1 tick is awarded by this batch.
+- Stage 1 remains **30/40 provisional = 300/400 ticks = 75% provisional**. Stage 2–6 remain **NOT SCORED**. Overall 20.90% remains a historical checkpoint only.
+- No Termux package, repository, keyring, crypto dependency, runtime, production secret, paid service, or APK release was changed.
