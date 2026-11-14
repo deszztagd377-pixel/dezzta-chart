@@ -616,3 +616,13 @@ The next owner-device interaction, when requested, is limited to the existing re
 - Do not infer a real Firebase integration, host TLS, Android restore, or operational monitoring from mocked tests or CI container fixtures.
 - No Termux commands or package installation are required by this source audit. The next owner-device step, when needed, remains a read-only preflight before any environment-specific plan is proposed.
 - ZERO COST remains mandatory. No paid service, trial, managed Redis, hosted monitoring, paid backup destination, or market-data subscription was introduced.
+
+
+## Gate 10 batch 15 — restore-report privacy and alert-delivery gap (2026-11-14)
+
+- **Criterion 30 privacy fix:** `backend/app/sqlite_restore_drill.py` no longer writes actual source, backup or restored database filenames into its report. It emits fixed role labels (`source`, `backup`, `restored_copy`) instead. Regression coverage in `backend/tests/test_sqlite_restore_drill.py` asserts that all three supplied filenames are absent. The restore verification algorithm and source-read-only behavior are unchanged.
+- Commits: `61188dee0447e3b7a872a2a4e1b94eb17e780b40` (implementation) and `cb37549341cff375ce35cde1df4b21a61b0116f9` (regression test).
+- **Criterion 39 deeper audit correction:** current `alerts.py` and `alert_store.py` provide zone validation and durable storage, but source review found no active price-crossing evaluator, local delivery adapter, worker/scheduler, or real delivery evidence. The earlier phrase “alert rules exist” must not be interpreted as an operational notification path. Criterion 39 has both an implementation gap and an external delivery/recovery evidence gap. Do not count it as implemented or accepted.
+- CI evidence for these two new commits is pending at the time of this note; no pass is claimed until the final HEAD's workflows complete.
+- Scoring remains unchanged: Stage 1 `300/400 ticks = 75% provisional`; ten external criteria remain open. This privacy fix does not close criterion 30 without the actual owner-device restore drill.
+- No Termux action, installation, service start, paid provider, or alert delivery service was introduced.
