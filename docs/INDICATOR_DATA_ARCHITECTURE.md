@@ -381,3 +381,35 @@ A narrowly scoped correction was committed as `fd3eae1506b8efc2790cdda0eb498fde7
 **Verification state: pending.** The failing run predates this correction; no passing CI result for the correction is recorded here. The fix does not change indicator calculations, market-data contracts, chart rendering, or user-facing controls. Therefore it awards no indicator or project completion credit.
 
 The indicator acceptance matrix above remains authoritative and unchanged: SMA 20, EMA 20, Wilder RSI 14, MACD 12/26/9, and Bollinger Bands 20,2 have tested calculation foundations but incomplete chart UI acceptance; the shared indicator hook lacks completed visible-control integration; Footprint remains a bounded synthetic accumulator labelled `SIMULATED` with visual implementation gated by owner reference and blueprint review; Heatmap and Liquidation Maps remain unimplemented and similarly gated.
+
+
+## Indicator progress checkpoint — exact branch-head CI verification — 2026-11-14
+
+Exact branch-head commit `290dd2a812ef9068fce82b9dd78bbfdb2d990d1e` passed Automated Tests & Build [run #43542532632](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43542532632), including **26 frontend test files / 211 tests** and **803 backend tests**. The synthetic SQLite outbox concurrency benchmark also passed; the separate 1,000-bar benchmark replayed all 1,000 synthetic events with two in-process readers. CodeQL [run #43542532635](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43542532635) and Gitleaks [run #43542532618](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43542532618) succeeded. These are repository regression/security results, not indicator UI acceptance.
+
+**No indicator source, formula, chart component, indicator hook, market-data contract, or visual renderer changed in commits `6298afe`, `2658434`, or `290dd2a`. Therefore indicator progress is unchanged and no indicator completion credit is awarded.**
+
+### Complete indicator acceptance ledger
+
+| Indicator / component | Verified calculation or data foundation | Outstanding acceptance / implementation |
+|---|---|---|
+| SMA 20 | Close-based simple moving average; 20-bar warm-up; aligned output; unit-tested | Visible toggle, candlestick overlay, legend/current value, selected-series and timeframe transitions, chart render tests |
+| EMA 20 | Close-based EMA with SMA seed; 20-bar warm-up; unit-tested | Visible toggle, candlestick overlay, legend/current value, selected-series and timeframe transitions, chart render tests |
+| RSI 14 Wilder | Wilder smoothing; first output at index 14; flat and rising-only edge cases tested | Dedicated oscillator pane, scale and guide levels, controls, stale-value clearing, render tests |
+| MACD 12/26/9 | MACD line starts at index 25; signal and histogram start at index 33 | Dedicated pane, MACD/signal lines and histogram, controls, selected-series/timeframe transitions, render tests |
+| Bollinger Bands 20,2 | Close-based population-standard-deviation bands; first output at index 19 | Visible upper/middle/lower overlay, controls, legend/current values, chart-boundary and timeframe render tests |
+| Shared indicator hook | Validated-backend-series-only data contract; no implicit DEMO fallback | Visible controls and integration proof that stale series clear immediately on instrument/timeframe changes |
+| Footprint | Bounded deterministic synthetic accumulator; provenance is explicitly `SIMULATED` | Owner reference image(s), reviewed scoped blueprint, explicit mode control, spaced cluster renderer only while ON, visual/performance tests; live provider order flow is not implemented |
+| Heatmap | No implementation verified | Owner reference image(s), reviewed scoped blueprint, source-data contract, calculations, rendering and tests |
+| Liquidation Maps | No implementation verified | Owner reference image(s), reviewed scoped blueprint, source-data contract, calculations, rendering and tests |
+
+### Non-negotiable chart behavior and visual gates
+
+- Footprint OFF must preserve the standard candlestick layout and ordinary candle spacing.
+- Only an explicit Footprint ON action may activate the dedicated spaced-candle/cluster layout.
+- Footprint synthetic values must remain clearly labelled `SIMULATED` and must not be represented as live exchange order flow.
+- Footprint, Heatmap and Liquidation Maps visual implementation remains gated on the corresponding owner-provided reference image(s) and reviewed scoped blueprint.
+- The 40% overall-project threshold permits blueprint/review work; it does not waive reference-image requirements or authorize unreviewed visual implementation.
+- Security tests, Gitleaks, CodeQL, Redis ACL CI, benchmark success, documentation and CI success do not increase indicator completion.
+
+**Current indicator status:** calculation foundations for SMA 20, EMA 20, Wilder RSI 14, MACD 12/26/9 and Bollinger Bands 20,2 are tested; user-facing rendering/control acceptance remains incomplete. Shared hook integration remains incomplete. Footprint remains synthetic and visually gated. Heatmap and Liquidation Maps remain unimplemented.
