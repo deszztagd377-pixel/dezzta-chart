@@ -360,3 +360,27 @@ This does **not** change criterion 8 from **External verification required**. Th
 The full reachable Git-history scan is now implemented in CI using Gitleaks v8.30.1, a full-depth checkout, `--log-opts="--all"`, and a SHA-256-verified release archive. Dedicated run [#43451610210](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43451610210) scanned **1,133 commits (~2.57 MB)** and reported **no leaks**. Integrated CI [#43451610297](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43451610297) and CodeQL [#43451610192](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43451610192) both passed on commit `efdf9a9ecfa68647586cd89f819e76469e11d3df`.
 
 This closes the repository-side reachable-history scan subtask only. Criterion 8 remains **External verification required** until the owner-controlled production host's secret-injection mechanism and deployed logs are inspected, and GitHub native secret-scanning/push-protection settings plus alert inventory are verified. The history scan does not prove the absence of secrets in unreachable Git objects or external clones.
+## Stage 1 progress tick display — 2026-11-14
+
+This is the project's progress indicator scale requested by the owner. It is **not** a technical indicator inside the APK and does not refer to market-price ticks.
+
+### Scale
+
+- 40 Stage 1 acceptance criteria × 10 display ticks each = **400 total ticks**.
+- 1 accepted criterion = 10 ticks = 2.5% Stage 1 progress.
+- 1 tick = 0.25 percentage points of Stage 1 progress.
+- A criterion receives all 10 ticks only when its complete acceptance condition and required evidence are met. No inferred fractional/sub-tick credit.
+
+### Current audited tally
+
+| Item | Ticks | Stage 1 share |
+|---|---:|---:|
+| 30 provisionally accepted/implemented criteria | **300 / 400** | **75%** |
+| 10 external verification criteria still open | **100 / 400 outstanding** | **25%** |
+| Total | **400 / 400** | **100% scale** |
+
+Open criteria (0/10 ticks each): **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**. Stage 1 remains **not production-accepted**. “300 ticks” is the finer representation of the existing provisional 30/40 tally, not a new completion award.
+
+### Tick change policy
+
+A future tick change must cite the criterion number, its full acceptance boundary, exact evidence/report, and exact tested commit. Repository work toward an external gate is progress in remediation but does not earn that gate's ticks before its external evidence exists. CI/documentation/commit volume alone never changes the tally. The tick scale is separate from the overall weighted project percentage and from the in-app technical indicator tracker.
