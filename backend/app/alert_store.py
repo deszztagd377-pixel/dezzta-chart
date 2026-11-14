@@ -370,7 +370,7 @@ class SQLitePriceAlertStore:
                 SELECT * FROM price_alert_zones
                 WHERE canonical_instrument_id = ?
                   AND deleted_at_utc IS NULL
-                  AND status IN ('active', 'triggered')
+                  AND status IN ('active', 'triggered', 'paused')
                 ORDER BY created_at_utc, zone_id
                 """,
                 (canonical_id,),
@@ -390,7 +390,7 @@ class SQLitePriceAlertStore:
                 ).fetchone()
                 was_inside = bool(previous["is_inside"]) if previous else False
 
-                if is_inside and not was_inside:
+                if is_inside and not was_inside and zone["status"] != "paused":
                     event_id = str(uuid4())
                     connection.execute(
                         """
