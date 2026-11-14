@@ -12,3 +12,12 @@ condition = "AND"
 regexTarget = "match"
 regexes = ['''ghp_123456789012345678901234''']
 paths = ['''scripts/check-frontend-bundle-secrets\.node-test\.mjs$''']
+
+# Exact Git commit SHA in project-status metadata; this is a public identifier,
+# not a credential. Scope the exception to this one value and one documentation file.
+[[allowlists]]
+description = "Exact public commit SHA false positive in project status metadata"
+condition = "AND"
+regexTarget = "match"
+regexes = ['''6bfd05f6752549dd2f891e6dcf322b81224d6205''']
+paths = ['''PROJECT_STATUS\.md$''']
