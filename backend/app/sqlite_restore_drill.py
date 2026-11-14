@@ -29,6 +29,8 @@ from .sqlite_backup import create_consistent_sqlite_backup, restore_consistent_s
 _REQUIRED = {
     "canonical_instruments", "provider_instrument_mappings",
     "user_instrument_entitlements", "price_alert_zones",
+    "price_alert_evaluation_state", "price_alert_market_cursor",
+    "price_alert_processed_events", "price_alert_trigger_events",
     "ohlcv_coverage_intervals", "ohlcv_coverage_meta",
     "ohlcv_bars", "ohlcv_store_state", "ohlcv_outbox",
     "ohlcv_outbox_state", "ohlcv_schema_meta",

@@ -890,3 +890,24 @@ Progress remains unchanged: Stage 1 30/40 criteria, 300/400 ticks, 75% provision
 - Criterion 39 receives an additional store-boundary regression but remains OPEN pending safe lifecycle integration, authenticated recipient routing, a real idempotent sender adapter, and delivery/recovery evidence.
 - Stage 2–6 remain NOT SCORED; overall 20.90% remains a historical checkpoint only.
 - ZERO COST maintained. No Termux action, paid service, APK release, dependency change, or main-branch modification.
+
+
+## Gate 10 hardening — require complete alert schema in SQLite restore drill (2026-11-14)
+
+### Defect and correction
+- Audit of `SQLitePriceAlertStore` against the restore drill's `_REQUIRED` inventory found four alert-runtime tables omitted from the mandatory schema list: evaluation state, per-instrument market cursor, processed provider-event deduplication, and trigger-delivery outbox.
+- A database missing one of those tables could pass the restore drill's required-table gate even though that alert subsystem would be incomplete.
+- Added all four tables to the restore drill's required schema inventory.
+- Added parameterized negative tests that remove each table from a synthetic SQLite database and require inventory validation to reject the database before restore acceptance.
+
+### Verification boundary
+- The tests operate on synthetic database fixtures and do not prove the user's actual Android database path or a device restore.
+- CI for this revision is pending. No pass is claimed until the workflow completes.
+- No destructive action is taken against a live database; no device command, dependency, paid service, or external storage is required.
+
+### Progress accounting
+- Stage 1 remains 30/40 criteria, 300/400 ticks, 75% provisional.
+- Gate 10 remains 0/10 officially closed; open criteria: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.
+- Criterion 30 gains stronger synthetic schema-completeness coverage but remains OPEN pending actual Android DB path, owner-device backup/restore, and post-restore read/write evidence.
+- Stage 2–6 remain NOT SCORED; overall 20.90% remains a historical checkpoint only.
+- ZERO COST maintained. No Termux action, paid service, APK release, dependency change, or main-branch modification.

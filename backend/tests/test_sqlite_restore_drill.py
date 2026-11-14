@@ -141,3 +141,26 @@ def test_restore_inventory_detects_schema_changes(tmp_path):
     assert source_inventory["row_sha256"] == altered_inventory["row_sha256"]
     assert source_inventory["schema_sha256"] != altered_inventory["schema_sha256"]
     assert source_inventory["content_sha256"] != altered_inventory["content_sha256"]
+
+
+@pytest.mark.parametrize(
+    "missing_table",
+    [
+        "price_alert_evaluation_state",
+        "price_alert_market_cursor",
+        "price_alert_processed_events",
+        "price_alert_trigger_events",
+    ],
+)
+def test_restore_inventory_requires_all_alert_runtime_tables(tmp_path, missing_table):
+    source = tmp_path / "source.sqlite3"
+    _build_database(source)
+
+    with sqlite3.connect(source) as db:
+        db.execute(f'DROP TABLE "{missing_table}"')
+
+    with pytest.raises(
+        sqlite3.DatabaseError,
+        match="required application tables are missing",
+    ):
+        _inventory(source)
