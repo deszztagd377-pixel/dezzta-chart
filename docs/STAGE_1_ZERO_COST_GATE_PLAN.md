@@ -290,3 +290,45 @@ Additional tests are being added for fail-closed behavior when POSIX permission 
 Termux was re-audited: upstream issues #1642 and #1648 remain open; the latest visible Play Store app release remains `googleplay.2026.10.09`. No verified compatible signing-key fix exists. No Termux command is required for this batch.
 
 Stage 1 remains 300/400 = 75% provisional; all ten external gates remain open pending their respective evidence. Stages 2–6 remain NOT SCORED. The process indicator remains documentation-only, not an APK feature.
+
+
+## Gate 10 batch 2 — exact-HEAD CI reconciliation — 2026-11-14
+
+**Audited source HEAD:** `4e741f10d5c27dba7994742a45d08f2d1c590415`
+
+All three required repository workflows completed successfully on this exact HEAD:
+
+| Workflow | Run | Result |
+|---|---:|---|
+| Automated Tests | [#43570345495](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43570345495) | **SUCCESS** |
+| CodeQL | [#43570345625](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43570345625) | **SUCCESS** |
+| Full Git History Secret Audit | [#43570345516](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43570345516) | **SUCCESS** |
+
+The Automated Tests workflow completed backend and frontend validation, production build and secret scans, backend dependency checks, container build, shared Redis guard/persistent-volume smoke test, image vulnerability scan/report, and cleanup. The new restore failure-path tests were included in this exact-HEAD run.
+
+### Concrete repository-side remediation now verified
+
+- Fresh-destination SQLite restore refuses to overwrite an existing destination.
+- Restore validation checks SQLite integrity and foreign-key consistency.
+- Publication is fail-closed when owner-only permissions cannot be set, the restored file cannot be flushed, or atomic hard-link publication is unavailable.
+- Failure-path tests assert that no destination is published and temporary artifacts are cleaned up.
+- The Termux audit record preserves the verified Google Play package-source/keyring state and does not propose an unsafe repository switch.
+
+### Gate disposition after this CI run
+
+No external criterion is closed and no acceptance ticks are awarded by CI alone.
+
+| Criterion | Current status | Remaining acceptance evidence |
+|---:|---|---|
+| 8 | OPEN | Owner-host secret injection/log inspection and repository security-setting/alert inventory |
+| 20 | OPEN | Real no-billing Firebase project/backend sign-in, expiry/revocation, entitlement denial and browser/Android reconnect drill |
+| 25 | OPEN | Owner-host Redis TLS certificate, private binding/firewall, ACL, persistence and recovery |
+| 30 | OPEN | Timestamped owner-device restore of the actual application database, application-domain readback and post-restore write on the restored copy |
+| 31 | OPEN | Encrypted off-host backup, separate key custody, retention/access policy and successful key-recovery restore |
+| 34 | OPEN | Actual owner-host persistent volume mount, ownership/permissions, restart, disk-pressure and recovery |
+| 35 | OPEN | Owner-controlled HTTPS deployment, health/startup failure and backend-only secret injection |
+| 36 | OPEN | Real reverse-proxy WSS handshake/auth/reconnect/resnapshot from browser and Android |
+| 38 | OPEN | Self-hosted metrics/logs/dashboard, bounded retention, access control and redaction |
+| 39 | OPEN | No-incremental-cost alert delivery, acknowledgement/escalation and incident recovery exercise |
+
+Stage 1 remains **300/400 = 75% provisional**. Stage 2 remains unopened. The next practical owner-device evidence target remains criterion 30; it must use a fresh destination and must never overwrite or delete the source database.

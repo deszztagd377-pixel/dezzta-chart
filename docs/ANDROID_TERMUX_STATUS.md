@@ -168,3 +168,17 @@ The upstream tracker and official release list were rechecked after the Gate 10 
 - Latest official Google Play app release visible in the release list remains `termux-app-googleplay.2026.10.09`, published 2026-10-09. No newer release entry was present in the five most recent releases reviewed.
 
 No maintainer-confirmed signing-key recovery path or compatible signed keyring update was identified in this recheck. Keep the existing verified configuration unchanged. No command or package operation is needed for Gate 10 batch 2. The SQLite restore path is independent of the `cryptography>=50,<51` package; the encrypted off-host backup path for criterion 31 remains blocked. Never bypass signature verification, import an unverified key, switch repositories, downgrade cryptography, or migrate the app as a workaround.
+
+
+## Gate 10 batch 2 — post-CI Termux disposition — 2026-11-14
+
+Repository source checkpoint reviewed: `4e741f10d5c27dba7994742a45d08f2d1c590415`.
+
+The successful repository CI run does not change the Android package-manager compatibility result. The user's Google Play Termux installation remains on its original working `https://termux.net` source. The alternate upstream repository remains rejected by APT because the installed Play-build keyring does not contain the upstream signing key `5A897D96E57CF20C`.
+
+- Automated Tests [#43570345495](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43570345495): **SUCCESS**.
+- CodeQL [#43570345625](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43570345625): **SUCCESS**.
+- Full Git History Secret Audit [#43570345516](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43570345516): **SUCCESS**.
+- These are GitHub CI results; they do not install packages on Android and do not validate the native Termux backend or Python cryptography import.
+
+**Device action required now: none.** Keep the existing source and package state unchanged. Do not run a repository switch, import a key, bypass signature verification, downgrade cryptography, change encryption semantics, migrate Termux, uninstall the app, or clear its data. Criterion 30's SQLite restore drill is independent of the missing cryptography package; criterion 31's encrypted off-host backup/key-recovery gate remains blocked.

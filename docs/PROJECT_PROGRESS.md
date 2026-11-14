@@ -2150,3 +2150,18 @@ Criterion 30 remains OPEN until the actual application database on the target de
 - External gates: 10 open; no gate tick awarded by CI or documentation alone.
 - Stage 2–6: NOT SCORED.
 - Overall project: 20.9% historical checkpoint only; no new weighted calculation.
+
+
+## Gate 10 batch 2 — exact-HEAD progress checkpoint — 2026-11-14
+
+- Official stage: **Stage 1 — Foundation, Security & Data Integrity**.
+- Working branch: `phase-2/market-data-foundation`.
+- Exact source HEAD audited: `4e741f10d5c27dba7994742a45d08f2d1c590415`.
+- Automated Tests [#43570345495](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43570345495): **SUCCESS**.
+- CodeQL [#43570345625](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43570345625): **SUCCESS**.
+- Full Git History Secret Audit [#43570345516](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43570345516): **SUCCESS**.
+- Repository-side restore hardening adds regression coverage for permission-setting, file-flush and atomic-publication failures. The full exact-HEAD workflow passed.
+- Stage 1 remains **300/400 = 75% provisional**. The ten open criteria are **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39**. No external gate or tick was closed by CI alone.
+- Stages 2–6 remain **NOT SCORED / not officially opened**.
+- Overall project progress remains at the historical owner-confirmed **20.90% checkpoint**; a fresh weighted score is not established because the M1–M8 model remains unapproved and unscored.
+- Termux remains on its known-good Google Play repository configuration. No device command or package operation is required by this repository-side cycle.

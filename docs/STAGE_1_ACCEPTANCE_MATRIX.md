@@ -426,3 +426,25 @@ The fresh-destination restore implementation in `backend/app/sqlite_backup.py` p
 The helper verifies SQLite integrity and foreign-key consistency, refuses to overwrite a destination, publishes through an atomic same-directory hard link, applies owner-only POSIX permissions, flushes the restored file and parent directory, and cleans temporary files on failure.
 
 This is repository implementation evidence only. Criterion 30 remains **OPEN** until an actual owner-device application database restore is completed into a fresh destination, with application-level readback of the durable domains and a post-restore write on the restored copy. The source database must remain untouched. No tick is awarded by CI alone.
+
+
+## Gate 10 batch 2 — restore failure-path CI evidence — 2026-11-14
+
+Exact source HEAD: `4e741f10d5c27dba7994742a45d08f2d1c590415`
+
+The restore helper's failure behavior is now covered by three additional regression tests:
+
+- `test_restore_fails_closed_when_owner_only_permissions_cannot_be_set`
+- `test_restore_fails_closed_when_restored_file_cannot_be_flushed`
+- `test_restore_fails_closed_when_atomic_publication_is_unavailable`
+
+Together with the five baseline restore tests, the focused restore module contains eight tests. The new tests verify fail-closed publication behavior and temporary-file cleanup for permission, flush and atomic-publication failures.
+
+Exact-HEAD CI:
+- Automated Tests [#43570345495](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43570345495) — **SUCCESS**.
+- CodeQL [#43570345625](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43570345625) — **SUCCESS**.
+- Full Git History Secret Audit [#43570345516](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43570345516) — **SUCCESS**.
+
+This closes the repository-side test/CI subtask only. Criterion 30 remains **OPEN** until the actual owner-device application database is restored to a fresh destination, integrity and foreign-key checks pass, durable application domains are read back, and a post-restore write is verified on the restored copy. The source database must remain untouched.
+
+No criterion tick is awarded by this CI result. Stage 1 remains **300/400 = 75% provisional** with criteria **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39** open.

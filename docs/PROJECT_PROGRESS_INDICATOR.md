@@ -300,3 +300,31 @@ Criterion 30 remains OPEN until the actual application database on the target de
 - External gates: 10 open; no gate tick awarded by CI or documentation alone.
 - Stage 2–6: NOT SCORED.
 - Overall project: 20.9% historical checkpoint only; no new weighted calculation.
+
+
+## Exact-HEAD work-cycle reconciliation — 2026-11-14
+
+- Exact audited source HEAD: `4e741f10d5c27dba7994742a45d08f2d1c590415`.
+- Automated Tests [#43570345495](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43570345495): **SUCCESS**.
+- CodeQL [#43570345625](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43570345625): **SUCCESS** for Python and JavaScript/TypeScript.
+- Full Git History Secret Audit [#43570345516](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43570345516): **SUCCESS**.
+- The automated workflow completed backend tests, frontend tests/build and scans, container smoke test with shared Redis guard and persistent volume, image scan/report, and cleanup. This is exact-commit CI evidence, not owner-host production evidence.
+- The restore implementation now has eight focused restore tests: five baseline tests plus permission-setting failure, restored-file flush failure, and atomic-publication-unavailable failure paths. The expanded failure tests passed as part of the exact-HEAD Automated Tests workflow.
+- No external criterion was closed by this CI result. Criterion 30 still requires the owner-device application-database restore report; criteria 8, 20, 25, 31, 34, 35, 36, 38 and 39 retain their external evidence boundaries.
+
+### Dashboard values at this checkpoint
+
+| Official stage | Status | Display |
+|---|---|---|
+| Stage 1 — Foundation, Security & Data Integrity | Active; provisional evidence meter | **75% provisional — 300/400 ticks** |
+| Stage 2 — Market Data Infrastructure | Not officially opened | **NOT SCORED** |
+| Stage 3 — Chart Engine & Timeframe | Not officially opened | **NOT SCORED** |
+| Stage 4 — Indicators & Analytics | Not officially opened | **NOT SCORED** |
+| Stage 5 — Professional UI & Interactive Tools | Not officially opened | **NOT SCORED** |
+| Stage 6 — Hardening, Validation & APK Release | Not officially opened | **NOT SCORED** |
+
+Stage 1 formula remains (30\times10=300\) earned ticks out of (40\times10=400\), so (300/400\times100=75\%\). Each fully accepted criterion is worth 10 ticks; no partial ticks are awarded. Open criteria remain **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39**.
+
+The overall-project figure remains the historical owner-confirmed checkpoint **20.90%**, not a fresh weighted calculation. The M1–M8 weighted ledger remains unapproved/unscored. No progress increase is awarded for documentation or green CI alone.
+
+The six-stage card layout, stage colors, status vocabulary, empty NOT SCORED bars, and separate overall checkpoint footer remain unchanged. This tracker remains documentation-only and is not an APK feature.
