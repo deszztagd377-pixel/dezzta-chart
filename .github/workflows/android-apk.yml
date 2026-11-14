@@ -1,8 +1,14 @@
 name: DEZZTA CHART - Android APK Build (zero-cost CI)
-# Manual dispatch and branch updates to this workflow can produce a fresh, traceable debug APK artifact.
-
+# Manual dispatch builds a traceable APK; preview publication is opt-in and versioned.
+# Push builds retain a short-lived CI artifact and never publish a release automatically.
 on:
   workflow_dispatch:
+    inputs:
+      publish_preview_release:
+        description: "Publish this frontend-only APK as a versioned GitHub prerelease (not a final app release)"
+        type: boolean
+        required: true
+        default: false
   push:
     branches:
       - 'phase-2/market-data-foundation'
@@ -13,15 +19,13 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'vite.config.ts'
+      - 'scripts/publish-android-preview-release.mjs'
       - '.github/workflows/android-apk.yml'
-
 permissions:
-  contents: read
-
+  contents: write
 concurrency:
-  group: android-apk-${{ github.ref }}
+  group: android-apk-${ github.ref }
   cancel-in-progress: true
-
 jobs:
   build-debug-apk:
     name: Build installable Android debug APK
@@ -30,36 +34,28 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
       - name: Setup Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 20
           cache: npm
-
       - name: Setup Java 21
         uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
         with:
           distribution: temurin
           java-version: '21'
-
       - name: Setup Android SDK command-line tools
         uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
         with:
           packages: ''
-
       - name: Verify Android SDK manager
         run: sdkmanager --version
-
       - name: Install locked web dependencies
         run: npm ci
-
       - name: Build the web application
         run: npm run build
-
       - name: Install pinned Capacitor 7 Android tooling without changing project manifests
         run: npm install --no-save --package-lock=false @capacitor/core@7.4.3 @capacitor/cli@7.4.3 @capacitor/android@7.4.3
-
       - name: Generate temporary Capacitor Android wrapper
         run: |
           cat > capacitor.config.json <<'EOF'
@@ -71,26 +67,36 @@ jobs:
           EOF
           npx cap add android
           npx cap sync android
-
       - name: Install Android SDK platform and build tools
         run: sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
-
       - name: Assemble debug APK
         working-directory: android
         run: |
           chmod +x ./gradlew
           ./gradlew --no-daemon --stacktrace assembleDebug
-
-      - name: Verify APK artifact exists
+      - name: Verify APK artifact and calculate checksum
         run: |
-          test -s android/app/build/outputs/apk/debug/app-debug.apk
-          file android/app/build/outputs/apk/debug/app-debug.apk
-          sha256sum android/app/build/outputs/apk/debug/app-debug.apk
-
-      - name: Upload installable debug APK
+          set -euo pipefail
+          apk=android/app/build/outputs/apk/debug/app-debug.apk
+          test -s "$apk"
+          file "$apk"
+          sha256sum "$apk" | tee android/app/build/outputs/apk/debug/app-debug.apk.sha256
+      - name: Upload short-lived CI APK artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dezzta-chart-android-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/apk/debug/app-debug.apk.sha256
           if-no-files-found: error
           retention-days: 7
+      - name: Publish immutable, versioned GitHub preview release
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_preview_release == true
+        env:
+          GITHUB_REPOSITORY: ${ github.repository }
+          GITHUB_TOKEN: ${ github.token }
+          GITHUB_SHA: ${ github.sha }
+          APK_PATH: android/app/build/outputs/apk/debug/app-debug.apk
+          GITHUB_OUTPUT: ${ github.output }
+          GITHUB_STEP_SUMMARY: ${ github.step_summary }
+        run: node scripts/publish-android-preview-release.mjs
