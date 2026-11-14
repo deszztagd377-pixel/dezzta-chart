@@ -640,3 +640,10 @@ The durable trigger outbox now supports worker-safe leasing and controlled retry
 - Additive column migration preserves existing trigger-event rows when opening databases created before lease/retry fields existed.
 
 **Not yet complete:** no delivery worker is scheduled or running, no local Android notification/WebSocket delivery adapter exists, and no verified live tick source is connected. The lease/retry API is a backend reliability primitive only. Criterion 39 remains open and receives no Stage 1 ticks until actual end-to-end delivery and recovery evidence exists.
+
+### Outbox concurrency and input-boundary hardening (2026-11-14)
+
+- Concurrent worker claims are covered by an eight-worker regression test proving a single pending event is leased to only one worker.
+- Retry timestamps are bounded to SQLite's signed 64-bit integer range.
+- Persisted error codes are restricted to ASCII lowercase machine-safe characters, excluding free-form Unicode text and raw exception content.
+- This strengthens the internal outbox only; it does not establish a running delivery worker or delivered notification. Criterion 39 remains open.
