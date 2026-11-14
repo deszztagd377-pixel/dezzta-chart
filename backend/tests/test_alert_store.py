@@ -9,7 +9,8 @@ from app.alert_store import (
     SQLitePriceAlertStore,
 )
 from app.alerts import AlertZoneQuotaExceeded
-from app.alert_store import AlertMarketEventRejected\nfrom app.alert_delivery import run_alert_delivery_batch
+from app.alert_store import AlertMarketEventRejected
+from app.alert_delivery import run_alert_delivery_batch
 from app.instrument_identity import CanonicalInstrument
 from app.instrument_registry import SQLiteInstrumentRegistry
 
@@ -502,4 +503,4 @@ def test_alert_delivery_worker_validates_bounded_configuration(store):
             base_retry_delay_ns=10,
             max_retry_delay_ns=9,
         )
-\n
+

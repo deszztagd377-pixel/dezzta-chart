@@ -822,3 +822,10 @@ The owner asked whether Git commits can continue while the Vercel status reports
 - Gate 10 remains 0/10 officially closed; open criteria remain 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.
 - Stage 2–6 remain NOT SCORED; overall 20.90% remains historical only.
 - ZERO COST maintained. No Termux commands, dependency changes, paid services, APK release, or main-branch changes.
+
+
+## Follow-up correction — worker test source formatting (2026-11-14)
+- Corrected the import separator in the newly added alert-worker regression test so the module contains a real newline rather than a literal escape sequence.
+- Normalized the file ending to a single newline.
+- No runtime behavior changed. This correction is committed separately so CI evaluates the exact corrected source.
+- Progress remains Stage 1 300/400 ticks (75% provisional), Gate 10 0/10 officially closed; criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, 39 remain open pending their required evidence.
