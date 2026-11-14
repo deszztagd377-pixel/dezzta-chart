@@ -147,7 +147,7 @@ jobs:
           docker network create "$network_name" >/dev/null
           docker volume create "$volume_name" >/dev/null
           redis_acl_username=dezzta_ci
-          redis_acl_password=dezzta-ci-acl-only-2026
+          redis_acl_password="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
           docker run --detach --name "$redis_container_name" --network "$network_name" redis:7-alpine >/dev/null
           wait_for_default_redis() {
             for attempt in $(seq 1 20); do
@@ -230,12 +230,12 @@ jobs:
             echo "Backend health JSON validation passed."
           }
           wait_for_redis
-          if docker exec "$redis_container_name" redis-cli ping >/dev/null 2>&1; then
+          if docker exec "$redis_container_name" redis-cli -e ping >/dev/null 2>&1; then
             echo "FAIL: Redis accepted unauthenticated default-user access."
             exit 1
           fi
           if docker exec -e REDISCLI_AUTH="incorrect-ci-only" "$redis_container_name" \
-            redis-cli --user "$redis_acl_username" ping >/dev/null 2>&1; then
+            redis-cli -e --user "$redis_acl_username" ping >/dev/null 2>&1; then
             echo "FAIL: Redis accepted an incorrect ACL password."
             exit 1
           fi
