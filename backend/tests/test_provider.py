@@ -764,6 +764,7 @@ def test_startup_reconciliation_resumes_after_partial_failure_and_process_restar
         ("redis://audit-user:redis-pass@cache.example:6379/0", "redis-pass"),
         ("provider error api_key=provider-private-value", "provider-private-value"),
         ("authorization: Basic dXNlcjpwYXNz", "dXNlcjpwYXNz"),
+        ('{"authorization":"Basic dXNlcjpwYXNz"}', "dXNlcjpwYXNz"),
         ("password = p@ssword-value", "p@ssword-value"),
         ("?access_token=query-token-value&retry=1", "query-token-value"),
         ("refresh_token=refresh-token-value", "refresh-token-value"),
