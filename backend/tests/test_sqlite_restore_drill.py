@@ -83,6 +83,12 @@ def test_owner_device_restore_drill_checks_application_domains_and_redacts_paths
             ("__dezzta_restore_drill_probe",),
         ).fetchone() is None
     assert str(tmp_path) not in json.dumps(report)
+    assert source.name not in json.dumps(report)
+    assert backup.name not in json.dumps(report)
+    assert restored.name not in json.dumps(report)
+    assert report["source_role"] == "source"
+    assert report["backup_role"] == "backup"
+    assert report["restore_role"] == "restored_copy"
     assert "drill-test-subject" not in json.dumps(report)
 
 def test_restore_drill_refuses_existing_output_paths_without_overwriting(tmp_path):
