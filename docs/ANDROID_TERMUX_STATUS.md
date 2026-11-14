@@ -196,3 +196,15 @@ Criterion 31 remains blocked by the unavailable verified compatible crypto packa
 ## Termux disposition after latest CI reconciliation — 2026-11-14
 
 The repository documentation HEAD `cf7044922df3cac0d2e9a52679509ea0aa957a81` has passed Automated Tests #43571570406, CodeQL #43571570477 and Full Git History Secret Audit #43571570418. These CI results do not alter the Android package signing-key compatibility status. No verified compatible Google Play keyring recovery path is established here; retain the known-good Termux source and do not switch repositories or weaken package verification. **No device action is required.**
+
+
+## Gate 10 batch 4 — exact-HEAD CI reconciliation — 2026-11-14
+
+The DEZZTA CHART source branch HEAD `38309c377dc8ff9f800461a7890965ac7c46b958` passed all three exact-HEAD workflows:
+- Automated Tests [#43571964355](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43571964355) — **SUCCESS**.
+- CodeQL [#43571964368](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43571964368) — **SUCCESS**.
+- Full Git History Secret Audit [#43571964397](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43571964397) — **SUCCESS**.
+
+This validates repository CI only. It does not resolve the Google Play Termux package-signing mismatch, prove native backend runtime compatibility, or close encrypted off-host backup acceptance. Keep the existing working Termux repository configuration unchanged. No device command is required for this cycle.
+
+The repository backend database path is configured by `INSTRUMENT_REGISTRY_DB_PATH` (default `./data/instrument_registry.sqlite3`). The APK currently packages the frontend and does not bundle/supervise the Python backend or Redis. Thus the backend's actual live path on Android remains unverified; do not run a restore against an assumed path. Criterion 30 remains open until the live process/path is positively identified and a fresh-path restore report is completed.

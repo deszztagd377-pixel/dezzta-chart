@@ -21,6 +21,19 @@ def test_settings_repr_never_exposes_backend_credentials() -> None:
 
 
 
+def test_database_path_is_read_from_backend_environment(monkeypatch) -> None:
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.setenv(
+        "INSTRUMENT_REGISTRY_DB_PATH",
+        "/tmp/dezzta-chart-configured-live.sqlite3",
+    )
+
+    settings = Settings.from_environment()
+
+    assert settings.instrument_registry_db_path == (
+        "/tmp/dezzta-chart-configured-live.sqlite3"
+    )
+
 def test_development_cors_accepts_exact_local_http_origin(monkeypatch) -> None:
     monkeypatch.setenv("APP_ENV", "development")
     monkeypatch.setenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173")

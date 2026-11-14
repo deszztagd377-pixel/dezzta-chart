@@ -55,6 +55,29 @@ def test_websocket_ping_rate_limit_expires_messages_at_window_boundary() -> None
     assert len(timestamps) == 1
 
 
+def test_application_durable_adapters_share_configured_database_path(tmp_path) -> None:
+    """Pin the exact shared SQLite path used by every durable app adapter."""
+    database_path = tmp_path / "owner-live.sqlite3"
+    settings = replace(
+        make_settings(),
+        instrument_registry_db_path=str(database_path),
+    )
+
+    application = create_app(settings)
+
+    durable_adapters = (
+        application.state.instrument_registry,
+        application.state.price_alert_store,
+        application.state.instrument_entitlements,
+        application.state.coverage_tracker,
+        application.state.ohlcv_store,
+    )
+    assert all(
+        adapter.database_path == str(database_path)
+        for adapter in durable_adapters
+    )
+    assert database_path.is_file()
+
 def test_health_endpoint() -> None:
     client = TestClient(create_app(make_settings()))
     response = client.get("/health")

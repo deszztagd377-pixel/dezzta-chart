@@ -80,6 +80,6 @@
   <rect x="22" y="145" width="136" height="28" rx="14" fill="#334155"/><text x="38" y="164" class="pill" fill="#e2e8f0">NOT SCORED</text>
   <text x="22" y="203" class="small">Release only after preceding gates pass</text>
 </g>
-<text x="54" y="802" class="small">Overall: 20.9% historical • docs HEAD cf70449 • exact-HEAD CI 3/3 SUCCESS • no new ticks</text>
+<text x="54" y="802" class="small">Overall: 20.9% historical • docs HEAD 38309c3 • exact-HEAD CI 3/3 SUCCESS • no new ticks</text>
 <text x="1146" y="825" text-anchor="end" class="k">UPDATED 2026-11-14 • CI RECONCILED</text>
 </svg>
