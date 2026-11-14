@@ -1,4 +1,5 @@
 import asyncio
+import json
 import threading
 from types import SimpleNamespace
 
@@ -765,6 +766,9 @@ def test_startup_reconciliation_resumes_after_partial_failure_and_process_restar
         ("provider error api_key=provider-private-value", "provider-private-value"),
         ("authorization: Basic dXNlcjpwYXNz", "dXNlcjpwYXNz"),
         ('{"authorization":"Basic dXNlcjpwYXNz"}', "dXNlcjpwYXNz"),
+        ("authorization: Digest username=\"audit-user\", response=\"digest-private-value\"", "digest-private-value"),
+        ('{"authorization":"Digest username=\\"audit-user\\", response=\\"json-digest-private-value\\""}', "json-digest-private-value"),
+        ("Proxy-Authorization: Digest username=\"proxy-user\", response=\"proxy-digest-private-value\"", "proxy-digest-private-value"),
         ("password = p@ssword-value", "p@ssword-value"),
         ("?access_token=query-token-value&retry=1", "query-token-value"),
         ("refresh_token=refresh-token-value", "refresh-token-value"),
@@ -776,3 +780,16 @@ def test_redaction_helpers_remove_common_credential_forms(message, sensitive):
     rendered = redact(message)
     assert sensitive not in rendered
     assert "[REDACTED]" in rendered
+
+
+def test_redact_preserves_json_structure_for_digest_authorization():
+    message = '{"authorization":"Digest username=\\"audit-user\\", response=\\"json-digest-private-value\\"","ok":true}'
+    rendered = redact(message)
+    assert json.loads(rendered) == {"authorization": "[REDACTED]", "ok": True}
+
+
+def test_safe_error_redacts_complete_digest_authorization_header():
+    rendered = safe_error(
+        RuntimeError('authorization: Digest username="audit-user", response="digest-private-value"')
+    )
+    assert rendered == "RuntimeError: authorization: [REDACTED]"
