@@ -317,3 +317,41 @@ The Gitleaks history audit, source/bundle scans, and secret-redaction tests do n
 - Heatmap and Liquidation Maps: no verified implementation; owner references and reviewed scoped blueprints remain prerequisites.
 
 No indicator percentage is awarded for security scanning, documentation, or CI. Stage 1 remains 30/40 provisional and overall project progress remains 20.9% historical.
+
+## Exact branch-head CI verification — 2026-11-14
+
+- Branch: `phase-2/market-data-foundation`
+- Exact tested commit: `2945bf9987f4437f2e67939dbcbde4fca5c6f86b`
+- Automated Tests & Build [run #43537168454](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43537168454): **success**.
+- Frontend: **26 test files / 211 tests passed**. Dependency audit, source secret scan (74 files), production build, bundle scan, scanner tests and Android host preflight also passed.
+- Backend: **795 tests passed in 22.63s**. Synthetic SQLite outbox benchmark, backend dependency audit, container build, isolated Redis + persistent-volume smoke test and HIGH/CRITICAL Trivy scan/report export also completed successfully.
+- CodeQL [run #43537168511](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43537168511): **success** for JavaScript/TypeScript and Python.
+- Full reachable Git-history Gitleaks audit [run #43537168437](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43537168437): **success**; log explicitly reports `no leaks found`.
+- The backend suite includes the new complete Digest Authorization redaction regression test, which passed on this exact commit.
+
+### Indicator-specific interpretation
+
+This exact-HEAD workflow reran the existing frontend suite, including indicator calculation and simulated Footprint regression tests. The security-redaction changes did not modify indicator code or chart wiring. This refreshes regression evidence only; it does **not** close user-facing indicator acceptance items or award indicator/project completion credit.
+
+| Indicator / component | Verified foundation | Remaining acceptance |
+|---|---|---|
+| SMA 20 | Close-based calculation, 20-bar warm-up, aligned output, unit-tested | Visible toggle, candlestick overlay, legend/current value, selected-series/timeframe transitions and render tests |
+| EMA 20 | Close-based calculation with SMA seed, 20-bar warm-up, unit-tested | Visible toggle, overlay, legend/current value, selected-series/timeframe transitions and render tests |
+| RSI 14 Wilder | Wilder calculation, first output at index 14, flat/rising-only edge cases tested | Oscillator pane, scale/guides, controls, stale-value clearing and render tests |
+| MACD 12/26/9 | MACD line starts at index 25; signal/histogram start at index 33 | Dedicated pane, line/histogram rendering, controls, series/timeframe transitions and render tests |
+| Bollinger Bands 20,2 | Close-based population-standard-deviation bands; first output at index 19 | Overlay, controls, legend/current values, chart-boundary and timeframe render tests |
+| Shared indicator hook | Exact validated backend series only; no DEMO fallback | Visible controls and integration proof of immediate stale-value clearing on instrument/timeframe changes |
+| Footprint | Bounded deterministic synthetic accumulator; provenance `SIMULATED` | Owner reference image, reviewed blueprint, explicit mode, spaced cluster renderer only while ON, visual/performance tests; live provider order flow remains unimplemented |
+| Heatmap | No implementation verified | Owner reference image, reviewed blueprint, source-data contract, calculation and rendering tests |
+| Liquidation Maps | No implementation verified | Owner reference image, reviewed blueprint, source-data contract, calculation and rendering tests |
+
+### Non-negotiable visual behavior and gates
+
+- Footprint OFF preserves the ordinary candlestick chart and normal candle spacing.
+- Only explicit Footprint ON may activate the dedicated spaced-candle/cluster layout.
+- Footprint, Heatmap and Liquidation Maps visual work remains gated on the corresponding owner reference image(s) and scoped blueprint review.
+- The 40% overall-project gate permits blueprint/review work; it does not waive reference-image requirements or authorize unreviewed implementation.
+- Synthetic Footprint values must never be presented as live exchange order flow.
+
+**Indicator acceptance is unchanged by this CI run:** calculation foundations are verified; user-facing indicator implementation remains incomplete.
+
