@@ -8,6 +8,23 @@ Official current stage: **Stage 1 — Foundation, Security & Data Integrity**
 
 > This document defines the **project-process progress indicator**. It is not an in-app technical indicator, chart overlay, or APK feature. Technical indicators such as SMA, EMA, RSI, MACD and Bollinger Bands are separate product work governed by Stage 4.
 
+## Visual presentation standard — permanent through Stage 6
+
+The project-process indicator uses the same six-card dashboard layout in every progress report and documentation snapshot. The visual reference is embedded below:
+
+![DEZZTA CHART six-stage project progress dashboard](assets/project-progress-dashboard.svg)
+
+### Fixed visual rules
+
+- Always show all six official stages together, in the official order.
+- Each stage keeps its own colored card and progress bar; do not redesign the layout between stages.
+- Stage 1: emerald/green. Stage 2: cyan/blue. Stage 3: violet. Stage 4: amber. Stage 5: pink. Stage 6: slate.
+- Status colors: green = verified/active; amber = in progress or provisional; red = blocked/failed; slate = not opened/not scored. Color is always accompanied by readable status text.
+- Only show a numeric percentage and filled progress bar when that stage has an approved, evidence-backed scoring model. For stages not yet audited, show **NOT SCORED** and an empty/neutral bar, never a guessed 0% or an invented completion percentage.
+- Show the active official stage prominently, and retain the same card geometry, typography hierarchy, spacing, and color mapping from Stage 1 through Stage 6.
+- Keep the overall-project historical checkpoint in a separate footer/summary. It must never be confused with an individual stage percentage.
+- This is a documentation/project-management visual. It must not be inserted into the APK or treated as an in-app technical indicator.
+
 ## 1. Six-stage dashboard
 
 | Stage | Official scope | Current official state | Progress display |
