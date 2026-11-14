@@ -8,6 +8,7 @@ The report contains aggregate counts and hashes only, never row values or absolu
 """
 from __future__ import annotations
 import argparse
+import base64
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -38,6 +39,49 @@ def _ro(path: Path) -> sqlite3.Connection:
     connection.row_factory = sqlite3.Row
     return connection
 
+def _quote_identifier(value: str) -> str:
+    return '"' + value.replace('"', '""') + '"'
+
+
+def _encode_sqlite_value(value: object) -> list[str]:
+    """Encode one SQLite scalar with an explicit type tag for stable hashing."""
+    if value is None:
+        return ["null", ""]
+    if isinstance(value, bool):
+        return ["integer", "1" if value else "0"]
+    if isinstance(value, int):
+        return ["integer", str(value)]
+    if isinstance(value, float):
+        return ["real", value.hex()]
+    if isinstance(value, str):
+        return ["text", value]
+    if isinstance(value, bytes):
+        return ["blob", base64.b64encode(value).decode("ascii")]
+    raise TypeError("unsupported SQLite value type during restore verification")
+
+
+def _table_row_sha256(db: sqlite3.Connection, table: str) -> str:
+    """Hash every row independent of physical row order; never return row data."""
+    quoted_table = _quote_identifier(table)
+    columns = [
+        str(row["name"])
+        for row in db.execute(f"PRAGMA table_info({quoted_table})").fetchall()
+    ]
+    if not columns:
+        raise sqlite3.DatabaseError("application table has no readable columns")
+    order = ", ".join(_quote_identifier(column) for column in columns)
+    digest = hashlib.sha256()
+    for row in db.execute(f"SELECT * FROM {quoted_table} ORDER BY {order}"):
+        encoded = json.dumps(
+            [_encode_sqlite_value(value) for value in row],
+            ensure_ascii=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        digest.update(len(encoded).to_bytes(8, "big"))
+        digest.update(encoded)
+    return digest.hexdigest()
+
+
 def _inventory(path: Path) -> dict:
     db = _ro(path)
     try:
@@ -52,16 +96,40 @@ def _inventory(path: Path) -> dict:
         if _REQUIRED - tables:
             raise sqlite3.DatabaseError("required application tables are missing")
         counts = {}
+        row_hashes = {}
         for table in sorted(tables):
-            quoted = '"' + table.replace('"', '""') + '"'
+            quoted = _quote_identifier(table)
             counts[table] = int(db.execute("SELECT COUNT(*) FROM " + quoted).fetchone()[0])
+            row_hashes[table] = _table_row_sha256(db, table)
+        schema_rows = [
+            list(row) for row in db.execute(
+                "SELECT type, name, tbl_name, sql FROM sqlite_master "
+                "WHERE type IN ('table', 'index', 'trigger', 'view') "
+                "AND name NOT LIKE 'sqlite_%' ORDER BY type, name"
+            ).fetchall()
+        ]
+        schema_sha256 = hashlib.sha256(json.dumps(
+            schema_rows, ensure_ascii=True, separators=(",", ":")
+        ).encode("utf-8")).hexdigest()
+        content_digest = hashlib.sha256()
+        content_digest.update(schema_sha256.encode("ascii"))
+        for table in sorted(row_hashes):
+            content_digest.update(table.encode("utf-8"))
+            content_digest.update(row_hashes[table].encode("ascii"))
         outbox = db.execute(
             "SELECT COUNT(*) AS n, COUNT(DISTINCT event_id) AS ids, "
             "COUNT(DISTINCT cursor) AS cursors FROM ohlcv_outbox"
         ).fetchone()
         if outbox["n"] != outbox["ids"] or outbox["n"] != outbox["cursors"]:
             raise sqlite3.DatabaseError("outbox identity check failed")
-        return {"tables": sorted(tables), "counts": counts, "outbox_events": int(outbox["n"])}
+        return {
+            "tables": sorted(tables),
+            "counts": counts,
+            "row_sha256": row_hashes,
+            "schema_sha256": schema_sha256,
+            "content_sha256": content_digest.hexdigest(),
+            "outbox_events": int(outbox["n"]),
+        }
     finally:
         db.close()
 
@@ -161,6 +229,10 @@ def run_restore_drill(source_path: str | Path, backup_path: str | Path,
     restored_inventory = _inventory(restored)
     if backup_inventory["counts"] != restored_inventory["counts"]:
         raise sqlite3.DatabaseError("backup and restore table row counts differ")
+    if backup_inventory["row_sha256"] != restored_inventory["row_sha256"]:
+        raise sqlite3.DatabaseError("backup and restore application row content differs")
+    if backup_inventory["schema_sha256"] != restored_inventory["schema_sha256"]:
+        raise sqlite3.DatabaseError("backup and restore database schema differs")
     domains = _domain_readback(restored)
     _write_probe(restored)
     probe_db = _ro(restored)
@@ -185,6 +257,8 @@ def run_restore_drill(source_path: str | Path, backup_path: str | Path,
         "backup_sha256": _hash(backup), "restore_sha256": _hash(restored),
         "integrity_check": "ok", "foreign_key_errors": 0,
         "required_tables_present": True, "table_row_counts_match": True,
+        "table_content_match": True, "schema_match": True,
+        "application_content_sha256": backup_inventory["content_sha256"],
         "application_domain_readback": domains,
         "outbox_event_ids_unique": True,
         "post_restore_write_read_cleanup": "passed",

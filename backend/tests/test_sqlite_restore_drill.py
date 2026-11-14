@@ -1,8 +1,9 @@
 import json
+import shutil
 import sqlite3
 import pytest
 
-from app.sqlite_restore_drill import run_restore_drill
+from app.sqlite_restore_drill import _inventory, run_restore_drill
 
 def _build_database(path):
     from decimal import Decimal
@@ -58,6 +59,9 @@ def test_owner_device_restore_drill_checks_application_domains_and_redacts_paths
     assert report["integrity_check"] == "ok"
     assert report["foreign_key_errors"] == 0
     assert report["table_row_counts_match"] is True
+    assert report["table_content_match"] is True
+    assert report["schema_match"] is True
+    assert len(report["application_content_sha256"]) == 64
     assert report["post_restore_write_read_cleanup"] == "passed"
     assert report["failed_checks"] == []
     report_without_hash = dict(report)
@@ -92,3 +96,42 @@ def test_restore_drill_refuses_existing_output_paths_without_overwriting(tmp_pat
         run_restore_drill(source, backup, restored)
     assert backup.read_bytes() == b"keep-backup"
     assert restored.read_bytes() == b"keep-restore"
+
+
+
+def test_restore_inventory_detects_same_count_row_content_changes(tmp_path):
+    source = tmp_path / "source.sqlite3"
+    altered = tmp_path / "altered.sqlite3"
+    _build_database(source)
+    shutil.copyfile(source, altered)
+
+    with sqlite3.connect(altered) as db:
+        db.execute("UPDATE price_alert_zones SET lower_price = '100.26'")
+
+    source_inventory = _inventory(source)
+    altered_inventory = _inventory(altered)
+
+    assert source_inventory["counts"] == altered_inventory["counts"]
+    assert source_inventory["row_sha256"] != altered_inventory["row_sha256"]
+    assert source_inventory["content_sha256"] != altered_inventory["content_sha256"]
+
+
+def test_restore_inventory_detects_schema_changes(tmp_path):
+    source = tmp_path / "source.sqlite3"
+    altered = tmp_path / "altered.sqlite3"
+    _build_database(source)
+    shutil.copyfile(source, altered)
+
+    with sqlite3.connect(altered) as db:
+        db.execute(
+            "CREATE INDEX idx_restore_drill_test_owner "
+            "ON price_alert_zones(owner_id)"
+        )
+
+    source_inventory = _inventory(source)
+    altered_inventory = _inventory(altered)
+
+    assert source_inventory["counts"] == altered_inventory["counts"]
+    assert source_inventory["row_sha256"] == altered_inventory["row_sha256"]
+    assert source_inventory["schema_sha256"] != altered_inventory["schema_sha256"]
+    assert source_inventory["content_sha256"] != altered_inventory["content_sha256"]
