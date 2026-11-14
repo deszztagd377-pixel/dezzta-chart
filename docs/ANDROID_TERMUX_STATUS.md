@@ -243,3 +243,12 @@ The read-only Android host preflight now reports Python, SQLite, and OpenSSL run
 A reusable owner-device SQLite restore drill is available as app.sqlite_restore_drill. It requires the actual source DB plus two new output paths, refuses existing backup/restore destinations, uses the consistent SQLite backup helper and safe fresh-path restore helper, verifies required application tables, integrity and foreign keys, compares per-table row counts, reopens all durable application adapters, validates domain counts and outbox identity uniqueness, and performs a write/read/cleanup probe only on the restored copy. Its JSON report contains basenames, runtime versions, hashes, counts, and timing only; it excludes absolute paths and row/account values.
 
 This tool is prepared procedure, not evidence that the owner's actual Android database has been restored. Do not run it until the live backend process, effective working directory, and actual database path have been confirmed. No Termux package/repository change is required for these code additions.
+
+
+## Exact-HEAD restore drill and CI verification — 2026-11-14
+
+The report-producing SQLite restore drill now includes a generated drill ID, canonical report SHA-256, passed-check metadata, and no failed checks on success. Its tests run as part of the backend pytest suite after dependencies are installed. Exact HEAD 86cc42f8d67d7ed808dc65008e7c191dd2fa2a76 passed Automated Tests (#43586542356), CodeQL (#43586542325), and Full Git History Secret Audit (#43586542296). The full test run included 819 backend tests and both restore-drill tests. This remains CI evidence, not a real-device restore.
+
+The last successful Android APK build is run #43585923763 (commit 89239fd), with a frontend-only APK artifact expiring 2026-11-21. It is not a permanent GitHub Release asset. No preview or final release was published. The direct official download release remains gated on real-phone installation and backend acceptance.
+
+The enhanced read-only Termux preflight has not yet been run on the owner's phone. No Termux package installation, repository switch, key import, or cryptography downgrade is requested.

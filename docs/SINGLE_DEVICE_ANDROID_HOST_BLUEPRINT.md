@@ -125,3 +125,11 @@ After approval, implementation must be incremental, on `phase-2/market-data-foun
 - The current APK remains frontend-only. Do not publish it as the final app or claim backend-connected operation.
 - The final official download link will be a GitHub Release asset URL after device and backend acceptance. A stable latest-download URL is reserved for the first approved non-prerelease final release.
 - A reusable SQLite restore-drill module prepares criterion 30 for the actual owner-controlled database. It is deliberately not executed until the real backend process and effective database path are identified; it never overwrites the source database.
+
+
+## Latest Gate 10 verification — APK and criterion 30 tooling (2026-11-14)
+
+- Exact current branch HEAD 86cc42f passed Automated Tests, CodeQL, and full Git-history secret audit.
+- Restore-drill output includes a drill ID and SHA-256 report hash. Tests validate durable app-domain reads, source immutability, and no-overwrite behavior.
+- Last APK CI build passed on 89239fd; the APK is still frontend-only and the temporary artifact expires 2026-11-21. The final official GitHub Release download is intentionally not published until actual-device install and backend integration are accepted.
+- No actual Termux backend runtime or Android database path has yet been verified. No Termux package operation is authorized or needed at this point.
