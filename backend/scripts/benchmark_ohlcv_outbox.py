@@ -164,8 +164,13 @@ def _concurrent_replay_reader(
             raise RuntimeError(f"concurrent replay reader {reader_id} did not advance to high-water")
 
         cursor = next_cursor
-        if writer_done.is_set() and cursor == high_water:
-            break
+        if writer_done.is_set():
+            # The page's high-water belongs to its read snapshot. The writer
+            # may have committed its final batch after that snapshot was read
+            # but before writer_done became visible. Recheck the durable
+            # high-water after completion before deciding the replay is done.
+            if cursor == store.outbox_high_water():
+                break
         if not events and not has_more:
             writer_done.wait(0.001)
 
