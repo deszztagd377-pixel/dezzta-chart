@@ -59,6 +59,12 @@ def test_owner_device_restore_drill_checks_application_domains_and_redacts_paths
     assert report["foreign_key_errors"] == 0
     assert report["table_row_counts_match"] is True
     assert report["post_restore_write_read_cleanup"] == "passed"
+    assert report["failed_checks"] == []
+    report_without_hash = dict(report)
+    report_hash = report_without_hash.pop("report_sha256")
+    canonical = json.dumps(report_without_hash, sort_keys=True, separators=(",", ":"))
+    import hashlib
+    assert report_hash == hashlib.sha256(canonical.encode("utf-8")).hexdigest()
     assert report["application_domain_readback"] == {
         "canonical_instruments": 1, "provider_mappings": 0,
         "entitlements": 1, "alert_zones": 1, "coverage_scopes": 1,

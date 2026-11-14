@@ -174,8 +174,9 @@ def run_restore_drill(source_path: str | Path, backup_path: str | Path,
     if probe_remains:
         raise sqlite3.DatabaseError("restore probe cleanup failed")
 
-    return {
+    report = {
         "status": "passed",
+        "drill_id": uuid4().hex,
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         "runtime": {"python": platform.python_version(), "platform": platform.system(),
                     "machine": platform.machine(), "sqlite": sqlite3.sqlite_version},
@@ -187,9 +188,13 @@ def run_restore_drill(source_path: str | Path, backup_path: str | Path,
         "application_domain_readback": domains,
         "outbox_event_ids_unique": True,
         "post_restore_write_read_cleanup": "passed",
+        "failed_checks": [],
         "elapsed_ms": round((perf_counter() - started) * 1000, 2),
         "privacy": "aggregate counts and hashes only; no row values, account IDs, or absolute paths",
     }
+    canonical_report = json.dumps(report, sort_keys=True, separators=(",", ":"))
+    report["report_sha256"] = hashlib.sha256(canonical_report.encode("utf-8")).hexdigest()
+    return report
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run a safe fresh-path DEZZTA CHART SQLite restore drill.")
