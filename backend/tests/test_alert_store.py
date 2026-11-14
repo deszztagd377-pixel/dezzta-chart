@@ -345,3 +345,30 @@ def test_outbox_rejects_untrusted_error_text_and_invalid_claim_limits(store):
             event_id="event", lease_token="lease", next_attempt_ns=0,
             error_code="raw exception contains secret",
         )
+    with pytest.raises(ValueError):
+        store.reschedule_trigger_event(
+            event_id="event", lease_token="lease", next_attempt_ns=2**63,
+            error_code="invalid_timestamp",
+        )
+    with pytest.raises(ValueError):
+        store.reschedule_trigger_event(
+            event_id="event", lease_token="lease", next_attempt_ns=0,
+            error_code="unicode-é",
+        )
+
+
+def test_concurrent_outbox_claims_never_lease_one_event_to_two_workers(store):
+    _create(store)
+    _evaluate(store, "111", "concurrent-claim-baseline", 500)
+    _evaluate(store, "105", "concurrent-claim-entry", 1_000)
+
+    def claim(_):
+        return store.claim_pending_trigger_events(now_ns=10_000, lease_duration_ns=100)
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        claims = list(executor.map(claim, range(8)))
+
+    non_empty = [claim_batch for claim_batch in claims if claim_batch]
+    assert len(non_empty) == 1
+    assert len(non_empty[0]) == 1
+    assert sum(len(claim_batch) for claim_batch in claims) == 1
