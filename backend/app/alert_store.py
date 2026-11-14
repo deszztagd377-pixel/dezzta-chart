@@ -27,6 +27,22 @@ class AlertZoneUnknownInstrument(ValueError):
 
 
 @dataclass(frozen=True, slots=True)
+class PriceAlertTriggerEvent:
+    event_id: str
+    zone_id: str
+    owner_id: str
+    canonical_instrument_id: str
+    trigger_price: Decimal
+    provider_event_id: str
+    source_timestamp_ns: int
+    delivery_status: str
+
+
+class AlertMarketEventRejected(ValueError):
+    """A market event is stale, out of order, or invalid for alert evaluation."""
+
+
+@dataclass(frozen=True, slots=True)
 class StoredPriceAlertZone:
     zone_id: str
     owner_id: str
@@ -101,6 +117,60 @@ class SQLitePriceAlertStore:
                 """
                 CREATE INDEX IF NOT EXISTS idx_price_alert_instrument_active
                 ON price_alert_zones(canonical_instrument_id, status, deleted_at_utc)
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS price_alert_evaluation_state (
+                    zone_id TEXT PRIMARY KEY NOT NULL,
+                    is_inside INTEGER NOT NULL CHECK (is_inside IN (0, 1)),
+                    last_source_timestamp_ns INTEGER NOT NULL,
+                    FOREIGN KEY (zone_id) REFERENCES price_alert_zones(zone_id)
+                        ON DELETE CASCADE
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS price_alert_market_cursor (
+                    canonical_instrument_id TEXT PRIMARY KEY NOT NULL,
+                    last_source_timestamp_ns INTEGER NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS price_alert_processed_events (
+                    canonical_instrument_id TEXT NOT NULL,
+                    provider_event_id TEXT NOT NULL,
+                    source_timestamp_ns INTEGER NOT NULL,
+                    PRIMARY KEY (canonical_instrument_id, provider_event_id)
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS price_alert_trigger_events (
+                    event_id TEXT PRIMARY KEY NOT NULL,
+                    zone_id TEXT NOT NULL,
+                    owner_id TEXT NOT NULL,
+                    canonical_instrument_id TEXT NOT NULL,
+                    trigger_price TEXT NOT NULL,
+                    provider_event_id TEXT NOT NULL,
+                    source_timestamp_ns INTEGER NOT NULL,
+                    delivery_status TEXT NOT NULL DEFAULT 'pending'
+                        CHECK (delivery_status IN ('pending', 'delivered', 'failed')),
+                    created_at_utc TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE (zone_id, provider_event_id),
+                    FOREIGN KEY (zone_id) REFERENCES price_alert_zones(zone_id)
+                        ON DELETE RESTRICT
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_price_alert_delivery_pending
+                ON price_alert_trigger_events(delivery_status, created_at_utc)
                 """
             )
             connection.execute(
@@ -214,6 +284,196 @@ class SQLitePriceAlertStore:
             if connection.in_transaction:
                 connection.rollback()
             raise
+        finally:
+            connection.close()
+
+    def evaluate_market_price(
+        self,
+        *,
+        canonical_instrument_id: str,
+        price: Decimal | str | int | float,
+        provider_event_id: str,
+        source_timestamp_ns: int,
+        now_ns: int,
+        max_age_ns: int = 5_000_000_000,
+        future_skew_ns: int = 1_000_000_000,
+    ) -> list[PriceAlertTriggerEvent]:
+        """Persist one trusted provider price event and emit entry events once.
+
+        This internal method must only be called after the ingestion layer has
+        authenticated provider provenance and resolved the canonical instrument.
+        It is deliberately not exposed as an HTTP endpoint. Delivery remains a
+        separate pending outbox responsibility.
+        """
+        canonical_id = self._normalize_canonical_id(canonical_instrument_id)
+        parsed_price = Decimal(str(price))
+        if not parsed_price.is_finite():
+            raise AlertMarketEventRejected("Market price must be finite.")
+        if (
+            not isinstance(provider_event_id, str)
+            or not provider_event_id.strip()
+            or len(provider_event_id) > 256
+        ):
+            raise AlertMarketEventRejected("provider_event_id is invalid.")
+        numeric_values = (source_timestamp_ns, now_ns, max_age_ns, future_skew_ns)
+        if any(
+            not isinstance(value, int) or isinstance(value, bool) or value < 0
+            for value in numeric_values
+        ) or source_timestamp_ns == 0 or max_age_ns == 0:
+            raise AlertMarketEventRejected("Market event timestamps and age limits are invalid.")
+        age_ns = now_ns - source_timestamp_ns
+        if age_ns > max_age_ns or age_ns < -future_skew_ns:
+            raise AlertMarketEventRejected("Market event is stale or from the future.")
+
+        connection = self._connect()
+        triggered: list[PriceAlertTriggerEvent] = []
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            cursor = connection.execute(
+                """
+                SELECT last_source_timestamp_ns
+                FROM price_alert_market_cursor
+                WHERE canonical_instrument_id = ?
+                """,
+                (canonical_id,),
+            ).fetchone()
+            if cursor is not None and source_timestamp_ns < cursor["last_source_timestamp_ns"]:
+                raise AlertMarketEventRejected("Out-of-order market event was rejected.")
+
+            inserted = connection.execute(
+                """
+                INSERT OR IGNORE INTO price_alert_processed_events (
+                    canonical_instrument_id, provider_event_id, source_timestamp_ns
+                ) VALUES (?, ?, ?)
+                """,
+                (canonical_id, provider_event_id.strip(), source_timestamp_ns),
+            )
+            if inserted.rowcount == 0:
+                connection.commit()
+                return []
+
+            connection.execute(
+                """
+                INSERT INTO price_alert_market_cursor (
+                    canonical_instrument_id, last_source_timestamp_ns
+                ) VALUES (?, ?)
+                ON CONFLICT(canonical_instrument_id) DO UPDATE SET
+                    last_source_timestamp_ns = MAX(
+                        price_alert_market_cursor.last_source_timestamp_ns,
+                        excluded.last_source_timestamp_ns
+                    )
+                """,
+                (canonical_id, source_timestamp_ns),
+            )
+            zones = connection.execute(
+                """
+                SELECT * FROM price_alert_zones
+                WHERE canonical_instrument_id = ?
+                  AND deleted_at_utc IS NULL
+                  AND status IN ('active', 'triggered')
+                ORDER BY created_at_utc, zone_id
+                """,
+                (canonical_id,),
+            ).fetchall()
+            for zone in zones:
+                is_inside = (
+                    Decimal(zone["lower_price"])
+                    <= parsed_price
+                    <= Decimal(zone["upper_price"])
+                )
+                previous = connection.execute(
+                    """
+                    SELECT is_inside FROM price_alert_evaluation_state
+                    WHERE zone_id = ?
+                    """,
+                    (zone["zone_id"],),
+                ).fetchone()
+                was_inside = bool(previous["is_inside"]) if previous else False
+
+                if is_inside and not was_inside:
+                    event_id = str(uuid4())
+                    connection.execute(
+                        """
+                        INSERT INTO price_alert_trigger_events (
+                            event_id, zone_id, owner_id, canonical_instrument_id,
+                            trigger_price, provider_event_id, source_timestamp_ns
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            event_id, zone["zone_id"], zone["owner_id"], canonical_id,
+                            format(parsed_price, "f"), provider_event_id.strip(),
+                            source_timestamp_ns,
+                        ),
+                    )
+                    connection.execute(
+                        "UPDATE price_alert_zones SET status = 'triggered' WHERE zone_id = ?",
+                        (zone["zone_id"],),
+                    )
+                    triggered.append(
+                        PriceAlertTriggerEvent(
+                            event_id=event_id,
+                            zone_id=zone["zone_id"],
+                            owner_id=zone["owner_id"],
+                            canonical_instrument_id=canonical_id,
+                            trigger_price=parsed_price,
+                            provider_event_id=provider_event_id.strip(),
+                            source_timestamp_ns=source_timestamp_ns,
+                            delivery_status="pending",
+                        )
+                    )
+                elif not is_inside and was_inside:
+                    connection.execute(
+                        "UPDATE price_alert_zones SET status = 'active' WHERE zone_id = ?",
+                        (zone["zone_id"],),
+                    )
+
+                connection.execute(
+                    """
+                    INSERT INTO price_alert_evaluation_state (
+                        zone_id, is_inside, last_source_timestamp_ns
+                    ) VALUES (?, ?, ?)
+                    ON CONFLICT(zone_id) DO UPDATE SET
+                        is_inside = excluded.is_inside,
+                        last_source_timestamp_ns = excluded.last_source_timestamp_ns
+                    """,
+                    (zone["zone_id"], int(is_inside), source_timestamp_ns),
+                )
+            connection.commit()
+            return triggered
+        except Exception:
+            if connection.in_transaction:
+                connection.rollback()
+            raise
+        finally:
+            connection.close()
+
+    def list_pending_trigger_events(self, *, limit: int = 100) -> list[PriceAlertTriggerEvent]:
+        if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 1000:
+            raise ValueError("limit must be between 1 and 1000.")
+        connection = self._connect()
+        try:
+            rows = connection.execute(
+                """
+                SELECT * FROM price_alert_trigger_events
+                WHERE delivery_status = 'pending'
+                ORDER BY created_at_utc, event_id
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
+            return [
+                PriceAlertTriggerEvent(
+                    event_id=row["event_id"],
+                    zone_id=row["zone_id"],
+                    owner_id=row["owner_id"],
+                    canonical_instrument_id=row["canonical_instrument_id"],
+                    trigger_price=Decimal(row["trigger_price"]),
+                    provider_event_id=row["provider_event_id"],
+                    source_timestamp_ns=row["source_timestamp_ns"],
+                    delivery_status=row["delivery_status"],
+                )
+                for row in rows
+            ]
         finally:
             connection.close()
 
