@@ -414,29 +414,25 @@ Exact branch-head commit `290dd2a812ef9068fce82b9dd78bbfdb2d990d1e` passed Autom
 
 **Current indicator status:** calculation foundations for SMA 20, EMA 20, Wilder RSI 14, MACD 12/26/9 and Bollinger Bands 20,2 are tested; user-facing rendering/control acceptance remains incomplete. Shared hook integration remains incomplete. Footprint remains synthetic and visually gated. Heatmap and Liquidation Maps remain unimplemented.
 
-## Exact branch-head verification — 2026-11-14
+
+## Exact latest-HEAD regression verification — 2026-11-14
 
 - Branch: `phase-2/market-data-foundation`
-- Exact tested HEAD: `aa5d4ef70b234ae75ceb07909a61609e512211cb`
-- Automated Tests & Build: [run #43543969282](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43543969282) — **success** on this exact HEAD.
-- Frontend test workflow: **26 test files passed**; frontend build and production-bundle secret scan completed successfully.
-- Backend regression suite: **803 passed in 33.19s**.
-- Backend dependency audit: **no known vulnerabilities found**.
-- Full reachable Git-history Gitleaks scan: **no leaks found**.
-- Redis/container smoke test passed after the scoped ACL user was granted the required `SELECT` command for the configured Redis database 15. The test also verified rejection of unauthenticated access, an incorrect password, and an unrelated `SET` command; backend health; non-root UID/GID 10001; persistent-volume and SQLite ownership; SQLite integrity; restart persistence; and HTTP rate-limit rejection.
-- Container vulnerability scan completed and its JSON report was uploaded as artifact [container-vulnerability-reports](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43543969282/artifacts/14093052960). The report must be inspected before making any claim about the number or severity of findings.
-- CodeQL: [run #43543969220](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43543969220) — **success**.
-- Gitleaks: [run #43543969222](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43543969222) — **success**.
+- Exact tested commit: `5a5f12dd33b1409f3072b0b396a82b273d456b5e`
+- Automated Tests & Build: [run #43544575936](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43544575936) — **success**.
+- CodeQL: [run #43544576006](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43544576006) — **success** for Python and JavaScript/TypeScript.
+- Gitleaks: [run #43544575920](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43544575920) — **success**, 1,166 commits / approximately 2.62 MB scanned, no leaks found.
+- Frontend: 26 test files passed; production build and production-bundle credential scan passed.
+- Backend: **803 tests passed in 17.32s**.
+- Backend dependency audit: no known vulnerabilities found.
+- Redis ACL/container smoke test passed, including required `SELECT` for database 15, unauthenticated/wrong-password/unrelated-`SET` rejection, health, non-root UID/GID 10001, volume and SQLite ownership, integrity, restart persistence, and HTTP rate-limit rejection.
+- Trivy scanned image digest `sha256:b398511affbe93b1a0cdd59daf9429ddd9bcf9b0e1fb973c5479f166c9069526`; its exported JSON report contains 0 OS-package vulnerabilities, 0 Python-package vulnerabilities, 0 secrets, and 0 misconfigurations. [Report artifact](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43544575936/artifacts/14093542877).
 
-### Indicator scope and accounting
+### Indicator progress and acceptance remain unchanged
 
-This CI run is regression evidence for the current branch, not a new indicator implementation. No indicator calculation, hook, chart control, pane, overlay, Footprint renderer, Heatmap, or Liquidation Maps source was changed by the Redis ACL or progress-documentation work.
-
-The acceptance state therefore remains unchanged:
-- SMA 20, EMA 20, Wilder RSI 14, MACD 12/26/9, and Bollinger Bands 20,2: **calculation foundations implemented; visible chart controls/rendering and transition acceptance remain incomplete**.
-- Shared indicator hook: **validated-backend-series-only contract implemented; user-facing integration remains incomplete**.
-- Footprint: **bounded synthetic educational simulation only; SIMULATED provenance required; visual implementation remains gated on owner reference and blueprint review**.
-- Heatmap and Liquidation Maps: **not implemented/verified**.
-- Ordinary candlestick spacing must remain unchanged while Footprint is OFF.
-
-No indicator progress percentage or completion credit is awarded by this CI pass. Continue using the acceptance ledger above; do not equate general CI success with visual indicator acceptance.
+This CI/security pass validates repository regressions only; it did not implement or visually accept any indicator. The acceptance ledger above remains authoritative:
+- SMA 20, EMA 20, Wilder RSI 14, MACD 12/26/9, and Bollinger Bands 20,2: calculation foundations tested; user-facing controls, overlays/panes, legend/current values, transitions, and chart-render acceptance remain outstanding as listed per indicator.
+- Shared indicator hook: validated-backend-series-only foundation; user-facing integration and stale-series clearing remain outstanding.
+- Footprint: bounded synthetic simulation only, explicitly `SIMULATED`; owner visual reference(s), reviewed scoped blueprint, explicit mode control, spaced cluster renderer only when ON, and visual/performance tests remain outstanding. Standard candlestick spacing remains unchanged while OFF.
+- Heatmap and Liquidation Maps: no implementation verified; reference images, reviewed blueprint, source-data contract, calculations, rendering, and tests remain outstanding.
+- No indicator completion percentage or acceptance credit is awarded by this CI pass.
