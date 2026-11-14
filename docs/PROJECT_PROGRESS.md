@@ -1987,4 +1987,20 @@ The Stage 1 tick meter is a **project-management progress display only**. It is 
 - The authenticated WebSocket supervisor requests a fresh token on each reconnect. Backend Firebase Admin verification requests revocation checking; API tests cover entitlement denial/revocation, token revalidation, identity drift and reconnect/resnapshot paths.
 - Owner context records an existing registered Firebase Web App, Spark/no-billing choice, and enabled Google Sign-In + Email/Password methods. This is not a substitute for checking the live billing state or a real deployed end-to-end run.
 - Criterion 20 remains OPEN until the actual project/runtime configuration, backend Admin credential injection, real sign-in, expired/revoked-token behavior, entitlement denial, and browser/Android WSS flows are exercised. No billing upgrade.
-- Criterion 30 test fixture correction: CI run #43566514902 caught an invalid `OhlcvBar.series_type="instrument"`; the accepted contract values are `contract` and `continuous`. The fixture is corrected to `contract` in the next commit. The other 803 backend tests passed on the failed attempt; this is not a passing CI result.
+- Criterion 30 test fixture correction: CI run #43566514902 caught an invalid `OhlcvBar.series_type="instrument"`; the accepted contract values are `contract` and `continuous`. The fixture was corrected to `contract` in commit `e599b45d`; the full Automated Tests workflow #43566762952 subsequently passed, including backend tests and the shared-database restore regression.
+
+
+## Exact-commit CI evidence — 2026-11-14 — `e599b45d480c29f195d53047cf9b301182a74de0`
+
+- Automated Tests workflow #43566762952: **completed successfully**. Frontend dependency audit, unit tests, production build and bundle secret scans passed; backend tests passed including the expanded shared-application-database restore test; bounded SQLite outbox benchmark passed; backend dependency audit passed; container image build passed; Redis shared-guard + persistent-volume smoke test passed; Trivy image scan/report completed; workflow cleanup completed.
+- CodeQL workflow #43566763073: **completed successfully** (Python and JavaScript/TypeScript).
+- Full Git History Secret Audit #43566762971: **completed successfully**.
+- Exact branch HEAD at this checkpoint: `e599b45d480c29f195d53047cf9b301182a74de0`.
+- The restore regression now passes in CI. It strengthens criterion 30 repository-side evidence only; it does not substitute for an owner-device/production restore report.
+- The Redis and persistent-volume CI smoke tests strengthen criteria 25 and 34 repository-side evidence only; they do not prove owner-host production network, TLS, ACL, mount or restart behavior.
+- No external gate was closed and no Stage 1 ticks were awarded by CI alone. Stage 1 remains **300/400 = 75% provisional**.
+
+Workflow evidence:
+- Automated Tests: https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43566762952
+- CodeQL: https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43566763073
+- Gitleaks: https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43566762971

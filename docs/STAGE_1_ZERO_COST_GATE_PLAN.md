@@ -165,3 +165,19 @@ The earlier prototype-only implementation note is superseded by the current sour
 
 **Remaining acceptance boundary:** the source tests use mocks for Firebase SDK and identity-verifier behavior. The actual Firebase project billing state, deployed frontend environment values, backend Admin SDK credential injection, real sign-in, real expired/revoked-token rejection, entitlement denial and reconnect must still be exercised against a running backend from the supported browser and Android client paths. The Firebase project being registered and auth methods being enabled is not itself that integration evidence. Keep Spark/no-billing; do not enable Blaze or phone/SMS billing.
 
+
+
+## Exact-commit CI evidence — 2026-11-14 — `e599b45d480c29f195d53047cf9b301182a74de0`
+
+- Automated Tests workflow #43566762952: **completed successfully**. Frontend dependency audit, unit tests, production build and bundle secret scans passed; backend tests passed including the expanded shared-application-database restore test; bounded SQLite outbox benchmark passed; backend dependency audit passed; container image build passed; Redis shared-guard + persistent-volume smoke test passed; Trivy image scan/report completed; workflow cleanup completed.
+- CodeQL workflow #43566763073: **completed successfully** (Python and JavaScript/TypeScript).
+- Full Git History Secret Audit #43566762971: **completed successfully**.
+- Exact branch HEAD at this checkpoint: `e599b45d480c29f195d53047cf9b301182a74de0`.
+- The restore regression now passes in CI. It strengthens criterion 30 repository-side evidence only; it does not substitute for an owner-device/production restore report.
+- The Redis and persistent-volume CI smoke tests strengthen criteria 25 and 34 repository-side evidence only; they do not prove owner-host production network, TLS, ACL, mount or restart behavior.
+- No external gate was closed and no Stage 1 ticks were awarded by CI alone. Stage 1 remains **300/400 = 75% provisional**.
+
+Workflow evidence:
+- Automated Tests: https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43566762952
+- CodeQL: https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43566763073
+- Gitleaks: https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43566762971

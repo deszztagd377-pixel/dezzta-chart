@@ -388,7 +388,7 @@ A future tick change must cite the criterion number, its full acceptance boundar
 
 ## Ten-gate work-cycle audit — 2026-11-14
 
-See [STAGE_1_ZERO_COST_GATE_PLAN.md](STAGE_1_ZERO_COST_GATE_PLAN.md) for the per-gate disposition. Repository-side test expansion now covers a single restored application database across instrument registry, entitlements, alert zones, coverage intervals/gaps, OHLCV and durable outbox, including a post-restore write. The new test is pending exact-commit CI.
+See [STAGE_1_ZERO_COST_GATE_PLAN.md](STAGE_1_ZERO_COST_GATE_PLAN.md) for the per-gate disposition. Repository-side test expansion now covers a single restored application database across instrument registry, entitlements, alert zones, coverage intervals/gaps, OHLCV and durable outbox, including a post-restore write. The new shared-application-database restore test passed exact-commit CI on `e599b45d480c29f195d53047cf9b301182a74de0` (Automated Tests #43566762952).
 
 This strengthens criterion 30's repository-side evidence only. It does not satisfy the required target-environment restore drill. Criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 all remain **OPEN / external verification required**; no ticks are awarded by this test or its CI result alone.
 
@@ -398,3 +398,19 @@ This strengthens criterion 30's repository-side evidence only. It does not satis
 The source audit confirms the Firebase client prototype is already integrated and mounted; the previous statement that the frontend had not yet been connected is stale. Owner setup context records a registered Firebase Web App on the Spark/no-billing path with Google Sign-In and Email/Password methods enabled. The source includes email registration/sign-in, Google redirect, auth-state/ID-token observer, fresh token acquisition for WebSocket reconnect, backend Firebase Admin verification with `check_revoked=True`, entitlement enforcement and periodic WebSocket revalidation.
 
 This is **repository implementation plus owner-configured provider setup**, not a completed real-provider integration drill. Live project billing state, actual frontend runtime configuration, backend Admin credential injection, real sign-in, revocation/expiry, entitlement denial and browser/Android WSS reconnect evidence remain required. Criterion 20 stays OPEN and receives no acceptance ticks.
+
+
+## Exact-commit CI evidence — 2026-11-14 — `e599b45d480c29f195d53047cf9b301182a74de0`
+
+- Automated Tests workflow #43566762952: **completed successfully**. Frontend dependency audit, unit tests, production build and bundle secret scans passed; backend tests passed including the expanded shared-application-database restore test; bounded SQLite outbox benchmark passed; backend dependency audit passed; container image build passed; Redis shared-guard + persistent-volume smoke test passed; Trivy image scan/report completed; workflow cleanup completed.
+- CodeQL workflow #43566763073: **completed successfully** (Python and JavaScript/TypeScript).
+- Full Git History Secret Audit #43566762971: **completed successfully**.
+- Exact branch HEAD at this checkpoint: `e599b45d480c29f195d53047cf9b301182a74de0`.
+- The restore regression now passes in CI. It strengthens criterion 30 repository-side evidence only; it does not substitute for an owner-device/production restore report.
+- The Redis and persistent-volume CI smoke tests strengthen criteria 25 and 34 repository-side evidence only; they do not prove owner-host production network, TLS, ACL, mount or restart behavior.
+- No external gate was closed and no Stage 1 ticks were awarded by CI alone. Stage 1 remains **300/400 = 75% provisional**.
+
+Workflow evidence:
+- Automated Tests: https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43566762952
+- CodeQL: https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43566763073
+- Gitleaks: https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43566762971

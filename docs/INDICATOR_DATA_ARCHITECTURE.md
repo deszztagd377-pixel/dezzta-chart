@@ -518,3 +518,8 @@ Visible indicator implementation remains Stage 4 work and is not started during 
 ## Indicator status carry-forward — Firebase and Stage 1 restore audit
 
 The current Stage 1 work cycle updates Firebase-authentication and SQLite-restore acceptance evidence only. No SMA/EMA/RSI/MACD/Bollinger formula, indicator hook, chart renderer, Footprint, Heatmap or Liquidation Maps source was changed. The full indicator acceptance matrix remains unchanged; no technical indicator progress credit is awarded.
+
+
+## Verified CI checkpoint — 2026-11-14
+
+The Stage 1 restore test and full Automated Tests workflow passed on `e599b45d480c29f195d53047cf9b301182a74de0`. This is platform and persistence evidence only. No indicator calculation, integration, rendering, or UI acceptance changed. Indicator progress remains exactly as recorded in the indicator matrix above; no additional indicator credit is assigned.

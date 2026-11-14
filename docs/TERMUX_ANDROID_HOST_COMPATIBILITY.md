@@ -50,3 +50,19 @@ Switching from the Play Store build to another distribution may involve a differ
 
 Recheck the official Play Store release notes, issue #1642/#1648 maintainer responses, repository signing metadata and the installed keyring compatibility before any package operation. Record the exact app build, keyring version, repository URL, signature result and package candidate. If any of these cannot be verified, keep the blocker open.
 
+
+
+## External issue re-audit — 2026-11-14
+
+- Termux Play Store issue [#1642](https://github.com/termux-play-store/termux-issues/issues/1642) remains **OPEN**; its last recorded update at this audit was 2026-11-10. It reports the same app build `googleplay.2026.10.09`, Android 15, aarch64, keyring 3.15 and missing key `5A897D96E57CF20C`.
+- The issue discussion identifies that key as the upstream `termux-autobuilds` signing key, which is absent from the Play Store keyring 3.15. This is community analysis, not a maintainer-confirmed recovery procedure.
+- Issue [#1648](https://github.com/termux-play-store/termux-issues/issues/1648) includes a report that the Play Store build's stock `termux.sources` points to `packages.termux.dev/apt/termux-main`, with the same missing-key mismatch. A community reply suggests a distribution migration, but it requires a different app signing identity and uninstall/reinstall; this is not selected for the one-device setup.
+- The latest Play Store app release visible in the official release list at this audit remains `googleplay.2026.10.09` (2026-10-09). Its published notes do not mention a keyring/signing fix.
+- No maintainer-authored, verified recovery procedure or newer signed Play Store keyring fix was found in the audited issue/release evidence.
+
+**Current decision remains unchanged:** retain APT signature verification, do not import the missing key from an unverified source, do not clear app data, and do not migrate distributions. The blocker is upstream packaging/repository trust compatibility, not a DEZZTA CHART source-code failure. Re-audit after an official maintainer response or signed Play Store release that explicitly fixes the repository keyring.
+
+References:
+- https://github.com/termux-play-store/termux-issues/issues/1642
+- https://github.com/termux-play-store/termux-issues/issues/1648
+- https://github.com/termux-play-store/termux-apps/releases
