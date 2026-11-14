@@ -537,3 +537,34 @@ The secret-audit issue was investigated using the redacted finding location and 
 **Stage 1 meter is unchanged:** 30/40 provisional criteria, 300/400 ticks, 75% provisional. External criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain OPEN (0/10 externally accepted). Green repository CI is not external device/host acceptance. Stages 2–6 remain NOT SCORED. Overall 20.90% remains historical only.
 
 No Termux package/repository/keyring changes, dependency downgrades, production secrets, paid services, or APK release were made.
+
+
+## Gate 10 batch 12 — evidence packet and acceptance invariants (2026-11-14)
+
+This batch adds a concrete, redacted evidence contract for all ten remaining Stage 1 gates. It is a process-control improvement only: **no criterion is closed and no progress tick is awarded**.
+
+| Gate | Evidence artifact required before review | Current boundary |
+|---:|---|---|
+| 8 | Runtime secret-injection proof plus bundle/log/history scans | Repository scan exists; real host injection remains unverified |
+| 20 | Real no-billing Firebase positive and negative auth cases on browser and Android | Unit/injected-verifier coverage exists; real signed-token E2E remains open |
+| 25 | Redis TLS certificate, ACL, private bind, persistence and restart report | CI smoke exists; owner-host Redis remains unverified |
+| 30 | Redacted restore report from the positively identified live Android DB | Restore tooling and synthetic tests exist; actual backend/DB path is not established |
+| 31 | Encrypted artifact recovery using a separately stored key and no-cost independent destination | Encryption code/tests exist; device-compatible crypto and off-host custody remain blocked |
+| 34 | Real persistent mount ownership, restart and disk-pressure recovery report | CI container smoke exists; owner-host volume remains unverified |
+| 35 | Backend HTTPS health and fail-closed startup report | Backend tests exist; actual HTTPS host is not deployed/verified |
+| 36 | Authenticated WSS through reverse proxy from browser and Android | Client/server code exists; deployed transport/auth E2E remains open |
+| 38 | Self-hosted bounded metrics/logs, access-control and resource-budget report | Status endpoint exists; actual monitoring stack remains unverified |
+| 39 | Received local alert plus incident/recovery exercise | Procedure/design evidence is incomplete until a real alert and recovery are demonstrated |
+
+### Scoring and safety invariants
+
+- Stage 1 remains 40 criteria × 10 ticks = 400 ticks. A criterion receives all 10 ticks only after its complete acceptance boundary is evidenced; otherwise it receives zero.
+- Current baseline remains 30/40 provisional criteria = 300/400 = 75% provisional. Open gates remain exactly 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39.
+- Stage 2–6 remain NOT SCORED. Overall 20.90% remains a historical checkpoint, not a fresh calculation.
+- A green CI run is repository evidence, never a substitute for an owner-device, host, Firebase, Redis, TLS/WSS, alert, or recovery drill.
+- Do not run a restore against a guessed database path. Do not install packages, switch Termux repositories, import unverified keys, disable signature checks, downgrade cryptography, or expose secrets to collect evidence.
+- Keep the zero-cost boundary: no trials, paid hosting, managed Redis, paid storage/KMS, paid monitoring, paid mail/SMS, or publication fees.
+
+### Next action dependency
+
+The next owner-device interaction, when requested, is limited to the existing read-only Android/Termux preflight. It installs nothing, starts no service, changes no repository, and prints no environment secrets. Its output must be reviewed before any later device action is prepared. No Termux action is requested by this documentation batch.
