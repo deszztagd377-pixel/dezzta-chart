@@ -714,3 +714,33 @@ The outbox now has atomic claims, durable attempt counts, expiry recovery, token
 - Stage 2–6 remain NOT SCORED; overall `20.90%` remains historical only.
 - ZERO COST: no paid market-data source, notification provider, hosted infrastructure, trial, or subscription added.
 - No Termux command, package install, Android service start, APK release, or signing change performed.
+
+
+## Gate 10 batch 20 — final CI reconciliation and encrypted-backup recovery audit (2026-11-14)
+
+### Exact branch and CI evidence
+
+- Working branch: `phase-2/market-data-foundation`; pre-documentation code HEAD: `1b1db514f8250d4d833a4cd913d1f3abe4b227ee`.
+- Automated Tests run [43598781643](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43598781643): **SUCCESS**. All 53 job steps completed, including frontend tests/build and secret scanning, read-only Android preflight tests, backend pytest, dependency audits, synthetic SQLite outbox benchmark, backend container build, Redis/shared-guard + persistent-volume restart smoke test, container image scan and report upload.
+- CodeQL run [43598781648](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43598781648): **SUCCESS** for JavaScript/TypeScript and Python.
+- Full Git History Secret Audit run [43598781686](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43598781686): **SUCCESS** for the complete reachable Git history.
+- These results apply to the exact code HEAD above. They are repository CI/static-analysis evidence and do not establish live owner-host, Android, Firebase, Redis TLS, HTTPS/WSS, or notification-delivery acceptance.
+
+### Criterion 31 — recovery implementation audit and platform blocker
+
+- Re-read `backend/app/backup_encryption.py`, `backend/tests/test_backup_encryption.py`, `backend/requirements.txt`, and `docs/BACKUP_ENCRYPTION.md` on the active branch.
+- Confirmed format v1 uses AES-256-GCM, PBKDF2-HMAC-SHA256 (600,000 iterations), random salt and nonce, authenticated versioned header, streaming chunks, owner-only POSIX output permissions, atomic publication, and authenticated decryption before publishing plaintext.
+- Regression tests cover round-trip recovery, wrong-passphrase rejection, ciphertext tampering, malformed/truncated artifacts, destination preservation, temporary-file cleanup, SQLite application-record recovery, and directory durability behavior.
+- The existing recovery guide correctly requires a separately controlled offline passphrase and explicitly warns that losing it makes the artifact unrecoverable. It does not establish actual owner key custody, independent no-cost off-host storage, retention/access enforcement, or a successful restore drill on the intended runtime.
+- **Android/Termux compatibility blocker remains:** the tested Termux Python environment did not have `cryptography`; its available package candidate was 48.0.1 while the project explicitly requires `cryptography>=50,<51`. Do not install the incompatible candidate, weaken the dependency constraint, bypass signature checks, or switch repositories/keyrings. No safe Android backup-encryption test can be claimed until a compatible, verifiable no-cost runtime is established.
+- No code change to the encryption primitive was justified by this audit. The correct action is to preserve the security boundary and defer device acceptance rather than manufacture compatibility.
+
+### Gate 10 disposition
+
+- The alert outbox lease-expiry correction and all current code changes now have successful Automated Tests, CodeQL and full-history secret-audit evidence for the exact pre-documentation HEAD.
+- Criterion 39 remains open: durable evaluator/outbox primitives exist, but no scheduled delivery worker, verified market-tick integration, local Android notification adapter, or actual delivery/recovery exercise has been demonstrated.
+- No criterion is closed by this CI reconciliation. Stage 1 remains **30/40 criteria = 300/400 ticks = 75% provisional**.
+- Gate 10 remains **0/10 officially closed**. Open criteria remain exactly **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- Stage 2–6 remain **NOT SCORED**. Overall **20.90%** remains a historical checkpoint only and is not recalculated here.
+- ZERO COST maintained: no paid service, trial, billing activation, paid market-data feed, hosting, storage/KMS, monitoring, notification channel, or publication fee.
+- No Termux command, package installation, repository/keyring change, service start, APK release, or signing change was performed.
