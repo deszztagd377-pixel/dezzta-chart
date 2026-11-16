@@ -134,3 +134,18 @@ A foundation item is accepted only when all of these exist:
 6. Progress criterion explicitly mapped to its evidence.
 
 A code commit, test file, green CI, or updated dashboard alone does not close a Stage 1 criterion or award progress ticks.
+
+
+## 10. Automatic evolution: what updates, and what does not
+
+"Auto-evolution" means the application can recognize and apply a reviewed, versioned database migration when a compatible application release starts. It does **not** mean that a remote server silently rewrites the database, that arbitrary SQL is downloaded and executed, or that a mobile app can update its own binary without the platform's update mechanism.
+
+- A released backend carries its ordered migration definitions and immutable SHA-256 checksums.
+- At startup, the migration runner compares each component's recorded schema head with the release's supported migration sequence.
+- It applies only the exact next migration, in a transaction with its ledger entry, and refuses skipped versions, checksum drift, and schema downgrades.
+- Existing legacy stores must first be adopted with a verified baseline. The baseline records the schema fingerprint observed at adoption; it does not invent historical migration records.
+- A verified backup and restore rehearsal are required before any migration that could affect user data. Destructive changes require a separate reviewed plan and must not run as silent startup work.
+- New app features and provider data releases are separate from schema migrations. Provider data refreshes update versioned records through ingestion rules; they do not rewrite canonical identities.
+- Android APK updates remain governed by Android installation/update rules. Database evolution does not automatically update the APK binary.
+
+The initial append-only ledger and migration runner now exist in `backend/app/schema_migrations.py`, with tests in `backend/tests/test_schema_migrations.py`. They are **not yet wired into every existing persistence adapter**. Current adapters still have their own schema-version mechanisms or additive initialization paths. Adapter adoption, baseline fingerprints, backup gates, and live upgrade rehearsals remain open before automatic migrations can be called production-ready.
