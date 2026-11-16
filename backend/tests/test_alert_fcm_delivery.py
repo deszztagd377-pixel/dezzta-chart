@@ -61,7 +61,7 @@ def test_fanout_revokes_only_permanently_invalid_installation(device_store):
 
     def send(message, *, app):
         if message[1] == "bad-token":
-            raise FCMDeliveryError("unregistered", retryable=False)
+            raise FCMDeliveryError("unregistered", retryable=False, token_invalid=True)
         return "message-good"
 
     sender = build_alert_event_sender(device_store, make_fcm(send))
@@ -89,3 +89,16 @@ def test_fanout_with_no_registered_devices_completes_without_leaking_recipients(
         make_fcm(lambda message, *, app: "unused"),
     )
     assert sender(event()) is None
+
+
+def test_fanout_does_not_revoke_device_for_non_token_permanent_error(device_store):
+    device_store.register(owner_id="account-a", installation_id="phone", fcm_token="token")
+
+    def send(message, *, app):
+        raise FCMDeliveryError("invalid-argument", retryable=False)
+
+    sender = build_alert_event_sender(device_store, make_fcm(send))
+    with pytest.raises(FCMDeliveryError) as raised:
+        sender(event())
+    assert raised.value.token_invalid is False
+    assert device_store.token_for_delivery(owner_id="account-a", installation_id="phone") == "token"
