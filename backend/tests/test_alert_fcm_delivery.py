@@ -4,8 +4,7 @@ import pytest
 
 from app.alert_device_store import SQLiteAlertDeviceStore
 from app.alert_fcm_delivery import build_alert_event_sender
-from app.alert_device_store import SQLiteAlertDeviceStore
-from app.fcm_sender import FCMDeliveryError, FCMDeliveryResult, FirebaseCloudMessagingSender
+from app.fcm_sender import FCMDeliveryError, FirebaseCloudMessagingSender
 
 
 @pytest.fixture
