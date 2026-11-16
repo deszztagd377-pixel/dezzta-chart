@@ -3,32 +3,27 @@ title = "DEZZTA CHART secret audit"
 [extend]
 useDefault = true
 
-# This exact token-shaped value is synthetic test data used only to verify
-# that the frontend scanner catches GitHub-token patterns. Scope the exception
-# to that exact value in that exact test file; do not suppress other findings.
+# Exact synthetic token fixture used only by the frontend scanner regression test.
 [[allowlists]]
 description = "Exact synthetic GitHub-token fixture in scanner regression test"
 condition = "AND"
 regexTarget = "match"
 regexes = ['''ghp_123456789012345678901234''']
-paths = ['''scripts/check-frontend-bundle-secrets\.node-test\.mjs$''']
- 
+paths = ['''scripts/check-frontend-bundle-secrets[.]node-test[.]mjs$''']
+
 # Exact public commit-metadata line falsely matches the generic-api-key detector.
-# Scope this exception to that one historical line in the project-status file.
 [[allowlists]]
 description = "Exact public commit metadata line false positive"
 condition = "AND"
 regexTarget = "line"
 regexes = ['''^Latest observed exact-head CI/CodeQL/secret-audit checkpoint: b37c69d6aaee2f764c3357834e868a3e53bddbe1 .*$''']
-paths = ['''PROJECT_STATUS.md$''']
+paths = ['''PROJECT_STATUS[.]md$''']
 
-# Exact public commit SHA in the progress ledger is metadata, not a credential.
-# Match only this exact 40-character value and only in the progress document.
+# A public commit SHA is source-control metadata, not a credential.
+# Scope this exception to the exact SHA and the project progress document.
 [[allowlists]]
 description = "Exact public source-test commit metadata false positive"
 condition = "AND"
 regexTarget = "match"
-regexes = ['''^5c08a1c9d2ca089ac7992b4e4becf74f0641e77b
-'']
-paths = ['''docs/PROJECT_PROGRESS_INDICATOR\.md
-'']
+regexes = ['''^5c08a1c9d2ca089ac7992b4e4becf74f0641e77b$''']
+paths = ['''docs/PROJECT_PROGRESS_INDICATOR[.]md$''']
