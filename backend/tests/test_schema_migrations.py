@@ -6,6 +6,7 @@ from app.schema_migrations import (
     SchemaMigrationConflict,
     SchemaMigrationOrderError,
     SQLiteSchemaMigrationLedger,
+    schema_fingerprint,
     sha256_migration,
 )
 
@@ -178,3 +179,32 @@ def test_schema_ledger_rejects_invalid_identifiers_and_memory_database(tmp_path)
             migration_id="baseline-v1",
             checksum_sha256=sha256_migration("schema"),
         )
+
+
+def test_schema_fingerprint_is_stable_and_changes_when_schema_changes(tmp_path):
+    path = str(tmp_path / "fingerprint.sqlite3")
+    ledger = SQLiteSchemaMigrationLedger(path)
+    connection = sqlite3.connect(path)
+    try:
+        connection.execute("CREATE TABLE sample_data (id INTEGER PRIMARY KEY, value TEXT)")
+        first = schema_fingerprint(connection, ["sample_data"])
+        second = schema_fingerprint(connection, ["sample_data"])
+        assert first == second
+        connection.execute("CREATE INDEX idx_sample_value ON sample_data(value)")
+        changed = schema_fingerprint(connection, ["sample_data"])
+        assert changed != first
+    finally:
+        connection.close()
+
+
+def test_schema_fingerprint_rejects_missing_tables_and_unsafe_identifiers(tmp_path):
+    path = str(tmp_path / "fingerprint.sqlite3")
+    SQLiteSchemaMigrationLedger(path)
+    connection = sqlite3.connect(path)
+    try:
+        with pytest.raises(Exception, match="missing schema tables"):
+            schema_fingerprint(connection, ["missing_table"])
+        with pytest.raises(ValueError, match="unique lowercase SQLite identifiers"):
+            schema_fingerprint(connection, ["sample; DROP TABLE users"])
+    finally:
+        connection.close()
