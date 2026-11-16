@@ -2357,3 +2357,23 @@ Added bounded process-local HTTP metrics and privacy-preserving structured reque
 Metrics contain method, static route template, status class and latency buckets only. Route cardinality is capped and excess routes aggregated. Raw URLs, query strings, path parameters, client IPs, headers and credentials are excluded from structured request logs. Scrape requests are excluded from their own telemetry.
 
 This is not Gate 38 closure. Metrics reset on restart and do not aggregate across replicas. Durable retention, log rotation, multi-process aggregation, dashboard, threshold alerting and production host access/network policy remain unverified. Endpoint remains disabled unless explicitly configured. No paid dependency or Termux operation was used. No ticks awarded pending exact-HEAD CI and external acceptance.
+
+
+---
+
+## Exact-HEAD verification — 2026-11-16
+
+**Code HEAD:** `140cbead825d8550524728e121d7a5320356490d`
+
+- Automated Tests [43876109415](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43876109415): success; **974 backend tests passed in 43.46 seconds**; frontend tests/build, frontend secret scans, Android preflight and preview-publisher tests, backend dependency audit, container build, Redis ACL/persistent-volume smoke, Trivy and synthetic outbox benchmark passed.
+- CodeQL [43876108946](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43876108946): Python and JavaScript/TypeScript analyses passed.
+- Full Git History Secret Audit [43876109163](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43876109163): passed.
+- Trivy report artifact [14229468472](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43876109415): parsed `trivy-current.json` shows zero vulnerabilities, including zero HIGH/CRITICAL.
+
+The Vercel status remains an external build-rate-limit/upgrade prompt. No paid plan was selected. No live provider feed or paid service was enabled.
+
+### Gate 38 implementation evidence
+
+The exact tested commit contains the bounded process-local HTTP metrics collector, opt-in authenticated `/internal/metrics` endpoint, request IDs, and privacy-preserving structured request log events. Endpoint remains disabled unless the host injects `OBSERVABILITY_METRICS_TOKEN`. CI passed tests for default-off behavior, unauthorized access, authenticated scrape, response privacy, token strength and token redaction.
+
+Still open for Criterion 38: metrics reset on process restart; no cross-process aggregation, durable retention, log rotation, operator dashboard, threshold alerting or production host access/network acceptance has been demonstrated. Therefore Gate 38 remains open and no Stage 1 ticks are awarded.

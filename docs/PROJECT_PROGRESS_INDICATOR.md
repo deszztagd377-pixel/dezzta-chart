@@ -2073,7 +2073,7 @@ The above evidence does not change the Stage 1 score: **30/40 provisional, 75%; 
 
 
 ### Latest coverage input-validation hardening — 2026-11-16
-A malformed mapping with a non-string field is now rejected before normalization, and a regression test verifies fail-closed behavior. This change was included in exact-HEAD commit `251ab3c0e4fa77fa6fd7057cc8ce586ca54291e8`; the latest backend suite passed **969 tests**, including this regression. No Stage 1 ticks awarded.
+A malformed mapping with a non-string field is now rejected before normalization, and a regression test verifies fail-closed behavior. This change was included in exact-HEAD commit `251ab3c0e4fa77fa6fd7057cc8ce586ca54291e8`; the latest backend suite passed **974 tests**, including this regression. No Stage 1 ticks awarded.
 
 
 ## Exact latest-HEAD verification and Gate 10 audit — 2026-11-16
@@ -2145,3 +2145,15 @@ A zero-dependency, process-local HTTP metrics collector and privacy-preserving s
 - No paid dependency, SaaS, or persistent metrics database was introduced. Endpoint disabled by default.
 
 **Limitation:** partial implementation, not Gate 38 closure. Multi-process aggregation, durable metrics, retention/rotation, operator dashboard, alert thresholds and host access/network controls remain external acceptance items. No Gate 10 tick awarded pending exact-HEAD CI and production-host evidence.
+
+
+## Exact-HEAD verification — Gate 38 implementation slice
+
+**Code HEAD:** `140cbead825d8550524728e121d7a5320356490d`
+
+- Automated Tests [run 43876109415](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43876109415): **success**. Backend: **974 passed in 43.46 seconds**. Frontend tests/build, secret scanners, Android preflight/publisher tests, dependency audit, container build, Redis ACL + persistent-volume smoke test, Trivy scan/report and synthetic outbox benchmark all passed.
+- CodeQL [run 43876108946](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43876108946): Python and JavaScript/TypeScript passed.
+- Full Git History Secret Audit [run 43876109163](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43876109163): passed.
+- Trivy artifact `14229468472`: parsed `trivy-current.json` contains **0 vulnerabilities**, including 0 HIGH and 0 CRITICAL.
+
+The Vercel combined status remains a separate external build-rate-limit / upgrade-to-Pro failure. No paid upgrade was made. CI is not evidence of owner-controlled production host acceptance.
