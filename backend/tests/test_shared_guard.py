@@ -289,3 +289,23 @@ def test_redis_websocket_lease_renewal_and_expiry_are_enforced(monkeypatch):
             await guard.close()
 
     asyncio.run(exercise())
+
+
+def test_plain_redis_client_does_not_enable_tls_options(monkeypatch):
+    from redis.asyncio import Redis
+
+    captured = {}
+
+    def fake_from_url(cls, url, **options):
+        captured["url"] = url
+        captured["options"] = options
+        return FakeRedis()
+
+    monkeypatch.setattr(Redis, "from_url", classmethod(fake_from_url))
+
+    RedisSharedGuard("redis://localhost:6379/0")
+
+    assert captured["url"] == "redis://localhost:6379/0"
+    assert "ssl_cert_reqs" not in captured["options"]
+    assert "ssl_check_hostname" not in captured["options"]
+    assert captured["options"]["socket_connect_timeout"] == 2
