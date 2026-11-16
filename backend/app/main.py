@@ -23,6 +23,7 @@ from app.ingest import OhlcvIngestionService
 from app.instruments import InstrumentCatalog
 from app.instrument_registry import SQLiteInstrumentRegistry
 from app.alert_store import SQLitePriceAlertStore
+from app.alert_device_store import SQLiteAlertDeviceStore
 from app.entitlements import SQLiteInstrumentEntitlementStore
 from app.identity import (
     FirebaseIdentityVerifier,
@@ -137,6 +138,16 @@ def create_app(
     # Durable alert storage is initialized, but no public alert routes are
     # enabled until Firebase identity and instrument entitlements are verified.
     price_alert_store = SQLitePriceAlertStore(config.instrument_registry_db_path)
+    # Device-token persistence is opt-in and requires an owner-injected key.
+    # No registration route, FCM sender, or background worker is enabled here.
+    alert_device_store = (
+        SQLiteAlertDeviceStore(
+            config.instrument_registry_db_path,
+            encryption_key=config.alert_device_encryption_key,
+        )
+        if config.alert_device_store_enabled
+        else None
+    )
     instrument_entitlements = SQLiteInstrumentEntitlementStore(config.instrument_registry_db_path)
     identity_verifier = FirebaseIdentityVerifier(config.firebase_project_id)
     ohlcv_pipeline = OhlcvPipeline()
@@ -238,6 +249,7 @@ def create_app(
     # Firebase identity and per-instrument entitlement checks are implemented.
     application.state.instrument_registry = instrument_registry
     application.state.price_alert_store = price_alert_store
+    application.state.alert_device_store = alert_device_store
     application.state.instrument_entitlements = instrument_entitlements
     application.state.identity_verifier = identity_verifier
     application.state.shared_guard = shared_guard
