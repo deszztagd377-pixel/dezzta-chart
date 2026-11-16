@@ -30,6 +30,31 @@ remain server-side and must never be packaged into the browser app or Android AP
 - Never log ID tokens, provider keys, Authorization headers, or secret objects.
 - Return generic authentication errors to clients; protect detailed diagnostics.
 
+### Alert-device encryption key injection
+
+The encrypted FCM device-token store is disabled by default. To initialize this
+adapter, the backend owner must explicitly set:
+
+- `ALERT_DEVICE_STORE_ENABLED=true`
+- `ALERT_DEVICE_ENCRYPTION_KEY_FILE=/absolute/path/to/alert-device-key.b64`
+
+The file must contain canonical base64 encoding of exactly 32 cryptographically
+random bytes. The loader rejects non-absolute paths, missing/non-regular files,
+files larger than 128 bytes, malformed/non-canonical base64, keys of any other
+length, and files readable by group or other users (POSIX mode must deny
+`0o077`). The key value is excluded from Settings diagnostics. Prefer an
+owner-controlled secret manager or a protected read-only secret mount; do not
+put the key in the repository, Docker build arguments, image layers, app
+configuration, frontend variables, or chat.
+
+The application creates the SQLite token adapter only when this opt-in is
+enabled. This is persistence wiring only: device registration HTTP routes,
+FCM sender credentials, delivery workers, and real Firebase/Android delivery
+remain disabled until their separate authentication, entitlement, key-custody,
+and end-to-end acceptance requirements are met. Losing the injected key makes
+existing ciphertext undecryptable; key backup, rotation, and recovery must be
+designed and drilled before production use.
+
 ## 3. Transport and authentication
 
 - Production deployments must use HTTPS and WSS.
