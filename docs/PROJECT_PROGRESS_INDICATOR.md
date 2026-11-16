@@ -1975,3 +1975,29 @@ This closes the specific consumer-side provider-hardcoding defect. It does **not
 - Overall: **20.90% historical owner-confirmed checkpoint only**; no fresh weighted calculation.
 - No ticks awarded for this code change, tests or CI alone; external owner-host/device/provider acceptance evidence remains outstanding.
 - No Termux action, APK build, paid service or provider activation was required. Zero-cost guardrails remain intact.
+
+
+## Provider coverage implementation cycle — 2026-11-16
+
+### Exact branch changes
+- Working branch: `phase-2/market-data-foundation`; `main` untouched.
+- New `backend/app/provider_coverage.py`: deterministic, provider-aware coverage-union calculation over explicit mappings only.
+- New `backend/tests/test_provider_coverage.py`: seven unit tests for complementary coverage, redundant coverage, ineligible current candidates, unknown providers, out-of-watchlist mappings, duplicate mappings, missing evidence and empty watchlists.
+- The calculation fails closed: candidate mappings count only when the provider is eligible for recurring-$0 baseline and each mapping has an explicit evidence reference. It makes no network calls, activates no provider, and does not merge venue data.
+
+### Verification boundary
+- Both new files were read back from the target branch after creation.
+- No exact-HEAD GitHub Actions run was returned by the available commit-workflow lookup; therefore the new tests are **authored, not yet CI-verified**.
+- Commit status currently exposes only Vercel failure due to its external build-rate-limit/upgrade-to-Pro prompt. No upgrade or billing was authorized.
+- Do not interpret the absence of a workflow result as a test failure or a pass.
+- No local Python test runner was available in this work cycle. Do not claim tests executed.
+
+### Gate 10 effect
+- This closes an internal design-to-code gap for deterministic coverage accounting; it does not close an external Stage 1 criterion or any Gate 10 acceptance gate.
+- No provider mapping is currently eligible because production display/redistribution rights remain unapproved. The live feed remains unchanged.
+- Gate 10 remains **0/10 officially closed**. Stage 1 remains **30/40 provisional criteria = 300/400 ticks = 75% provisional**. No ticks awarded for implementation or authored tests alone.
+- Stages 2–6 remain NOT SCORED. Overall remains 20.90% historical only.
+- No Termux command, APK build, paid service, API credential, or provider activation was required.
+
+### Next internal action
+Add provider adapter lifecycle only after a concrete source passes the recurring-$0, intended-use rights, venue/data-family, quota and capacity review. Until then, strengthen exact-HEAD CI verification and infrastructure-side acceptance evidence without enabling unapproved data sources.
