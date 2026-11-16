@@ -2377,3 +2377,53 @@ The Vercel status remains an external build-rate-limit/upgrade prompt. No paid p
 The exact tested commit contains the bounded process-local HTTP metrics collector, opt-in authenticated `/internal/metrics` endpoint, request IDs, and privacy-preserving structured request log events. Endpoint remains disabled unless the host injects `OBSERVABILITY_METRICS_TOKEN`. CI passed tests for default-off behavior, unauthorized access, authenticated scrape, response privacy, token strength and token redaction.
 
 Still open for Criterion 38: metrics reset on process restart; no cross-process aggregation, durable retention, log rotation, operator dashboard, threshold alerting or production host access/network acceptance has been demonstrated. Therefore Gate 38 remains open and no Stage 1 ticks are awarded.
+
+
+---
+
+## Gate 38 follow-up — authenticated alert-worker status and deployment recovery — 2026-11-16
+
+### Code change
+
+At exact code HEAD `4c10d71b414630c234eca97fe3b18d2f2d757b2b`, added `GET /internal/alert-delivery` beside the existing opt-in `/internal/metrics` route.
+
+- Both routes are absent unless `OBSERVABILITY_METRICS_TOKEN` is injected.
+- Both require the matching bearer token and use constant-time comparison.
+- Alert status is restricted to enabled/state, last batch counters and a sanitized error class; no device token, Firebase credential, owner identifier or raw exception payload is returned.
+- Responses are private/no-store.
+- Regression tests cover route absence, unauthorized access and authorized sanitized status.
+
+### Exact-HEAD CI and Vercel evidence
+
+Branch: `phase-2/market-data-foundation`  
+Exact code HEAD: `4c10d71b414630c234eca97fe3b18d2f2d757b2b`
+
+- Automated Tests [#43878724911](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43878724911): **SUCCESS**; **976 backend tests passed in 18.79 seconds**. Frontend tests/build, frontend secret scans, Android preflight/publisher tests, dependency audits, synthetic outbox benchmark, container build, Redis ACL/persistent-volume smoke test, Trivy image scan and report uploads passed.
+- CodeQL [#43878724803](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43878724803): **SUCCESS**.
+- Full Git History Secret Audit [#43878725073](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43878725073): **SUCCESS**.
+- Vercel commit status: **SUCCESS**, description: “Deployment has completed”. The earlier build-rate-limit status is no longer blocking this commit's deployment. This status alone does not prove that the production alias, backend, Firebase identity, Redis, HTTPS/WSS proxy or owner-device client flow are fully accepted.
+
+### WebSocket and provider lifecycle boundary
+
+The provider-aware downstream WebSocket consumer fix remains in the branch and is covered by the current backend suite: exact provider/dataset/publisher/instrument identity is used for authorization, snapshot, subscription fan-out and durable replay, with cross-provider isolation.
+
+The upstream `ProviderManager` remains Databento-oriented. The documented bounded multi-provider pool is still design-only; no second provider adapter or upstream socket is active. The next safe implementation prerequisite is a concrete candidate with independently verified recurring-$0 cost, intended display/cache/redistribution rights, venue and data-family coverage, quota/capacity limits and freshness evidence. No paid or unlicensed feed is activated.
+
+### Gate 10 and project meter
+
+| Gate | Current repository evidence | Remaining acceptance |
+|---:|---|---|
+| 8 | History/source/bundle secret scans pass | Owner-controlled host secret injection and no-billing configuration |
+| 20 | Firebase client/server verification code and tests exist | Real production sign-in, expiry/revocation and entitlement-denial flow |
+| 25 | Redis ACL, authentication and CI persistence smoke pass | Owner-host TLS/private binding, restart persistence and failure behavior |
+| 30 | Full shared-SQLite restore helper and CI restore regression pass | Actual target-device/host restore report and application-level verification |
+| 31 | Authenticated AES-256-GCM/PBKDF2 helper and tamper/wrong-key tests pass | Safe Termux dependency path, separate key custody, off-host destination and recovery drill |
+| 34 | Container persistent-volume and ownership smoke pass | Target-host/device restart durability, permissions and disk-pressure recovery |
+| 35 | Backend container build and liveness endpoint pass | Actual HTTPS termination and external health verification |
+| 36 | Authenticated provider-aware downstream WebSocket tests pass | Real WSS through reverse proxy and supported clients |
+| 38 | Bounded metrics, privacy-preserving request logs and token-gated worker-status endpoint exist | Durable retention, multi-process aggregation, dashboard, alert thresholds and host access controls |
+| 39 | Durable trigger outbox, lease/retry worker, encrypted device-token store and owner-scoped FCM adapter exist | Zero-incremental-cost proof, operator receipt/acknowledgement, escalation and recovery drill |
+
+**No gate is officially closed by this CI/deployment result.** Stage 1 remains 30/40 provisional = 300/400 ticks = **75% provisional**; Gate 10 remains **0/10 officially closed**. Stages 2–6 remain **NOT SCORED**. Overall 20.90% remains a historical checkpoint; no fresh weighted total is asserted.
+
+No Termux action was required or performed. No paid hosting, provider, monitoring service or publication fee was introduced.

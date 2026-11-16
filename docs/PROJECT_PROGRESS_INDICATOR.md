@@ -2157,3 +2157,32 @@ A zero-dependency, process-local HTTP metrics collector and privacy-preserving s
 - Trivy artifact `14229468472`: parsed `trivy-current.json` contains **0 vulnerabilities**, including 0 HIGH and 0 CRITICAL.
 
 The Vercel combined status remains a separate external build-rate-limit / upgrade-to-Pro failure. No paid upgrade was made. CI is not evidence of owner-controlled production host acceptance.
+
+
+---
+
+## Gate 38 follow-up and exact-HEAD verification — 2026-11-16
+
+**Working branch:** `phase-2/market-data-foundation`  
+**Code HEAD:** `4c10d71b414630c234eca97fe3b18d2f2d757b2b`
+
+A token-gated internal alert-delivery status endpoint was added at `/internal/alert-delivery`.
+
+- It is registered only when the owner injects the existing strong `OBSERVABILITY_METRICS_TOKEN`; without that setting, the route is absent (404).
+- Requests without the matching bearer token are rejected (401); comparison uses the same constant-time token check as `/internal/metrics`.
+- The response is private/no-store and contains only the worker's enabled/state values, last bounded batch counters, and sanitized error-class code.
+- It does not expose FCM tokens, Firebase credentials, owner IDs, provider payloads or raw exception messages.
+- Added regression tests for default-disabled behavior, missing-token rejection, authenticated response, no-store headers and response contents.
+
+### Exact-HEAD verification
+
+- Automated Tests [#43878724911](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43878724911): **SUCCESS**; backend pytest **976 passed in 18.79 seconds**. Frontend unit tests/build, source and bundle secret scans, Android host preflight/publisher tests, dependency audits, synthetic SQLite outbox benchmark, backend container build, Redis ACL + persistent-volume smoke test, Trivy image scan/report and artifact upload all passed.
+- CodeQL [#43878724803](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43878724803): **SUCCESS** for Python and JavaScript/TypeScript.
+- Full Git History Secret Audit [#43878725073](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43878725073): **SUCCESS**.
+- Vercel status for this exact commit: **SUCCESS — “Deployment has completed”**. This confirms a deployment completed for the commit; production-domain alias and backend-connected runtime acceptance are not inferred from the status alone.
+
+### Acceptance boundary
+
+This is a repository-side observability improvement, not closure of Gate 38 or Gate 39. Worker status and metrics remain process-local; no durable retention, multi-process aggregation, dashboard, threshold alerting, operator acknowledgement, escalation or recovery drill is proven. The worker remains opt-in and must not be enabled by default.
+
+**Progress remains unchanged:** Stage 1 = 30/40 provisional = 300/400 ticks = **75% provisional**; Gate 10 = **0/10 officially closed**; Stages 2–6 = **NOT SCORED**; overall 20.90% remains a historical owner-confirmed checkpoint, not a fresh weighted calculation. No tick is awarded for this endpoint or for CI alone.
