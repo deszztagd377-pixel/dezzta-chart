@@ -1698,3 +1698,36 @@ Gate 39 remains **OPEN** until the sender, worker and real Firebase/Android end-
 No Stage 1 criterion is closed and no progress ticks are awarded for source changes, tests, CI, or documentation alone. Gate 10 remains **0/10 officially closed**. Stage 1 remains **30/40 provisional criteria, 300/400 ticks (75% provisional)**. Stages 2–6 remain **NOT SCORED**. Overall progress remains **20.90% historical owner-confirmed checkpoint only**. The colored six-stage dashboard remains documentation-only and is not part of the APK.
 
 ZERO COST maintained. No paid service or dependency was added. No Termux/device command was required. No APK release or download link is claimed.
+
+
+## Gate 10 work-cycle — isolated Firebase Cloud Messaging sender adapter — 2026-11-16
+
+### Implementation
+- Branch: `phase-2/market-data-foundation`; `main` untouched.
+- `423526b` — add `backend/app/fcm_sender.py`.
+- `edb8841` — add `backend/tests/test_fcm_sender.py`.
+- Sender initialization uses Firebase Admin Application Default Credentials (ADC) and a named Firebase app. No service-account JSON, private key, credential string, or paid service was added.
+- Sends data-only price-alert payloads containing a stable `event_id`, zone, canonical instrument, trigger price and source timestamp. The event ID is supplied for Android-side deduplication; FCM delivery is not exactly-once.
+- Provider failures are reduced to short sanitized codes and classified as retryable or permanent. Raw provider exception text and token values are not persisted or returned.
+- Sender is deliberately isolated and is **not wired into FastAPI lifespan**. No worker is running and no notification can be sent by this change alone.
+
+### Regression coverage authored
+- Data payload and stable event ID.
+- Invalid/empty/oversized tokens and incomplete event payloads.
+- Permanent token/argument errors versus retryable availability/quota/internal errors.
+- Unknown provider errors use a sanitized retryable classification.
+- Empty provider message ID and uninitialized sender fail closed.
+- The test file was committed, but execution against the repository CI has **not yet been independently verified** at this documentation update. Do not report these tests as passed until a completed CI run confirms them.
+
+### Remaining integration boundary
+- The current encrypted device store exposes owner+installation token lookup, but not a bounded owner-wide delivery enumeration API. That API must be designed before a worker can fan out alerts to all active devices.
+- Next implementation must add bounded device enumeration, then a single bounded FastAPI lifespan worker with explicit shutdown, lease renewal/expiry behavior, retry backoff and permanent-token revocation.
+- The worker must not start unless sender, store, Firebase project, key injection and explicit opt-in are all valid. No no-op sender or fake production path.
+- Real Firebase ADC availability, Android client-side `event_id` deduplication, token refresh, closed-app delivery and device revocation still require owner-host/device end-to-end proof.
+
+### Validation and stage accounting
+- Latest implementation commit: `edb8841`; sender source commit: `423526b`.
+- Vercel status reported success for `edb8841`; this is a frontend deployment status, **not backend test or CodeQL evidence**. No completed GitHub Actions run was available at the time of this update.
+- No Stage 1 criterion closed; no ticks awarded for source or test-file additions alone.
+- Gate 10: **0/10 officially closed**. Stage 1: **30/40 provisional criteria, 300/400 ticks (75% provisional)**. Stages 2–6: **NOT SCORED**. Overall 20.90% remains a historical owner-confirmed checkpoint, not a fresh calculation.
+- ZERO COST maintained. No Termux/device command needed. No APK release or download link claimed.
