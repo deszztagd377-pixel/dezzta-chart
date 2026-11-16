@@ -34,6 +34,12 @@ class StoredAlertDevice:
     updated_at_utc: str
 
 
+@dataclass(frozen=True, slots=True)
+class DeliverableAlertDevice:
+    installation_id: str
+    token: str
+
+
 class SQLiteAlertDeviceStore:
     """AES-256-GCM encrypted FCM-token storage in the shared SQLite database."""
 
@@ -210,6 +216,34 @@ class SQLiteAlertDeviceStore:
                 """,
                 (owner_id.strip(),),
             ).fetchone()[0]
+
+    def active_tokens_for_delivery(
+        self, *, owner_id: str, limit: int = 10
+    ) -> list[DeliverableAlertDevice]:
+        """Return a bounded, owner-scoped snapshot of active decrypted tokens."""
+        if not isinstance(owner_id, str) or not 1 <= len(owner_id.strip()) <= _MAX_OWNER_LENGTH:
+            raise ValueError("owner_id must contain 1 to 128 characters.")
+        if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= 10:
+            raise ValueError("limit must be between 1 and 10.")
+        owner = owner_id.strip()
+        with closing(self._connect()) as connection:
+            rows = connection.execute(
+                """
+                SELECT installation_id, token_ciphertext
+                FROM alert_device_tokens
+                WHERE owner_id = ? AND revoked_at_utc IS NULL
+                ORDER BY updated_at_utc, installation_id
+                LIMIT ?
+                """,
+                (owner, limit),
+            ).fetchall()
+        return [
+            DeliverableAlertDevice(
+                installation_id=row["installation_id"],
+                token=self._decrypt(owner, row["installation_id"], row["token_ciphertext"]),
+            )
+            for row in rows
+        ]
 
     def token_for_delivery(self, *, owner_id: str, installation_id: str) -> str | None:
         owner, installation = self._validate_identity(owner_id, installation_id)
