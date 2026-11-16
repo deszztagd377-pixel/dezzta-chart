@@ -1775,3 +1775,14 @@ ZERO COST maintained. No paid service or dependency was added. No Termux/device 
 - No Stage 1 criterion closed and no ticks awarded for source, test files, or documentation alone.
 - Gate 10: **0/10 officially closed**. Stage 1: **30/40 provisional criteria, 300/400 ticks (75% provisional)**. Stages 2–6: **NOT SCORED**. Overall 20.90% remains a historical owner-confirmed checkpoint.
 - ZERO COST maintained. No Termux/device command needed in this cycle. No APK release or download link claimed.
+
+
+### Safety review correction — FCM token revocation and lease-safe throughput
+
+A focused review found two correctness details that needed tightening before claiming the worker integration complete:
+
+- FCM `INVALID_ARGUMENT`, sender/project mismatch, and third-party authentication errors do not prove that a device registration token is invalid. The sender now exposes a separate `token_invalid` classification. Only explicit `UNREGISTERED` / registration-token-not-registered errors revoke that installation; other permanent errors terminate the event without revoking a potentially valid device.
+- The durable outbox worker leases all events in a batch before processing them sequentially. A multi-event batch could let later leases expire during slow multi-device FCM fan-out. To avoid premature concurrency, `ALERT_DELIVERY_BATCH_SIZE` is now fixed at **1 event per polling cycle** until per-event lease renewal or safe concurrent processing is implemented. Each event remains capped at 10 active devices.
+- The outbox runner now treats sender exceptions with `retryable=False` as terminal immediately; unclassified exceptions retain bounded retry behavior.
+- Added regression tests for token-invalid classification, no revocation on non-token permanent errors, and immediate terminal handling of permanent sender errors.
+- CI for the resulting exact final revision remains pending/unverified. These tests are authored, not yet reported as passing.
