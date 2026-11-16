@@ -1982,7 +1982,7 @@ This closes the specific consumer-side provider-hardcoding defect. It does **not
 ### Exact branch changes
 - Working branch: `phase-2/market-data-foundation`; `main` untouched.
 - New `backend/app/provider_coverage.py`: deterministic, provider-aware coverage-union calculation over explicit mappings only.
-- New `backend/tests/test_provider_coverage.py`: nine unit tests covering complementary and redundant coverage, ineligible candidates, unknown providers, out-of-watchlist instruments, duplicate mappings, missing evidence references, unsupported asset/data families, duplicate catalog IDs and empty watchlists.
+- New `backend/tests/test_provider_coverage.py`: ten unit tests covering complementary and redundant coverage, ineligible candidates, unknown providers, out-of-watchlist instruments, duplicate mappings, missing evidence references, unsupported asset/data families, duplicate catalog IDs and empty watchlists.
 - The calculation fails closed: candidate mappings count only when the provider is uniquely identified, eligible for recurring-$0 baseline, explicitly supports the mapped asset class and data family, and carries a non-empty evidence reference. It makes no network calls, activates no provider, and never blends provider feeds.
 
 ### Verification boundary
@@ -2007,7 +2007,11 @@ Add provider adapter lifecycle only after a concrete source passes the recurring
 - Added explicit `asset_class` to every provider/instrument mapping.
 - Reject mappings whose asset class or data family is absent from the candidate's declared support.
 - Duplicate provider IDs in the catalog are treated as ambiguous and disabled rather than silently using the last record.
-- Expanded coverage unit tests to nine cases.
+- Expanded coverage unit tests to ten cases.
 - Evidence reference is a required non-empty review pointer, not proof that the external document has been independently verified; human/legal source review remains required.
 - CI workflow configuration has a push trigger for this working branch. The latest run must be inspected before tests can be marked passed.
 - Verification state remains: code and tests read back from GitHub; test execution not yet confirmed. No Stage 1 ticks awarded.
+
+
+### Duplicate-mapping correction — 2026-11-16
+A further review found that two evidence references for the same provider/instrument/venue/asset-class/data-family mapping could inflate the eligible mapping counter. The deduplication key now excludes the evidence reference, and a regression test covers the case. Evidence remains a required field but cannot be used to manufacture a second coverage mapping. Total authored coverage test functions: ten. Exact-HEAD CI is being rerun after this correction.
