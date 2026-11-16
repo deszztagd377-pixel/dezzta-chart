@@ -127,3 +127,8 @@ This inventory is intentionally broad but not exhaustive. New sources can be add
 ## Multi-provider connection design
 
 The companion [Multi-provider WebSocket pool design](MULTI_PROVIDER_WEBSOCKET_POOL_DESIGN.md) defines how multiple approved sources can be multiplexed and isolated without opening a socket per pair. It specifies bounded sessions, per-provider quota budgets, backpressure, stale/gap handling, reconnect policy and measured capacity acceptance. It is a design specification only: no WebSocket pool or new provider has been activated.
+
+
+## Complementary pair coverage
+
+The [Pair Coverage Federation design](PAIR_COVERAGE_FEDERATION_ZERO_COST.md) documents the intended model: independent free providers may cover different subsets of the target instruments, and DEZZTA CHART can combine the union of eligible mappings. It explicitly does not assume that one provider covers every pair, nor that each pair needs its own socket. Provider/venue identity, licensing, quota and freshness remain mandatory per mapping. This is architecture only; no provider-specific pair claim is approved and no feed is active.
