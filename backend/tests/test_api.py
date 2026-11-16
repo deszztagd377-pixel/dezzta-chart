@@ -11,6 +11,7 @@ from starlette.websockets import WebSocketDisconnect
 from dataclasses import replace
 
 from app.config import Settings
+from app.alert_device_store import SQLiteAlertDeviceStore
 from app.main import _allow_websocket_ping, create_app
 from app.identity import IdentityProviderUnavailable, IdentityVerificationError, VerifiedPrincipal
 from app.instrument_identity import CanonicalInstrument
@@ -1600,3 +1601,33 @@ def test_websocket_rejects_identity_drift_during_idle_subscription(monkeypatch) 
             websocket.receive_json()
 
     assert disconnected.value.code == 4401
+
+def test_alert_device_store_is_opt_in_and_uses_shared_database(tmp_path):
+    disabled_app = create_app(make_settings())
+    assert disabled_app.state.alert_device_store is None
+
+    database_path = tmp_path / "alerts.sqlite3"
+    settings = replace(
+        make_settings(),
+        instrument_registry_db_path=str(database_path),
+        alert_device_store_enabled=True,
+        alert_device_encryption_key=b"0123456789abcdef0123456789abcdef",
+    )
+    enabled_app = create_app(settings)
+
+    store = enabled_app.state.alert_device_store
+    assert isinstance(store, SQLiteAlertDeviceStore)
+    assert store.database_path == str(database_path)
+    store.register(
+        owner_id="verified-test-subject",
+        installation_id="android-test-device",
+        fcm_token="test-only-fcm-token",
+    )
+    assert store.token_for_delivery(
+        owner_id="verified-test-subject",
+        installation_id="android-test-device",
+    ) == "test-only-fcm-token"
+    assert not any(
+        getattr(route, "path", "").startswith("/v1/alerts/devices")
+        for route in enabled_app.routes
+    )
