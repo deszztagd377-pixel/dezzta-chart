@@ -52,6 +52,30 @@ redis.call('PEXPIRE', KEYS[1], tonumber(ARGV[2]) * 2)
 return 1
 """
 
+WEBSOCKET_RENEW_SCRIPT = """
+-- dezzta:websocket-renew:v1
+local now_ms = tonumber(ARGV[1])
+local expires_ms = now_ms + tonumber(ARGV[2])
+local connection_id = ARGV[3]
+
+redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', now_ms)
+if not redis.call('ZSCORE', KEYS[1], connection_id) then
+  return 0
+end
+
+if KEYS[2] ~= 'dezzta:{guard-ws}:no-account' then
+  redis.call('ZREMRANGEBYSCORE', KEYS[2], '-inf', now_ms)
+  if not redis.call('ZSCORE', KEYS[2], connection_id) then
+    return 0
+  end
+  redis.call('ZADD', KEYS[2], expires_ms, connection_id)
+  redis.call('PEXPIRE', KEYS[2], tonumber(ARGV[2]) * 2)
+end
+
+redis.call('ZADD', KEYS[1], expires_ms, connection_id)
+redis.call('PEXPIRE', KEYS[1], tonumber(ARGV[2]) * 2)
+return 1
+"""
 WEBSOCKET_RELEASE_SCRIPT = """
 -- dezzta:websocket-release:v1
 redis.call('ZREM', KEYS[1], ARGV[1])
@@ -194,7 +218,17 @@ class RedisSharedGuard:
         return await self._write_websocket_lease(connection_id, account_subject)
 
     async def renew_websocket(self, connection_id: str, account_subject: str) -> bool:
-        return await self._write_websocket_lease(connection_id, account_subject)
+        """Extend an existing lease; never recreate a lease that has expired."""
+        result = await self._redis.eval(
+            WEBSOCKET_RENEW_SCRIPT,
+            2,
+            self.GLOBAL_WEBSOCKET_KEY,
+            self._account_key(account_subject),
+            int(time.time() * 1000),
+            self.websocket_lease_seconds * 1000,
+            connection_id,
+        )
+        return bool(int(result))
 
     async def release_websocket(
         self,
