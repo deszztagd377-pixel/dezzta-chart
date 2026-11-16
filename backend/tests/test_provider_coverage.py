@@ -23,13 +23,21 @@ def _approved_candidate(provider_id: str) -> ProviderCandidate:
     )
 
 
-def _mapping(provider: str, instrument: str, venue: str = "venue-x"):
+def _mapping(
+    provider: str,
+    instrument: str,
+    venue: str = "venue-x",
+    asset_class: str = "crypto_spot_exchange_specific",
+    data_family: str = "ohlcv",
+    evidence_ref: str = "test-fixture:reviewed-mapping",
+):
     return ProviderInstrumentMapping(
         provider_id=provider,
         instrument_id=instrument,
         venue=venue,
-        data_family="ohlcv",
-        evidence_ref="test-fixture:approved-mapping",
+        asset_class=asset_class,
+        data_family=data_family,
+        evidence_ref=evidence_ref,
     )
 
 
@@ -80,7 +88,7 @@ def test_unknown_provider_and_out_of_watchlist_mapping_fail_closed():
     assert report.rejected_mapping_count == 2
 
 
-def test_duplicate_provider_instrument_venue_family_mapping_is_counted_once():
+def test_duplicate_mapping_is_counted_once():
     duplicate = _mapping("provider-a", "BTC-USD")
     report = build_coverage_report(
         ["BTC-USD"],
@@ -92,15 +100,34 @@ def test_duplicate_provider_instrument_venue_family_mapping_is_counted_once():
 
 
 def test_mapping_without_evidence_reference_is_rejected():
-    mapping = ProviderInstrumentMapping(
-        provider_id="provider-a",
-        instrument_id="BTC-USD",
-        venue="venue-x",
-        data_family="ohlcv",
-        evidence_ref=" ",
-    )
     report = build_coverage_report(
-        ["BTC-USD"], [mapping], [_approved_candidate("provider-a")]
+        ["BTC-USD"],
+        [_mapping("provider-a", "BTC-USD", evidence_ref=" ")],
+        [_approved_candidate("provider-a")],
+    )
+    assert report.covered == ()
+    assert report.rejected_mapping_count == 1
+
+
+def test_unsupported_asset_class_and_data_family_are_rejected():
+    report = build_coverage_report(
+        ["BTC-USD"],
+        [
+            _mapping("provider-a", "BTC-USD", asset_class="us_equities"),
+            _mapping("provider-a", "BTC-USD", data_family="order_book"),
+        ],
+        [_approved_candidate("provider-a")],
+    )
+    assert report.covered == ()
+    assert report.rejected_mapping_count == 2
+
+
+def test_duplicate_provider_catalog_ids_are_ambiguous_and_rejected():
+    candidate = _approved_candidate("provider-a")
+    report = build_coverage_report(
+        ["BTC-USD"],
+        [_mapping("provider-a", "BTC-USD")],
+        [candidate, candidate],
     )
     assert report.covered == ()
     assert report.rejected_mapping_count == 1
