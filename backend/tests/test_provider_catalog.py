@@ -2,6 +2,7 @@ from app.provider_catalog import (
     CostClass,
     FreshnessClass,
     RightsStatus,
+    ProviderCandidate,
     get_provider_candidate,
     provider_candidates,
     zero_cost_activation_blockers,
@@ -67,3 +68,41 @@ def test_alpaca_free_feed_does_not_claim_all_us_venues():
 def test_provider_lookup_is_exact_and_case_normalized():
     assert get_provider_candidate("ALPACA_BASIC") == get_provider_candidate("alpaca_basic")
     assert get_provider_candidate("alpaca") is None
+
+
+
+def test_recurring_free_source_without_documented_rights_is_not_eligible():
+    candidate = ProviderCandidate(
+        provider_id="synthetic_review_case",
+        asset_classes=("equities",),
+        data_families=("ohlcv",),
+        freshness=FreshnessClass.DELAYED_OR_CACHED,
+        cost_class=CostClass.RECURRING_FREE,
+        rights_status=RightsStatus.UNKNOWN,
+        authentication="none",
+        documented_limit="limited",
+        official_docs_url="https://example.invalid/docs",
+        caveat="test only",
+    )
+    assert not candidate.eligible_for_zero_cost_baseline
+    assert "display_and_redistribution_rights_not_approved" in candidate.activation_blockers
+
+
+def test_missing_source_scope_or_quota_fails_closed():
+    candidate = ProviderCandidate(
+        provider_id="incomplete_review_case",
+        asset_classes=(),
+        data_families=(),
+        freshness=FreshnessClass.DELAYED_OR_CACHED,
+        cost_class=CostClass.RECURRING_FREE,
+        rights_status=RightsStatus.APPROVED,
+        authentication="none",
+        documented_limit="",
+        official_docs_url="",
+        caveat="test only",
+    )
+    assert not candidate.eligible_for_zero_cost_baseline
+    assert "official_documentation_missing" in candidate.activation_blockers
+    assert "quota_or_usage_limit_not_documented" in candidate.activation_blockers
+    assert "asset_scope_missing" in candidate.activation_blockers
+    assert "data_family_scope_missing" in candidate.activation_blockers
