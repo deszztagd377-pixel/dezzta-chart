@@ -4,6 +4,7 @@ import pytest
 
 from app.schema_migrations import (
     SchemaMigrationConflict,
+    SchemaMigrationError,
     SchemaMigrationOrderError,
     SQLiteSchemaMigrationLedger,
     schema_fingerprint,
@@ -202,7 +203,7 @@ def test_schema_fingerprint_rejects_missing_tables_and_unsafe_identifiers(tmp_pa
     SQLiteSchemaMigrationLedger(path)
     connection = sqlite3.connect(path)
     try:
-        with pytest.raises(Exception, match="missing schema tables"):
+        with pytest.raises(SchemaMigrationError, match="missing schema tables"):
             schema_fingerprint(connection, ["missing_table"])
         with pytest.raises(ValueError, match="unique lowercase SQLite identifiers"):
             schema_fingerprint(connection, ["sample; DROP TABLE users"])
