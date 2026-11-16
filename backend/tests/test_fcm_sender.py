@@ -118,3 +118,31 @@ def test_sender_requires_explicit_initialization():
     sender = FirebaseCloudMessagingSender("dezzta-test")
     with pytest.raises(RuntimeError, match="not initialized"):
         sender.send_price_alert(token="fcm-token", event=make_event())
+
+
+def test_sender_marks_only_unregistered_codes_as_invalid_tokens():
+    class ProviderError(Exception):
+        code = "UNREGISTERED"
+
+    def fail(message, *, app):
+        raise ProviderError()
+
+    sender, _ = make_sender(fail)
+    with pytest.raises(FCMDeliveryError) as raised:
+        sender.send_price_alert(token="fcm-token", event=make_event())
+    assert raised.value.retryable is False
+    assert raised.value.token_invalid is True
+
+
+def test_sender_does_not_mark_invalid_argument_as_invalid_token():
+    class ProviderError(Exception):
+        code = "INVALID_ARGUMENT"
+
+    def fail(message, *, app):
+        raise ProviderError()
+
+    sender, _ = make_sender(fail)
+    with pytest.raises(FCMDeliveryError) as raised:
+        sender.send_price_alert(token="fcm-token", event=make_event())
+    assert raised.value.retryable is False
+    assert raised.value.token_invalid is False
