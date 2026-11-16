@@ -97,6 +97,17 @@ For a container-based Python service on existing owner hardware, use:
 - `FIREBASE_PROJECT_ID`: backend-only project identifier for a verified
   no-billing Firebase configuration
 - `REDIS_URL`: backend-only secret for the owner-controlled Redis TLS endpoint
+- Alert-device storage remains disabled unless explicitly opted in with
+  `ALERT_DEVICE_STORE_ENABLED=true` and a protected key file supplied through
+  `ALERT_DEVICE_ENCRYPTION_KEY_FILE`. The key file must be readable by the
+  unprivileged application identity only and contain canonical base64 for
+  exactly 32 random bytes. Do not pass the key as an environment value or
+  Docker build argument.
+
+The opt-in currently initializes encrypted token persistence only. It does not
+enable device-registration routes, FCM sending, a delivery worker, or real
+push delivery. Keep it disabled until key custody/recovery, verified account
+ownership, sender setup, and Android end-to-end acceptance are complete.
 
 Do not use managed Redis, paid hosting, paid domains, a CDN, or any trial that
 can convert into a charge. Add preview origins only when needed, as
