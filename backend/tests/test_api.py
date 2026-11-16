@@ -78,6 +78,54 @@ def test_application_durable_adapters_share_configured_database_path(tmp_path) -
     )
     assert database_path.is_file()
 
+class UnavailableSharedGuard:
+    async def start(self):
+        return None
+
+    async def close(self):
+        return None
+
+    async def allow_http(self, client_identity):
+        raise ConnectionError("redis unavailable")
+
+    async def acquire_websocket(self, connection_id, account_subject=None):
+        raise ConnectionError("redis unavailable")
+
+    async def release_websocket(self, connection_id, account_subject=None):
+        return None
+
+
+def test_http_api_fails_closed_when_shared_guard_is_unavailable() -> None:
+    application = create_app(
+        make_settings(),
+        shared_guard=UnavailableSharedGuard(),
+    )
+
+    with TestClient(application) as client:
+        response = client.get("/v1/market-data/status")
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "detail": "Shared request protection is temporarily unavailable."
+    }
+    assert response.headers["retry-after"] == "5"
+    assert response.headers["cache-control"] == "private, no-store, max-age=0"
+
+
+def test_websocket_fails_closed_when_shared_guard_is_unavailable() -> None:
+    application = create_app(
+        make_settings(),
+        shared_guard=UnavailableSharedGuard(),
+    )
+
+    with TestClient(application) as client:
+        with pytest.raises(WebSocketDisconnect) as disconnected:
+            with client.websocket_connect("/ws/market-data") as websocket:
+                websocket.receive_json()
+
+    assert disconnected.value.code == 1013
+
+
 def test_health_endpoint() -> None:
     client = TestClient(create_app(make_settings()))
     response = client.get("/health")
