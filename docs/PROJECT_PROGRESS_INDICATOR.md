@@ -1820,3 +1820,11 @@ A focused review found two correctness details that needed tightening before cla
 - New tests are authored but **not executed/confirmed by CI on the final commit**. Do not count them as passing.
 - No Stage 1 criteria or ticks awarded. Stage 1 remains 30/40 provisional (300/400 ticks, 75%); Gate 10 remains 0/10 officially closed.
 - ZERO COST maintained; no Termux commands or paid services required.
+
+
+### Schema fingerprint refinement
+
+- Added `schema_fingerprint(connection, table_names)` to the migration foundation. It fingerprints the selected tables, their SQLite DDL, indexes, triggers, and `table_xinfo` column metadata using canonical serialization and SHA-256.
+- It refuses missing tables, duplicate table names, and unsafe identifiers; callers must explicitly list the tables belonging to one schema component so other domains in the shared SQLite file do not affect its baseline.
+- Added regression tests for deterministic fingerprints, fingerprint changes after index additions, missing tables, and identifier validation.
+- This remains a migration foundation primitive, not a completed adapter rollout. The current legacy stores have not yet been enrolled, and the new tests remain unverified until CI runs on the final commit.
