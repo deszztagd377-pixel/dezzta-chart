@@ -1631,3 +1631,126 @@ def test_alert_device_store_is_opt_in_and_uses_shared_database(tmp_path):
         getattr(route, "path", "").startswith("/v1/alerts/devices")
         for route in enabled_app.routes
     )
+
+def test_alert_device_routes_bind_owner_to_verified_identity_and_never_return_token(
+    tmp_path,
+):
+    database_path = tmp_path / "alert-device-routes.sqlite3"
+    settings = replace(
+        make_settings(),
+        instrument_registry_db_path=str(database_path),
+        alert_device_store_enabled=True,
+        alert_device_encryption_key=b"0123456789abcdef0123456789abcdef",
+    )
+    application = create_app(settings)
+
+    def verify_for_test(token):
+        subject = {
+            "firebase-user-a": "account-a",
+            "firebase-user-b": "account-b",
+        }.get(token)
+        if subject is None:
+            raise IdentityVerificationError("test identity rejected")
+        return VerifiedPrincipal(
+            subject=subject,
+            issuer="https://securetoken.google.com/test-project",
+            audience="test-project",
+            auth_time=1_798_000_000,
+        )
+
+    application.state.identity_verifier.verify = verify_for_test
+    client = TestClient(application)
+
+    assert client.post(
+        "/v1/alerts/devices",
+        json={"installation_id": "phone-a", "fcm_token": "fcm-token-v1"},
+    ).status_code == 401
+
+    spoofed_owner = client.post(
+        "/v1/alerts/devices",
+        headers={"Authorization": "Bearer firebase-user-a"},
+        json={
+            "owner_id": "account-victim",
+            "installation_id": "phone-a",
+            "fcm_token": "fcm-token-v1",
+        },
+    )
+    assert spoofed_owner.status_code == 422
+    assert application.state.alert_device_store.active_count(owner_id="account-victim") == 0
+
+    registered = client.post(
+        "/v1/alerts/devices",
+        headers={"Authorization": "Bearer firebase-user-a"},
+        json={"installation_id": "phone-a", "fcm_token": "fcm-token-v1"},
+    )
+    assert registered.status_code == 201
+    assert registered.json()["registered"] is True
+    assert "fcm_token" not in registered.json()
+    assert "owner_id" not in registered.json()
+
+    rotated = client.post(
+        "/v1/alerts/devices",
+        headers={"Authorization": "Bearer firebase-user-a"},
+        json={"installation_id": "phone-a", "fcm_token": "fcm-token-v2"},
+    )
+    assert rotated.status_code == 201
+    assert application.state.alert_device_store.token_for_delivery(
+        owner_id="account-a", installation_id="phone-a"
+    ) == "fcm-token-v2"
+
+    cross_account_revoke = client.delete(
+        "/v1/alerts/devices/phone-a",
+        headers={"Authorization": "Bearer firebase-user-b"},
+    )
+    assert cross_account_revoke.status_code == 200
+    assert cross_account_revoke.json()["revoked"] is False
+    assert application.state.alert_device_store.token_for_delivery(
+        owner_id="account-a", installation_id="phone-a"
+    ) == "fcm-token-v2"
+
+    revoked = client.delete(
+        "/v1/alerts/devices/phone-a",
+        headers={"Authorization": "Bearer firebase-user-a"},
+    )
+    assert revoked.status_code == 200
+    assert revoked.json()["revoked"] is True
+    assert application.state.alert_device_store.token_for_delivery(
+        owner_id="account-a", installation_id="phone-a"
+    ) is None
+
+    invalid_token = client.post(
+        "/v1/alerts/devices",
+        headers={"Authorization": "Bearer firebase-user-a"},
+        json={"installation_id": "phone-b", "fcm_token": "not a valid token"},
+    )
+    assert invalid_token.status_code == 422
+
+
+def test_alert_device_routes_enable_only_required_cors_methods(tmp_path):
+    disabled = create_app(make_settings())
+    disabled_preflight = TestClient(disabled).options(
+        "/v1/alerts/devices",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+    assert disabled_preflight.status_code == 400
+
+    settings = replace(
+        make_settings(),
+        instrument_registry_db_path=str(tmp_path / "cors.sqlite3"),
+        alert_device_store_enabled=True,
+        alert_device_encryption_key=b"0123456789abcdef0123456789abcdef",
+    )
+    enabled = create_app(settings)
+    enabled_preflight = TestClient(enabled).options(
+        "/v1/alerts/devices",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+    assert enabled_preflight.status_code == 200
+    assert "POST" in enabled_preflight.headers["access-control-allow-methods"]
+    assert "DELETE" in enabled_preflight.headers["access-control-allow-methods"]
