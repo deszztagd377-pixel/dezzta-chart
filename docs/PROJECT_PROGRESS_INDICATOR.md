@@ -1343,3 +1343,73 @@ This is repository-level Redis integration evidence. It does **not** prove the o
 Stage 1 remains 30/40 provisionally accepted criteria; 10 external acceptance criteria remain open: **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39**. Gate 10 remains in execution; no external gate is closed by CI alone. No tick is awarded for this test, documentation update, or green CI.
 
 The overall-project figure remains **20.90% historical owner-confirmed checkpoint only**. A fresh weighted overall percentage is not established because the M1–M8 weighting ledger has not been approved and scored. No stage transition is recorded. The six-stage visual dashboard standard is unchanged and remains documentation-only, not an APK feature.
+
+## Gate 10 work-cycle — Redis lease renewal correctness and AOF restart recovery — 2026-11-16
+
+### Exact source revision and scope
+
+- Working branch: `phase-2/market-data-foundation`; `main` was not modified.
+- Baseline documentation checkpoint: `00d649fdfe4793bd163cd516ab1f867587f4d27b`.
+- Exact tested source HEAD: `ba95b0d91e9e4561f3915d6a3fc56bbd560513b5`.
+- Compare result: 5 commits ahead of the baseline; 3 files changed:
+  - `backend/app/shared_guard.py`
+  - `backend/tests/test_shared_guard.py`
+  - `.github/workflows/ci.yml`
+
+### Internal blocker found and corrected — expired WebSocket lease resurrection
+
+The previous `renew_websocket()` implementation reused the acquire Lua script. Because acquire intentionally permits a new lease when capacity is available, an expired connection could unintentionally recreate its lease during a late renewal. This blurred the security boundary between renewing an active connection and acquiring a new one.
+
+Correction:
+- Added a dedicated atomic `WEBSOCKET_RENEW_SCRIPT`.
+- Renewal now requires the connection ID to exist in both the global lease set and the authenticated account lease set after expired members are pruned.
+- If either lease is missing/expired, renewal returns false. The existing WebSocket handler already fails closed and closes the connection when renewal returns false.
+- New connections still use the existing acquire script; the initial pre-auth global reservation and post-auth account reservation flow is unchanged.
+- Redis command errors continue to propagate to the handler, which closes the connection rather than silently allowing it.
+
+Regression coverage:
+- Fake-client test verifies renewal uses the dedicated renewal script and rejects a missing/expired lease result.
+- Real Redis integration test verifies active lease renewal extends expiry, blocks a competing connection after the original expiry point, then rejects renewal of the old connection after the renewed lease expires while permitting a fresh acquire for the same account.
+
+### Gate 25 CI smoke enhancement — Redis AOF persistence and backend recovery
+
+The isolated container smoke test now:
+1. Creates a dedicated named volume for Redis data.
+2. Starts Redis with AOF enabled and `appendfsync always`.
+3. Verifies the active persistence configuration and writes a persistence canary.
+4. Stops and removes the Redis container while retaining its volume.
+5. Recreates Redis against the same volume and verifies the canary survived restart and AOF remains enabled.
+6. Reapplies the isolated least-privilege ACL user after Redis restart, confirms authenticated access, then restarts the backend container so its Redis connection is re-established.
+7. Completes backend health and SQLite persistent-volume checks.
+
+The smoke test explicitly re-provisions the ACL after Redis restart; it does **not** claim that ACL configuration itself is durably stored. This is an isolated CI environment, not the owner's production Redis deployment.
+
+### Exact-HEAD CI — all workflows completed successfully
+
+All three workflows below ran against exact source HEAD `ba95b0d91e9e4561f3915d6a3fc56bbd560513b5`:
+
+- Automated Tests [#43838948224](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43838948224) — **SUCCESS**. Backend tests, frontend tests/build, dependency audits, synthetic outbox benchmark, backend image build, Redis AOF persistence/restart recovery smoke, backend image scan, vulnerability report export/upload, and cleanup all completed successfully.
+- CodeQL [#43838948211](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43838948211) — **SUCCESS** for JavaScript/TypeScript and Python.
+- Full Git History Secret Audit [#43838948267](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43838948267) — **SUCCESS**.
+
+The backend integration test step completed successfully with `REDIS_TEST_URL` configured, so the real Redis lease renewal/expiry regression was eligible to run. The smoke test step itself also completed successfully with the AOF restart check included.
+
+### Acceptance boundary and remaining Gate 25 work
+
+- Criterion 25 remains **OPEN**. CI evidence is stronger, but it does not prove the owner's Redis endpoint, TLS certificate/hostname, private binding/firewall, production ACL persistence/configuration, AOF policy on owner infrastructure, restart recovery, or fail-closed behavior during an owner-host Redis outage.
+- The production WebSocket lease-renewal behavior has a source-level correction and real Redis CI regression, but the complete authenticated browser/Android WSS deployment acceptance under criterion 36 remains separate and open.
+- No external Stage 1 criterion is closed by this repository/CI cycle. No progress ticks are awarded for the implementation, tests, workflow change, documentation, or green CI.
+- No new paid provider, managed Redis, paid host, paid runner, or paid monitoring was introduced. No Termux/device action was required.
+
+### Six-stage project-process indicator — official accounting unchanged
+
+| Stage | Official state | Progress |
+|---|---|---:|
+| 1 — Foundation, Security & Data Integrity | Active; provisional checklist | **300/400 ticks — 75% provisional** |
+| 2 — Market Data Infrastructure | Not officially opened | **NOT SCORED** |
+| 3 — Chart Engine & Timeframe | Not officially opened | **NOT SCORED** |
+| 4 — Indicators & Analytics | Not officially opened | **NOT SCORED** |
+| 5 — Professional UI & Interactive Tools | Not officially opened | **NOT SCORED** |
+| 6 — Hardening, Validation & APK Release | Not officially opened | **NOT SCORED** |
+
+Stage 1 remains 30/40 provisionally accepted criteria. The 10 open external criteria remain **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39**. Stages 2–6 remain NOT SCORED. Overall project remains **20.90% historical owner-confirmed checkpoint only**; no fresh weighted total is approved. No stage transition is recorded. The progress indicator remains documentation-only and is not part of the APK.
