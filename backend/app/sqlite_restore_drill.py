@@ -210,6 +210,20 @@ def _write_probe(path: Path) -> None:
     finally:
         db.close()
 
+def _remove_created_database(path: Path) -> None:
+    """Remove one drill-owned database and SQLite sidecars after failed verification."""
+    for candidate in (
+        path,
+        Path(f"{path}-journal"),
+        Path(f"{path}-wal"),
+        Path(f"{path}-shm"),
+    ):
+        try:
+            candidate.unlink()
+        except FileNotFoundError:
+            pass
+
+
 def run_restore_drill(source_path: str | Path, backup_path: str | Path,
                       restore_path: str | Path) -> dict:
     started = perf_counter()
@@ -225,52 +239,69 @@ def run_restore_drill(source_path: str | Path, backup_path: str | Path,
     if restored.exists():
         raise FileExistsError("restore destination exists; refusing to overwrite")
 
-    create_consistent_sqlite_backup(source, backup, overwrite=False)
-    restore_consistent_sqlite_backup(backup, restored)
-    backup_inventory = _inventory(backup)
-    restored_inventory = _inventory(restored)
-    if backup_inventory["counts"] != restored_inventory["counts"]:
-        raise sqlite3.DatabaseError("backup and restore table row counts differ")
-    if backup_inventory["row_sha256"] != restored_inventory["row_sha256"]:
-        raise sqlite3.DatabaseError("backup and restore application row content differs")
-    if backup_inventory["schema_sha256"] != restored_inventory["schema_sha256"]:
-        raise sqlite3.DatabaseError("backup and restore database schema differs")
-    domains = _domain_readback(restored)
-    _write_probe(restored)
-    probe_db = _ro(restored)
+    backup_created = False
+    restore_created = False
     try:
-        probe_remains = probe_db.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
-            ("__dezzta_restore_drill_probe",)
-        ).fetchone()
-    finally:
-        probe_db.close()
-    if probe_remains:
-        raise sqlite3.DatabaseError("restore probe cleanup failed")
+        create_consistent_sqlite_backup(source, backup, overwrite=False)
+        backup_created = True
+        restore_consistent_sqlite_backup(backup, restored)
+        restore_created = True
+        backup_inventory = _inventory(backup)
+        restored_inventory = _inventory(restored)
+        if backup_inventory["counts"] != restored_inventory["counts"]:
+            raise sqlite3.DatabaseError("backup and restore table row counts differ")
+        if backup_inventory["row_sha256"] != restored_inventory["row_sha256"]:
+            raise sqlite3.DatabaseError("backup and restore application row content differs")
+        if backup_inventory["schema_sha256"] != restored_inventory["schema_sha256"]:
+            raise sqlite3.DatabaseError("backup and restore database schema differs")
+        domains = _domain_readback(restored)
+        _write_probe(restored)
+        probe_db = _ro(restored)
+        try:
+            probe_remains = probe_db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+                ("__dezzta_restore_drill_probe",)
+            ).fetchone()
+        finally:
+            probe_db.close()
+        if probe_remains:
+            raise sqlite3.DatabaseError("restore probe cleanup failed")
 
-    report = {
-        "status": "passed",
-        "drill_id": uuid4().hex,
-        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
-        "runtime": {"python": platform.python_version(), "platform": platform.system(),
-                    "machine": platform.machine(), "sqlite": sqlite3.sqlite_version},
-        "source_role": "source", "backup_role": "backup", "restore_role": "restored_copy",
-        "backup_size_bytes": backup.stat().st_size, "restore_size_bytes": restored.stat().st_size,
-        "backup_sha256": _hash(backup), "restore_sha256": _hash(restored),
-        "integrity_check": "ok", "foreign_key_errors": 0,
-        "required_tables_present": True, "table_row_counts_match": True,
-        "table_content_match": True, "schema_match": True,
-        "application_content_sha256": backup_inventory["content_sha256"],
-        "application_domain_readback": domains,
-        "outbox_event_ids_unique": True,
-        "post_restore_write_read_cleanup": "passed",
-        "failed_checks": [],
-        "elapsed_ms": round((perf_counter() - started) * 1000, 2),
-        "privacy": "aggregate counts and hashes only; no row values, account IDs, or absolute paths",
-    }
-    canonical_report = json.dumps(report, sort_keys=True, separators=(",", ":"))
-    report["report_sha256"] = hashlib.sha256(canonical_report.encode("utf-8")).hexdigest()
-    return report
+        report = {
+            "status": "passed",
+            "drill_id": uuid4().hex,
+            "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+            "runtime": {"python": platform.python_version(), "platform": platform.system(),
+                        "machine": platform.machine(), "sqlite": sqlite3.sqlite_version},
+            "source_role": "source", "backup_role": "backup", "restore_role": "restored_copy",
+            "backup_size_bytes": backup.stat().st_size, "restore_size_bytes": restored.stat().st_size,
+            "backup_sha256": _hash(backup), "restore_sha256": _hash(restored),
+            "integrity_check": "ok", "foreign_key_errors": 0,
+            "required_tables_present": True, "table_row_counts_match": True,
+            "table_content_match": True, "schema_match": True,
+            "application_content_sha256": backup_inventory["content_sha256"],
+            "application_domain_readback": domains,
+            "outbox_event_ids_unique": True,
+            "post_restore_write_read_cleanup": "passed",
+            "failed_checks": [],
+            "elapsed_ms": round((perf_counter() - started) * 1000, 2),
+            "privacy": "aggregate counts and hashes only; no row values, account IDs, or absolute paths",
+        }
+        canonical_report = json.dumps(report, sort_keys=True, separators=(",", ":"))
+        report["report_sha256"] = hashlib.sha256(canonical_report.encode("utf-8")).hexdigest()
+        return report
+    except BaseException:
+        # The source is never touched. Only outputs whose creation returned
+        # successfully in this invocation are eligible for cleanup.
+        for path, created in ((restored, restore_created), (backup, backup_created)):
+            if created:
+                try:
+                    _remove_created_database(path)
+                except OSError:
+                    # Preserve the original verification error; cleanup failure
+                    # must not replace the actionable root cause.
+                    pass
+        raise
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run a safe fresh-path DEZZTA CHART SQLite restore drill.")

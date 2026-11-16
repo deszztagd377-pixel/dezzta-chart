@@ -91,6 +91,36 @@ def test_owner_device_restore_drill_checks_application_domains_and_redacts_paths
     assert report["restore_role"] == "restored_copy"
     assert "drill-test-subject" not in json.dumps(report)
 
+def test_failed_restore_verification_removes_only_drill_created_outputs(tmp_path, monkeypatch):
+    source = tmp_path / "live.sqlite3"
+    backup = tmp_path / "backup.sqlite3"
+    restored = tmp_path / "restored.sqlite3"
+    _build_database(source)
+
+    from app import sqlite_restore_drill
+    original_inventory = sqlite_restore_drill._inventory
+    calls = 0
+
+    def fail_restored_inventory(path):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise sqlite3.DatabaseError("injected restore verification failure")
+        return original_inventory(path)
+
+    monkeypatch.setattr(sqlite_restore_drill, "_inventory", fail_restored_inventory)
+
+    with pytest.raises(sqlite3.DatabaseError, match="injected restore verification failure"):
+        run_restore_drill(source, backup, restored)
+
+    assert source.is_file()
+    assert not backup.exists()
+    assert not restored.exists()
+    for output in (backup, restored):
+        for suffix in ("-journal", "-wal", "-shm"):
+            assert not (tmp_path / f"{output.name}{suffix}").exists()
+
+
 def test_restore_drill_refuses_existing_output_paths_without_overwriting(tmp_path):
     source = tmp_path / "live.sqlite3"
     backup = tmp_path / "backup.sqlite3"

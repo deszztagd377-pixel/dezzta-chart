@@ -943,3 +943,28 @@ The earlier commit `b5c0dd734c63a5f1ebb26b391f5a4fc4532c133c` failed backend tes
 The restore-schema tests are synthetic. They do not constitute an owner-device Android restore drill. Alert delivery still has no production adapter, authenticated recipient routing, or active lifecycle worker.
 
 Progress remains unchanged: Stage 1 30/40 criteria, 300/400 ticks, 75% provisional; Gate 10 0/10 officially closed; open criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, 39. Stage 2–6 NOT SCORED; overall 20.90% remains a historical checkpoint only. ZERO COST maintained; no Termux action, dependency change, paid service, APK release, or main-branch change.
+
+
+## Gate 10 work cycle — failed restore artifact cleanup (2026-11-16)
+
+### Finding
+- A source audit of `run_restore_drill` found that a verification exception after successful backup and restore publication left the newly created backup and restored database files at their requested output paths.
+- Those files contain application data. Leaving them behind after a failed drill creates avoidable data-retention and privacy risk, and can confuse a later retry.
+
+### Remediation
+- The restore drill now tracks which output files were successfully created by the current invocation.
+- If a later verification step fails, it removes only those invocation-owned database files and their SQLite journal/WAL/SHM sidecars.
+- The source database is never eligible for cleanup. Pre-existing output paths remain protected by the existing no-overwrite checks.
+- Cleanup errors do not mask the original verification exception.
+
+### Regression coverage and evidence boundary
+- Added a synthetic regression that injects a failure during restored-database inventory verification and asserts that the source remains while both drill-created outputs and sidecars are removed.
+- This test is repository/CI evidence only. It does not constitute a restore drill on the owner's Android database.
+- The new source and test changes require exact-HEAD CI verification before they are treated as passing.
+
+### Progress accounting
+- Stage 1 remains 30/40 criteria, 300/400 ticks, 75% provisional.
+- Gate 10 remains 0/10 officially closed; open criteria remain 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39.
+- Criterion 30 receives stronger failure-cleanup behavior and a targeted regression, but remains OPEN pending actual Android database-path, backup/restore and application read/write evidence.
+- Stage 2–6 remain NOT SCORED. Overall 20.90% remains a historical owner-confirmed checkpoint only; no fresh weighted score is claimed.
+- ZERO COST maintained. No Termux command, dependency change, paid service, APK release, or main-branch modification.
