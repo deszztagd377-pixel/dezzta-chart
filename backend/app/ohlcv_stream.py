@@ -65,14 +65,22 @@ class OhlcvStreamHub:
         calendar_id: str = "",
         calendar_version: str = "",
         durable_cursor: int = 0,
+        provider: str = "databento",
+        series_type: str = "contract",
     ) -> tuple[OhlcvStreamSubscription, list[OhlcvBar], int]:
         """Take the initial snapshot and register its stream without an await.
 
         The event loop cannot run ingestion.publish() between the query and
         registration, so the returned watermark is a valid atomic boundary.
         """
+        if not isinstance(provider, str) or not provider.strip():
+            raise ValueError("provider must be a non-empty string")
+        if not isinstance(series_type, str) or not series_type.strip():
+            raise ValueError("series_type must be a non-empty string")
+        provider = provider.strip().lower()
+        series_type = series_type.strip().lower()
         identity = (
-            "databento", dataset, publisher_id, instrument_id, "contract",
+            provider, dataset, publisher_id, instrument_id, series_type,
             raw_symbol, timeframe, bucket_policy, calendar_id, calendar_version,
         )
         bars, total = pipeline.query(
@@ -84,8 +92,8 @@ class OhlcvStreamHub:
             bucket_policy=bucket_policy,
             calendar_id=calendar_id,
             calendar_version=calendar_version,
-            provider="databento",
-            series_type="contract",
+            provider=provider,
+            series_type=series_type,
             limit=limit,
         )
         if not isinstance(durable_cursor, int) or isinstance(durable_cursor, bool) or durable_cursor < 0:

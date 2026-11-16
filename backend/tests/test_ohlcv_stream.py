@@ -213,3 +213,30 @@ def test_stream_hub_rejects_invalid_durable_cursor() -> None:
         except ValueError:
             continue
         raise AssertionError(f"durable cursor {cursor!r} should be rejected")
+
+
+def test_stream_hub_routes_same_series_by_provider_without_cross_talk() -> None:
+    async def scenario() -> None:
+        pipeline = OhlcvPipeline()
+        assert pipeline.apply(make_bar(0, provider="databento")) == "inserted"
+        assert pipeline.apply(make_bar(0, provider="provider-b")) == "inserted"
+        hub = OhlcvStreamHub()
+        primary, primary_bars, _ = hub.subscribe_snapshot(
+            pipeline, dataset="GLBX.MDP3", publisher_id=1, instrument_id=101,
+            raw_symbol="ESZ6", timeframe="1s", limit=100,
+        )
+        secondary, secondary_bars, _ = hub.subscribe_snapshot(
+            pipeline, dataset="GLBX.MDP3", publisher_id=1, instrument_id=101,
+            raw_symbol="ESZ6", timeframe="1s", limit=100, provider="provider-b",
+        )
+        assert [bar.provider for bar in primary_bars] == ["databento"]
+        assert [bar.provider for bar in secondary_bars] == ["provider-b"]
+        update = make_bar(1, provider="provider-b")
+        assert pipeline.apply(update) == "inserted"
+        hub.publish(update)
+        assert primary.queue.empty()
+        assert secondary.queue.qsize() == 1
+        assert secondary.queue.get_nowait()["bar"]["provider"] == "provider-b"
+        hub.unsubscribe(primary.stream_id)
+        hub.unsubscribe(secondary.stream_id)
+    asyncio.run(scenario())

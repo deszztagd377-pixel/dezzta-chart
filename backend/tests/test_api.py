@@ -1813,3 +1813,48 @@ def test_alert_worker_remains_disabled_in_default_application_lifespan():
             "last_batch": None,
             "last_error_code": None,
         }
+
+
+
+def test_websocket_selects_provider_specific_mapping_and_snapshot_without_cross_source_mix() -> None:
+    application = _app_with_bars()
+    canonical_id = "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11"
+    application.state.instrument_registry.register_instrument_with_mapping(
+        application.state.instrument_registry.get_instrument(canonical_id),
+        ProviderInstrumentMapping(
+            provider="venue_b", dataset="VENUE.B", publisher_id=2, instrument_id=202,
+            raw_symbol="ESZ6B", valid_from_ns=1, valid_to_ns=None,
+            canonical_id=canonical_id,
+        ),
+    )
+    existing, _ = application.state.ohlcv_pipeline.query(
+        dataset="GLBX.MDP3", publisher_id=1, instrument_id=101,
+        raw_symbol="ESZ6", timeframe="1s", provider="databento",
+        series_type="contract", limit=1,
+    )
+    assert existing
+    provider_b_bar = replace(
+        existing[0], provider="venue_b", dataset="VENUE.B", publisher_id=2,
+        instrument_id=202, raw_symbol="ESZ6B", sequence=1,
+    )
+    assert application.state.ohlcv_pipeline.apply(provider_b_bar) == "inserted"
+    client = TestClient(application)
+    with client.websocket_connect("/ws/market-data") as websocket:
+        websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+        assert websocket.receive_json()["type"] == "market_data.status"
+        websocket.send_json({
+            "type": "market_data.subscribe", "version": 1,
+            "canonicalInstrumentId": canonical_id,
+            "series": {
+                "provider": "venue_b", "dataset": "VENUE.B",
+                "publisherId": 2, "instrumentId": 202, "rawSymbol": "ESZ6B",
+                "timeframe": "1s", "seriesType": "contract",
+            },
+        })
+        snapshot = websocket.receive_json()
+    assert snapshot["type"] == "market_data.ohlcv.snapshot"
+    assert snapshot["count"] == 1
+    assert snapshot["bars"][0]["provider"] == "venue_b"
+    assert snapshot["bars"][0]["dataset"] == "VENUE.B"
+    assert snapshot["bars"][0]["rawSymbol"] == "ESZ6B"
+    assert snapshot["feedState"] == "disconnected"

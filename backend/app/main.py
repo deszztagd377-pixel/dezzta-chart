@@ -62,6 +62,8 @@ WEBSOCKET_MAX_PINGS_PER_WINDOW = 20
 MAX_WEBSOCKET_RAW_SYMBOL_LENGTH = 128
 MAX_WEBSOCKET_TIMEFRAME_LENGTH = 16
 MAX_WEBSOCKET_CANONICAL_ID_LENGTH = 36
+MAX_WEBSOCKET_PROVIDER_LENGTH = 32
+MAX_WEBSOCKET_DATASET_LENGTH = 64
 MAX_OHLCV_RESPONSE_BARS = 5_000
 MAX_WEBSOCKET_REPLAY_EVENTS = 10_000
 MAX_SQLITE_CURSOR = (1 << 63) - 1
@@ -822,8 +824,10 @@ def create_app(
                 if not isinstance(identity, dict):
                     await websocket.close(code=4400, reason="Exact OHLCV series identity is required")
                     return
+                provider_id = identity.get("provider", "databento")
                 dataset = identity.get("dataset")
                 raw_symbol = identity.get("rawSymbol")
+                series_type = identity.get("seriesType", "contract")
                 timeframe = identity.get("timeframe")
                 bucket_policy = identity.get("bucketPolicy")
                 calendar_id = identity.get("calendarId", "")
@@ -832,7 +836,19 @@ def create_app(
                 instrument_id = identity.get("instrumentId")
                 canonical_id = request.get("canonicalInstrumentId")
                 if (
-                    dataset != config.databento_dataset
+                    not isinstance(provider_id, str)
+                    or not provider_id.strip()
+                    or len(provider_id) > MAX_WEBSOCKET_PROVIDER_LENGTH
+                    or not provider_id.isascii()
+                    or not all(char.isalnum() or char in "._-" for char in provider_id)
+                    or provider_id != provider_id.lower()
+                    or not isinstance(dataset, str)
+                    or not dataset.strip()
+                    or len(dataset) > MAX_WEBSOCKET_DATASET_LENGTH
+                    or not dataset.isascii()
+                    or not all(char.isalnum() or char in "._-" for char in dataset)
+                    or not isinstance(series_type, str)
+                    or series_type != "contract"
                     or not isinstance(raw_symbol, str) or not raw_symbol.strip()
                     or len(raw_symbol) > MAX_WEBSOCKET_RAW_SYMBOL_LENGTH
                     or not isinstance(timeframe, str)
@@ -854,6 +870,9 @@ def create_app(
                 # compares normalized symbols; leaving the request spelling here
                 # would otherwise authorize lowercase/whitespace variants but
                 # silently subscribe them to a different stream key.
+                provider_id = provider_id.strip()
+                dataset = dataset.strip().upper()
+                series_type = series_type.strip().lower()
                 raw_symbol = raw_symbol.strip().upper()
                 canonical_id = canonical_id.strip()
 
@@ -867,7 +886,7 @@ def create_app(
 
                 def has_series_access() -> bool:
                     mapping = application.state.instrument_registry.resolve_provider_mapping(
-                        provider="databento",
+                        provider=provider_id,
                         dataset=dataset,
                         publisher_id=publisher_id,
                         instrument_id=instrument_id,
@@ -921,6 +940,8 @@ def create_app(
                     calendar_version=calendar_version,
                     limit=max_ohlcv_response_bars,
                     durable_cursor=snapshot_cursor,
+                    provider=provider_id,
+                    series_type=series_type,
                 )
                 replay_events: list[dict[str, object]] = []
                 replay_fallback_reason: str | None = None
@@ -932,11 +953,11 @@ def create_app(
                             replay_page = await asyncio.to_thread(
                                 ohlcv_store.replay_outbox,
                                 after_cursor=replay_after,
-                                provider="databento",
+                                provider=provider_id,
                                 dataset=dataset,
                                 publisher_id=publisher_id,
                                 instrument_id=instrument_id,
-                                series_type="contract",
+                                series_type=series_type,
                                 raw_symbol=raw_symbol,
                                 timeframe=timeframe,
                                 bucket_policy=bucket_policy,
@@ -970,7 +991,7 @@ def create_app(
                             break
                         replay_after = next_cursor
 
-                feed_state = provider.state
+                feed_state = provider.state if provider_id == "databento" else "disconnected"
                 snapshot_state = (
                     "unavailable" if not snapshot_bars
                     else "degraded" if feed_state in ("degraded", "recovering")
