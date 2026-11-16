@@ -1982,7 +1982,7 @@ This closes the specific consumer-side provider-hardcoding defect. It does **not
 ### Exact branch changes
 - Working branch: `phase-2/market-data-foundation`; `main` untouched.
 - New `backend/app/provider_coverage.py`: deterministic, provider-aware coverage-union calculation over explicit mappings only.
-- New `backend/tests/test_provider_coverage.py`: ten unit tests covering complementary and redundant coverage, ineligible candidates, unknown providers, out-of-watchlist instruments, duplicate mappings, missing evidence references, unsupported asset/data families, duplicate catalog IDs and empty watchlists.
+- New `backend/tests/test_provider_coverage.py`: eleven unit tests covering complementary and redundant coverage, ineligible candidates, unknown providers, out-of-watchlist instruments, duplicate mappings, missing evidence references, unsupported asset/data families, duplicate catalog IDs and empty watchlists.
 - The calculation fails closed: candidate mappings count only when the provider is uniquely identified, eligible for recurring-$0 baseline, explicitly supports the mapped asset class and data family, and carries a non-empty evidence reference. It makes no network calls, activates no provider, and never blends provider feeds.
 
 ### Verification boundary
@@ -2070,3 +2070,7 @@ A targeted source/test audit on the current working branch confirms additional r
 **Correction to earlier blocker notes:** Gate 30 is not missing repository restore tooling; a full application restore-drill implementation and CI regression tests already exist. Gate 31 is not missing authenticated-encryption code; the cryptographic helper and regression tests already exist. Both gates remain officially open only because the external deployment, key custody, off-host retention and recovery evidence has not been supplied/verified. Do not recreate these modules or introduce another encryption scheme without a concrete defect.
 
 The above evidence does not change the Stage 1 score: **30/40 provisional, 75%; Gate 10 0/10 officially closed**. These are implementation/test evidence improvements, not owner-host acceptance.
+
+
+### Latest coverage input-validation hardening — 2026-11-16
+A malformed mapping with a non-string field previously could raise during normalization rather than being rejected. The coverage builder now checks all six mapping fields are strings before normalization and increments the rejected count without raising. Added a regression test. Coverage test functions: **11**. This change is after the verified `6cec1b5` CI run; the exact latest HEAD CI is pending, so the new test is authored but not yet counted as passed. No Stage 1 ticks awarded.
