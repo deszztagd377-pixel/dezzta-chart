@@ -314,7 +314,7 @@ jobs:
           test "$first_status" = "200"
           second_status=$(curl --silent --show-error --output /tmp/dezzta-second.json --write-out '%{http_code}' "$base_url/v1/market-data/status")
           test "$second_status" = "429"
-          docker exec "$container_name" python -c 'import sqlite3; c=sqlite3.connect("/data/dezzta-chart-smoke.sqlite3"); assert c.execute("PRAGMA integrity_check").fetchone()[0] == "ok"; assert c.execute("SELECT 1 FROM sqlite_master WHERE type=\\u0027table\\u0027 LIMIT 1").fetchone()'
+          docker exec "$container_name" python -c 'import sqlite3; c=sqlite3.connect("/data/dezzta-chart-smoke.sqlite3"); assert c.execute("PRAGMA integrity_check").fetchone()[0] == "ok"; assert c.execute("SELECT 1 FROM sqlite_master WHERE type=? LIMIT 1", ("table",)).fetchone()'
           echo "Container health, persisted Redis ACL authentication, AOF data across restart, API fail-closed outage response, backend reconnection, non-root UID/GID, mounted-volume ownership, SQLite integrity and restart persistence, and HTTP rate-limit rejection passed."
 
       - name: Scan backend container image
