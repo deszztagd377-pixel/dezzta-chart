@@ -156,6 +156,11 @@ class Settings:
     firebase_project_id: str = field(default="", repr=False)
     alert_device_store_enabled: bool = False
     alert_device_encryption_key: bytes = field(default=b"", repr=False)
+    alert_delivery_worker_enabled: bool = False
+    alert_delivery_poll_interval_seconds: int = 2
+    alert_delivery_batch_size: int = 10
+    alert_delivery_lease_seconds: int = 120
+    alert_delivery_max_attempts: int = 8
     redis_url: str = field(default="", repr=False)
     http_rate_limit_per_client: int = 120
     http_rate_limit_global: int = 6000
@@ -175,6 +180,33 @@ class Settings:
             raise ValueError(
                 "ALERT_DEVICE_STORE_ENABLED requires a valid 32-byte injected encryption key."
             )
+        if not isinstance(self.alert_delivery_worker_enabled, bool):
+            raise ValueError("alert_delivery_worker_enabled must be a boolean.")
+        if self.alert_delivery_worker_enabled and not self.alert_device_store_enabled:
+            raise ValueError(
+                "ALERT_DELIVERY_WORKER_ENABLED requires ALERT_DEVICE_STORE_ENABLED."
+            )
+        if self.alert_delivery_worker_enabled and not self.firebase_project_id.strip():
+            raise ValueError(
+                "ALERT_DELIVERY_WORKER_ENABLED requires FIREBASE_PROJECT_ID."
+            )
+        delivery_limits = (
+            self.alert_delivery_poll_interval_seconds,
+            self.alert_delivery_batch_size,
+            self.alert_delivery_lease_seconds,
+            self.alert_delivery_max_attempts,
+        )
+        if any(
+            not isinstance(value, int) or isinstance(value, bool) or value < 1
+            for value in delivery_limits
+        ):
+            raise ValueError("Alert delivery worker limits must be positive integers.")
+        if self.alert_delivery_batch_size > 10:
+            raise ValueError("alert_delivery_batch_size must not exceed the 10-device owner quota.")
+        if self.alert_delivery_lease_seconds < 30:
+            raise ValueError("alert_delivery_lease_seconds must be at least 30.")
+        if self.alert_delivery_max_attempts > 32:
+            raise ValueError("alert_delivery_max_attempts must not exceed 32.")
         if self.app_env.strip().lower() == "production" and not self.redis_url:
             raise ValueError("REDIS_URL is required in production; shared security guards cannot be disabled.")
         if self.app_env.strip().lower() == "production" and not self.firebase_project_id.strip():
@@ -279,6 +311,21 @@ class Settings:
             firebase_project_id=os.getenv("FIREBASE_PROJECT_ID", "").strip(),
             alert_device_store_enabled=alert_device_store_enabled,
             alert_device_encryption_key=alert_device_encryption_key,
+            alert_delivery_worker_enabled=_parse_bool(
+                os.getenv("ALERT_DELIVERY_WORKER_ENABLED", "false")
+            ),
+            alert_delivery_poll_interval_seconds=_parse_int(
+                os.getenv("ALERT_DELIVERY_POLL_INTERVAL_SECONDS", "2"), 2
+            ),
+            alert_delivery_batch_size=_parse_int(
+                os.getenv("ALERT_DELIVERY_BATCH_SIZE", "10"), 10
+            ),
+            alert_delivery_lease_seconds=_parse_int(
+                os.getenv("ALERT_DELIVERY_LEASE_SECONDS", "120"), 120
+            ),
+            alert_delivery_max_attempts=_parse_int(
+                os.getenv("ALERT_DELIVERY_MAX_ATTEMPTS", "8"), 8
+            ),
             redis_url=os.getenv("REDIS_URL", "").strip(),
             http_rate_limit_per_client=_parse_int(os.getenv("HTTP_RATE_LIMIT_PER_CLIENT", "120"), 120),
             http_rate_limit_global=_parse_int(os.getenv("HTTP_RATE_LIMIT_GLOBAL", "6000"), 6000),
