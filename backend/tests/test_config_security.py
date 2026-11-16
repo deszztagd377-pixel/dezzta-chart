@@ -314,3 +314,13 @@ def test_alert_device_store_requires_32_byte_key_when_enabled():
             cors_allowed_origins=("https://chart.example",),
             alert_device_store_enabled=True,
         )
+
+@pytest.mark.parametrize("enabled", ["true", 1, None])
+def test_alert_device_store_opt_in_requires_a_boolean(enabled):
+    with pytest.raises(ValueError, match="must be a boolean"):
+        Settings(
+            app_env="test",
+            market_data_ws_token="test",
+            cors_allowed_origins=("https://chart.example",),
+            alert_device_store_enabled=enabled,
+        )
