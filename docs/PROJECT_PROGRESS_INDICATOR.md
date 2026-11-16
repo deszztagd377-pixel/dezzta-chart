@@ -1795,3 +1795,28 @@ A focused review found two correctness details that needed tightening before cla
 - `64d6373` / `0baac98` — regression coverage pins the single-event default and rejects attempts to increase it before lease-safe concurrency exists.
 - Source/test revision checkpoint before the final documentation-only update: `0baac98304ff80ec814a1d9b7f15e5b3e760e701`; the subsequent documentation-only checkpoint is recorded separately in the conversation report.
 - The only reported commit status is Vercel **PENDING**; no completed GitHub Actions run is available from the current verification. Backend tests, CodeQL and secret audit therefore remain **UNVERIFIED on this exact revision**.
+
+
+## Work cycle — schema evolution engine foundation — 2026-11-16
+
+### Clarification: automatic data evolution
+- Data evolution is not an uncontrolled remote update. A compatible application release may apply its bundled, reviewed schema migrations at startup.
+- Market-data refresh, provider metadata revisions, database schema migrations, and APK binary updates are distinct mechanisms and must not be conflated.
+- Canonical instrument IDs remain stable; provider aliases and metadata revisions evolve through versioned mappings.
+
+### Implementation added
+- `backend/app/schema_migrations.py` — append-only per-component migration history, immutable migration identity and SHA-256 checksum, sequential version enforcement, transactionally executed migration callbacks, idempotent replay, and rollback if DDL or ledger insertion fails.
+- `backend/tests/test_schema_migrations.py` — tests for baseline adoption, idempotency, sequential ordering, checksum conflicts, rollback, append-only protections, and input validation.
+- The runner uses one file-backed SQLite database and `BEGIN IMMEDIATE`; callbacks must use the supplied connection and must not call `executescript`, commit, or open another connection.
+
+### Integration boundary
+- The migration engine is committed as a foundation primitive but is **not yet integrated into the instrument registry, OHLCV, coverage, entitlement, alert, or encrypted-device adapters**.
+- Existing stores retain their current local schema migration logic. No existing data was migrated or rewritten in this cycle.
+- The baseline API intentionally requires version 1 for a new ledger component. Legacy stores with existing internal schema versions need an explicit, reviewed baseline-adoption mapping; no fabricated migration history is created.
+- Do not enable automatic production migrations until all adapters are adopted, backups are verified, and upgrade/restore tests pass.
+
+### Verification and progress
+- Source and test files are committed on the existing working branch.
+- New tests are authored but **not executed/confirmed by CI on the final commit**. Do not count them as passing.
+- No Stage 1 criteria or ticks awarded. Stage 1 remains 30/40 provisional (300/400 ticks, 75%); Gate 10 remains 0/10 officially closed.
+- ZERO COST maintained; no Termux commands or paid services required.
