@@ -68,8 +68,8 @@ One tick represents 0.25 percentage points of Stage 1. A criterion earns all 10 
 | 8 | Owner-controlled no-billing host secret injection and secret absence checks | Repository scans help but cannot prove host configuration |
 | 20 | Firebase sign-in, expiry/revocation, entitlement denial and browser/Android flows | Keep production integration disabled unless no-billing configuration is verified |
 | 25 | Self-hosted Redis TLS, ACL, private binding, persistence and failure behavior | Requires existing owner-controlled hardware; no paid Redis |
-| 30 | Restore a production-like backup into a fresh database and verify application records | CI restore regression is supporting evidence, not the target-environment drill |
-| 31 | Encrypted off-host backup, separately stored key, retention/access policy and recovery drill | Keep blocked while compatible authenticated encryption tooling is unresolved |
+| 30 | Restore a production-like backup into a fresh database and verify application records | Full shared-SQLite application restore drill and CI tests exist and pass; target-environment drill still required |
+| 31 | Encrypted off-host backup, separately stored key, retention/access policy and recovery drill | AES-256-GCM/PBKDF2 helper and tamper/wrong-key tests exist and pass; off-host storage, key separation and recovery policy remain open |
 | 34 | Persistent volume mount, ownership, permissions, restart durability and disk-pressure recovery | Requires target host/device evidence |
 | 35 | HTTPS health checks, startup failure and backend-only secrets | Local/LAN is acceptable while public exposure would create cost |
 | 36 | Authenticated WSS from supported web and Android clients through reverse proxy | Requires target environment/client evidence |
@@ -2054,3 +2054,19 @@ The provider-aware downstream WebSocket routing fix from commit `3158a61af80e378
 
 ### External CI status
 GitHub Actions is green for the listed workflows. The separate Vercel status still reports an external build-rate-limit / upgrade-to-Pro prompt. No paid upgrade was performed; Vercel is not treated as a failed code test or a reason to change the zero-cost policy.
+
+
+## Gate 10 targeted audit — backup, Redis and storage evidence
+
+A targeted source/test audit on the current working branch confirms additional repository-side implementation that must not be mistaken for target-host acceptance:
+
+| Gate | Repository-side implementation / CI evidence | Still required before official closure |
+|---:|---|---|
+| 25 — Redis | Exact-HEAD CI smoke test starts isolated Redis 7 with a generated ACL identity/password, denies default/incorrect auth and unrelated SET commands, and checks persisted ACL file behavior. CI passed. | Owner-controlled host: private network binding, TLS, ACL/key handling, restart persistence, outage/failure behavior and no incremental billing. |
+| 30 — Backup restore | SQLite Online Backup API snapshot; integrity and foreign-key checks; no-overwrite fresh-path restore; full shared application database restore drill checks schema, row counts, row-content hashes, application-domain records and post-restore write/read/cleanup. Regression tests passed in the 968-test backend suite. | Run the redacted restore drill against the actual target host/device database, record the report, and verify recovery ownership and service restart. |
+| 31 — Encrypted backup | Versioned authenticated encryption helper using PBKDF2-HMAC-SHA256 (600,000 iterations) and AES-256-GCM; private temporary files, atomic no-overwrite publication, authenticated decrypt-before-publish, and tests for round-trip, wrong passphrase, tampering, truncation and publication failures. Tests passed in the 968-test backend suite. | Owner-controlled high-entropy key/passphrase generation and separate storage, off-host destination with verified zero incremental cost, retention/access policy, and a real encrypted off-host recovery drill. |
+| 34 — Persistent volume | CI container smoke test validates mounted volume and SQLite ownership by application UID/GID 10001. CI passed. | Target host/device restart durability, mount configuration, free disk thresholds, disk-pressure recovery, backup interaction and permissions. |
+
+**Correction to earlier blocker notes:** Gate 30 is not missing repository restore tooling; a full application restore-drill implementation and CI regression tests already exist. Gate 31 is not missing authenticated-encryption code; the cryptographic helper and regression tests already exist. Both gates remain officially open only because the external deployment, key custody, off-host retention and recovery evidence has not been supplied/verified. Do not recreate these modules or introduce another encryption scheme without a concrete defect.
+
+The above evidence does not change the Stage 1 score: **30/40 provisional, 75%; Gate 10 0/10 officially closed**. These are implementation/test evidence improvements, not owner-host acceptance.
