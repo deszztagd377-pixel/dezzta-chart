@@ -65,7 +65,6 @@ def test_backup_encryption_round_trip_and_private_permissions(tmp_path):
 def test_backup_decryption_rejects_wrong_passphrase_without_publishing(tmp_path):
     encrypted = tmp_path / "backup.enc"
     restored = tmp_path / "restore.sqlite3"
-    encrypted.write_bytes(b"")
     original = tmp_path / "source.sqlite3"
     original.write_bytes(b"important database snapshot")
     encrypt_backup_file(original, encrypted, PASSPHRASE)

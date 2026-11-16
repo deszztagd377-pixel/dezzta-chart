@@ -1191,3 +1191,17 @@ The helper now publishes through a same-directory hard link and removes the temp
 - Stages 2–6: **NOT SCORED**.
 - Overall project: **20.90% historical owner-confirmed checkpoint only**; no new weighted score is approved.
 - ZERO COST maintained. No Termux command, dependency change, paid storage, APK publication, or `main` modification.
+
+
+## CI blocker correction — no-overwrite fixture alignment — 2026-11-16
+
+### Failure analysis
+
+Automated Tests run #43812396496 on `f07a1de90a20b916bed9507d8affbf7271353469` completed with **855 passed, 1 failed**. The sole failure was `test_backup_decryption_rejects_wrong_passphrase_without_publishing`: its fixture pre-created an empty encrypted destination and then asked encryption to publish to that same path. The new no-overwrite contract correctly raised `FileExistsError`; the old fixture still assumed replacement semantics.
+
+### Corrective change
+
+Removed only the unnecessary empty-destination pre-creation from that test. It now creates a fresh encrypted artifact at a non-existing destination, then checks that failed authentication does not publish or replace the restore output. Production no-overwrite behavior and its regression tests remain unchanged.
+
+This is a test-fixture compatibility correction, not a relaxation of the security contract. The next exact-HEAD Automated Tests run must pass before this change is considered validated. The CI failure and correction are explicitly recorded; no progress ticks are awarded.
+
