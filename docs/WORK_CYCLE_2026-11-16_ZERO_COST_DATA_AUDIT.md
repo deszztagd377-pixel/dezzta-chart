@@ -96,3 +96,12 @@ Therefore the catalog currently has **no production-approved provider**. This is
 6. Keep the adapter disabled until exact-commit CI, rights review and controlled live verification pass.
 
 The target remains broad and TradingView-like in chart capability, but coverage claims must be earned feed by feed, not inferred from a long provider list.
+
+
+## Post-cycle evidence reconciliation
+
+The exact branch-head check after this report was recorded at `d8dbb98951a208df272781698b9c3bc83bf05bce`. The catalog test file contains **11 test functions**, not nine. The progress indicator's earlier nine-test wording has been corrected in a follow-up documentation commit.
+
+The exact-commit GitHub Actions lookup returned no workflow runs. Therefore the 11 tests remain authored but unexecuted/unverified in this evidence record. The Vercel deployment status is separate; its build-rate-limit/upgrade-to-Pro result is not a backend test result and must not trigger a paid upgrade.
+
+No source activation, no Stage 1 tick award, no APK release claim, no Termux action and no paid service were added by this reconciliation.
