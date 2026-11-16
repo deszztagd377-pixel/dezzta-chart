@@ -1242,3 +1242,50 @@ The encrypted artifact publisher now uses a same-directory hard link for atomic 
 - Overall project: **20.90% historical owner-confirmed checkpoint only**.
 - No ticks awarded for code changes, documentation, repository CI, or source audit alone.
 - ZERO COST maintained; no paid service, no `main` changes, no APK release, and no Termux command.
+
+
+## Exact-head CI completion and Gate 39 implementation audit — 2026-11-16
+
+### Exact-head verification: `5ac97fba7edf5392851b31c6cdd312827d6a1e4f`
+
+The following workflows have now completed successfully against the documentation-only head `5ac97fba7edf5392851b31c6cdd312827d6a1e4f` (parent code head `8c9fcc13886ebd216db568c0068139b42ae71af6`):
+
+- Automated Tests #43813198831 — **SUCCESS** (`Test and Build` job successful; no failed steps).
+- CodeQL Security Analysis #43813198816 — **SUCCESS**.
+- Full Git History Secret Audit #43813198806 — **SUCCESS**.
+
+The exact-head CI is green. The workflow evidence remains repository/runner evidence and does not close any owner-host, real Firebase project, real Android runtime, or external delivery criterion.
+
+### Gate 39 — concrete source audit and zero-cost delivery path
+
+Inspected `backend/app/main.py`, `backend/app/alert_delivery.py`, `backend/app/alert_store.py`, `backend/app/identity.py`, `backend/requirements.txt`, and `docs/SECURITY_PRIVACY_AND_PRICE_ALERTS.md` at the exact head.
+
+Confirmed repository facts:
+
+- `main.py` has an application lifespan for the existing shared guard and market-data provider, but does not start or stop the alert delivery worker.
+- `GET /v1/auth/session` verifies a Firebase Bearer token and returns the verified subject. No alert device-registration endpoint is present.
+- `price_alert_trigger_events` persists an `owner_id` and event identity, but there is no device-token registration/ownership store in the inspected alert store schema.
+- `alert_delivery.py` implements bounded leasing, retry/backoff, terminal failure, and lease-aware acknowledgement. It deliberately accepts an injected sender and does not choose a provider or start a scheduler.
+- `firebase-admin` is already in `backend/requirements.txt`; no new dependency is needed merely to investigate an FCM adapter.
+- The product requirements already specify Firebase Cloud Messaging (FCM) for Android push delivery.
+
+Zero-cost decision: FCM is listed by Firebase as a no-cost product and is available on the no-cost Spark plan. It is therefore the leading transport candidate without requiring a paid notification provider. This does **not** make backend hosting, persistent storage, or any other Google Cloud product automatically free; those remain separate cost gates. Official references: `https://firebase.google.com/docs/projects/billing/firebase-pricing-plans` and `https://firebase.google.com/pricing`.
+
+Required safe implementation order (not yet claimed complete):
+1. Add a device-token registration store and authenticated registration/revocation routes. The owner must come only from `VerifiedPrincipal.subject`; never accept a client-supplied owner ID. Enforce per-account/device limits and token rotation.
+2. Protect stored registration tokens as credentials. Do not log them. Select an at-rest protection/key-injection approach that remains zero-cost and coordinate it with criteria 8 and 31 before enabling persistence.
+3. Implement a Firebase Admin FCM sender using backend Application Default Credentials; never bundle a service-account file or credential in the APK/repository. Include `event_id` in the data payload.
+4. Because FCM does not provide an application-level exactly-once guarantee, preserve the worker's at-least-once contract and implement durable client-side deduplication by `event_id` before displaying a notification. Do not claim sender-level exactly-once delivery.
+5. Integrate the worker into FastAPI lifespan only after sender configuration and token ownership are real. Bound batch size, polling interval, shutdown/cancellation, and error reporting. Missing sender credentials must never silently mark events delivered.
+6. Validate on a real Firebase Spark project and Android installation: registration, token refresh, revoke, delivery while app backgrounded/closed, duplicate suppression, retry, process restart, and recovery. Keep FCM disabled until this end-to-end evidence exists.
+
+Gate 39 remains **OPEN**. No sender, token store, worker lifecycle integration, or real delivery drill was added in this audit because doing so without the credential custody and recipient ownership boundary would create an unsafe false-positive path. The next code cycle can implement the isolated token-store/registration contract and tests without enabling delivery, then proceed to the FCM adapter.
+
+### CI and project accounting
+
+- Exact-head Automated Tests, CodeQL, and full-history secret audit: **3/3 SUCCESS**.
+- Stage 1 remains **30/40 criteria; 300/400 ticks; 75% provisional**.
+- Gate 10 remains **0/10 closed**; open criteria: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- Stages 2–6 remain **NOT SCORED**; overall **20.90%** remains historical owner-confirmed checkpoint only.
+- No progress ticks awarded for source audit, documentation, or CI success.
+- ZERO COST maintained. No new dependency, paid provider, `main` change, APK publication, or Termux/device command.
