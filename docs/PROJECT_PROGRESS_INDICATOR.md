@@ -1074,3 +1074,90 @@ The current branch HEAD when this update was prepared is documentation commit `f
 Gate 10 remains **0/10 officially closed**. Open Stage 1 criteria remain 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. No tick is awarded for CI success alone. The green CI confirms repository-side tests and container checks; it does not close owner-controlled Firebase, Redis, Android restore, key custody, host recovery, HTTPS/WSS deployment, monitoring or real notification-delivery requirements.
 
 The overall 20.90% remains a historical checkpoint only; no fresh weighted overall score is claimed. ZERO COST remains in force. No Termux action, paid service, APK publication, or `main` branch change was made.
+
+
+## Gate 10 work-cycle — alert delivery architecture audit and exact-HEAD CI — 2026-11-16
+
+### Exact repository state
+
+- Branch: `phase-2/market-data-foundation`.
+- Starting and audited HEAD: `d065d448007175c6090b868c12b795e6964f6c62`.
+- Starting tree: `1117a26166ab9733c50063f06f76028254f6444c`.
+- The branch ref was re-read immediately before this documentation update and pointed to the same HEAD.
+- `main` was not read or modified as a target for this work.
+
+### Exact-HEAD CI reconciliation
+
+All three workflows completed successfully on `d065d448007175c6090b868c12b795e6964f6c62`:
+
+- [Automated Tests #43811753924](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43811753924) — **SUCCESS**. The complete job passed frontend dependency audit, frontend unit tests/build and bundle-secret scans, Android host preflight, immutable preview publisher tests, backend tests, bounded synthetic SQLite outbox benchmark, backend dependency audit, backend container build, shared-Redis/persistent-volume smoke test, image scan, vulnerability report export/upload and cleanup.
+- [CodeQL #43811753935](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43811753935) — **SUCCESS**.
+- [Full Git History Secret Audit #43811753802](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43811753802) — **SUCCESS**.
+
+These are repository CI results. They do not prove owner-host configuration, Android backend runtime, live notification delivery, or any external Gate 10 criterion.
+
+### Criterion 39 — sender and lifecycle audit
+
+Files and exact blobs inspected at `d065d448007175c6090b868c12b795e6964f6c62`:
+
+- `backend/app/main.py` — `55fd8ee1de1889158edefcbe39080c64e7f733c1`.
+- `backend/app/alert_delivery.py` — `6baba9f6d8beb52392a22369e8a0009a1942ef67`.
+- `backend/app/alert_store.py` — `0215d53b54c0467c83b9976546e8b39e6b80f7ba`.
+- `backend/app/config.py` — `af1e43f30b2934d03d1eb7a0f62ec63e6855d7ff`.
+- `backend/requirements.txt` — `da7f78eada7bd9108ee712590f57476cbfbfd96e`.
+
+Verified findings:
+
+1. The durable SQLite alert store and lease/retry worker exist. The worker enforces bounded batches, lease-aware acknowledgements, capped retries, terminal failure, and an event ID idempotency contract.
+2. `run_alert_delivery_batch()` deliberately accepts an injected sender and does not choose a provider or start a scheduler. A sender must return `None` only on success and raise on failure.
+3. The FastAPI lifespan currently starts the shared guard and market-data provider only; it does not start or stop an alert worker.
+4. The application exposes no public alert creation/delivery route. The alert store is attached as internal application state, while public alert writes remain disabled pending verified identity and instrument-entitlement enforcement.
+5. The existing authenticated WebSocket is a market-data subscription channel. Its protocol sends market-data status, snapshots, replay and live OHLCV events; it is not an alert-recipient delivery channel.
+6. No alert notification, email, push, or webhook adapter exists in `backend/app`. No authenticated recipient-routing contract or live delivery/recovery evidence was found.
+7. The production configuration requires Firebase project identity and secured Redis, while paid services and provider-dependent notification assumptions remain disallowed by ZERO COST.
+
+### Blocker handling and safe disposition
+
+**Finding:** the worker is not connected to an actual delivery transport or application lifecycle.
+
+**Impact:** wiring it to a placeholder/no-op sender would falsely acknowledge alerts and could silently lose notifications. Starting the worker without recipient authorization, idempotent delivery semantics and recovery evidence would be unsafe.
+
+**Remediation performed in this cycle:** audited the complete integration boundary and confirmed the existing Firebase principal verification and authenticated market-data WebSocket cannot simply be relabelled as alert delivery. No fake sender, paid notification service, unverified SMTP endpoint, or automatic background worker was introduced.
+
+**Remaining internal design decision:** select and document the zero-incremental-cost delivery semantics before implementation. A first-party in-app WebSocket channel can serve connected, authenticated sessions, but by itself cannot promise delivery while a user is offline. Durable offline delivery, multi-process fan-out, recipient preferences and replay/acknowledgement behavior must be designed explicitly rather than assumed.
+
+**Acceptance tests required:** account-isolated recipient routing; authenticated connection lifecycle; no cross-account event leakage; sender idempotency under retry/lease loss; offline/reconnect replay; worker startup/shutdown and crash recovery; and a real end-to-end delivery report. Criterion 39 remains **OPEN**.
+
+### Parallel Gate 10 status
+
+- Criterion 8 — OPEN: owner-host secret injection and live process/log evidence.
+- Criterion 20 — OPEN: no-billing Firebase identity, revocation, entitlement and browser/Android E2E.
+- Criterion 25 — OPEN: actual secured Redis endpoint, ACL, persistence and failure drill.
+- Criterion 30 — OPEN: actual target-device database restore and post-restore application write.
+- Criterion 31 — OPEN: owner-controlled encryption key custody, independent zero-cost backup destination, retention/access policy and recovery drill.
+- Criterion 34 — OPEN: target host/device disk-pressure and recovery evidence.
+- Criterion 35 — OPEN: actual HTTPS termination, certificate lifecycle and startup/failure evidence.
+- Criterion 36 — OPEN: reverse-proxy WSS deployment and browser/Android E2E.
+- Criterion 38 — OPEN: self-hosted monitoring, controlled retention and real alert/recovery exercise.
+- Criterion 39 — OPEN: real zero-cost sender/recipient architecture, lifecycle integration and delivery/recovery evidence.
+
+### Official progress accounting — unchanged
+
+| Stage | Scope | Official state | Progress |
+|---:|---|---|---:|
+| 1 | Foundation, Security & Data Integrity | Active; 30/40 provisional criteria accepted; 10 Gate 10 criteria open | **75% provisional — 300/400 ticks** |
+| 2 | Market Data Infrastructure | Not officially opened | **NOT SCORED** |
+| 3 | Chart Engine & Timeframe | Not officially opened | **NOT SCORED** |
+| 4 | Indicators & Analytics | Not officially opened | **NOT SCORED** |
+| 5 | Professional UI & Interactive Tools | Not officially opened | **NOT SCORED** |
+| 6 | Hardening, Validation & APK Release | Not officially opened | **NOT SCORED** |
+
+- Stage 1 formula: `30 accepted × 10 ticks = 300`; `40 × 10 = 400`; `300 ÷ 400 × 100 = 75%`.
+- Gate 10: **0/10 closed**; open criteria: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- Stage 2–6 remain unscored. No stage transition is authorized.
+- Overall project: **20.90% historical owner-confirmed checkpoint only**. No fresh weighted total is approved.
+- No ticks are awarded for this audit, documentation, code volume, or green CI alone.
+
+### Zero-cost and device disposition
+
+No paid provider, managed service, external notification subscription, dependency change, Termux command, device modification, APK release, or Google Play publication was required or performed in this cycle. The Termux Google Play repository/signing-key constraint remains untouched. The process-progress dashboard remains documentation-only and is not part of the APK.
