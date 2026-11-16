@@ -1865,6 +1865,57 @@ def test_internal_metrics_endpoint_is_disabled_without_operator_token():
     assert response.status_code == 404
 
 
+def test_internal_alert_delivery_status_is_disabled_without_operator_token():
+    response = TestClient(create_app(make_settings())).get("/internal/alert-delivery")
+    assert response.status_code == 404
+
+
+def test_internal_alert_delivery_status_requires_token_and_returns_sanitized_snapshot():
+    token = "metrics-token-for-tests-only-32chars"
+    application = create_app(replace(make_settings(), observability_metrics_token=token))
+    application.state.alert_delivery_status.update({
+        "enabled": True,
+        "state": "running",
+        "last_batch": {
+            "claimed": 2,
+            "delivered": 1,
+            "retry_scheduled": 1,
+            "terminal_failed": 0,
+            "lease_lost": 0,
+        },
+        "last_error_code": None,
+    })
+    client = TestClient(application)
+
+    denied = client.get("/internal/alert-delivery")
+    assert denied.status_code == 401
+    assert denied.headers["www-authenticate"] == "Bearer"
+
+    accepted = client.get(
+        "/internal/alert-delivery",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert accepted.status_code == 200
+    assert accepted.headers["cache-control"] == "private, no-store, max-age=0"
+    payload = accepted.json()
+    assert payload == {
+        "schema_version": 1,
+        "scope": "process_local_since_start",
+        "enabled": True,
+        "state": "running",
+        "last_batch": {
+            "claimed": 2,
+            "delivered": 1,
+            "retry_scheduled": 1,
+            "terminal_failed": 0,
+            "lease_lost": 0,
+        },
+        "last_error_code": None,
+    }
+    assert "token" not in str(payload).lower()
+    assert "metrics-token" not in str(payload)
+
+
 def test_internal_metrics_endpoint_requires_token_and_returns_bounded_snapshot():
     token = "metrics-token-for-tests-only-32chars"
     application = create_app(replace(make_settings(), observability_metrics_token=token))

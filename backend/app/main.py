@@ -531,6 +531,35 @@ def create_app(
                 "Pragma": "no-cache", "X-Content-Type-Options": "nosniff",
             })
 
+        @application.get(
+            "/internal/alert-delivery",
+            tags=["operations"],
+            include_in_schema=False,
+        )
+        async def internal_alert_delivery_status(
+            authorization: str | None = Header(default=None),
+        ) -> JSONResponse:
+            """Expose sanitized process-local alert-worker status to the operator."""
+            expected = f"Bearer {config.observability_metrics_token}"
+            if not isinstance(authorization, str) or not hmac.compare_digest(authorization, expected):
+                raise HTTPException(
+                    status_code=401,
+                    detail="Metrics authentication is required.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            return JSONResponse(
+                content={
+                    "schema_version": 1,
+                    "scope": "process_local_since_start",
+                    **dict(alert_delivery_status),
+                },
+                headers={
+                    "Cache-Control": "private, no-store, max-age=0",
+                    "Pragma": "no-cache",
+                    "X-Content-Type-Options": "nosniff",
+                },
+            )
+
     @application.get("/v1/market-data/status", tags=["market-data"])
     async def market_data_status() -> dict[str, object]:
         """Honest status. Top-level legacy keys describe the (unimplemented) MBO
