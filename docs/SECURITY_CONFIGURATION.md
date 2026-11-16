@@ -67,9 +67,13 @@ lifespan: no delivery worker is running and no push notification is sent by
 this adapter addition alone. The Android client must persistently deduplicate
 `event_id` because FCM delivery is not exactly-once.
 
-A bounded worker, owner-wide active-device enumeration, retry scheduling
-integration, permanent invalid-token revocation, key custody, and real
-Firebase/Android delivery tests remain open. Losing the injected key makes
+The device store now has a bounded owner-scoped active-token enumeration
+method (maximum 10 active devices); revoked devices are excluded and the
+returned token-bearing objects suppress their representation to reduce
+accidental logging exposure. This is only a store API and is not called by a
+worker yet. A bounded worker, retry scheduling integration, permanent
+invalid-token revocation, key custody, and real Firebase/Android delivery
+tests remain open. Losing the injected key makes
 existing ciphertext undecryptable; key backup, rotation, and recovery must be
 designed and drilled before production use.
 
