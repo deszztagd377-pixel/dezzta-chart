@@ -169,3 +169,33 @@ def test_sensitive_settings_are_excluded_from_repr_and_str(field, value, secret)
 
     assert secret not in repr(settings)
     assert secret not in str(settings)
+
+
+@pytest.mark.parametrize(
+    "redis_url,expected_error",
+    [
+        ("redis://user:password@redis.example.invalid:6379/0", "must use rediss:// TLS"),
+        ("rediss://redis.example.invalid:6380/0", "ACL username and password"),
+        ("rediss://:password@redis.example.invalid:6380/0", "ACL username and password"),
+        ("rediss://user:@redis.example.invalid:6380/0", "ACL username and password"),
+    ],
+)
+def test_production_requires_tls_and_complete_redis_acl_credentials(
+    redis_url, expected_error
+):
+    with pytest.raises(ValueError, match=expected_error):
+        make_settings(
+            app_env="production",
+            firebase_project_id="dezzta-production",
+            redis_url=redis_url,
+        )
+
+
+def test_production_accepts_tls_redis_url_with_acl_credentials():
+    settings = make_settings(
+        app_env="production",
+        firebase_project_id="dezzta-production",
+        redis_url="rediss://guard-user:guard-password@redis.example.invalid:6380/0",
+    )
+    assert settings.redis_url.startswith("rediss://")
+    assert "guard-password" not in repr(settings)
