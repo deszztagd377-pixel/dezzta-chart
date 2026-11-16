@@ -2073,4 +2073,59 @@ The above evidence does not change the Stage 1 score: **30/40 provisional, 75%; 
 
 
 ### Latest coverage input-validation hardening — 2026-11-16
-A malformed mapping with a non-string field previously could raise during normalization rather than being rejected. The coverage builder now checks all six mapping fields are strings before normalization and increments the rejected count without raising. Added a regression test. Coverage test functions: **11**. This change is after the verified `6cec1b5` CI run; the exact latest HEAD CI is pending, so the new test is authored but not yet counted as passed. No Stage 1 ticks awarded.
+A malformed mapping with a non-string field is now rejected before normalization, and a regression test verifies fail-closed behavior. This change was included in exact-HEAD commit `251ab3c0e4fa77fa6fd7057cc8ce586ca54291e8`; the latest backend suite passed **969 tests**, including this regression. No Stage 1 ticks awarded.
+
+
+## Exact latest-HEAD verification and Gate 10 audit — 2026-11-16
+
+**Audited branch:** `phase-2/market-data-foundation`  
+**Exact HEAD:** `251ab3c0e4fa77fa6fd7057cc8ce586ca54291e8`  
+**Base comparison:** `fc47ef96f861a542609e8cc29364165704380dc0` — 24 commits ahead, 0 behind at the time of audit.  
+**Main branch:** untouched.
+
+### Latest CI — all workflows green on the exact HEAD
+
+- [Automated Tests](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43873948272): success. Backend pytest **969 passed in 28.97 seconds**; frontend unit tests and production build passed; frontend source and built-bundle secret scans passed; Android host-preflight and immutable preview-publisher tests passed; backend dependency audit passed; backend container image built; container smoke test with Redis shared guard and persistent volume passed; Trivy image scan and report export/upload passed; synthetic SQLite outbox benchmark passed.
+- [CodeQL](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43873948379): Python and JavaScript/TypeScript analyses passed.
+- [Full Git History Secret Audit](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43873948423): full reachable history scan passed.
+
+This is CI evidence for the exact commit, not a substitute for owner-controlled production-host acceptance. The synthetic outbox benchmark is not live-market-data throughput or production capacity evidence.
+
+### Alerting/incident path audit — Criterion 39
+
+Repository code already contains:
+- durable SQLite alert trigger outbox;
+- lease-based bounded delivery batches;
+- at-least-once semantics with `event_id` as the adapter/client deduplication key;
+- capped exponential retry and terminal failure after the configured attempt limit;
+- owner-scoped FCM fan-out limited to ten registered devices;
+- invalid-token revocation scoped to the affected owner/installation;
+- an opt-in lifespan worker that does not start unless explicitly enabled and requires encrypted device-token storage plus Firebase application credentials;
+- a bounded in-memory status record for the worker, including last batch counters and a non-sensitive error class.
+
+Therefore Criterion 39 is **not missing all alert-delivery code**. Its repository implementation is partial. Still unproven: whether the selected FCM/Firebase setup and credentials can be operated at zero incremental cost for the intended usage, whether an operator receives and acknowledges actionable incident alerts, durable monitoring across process restarts, retention/ownership, escalation and recovery drills. Do not turn the worker on by default or claim the gate closed.
+
+### Observability — Criterion 38
+
+The current `/health` route is a liveness-only response and deliberately reveals no feed or secret state. The worker status is held in application memory. No complete authenticated metrics/logging/retention/dashboard/alerting system is evidenced. Criterion 38 remains open; do not treat a liveness endpoint as observability.
+
+### Updated Gate 10 disposition
+
+| Criterion | Repository/CI evidence now confirmed | External acceptance still open |
+|---:|---|---|
+| 8 | Full reachable Git history scan; frontend source and production-bundle secret scans pass | Host-side secret injection and no-billing proof |
+| 20 | Firebase verifier and account-scoped identity/entitlement code/tests exist | Actual project configuration, revocation and web/Android production acceptance |
+| 25 | Redis ACL and persistent-volume container smoke test passes | Host private binding, TLS, credentials, restart/failure acceptance |
+| 30 | SQLite backup/restore implementation and regression suite pass | Target-host restore drill |
+| 31 | Authenticated AES-256-GCM/PBKDF2 helper and tamper/wrong-key tests pass | Separate key custody, off-host destination, retention and recovery drill |
+| 34 | Container persistent-volume and SQLite ownership smoke test passes | Target-host restart durability and disk-pressure recovery |
+| 35 | Container/backend build and liveness endpoint exist | Actual HTTPS termination, external health check and host-secret boundary |
+| 36 | Provider-aware downstream WebSocket tests pass | Authenticated WSS through the real reverse proxy and supported clients |
+| 38 | Liveness route and limited in-memory worker status exist | Authenticated metrics, structured logs, retention, dashboard and access controls |
+| 39 | Durable alert outbox, bounded lease/retry worker and owner-scoped FCM adapter exist; CI passes | Zero-cost confirmation, operator receipt/acknowledgement, escalation and recovery drill |
+
+**Scoring remains unchanged:** Stage 1 = 30/40 provisional = 300/400 ticks = 75% provisional. Gate 10 = 0/10 officially closed. No criterion is awarded solely because CI passed. Stage 2–6 remain NOT SCORED. Overall 20.90% remains a historical owner-confirmed checkpoint; a fresh weighted total has not been reconciled.
+
+### Zero-cost and device boundary
+
+No paid upgrade, paid hosting, paid market-data source or Termux action was used for this repository work. Vercel's separate build-rate-limit/upgrade prompt remains external and is not bypassed with a paid plan. No provider feed was activated. No APK release or Play Store publication was attempted.
