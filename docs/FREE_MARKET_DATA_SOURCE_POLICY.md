@@ -36,7 +36,7 @@ Official references:
 - Databento pricing and credits: https://databento.com/pricing/
 - Databento usage-based billing explanation: https://databento.com/docs/faqs/usage-pricing-and-data-credits
 
-These are source-evaluation notes, not a claim that the listed providers are currently configured, licensed for redistribution, or available to every user. Re-check official terms before enabling any connector.
+These are source-evaluation notes, not a claim that the listed providers are currently configured, licensed for redistribution, or available to every user. Re-check official terms before enabling any connector. The broader candidate matrix, including exchange-specific public feeds, FX reference, macro and country indicators, is maintained in [MARKET_DATA_SOURCE_INVENTORY_ZERO_COST.md](MARKET_DATA_SOURCE_INVENTORY_ZERO_COST.md).
 
 ## 3. Data families must stay distinct
 
