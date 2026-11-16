@@ -1,8 +1,9 @@
 """Evidence-gated provider/instrument coverage calculations.
 
-This module calculates coverage only from explicit, reviewed mappings. It never
-infers symbol support from provider names or external search results. A mapping
-is counted only when its provider is eligible for the recurring-$0 baseline.
+Coverage is counted only for explicit mappings whose provider, asset class,
+data family, recurring cost and intended-use rights are eligible. This module
+does not infer exchange support, verify external evidence, activate providers,
+or make network calls; evidence references must be reviewed by the caller.
 """
 from __future__ import annotations
 
@@ -17,6 +18,7 @@ class ProviderInstrumentMapping:
     provider_id: str
     instrument_id: str
     venue: str
+    asset_class: str
     data_family: str
     evidence_ref: str
 
@@ -43,16 +45,31 @@ def build_coverage_report(
     mappings: Iterable[ProviderInstrumentMapping],
     candidates: Iterable[ProviderCandidate],
 ) -> CoverageReport:
-    """Return a deterministic coverage union using eligible, evidence-backed mappings.
+    """Return deterministic coverage from reviewed mappings only.
 
-    Invalid, duplicate, out-of-watchlist, unknown-provider, or ineligible-provider
-    mappings are rejected. No network calls or provider activation occur.
+    Rejects malformed, duplicate, out-of-watchlist, unknown, ambiguous or
+    ineligible provider mappings, including unsupported asset/data families.
     """
-    instruments = tuple(sorted({item.strip() for item in watchlist if isinstance(item, str) and item.strip()}))
+    instruments = tuple(
+        sorted({item.strip() for item in watchlist if isinstance(item, str) and item.strip()})
+    )
     wanted = set(instruments)
-    candidate_by_id = {item.provider_id: item for item in candidates}
+
+    candidate_groups: dict[str, list[ProviderCandidate]] = {}
+    for candidate in candidates:
+        if isinstance(candidate, ProviderCandidate):
+            provider_id = candidate.provider_id.strip().lower()
+            if provider_id:
+                candidate_groups.setdefault(provider_id, []).append(candidate)
+    # Ambiguous duplicate catalog IDs are disabled rather than last-write-wins.
+    candidate_by_id = {
+        provider_id: group[0]
+        for provider_id, group in candidate_groups.items()
+        if len(group) == 1
+    }
+
     covered_by: dict[str, set[str]] = {item: set() for item in instruments}
-    seen: set[tuple[str, str, str, str]] = set()
+    seen: set[tuple[str, str, str, str, str, str]] = set()
     eligible_count = 0
     rejected_count = 0
 
@@ -63,20 +80,24 @@ def build_coverage_report(
         provider_id = mapping.provider_id.strip().lower()
         instrument_id = mapping.instrument_id.strip()
         venue = mapping.venue.strip()
+        asset_class = mapping.asset_class.strip().lower()
         data_family = mapping.data_family.strip().lower()
         evidence_ref = mapping.evidence_ref.strip()
-        key = (provider_id, instrument_id, venue, data_family)
+        key = (provider_id, instrument_id, venue, asset_class, data_family, evidence_ref)
 
         candidate = candidate_by_id.get(provider_id)
         if (
             not provider_id
             or not instrument_id
             or not venue
+            or not asset_class
             or not data_family
             or not evidence_ref
             or instrument_id not in wanted
             or candidate is None
             or not candidate.eligible_for_zero_cost_baseline
+            or asset_class not in candidate.asset_classes
+            or data_family not in candidate.data_families
             or key in seen
         ):
             rejected_count += 1
