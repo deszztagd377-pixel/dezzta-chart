@@ -1531,3 +1531,53 @@ Stage 1 remains 30/40 provisionally accepted criteria. Gate 10 remains 0/10 offi
 - No APK release or download link is claimed.
 - Next code-side candidate is Gate 39 device-token ownership and registration design, but sender credentials, secure token storage/key custody, Firebase project ownership, and real Android delivery remain owner-controlled acceptance dependencies. Do not activate a no-op alert worker or mark delivery as complete without a real sender and end-to-end evidence.
 - Gate 25 still requires owner-host TLS, endpoint/network restrictions, ACL custody and real outage/recovery evidence. CI is supporting evidence only.
+
+## Gate 10 work-cycle — encrypted alert-device token storage foundation — 2026-11-16
+
+### Exact implementation commits
+
+- Active branch: `phase-2/market-data-foundation`; `main` untouched.
+- Source baseline recorded in the preceding TLS regression section: `f9abe38fa23a89846a7241e92e93958069ef2039`.
+- Added encrypted device-token persistence: `12e8707d1f8b29aae1770199550cdb4200a6c897`.
+- Corrected SQLite connection lifecycle and reactivation quota enforcement: `234e34bc156d46e9ff652273337ae3100b485d2d`.
+- Added focused regression suite: `5c08a1c9d2ca089ac7992b4e4becf74f0641e77b`.
+- Files added:
+  - `backend/app/alert_device_store.py`
+  - `backend/tests/test_alert_device_store.py`
+- Existing `cryptography>=50,<51` dependency is reused; no dependency or paid service was added.
+
+### Implemented behavior
+
+- FCM token values are encrypted at rest with AES-256-GCM; each encryption uses a fresh 96-bit nonce.
+- Owner ID and installation ID are authenticated as associated data, preventing ciphertext from being moved between account/device rows undetected.
+- The store refuses to initialize without an exactly 32-byte key supplied by its caller. No fallback, generated persistent key, plaintext mode, or hard-coded production key exists.
+- Account ownership is part of every lookup and revocation predicate.
+- Device token rotation updates the existing account/device row.
+- Revocation removes the device from delivery lookup.
+- Maximum 10 active device registrations per account; quota is checked transactionally for new registration and reactivation.
+- The public stored-device result contains metadata only, not the token.
+- SQLite connections are explicitly closed; transaction rollback occurs on registration failures.
+
+### Regression tests authored
+
+The new test module covers ciphertext-at-rest, internal delivery lookup, token rotation, cross-account isolation, revocation/reactivation, per-account quota, quota bypass prevention, wrong-key authentication failure, key-length validation, and malformed token rejection.
+
+**Validation status:** the code and tests have been committed, but the exact-HEAD CI result has not yet been verified in this work-cycle report. These tests are not represented as passed until the branch's Automated Tests workflow completes successfully.
+
+### Explicit integration boundary — Gate 39 remains OPEN
+
+This cycle adds only the encrypted persistence adapter and its regression tests. It does not yet:
+- Load the encryption key from owner-controlled secret injection.
+- Construct or register the store in FastAPI application state.
+- Expose authenticated registration, rotation, or revocation routes.
+- Add FCM sender credentials or sender adapter.
+- Start a delivery worker in FastAPI lifespan.
+- Demonstrate a real Firebase project or Android delivery.
+
+The next safe integration requires key injection through the owner-controlled secret boundary (criterion 8) and key custody/recovery policy (criterion 31). The adapter intentionally cannot be activated with an ephemeral or guessed key: losing the key makes stored tokens undecryptable. Route ownership must continue to derive exclusively from `VerifiedPrincipal.subject`, never a client-supplied owner ID.
+
+### Stage accounting and cost
+
+No Stage 1 criterion is closed and no ticks are awarded for code or tests alone. Gate 10 remains 0/10 officially closed. Stage 1 remains 30/40 provisional criteria, 300/400 ticks (75% provisional); Stages 2–6 remain NOT SCORED; overall project remains 20.90% historical owner-confirmed checkpoint only. The six-stage colored dashboard remains documentation-only and is not part of the APK.
+
+ZERO COST maintained. No Termux/device command, paid service, market-data provider, or APK release action was required.
