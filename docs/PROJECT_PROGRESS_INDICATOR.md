@@ -1902,3 +1902,18 @@ This section supersedes the earlier provider-catalog verification wording in the
 - This source inventory, catalog code, authored tests and documentation do not earn Stage 1 ticks by themselves.
 
 The next repository-side action is to establish a verifiable test execution path on the exact branch HEAD, then continue the internal remediation portions of the ten open gates. External owner-host/device evidence remains separately required; no stage transition is implied.
+
+
+## Multi-provider WebSocket pool work cycle — 2026-11-16
+
+- Added `docs/MULTI_PROVIDER_WEBSOCKET_POOL_DESIGN.md` as a Stage 1 foundation design specification.
+- Defined bounded provider sessions, upstream topic multiplexing, per-provider isolation, hard connection/subscription/quota caps, bounded queues, backpressure, safe coalescing, heartbeat, reconnect jitter, stale/gap handling, order-book sequence recovery and target-device capacity measurements.
+- Linked the design from `docs/MARKET_DATA_SOURCE_INVENTORY_ZERO_COST.md`.
+- This is documentation/architecture work only. No provider adapter, WebSocket client, new socket, credentials, external service or paid fallback was activated.
+- No tests were executed by this documentation cycle. Existing 11 provider-catalog tests remain authored but unverified.
+- No Stage 1 criteria/ticks awarded; Gate 10 remains 0/10 officially closed. The 30/40 (75%) provisional Stage 1 meter and 20.90% historical overall checkpoint remain unchanged.
+- No Termux action or APK build was required; `main` remains untouched.
+
+### Design decision
+
+The target is multi-provider capability, not a fixed number of sockets. Use one shared session per provider/endpoint/credential scope where multiplexing is documented, then fan out internally. Add separate sessions only for provider/venue/protocol isolation. Scale toward 5–10 approved providers only after each source passes recurring-$0, rights, feed-scope, quota, contract-test and measured-capacity gates. Never create one upstream socket per pair by default.
