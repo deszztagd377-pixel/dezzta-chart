@@ -1928,3 +1928,50 @@ The target is multi-provider capability, not a fixed number of sockets. Use one 
 - No runtime adapter, socket, credential, provider activation, paid service or Termux operation was added.
 - No tests were executed in this documentation cycle; existing 11 catalog tests remain authored but unverified.
 - No Stage 1 ticks awarded. Stage 1 remains 30/40 provisional (300/400 ticks, 75%); Gate 10 remains 0/10 officially closed; open criteria remain 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. Stages 2–6 remain NOT SCORED; overall remains 20.90% historical only.
+
+
+## Provider-aware WebSocket routing work cycle — 2026-11-16
+
+### Exact source change
+- Branch: `phase-2/market-data-foundation`.
+- Exact implementation HEAD: `3158a61af80e378e1b27a4001fc1184f0a10a48f`.
+- Commit: [provider-aware WebSocket routing](https://github.com/deszztagd377-pixel/dezzta-chart/commit/3158a61af80e378e1b27a4001fc1184f0a10a48f).
+- Branch comparison from the prior audited base `afd8214d302b60ba670ed2f6b61dea3167e129c`: 9 commits ahead, 0 behind.
+- `main` was not changed.
+
+### Root cause corrected
+The authenticated OHLCV WebSocket consumer previously fixed provider identity to `databento` in its subscription snapshot, authorization mapping lookup and durable replay query. That prevented the consumer layer from addressing a second provider's separately mapped series, even though the underlying OHLCV pipeline and store preserve provider identity.
+
+The implementation now:
+- accepts an explicit provider in the series identity, while retaining `databento` as the backwards-compatible default;
+- validates provider and dataset identifiers with bounded lengths and safe character sets;
+- resolves authorization against the exact provider + dataset + publisher + instrument mapping and exact canonical instrument;
+- queries snapshots and registers fan-out subscriptions against that exact provider and series type;
+- filters durable outbox replay using the same provider and series identity;
+- reports a non-Databento provider as disconnected until a matching provider lifecycle/status implementation exists, rather than borrowing Databento's live status;
+- preserves venue/provider separation and does not merge different feeds into one synthetic series.
+
+### Files changed
+- `backend/app/main.py` — provider-aware WebSocket identity validation, authorization mapping, snapshot, replay and honest feed-state reporting.
+- `backend/app/ohlcv_stream.py` — provider and series type are part of the snapshot/fan-out identity; Databento remains the default.
+- `backend/tests/test_api.py` — integration test verifies a second provider mapping can return only its own snapshot series.
+- `backend/tests/test_ohlcv_stream.py` — test verifies same instrument identity can be subscribed independently by provider and no cross-provider fan-out occurs.
+
+### Exact-HEAD verification
+All workflows below completed successfully on exact HEAD `3158a61af80e378e1b27a4001fc1184f0a10a48f`:
+- [Automated Tests #43868839161](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43868839161) — **SUCCESS**. Includes frontend unit tests/build, backend pytest, synthetic SQLite outbox benchmark, dependency audit, backend container build, Redis ACL/persistent-volume smoke test, Trivy scan, vulnerability report export/upload and cleanup.
+- [CodeQL #43868839007](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43868839007) — **SUCCESS**.
+- [Full Git History Secret Audit #43868839073](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43868839073) — **SUCCESS**.
+- Vercel's separate status remained blocked by its external build-rate-limit/upgrade-to-Pro prompt. No paid upgrade was made; this is not a GitHub test failure and does not prove or disprove backend correctness.
+
+### Remaining runtime boundary
+This closes the specific consumer-side provider-hardcoding defect. It does **not** create an upstream multi-provider connection pool. The live ingestion lifecycle remains Databento-oriented; no second upstream adapter, socket, credential, pair coverage claim or live feed was activated. A provider must first pass recurring-$0 total-cost review, exact display/cache/redistribution rights, venue/data-family evidence, hard quota limits, adapter contract tests and capacity measurements. Until then it remains unavailable and cannot be used as a paid or trial fallback.
+
+### Progress and safety accounting — unchanged
+- Stage 1: **30/40 provisional criteria; 300/400 ticks; 75% provisional**.
+- Gate 10: **0/10 officially closed**.
+- Open criteria: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- Stages 2–6: **NOT SCORED**; Stage 2 is not opened.
+- Overall: **20.90% historical owner-confirmed checkpoint only**; no fresh weighted calculation.
+- No ticks awarded for this code change, tests or CI alone; external owner-host/device/provider acceptance evidence remains outstanding.
+- No Termux action, APK build, paid service or provider activation was required. Zero-cost guardrails remain intact.

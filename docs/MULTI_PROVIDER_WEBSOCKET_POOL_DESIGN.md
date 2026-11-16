@@ -3,7 +3,7 @@
 Review date: 2026-11-16  
 Stage: 1 — Foundation, Security & Data Integrity  
 Gate: 10 — market-data source and ingestion foundations  
-Status: **design specification only; no live socket or provider has been activated**
+Status: **provider-aware downstream WebSocket routing implemented and exact-HEAD CI verified; upstream multi-provider pool remains design-only; no new provider socket is active**
 
 ## Decision
 
@@ -129,8 +129,17 @@ A recurring-$0 API plan does not prove zero total operating cost. Hosting, bandw
 - Exact adapter commit has successful CI and controlled live verification.
 - Operator can disable a provider without affecting unrelated providers.
 
-## Current implementation boundary
+## Implemented downstream routing boundary — 2026-11-16
 
-This document does not implement a WebSocket pool, does not activate any provider, and does not change the current Databento-oriented runtime. The existing provider catalog remains descriptive and fail-closed. All candidate providers remain blocked until cost, rights and data-fit evidence is complete.
+The authenticated OHLCV WebSocket consumer is now provider-aware:
+- subscription identity accepts an explicit provider while defaulting older clients to Databento;
+- authorization resolves the exact provider/dataset/publisher/instrument mapping to the canonical instrument;
+- snapshot query, fan-out identity and durable replay remain scoped to the same provider series;
+- cross-provider fan-out is isolated by the full provider-scoped series identity;
+- a provider without its own lifecycle status is never reported live by borrowing another provider's status.
 
-No Termux action is required for this design document. No paid service is introduced. This is a Stage 1 foundation specification, not permission to skip the ten open Stage 1 acceptance criteria or advance to Stage 2.
+The exact implementation is commit [3158a61](https://github.com/deszztagd377-pixel/dezzta-chart/commit/3158a61af80e378e1b27a4001fc1184f0a10a48f). Automated Tests, CodeQL and Full Git History Secret Audit all succeeded on that exact commit.
+
+This is the downstream consumer boundary only. The upstream ingestion manager and source adapters remain Databento-oriented. No second provider client, connection pool, credentials, or live feed is active. Pair-coverage federation remains evidence-driven; no provider is claimed to support a pair without official scope, recurring-$0 cost and intended-use rights evidence.
+
+No Termux action or paid service is required. This is a Stage 1 foundation change and does not close any of the ten external Stage 1 gates or authorize transition to Stage 2.
