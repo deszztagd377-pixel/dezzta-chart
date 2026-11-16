@@ -2129,3 +2129,19 @@ The current `/health` route is a liveness-only response and deliberately reveals
 ### Zero-cost and device boundary
 
 No paid upgrade, paid hosting, paid market-data source or Termux action was used for this repository work. Vercel's separate build-rate-limit/upgrade prompt remains external and is not bypassed with a paid plan. No provider feed was activated. No APK release or Play Store publication was attempted.
+
+
+---
+
+## Gate 38 implementation slice — bounded private HTTP observability
+
+A zero-dependency, process-local HTTP metrics collector and privacy-preserving structured request log event were added.
+
+- Captures HTTP method, FastAPI route template (never raw URL/query/path parameters), status class and latency histogram.
+- Bounds metric cardinality and folds excess route series into a fixed overflow series.
+- Exposes `/internal/metrics` only when `OBSERVABILITY_METRICS_TOKEN` is injected. The token is redacted from Settings representations, validated to 32–256 non-whitespace characters, compared in constant time, and never logged.
+- Metrics are process-local, in-memory and reset at restart. The scrape route is excluded from its own telemetry.
+- Structured logs omit IP addresses, query strings, headers, authentication tokens and raw path parameters.
+- No paid dependency, SaaS, or persistent metrics database was introduced. Endpoint disabled by default.
+
+**Limitation:** partial implementation, not Gate 38 closure. Multi-process aggregation, durable metrics, retention/rotation, operator dashboard, alert thresholds and host access/network controls remain external acceptance items. No Gate 10 tick awarded pending exact-HEAD CI and production-host evidence.

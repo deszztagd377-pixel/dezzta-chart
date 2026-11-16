@@ -243,3 +243,16 @@ def test_alert_delivery_worker_rejects_unsafe_limits(field, value):
             firebase_project_id="test-project",
             **{field: value},
         )
+
+
+def test_observability_metrics_token_is_redacted_and_requires_strong_value():
+    token = "metrics-token-for-tests-only-32chars"
+    settings = make_settings(observability_metrics_token=token)
+    assert token not in repr(settings)
+    assert token not in str(settings)
+
+
+@pytest.mark.parametrize("token", ["short", "contains whitespace "])
+def test_observability_metrics_token_rejects_weak_values(token):
+    with pytest.raises(ValueError, match="32-256 non-whitespace"):
+        make_settings(observability_metrics_token=token)

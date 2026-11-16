@@ -2346,3 +2346,14 @@ The `/health` endpoint is liveness-only. Worker status is in-memory. A complete 
 ### Current progress accounting
 
 Stage 1 remains 30/40 provisional = 300/400 ticks = 75% provisional. Gate 10 remains 0/10 officially closed. Stage 2–6 remain NOT SCORED. The owner-confirmed 20.90% overall value remains historical; no fresh weighted overall value is asserted. No ticks were awarded by CI or documentation updates.
+
+
+---
+
+## 2026-11-16 — Gate 38 implementation slice
+
+Added bounded process-local HTTP metrics and privacy-preserving structured request logs. The private `/internal/metrics` endpoint is disabled by default and appears only when an owner-injected `OBSERVABILITY_METRICS_TOKEN` is configured. The token must be 32–256 non-whitespace characters, is excluded from Settings repr/str, and is checked with constant-time comparison.
+
+Metrics contain method, static route template, status class and latency buckets only. Route cardinality is capped and excess routes aggregated. Raw URLs, query strings, path parameters, client IPs, headers and credentials are excluded from structured request logs. Scrape requests are excluded from their own telemetry.
+
+This is not Gate 38 closure. Metrics reset on restart and do not aggregate across replicas. Durable retention, log rotation, multi-process aggregation, dashboard, threshold alerting and production host access/network policy remain unverified. Endpoint remains disabled unless explicitly configured. No paid dependency or Termux operation was used. No ticks awarded pending exact-HEAD CI and external acceptance.

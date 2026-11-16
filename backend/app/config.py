@@ -162,6 +162,7 @@ class Settings:
     alert_delivery_lease_seconds: int = 120
     alert_delivery_max_attempts: int = 8
     redis_url: str = field(default="", repr=False)
+    observability_metrics_token: str = field(default="", repr=False)
     http_rate_limit_per_client: int = 120
     http_rate_limit_global: int = 6000
     websocket_connection_limit_global: int = 500
@@ -169,6 +170,14 @@ class Settings:
     websocket_lease_seconds: int = 45
 
     def __post_init__(self) -> None:
+        if not isinstance(self.observability_metrics_token, str):
+            raise ValueError("observability_metrics_token must be a string.")
+        if self.observability_metrics_token and (
+            len(self.observability_metrics_token) < 32
+            or len(self.observability_metrics_token) > 256
+            or any(char.isspace() for char in self.observability_metrics_token)
+        ):
+            raise ValueError("OBSERVABILITY_METRICS_TOKEN must be 32-256 non-whitespace characters when supplied.")
         if not isinstance(self.alert_device_store_enabled, bool):
             raise ValueError("alert_device_store_enabled must be a boolean.")
         if not isinstance(self.alert_device_encryption_key, bytes) or (
@@ -330,6 +339,7 @@ class Settings:
                 os.getenv("ALERT_DELIVERY_MAX_ATTEMPTS", "8"), 8
             ),
             redis_url=os.getenv("REDIS_URL", "").strip(),
+            observability_metrics_token=os.getenv("OBSERVABILITY_METRICS_TOKEN", "").strip(),
             http_rate_limit_per_client=_parse_int(os.getenv("HTTP_RATE_LIMIT_PER_CLIENT", "120"), 120),
             http_rate_limit_global=_parse_int(os.getenv("HTTP_RATE_LIMIT_GLOBAL", "6000"), 6000),
             websocket_connection_limit_global=_parse_int(os.getenv("WEBSOCKET_CONNECTION_LIMIT_GLOBAL", "500"), 500),

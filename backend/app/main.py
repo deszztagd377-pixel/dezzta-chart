@@ -7,6 +7,9 @@ clients can subscribe to the in-memory OHLCV pipeline when validated bars exist.
 """
 
 import asyncio
+import hmac
+import json
+import logging
 import time
 from uuid import uuid4
 from collections import deque
@@ -18,6 +21,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import Settings
+from app.observability import RequestMetrics
 from app.coverage_store import SQLiteCoverageTracker
 from app.databento_sources import DatabentoHistoricalSource, DatabentoLiveSource
 from app.ingest import OhlcvIngestionService
@@ -135,6 +139,7 @@ def create_app(
     shared_guard=None,
 ) -> FastAPI:
     config = settings or Settings.from_environment()
+    request_metrics = RequestMetrics()
     if shared_guard is None and config.redis_url:
         shared_guard = RedisSharedGuard(
             config.redis_url,
@@ -335,6 +340,7 @@ def create_app(
     application.state.identity_verifier = identity_verifier
     application.state.shared_guard = shared_guard
     application.state.shared_guard_enabled = shared_guard is not None
+    application.state.request_metrics = request_metrics
 
     application.add_middleware(
         CORSMiddleware,
@@ -344,50 +350,62 @@ def create_app(
         allow_headers=["Content-Type", "Authorization"],
     )
 
+    http_logger = logging.getLogger("dezzta.http")
+
+    def observe_http_request(request, status_code: int, started_ns: int, route_override: str | None = None) -> str:
+        duration_ms = max(0.0, (time.monotonic_ns() - started_ns) / 1_000_000)
+        matched_route = request.scope.get("route")
+        route = route_override or getattr(matched_route, "path", "unmatched")
+        request_id = uuid4().hex
+        if request.url.path != "/internal/metrics":
+            request_metrics.record(request.method, route, status_code, duration_ms)
+            # Deliberately omit raw URL, query, path parameters, headers and client address.
+            http_logger.info(json.dumps({
+                "event": "http_request", "request_id": request_id,
+                "method": request.method, "route": route,
+                "status_class": f"{status_code // 100}xx",
+                "duration_ms": round(duration_ms, 3),
+            }, separators=(",", ":"), sort_keys=True))
+        return request_id
+
     @application.middleware("http")
     async def api_security_headers(request, call_next):
+        started_ns = time.monotonic_ns()
         if shared_guard is not None and request.url.path.startswith("/v1/"):
             client_identity = request.client.host if request.client is not None else "unknown"
             try:
                 allowed, retry_after = await shared_guard.allow_http(client_identity or "unknown")
             except Exception:
-                return JSONResponse(
-                    status_code=503,
-                    content={"detail": "Shared request protection is temporarily unavailable."},
-                    headers={
-                        "Retry-After": "5",
-                        "Cache-Control": "private, no-store, max-age=0",
-                        "X-Content-Type-Options": "nosniff",
-                        "X-Frame-Options": "DENY",
-                        "Referrer-Policy": "no-referrer",
-                        "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-                        "Pragma": "no-cache",
-                        "Expires": "0",
-                    },
-                )
+                response = JSONResponse(status_code=503, content={"detail": "Shared request protection is temporarily unavailable."}, headers={
+                    "Retry-After": "5", "Cache-Control": "private, no-store, max-age=0",
+                    "X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY",
+                    "Referrer-Policy": "no-referrer",
+                    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+                    "Pragma": "no-cache", "Expires": "0",
+                })
+                response.headers["X-Request-ID"] = observe_http_request(request, 503, started_ns, "security_guard")
+                return response
             if not allowed:
-                return JSONResponse(
-                    status_code=429,
-                    content={"detail": "Request rate limit exceeded."},
-                    headers={
-                        "Retry-After": str(retry_after),
-                        "Cache-Control": "private, no-store, max-age=0",
-                        "X-Content-Type-Options": "nosniff",
-                        "X-Frame-Options": "DENY",
-                        "Referrer-Policy": "no-referrer",
-                        "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-                        "Pragma": "no-cache",
-                        "Expires": "0",
-                    },
-                )
-        response = await call_next(request)
+                response = JSONResponse(status_code=429, content={"detail": "Request rate limit exceeded."}, headers={
+                    "Retry-After": str(retry_after), "Cache-Control": "private, no-store, max-age=0",
+                    "X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY",
+                    "Referrer-Policy": "no-referrer",
+                    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+                    "Pragma": "no-cache", "Expires": "0",
+                })
+                response.headers["X-Request-ID"] = observe_http_request(request, 429, started_ns, "security_guard")
+                return response
+        try:
+            response = await call_next(request)
+        except Exception:
+            observe_http_request(request, 500, started_ns)
+            raise
+        response.headers["X-Request-ID"] = observe_http_request(request, response.status_code, started_ns)
         if request.url.path == "/health" or request.url.path.startswith("/v1/"):
             response.headers["X-Content-Type-Options"] = "nosniff"
             response.headers["X-Frame-Options"] = "DENY"
             response.headers["Referrer-Policy"] = "no-referrer"
-            response.headers["Permissions-Policy"] = (
-                "camera=(), microphone=(), geolocation=()"
-            )
+            response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
             response.headers["Cache-Control"] = "private, no-store, max-age=0"
             response.headers["Pragma"] = "no-cache"
             response.headers["Expires"] = "0"
@@ -497,6 +515,21 @@ def create_app(
     async def health() -> dict[str, str]:
         """Liveness endpoint; deliberately reveals no secrets or feed state."""
         return {"status": "ok", "service": "dezzta-chart-backend"}
+
+    if config.observability_metrics_token:
+        @application.get("/internal/metrics", tags=["operations"], include_in_schema=False)
+        async def internal_metrics(
+            authorization: str | None = Header(default=None),
+        ) -> JSONResponse:
+            """Expose bounded process-local metrics only to an injected operator token."""
+            expected = f"Bearer {config.observability_metrics_token}"
+            if not isinstance(authorization, str) or not hmac.compare_digest(authorization, expected):
+                raise HTTPException(status_code=401, detail="Metrics authentication is required.",
+                                    headers={"WWW-Authenticate": "Bearer"})
+            return JSONResponse(content=request_metrics.snapshot(), headers={
+                "Cache-Control": "private, no-store, max-age=0",
+                "Pragma": "no-cache", "X-Content-Type-Options": "nosniff",
+            })
 
     @application.get("/v1/market-data/status", tags=["market-data"])
     async def market_data_status() -> dict[str, object]:

@@ -1858,3 +1858,31 @@ def test_websocket_selects_provider_specific_mapping_and_snapshot_without_cross_
     assert snapshot["bars"][0]["dataset"] == "VENUE.B"
     assert snapshot["bars"][0]["rawSymbol"] == "ESZ6B"
     assert snapshot["feedState"] == "disconnected"
+
+
+def test_internal_metrics_endpoint_is_disabled_without_operator_token():
+    response = TestClient(create_app(make_settings())).get("/internal/metrics")
+    assert response.status_code == 404
+
+
+def test_internal_metrics_endpoint_requires_token_and_returns_bounded_snapshot():
+    token = "metrics-token-for-tests-only-32chars"
+    application = create_app(replace(make_settings(), observability_metrics_token=token))
+    client = TestClient(application)
+    health = client.get("/health")
+    assert health.status_code == 200
+    assert health.headers["x-request-id"]
+
+    denied = client.get("/internal/metrics")
+    assert denied.status_code == 401
+    assert denied.headers["www-authenticate"] == "Bearer"
+
+    accepted = client.get("/internal/metrics", headers={"Authorization": f"Bearer {token}"})
+    assert accepted.status_code == 200
+    assert accepted.headers["cache-control"] == "private, no-store, max-age=0"
+    payload = accepted.json()
+    assert payload["schema_version"] == 1
+    assert payload["scope"] == "process_local_since_start"
+    health_rows = [item for item in payload["requests"] if item["route"] == "/health" and item["method"] == "GET"]
+    assert health_rows and health_rows[0]["count"] >= 1
+    assert all("metrics-token" not in str(item) for item in payload.values())
