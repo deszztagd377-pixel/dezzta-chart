@@ -234,3 +234,83 @@ def test_settings_repr_and_str_hide_all_runtime_secret_fields() -> None:
             redis_url,
         ):
             assert secret not in rendered
+
+def test_alert_device_store_loads_canonical_key_from_protected_file(monkeypatch, tmp_path):
+    import base64
+
+    key = b"0123456789abcdef0123456789abcdef"
+    secret_file = tmp_path / "alert-device-key.b64"
+    secret_file.write_text(base64.b64encode(key).decode("ascii"), encoding="ascii")
+    secret_file.chmod(0o600)
+
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.setenv("ALERT_DEVICE_STORE_ENABLED", "true")
+    monkeypatch.setenv("ALERT_DEVICE_ENCRYPTION_KEY_FILE", str(secret_file))
+
+    settings = Settings.from_environment()
+
+    assert settings.alert_device_store_enabled is True
+    assert settings.alert_device_encryption_key == key
+    assert base64.b64encode(key).decode("ascii") not in repr(settings)
+    assert key.hex() not in str(settings)
+
+
+def test_alert_device_store_refuses_to_start_without_key_file(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.setenv("ALERT_DEVICE_STORE_ENABLED", "true")
+    monkeypatch.delenv("ALERT_DEVICE_ENCRYPTION_KEY_FILE", raising=False)
+
+    with pytest.raises(ValueError, match="requires ALERT_DEVICE_ENCRYPTION_KEY_FILE"):
+        Settings.from_environment()
+
+
+@pytest.mark.parametrize(
+    "contents",
+    [
+        b"not-base64",
+        b"AA==",
+        b"!",
+        b"",
+    ],
+)
+def test_alert_device_store_rejects_invalid_or_wrong_length_key_file(
+    monkeypatch, tmp_path, contents
+):
+    secret_file = tmp_path / "alert-device-key.b64"
+    secret_file.write_bytes(contents)
+    secret_file.chmod(0o600)
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.setenv("ALERT_DEVICE_STORE_ENABLED", "true")
+    monkeypatch.setenv("ALERT_DEVICE_ENCRYPTION_KEY_FILE", str(secret_file))
+
+    with pytest.raises(ValueError, match="canonical base64|exactly 32 bytes|invalid size"):
+        Settings.from_environment()
+
+
+def test_alert_device_store_rejects_group_or_world_readable_key_file(
+    monkeypatch, tmp_path
+):
+    import base64
+
+    secret_file = tmp_path / "alert-device-key.b64"
+    secret_file.write_text(
+        base64.b64encode(b"0123456789abcdef0123456789abcdef").decode("ascii"),
+        encoding="ascii",
+    )
+    secret_file.chmod(0o644)
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.setenv("ALERT_DEVICE_STORE_ENABLED", "true")
+    monkeypatch.setenv("ALERT_DEVICE_ENCRYPTION_KEY_FILE", str(secret_file))
+
+    with pytest.raises(ValueError, match="deny group and other access"):
+        Settings.from_environment()
+
+
+def test_alert_device_store_requires_32_byte_key_when_enabled():
+    with pytest.raises(ValueError, match="valid 32-byte injected encryption key"):
+        Settings(
+            app_env="test",
+            market_data_ws_token="test",
+            cors_allowed_origins=("https://chart.example",),
+            alert_device_store_enabled=True,
+        )
