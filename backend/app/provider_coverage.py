@@ -77,6 +77,17 @@ def build_coverage_report(
         if not isinstance(mapping, ProviderInstrumentMapping):
             rejected_count += 1
             continue
+        raw_fields = (
+            mapping.provider_id,
+            mapping.instrument_id,
+            mapping.venue,
+            mapping.asset_class,
+            mapping.data_family,
+            mapping.evidence_ref,
+        )
+        if not all(isinstance(value, str) for value in raw_fields):
+            rejected_count += 1
+            continue
         provider_id = mapping.provider_id.strip().lower()
         instrument_id = mapping.instrument_id.strip()
         venue = mapping.venue.strip()
