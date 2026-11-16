@@ -89,16 +89,17 @@ def run_alert_delivery_batch(
             sender_result = sender(event)
             if sender_result is not None:
                 raise RuntimeError("sender must return None; raise on delivery failure.")
-        except Exception:
+        except Exception as delivery_error:
             completed_at_ns = _read_clock_ns(clock_ns)
             exhausted = item.attempt_count >= max_attempts
+            permanent_error = getattr(delivery_error, "retryable", True) is False
             exponent = min(item.attempt_count - 1, 62)
             retry_delay = min(
                 max_retry_delay_ns,
                 base_retry_delay_ns * (1 << exponent),
             )
             retry_at_ns = completed_at_ns + retry_delay
-            terminal = exhausted or retry_at_ns > _SQLITE_INT64_MAX
+            terminal = permanent_error or exhausted or retry_at_ns > _SQLITE_INT64_MAX
             if terminal:
                 retry_at_ns = completed_at_ns
             updated = store.reschedule_trigger_event(
