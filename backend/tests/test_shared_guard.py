@@ -9,6 +9,7 @@ import pytest
 from app.shared_guard import (
     HTTP_LIMIT_SCRIPT,
     WEBSOCKET_LEASE_SCRIPT,
+    WEBSOCKET_RENEW_SCRIPT,
     WEBSOCKET_RELEASE_SCRIPT,
     RedisSharedGuard,
 )
@@ -19,6 +20,7 @@ class FakeRedis:
         self.calls = []
         self.http_result = [1, 0]
         self.lease_result = 1
+        self.renew_result = 1
         self.error = None
         self.closed = False
 
@@ -35,6 +37,8 @@ class FakeRedis:
             return self.http_result
         if script == WEBSOCKET_LEASE_SCRIPT:
             return self.lease_result
+        if script == WEBSOCKET_RENEW_SCRIPT:
+            return self.renew_result
         if script == WEBSOCKET_RELEASE_SCRIPT:
             return 1
         raise AssertionError("Unexpected Redis script")
@@ -118,9 +122,17 @@ def test_websocket_renewal_and_release_use_atomic_scripts():
     guard = make_guard(redis)
     assert asyncio.run(guard.renew_websocket("connection-4", "account"))
     asyncio.run(guard.release_websocket("connection-4", "account"))
-    assert redis.calls[0][0] == WEBSOCKET_LEASE_SCRIPT
+    assert redis.calls[0][0] == WEBSOCKET_RENEW_SCRIPT
     assert redis.calls[1][0] == WEBSOCKET_RELEASE_SCRIPT
 
+
+
+
+def test_websocket_renewal_rejects_missing_or_expired_lease():
+    redis = FakeRedis()
+    redis.renew_result = 0
+    assert not asyncio.run(make_guard(redis).renew_websocket("expired-connection", "account"))
+    assert redis.calls[0][0] == WEBSOCKET_RENEW_SCRIPT
 
 def test_websocket_renewal_propagates_redis_failure():
     redis = FakeRedis()
@@ -270,6 +282,7 @@ def test_redis_websocket_lease_renewal_and_expiry_are_enforced(monkeypatch):
 
             # Once the renewed lease expires, the same account can reconnect.
             logical_time[0] = 1_001.7
+            assert not await guard.renew_websocket(first, account)
             assert await guard.acquire_websocket(second, account)
             connections.append((second, account))
         finally:
