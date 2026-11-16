@@ -1593,3 +1593,44 @@ ZERO COST maintained. No Termux/device command, paid service, market-data provid
 - CodeQL on `0a8096c` was queued/pending at the last check.
 - This CI repair does not close any Stage 1 criterion or Gate 10 item and earns no progress ticks.
 
+## Gate 10 work-cycle — protected alert-key injection and opt-in FastAPI persistence wiring — 2026-11-16
+
+### Implementation scope and source changes
+
+- Active branch: `phase-2/market-data-foundation`; `main` remains untouched.
+- Encrypted FCM-token persistence adapter and its first regression suite were already present from the preceding cycle.
+- This cycle adds a strict host-secret-file loader and opt-in application wiring. Source commits (short IDs):
+  - `1467b8f` — strict protected key-file loader and Settings fields.
+  - `4355a0f` — initialize encrypted device-token store only behind explicit opt-in.
+  - `ca80fd2` — tests for canonical key loading, missing/invalid key, file permissions and repr redaction.
+  - `7c050b9` — API-app wiring regression test and route-absence assertion.
+  - `64d09ed` — reject non-boolean programmatic opt-in values.
+  - `4305901` — regression coverage for strict boolean opt-in.
+- Documentation commits: `09989ac` (security configuration) and `3556887` (backend deployment notes).
+
+### Security behavior implemented
+
+- Device-token storage remains disabled by default.
+- Enabling it requires `ALERT_DEVICE_STORE_ENABLED=true` and an absolute `ALERT_DEVICE_ENCRYPTION_KEY_FILE` path.
+- The secret file must contain canonical base64 for exactly 32 bytes. The loader rejects malformed/non-canonical encoding, missing or non-regular files, files larger than 128 bytes, non-absolute paths, and POSIX permissions that grant group/other access.
+- The decoded key is held in a Settings field excluded from `repr()` and `str()`; no key value is accepted from frontend configuration or committed to the repository.
+- FastAPI creates `application.state.alert_device_store` only when explicitly enabled and uses the existing shared SQLite database path.
+- A regression test proves default-off behavior, shared database wiring, encrypted token lookup through the adapter, and absence of public device-registration routes.
+
+### Explicit non-activation boundary
+
+This is not production secret-injection acceptance. No owner host or Docker secret mount was provisioned or inspected. No FCM credentials, service account, routes, sender, background worker, or real Android push delivery were added. The adapter intentionally remains persistence-only. Do not enable it in a deployed environment until the owner-controlled key file, key custody/recovery, Firebase project, authenticated ownership, and sender lifecycle have been independently accepted.
+
+### Validation and acceptance status
+
+- Regression tests have been added for the loader, permission boundary, opt-in setting, and FastAPI wiring.
+- CI for the final source/documentation revision is pending at the time of this documentation update. Do not describe the new tests as passed until the exact revision's Automated Tests workflow completes.
+- Gate 8 remains open pending real owner-host secret injection and process-level proof.
+- Gate 31 remains open pending versioned key custody, backup, rotation and recovery exercise.
+- Gate 39 remains open: registration routes, sender, worker and real Firebase/Android delivery are not implemented.
+
+### Stage accounting, cost and device constraints
+
+No Stage 1 criterion is closed and no ticks are awarded for source changes, tests, CI or documentation alone. Gate 10 remains **0/10 officially closed**. Stage 1 remains **30/40 provisional criteria, 300/400 ticks (75% provisional)**. Stages 2–6 remain **NOT SCORED**. Overall progress remains **20.90% historical owner-confirmed checkpoint only**. The six-stage colored dashboard remains documentation-only and is not part of the APK.
+
+ZERO COST maintained. No paid service or dependency was added. No Termux/device command was required. No APK release or download link is claimed.
