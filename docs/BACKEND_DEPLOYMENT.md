@@ -104,10 +104,16 @@ For a container-based Python service on existing owner hardware, use:
   exactly 32 random bytes. Do not pass the key as an environment value or
   Docker build argument.
 
-The opt-in currently initializes encrypted token persistence only. It does not
-enable device-registration routes, FCM sending, a delivery worker, or real
-push delivery. Keep it disabled until key custody/recovery, verified account
-ownership, sender setup, and Android end-to-end acceptance are complete.
+When enabled, the opt-in initializes encrypted token persistence and
+conditionally exposes authenticated `POST /v1/alerts/devices` and
+`DELETE /v1/alerts/devices/{installation_id}` routes. Ownership is derived
+from the verified Firebase principal; clients cannot submit an owner ID and
+responses never contain the FCM token.
+
+The routes register/rotate and revoke device tokens only. They do not send
+notifications: FCM sender credentials, a delivery worker, and real push
+delivery are not enabled. Keep the store disabled in deployment until key
+custody/recovery, sender setup, and Android end-to-end acceptance are complete.
 
 Do not use managed Redis, paid hosting, paid domains, a CDN, or any trial that
 can convert into a charge. Add preview origins only when needed, as
