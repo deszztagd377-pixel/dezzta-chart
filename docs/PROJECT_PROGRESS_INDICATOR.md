@@ -1581,3 +1581,15 @@ The next safe integration requires key injection through the owner-controlled se
 No Stage 1 criterion is closed and no ticks are awarded for code or tests alone. Gate 10 remains 0/10 officially closed. Stage 1 remains 30/40 provisional criteria, 300/400 ticks (75% provisional); Stages 2–6 remain NOT SCORED; overall project remains 20.90% historical owner-confirmed checkpoint only. The six-stage colored dashboard remains documentation-only and is not part of the APK.
 
 ZERO COST maintained. No Termux/device command, paid service, market-data provider, or APK release action was required.
+
+## CI blocker remediation — exact public commit metadata false positive — 2026-11-16
+
+- The initial CI run for the encrypted alert-device store documentation stopped at the full-history Gitleaks scan before frontend/backend tests could run.
+- The reported location was the full public source-control SHA in this document's regression-suite commit entry; the finding was classified by Gitleaks as `generic-api-key`.
+- The value is public Git commit metadata, not an API token. The progress ledger now uses an abbreviated commit identifier; the full SHA remains available from the repository's commit history.
+- The Gitleaks exception is scoped to the one historical introducing commit and this exact progress-document path. It does not disable a rule, suppress other files, or suppress other commits.
+- Full Git History Secret Audit passed on source/configuration commit `0a8096c`.
+- Automated Tests on `0a8096c` passed the secret scan, frontend dependency audit, frontend unit tests, frontend build, frontend bundle secret scan, and Android host preflight/release-publisher tests. Backend test execution was still running at the time this section was authored; no final CI success is claimed.
+- CodeQL on `0a8096c` was queued/pending at the last check.
+- This CI repair does not close any Stage 1 criterion or Gate 10 item and earns no progress ticks.
+
