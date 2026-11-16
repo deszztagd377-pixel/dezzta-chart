@@ -58,36 +58,39 @@ only from `VerifiedPrincipal.subject`; request-supplied owner IDs are rejected.
 Responses contain device metadata only and never return the FCM token. CORS
 allows POST/DELETE only while the opt-in is enabled.
 
-These routes do not send notifications. An isolated Firebase Cloud
-Messaging sender adapter now exists in `backend/app/fcm_sender.py`. It uses
-Firebase Admin Application Default Credentials (ADC), sends data-only alert
-payloads with a stable `event_id` for client-side deduplication, and sanitizes
-provider error classification. The adapter is not wired into the FastAPI
-lifespan: no delivery worker is running and no push notification is sent by
-this adapter addition alone. The Android client must persistently deduplicate
-`event_id` because FCM delivery is not exactly-once.
+The FCM sender adapter in `backend/app/fcm_sender.py` uses Firebase
+Admin Application Default Credentials (ADC), sends data-only alert payloads
+with a stable `event_id`, and sanitizes provider errors. It is connected to
+the existing durable outbox worker through
+`backend/app/alert_fcm_delivery.py`.
 
-The outbox delivery worker is now wired to this adapter behind a separate
-explicit opt-in: `ALERT_DELIVERY_WORKER_ENABLED=true`. It additionally
-requires `ALERT_DEVICE_STORE_ENABLED=true`, a valid injected device encryption
-key, and `FIREBASE_PROJECT_ID`. The worker initializes Firebase Admin using
-runtime ADC, runs bounded batches in a FastAPI lifespan task, stops with the
-application, retries transient failures through the durable outbox, and
-revokes only the owner+installation for permanent invalid-token errors.
-Defaults remain disabled. Batch size is capped at the 10-device owner quota;
-poll interval, lease duration and attempt count are bounded by settings
-validation. No FCM credential is accepted from application environment as a
-private-key value.
+The worker is separately opt-in:
+`ALERT_DELIVERY_WORKER_ENABLED=true`. It additionally requires
+`ALERT_DEVICE_STORE_ENABLED=true`, a valid injected 32-byte device encryption
+key, and `FIREBASE_PROJECT_ID`. Defaults remain disabled. ADC is initialized
+during FastAPI lifespan startup; missing runtime credentials fail startup
+rather than silently disabling delivery.
 
-The device store now has a bounded owner-scoped active-token enumeration
-method (maximum 10 active devices); revoked devices are excluded and the
-returned token-bearing objects suppress their representation to reduce
-accidental logging exposure. This is only a store API and is not called by a
-worker yet. A bounded worker, retry scheduling integration, permanent
-invalid-token revocation, key custody, and real Firebase/Android delivery
-tests remain open. Losing the injected key makes
-existing ciphertext undecryptable; key backup, rotation, and recovery must be
-designed and drilled before production use.
+The worker processes **one outbox event per polling cycle** until lease renewal
+or concurrent per-event processing is implemented. Each event fans out to at
+most 10 active owner-scoped devices. Transient errors use the durable outbox
+retry policy. Only explicit unregistered-token error codes revoke the matching
+owner+installation; permanent message/project errors fail the event without
+revoking a potentially valid device. The worker stops with FastAPI lifespan
+and retains aggregate batch counts plus a sanitized error class only.
+
+Delivery is at-least-once, not exactly-once. If one device receives an event
+before another device fails, retry may send the same event again. Android must
+durably deduplicate `event_id`; real Android client delivery and deduplication
+remain unverified. A long synchronous FCM call can delay graceful shutdown and
+must be measured on the owner host.
+
+The device store provides bounded owner-scoped enumeration (maximum 10 active
+devices), excludes revoked devices, and suppresses decrypted tokens in object
+representations. Key custody, versioned ciphertext/key rotation, independent
+backup, and real Firebase/Android delivery tests remain open. Losing the
+injected key makes existing ciphertext undecryptable; key backup, rotation,
+and recovery must be designed and drilled before production use.
 
 ## 3. Transport and authentication
 
