@@ -5,8 +5,12 @@ Settings.__repr__ never includes the Databento key.
 """
 
 from dataclasses import dataclass, field
+import base64
+import binascii
 import json
 import os
+from pathlib import Path
+import stat
 from urllib.parse import urlsplit
 
 _TRUE = frozenset(("1", "true", "yes", "on"))
@@ -86,6 +90,37 @@ def _parse_cors_origins(value: str, *, app_env: str) -> tuple[str, ...]:
     return origins
 
 
+def _load_alert_device_encryption_key(path: str) -> bytes:
+    """Load a canonical base64-encoded 256-bit key from a protected secret file."""
+    if not isinstance(path, str) or not path.strip():
+        raise ValueError(
+            "ALERT_DEVICE_STORE_ENABLED requires ALERT_DEVICE_ENCRYPTION_KEY_FILE."
+        )
+    secret_path = Path(path.strip())
+    if not secret_path.is_absolute():
+        raise ValueError("ALERT_DEVICE_ENCRYPTION_KEY_FILE must be an absolute path.")
+    try:
+        if not secret_path.is_file():
+            raise ValueError("ALERT_DEVICE_ENCRYPTION_KEY_FILE must reference a regular file.")
+        file_stat = secret_path.stat()
+        if stat.S_IMODE(file_stat.st_mode) & 0o077:
+            raise ValueError(
+                "Alert-device encryption key file permissions must deny group and other access."
+            )
+        if file_stat.st_size < 1 or file_stat.st_size > 128:
+            raise ValueError("Alert-device encryption key file has an invalid size.")
+        encoded = secret_path.read_bytes().decode("ascii").strip()
+    except (OSError, UnicodeDecodeError) as exc:
+        raise ValueError("Alert-device encryption key file is unavailable or invalid.") from exc
+    try:
+        key = base64.b64decode(encoded, validate=True)
+    except (binascii.Error, ValueError) as exc:
+        raise ValueError("Alert-device encryption key file must contain canonical base64.") from exc
+    if len(key) != 32 or base64.b64encode(key).decode("ascii") != encoded:
+        raise ValueError("Alert-device encryption key must encode exactly 32 bytes.")
+    return key
+
+
 def _parse_int(value: str, default: int, *, minimum: int = 1) -> int:
     try:
         parsed = int(value.strip())
@@ -119,6 +154,8 @@ class Settings:
     session_calendar_version: str = ""
     session_calendar_releases: tuple[tuple[str, str, str], ...] = ()
     firebase_project_id: str = field(default="", repr=False)
+    alert_device_store_enabled: bool = False
+    alert_device_encryption_key: bytes = field(default=b"", repr=False)
     redis_url: str = field(default="", repr=False)
     http_rate_limit_per_client: int = 120
     http_rate_limit_global: int = 6000
@@ -127,6 +164,15 @@ class Settings:
     websocket_lease_seconds: int = 45
 
     def __post_init__(self) -> None:
+        if not isinstance(self.alert_device_encryption_key, bytes) or (
+            self.alert_device_encryption_key
+            and len(self.alert_device_encryption_key) != 32
+        ):
+            raise ValueError("alert_device_encryption_key must be exactly 32 bytes when supplied.")
+        if self.alert_device_store_enabled and len(self.alert_device_encryption_key) != 32:
+            raise ValueError(
+                "ALERT_DEVICE_STORE_ENABLED requires a valid 32-byte injected encryption key."
+            )
         if self.app_env.strip().lower() == "production" and not self.redis_url:
             raise ValueError("REDIS_URL is required in production; shared security guards cannot be disabled.")
         if self.app_env.strip().lower() == "production" and not self.firebase_project_id.strip():
@@ -181,6 +227,16 @@ class Settings:
             registry_path = "./data/instrument_registry.sqlite3"
 
         app_env = os.getenv("APP_ENV", "development").strip() or "development"
+        alert_device_store_enabled = _parse_bool(
+            os.getenv("ALERT_DEVICE_STORE_ENABLED", "false")
+        )
+        alert_device_encryption_key = (
+            _load_alert_device_encryption_key(
+                os.getenv("ALERT_DEVICE_ENCRYPTION_KEY_FILE", "")
+            )
+            if alert_device_store_enabled
+            else b""
+        )
         return cls(
             app_env=app_env,
             market_data_ws_token=os.getenv("MARKET_DATA_WS_TOKEN", "").strip(),
@@ -219,6 +275,8 @@ class Settings:
                 os.getenv("SESSION_CALENDAR_RELEASES_JSON", "")
             ),
             firebase_project_id=os.getenv("FIREBASE_PROJECT_ID", "").strip(),
+            alert_device_store_enabled=alert_device_store_enabled,
+            alert_device_encryption_key=alert_device_encryption_key,
             redis_url=os.getenv("REDIS_URL", "").strip(),
             http_rate_limit_per_client=_parse_int(os.getenv("HTTP_RATE_LIMIT_PER_CLIENT", "120"), 120),
             http_rate_limit_global=_parse_int(os.getenv("HTTP_RATE_LIMIT_GLOBAL", "6000"), 6000),
