@@ -135,3 +135,6 @@ This is deliberately not a live coverage registry or provider activation system.
 
 ### Coverage validation hardening — 2026-11-16
 Mappings now include explicit asset class and data family. The coverage calculation rejects a mapping unless both are declared by the uniquely identified provider candidate, in addition to requiring recurring-$0 eligibility and a non-empty evidence reference. Duplicate catalog provider IDs fail closed. Nine unit tests are authored for these behaviors. The evidence reference is only a review pointer; it does not independently prove licensing or terms compliance. CI must pass on the exact branch HEAD before tests are described as passing.
+
+
+A regression test also verifies that supplying two different evidence references for the same provider/instrument/venue/asset-class/data-family mapping does not double-count that mapping. Evidence references are review pointers, not uniqueness keys.
