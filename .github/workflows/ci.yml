@@ -160,7 +160,7 @@ jobs:
             -e REDIS_ACL_PASSWORD="$redis_acl_password" \
             --entrypoint sh redis:7-alpine -c '
               umask 077
-              printf "user default off\\nuser %s on >%s ~dezzta:{guard-http}:* ~dezzta:{guard-ws}:* +ping +select +eval +incr +expire +ttl +zremrangebyscore +zscore +zcard +zadd +pexpire +zrem\\n" "$REDIS_ACL_USERNAME" "$REDIS_ACL_PASSWORD" > /data/users.acl
+              printf "user default off\nuser %s on >%s ~dezzta:{guard-http}:* ~dezzta:{guard-ws}:* +ping +select +eval +incr +expire +ttl +zremrangebyscore +zscore +zcard +zadd +pexpire +zrem\n" "$REDIS_ACL_USERNAME" "$REDIS_ACL_PASSWORD" > /data/users.acl
             '
           start_redis() {
             docker run --detach --name "$redis_container_name" \
@@ -288,7 +288,7 @@ jobs:
           docker stop "$redis_container_name" >/dev/null
           outage_status=$(curl --silent --show-error --output /tmp/dezzta-redis-outage.json --dump-header /tmp/dezzta-redis-outage.headers --write-out '%{http_code}' "$base_url/v1/market-data/status")
           test "$outage_status" = "503"
-          node -e 'const fs = require("node:fs"); const body = JSON.parse(fs.readFileSync("/tmp/dezzta-redis-outage.json", "utf8")); const headers = fs.readFileSync("/tmp/dezzta-redis-outage.headers", "utf8"); if (body.detail !== "Shared request protection is temporarily unavailable." || !/^retry-after:\\s*5\\s*$/im.test(headers)) process.exit(1);'
+          node -e 'const fs = require("node:fs"); const body = JSON.parse(fs.readFileSync("/tmp/dezzta-redis-outage.json", "utf8")); const headers = fs.readFileSync("/tmp/dezzta-redis-outage.headers", "utf8"); if (body.detail !== "Shared request protection is temporarily unavailable." || !/^retry-after:\s*5\s*$/im.test(headers)) process.exit(1);'
           echo "Restarting Redis and verifying AOF data plus persisted ACL before backend recovery."
           docker rm "$redis_container_name" >/dev/null
           start_redis >/dev/null
