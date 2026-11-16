@@ -569,27 +569,20 @@ def test_outbox_rejects_now_timestamp_above_sqlite_int64(store, operation):
 
 
 def test_alert_delivery_worker_marks_permanent_sender_error_terminal(store):
-    from app.alert_delivery import run_alert_delivery_batch
+    _create(store)
+    _evaluate(store, "111", "baseline-permanent", 500)
+    assert len(_evaluate(store, "105", "trigger-permanent", 1_000)) == 1
 
-    store.create_zone(
-        owner_id="account-a",
-        canonical_instrument_id=_instrument_id(store),
-        lower_price="99",
-        upper_price="101",
-    )
-    store.evaluate_market_event(
-        canonical_instrument_id=_instrument_id(store),
-        provider_event_id="permanent-error-event",
-        source_timestamp_ns=1_700_000_000_000_000_000,
-        price="100",
-    )
+    class PermanentDeliveryError(RuntimeError):
+        retryable = False
+
+    def fail_sender(event):
+        raise PermanentDeliveryError("message rejected")
 
     result = run_alert_delivery_batch(
         store,
-        lambda event: (_ for _ in ()).throw(
-            type("PermanentDeliveryError", (RuntimeError,), {"retryable": False})()
-        ),
-        clock_ns=lambda: 1_700_000_000_000_000_001,
+        fail_sender,
+        clock_ns=lambda: 1_001,
     )
 
     assert result.terminal_failed == 1
