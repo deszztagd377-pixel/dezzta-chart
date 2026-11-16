@@ -159,3 +159,9 @@ def test_active_tokens_for_delivery_enforces_a_small_limit(store):
 def test_active_tokens_for_delivery_rejects_invalid_limits(store, limit):
     with pytest.raises(ValueError, match="limit"):
         store.active_tokens_for_delivery(owner_id="account-a", limit=limit)
+
+
+def test_deliverable_device_repr_never_exposes_decrypted_token(store):
+    store.register(owner_id="account-a", installation_id="phone-a", fcm_token="secret-token")
+    device = store.active_tokens_for_delivery(owner_id="account-a")[0]
+    assert "secret-token" not in repr(device)
