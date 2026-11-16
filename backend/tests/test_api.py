@@ -126,6 +126,56 @@ def test_websocket_fails_closed_when_shared_guard_is_unavailable() -> None:
     assert disconnected.value.code == 1013
 
 
+class FailingRenewalSharedGuard:
+    async def start(self):
+        return None
+
+    async def close(self):
+        return None
+
+    async def allow_http(self, client_identity):
+        return True, 0
+
+    async def acquire_websocket(self, connection_id, account_subject=None):
+        return True
+
+    async def renew_websocket(self, connection_id, account_subject):
+        raise ConnectionError("redis unavailable during lease renewal")
+
+    async def release_websocket(self, connection_id, account_subject=None):
+        return None
+
+
+def test_websocket_closes_when_redis_fails_during_lease_renewal() -> None:
+    settings = replace(make_settings(), websocket_lease_seconds=3)
+    application = _app_with_bars(
+        settings=settings,
+        shared_guard=FailingRenewalSharedGuard(),
+    )
+
+    with TestClient(application) as client:
+        with client.websocket_connect("/ws/market-data") as websocket:
+            websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+            assert websocket.receive_json()["type"] == "market_data.status"
+            websocket.send_json({
+                "type": "market_data.subscribe",
+                "version": 1,
+                "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+                "series": {
+                    "dataset": "GLBX.MDP3",
+                    "publisherId": 1,
+                    "instrumentId": 101,
+                    "rawSymbol": "ESZ6",
+                    "timeframe": "1s",
+                },
+            })
+            assert websocket.receive_json()["type"] == "market_data.ohlcv.snapshot"
+            with pytest.raises(WebSocketDisconnect) as disconnected:
+                websocket.receive_json()
+
+    assert disconnected.value.code == 1013
+
+
 def test_health_endpoint() -> None:
     client = TestClient(create_app(make_settings()))
     response = client.get("/health")
@@ -350,8 +400,8 @@ def _record(offset: int, volume: int = 10):
     )
 
 
-def _app_with_bars(count: int = 4):
-    application = create_app(make_settings())
+def _app_with_bars(count: int = 4, *, settings=None, shared_guard=None):
+    application = create_app(settings or make_settings(), shared_guard=shared_guard)
     _install_test_identity(application)
     _seed_stream_entitlement(application)
     application.state.resolver.add(SymbolMapping(
