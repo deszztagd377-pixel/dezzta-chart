@@ -1840,7 +1840,7 @@ The owner clarified that the initial source list was only a small subset of the 
 - The catalog contains 10 reviewed entries: Alpaca Basic, Alpha Vantage Free, Twelve Data Basic, CoinGecko Demo, public exchange-specific market-data endpoints, FRED, Frankfurter, World Bank Indicators and Databento's trial/credit model.
 - `eligible_for_zero_cost_baseline` requires BOTH recurring-free cost classification AND explicitly approved intended-use rights.
 - Unknown provider IDs fail closed. Trial/credit sources are never classified as recurring-free. Candidates with unknown or restricted rights cannot be enabled by this policy helper.
-- `backend/tests/test_provider_catalog.py` — nine focused tests authored for unique IDs, unknown-provider rejection, rights gating, trial-credit exclusion, macro/reference classification and venue-scope distinctions.
+- `backend/tests/test_provider_catalog.py` — eleven focused tests authored for unique IDs, unknown-provider rejection, rights gating, trial-credit exclusion, macro/reference classification, venue-scope distinctions and incomplete-evidence rejection.
 
 ### Expanded source findings
 - Some endpoints are free for public market-data retrieval but are specific to one exchange/venue; they are not a consolidated global market feed.
