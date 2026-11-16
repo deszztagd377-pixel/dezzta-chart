@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="850" viewBox="0 0 1200 850" role="img" aria-labelledby="title desc">
 <title id="title">DEZZTA CHART — Six-stage project progress dashboard</title>
-<desc id="desc">Project-process dashboard. Stage 1 is active at 75 percent provisional, with 30 of 40 criteria accepted and 10 external criteria open. Provider-aware downstream WebSocket routing is implemented and verified by successful Automated Tests, CodeQL and full Git history secret audit on commit 3158a61. Upstream multi-provider feeds remain inactive. Stages 2 through 6 are not officially opened and are not scored. Overall 20.9 percent is a historical checkpoint, not a freshly recalculated value. Vercel deployment is separately blocked by an external build-rate-limit prompt; no paid upgrade.</desc>
+<desc id="desc">Project-process dashboard. Stage 1 is active at 75 percent provisional, with 30 of 40 criteria accepted and 10 external criteria open. Provider-aware downstream WebSocket routing is implemented and verified by successful Automated Tests, CodeQL and full Git history secret audit on commit 3158a61. Upstream multi-provider feeds remain inactive. Evidence-gated coverage calculation added; tests authored but CI pending. Stages 2 through 6 are not officially opened and are not scored. Overall 20.9 percent is a historical checkpoint, not a freshly recalculated value. Vercel deployment is separately blocked by an external build-rate-limit prompt; no paid upgrade.</desc>
 <defs>
   <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1220"/><stop offset="1" stop-color="#172554"/></linearGradient>
   <linearGradient id="s1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#10b981"/><stop offset="1" stop-color="#34d399"/></linearGradient>
@@ -81,5 +81,5 @@
   <text x="22" y="203" class="small">Release only after preceding gates pass</text>
 </g>
 <text x="54" y="802" class="small">Overall: 20.9% historical • Stage 1 75% provisional • Provider-aware WS routing verified</text>
-<text x="1146" y="825" text-anchor="end" class="k">UPDATED 2026-11-16 • GATE 10 • PROVIDER-ROUTED WS / NO NEW UPSTREAM FEED</text>
+<text x="1146" y="825" text-anchor="end" class="k">UPDATED 2026-11-16 • GATE 10 • COVERAGE UNION CODE ADDED / CI PENDING / NO UPSTREAM FEED</text>
 </svg>
