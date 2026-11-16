@@ -134,7 +134,11 @@ This is deliberately not a live coverage registry or provider activation system.
 
 
 ### Coverage validation hardening — 2026-11-16
-Mappings now include explicit asset class and data family. The coverage calculation rejects a mapping unless both are declared by the uniquely identified provider candidate, in addition to requiring recurring-$0 eligibility and a non-empty evidence reference. Duplicate catalog provider IDs fail closed. Ten unit tests are present for these behaviors and passed in the exact-HEAD backend suite (968 total backend tests). The evidence reference is only a review pointer; it does not independently prove licensing or terms compliance.
+Mappings now include explicit asset class and data family. The coverage calculation rejects a mapping unless both are declared by the uniquely identified provider candidate, in addition to requiring recurring-$0 eligibility and a non-empty evidence reference. Duplicate catalog provider IDs fail closed. Eleven unit tests are present for these behaviors and passed in the exact-HEAD backend suite (968 total backend tests). The evidence reference is only a review pointer; it does not independently prove licensing or terms compliance.
 
 
 A regression test also verifies that supplying two different evidence references for the same provider/instrument/venue/asset-class/data-family mapping does not double-count that mapping. Evidence references are review pointers, not uniqueness keys. Exact-HEAD CI passed.
+
+
+### Malformed mapping input guard — 2026-11-16
+The builder now rejects mappings with non-string provider, instrument, venue, asset class, data family or evidence-reference fields before calling string normalization. One regression test verifies the function fails closed without raising. Total provider coverage test functions: eleven. The exact latest-HEAD CI run is pending; only the prior ten-test version is currently CI-verified.
