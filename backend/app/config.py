@@ -158,7 +158,7 @@ class Settings:
     alert_device_encryption_key: bytes = field(default=b"", repr=False)
     alert_delivery_worker_enabled: bool = False
     alert_delivery_poll_interval_seconds: int = 2
-    alert_delivery_batch_size: int = 10
+    alert_delivery_batch_size: int = 1
     alert_delivery_lease_seconds: int = 120
     alert_delivery_max_attempts: int = 8
     redis_url: str = field(default="", repr=False)
