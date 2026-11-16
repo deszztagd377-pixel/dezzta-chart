@@ -1731,3 +1731,13 @@ ZERO COST maintained. No paid service or dependency was added. No Termux/device 
 - No Stage 1 criterion closed; no ticks awarded for source or test-file additions alone.
 - Gate 10: **0/10 officially closed**. Stage 1: **30/40 provisional criteria, 300/400 ticks (75% provisional)**. Stages 2–6: **NOT SCORED**. Overall 20.90% remains a historical owner-confirmed checkpoint, not a fresh calculation.
 - ZERO COST maintained. No Termux/device command needed. No APK release or download link claimed.
+
+
+### Follow-on work — bounded active-device fan-out preparation
+
+- `3a1562f` adds `SQLiteAlertDeviceStore.active_tokens_for_delivery(owner_id, limit)`: deterministic, owner-scoped enumeration of active devices, capped at 10, excluding revoked installations.
+- `1056c8c` adds coverage for owner isolation, revoked-token exclusion, and limit enforcement.
+- `e65a569` marks the decrypted-token result object `repr=False`, preventing accidental token disclosure through ordinary object representations.
+- `285d969` adds a regression assertion that the decrypted token is absent from the object's representation.
+- These are implementation and test-authoring records only. CI execution is still pending/unverified; no test pass is claimed.
+- The owner-scoped enumeration closes one identified integration gap, but it does not create a sender worker. Delivery remains inactive until bounded worker lifecycle, retry/lease handling, permanent-token cleanup and client deduplication are implemented and tested.
