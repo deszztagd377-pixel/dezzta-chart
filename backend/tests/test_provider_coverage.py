@@ -99,6 +99,19 @@ def test_duplicate_mapping_is_counted_once():
     assert report.rejected_mapping_count == 1
 
 
+def test_duplicate_mapping_with_different_evidence_refs_is_still_counted_once():
+    report = build_coverage_report(
+        ["BTC-USD"],
+        [
+            _mapping("provider-a", "BTC-USD", evidence_ref="review:source-a"),
+            _mapping("provider-a", "BTC-USD", evidence_ref="review:source-b"),
+        ],
+        [_approved_candidate("provider-a")],
+    )
+    assert report.eligible_mapping_count == 1
+    assert report.rejected_mapping_count == 1
+
+
 def test_mapping_without_evidence_reference_is_rejected():
     report = build_coverage_report(
         ["BTC-USD"],
