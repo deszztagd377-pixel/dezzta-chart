@@ -2322,3 +2322,27 @@ The drill has not been run on the owner's phone because the live backend runtime
 - Existing Termux signature/keyring mismatch remains a hard stop. No package/repository/key changes, dependency downgrade, encryption change, or Termux command was performed.
 - Added [Android Backend Host Architecture Audit](ANDROID_BACKEND_HOST_AUDIT.md) with blocker matrix and safe proof sequence. Documentation-only; no backend URL, secret, host, APK integration, or production security setting changed.
 - Criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, and 39 remain OPEN. Stage 1 remains 300/400 ticks = 75% provisional; no tick awarded. Stages 2–6 NOT SCORED; overall 20.90% historical only.
+
+
+---
+
+## Verified exact-HEAD CI checkpoint — 2026-11-16
+
+Branch: `phase-2/market-data-foundation`  
+Code HEAD tested: `251ab3c0e4fa77fa6fd7057cc8ce586ca54291e8`
+
+- Automated Tests workflow [43873948272](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43873948272): success; **969 backend tests passed**; frontend unit tests/build, frontend secret scans, Android preflight/publisher tests, dependency audit, container build, Redis + persistent-volume smoke test, Trivy scan/report and synthetic outbox benchmark all passed.
+- CodeQL [43873948379](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43873948379): Python and JavaScript/TypeScript passed.
+- Full Git History Secret Audit [43873948423](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43873948423): passed.
+
+This is a verified CI checkpoint for the code HEAD. Subsequent commits in this progress record are documentation-only and do not modify application code.
+
+### Gate 10 correction — alerting and observability
+
+The alert delivery implementation is not absent: the repository contains a durable SQLite trigger outbox, lease-safe bounded batches, capped retries, terminal failure handling, owner-scoped FCM fan-out capped at ten devices, and an opt-in lifespan worker requiring encrypted device-token storage and Firebase application credentials. Criterion 39 remains open pending proof of zero incremental cost, operator receipt/acknowledgement, escalation and recovery drills. The worker must not be enabled by default.
+
+The `/health` endpoint is liveness-only. Worker status is in-memory. A complete authenticated metrics/logging/retention/dashboard system is not evidenced, so Criterion 38 remains open.
+
+### Current progress accounting
+
+Stage 1 remains 30/40 provisional = 300/400 ticks = 75% provisional. Gate 10 remains 0/10 officially closed. Stage 2–6 remain NOT SCORED. The owner-confirmed 20.90% overall value remains historical; no fresh weighted overall value is asserted. No ticks were awarded by CI or documentation updates.
