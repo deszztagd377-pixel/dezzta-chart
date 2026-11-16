@@ -141,18 +141,26 @@ jobs:
           redis_container_name=dezzta-chart-smoke-redis
           network_name=dezzta-chart-smoke-network
           volume_name=dezzta-chart-backend-smoke-data
+          redis_volume_name=dezzta-chart-redis-smoke-data
           base_url=http://127.0.0.1:18000
           cleanup() {
             docker rm -f "$container_name" "$redis_container_name" >/dev/null 2>&1 || true
-            docker volume rm -f "$volume_name" >/dev/null 2>&1 || true
+            docker volume rm -f "$volume_name" "$redis_volume_name" >/dev/null 2>&1 || true
             docker network rm "$network_name" >/dev/null 2>&1 || true
           }
           trap cleanup EXIT
           docker network create "$network_name" >/dev/null
           docker volume create "$volume_name" >/dev/null
+          docker volume create "$redis_volume_name" >/dev/null
           redis_acl_username=dezzta_ci
           redis_acl_password="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
-          docker run --detach --name "$redis_container_name" --network "$network_name" redis:7-alpine >/dev/null
+          start_redis() {
+            docker run --detach --name "$redis_container_name" \
+              --network "$network_name" \
+              --mount "type=volume,src=$redis_volume_name,dst=/data" \
+              redis:7-alpine redis-server --appendonly yes --appendfsync always
+          }
+          start_redis >/dev/null
           wait_for_default_redis() {
             for attempt in $(seq 1 20); do
               if docker exec "$redis_container_name" redis-cli ping 2>/dev/null | grep -Fxq PONG; then
@@ -166,6 +174,9 @@ jobs:
             return 1
           }
           wait_for_default_redis
+          test "$(docker exec "$redis_container_name" redis-cli --raw CONFIG GET appendonly | tail -n 1)" = "yes"
+          test "$(docker exec "$redis_container_name" redis-cli --raw CONFIG GET appendfsync | tail -n 1)" = "always"
+          docker exec "$redis_container_name" redis-cli SET dezzta:ci:persistence-canary survived-redis-restart >/dev/null
           docker exec "$redis_container_name" redis-cli ACL SETUSER "$redis_acl_username" on ">$redis_acl_password" "~dezzta:{guard-http}:*" "~dezzta:{guard-ws}:*" "+ping" "+select" "+eval" "+incr" "+expire" "+ttl" "+zremrangebyscore" "+zscore" "+zcard" "+zadd" "+pexpire" "+zrem" >/dev/null
           docker exec "$redis_container_name" redis-cli ACL SETUSER default off >/dev/null
           wait_for_redis() {
@@ -286,12 +297,24 @@ jobs:
           test "$second_status" = "429"
 
           docker exec "$container_name" python -c 'import sqlite3; c=sqlite3.connect("/data/dezzta-chart-smoke.sqlite3"); assert c.execute("PRAGMA integrity_check").fetchone()[0] == "ok"; assert c.execute("SELECT 1 FROM sqlite_master WHERE type=\u0027table\u0027 LIMIT 1").fetchone()'
+          echo "Restarting Redis and verifying AOF persistence before reconnecting the backend."
+          docker stop "$redis_container_name" >/dev/null
+          docker rm "$redis_container_name" >/dev/null
+          start_redis >/dev/null
+          wait_for_default_redis
+          test "$(docker exec "$redis_container_name" redis-cli --raw GET dezzta:ci:persistence-canary)" = "survived-redis-restart"
+          test "$(docker exec "$redis_container_name" redis-cli --raw CONFIG GET appendonly | tail -n 1)" = "yes"
+          test "$(docker exec "$redis_container_name" redis-cli --raw CONFIG GET appendfsync | tail -n 1)" = "always"
+          docker exec "$redis_container_name" redis-cli ACL SETUSER "$redis_acl_username" on ">$redis_acl_password" "~dezzta:{guard-http}:*" "~dezzta:{guard-ws}:*" "+ping" "+select" "+eval" "+incr" "+expire" "+ttl" "+zremrangebyscore" "+zscore" "+zcard" "+zadd" "+pexpire" "+zrem" >/dev/null
+          docker exec "$redis_container_name" redis-cli ACL SETUSER default off >/dev/null
+          wait_for_redis
+
           docker stop "$container_name" >/dev/null
           docker rm "$container_name" >/dev/null
           start_container
           wait_for_health
           docker exec "$container_name" python -c 'import sqlite3; c=sqlite3.connect("/data/dezzta-chart-smoke.sqlite3"); assert c.execute("PRAGMA integrity_check").fetchone()[0] == "ok"; assert c.execute("SELECT 1 FROM sqlite_master WHERE type=\u0027table\u0027 LIMIT 1").fetchone()'
-          echo "Container health, Redis ACL authentication, shared guard, non-root UID/GID, mounted-volume ownership, SQLite integrity and restart persistence, and HTTP rate-limit rejection passed."
+          echo "Container health, Redis ACL authentication, AOF persistence across Redis restart, shared guard recovery, non-root UID/GID, mounted-volume ownership, SQLite integrity and restart persistence, and HTTP rate-limit rejection passed."
 
       - name: Scan backend container image
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
