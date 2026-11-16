@@ -1982,8 +1982,8 @@ This closes the specific consumer-side provider-hardcoding defect. It does **not
 ### Exact branch changes
 - Working branch: `phase-2/market-data-foundation`; `main` untouched.
 - New `backend/app/provider_coverage.py`: deterministic, provider-aware coverage-union calculation over explicit mappings only.
-- New `backend/tests/test_provider_coverage.py`: seven unit tests for complementary coverage, redundant coverage, ineligible current candidates, unknown providers, out-of-watchlist mappings, duplicate mappings, missing evidence and empty watchlists.
-- The calculation fails closed: candidate mappings count only when the provider is eligible for recurring-$0 baseline and each mapping has an explicit evidence reference. It makes no network calls, activates no provider, and does not merge venue data.
+- New `backend/tests/test_provider_coverage.py`: nine unit tests covering complementary and redundant coverage, ineligible candidates, unknown providers, out-of-watchlist instruments, duplicate mappings, missing evidence references, unsupported asset/data families, duplicate catalog IDs and empty watchlists.
+- The calculation fails closed: candidate mappings count only when the provider is uniquely identified, eligible for recurring-$0 baseline, explicitly supports the mapped asset class and data family, and carries a non-empty evidence reference. It makes no network calls, activates no provider, and never blends provider feeds.
 
 ### Verification boundary
 - Both new files were read back from the target branch after creation.
@@ -2001,3 +2001,13 @@ This closes the specific consumer-side provider-hardcoding defect. It does **not
 
 ### Next internal action
 Add provider adapter lifecycle only after a concrete source passes the recurring-$0, intended-use rights, venue/data-family, quota and capacity review. Until then, strengthen exact-HEAD CI verification and infrastructure-side acceptance evidence without enabling unapproved data sources.
+
+
+### Coverage validation hardening — 2026-11-16
+- Added explicit `asset_class` to every provider/instrument mapping.
+- Reject mappings whose asset class or data family is absent from the candidate's declared support.
+- Duplicate provider IDs in the catalog are treated as ambiguous and disabled rather than silently using the last record.
+- Expanded coverage unit tests to nine cases.
+- Evidence reference is a required non-empty review pointer, not proof that the external document has been independently verified; human/legal source review remains required.
+- CI workflow configuration has a push trigger for this working branch. The latest run must be inspected before tests can be marked passed.
+- Verification state remains: code and tests read back from GitHub; test execution not yet confirmed. No Stage 1 ticks awarded.
