@@ -130,11 +130,11 @@ No Termux step is required for this design work. No paid service is introduced. 
 
 The design now has a repository-side calculation primitive in `backend/app/provider_coverage.py` and unit tests in `backend/tests/test_provider_coverage.py`. It computes the union of explicitly mapped instruments, reports uncovered and redundant instruments, and rejects unknown/ineligible providers, duplicate mappings, out-of-watchlist instruments and mappings without evidence references.
 
-This is deliberately not a live coverage registry or provider activation system. Since all production candidates currently fail the rights-approval gate, current eligible production coverage remains zero. The tests have been authored but are not yet confirmed by an exact-HEAD CI run. No Stage 1 ticks are awarded.
+This is deliberately not a live coverage registry or provider activation system. Since all production candidates currently fail the rights-approval gate, current eligible production coverage remains zero. The exact-HEAD CI run at `6cec1b544e2cd37fe465291b45311fa343052a8a` completed successfully with 968 backend tests passing, including the coverage tests. No Stage 1 ticks are awarded because external rights/host acceptance remains outstanding.
 
 
 ### Coverage validation hardening — 2026-11-16
-Mappings now include explicit asset class and data family. The coverage calculation rejects a mapping unless both are declared by the uniquely identified provider candidate, in addition to requiring recurring-$0 eligibility and a non-empty evidence reference. Duplicate catalog provider IDs fail closed. Nine unit tests are authored for these behaviors. The evidence reference is only a review pointer; it does not independently prove licensing or terms compliance. CI must pass on the exact branch HEAD before tests are described as passing.
+Mappings now include explicit asset class and data family. The coverage calculation rejects a mapping unless both are declared by the uniquely identified provider candidate, in addition to requiring recurring-$0 eligibility and a non-empty evidence reference. Duplicate catalog provider IDs fail closed. Ten unit tests are present for these behaviors and passed in the exact-HEAD backend suite (968 total backend tests). The evidence reference is only a review pointer; it does not independently prove licensing or terms compliance.
 
 
-A regression test also verifies that supplying two different evidence references for the same provider/instrument/venue/asset-class/data-family mapping does not double-count that mapping. Evidence references are review pointers, not uniqueness keys.
+A regression test also verifies that supplying two different evidence references for the same provider/instrument/venue/asset-class/data-family mapping does not double-count that mapping. Evidence references are review pointers, not uniqueness keys. Exact-HEAD CI passed.
