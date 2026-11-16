@@ -1413,3 +1413,78 @@ The backend integration test step completed successfully with `REDIS_TEST_URL` c
 | 6 — Hardening, Validation & APK Release | Not officially opened | **NOT SCORED** |
 
 Stage 1 remains 30/40 provisionally accepted criteria. The 10 open external criteria remain **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39**. Stages 2–6 remain NOT SCORED. Overall project remains **20.90% historical owner-confirmed checkpoint only**; no fresh weighted total is approved. No stage transition is recorded. The progress indicator remains documentation-only and is not part of the APK.
+
+## Gate 10 work-cycle — Redis persisted ACL, outage fail-closed, and recovery verification — 2026-11-16
+
+### Exact source revision and CI evidence
+
+- Working branch: `phase-2/market-data-foundation`; `main` was not changed.
+- Previous progress-document checkpoint: `fe4c82c988a1065723de98eb4763486c13713923`.
+- Exact tested source HEAD: `df6ebc6f81f81d7f5e5ff7c9df4285108cd91940`.
+- Net source comparison from the previous checkpoint: 2 files changed:
+  - `backend/tests/test_api.py`
+  - `.github/workflows/ci.yml`
+- Automated Tests [#43841531960](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43841531960) — **SUCCESS**.
+- CodeQL [#43841531965](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43841531965) — **SUCCESS** for Python and JavaScript/TypeScript.
+- Full Git History Secret Audit [#43841532108](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43841532108) — **SUCCESS**.
+- Backend image scan, vulnerability-report export/upload, and cleanup all completed successfully within Automated Tests.
+
+### API and WebSocket fail-closed regression coverage
+
+Added API-level tests using injected unavailable-guard doubles:
+1. HTTP requests under `/v1/` return 503, a fixed `Retry-After: 5`, and no-store cache headers when the shared guard raises.
+2. A new WebSocket is rejected with close code 1013 if the initial global reservation cannot be obtained.
+3. An already-authenticated and subscribed WebSocket is closed with code 1013 if lease renewal fails. The test uses a short test-only lease interval and confirms the snapshot is sent before the renewal outage is simulated.
+
+These tests validate the FastAPI boundary; they do not substitute for an owner-host outage exercise.
+
+### Redis smoke test now exercises persisted ACL and actual outage/recovery
+
+The isolated CI smoke workflow was expanded to:
+1. Write a least-privilege Redis ACL file into the dedicated persistent volume with restrictive file permissions; disable the default user.
+2. Start Redis with that ACL file, AOF enabled, and `appendfsync always`.
+3. Use only commands and key patterns permitted to the CI guard account. A sorted-set canary is stored in database 15 under the allowed guard key prefix.
+4. Verify unauthenticated access, incorrect passwords, and unrelated `SET` operations are denied.
+5. Stop Redis while the backend remains running and request a protected API endpoint. The backend must return HTTP 503 with the expected error body and `Retry-After: 5`.
+6. Recreate Redis against the same persistent volume. The ACL file must be loaded without re-provisioning; the canary must remain present; unauthenticated and incorrect-password access must still fail.
+7. Restart the backend, verify health, then verify the protected endpoint returns 200 followed by 429 under the configured per-client test limit.
+8. Recheck SQLite integrity after backend recovery.
+
+The first run exposed a quoting error in the final SQLite assertion. That assertion was corrected to use a parameterized SQL query. The final exact-HEAD Automated Tests workflow completed successfully, including the entire outage/restart smoke test. No unresolved failure is being represented as a pass.
+
+### Evidence boundary — Gate 25 remains OPEN
+
+This is stronger repository-level CI evidence for ACL-file persistence, AOF data recovery, API fail-closed behavior, and backend reconnection. It still does **not** prove:
+- The owner's actual Redis endpoint, TLS certificate and hostname verification, private network binding, or firewall.
+- The owner's production ACL file custody, filesystem permissions, service supervision, persistence settings, or restart behavior.
+- Production load, disk pressure, Redis host outage, or recovery on owner-controlled infrastructure.
+- Full authenticated browser/Android WSS acceptance under criterion 36.
+
+No Stage 1 criterion is closed by this cycle. No progress ticks are awarded for tests, CI, workflow changes, or documentation alone.
+
+### Six-stage colored project-process indicator — accounting unchanged
+
+The colored dashboard asset remains `docs/assets/project-progress-dashboard.svg`, and the permanent color mapping remains:
+- Stage 1: emerald/green.
+- Stage 2: cyan/blue.
+- Stage 3: violet.
+- Stage 4: amber.
+- Stage 5: pink.
+- Stage 6: slate.
+
+| Stage | Official state | Progress |
+|---|---|---:|
+| 1 — Foundation, Security & Data Integrity | Active; provisional checklist | **300/400 ticks — 75% provisional** |
+| 2 — Market Data Infrastructure | Not officially opened | **NOT SCORED** |
+| 3 — Chart Engine & Timeframe | Not officially opened | **NOT SCORED** |
+| 4 — Indicators & Analytics | Not officially opened | **NOT SCORED** |
+| 5 — Professional UI & Interactive Tools | Not officially opened | **NOT SCORED** |
+| 6 — Hardening, Validation & APK Release | Not officially opened | **NOT SCORED** |
+
+Stage 1 remains 30/40 provisionally accepted criteria. Gate 10 remains 0/10 officially closed. The ten open criteria remain **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39**. Stages 2–6 remain NOT SCORED. Overall progress remains **20.90% historical owner-confirmed checkpoint only**; no fresh weighted total is approved. No stage transition is recorded. The colored progress indicator remains documentation-only and is not part of the APK.
+
+### Cost and device constraints
+
+- ZERO COST maintained; no paid Redis, managed hosting, paid monitoring, or paid market-data provider was added.
+- No Termux or target-device command was required.
+- No APK release or download link is claimed.
