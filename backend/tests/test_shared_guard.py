@@ -219,3 +219,62 @@ def test_rediss_client_enforces_certificate_and_hostname_validation(monkeypatch)
     assert captured["options"]["ssl_cert_reqs"] == "required"
     assert captured["options"]["ssl_check_hostname"] is True
     assert captured["options"]["socket_connect_timeout"] == 2
+
+
+
+@pytest.mark.skipif(
+    not os.getenv("REDIS_TEST_URL"),
+    reason="CI Redis integration service is not configured",
+)
+def test_redis_websocket_lease_renewal_and_expiry_are_enforced(monkeypatch):
+    """Exercise lease renewal and expiry against Redis, not the fake client."""
+    from types import SimpleNamespace
+
+    from redis.asyncio import Redis
+    import app.shared_guard as shared_guard_module
+
+    logical_time = [1_000.0]
+    monkeypatch.setattr(
+        shared_guard_module,
+        "time",
+        SimpleNamespace(time=lambda: logical_time[0]),
+    )
+
+    async def exercise():
+        redis = Redis.from_url(os.environ["REDIS_TEST_URL"], decode_responses=True)
+        guard = RedisSharedGuard(
+            os.environ["REDIS_TEST_URL"],
+            websocket_global_limit=2,
+            websocket_per_account_limit=1,
+            websocket_lease_seconds=1,
+            redis_client=redis,
+        )
+        suffix = uuid4().hex
+        first = f"ws-lease-{suffix}-first"
+        second = f"ws-lease-{suffix}-second"
+        account = f"lease-account-{suffix}"
+        connections = []
+        try:
+            await guard.start()
+            assert await guard.acquire_websocket(first, account)
+            connections.append((first, account))
+            assert not await guard.acquire_websocket(second, account)
+
+            # Renewal extends the first lease from t=1001 to t=1001.6.
+            logical_time[0] = 1_000.6
+            assert await guard.renew_websocket(first, account)
+
+            # The original expiry has passed, but the renewed lease is active.
+            logical_time[0] = 1_001.1
+            assert not await guard.acquire_websocket(second, account)
+
+            # Once the renewed lease expires, the same account can reconnect.
+            logical_time[0] = 1_001.7
+            assert await guard.acquire_websocket(second, account)
+            connections.append((second, account))
+        finally:
+            for connection_id, subject in connections:
+                await guard.release_websocket(connection_id, subject)
+            await guard.close()
+
+    asyncio.run(exercise())
