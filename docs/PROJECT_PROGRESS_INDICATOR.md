@@ -1032,3 +1032,45 @@ At exact HEAD `bc21472829338194a30beece2bc13fce26e2c1df`:
 - Criterion 39 remains OPEN pending authenticated recipient routing, a real idempotent sender adapter, backend lifecycle integration, and delivery/recovery evidence.
 - Stage 2–6: NOT SCORED. Overall 20.90% remains a historical checkpoint only.
 - No tick is awarded for code volume, documentation, or CI steps alone. ZERO COST maintained; no Termux action, dependency change, paid service, APK release, or main-branch modification.
+
+## Exact-HEAD CI completion update — 2026-11-16
+
+### Completed automated verification for the latest code revision
+
+The previously pending Automated Tests run #43810624590 has now completed with **SUCCESS** on code commit `7f455a6c3f93ae593cc155963bd94073e958695b` (attempt 2).
+
+All relevant final workflow steps completed successfully:
+- Frontend unit tests and production build.
+- Frontend source and production-bundle credential scans.
+- Backend test suite, including SQLite backup/restore publication-failure regressions and alert sender-result contract regressions.
+- Bounded synthetic SQLite outbox benchmark and report upload.
+- Backend dependency audit.
+- Backend container image build.
+- Shared Redis guard and persistent-volume/restart container smoke test.
+- Backend container image scan.
+- Vulnerability report export and upload.
+
+Security workflows on the same code commit:
+- CodeQL Security Analysis run #43810624559: **SUCCESS**.
+- Full Git History Secret Audit run #43810624540: **SUCCESS**.
+
+The Automated Tests workflow artifacts include the container vulnerability reports and synthetic outbox benchmark reports. These are CI artifacts, not proof of owner-host deployment or device recovery.
+
+### Exact revision relationship and evidence boundary
+
+The current branch HEAD when this update was prepared is documentation commit `f70cae80800c8dfb09dfb4efcce0bfcda2e761d2`; its parent code revision is `7f455a6c3f93ae593cc155963bd94073e958695b`. The documentation-only commit does not alter application code. The complete green Automated Tests, CodeQL, and secret-audit results above apply to that exact code revision. The separate Automated Tests run #43811032701 for the documentation-only HEAD was cancelled during early initialization and is not counted as passed.
+
+### Official six-stage progress remains unchanged
+
+| Stage | Official scope | Current state |
+|---:|---|---|
+| 1 | Foundation, Security & Data Integrity | **75% provisional — 30/40 criteria, 300/400 ticks** |
+| 2 | Market Data Infrastructure | **NOT SCORED** |
+| 3 | Chart Engine & Timeframe | **NOT SCORED** |
+| 4 | Indicators & Analytics | **NOT SCORED** |
+| 5 | Professional UI & Interactive Tools | **NOT SCORED** |
+| 6 | Hardening, Validation & APK Release | **NOT SCORED** |
+
+Gate 10 remains **0/10 officially closed**. Open Stage 1 criteria remain 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. No tick is awarded for CI success alone. The green CI confirms repository-side tests and container checks; it does not close owner-controlled Firebase, Redis, Android restore, key custody, host recovery, HTTPS/WSS deployment, monitoring or real notification-delivery requirements.
+
+The overall 20.90% remains a historical checkpoint only; no fresh weighted overall score is claimed. ZERO COST remains in force. No Termux action, paid service, APK publication, or `main` branch change was made.
