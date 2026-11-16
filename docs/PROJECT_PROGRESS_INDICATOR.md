@@ -2015,3 +2015,42 @@ Add provider adapter lifecycle only after a concrete source passes the recurring
 
 ### Duplicate-mapping correction — 2026-11-16
 A further review found that two evidence references for the same provider/instrument/venue/asset-class/data-family mapping could inflate the eligible mapping counter. The deduplication key now excludes the evidence reference, and a regression test covers the case. Evidence remains a required field but cannot be used to manufacture a second coverage mapping. Total authored coverage test functions: ten. Exact-HEAD CI is being rerun after this correction.
+
+
+## Exact-HEAD CI verification update — 2026-11-16
+
+**Verified commit:** `6cec1b544e2cd37fe465291b45311fa343052a8a` on `phase-2/market-data-foundation`.
+
+The exact-HEAD GitHub Actions Automated Tests workflow completed with **SUCCESS**:
+- Backend pytest: **968 passed in 29.83s**. This includes the provider-coverage tests, provider lifecycle tests and provider-aware WebSocket API/stream tests present at this commit.
+- Frontend unit tests and frontend production build: passed.
+- Frontend bundle secret scanner tests and production bundle secret scan: passed.
+- Backend dependency audit: passed.
+- Backend container build: passed.
+- Container smoke test: passed with isolated Redis ACL authentication, rejection of unauthenticated/incorrect credentials and unauthorized Redis commands, and persistent-volume / SQLite ownership checks under application UID/GID 10001.
+- Container Trivy scan for HIGH/CRITICAL OS and library vulnerabilities: completed; parsed JSON report contained no HIGH/CRITICAL vulnerability entries.
+- Synthetic SQLite outbox benchmark: passed its assertions for 1,000 inserted and replayed synthetic bars, four replay pages and two concurrent readers. This is a synthetic local CI benchmark, not market-data performance or production capacity evidence.
+- CodeQL Python and JavaScript/TypeScript: both passed.
+- Full reachable Git history secret scan: passed.
+
+Evidence links:
+- [Automated Tests run](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43872800180)
+- [CodeQL run](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43872800226)
+- [Full Git History Secret Audit run](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43872800342)
+- [Container vulnerability report artifact](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43872800180/artifacts/14228423520)
+
+### Gate 10 evidence impact — partial, not closed
+- **Criterion 8 (host secrets):** repository history scan and frontend source/bundle secret checks passed. Owner-controlled production host secret injection and no-billing configuration are still unverified.
+- **Criterion 25 (Redis):** isolated CI Redis ACL and persistence smoke tests passed. Production/private host binding, TLS/reverse-proxy boundary, real owner-controlled host persistence and failure behavior remain unverified.
+- **Criterion 34 (persistent volume):** CI validated the container's mounted volume, ownership and SQLite file ownership at UID/GID 10001. Target host/device restart durability, disk pressure and recovery remain unverified.
+- **Criterion 30 (backup restore):** no new target-environment restore drill is evidenced by this run.
+- **Criterion 31 (encrypted off-host backup):** remains blocked; this CI run does not establish the encrypted off-host backup/key separation/restore requirements.
+- **Criteria 20, 35, 36, 38 and 39:** remain dependent on production identity, HTTPS/WSS endpoint/client, self-hosted observability and incident-response evidence.
+
+No criterion is officially closed by CI alone. Stage 1 remains **30/40 provisional = 300/400 ticks = 75% provisional**; Gate 10 remains **0/10 officially closed**; no ticks are awarded. Stage 2–6 remain NOT SCORED. Overall 20.90% remains a historical checkpoint, not a fresh calculation.
+
+### WebSocket boundary confirmed
+The provider-aware downstream WebSocket routing fix from commit `3158a61af80e378e1b27a4001fc1184f0a10a48f` is included in the current branch history and the exact-HEAD backend suite passes. Provider identity is isolated for subscription authorization, snapshot, fan-out and durable replay. The upstream runtime lifecycle remains Databento-specific; a second upstream adapter/connection pool is not implemented or activated. No unsupported provider, paid fallback, or unlicensed feed is enabled.
+
+### External CI status
+GitHub Actions is green for the listed workflows. The separate Vercel status still reports an external build-rate-limit / upgrade-to-Pro prompt. No paid upgrade was performed; Vercel is not treated as a failed code test or a reason to change the zero-cost policy.
