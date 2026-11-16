@@ -1289,3 +1289,57 @@ Gate 39 remains **OPEN**. No sender, token store, worker lifecycle integration, 
 - Stages 2–6 remain **NOT SCORED**; overall **20.90%** remains historical owner-confirmed checkpoint only.
 - No progress ticks awarded for source audit, documentation, or CI success.
 - ZERO COST maintained. No new dependency, paid provider, `main` change, APK publication, or Termux/device command.
+
+## Gate 10 work-cycle reconciliation — Redis WebSocket lease evidence — 2026-11-16
+
+- Official branch: `phase-2/market-data-foundation` (no changes to `main`).
+- Exact source HEAD audited: `83533028e46939c8690020cd13280751872ee1fb`.
+- Parent: `d9d197e52dacd20348924c02b9d22a9b78303855`.
+- Commit: [`8353302`](https://github.com/deszztagd377-pixel/dezzta-chart/commit/83533028e46939c8690020cd13280751872ee1fb) — `test: verify Redis websocket lease renewal and expiry`.
+- Production code was not changed in this commit. The only changed file is `backend/tests/test_shared_guard.py`.
+
+### Exact-commit automated evidence
+
+All listed workflows completed successfully for this work cycle:
+
+- [Automated Tests #43813740265](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43813740265) — **SUCCESS**. The Test and Build job completed every step, including backend tests, backend container image build, Redis ACL/shared-guard and persistent-volume smoke test, container vulnerability scan, report export/upload and cleanup.
+- [CodeQL #43813740322](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43813740322) — **SUCCESS** for JavaScript/TypeScript and Python.
+- [Full Git History Secret Audit #43813740303](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43813740303) — **SUCCESS**; complete reachable-history scan job completed.
+
+The Automated Tests workflow configured `REDIS_TEST_URL=redis://localhost:6379/0`, so the new Redis integration test was eligible to execute rather than being skipped for a missing service configuration. The workflow's backend test step and overall job both completed successfully.
+
+### Redis WebSocket lease regression added
+
+The new integration test uses the real asynchronous Redis client and `RedisSharedGuard`, with unique connection/account identifiers and deterministic logical time. It verifies:
+
+1. First connection obtains its lease.
+2. A second connection for the same account is rejected by the per-account limit.
+3. Renewal extends the first connection's lease.
+4. The second connection remains rejected after the original expiry point because the renewed lease remains active.
+5. The second connection is accepted after the renewed lease expires.
+6. Acquired connections are released and the Redis client is closed in cleanup.
+
+This is repository-level Redis integration evidence. It does **not** prove the owner's production Redis TLS endpoint, private network binding, ACL policy, persistent configuration, restart recovery, or host failure behavior.
+
+### Gate 25 decision and remaining evidence
+
+- Criterion 25 remains **OPEN**.
+- CI now proves an isolated Redis service can exercise lease renewal/expiry and that the container smoke environment enforces Redis ACL restrictions, rejects unauthenticated/incorrect credentials and unrelated SET operations, and preserves the mounted SQLite volume across backend container restart.
+- Still required on owner-controlled infrastructure: production-equivalent Redis TLS certificate/hostname validation, private binding/firewall evidence, least-privilege ACL review, persistence/AOF configuration and restart recovery, and fail-closed behavior during Redis outage/recovery.
+- No paid Redis, managed service, paid hosting, or paid monitoring was introduced.
+- No owner Termux command is required for this repository-side test/documentation cycle.
+
+### Six-stage project-process indicator — unchanged official accounting
+
+| Stage | Official state | Progress |
+|---|---|---:|
+| 1 — Foundation, Security & Data Integrity | Active; provisional checklist | **300/400 ticks — 75% provisional** |
+| 2 — Market Data Infrastructure | Not officially opened | **NOT SCORED** |
+| 3 — Chart Engine & Timeframe | Not officially opened | **NOT SCORED** |
+| 4 — Indicators & Analytics | Not officially opened | **NOT SCORED** |
+| 5 — Professional UI & Interactive Tools | Not officially opened | **NOT SCORED** |
+| 6 — Hardening, Validation & APK Release | Not officially opened | **NOT SCORED** |
+
+Stage 1 remains 30/40 provisionally accepted criteria; 10 external acceptance criteria remain open: **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39**. Gate 10 remains in execution; no external gate is closed by CI alone. No tick is awarded for this test, documentation update, or green CI.
+
+The overall-project figure remains **20.90% historical owner-confirmed checkpoint only**. A fresh weighted overall percentage is not established because the M1–M8 weighting ledger has not been approved and scored. No stage transition is recorded. The six-stage visual dashboard standard is unchanged and remains documentation-only, not an APK feature.
