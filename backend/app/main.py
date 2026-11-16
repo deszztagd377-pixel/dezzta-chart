@@ -24,7 +24,10 @@ from app.ingest import OhlcvIngestionService
 from app.instruments import InstrumentCatalog
 from app.instrument_registry import SQLiteInstrumentRegistry
 from app.alert_store import SQLitePriceAlertStore
+from app.alert_delivery import run_alert_delivery_batch
 from app.alert_device_store import AlertDeviceQuotaExceeded, SQLiteAlertDeviceStore
+from app.alert_fcm_delivery import build_alert_event_sender
+from app.fcm_sender import FirebaseCloudMessagingSender
 from app.entitlements import SQLiteInstrumentEntitlementStore
 from app.identity import (
     FirebaseIdentityVerifier,
@@ -149,7 +152,7 @@ def create_app(
     # enabled until Firebase identity and instrument entitlements are verified.
     price_alert_store = SQLitePriceAlertStore(config.instrument_registry_db_path)
     # Device-token persistence is opt-in and requires an owner-injected key.
-    # No registration route, FCM sender, or background worker is enabled here.
+    # Delivery worker is separately opt-in and is started only in lifespan.
     alert_device_store = (
         SQLiteAlertDeviceStore(
             config.instrument_registry_db_path,
@@ -224,17 +227,82 @@ def create_app(
         definition_sync=definition_sync,
     )
 
+    alert_delivery_status = {
+        "enabled": config.alert_delivery_worker_enabled,
+        "state": "disabled" if not config.alert_delivery_worker_enabled else "not_started",
+        "last_batch": None,
+        "last_error_code": None,
+    }
+
     @asynccontextmanager
     async def lifespan(_: FastAPI):
+        worker_stop = asyncio.Event()
+        worker_task = None
+        provider_started = False
         try:
             if shared_guard is not None:
                 await shared_guard.start()
             await provider.start()
-            try:
-                yield
-            finally:
-                await provider.stop()
+            provider_started = True
+
+            if config.alert_delivery_worker_enabled:
+                if alert_device_store is None:
+                    raise RuntimeError("Alert delivery worker requires the encrypted device store.")
+                fcm_sender = FirebaseCloudMessagingSender.from_application_credentials(
+                    config.firebase_project_id
+                )
+                event_sender = build_alert_event_sender(alert_device_store, fcm_sender)
+
+                async def alert_delivery_loop() -> None:
+                    alert_delivery_status["state"] = "running"
+                    while not worker_stop.is_set():
+                        try:
+                            batch = await asyncio.to_thread(
+                                run_alert_delivery_batch,
+                                price_alert_store,
+                                event_sender,
+                                clock_ns=time.time_ns,
+                                lease_duration_ns=(
+                                    config.alert_delivery_lease_seconds * 1_000_000_000
+                                ),
+                                batch_size=config.alert_delivery_batch_size,
+                                max_attempts=config.alert_delivery_max_attempts,
+                            )
+                            alert_delivery_status["last_batch"] = {
+                                "claimed": batch.claimed,
+                                "delivered": batch.delivered,
+                                "retry_scheduled": batch.retry_scheduled,
+                                "terminal_failed": batch.terminal_failed,
+                                "lease_lost": batch.lease_lost,
+                            }
+                            alert_delivery_status["last_error_code"] = None
+                        except Exception as exc:
+                            # Keep operational visibility without logging raw
+                            # provider errors, credentials, or device tokens.
+                            alert_delivery_status["last_error_code"] = (
+                                exc.__class__.__name__[:64]
+                            )
+                        try:
+                            await asyncio.wait_for(
+                                worker_stop.wait(),
+                                timeout=config.alert_delivery_poll_interval_seconds,
+                            )
+                        except asyncio.TimeoutError:
+                            pass
+                    alert_delivery_status["state"] = "stopped"
+
+                worker_task = asyncio.create_task(
+                    alert_delivery_loop(),
+                    name="dezzta-alert-delivery",
+                )
+            await asyncio.sleep(0)
+            yield
         finally:
+            worker_stop.set()
+            if worker_task is not None:
+                await worker_task
+            if provider_started:
+                await provider.stop()
             if shared_guard is not None:
                 await shared_guard.close()
 
@@ -260,6 +328,7 @@ def create_app(
     application.state.instrument_registry = instrument_registry
     application.state.price_alert_store = price_alert_store
     application.state.alert_device_store = alert_device_store
+    application.state.alert_delivery_status = alert_delivery_status
     application.state.instrument_entitlements = instrument_entitlements
     application.state.identity_verifier = identity_verifier
     application.state.shared_guard = shared_guard
