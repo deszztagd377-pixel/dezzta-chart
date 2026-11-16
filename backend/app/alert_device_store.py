@@ -34,7 +34,7 @@ class StoredAlertDevice:
     updated_at_utc: str
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, repr=False)
 class DeliverableAlertDevice:
     installation_id: str
     token: str
