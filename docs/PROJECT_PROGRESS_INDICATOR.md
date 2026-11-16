@@ -1867,7 +1867,7 @@ The owner clarified that the initial source list was only a small subset of the 
 
 ### Verification and cost
 - Provider catalog and tests are committed to `phase-2/market-data-foundation`.
-- Nine tests are authored but **not yet executed or confirmed by CI on the exact final commit**.
+- Eleven tests are authored but **not yet executed or confirmed by CI on the exact final commit**.
 - No GitHub Actions workflow run is currently available from the commit-status lookup; Vercel remains a separate deployment status and is not backend test evidence.
 - No Termux action was required.
 - No APK was built or verified.
@@ -1877,3 +1877,28 @@ The owner clarified that the initial source list was only a small subset of the 
 
 ### Next technical action
 Choose one narrow data family and one venue/feed scope after a documented rights review, then implement one adapter through the existing provider-neutral interfaces. Do not activate multiple sources at once or claim broad coverage from a single exchange-specific feed.
+
+
+## Exact branch-head reconciliation — 2026-11-16 (provider catalog cycle)
+
+This section supersedes the earlier provider-catalog verification wording in the source-audit entry, without rewriting historical CI records.
+
+- Branch: `phase-2/market-data-foundation`.
+- Audited HEAD: `d8dbb98951a208df272781698b9c3bc83bf05bce`.
+- Provider catalog: 10 candidate records; descriptive only; no feed/client/network activation.
+- Provider catalog tests: 11 test functions authored. They are **not executed or CI-confirmed** on this HEAD.
+- GitHub Actions commit-workflow lookup: no runs returned for this exact commit. This is unavailable evidence, not a test failure and not a pass.
+- Vercel: the previously observed deployment failure was an external build-rate-limit/upgrade-to-Pro prompt. Do not upgrade or attach billing; this is not backend test evidence.
+- Production source approvals: **0**. Every candidate remains blocked because app-specific display/redistribution rights are unknown or restricted, and some candidates also fail the recurring-$0 or data-freshness requirements.
+- No provider adapter was enabled. No credentials were added. No paid fallback, subscription, hosting, or trial-to-billing path was introduced.
+- No APK was built or verified. No Termux action was required. `main` remains untouched.
+
+### Accounting and gate state
+
+- Stage 1 remains **30/40 provisional criteria = 300/400 ticks = 75% provisional**.
+- Gate 10 remains **0/10 officially closed**; open criteria remain 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39.
+- Stages 2–6 remain **NOT SCORED**.
+- Overall remains **20.90% historical owner-confirmed checkpoint only**; no fresh weighted calculation is approved.
+- This source inventory, catalog code, authored tests and documentation do not earn Stage 1 ticks by themselves.
+
+The next repository-side action is to establish a verifiable test execution path on the exact branch HEAD, then continue the internal remediation portions of the ten open gates. External owner-host/device evidence remains separately required; no stage transition is implied.
