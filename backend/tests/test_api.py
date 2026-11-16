@@ -1627,10 +1627,17 @@ def test_alert_device_store_is_opt_in_and_uses_shared_database(tmp_path):
         owner_id="verified-test-subject",
         installation_id="android-test-device",
     ) == "test-only-fcm-token"
-    assert not any(
-        getattr(route, "path", "").startswith("/v1/alerts/devices")
+    disabled_paths = {
+        getattr(route, "path", "")
+        for route in disabled_app.routes
+    }
+    enabled_paths = {
+        getattr(route, "path", "")
         for route in enabled_app.routes
-    )
+    }
+    assert "/v1/alerts/devices" not in disabled_paths
+    assert "/v1/alerts/devices" in enabled_paths
+    assert "/v1/alerts/devices/{installation_id}" in enabled_paths
 
 def test_alert_device_routes_bind_owner_to_verified_identity_and_never_return_token(
     tmp_path,
