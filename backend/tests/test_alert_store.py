@@ -566,3 +566,31 @@ def test_outbox_rejects_now_timestamp_above_sqlite_int64(store, operation):
 
     # Rejection occurs before SQL binding; the existing lease remains intact.
     assert store.list_pending_trigger_events() == [event]
+
+
+def test_alert_delivery_worker_marks_permanent_sender_error_terminal(store):
+    from app.alert_delivery import run_alert_delivery_batch
+
+    store.create_zone(
+        owner_id="account-a",
+        canonical_instrument_id=_instrument_id(store),
+        lower_price="99",
+        upper_price="101",
+    )
+    store.evaluate_market_event(
+        canonical_instrument_id=_instrument_id(store),
+        provider_event_id="permanent-error-event",
+        source_timestamp_ns=1_700_000_000_000_000_000,
+        price="100",
+    )
+
+    result = run_alert_delivery_batch(
+        store,
+        lambda event: (_ for _ in ()).throw(
+            type("PermanentDeliveryError", (RuntimeError,), {"retryable": False})()
+        ),
+        clock_ns=lambda: 1_700_000_000_000_000_001,
+    )
+
+    assert result.terminal_failed == 1
+    assert result.retry_scheduled == 0
