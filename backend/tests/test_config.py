@@ -204,6 +204,7 @@ def test_production_accepts_tls_redis_url_with_acl_credentials():
 def test_alert_delivery_worker_is_disabled_by_default():
     settings = make_settings()
     assert settings.alert_delivery_worker_enabled is False
+    assert settings.alert_delivery_batch_size == 1
 
 
 def test_alert_delivery_worker_requires_encrypted_device_store():
