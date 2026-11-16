@@ -1793,5 +1793,5 @@ A focused review found two correctness details that needed tightening before cla
 - `6cb1fd0` / `afe657e` — fixed the worker event batch at one per poll by default and in direct `Settings` construction. This is intentionally conservative because the current outbox claims a batch of leases before sequential processing; a later event must not sit behind a potentially slow FCM fan-out with an expiring lease.
 - `d87520c` — corrected the FCM sender module contract to reflect its opt-in FastAPI lifespan integration.
 - `64d6373` / `0baac98` — regression coverage pins the single-event default and rejects attempts to increase it before lease-safe concurrency exists.
-- Exact latest commit at this documentation checkpoint: `0baac98304ff80ec814a1d9b7f15e5b3e760e701`.
+- Source/test revision checkpoint before the final documentation-only update: `0baac98304ff80ec814a1d9b7f15e5b3e760e701`; the subsequent documentation-only checkpoint is recorded separately in the conversation report.
 - The only reported commit status is Vercel **PENDING**; no completed GitHub Actions run is available from the current verification. Backend tests, CodeQL and secret audit therefore remain **UNVERIFIED on this exact revision**.
