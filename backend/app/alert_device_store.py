@@ -6,7 +6,7 @@ persists plaintext FCM tokens and exposes no HTTP routes by itself.
 from __future__ import annotations
 
 from dataclasses import dataclass
-import base64
+from contextlib import closing
 import os
 from pathlib import Path
 import sqlite3
@@ -56,7 +56,7 @@ class SQLiteAlertDeviceStore:
         return connection
 
     def _initialize(self) -> None:
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS alert_device_tokens (
@@ -145,6 +145,18 @@ class SQLiteAlertDeviceStore:
                     (owner, installation, encrypted),
                 )
             else:
+                if existing["revoked_at_utc"] is not None:
+                    active_count = connection.execute(
+                        """
+                        SELECT COUNT(*) FROM alert_device_tokens
+                        WHERE owner_id = ? AND revoked_at_utc IS NULL
+                        """,
+                        (owner,),
+                    ).fetchone()[0]
+                    if active_count >= _MAX_DEVICES_PER_OWNER:
+                        raise AlertDeviceQuotaExceeded(
+                            "An account can register at most 10 active alert devices."
+                        )
                 connection.execute(
                     """
                     UPDATE alert_device_tokens
@@ -176,7 +188,7 @@ class SQLiteAlertDeviceStore:
 
     def revoke(self, *, owner_id: str, installation_id: str) -> bool:
         owner, installation = self._validate_identity(owner_id, installation_id)
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             cursor = connection.execute(
                 """
                 UPDATE alert_device_tokens
@@ -190,7 +202,7 @@ class SQLiteAlertDeviceStore:
     def active_count(self, *, owner_id: str) -> int:
         if not isinstance(owner_id, str) or not 1 <= len(owner_id.strip()) <= _MAX_OWNER_LENGTH:
             raise ValueError("owner_id must contain 1 to 128 characters.")
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             return connection.execute(
                 """
                 SELECT COUNT(*) FROM alert_device_tokens
@@ -201,7 +213,7 @@ class SQLiteAlertDeviceStore:
 
     def token_for_delivery(self, *, owner_id: str, installation_id: str) -> str | None:
         owner, installation = self._validate_identity(owner_id, installation_id)
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             row = connection.execute(
                 """
                 SELECT token_ciphertext FROM alert_device_tokens
