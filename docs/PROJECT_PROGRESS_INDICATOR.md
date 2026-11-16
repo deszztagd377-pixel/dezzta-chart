@@ -968,3 +968,18 @@ Progress remains unchanged: Stage 1 30/40 criteria, 300/400 ticks, 75% provision
 - Criterion 30 receives stronger failure-cleanup behavior and a targeted regression, but remains OPEN pending actual Android database-path, backup/restore and application read/write evidence.
 - Stage 2–6 remain NOT SCORED. Overall 20.90% remains a historical owner-confirmed checkpoint only; no fresh weighted score is claimed.
 - ZERO COST maintained. No Termux command, dependency change, paid service, APK release, or main-branch modification.
+
+
+## Gate 10 hardening — enforce alert sender success contract (2026-11-16)
+
+### Finding and correction
+- The injectable alert worker's sender type and documented contract require a successful sender to return `None` and to raise on failure.
+- The worker previously ignored the returned value. An adapter returning `False` (or another non-`None` result) could therefore cause an undelivered event to be acknowledged as delivered.
+- The worker now rejects every non-`None` sender result inside its guarded delivery call. The existing retry path handles the rejection and stores only the fixed `delivery.error` code.
+- Added parameterized regression coverage for adapters returning `False` and `True`; both remain pending and are scheduled for retry instead of being acknowledged.
+
+### Verification and progress accounting
+- This is repository-side worker contract hardening only. It does not provide a real notification adapter, authenticated recipient routing, application-lifespan integration, or delivery/recovery evidence.
+- CI must verify this exact revision before the new cases are counted as passed.
+- Criterion 39 remains OPEN. Stage 1 remains 30/40 criteria, 300/400 ticks, 75% provisional; Gate 10 remains 0/10 officially closed. Open criteria remain 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39.
+- Stage 2–6 remain NOT SCORED; overall 20.90% remains historical only. ZERO COST maintained; no Termux action, dependency change, paid service, APK release, or main-branch modification.
