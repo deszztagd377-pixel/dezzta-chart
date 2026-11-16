@@ -34,14 +34,16 @@ def build_alert_event_sender(
             try:
                 fcm_sender.send_price_alert(token=device.token, event=event)
             except FCMDeliveryError as exc:
-                if exc.retryable:
-                    raise
-                # A permanent response means this installation token cannot
-                # receive this or future pushes. Revocation remains owner-scoped.
-                device_store.revoke(
-                    owner_id=event.owner_id,
-                    installation_id=device.installation_id,
-                )
+                if exc.token_invalid:
+                    # Only explicit registration-token invalidation codes may
+                    # revoke a device. Other permanent errors may be payload or
+                    # project configuration faults, not bad installation tokens.
+                    device_store.revoke(
+                        owner_id=event.owner_id,
+                        installation_id=device.installation_id,
+                    )
+                    continue
+                raise
         return None
 
     return send_event
