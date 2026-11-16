@@ -122,3 +122,8 @@ Next implementation order:
 6. Keep the adapter disabled until tests, CI, rights review and live source verification pass.
 
 This inventory is intentionally broad but not exhaustive. New sources can be added only after the same cost/data/rights review. "Many endpoints exist on the internet" is not a reason to trust them or make them part of the application.
+
+
+## Multi-provider connection design
+
+The companion [Multi-provider WebSocket pool design](MULTI_PROVIDER_WEBSOCKET_POOL_DESIGN.md) defines how multiple approved sources can be multiplexed and isolated without opening a socket per pair. It specifies bounded sessions, per-provider quota budgets, backpressure, stale/gap handling, reconnect policy and measured capacity acceptance. It is a design specification only: no WebSocket pool or new provider has been activated.
