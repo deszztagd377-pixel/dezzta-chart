@@ -124,3 +124,10 @@ The existing provider catalog is a descriptive candidate inventory and remains f
 The provider inventory remains intentionally non-exhaustive. We will add candidates only after official evidence is reviewed. No dark-web/deep-web scraping or untrusted endpoint is needed: only documented, auditable sources can enter the product.
 
 No Termux step is required for this design work. No paid service is introduced. No Stage 1 ticks are awarded for documentation alone.
+
+
+## Implementation status update — 2026-11-16
+
+The design now has a repository-side calculation primitive in `backend/app/provider_coverage.py` and unit tests in `backend/tests/test_provider_coverage.py`. It computes the union of explicitly mapped instruments, reports uncovered and redundant instruments, and rejects unknown/ineligible providers, duplicate mappings, out-of-watchlist instruments and mappings without evidence references.
+
+This is deliberately not a live coverage registry or provider activation system. Since all production candidates currently fail the rights-approval gate, current eligible production coverage remains zero. The tests have been authored but are not yet confirmed by an exact-HEAD CI run. No Stage 1 ticks are awarded.
