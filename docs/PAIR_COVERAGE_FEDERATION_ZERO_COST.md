@@ -142,3 +142,12 @@ A regression test also verifies that supplying two different evidence references
 
 ### Malformed mapping input guard — 2026-11-16
 The builder now rejects mappings with non-string provider, instrument, venue, asset class, data family or evidence-reference fields before calling string normalization. One regression test verifies the function fails closed without raising. Total provider coverage test functions: eleven. The exact latest-HEAD CI run is pending; only the prior ten-test version is currently CI-verified.
+
+
+## Exact-HEAD validation and alert-delivery boundary — 2026-11-16
+
+The latest exact branch HEAD `251ab3c0e4fa77fa6fd7057cc8ce586ca54291e8` passed the complete Automated Tests workflow, including **969 backend tests**. CodeQL Python/JavaScript and the full reachable Git-history secret audit also passed.
+
+The coverage builder's malformed-field guard and its regression test are included in this exact-HEAD pass. A non-string provider/instrument/venue/asset-class/data-family/evidence field is rejected before normalization and counted as a rejected mapping; it does not throw during string normalization.
+
+This test result does not establish provider rights, exchange redistribution permissions, recurring free quotas, live feed operation, or multi-provider upstream activation. Provider mappings remain evidence-gated and no additional provider has been activated.
