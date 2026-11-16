@@ -1008,3 +1008,27 @@ At exact HEAD `bc21472829338194a30beece2bc13fce26e2c1df`:
 - Criterion 39 receives sender-contract coverage, but remains OPEN pending authenticated recipient routing, a real sender adapter, backend lifecycle integration, and delivery/recovery evidence.
 - Stage 2–6 remain NOT SCORED; overall 20.90% remains a historical checkpoint only.
 - ZERO COST maintained. No Termux action, dependency change, paid service, APK release, or main-branch modification.
+
+
+## Source-tree assembly correction and exact-HEAD verification — 2026-11-16
+
+### Transparent correction
+- Commit `4662dadbc6cba64ef45eaa15a179b5f92782a453` introduced the SQLite publication-ownership callbacks and regression tests, but its tree was initially constructed from an outdated base tree. Diff review caught that this also reverted the alert sender-result guard and its two regression cases from parent revision `bc21472829338194a30beece2bc13fce26e2c1df`.
+- This was an assistant-authored source-tree assembly error, not an application runtime defect. The issue was disclosed, and the exact alert worker and test files were restored from the previously verified parent revision in follow-up commit `7f455a6c3f93ae593cc155963bd94073e958695b`.
+- The final repair commit's diff was checked and contains only the two expected restorations. The active branch HEAD was independently re-read as `7f455a6c3f93ae593cc155963bd94073e958695b`.
+- The intermediate Automated Tests and CodeQL runs for `4662dad...` were cancelled when the repair commit superseded it; they are not counted as passing. Its secret audit succeeded, but that does not validate the reverted application behavior.
+
+### Latest exact-HEAD evidence at `7f455a6c...`
+- Full Git History Secret Audit: SUCCESS — [run #43810624540](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43810624540).
+- CodeQL Security Analysis: SUCCESS — [run #43810624559](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43810624559).
+- Automated Tests: still running at the last evidence read — [run #43810624590](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43810624590).
+- Within Automated Tests, frontend tests/build, backend tests, SQLite outbox benchmark and backend dependency audit have completed successfully. Backend container image build is the active step; subsequent container smoke, image scan and report-export steps are not yet accepted as passed.
+- The new backup/restore publication-failure regressions are included in the successful backend test step. This is repository/CI evidence only, not an owner-device Android restore drill.
+
+### Current progress remains unchanged
+- Stage 1: 30/40 criteria, 300/400 ticks, 75% provisional.
+- Gate 10: 0/10 officially closed; open criteria: 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39.
+- Criterion 30 remains OPEN pending actual Android database-path and owner-device restore/read-write evidence.
+- Criterion 39 remains OPEN pending authenticated recipient routing, a real idempotent sender adapter, backend lifecycle integration, and delivery/recovery evidence.
+- Stage 2–6: NOT SCORED. Overall 20.90% remains a historical checkpoint only.
+- No tick is awarded for code volume, documentation, or CI steps alone. ZERO COST maintained; no Termux action, dependency change, paid service, APK release, or main-branch modification.
