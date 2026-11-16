@@ -47,13 +47,23 @@ owner-controlled secret manager or a protected read-only secret mount; do not
 put the key in the repository, Docker build arguments, image layers, app
 configuration, frontend variables, or chat.
 
-The application creates the SQLite token adapter only when this opt-in is
-enabled. This is persistence wiring only: device registration HTTP routes,
-FCM sender credentials, delivery workers, and real Firebase/Android delivery
-remain disabled until their separate authentication, entitlement, key-custody,
-and end-to-end acceptance requirements are met. Losing the injected key makes
-existing ciphertext undecryptable; key backup, rotation, and recovery must be
-designed and drilled before production use.
+The application creates the SQLite token adapter only when this
+opt-in is enabled. When enabled, it conditionally registers:
+
+- `POST /v1/alerts/devices` — register or rotate a device token.
+- `DELETE /v1/alerts/devices/{installation_id}` — revoke a device token.
+
+Both routes require a verified Firebase Bearer identity. The owner ID is taken
+only from `VerifiedPrincipal.subject`; request-supplied owner IDs are rejected.
+Responses contain device metadata only and never return the FCM token. CORS
+allows POST/DELETE only while the opt-in is enabled.
+
+These routes do not send notifications. FCM sender credentials, delivery
+workers, and real Firebase/Android push delivery remain disabled until their
+separate sender, retry/idempotency, key-custody, and end-to-end acceptance
+requirements are met. Losing the injected key makes existing ciphertext
+undecryptable; key backup, rotation, and recovery must be designed and drilled
+before production use.
 
 ## 3. Transport and authentication
 
