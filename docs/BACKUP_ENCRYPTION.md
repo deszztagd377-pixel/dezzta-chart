@@ -13,8 +13,16 @@ Format version 1 uses:
 - a random 12-byte GCM nonce;
 - authenticated versioned header data;
 - 1 MiB streaming chunks;
-- private temporary files and atomic publication;
+- private temporary files and atomic **no-overwrite** publication using a
+  same-directory hard link (an existing destination is never replaced);
 - GCM authentication before a decrypted file is published.
+
+If the destination already exists, encryption fails with
+`FileExistsError` and preserves the existing artifact. If another process
+creates the destination during publication, the atomic link operation also
+fails without replacing that competing file. A filesystem that cannot create
+the required same-directory hard link fails closed rather than falling back
+to an overwrite-prone rename.
 
 A wrong passphrase or modified ciphertext fails authentication. The previous
 destination is preserved and temporary plaintext is removed. On POSIX systems,
@@ -57,7 +65,7 @@ unrecoverable. Do not send it through chat or commit it to Git.
 
 Automated tests cover round-trip recovery, wrong-key rejection, ciphertext
 tampering, invalid headers, temporary-file cleanup, destination preservation,
-and owner-only POSIX permissions.
+concurrent destination creation, and owner-only POSIX permissions.
 
 This implementation is repository-level encryption support, not proof of
 production key management. Stage 1 point 31 remains externally unverified until

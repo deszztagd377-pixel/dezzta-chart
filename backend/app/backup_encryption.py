@@ -64,9 +64,14 @@ def _fsync_directory(directory: Path) -> None:
 def _publish_private_file(temporary: Path, destination: Path) -> None:
     if os.name == "posix":
         os.chmod(temporary, 0o600)
-    os.replace(temporary, destination)
+    # A hard link publishes the completed artifact atomically without replacing
+    # an existing backup. If another process wins the destination race, link()
+    # raises FileExistsError and leaves that competing artifact untouched.
+    # Filesystems without same-directory hard-link support fail closed.
+    os.link(temporary, destination)
+    temporary.unlink()
     if os.name == "posix":
-        # The file contents are fsynced before this rename. Flush the parent
+        # The file contents are fsynced before publication. Flush the parent
         # directory as well so the published name is durable across a crash.
         # If this fails, the destination may already be visible; durability is
         # uncertain and the error must be surfaced to the caller.

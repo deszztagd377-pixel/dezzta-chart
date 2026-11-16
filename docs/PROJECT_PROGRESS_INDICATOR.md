@@ -1161,3 +1161,33 @@ Verified findings:
 ### Zero-cost and device disposition
 
 No paid provider, managed service, external notification subscription, dependency change, Termux command, device modification, APK release, or Google Play publication was required or performed in this cycle. The Termux Google Play repository/signing-key constraint remains untouched. The process-progress dashboard remains documentation-only and is not part of the APK.
+
+
+## Criterion 31 work-cycle — encrypted-backup no-overwrite hardening — 2026-11-16
+
+### Finding and remediation
+
+A source audit found that `encrypt_backup_file()` used `os.replace()` during publication. Although publication was atomic, it could replace an existing encrypted backup at the requested destination. That creates an avoidable retention/data-loss hazard when a destination is reused or another process creates it concurrently.
+
+The helper now publishes through a same-directory hard link and removes the temporary name only after the link succeeds. This makes publication atomic and no-overwrite: an existing destination or a competing destination creation causes failure while preserving the already-published file. Filesystems without the required hard-link support fail closed. POSIX owner-only mode and directory fsync behavior are retained.
+
+### Regression coverage added
+
+- Existing destination: encryption must raise `FileExistsError`, preserve the previous bytes, and remove the temporary file.
+- Publication race: a competing destination created immediately before the hard-link operation must remain unchanged; the encryption operation must fail and clean its temporary file.
+- Directory-fsync failure test now verifies the post-publication durability warning without relying on replacement of an existing destination.
+- `docs/BACKUP_ENCRYPTION.md` now documents no-overwrite publication and fail-closed behavior.
+
+### Verification and acceptance boundary
+
+- Code change and regression tests are committed together; exact-HEAD CI is required before treating the implementation as verified.
+- Criterion 31 remains **OPEN**: no owner-controlled key custody, independent zero-cost off-host destination, retention/access-control policy, or successful owner-environment recovery drill has been evidenced.
+- No Stage 1 tick is awarded for this repository-side fix or its tests alone.
+
+### Project meter — unchanged
+
+- Stage 1: **30/40 criteria; 300/400 ticks; 75% provisional**.
+- Gate 10: **0/10 closed**; open criteria remain **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- Stages 2–6: **NOT SCORED**.
+- Overall project: **20.90% historical owner-confirmed checkpoint only**; no new weighted score is approved.
+- ZERO COST maintained. No Termux command, dependency change, paid storage, APK publication, or `main` modification.

@@ -11,6 +11,40 @@ from app.backup_encryption import decrypt_backup_file, encrypt_backup_file
 PASSPHRASE = b"test-only-passphrase-32-bytes-long"
 
 
+def test_encryption_refuses_to_overwrite_existing_destination(tmp_path):
+    source = tmp_path / "source.sqlite3"
+    destination = tmp_path / "backup.enc"
+    source.write_bytes(b"new backup")
+    destination.write_bytes(b"previous verified backup")
+
+    with pytest.raises(FileExistsError):
+        encrypt_backup_file(source, destination, PASSPHRASE)
+
+    assert destination.read_bytes() == b"previous verified backup"
+    assert list(tmp_path.glob(".backup.enc.*.encrypted-backup.tmp")) == []
+
+
+def test_encryption_does_not_clobber_destination_created_during_publication(tmp_path, monkeypatch):
+    source = tmp_path / "source.sqlite3"
+    destination = tmp_path / "backup.enc"
+    source.write_bytes(b"new backup")
+    real_link = backup_encryption.os.link
+
+    def create_competing_destination(source_path, destination_path):
+        from pathlib import Path
+
+        Path(destination_path).write_bytes(b"competing verified backup")
+        return real_link(source_path, destination_path)
+
+    monkeypatch.setattr(backup_encryption.os, "link", create_competing_destination)
+
+    with pytest.raises(FileExistsError):
+        encrypt_backup_file(source, destination, PASSPHRASE)
+
+    assert destination.read_bytes() == b"competing verified backup"
+    assert list(tmp_path.glob(".backup.enc.*.encrypted-backup.tmp")) == []
+
+
 def test_backup_encryption_round_trip_and_private_permissions(tmp_path):
     source = tmp_path / "backup.sqlite3"
     encrypted = tmp_path / "offsite" / "backup.sqlite3.enc"
@@ -235,7 +269,6 @@ def test_encryption_reports_directory_fsync_failure_after_publish(tmp_path, monk
     destination = tmp_path / "backup.enc"
     restored = tmp_path / "restored.sqlite3"
     source.write_bytes(b"valid backup payload")
-    destination.write_bytes(b"previous backup")
 
     def fail_directory_flush(_directory):
         raise OSError("simulated directory fsync failure")
@@ -249,9 +282,9 @@ def test_encryption_reports_directory_fsync_failure_after_publish(tmp_path, monk
     with pytest.raises(OSError, match="directory fsync failure"):
         encrypt_backup_file(source, destination, PASSPHRASE)
 
-    # Atomic rename already happened: the new artifact is visible, but the
-    # caller is told that crash durability of its directory entry is uncertain.
-    assert destination.read_bytes() != b"previous backup"
+    # Atomic no-overwrite publication already happened: the new artifact is
+    # visible, but crash durability of its directory entry is uncertain.
+    assert destination.read_bytes() != b"valid backup payload"
     assert list(tmp_path.glob(".backup.enc.*.encrypted-backup.tmp")) == []
 
     monkeypatch.undo()
