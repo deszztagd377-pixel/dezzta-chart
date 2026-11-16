@@ -125,14 +125,12 @@ def test_websocket_renewal_and_release_use_atomic_scripts():
     assert redis.calls[0][0] == WEBSOCKET_RENEW_SCRIPT
     assert redis.calls[1][0] == WEBSOCKET_RELEASE_SCRIPT
 
-
-
-
 def test_websocket_renewal_rejects_missing_or_expired_lease():
     redis = FakeRedis()
     redis.renew_result = 0
     assert not asyncio.run(make_guard(redis).renew_websocket("expired-connection", "account"))
     assert redis.calls[0][0] == WEBSOCKET_RENEW_SCRIPT
+
 
 def test_websocket_renewal_propagates_redis_failure():
     redis = FakeRedis()
