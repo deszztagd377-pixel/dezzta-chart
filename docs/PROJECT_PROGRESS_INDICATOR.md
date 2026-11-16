@@ -1205,3 +1205,40 @@ Removed only the unnecessary empty-destination pre-creation from that test. It n
 
 This is a test-fixture compatibility correction, not a relaxation of the security contract. The next exact-HEAD Automated Tests run must pass before this change is considered validated. The CI failure and correction are explicitly recorded; no progress ticks are awarded.
 
+
+
+## Exact-HEAD CI and restore-drill audit update — 2026-11-16
+
+### Exact revision verification
+
+Commit `8c9fcc13886ebd216db568c0068139b42ae71af6` is the verified head of `phase-2/market-data-foundation`. All three required workflows completed successfully against this exact SHA:
+
+- Automated Tests #43812770946 — **SUCCESS**.
+- CodeQL Security Analysis #43812770971 — **SUCCESS**.
+- Full Git History Secret Audit #43812770993 — **SUCCESS**.
+
+The Automated Tests job reports successful completion for frontend dependency audit and unit tests, source and production-bundle credential scans, production frontend build, Android host preflight tests, immutable preview-publisher tests, backend dependency audit and test suite, bounded synthetic SQLite outbox benchmark/report, backend container build, Redis guard + persistent-volume smoke test, backend image scan, and vulnerability report export/upload. This is CI evidence for the repository revision only; it does not prove owner-host deployment or Android runtime behavior.
+
+### Additional criterion 30 source audit
+
+Re-inspected `backend/app/sqlite_restore_drill.py` and `backend/tests/test_sqlite_restore_drill.py` at the exact CI-verified SHA. Existing repository tests cover:
+- SQLite integrity and foreign-key checks, required application tables, schema digest, per-table row hashes, and application-domain readback.
+- Outbox event identity checks and a post-restore write/read/cleanup probe.
+- Source database byte preservation.
+- Cleanup after backup/restore directory-fsync failures and verification failures.
+- Refusal to overwrite pre-existing backup or restore destinations.
+
+No additional repository code change was justified by this inspection. The important remaining acceptance gap is environmental: no evidence yet that this drill has been executed against the owner's actual Android application database path and storage/runtime conditions. Criterion 30 therefore remains OPEN.
+
+### Criterion 31 platform boundary
+
+The encrypted artifact publisher now uses a same-directory hard link for atomic no-overwrite publication. This intentionally fails closed where the destination filesystem does not support hard links. The repository CI validates its runner filesystem; it does not establish that every Android/shared-storage filesystem supports this operation. Before using encrypted backup publication on-device, the actual app-private destination filesystem must be validated. No Termux or device command was run.
+
+### Project indicator — unchanged acceptance accounting
+
+- Stage 1: **30/40 criteria; 300/400 ticks; 75% provisional**.
+- Gate 10: **0/10 closed**; open criteria remain **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- Stages 2–6: **NOT SCORED**.
+- Overall project: **20.90% historical owner-confirmed checkpoint only**.
+- No ticks awarded for code changes, documentation, repository CI, or source audit alone.
+- ZERO COST maintained; no paid service, no `main` changes, no APK release, and no Termux command.
