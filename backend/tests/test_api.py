@@ -1761,3 +1761,55 @@ def test_alert_device_routes_enable_only_required_cors_methods(tmp_path):
     assert enabled_preflight.status_code == 200
     assert "POST" in enabled_preflight.headers["access-control-allow-methods"]
     assert "DELETE" in enabled_preflight.headers["access-control-allow-methods"]
+
+
+def test_opt_in_alert_worker_starts_and_stops_with_application_lifespan(monkeypatch):
+    from app import main as main_module
+
+    class FakeFcmSender:
+        @classmethod
+        def from_application_credentials(cls, project_id):
+            assert project_id == "test-alert-project"
+            return object()
+
+    monkeypatch.setattr(
+        main_module.FirebaseCloudMessagingSender,
+        "from_application_credentials",
+        FakeFcmSender.from_application_credentials,
+    )
+    monkeypatch.setattr(
+        main_module,
+        "build_alert_event_sender",
+        lambda device_store, fcm_sender: (lambda event: None),
+    )
+
+    settings = replace(
+        make_settings(),
+        firebase_project_id="test-alert-project",
+        alert_device_store_enabled=True,
+        alert_device_encryption_key=b"K" * 32,
+        alert_delivery_worker_enabled=True,
+        alert_delivery_poll_interval_seconds=1,
+    )
+    application = create_app(settings)
+
+    with TestClient(application):
+        for _ in range(100):
+            if application.state.alert_delivery_status["state"] == "running":
+                break
+            time.sleep(0.01)
+        assert application.state.alert_delivery_status["enabled"] is True
+        assert application.state.alert_delivery_status["state"] == "running"
+
+    assert application.state.alert_delivery_status["state"] == "stopped"
+
+
+def test_alert_worker_remains_disabled_in_default_application_lifespan():
+    application = create_app(make_settings())
+    with TestClient(application):
+        assert application.state.alert_delivery_status == {
+            "enabled": False,
+            "state": "disabled",
+            "last_batch": None,
+            "last_error_code": None,
+        }
