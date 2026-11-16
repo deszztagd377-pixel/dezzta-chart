@@ -31,9 +31,12 @@ _PERMANENT_CODES = frozenset({
 class FCMDeliveryError(RuntimeError):
     """Sanitized FCM failure classification; never retains provider payloads."""
 
-    def __init__(self, code: str, *, retryable: bool) -> None:
+    def __init__(
+        self, code: str, *, retryable: bool, token_invalid: bool = False
+    ) -> None:
         self.code = code
         self.retryable = retryable
+        self.token_invalid = token_invalid
         super().__init__(f"FCM delivery failed ({code}).")
 
 
@@ -150,7 +153,15 @@ class FirebaseCloudMessagingSender:
                 # policy rather than silently dropping a potentially valid event.
                 retryable = True
                 code = "unknown"
-            raise FCMDeliveryError(code, retryable=retryable) from None
+            token_invalid = code in {
+                "unregistered",
+                "registration-token-not-registered",
+            }
+            raise FCMDeliveryError(
+                code,
+                retryable=retryable,
+                token_invalid=token_invalid,
+            ) from None
         if not isinstance(message_id, str) or not message_id.strip():
             raise FCMDeliveryError("invalid-provider-response", retryable=True)
         return FCMDeliveryResult(message_id=message_id)
