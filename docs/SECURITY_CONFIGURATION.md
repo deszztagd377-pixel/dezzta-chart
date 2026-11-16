@@ -58,12 +58,20 @@ only from `VerifiedPrincipal.subject`; request-supplied owner IDs are rejected.
 Responses contain device metadata only and never return the FCM token. CORS
 allows POST/DELETE only while the opt-in is enabled.
 
-These routes do not send notifications. FCM sender credentials, delivery
-workers, and real Firebase/Android push delivery remain disabled until their
-separate sender, retry/idempotency, key-custody, and end-to-end acceptance
-requirements are met. Losing the injected key makes existing ciphertext
-undecryptable; key backup, rotation, and recovery must be designed and drilled
-before production use.
+These routes do not send notifications. An isolated Firebase Cloud
+Messaging sender adapter now exists in `backend/app/fcm_sender.py`. It uses
+Firebase Admin Application Default Credentials (ADC), sends data-only alert
+payloads with a stable `event_id` for client-side deduplication, and sanitizes
+provider error classification. The adapter is not wired into the FastAPI
+lifespan: no delivery worker is running and no push notification is sent by
+this adapter addition alone. The Android client must persistently deduplicate
+`event_id` because FCM delivery is not exactly-once.
+
+A bounded worker, owner-wide active-device enumeration, retry scheduling
+integration, permanent invalid-token revocation, key custody, and real
+Firebase/Android delivery tests remain open. Losing the injected key makes
+existing ciphertext undecryptable; key backup, rotation, and recovery must be
+designed and drilled before production use.
 
 ## 3. Transport and authentication
 
