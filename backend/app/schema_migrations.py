@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 import hashlib
+import json
 import re
 from pathlib import Path
 import sqlite3
@@ -35,6 +36,58 @@ def sha256_migration(source: str | bytes) -> str:
     if not isinstance(source, bytes) or not source:
         raise ValueError("migration source must be non-empty text or bytes.")
     return hashlib.sha256(source).hexdigest()
+
+
+def schema_fingerprint(
+    connection: sqlite3.Connection, table_names: tuple[str, ...] | list[str]
+) -> str:
+    """Fingerprint selected SQLite tables plus their indexes and triggers."""
+    if not isinstance(connection, sqlite3.Connection):
+        raise ValueError("connection must be an active SQLite connection.")
+    if (
+        not isinstance(table_names, (tuple, list))
+        or not table_names
+        or any(
+            not isinstance(name, str)
+            or not re.fullmatch(r"[a-z][a-z0-9_]{0,127}", name)
+            for name in table_names
+        )
+        or len(set(table_names)) != len(table_names)
+    ):
+        raise ValueError("table_names must be unique lowercase SQLite identifiers.")
+    placeholders = ",".join("?" for _ in table_names)
+    objects = connection.execute(
+        f"""
+        SELECT type, name, tbl_name, COALESCE(sql, '')
+        FROM sqlite_master
+        WHERE type IN ('table', 'index', 'trigger')
+          AND tbl_name IN ({placeholders})
+          AND name NOT LIKE 'sqlite_%'
+        ORDER BY type, name
+        """,
+        tuple(table_names),
+    ).fetchall()
+    found_tables = {row[2] for row in objects if row[0] == "table"}
+    if found_tables != set(table_names):
+        missing = sorted(set(table_names) - found_tables)
+        raise SchemaMigrationError(
+            "Cannot fingerprint missing schema tables: " + ", ".join(missing)
+        )
+    columns = {}
+    for table_name in sorted(table_names):
+        # Identifier interpolation is safe after the strict allow-list above.
+        columns[table_name] = [
+            tuple(row)
+            for row in connection.execute(
+                f'PRAGMA table_xinfo("{table_name}")'
+            ).fetchall()
+        ]
+    payload = {
+        "objects": [tuple(row) for row in objects],
+        "columns": columns,
+    }
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 class SQLiteSchemaMigrationLedger:
