@@ -19,11 +19,10 @@ regexTarget = "line"
 regexes = ['''^Latest observed exact-head CI/CodeQL/secret-audit checkpoint: b37c69d6aaee2f764c3357834e868a3e53bddbe1 .*$''']
 paths = ['''PROJECT_STATUS[.]md$''']
 
-# A public commit SHA is source-control metadata, not a credential.
-# Scope this exception to the exact SHA and the project progress document.
+# Historical progress-ledger commit metadata triggered generic-api-key.
+# Exempt only that exact commit and only that documentation path.
 [[allowlists]]
-description = "Exact public source-test commit metadata false positive"
+description = "One historical public commit metadata false positive"
 condition = "AND"
-regexTarget = "match"
-regexes = ['''^5c08a1c9d2ca089ac7992b4e4becf74f0641e77b$''']
+commits = ['''34cf606f4f3fdda4bd41c71b7ca29818487eb60b''']
 paths = ['''docs/PROJECT_PROGRESS_INDICATOR[.]md$''']
