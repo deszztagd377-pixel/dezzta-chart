@@ -201,8 +201,11 @@ class Settings:
             for value in delivery_limits
         ):
             raise ValueError("Alert delivery worker limits must be positive integers.")
-        if self.alert_delivery_batch_size > 10:
-            raise ValueError("alert_delivery_batch_size must not exceed the 10-device owner quota.")
+        if self.alert_delivery_batch_size != 1:
+            raise ValueError(
+                "alert_delivery_batch_size is fixed at 1 until bounded per-event "
+                "lease renewal or concurrent delivery is implemented."
+            )
         if self.alert_delivery_lease_seconds < 30:
             raise ValueError("alert_delivery_lease_seconds must be at least 30.")
         if self.alert_delivery_max_attempts > 32:
@@ -318,7 +321,7 @@ class Settings:
                 os.getenv("ALERT_DELIVERY_POLL_INTERVAL_SECONDS", "2"), 2
             ),
             alert_delivery_batch_size=_parse_int(
-                os.getenv("ALERT_DELIVERY_BATCH_SIZE", "10"), 10
+                os.getenv("ALERT_DELIVERY_BATCH_SIZE", "1"), 1
             ),
             alert_delivery_lease_seconds=_parse_int(
                 os.getenv("ALERT_DELIVERY_LEASE_SECONDS", "120"), 120
