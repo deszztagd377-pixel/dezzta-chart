@@ -12,7 +12,8 @@ from uuid import uuid4
 from collections import deque
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import Depends, FastAPI, Header, HTTPException, Path as ApiPath, Query, WebSocket, WebSocketDisconnect
+from pydantic import BaseModel, ConfigDict, Field, StrictStr
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -23,7 +24,7 @@ from app.ingest import OhlcvIngestionService
 from app.instruments import InstrumentCatalog
 from app.instrument_registry import SQLiteInstrumentRegistry
 from app.alert_store import SQLitePriceAlertStore
-from app.alert_device_store import SQLiteAlertDeviceStore
+from app.alert_device_store import AlertDeviceQuotaExceeded, SQLiteAlertDeviceStore
 from app.entitlements import SQLiteInstrumentEntitlementStore
 from app.identity import (
     FirebaseIdentityVerifier,
@@ -62,6 +63,15 @@ MAX_OHLCV_RESPONSE_BARS = 5_000
 MAX_WEBSOCKET_REPLAY_EVENTS = 10_000
 MAX_SQLITE_CURSOR = (1 << 63) - 1
 MAX_NANOSECOND_TIMESTAMP = (1 << 63) - 1
+
+
+class AlertDeviceRegistrationRequest(BaseModel):
+    """Strict client payload; account ownership is never client-selectable."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    installation_id: StrictStr = Field(min_length=1, max_length=128)
+    fcm_token: StrictStr = Field(min_length=1, max_length=4096)
 
 
 def _allow_websocket_ping(ping_timestamps: deque[float], now: float) -> bool:
@@ -259,7 +269,7 @@ def create_app(
         CORSMiddleware,
         allow_origins=list(config.cors_allowed_origins),
         allow_credentials=False,
-        allow_methods=["GET"],
+        allow_methods=["GET", "POST", "DELETE"] if alert_device_store is not None else ["GET"],
         allow_headers=["Content-Type", "Authorization"],
     )
 
@@ -356,6 +366,61 @@ def create_app(
             "issuer": principal.issuer,
             "audience": principal.audience,
         }
+
+    if alert_device_store is not None:
+        @application.post(
+            "/v1/alerts/devices",
+            status_code=201,
+            tags=["alerts"],
+        )
+        async def register_alert_device(
+            payload: AlertDeviceRegistrationRequest,
+            principal: VerifiedPrincipal = Depends(require_verified_principal),
+        ) -> dict[str, object]:
+            """Register or rotate a device token for the verified account only."""
+            try:
+                stored = alert_device_store.register(
+                    owner_id=principal.subject,
+                    installation_id=payload.installation_id,
+                    fcm_token=payload.fcm_token,
+                )
+            except AlertDeviceQuotaExceeded as exc:
+                raise HTTPException(
+                    status_code=409,
+                    detail="The account has reached its active alert-device limit.",
+                ) from exc
+            except ValueError as exc:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Alert-device registration details are invalid.",
+                ) from exc
+            return {
+                "registered": True,
+                "installation_id": stored.installation_id,
+                "created_at_utc": stored.created_at_utc,
+                "updated_at_utc": stored.updated_at_utc,
+            }
+
+        @application.delete(
+            "/v1/alerts/devices/{installation_id}",
+            tags=["alerts"],
+        )
+        async def revoke_alert_device(
+            installation_id: str = ApiPath(min_length=1, max_length=128),
+            principal: VerifiedPrincipal = Depends(require_verified_principal),
+        ) -> dict[str, object]:
+            """Revoke only a device belonging to the verified account."""
+            try:
+                revoked = alert_device_store.revoke(
+                    owner_id=principal.subject,
+                    installation_id=installation_id,
+                )
+            except ValueError as exc:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Alert-device identifier is invalid.",
+                ) from exc
+            return {"installation_id": installation_id, "revoked": revoked}
 
     @application.get("/health", tags=["operations"])
     async def health() -> dict[str, str]:
