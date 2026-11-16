@@ -1488,3 +1488,46 @@ Stage 1 remains 30/40 provisionally accepted criteria. Gate 10 remains 0/10 offi
 - ZERO COST maintained; no paid Redis, managed hosting, paid monitoring, or paid market-data provider was added.
 - No Termux or target-device command was required.
 - No APK release or download link is claimed.
+
+## Gate 10 work-cycle — Redis TLS configuration boundary regression coverage — 2026-11-16
+
+### Exact source and changes
+
+- Active branch: `phase-2/market-data-foundation`; `main` untouched.
+- Previous tested source checkpoint: `373775c791e2b27676e1bc6b730b7a3e5cb18949`.
+- Exact source HEAD: `f9abe38fa23a89846a7241e92e93958069ef2039`.
+- Two source-test files changed; no production runtime behavior was changed:
+  - `backend/tests/test_config.py` — production configuration must reject plaintext `redis://`, reject missing ACL username/password, and accept a credentialed `rediss://` URL while keeping its password out of Settings repr.
+  - `backend/tests/test_shared_guard.py` — confirms a `rediss://` client requires CA certificate validation and hostname verification, while local plaintext `redis://` does not accidentally receive TLS-only client flags.
+- The additions are regression coverage for existing production checks and client configuration; they do not establish an actual production Redis endpoint or TLS certificate.
+
+### CI evidence for exact source HEAD
+
+- Full Git History Secret Audit [#43842952765](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43842952765) — **SUCCESS**.
+- CodeQL [#43842952784](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43842952784) — **SUCCESS** for Python and JavaScript/TypeScript.
+- Automated Tests [#43842952770](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43842952770) — backend tests, frontend tests/build, benchmark, and backend dependency audit passed; at the time of this documentation update, backend container image build was still running. Do not treat this workflow as a completed pass until GitHub reports success.
+- No Stage 1 ticks or criterion closures are awarded for adding tests or passing CI.
+
+### Six-stage colored process indicator and Gate 10 accounting
+
+The project process indicator remains documentation-only, not part of the APK. The colored dashboard asset is `docs/assets/project-progress-dashboard.svg`:
+- Stage 1 emerald/green; Stage 2 cyan/blue; Stage 3 violet; Stage 4 amber; Stage 5 pink; Stage 6 slate.
+
+| Stage | Official state | Progress |
+|---|---|---:|
+| 1 — Foundation, Security & Data Integrity | Active; provisional checklist | **300/400 ticks — 75% provisional** |
+| 2 — Market Data Infrastructure | Not officially opened | **NOT SCORED** |
+| 3 — Chart Engine & Timeframe | Not officially opened | **NOT SCORED** |
+| 4 — Indicators & Analytics | Not officially opened | **NOT SCORED** |
+| 5 — Professional UI & Interactive Tools | Not officially opened | **NOT SCORED** |
+| 6 — Hardening, Validation & APK Release | Not officially opened | **NOT SCORED** |
+
+Stage 1 remains 30/40 provisionally accepted criteria. Gate 10 remains 0/10 officially closed. Open criteria remain **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39**. Overall progress remains **20.90% historical owner-confirmed checkpoint only**; no new weighted total or stage transition is claimed.
+
+### Constraints and next engineering boundary
+
+- ZERO COST maintained. No paid service, paid Redis, managed monitoring, paid data feed, or publication fee added.
+- No Termux or device-side commands were required.
+- No APK release or download link is claimed.
+- Next code-side candidate is Gate 39 device-token ownership and registration design, but sender credentials, secure token storage/key custody, Firebase project ownership, and real Android delivery remain owner-controlled acceptance dependencies. Do not activate a no-op alert worker or mark delivery as complete without a real sender and end-to-end evidence.
+- Gate 25 still requires owner-host TLS, endpoint/network restrictions, ACL custody and real outage/recovery evidence. CI is supporting evidence only.
