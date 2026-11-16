@@ -164,6 +164,8 @@ class Settings:
     websocket_lease_seconds: int = 45
 
     def __post_init__(self) -> None:
+        if not isinstance(self.alert_device_store_enabled, bool):
+            raise ValueError("alert_device_store_enabled must be a boolean.")
         if not isinstance(self.alert_device_encryption_key, bytes) or (
             self.alert_device_encryption_key
             and len(self.alert_device_encryption_key) != 32
