@@ -1,8 +1,9 @@
 """Firebase Cloud Messaging adapter for durable price-alert events.
 
-This module is deliberately not started by the API lifespan yet. Production
-initialization uses Application Default Credentials (ADC); no service-account
-key or credential value is accepted from application configuration.
+The adapter is initialized by the FastAPI lifespan only when the separate
+alert-delivery worker opt-in is enabled. Production initialization uses
+Application Default Credentials (ADC); no service-account key or credential
+value is accepted from application configuration.
 """
 from __future__ import annotations
 
