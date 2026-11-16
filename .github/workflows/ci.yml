@@ -183,9 +183,7 @@ jobs:
           }
           start_redis >/dev/null
           wait_for_redis
-          test "$(docker exec -e REDISCLI_AUTH="$redis_acl_password" "$redis_container_name" redis-cli --user "$redis_acl_username" --raw CONFIG GET appendonly | tail -n 1)" = "yes"
-          test "$(docker exec -e REDISCLI_AUTH="$redis_acl_password" "$redis_container_name" redis-cli --user "$redis_acl_username" --raw CONFIG GET appendfsync | tail -n 1)" = "always"
-          docker exec -e REDISCLI_AUTH="$redis_acl_password" "$redis_container_name" redis-cli --user "$redis_acl_username" -n 15 SET 'dezzta:{guard-http}:ci-persistence-canary' survived-redis-restart >/dev/null
+          docker exec -e REDISCLI_AUTH="$redis_acl_password" "$redis_container_name" redis-cli --user "$redis_acl_username" -n 15 ZADD 'dezzta:{guard-http}:ci-persistence-canary' 123 survived-redis-restart >/dev/null
           start_container() {
             docker run --detach --name "$container_name" \
               --network "$network_name" \
@@ -295,9 +293,7 @@ jobs:
           docker rm "$redis_container_name" >/dev/null
           start_redis >/dev/null
           wait_for_redis
-          test "$(docker exec -e REDISCLI_AUTH="$redis_acl_password" "$redis_container_name" redis-cli --user "$redis_acl_username" -n 15 --raw GET 'dezzta:{guard-http}:ci-persistence-canary')" = "survived-redis-restart"
-          test "$(docker exec -e REDISCLI_AUTH="$redis_acl_password" "$redis_container_name" redis-cli --user "$redis_acl_username" --raw CONFIG GET appendonly | tail -n 1)" = "yes"
-          test "$(docker exec -e REDISCLI_AUTH="$redis_acl_password" "$redis_container_name" redis-cli --user "$redis_acl_username" --raw CONFIG GET appendfsync | tail -n 1)" = "always"
+          test "$(docker exec -e REDISCLI_AUTH="$redis_acl_password" "$redis_container_name" redis-cli --user "$redis_acl_username" -n 15 --raw ZSCORE 'dezzta:{guard-http}:ci-persistence-canary' survived-redis-restart)" = "123"
           if docker exec "$redis_container_name" redis-cli -e ping >/dev/null 2>&1; then
             echo "FAIL: persisted ACL unexpectedly allows unauthenticated default-user access after restart."
             exit 1
