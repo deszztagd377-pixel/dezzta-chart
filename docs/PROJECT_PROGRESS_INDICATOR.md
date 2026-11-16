@@ -1638,3 +1638,63 @@ This is not production secret-injection acceptance. No owner host or Docker secr
 No Stage 1 criterion is closed and no ticks are awarded for source changes, tests, CI or documentation alone. Gate 10 remains **0/10 officially closed**. Stage 1 remains **30/40 provisional criteria, 300/400 ticks (75% provisional)**. Stages 2–6 remain **NOT SCORED**. Overall progress remains **20.90% historical owner-confirmed checkpoint only**. The six-stage colored dashboard remains documentation-only and is not part of the APK.
 
 ZERO COST maintained. No paid service or dependency was added. No Termux/device command was required. No APK release or download link is claimed.
+
+## Gate 10 work-cycle — conditional authenticated device registration and revocation — 2026-11-16
+
+### Implementation and files
+
+- Active branch: `phase-2/market-data-foundation`; `main` untouched.
+- `4642b9e` — add authenticated, opt-in device registration and revocation routes.
+- `f03e8ad` — add owner-isolation, spoofing, token-rotation, revocation and CORS regression coverage.
+- `9698fdb` — correct the earlier opt-in test expectation after routes were implemented; assert routes are absent when disabled and present when enabled.
+- Changed files:
+  - `backend/app/main.py`
+  - `backend/tests/test_api.py`
+  - `docs/SECURITY_CONFIGURATION.md`
+  - `docs/BACKEND_DEPLOYMENT.md`
+  - `docs/assets/project-progress-dashboard.svg`
+
+### API behavior now implemented
+
+The routes are registered only when `ALERT_DEVICE_STORE_ENABLED=true` and the protected 32-byte encryption key file has passed validation:
+
+- `POST /v1/alerts/devices` — register a new device or rotate the token for an existing installation.
+- `DELETE /v1/alerts/devices/{installation_id}` — revoke a device belonging to the authenticated account.
+
+Security properties:
+- Both routes require a verified Firebase Bearer identity.
+- Account ownership is derived exclusively from `VerifiedPrincipal.subject`; the request model rejects extra fields such as client-supplied `owner_id`.
+- Registration responses return installation metadata only; they never return the FCM token.
+- Cross-account revocation is owner-scoped and does not revoke another account's installation.
+- Registration continues to use AES-256-GCM persistence, token rotation, transactional quota enforcement and the 10-active-device cap.
+- CORS permits POST/DELETE only while the feature is enabled; the default-off app remains read-only.
+- Invalid registration payloads receive bounded generic errors; raw token values are not included in responses.
+
+### CI failure found and corrected
+
+The first route-enabled test run had one failure because an older opt-in wiring test still asserted that routes must never exist, even when the feature was explicitly enabled. The implementation and new route behavior tests passed; the stale assertion was updated to verify the correct disabled/enabled split. The corrected exact-source run passed all backend tests. This was a test expectation mismatch, not a runtime route failure.
+
+### Exact-source CI evidence
+
+All three workflows passed against implementation source revision `9698fdb`:
+
+- Automated Tests [#43855706970](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43855706970) — **SUCCESS**; **896 backend tests passed** in 27.50 seconds. Frontend tests/build and secret scans, dependency audits, synthetic outbox benchmark, backend container build, Redis ACL/AOF persistence and outage/recovery smoke, container vulnerability scan, vulnerability-report export/upload and cleanup also passed.
+- CodeQL [#43855707125](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43855707125) — **SUCCESS** for Python and JavaScript/TypeScript.
+- Full Git History Secret Audit [#43855707074](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43855707074) — **SUCCESS**.
+
+### Remaining Gate 39 / Stage 1 acceptance boundary
+
+This cycle implements device registration and revocation, but does not implement or claim:
+- FCM sender credentials or a sender adapter.
+- FastAPI lifespan delivery worker, bounded scheduling, shutdown, or retry execution against FCM.
+- Real Firebase project registration, production Admin credentials, or real Android push delivery.
+- Device token refresh/revocation on an actual Android installation.
+- Key backup, rotation and recovery drill on the owner's host.
+
+Gate 39 remains **OPEN** until the sender, worker and real Firebase/Android end-to-end delivery are verified. Gate 8 remains open pending owner-host secret injection and process-level proof. Gate 31 remains open pending key custody, independent backup and recovery drill.
+
+### Stage accounting, cost and device constraints
+
+No Stage 1 criterion is closed and no progress ticks are awarded for source changes, tests, CI, or documentation alone. Gate 10 remains **0/10 officially closed**. Stage 1 remains **30/40 provisional criteria, 300/400 ticks (75% provisional)**. Stages 2–6 remain **NOT SCORED**. Overall progress remains **20.90% historical owner-confirmed checkpoint only**. The colored six-stage dashboard remains documentation-only and is not part of the APK.
+
+ZERO COST maintained. No paid service or dependency was added. No Termux/device command was required. No APK release or download link is claimed.
