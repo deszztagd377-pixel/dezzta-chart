@@ -69,7 +69,7 @@ def build_coverage_report(
     }
 
     covered_by: dict[str, set[str]] = {item: set() for item in instruments}
-    seen: set[tuple[str, str, str, str, str, str]] = set()
+    seen: set[tuple[str, str, str, str, str]] = set()
     eligible_count = 0
     rejected_count = 0
 
@@ -83,7 +83,8 @@ def build_coverage_report(
         asset_class = mapping.asset_class.strip().lower()
         data_family = mapping.data_family.strip().lower()
         evidence_ref = mapping.evidence_ref.strip()
-        key = (provider_id, instrument_id, venue, asset_class, data_family, evidence_ref)
+        # Evidence references document a mapping; they do not make the same mapping unique.
+        key = (provider_id, instrument_id, venue, asset_class, data_family)
 
         candidate = candidate_by_id.get(provider_id)
         if (
