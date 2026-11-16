@@ -48,10 +48,7 @@ class ProviderCandidate:
     @property
     def eligible_for_zero_cost_baseline(self) -> bool:
         """True only with recurring $0 pricing and approved intended-use rights."""
-        return (
-            self.cost_class is CostClass.RECURRING_FREE
-            and self.rights_status is RightsStatus.APPROVED
-        )
+        return not self.activation_blockers
 
     @property
     def activation_blockers(self) -> tuple[str, ...]:
@@ -64,6 +61,10 @@ class ProviderCandidate:
             blockers.append("official_documentation_missing")
         if not self.documented_limit.strip():
             blockers.append("quota_or_usage_limit_not_documented")
+        if not self.asset_classes:
+            blockers.append("asset_scope_missing")
+        if not self.data_families:
+            blockers.append("data_family_scope_missing")
         return tuple(blockers)
 
 
