@@ -228,7 +228,7 @@ def test_alert_delivery_worker_requires_firebase_project_id():
     [
         ("alert_delivery_poll_interval_seconds", 0),
         ("alert_delivery_batch_size", 0),
-        ("alert_delivery_batch_size", 11),
+        ("alert_delivery_batch_size", 2),
         ("alert_delivery_lease_seconds", 29),
         ("alert_delivery_max_attempts", 33),
     ],
