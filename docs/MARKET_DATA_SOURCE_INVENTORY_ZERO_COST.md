@@ -45,7 +45,7 @@ A candidate may pass cost and still be blocked by data fit or rights. No candida
 ### Venue-specific public market-data APIs
 
 - Binance official market-data-only endpoint documentation: https://github.com/binance/binance-spot-api-docs/blob/master/faqs/market_data_only.md
-- Binance official REST rate-limit documentation: https://developers.binance.me/en/docs/products/spot/rest-api
+- Binance official REST rate-limit documentation: https://github.com/binance/binance-spot-api-docs/blob/master/rest-api.md
 - Kraken official public endpoint examples: https://support.kraken.com/in/articles/360000919986-public-endpoint-examples-you-can-try-them-directly-in-a-web-browser-
 - Kraken official public REST rate-limit notes: https://support.kraken.com/au/articles/206548367-what-are-the-api-rate-limits-
 
