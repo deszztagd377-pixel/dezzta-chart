@@ -67,6 +67,18 @@ lifespan: no delivery worker is running and no push notification is sent by
 this adapter addition alone. The Android client must persistently deduplicate
 `event_id` because FCM delivery is not exactly-once.
 
+The outbox delivery worker is now wired to this adapter behind a separate
+explicit opt-in: `ALERT_DELIVERY_WORKER_ENABLED=true`. It additionally
+requires `ALERT_DEVICE_STORE_ENABLED=true`, a valid injected device encryption
+key, and `FIREBASE_PROJECT_ID`. The worker initializes Firebase Admin using
+runtime ADC, runs bounded batches in a FastAPI lifespan task, stops with the
+application, retries transient failures through the durable outbox, and
+revokes only the owner+installation for permanent invalid-token errors.
+Defaults remain disabled. Batch size is capped at the 10-device owner quota;
+poll interval, lease duration and attempt count are bounded by settings
+validation. No FCM credential is accepted from application environment as a
+private-key value.
+
 The device store now has a bounded owner-scoped active-token enumeration
 method (maximum 10 active devices); revoked devices are excluded and the
 returned token-bearing objects suppress their representation to reduce
