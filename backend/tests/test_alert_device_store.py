@@ -127,3 +127,35 @@ def test_encryption_key_must_be_exactly_32_bytes(tmp_path, key):
 def test_invalid_fcm_tokens_are_rejected(store, token):
     with pytest.raises(ValueError, match="fcm_token"):
         store.register(owner_id="account-a", installation_id="phone-1", fcm_token=token)
+
+
+def test_active_tokens_for_delivery_are_owner_scoped_and_exclude_revoked(store):
+    store.register(owner_id="account-a", installation_id="phone-a1", fcm_token="token-a1")
+    store.register(owner_id="account-a", installation_id="phone-a2", fcm_token="token-a2")
+    store.register(owner_id="account-b", installation_id="phone-b1", fcm_token="token-b1")
+    store.revoke(owner_id="account-a", installation_id="phone-a1")
+
+    devices = store.active_tokens_for_delivery(owner_id="account-a")
+
+    assert [(device.installation_id, device.token) for device in devices] == [
+        ("phone-a2", "token-a2")
+    ]
+
+
+def test_active_tokens_for_delivery_enforces_a_small_limit(store):
+    for index in range(3):
+        store.register(
+            owner_id="account-a",
+            installation_id=f"phone-{index}",
+            fcm_token=f"token-{index}",
+        )
+
+    devices = store.active_tokens_for_delivery(owner_id="account-a", limit=2)
+    assert len(devices) == 2
+    assert all(device.installation_id.startswith("phone-") for device in devices)
+
+
+@pytest.mark.parametrize("limit", [0, 11, True, -1])
+def test_active_tokens_for_delivery_rejects_invalid_limits(store, limit):
+    with pytest.raises(ValueError, match="limit"):
+        store.active_tokens_for_delivery(owner_id="account-a", limit=limit)
