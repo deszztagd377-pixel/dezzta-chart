@@ -154,44 +154,38 @@ jobs:
           docker volume create "$redis_volume_name" >/dev/null
           redis_acl_username=dezzta_ci
           redis_acl_password="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+          docker run --rm \
+            --mount "type=volume,src=$redis_volume_name,dst=/data" \
+            -e REDIS_ACL_USERNAME="$redis_acl_username" \
+            -e REDIS_ACL_PASSWORD="$redis_acl_password" \
+            --entrypoint sh redis:7-alpine -c '
+              umask 077
+              printf "user default off\\nuser %s on >%s ~dezzta:{guard-http}:* ~dezzta:{guard-ws}:* +ping +select +eval +incr +expire +ttl +zremrangebyscore +zscore +zcard +zadd +pexpire +zrem\\n" "$REDIS_ACL_USERNAME" "$REDIS_ACL_PASSWORD" > /data/users.acl
+            '
           start_redis() {
             docker run --detach --name "$redis_container_name" \
               --network "$network_name" \
               --mount "type=volume,src=$redis_volume_name,dst=/data" \
-              redis:7-alpine redis-server --appendonly yes --appendfsync always
+              redis:7-alpine redis-server --appendonly yes --appendfsync always --aclfile /data/users.acl
           }
-          start_redis >/dev/null
-          wait_for_default_redis() {
-            for attempt in $(seq 1 20); do
-              if docker exec "$redis_container_name" redis-cli ping 2>/dev/null | grep -Fxq PONG; then
-                echo "Isolated smoke-test Redis is ready for ACL provisioning."
-                return 0
-              fi
-              sleep 1
-            done
-            echo "Smoke-test Redis did not become ready for ACL provisioning."
-            docker logs --tail 100 "$redis_container_name" || true
-            return 1
-          }
-          wait_for_default_redis
-          test "$(docker exec "$redis_container_name" redis-cli --raw CONFIG GET appendonly | tail -n 1)" = "yes"
-          test "$(docker exec "$redis_container_name" redis-cli --raw CONFIG GET appendfsync | tail -n 1)" = "always"
-          docker exec "$redis_container_name" redis-cli SET dezzta:ci:persistence-canary survived-redis-restart >/dev/null
-          docker exec "$redis_container_name" redis-cli ACL SETUSER "$redis_acl_username" on ">$redis_acl_password" "~dezzta:{guard-http}:*" "~dezzta:{guard-ws}:*" "+ping" "+select" "+eval" "+incr" "+expire" "+ttl" "+zremrangebyscore" "+zscore" "+zcard" "+zadd" "+pexpire" "+zrem" >/dev/null
-          docker exec "$redis_container_name" redis-cli ACL SETUSER default off >/dev/null
           wait_for_redis() {
             for attempt in $(seq 1 20); do
               if docker exec -e REDISCLI_AUTH="$redis_acl_password" "$redis_container_name" \
                 redis-cli --user "$redis_acl_username" ping 2>/dev/null | grep -Fxq PONG; then
-                echo "Isolated ACL-authenticated smoke-test Redis is ready."
+                echo "Isolated ACL-authenticated Redis is ready with its persisted ACL file."
                 return 0
               fi
               sleep 1
             done
-            echo "Smoke-test Redis did not become ready with its ACL user."
+            echo "Smoke-test Redis did not become ready with its persisted ACL file."
             docker logs --tail 100 "$redis_container_name" || true
             return 1
           }
+          start_redis >/dev/null
+          wait_for_redis
+          test "$(docker exec -e REDISCLI_AUTH="$redis_acl_password" "$redis_container_name" redis-cli --user "$redis_acl_username" --raw CONFIG GET appendonly | tail -n 1)" = "yes"
+          test "$(docker exec -e REDISCLI_AUTH="$redis_acl_password" "$redis_container_name" redis-cli --user "$redis_acl_username" --raw CONFIG GET appendfsync | tail -n 1)" = "always"
+          docker exec -e REDISCLI_AUTH="$redis_acl_password" "$redis_container_name" redis-cli --user "$redis_acl_username" -n 15 SET 'dezzta:{guard-http}:ci-persistence-canary' survived-redis-restart >/dev/null
           start_container() {
             docker run --detach --name "$container_name" \
               --network "$network_name" \
@@ -291,30 +285,41 @@ jobs:
           assert_equal "10001:10001" "$volume_owner" "persistent volume owner"
           assert_equal "10001:10001" "$database_owner" "SQLite database owner"
 
-          first_status=$(curl --silent --show-error --output /tmp/dezzta-first.json --write-out '%{http_code}' "$base_url/v1/market-data/status")
-          test "$first_status" = "200"
-          second_status=$(curl --silent --show-error --output /tmp/dezzta-second.json --write-out '%{http_code}' "$base_url/v1/market-data/status")
-          test "$second_status" = "429"
-
           docker exec "$container_name" python -c 'import sqlite3; c=sqlite3.connect("/data/dezzta-chart-smoke.sqlite3"); assert c.execute("PRAGMA integrity_check").fetchone()[0] == "ok"; assert c.execute("SELECT 1 FROM sqlite_master WHERE type=\u0027table\u0027 LIMIT 1").fetchone()'
-          echo "Restarting Redis and verifying AOF persistence before reconnecting the backend."
+          echo "Stopping Redis to verify that API rate protection fails closed during an outage."
           docker stop "$redis_container_name" >/dev/null
+          outage_status=$(curl --silent --show-error --output /tmp/dezzta-redis-outage.json --dump-header /tmp/dezzta-redis-outage.headers --write-out '%{http_code}' "$base_url/v1/market-data/status")
+          test "$outage_status" = "503"
+          node -e 'const fs = require("node:fs"); const body = JSON.parse(fs.readFileSync("/tmp/dezzta-redis-outage.json", "utf8")); const headers = fs.readFileSync("/tmp/dezzta-redis-outage.headers", "utf8"); if (body.detail !== "Shared request protection is temporarily unavailable." || !/^retry-after:\\s*5\\s*$/im.test(headers)) process.exit(1);'
+          echo "Restarting Redis and verifying AOF data plus persisted ACL before backend recovery."
           docker rm "$redis_container_name" >/dev/null
           start_redis >/dev/null
-          wait_for_default_redis
-          test "$(docker exec "$redis_container_name" redis-cli --raw GET dezzta:ci:persistence-canary)" = "survived-redis-restart"
-          test "$(docker exec "$redis_container_name" redis-cli --raw CONFIG GET appendonly | tail -n 1)" = "yes"
-          test "$(docker exec "$redis_container_name" redis-cli --raw CONFIG GET appendfsync | tail -n 1)" = "always"
-          docker exec "$redis_container_name" redis-cli ACL SETUSER "$redis_acl_username" on ">$redis_acl_password" "~dezzta:{guard-http}:*" "~dezzta:{guard-ws}:*" "+ping" "+select" "+eval" "+incr" "+expire" "+ttl" "+zremrangebyscore" "+zscore" "+zcard" "+zadd" "+pexpire" "+zrem" >/dev/null
-          docker exec "$redis_container_name" redis-cli ACL SETUSER default off >/dev/null
           wait_for_redis
-
+          test "$(docker exec -e REDISCLI_AUTH="$redis_acl_password" "$redis_container_name" redis-cli --user "$redis_acl_username" -n 15 --raw GET 'dezzta:{guard-http}:ci-persistence-canary')" = "survived-redis-restart"
+          test "$(docker exec -e REDISCLI_AUTH="$redis_acl_password" "$redis_container_name" redis-cli --user "$redis_acl_username" --raw CONFIG GET appendonly | tail -n 1)" = "yes"
+          test "$(docker exec -e REDISCLI_AUTH="$redis_acl_password" "$redis_container_name" redis-cli --user "$redis_acl_username" --raw CONFIG GET appendfsync | tail -n 1)" = "always"
+          if docker exec "$redis_container_name" redis-cli -e ping >/dev/null 2>&1; then
+            echo "FAIL: persisted ACL unexpectedly allows unauthenticated default-user access after restart."
+            exit 1
+          fi
+          if docker exec -e REDISCLI_AUTH="incorrect-ci-only" "$redis_container_name" redis-cli -e --user "$redis_acl_username" ping >/dev/null 2>&1; then
+            echo "FAIL: persisted ACL unexpectedly accepts an incorrect password after restart."
+            exit 1
+          fi
+          if docker exec -e REDISCLI_AUTH="$redis_acl_password" "$redis_container_name" redis-cli --user "$redis_acl_username" -e SET dezzta:ci:forbidden probe >/dev/null 2>&1; then
+            echo "FAIL: persisted ACL unexpectedly permits unrelated SET commands after restart."
+            exit 1
+          fi
           docker stop "$container_name" >/dev/null
           docker rm "$container_name" >/dev/null
           start_container
           wait_for_health
-          docker exec "$container_name" python -c 'import sqlite3; c=sqlite3.connect("/data/dezzta-chart-smoke.sqlite3"); assert c.execute("PRAGMA integrity_check").fetchone()[0] == "ok"; assert c.execute("SELECT 1 FROM sqlite_master WHERE type=\u0027table\u0027 LIMIT 1").fetchone()'
-          echo "Container health, Redis ACL authentication, AOF persistence across Redis restart, shared guard recovery, non-root UID/GID, mounted-volume ownership, SQLite integrity and restart persistence, and HTTP rate-limit rejection passed."
+          first_status=$(curl --silent --show-error --output /tmp/dezzta-first.json --write-out '%{http_code}' "$base_url/v1/market-data/status")
+          test "$first_status" = "200"
+          second_status=$(curl --silent --show-error --output /tmp/dezzta-second.json --write-out '%{http_code}' "$base_url/v1/market-data/status")
+          test "$second_status" = "429"
+          docker exec "$container_name" python -c 'import sqlite3; c=sqlite3.connect("/data/dezzta-chart-smoke.sqlite3"); assert c.execute("PRAGMA integrity_check").fetchone()[0] == "ok"; assert c.execute("SELECT 1 FROM sqlite_master WHERE type=\\u0027table\\u0027 LIMIT 1").fetchone()'
+          echo "Container health, persisted Redis ACL authentication, AOF data across restart, API fail-closed outage response, backend reconnection, non-root UID/GID, mounted-volume ownership, SQLite integrity and restart persistence, and HTTP rate-limit rejection passed."
 
       - name: Scan backend container image
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
