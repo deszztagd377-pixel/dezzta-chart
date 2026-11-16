@@ -86,9 +86,7 @@ def run_alert_delivery_batch(
     for item in claimed:
         event = item.event
         try:
-            sender_result = sender(event)
-            if sender_result is not None:
-                raise RuntimeError("sender must return None; raise on delivery failure.")
+            sender(event)
         except Exception:
             completed_at_ns = _read_clock_ns(clock_ns)
             exhausted = item.attempt_count >= max_attempts

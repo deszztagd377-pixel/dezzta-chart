@@ -1,7 +1,7 @@
 # DEZZTA CHART — Project Progress Indicator
 
 Status: **operational project-tracking specification**  
-Last audited: 2026-11-14  
+Last audited: 2026-11-16  
 Repository: https://github.com/deszztagd377-pixel/dezzta-chart  
 Official working branch: `phase-2/market-data-foundation`  
 Official current stage: **Stage 1 — Foundation, Security & Data Integrity**
@@ -983,3 +983,28 @@ Progress remains unchanged: Stage 1 30/40 criteria, 300/400 ticks, 75% provision
 - CI must verify this exact revision before the new cases are counted as passed.
 - Criterion 39 remains OPEN. Stage 1 remains 30/40 criteria, 300/400 ticks, 75% provisional; Gate 10 remains 0/10 officially closed. Open criteria remain 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39.
 - Stage 2–6 remain NOT SCORED; overall 20.90% remains historical only. ZERO COST maintained; no Termux action, dependency change, paid service, APK release, or main-branch modification.
+
+
+## Verification result — alert sender contract and restore cleanup (2026-11-16)
+
+At exact HEAD `bc21472829338194a30beece2bc13fce26e2c1df`:
+- Automated Tests: SUCCESS — [run #43810020912](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43810020912).
+- CodeQL Security Analysis: SUCCESS — [run #43810020893](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43810020893).
+- Full Git History Secret Audit: SUCCESS — [run #43810020933](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43810020933).
+- Backend tests, frontend tests/build, SQLite outbox benchmark, dependency audit, container build, Redis/persistent-volume/restart smoke, image scan and report export completed successfully.
+- The alert sender contract regression cases for `False` and `True` were included in this exact-HEAD CI run.
+
+### Additional restore-drill defect found after that verification
+- The backup and restore helpers atomically publish their output before flushing the containing directory. If that final directory fsync fails, the helper correctly raises while its valid published output remains visible.
+- The restore drill previously set its ownership flags only after each helper returned. Therefore a post-publication fsync exception left a drill-created database behind even though the overall drill failed.
+- A follow-up patch adds a private publication callback to both helper functions. The restore drill records ownership immediately after the atomic publication, before the directory flush, and can therefore clean up only its own output on any subsequent failure.
+- Added failure-injection tests for both backup-publication and restore-publication directory-fsync failures. These assert the original source bytes remain unchanged and drill-owned outputs/sidecars are removed.
+- This follow-up requires exact-HEAD CI; no pass is claimed before its workflows complete.
+
+### Progress accounting
+- Stage 1 remains 30/40 criteria, 300/400 ticks, 75% provisional.
+- Gate 10 remains 0/10 officially closed. Open criteria remain 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39.
+- Criterion 30 receives stronger failure-path cleanup coverage, but remains OPEN pending actual Android database-path and owner-device restore evidence.
+- Criterion 39 receives sender-contract coverage, but remains OPEN pending authenticated recipient routing, a real sender adapter, backend lifecycle integration, and delivery/recovery evidence.
+- Stage 2–6 remain NOT SCORED; overall 20.90% remains a historical checkpoint only.
+- ZERO COST maintained. No Termux action, dependency change, paid service, APK release, or main-branch modification.

@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import sqlite3
 import tempfile
+from typing import Callable
 
 
 def _fsync_directory(directory: Path) -> None:
@@ -30,6 +31,7 @@ def create_consistent_sqlite_backup(
     *,
     pages: int = 256,
     overwrite: bool = True,
+    _on_published: Callable[[Path], None] | None = None,
 ) -> Path:
     """Create and atomically publish a consistent SQLite database snapshot.
 
@@ -49,6 +51,8 @@ def create_consistent_sqlite_backup(
         raise ValueError("pages must be a positive integer.")
     if not isinstance(overwrite, bool):
         raise ValueError("overwrite must be a boolean.")
+    if _on_published is not None and not callable(_on_published):
+        raise ValueError("_on_published must be callable.")
 
     source = Path(source_path).expanduser().resolve()
     destination = Path(destination_path).expanduser().resolve()
@@ -103,7 +107,11 @@ def create_consistent_sqlite_backup(
             # Atomic no-overwrite publication: a concurrent destination
             # creation makes link() fail without replacing the competing file.
             os.link(temporary, destination)
+            if _on_published is not None:
+                _on_published(destination)
             temporary.unlink()
+        if overwrite and _on_published is not None:
+            _on_published(destination)
         if os.name == "posix":
             # Publication is already visible. If this fails, surface the
             # durability uncertainty rather than claiming a durable backup.
@@ -123,6 +131,8 @@ def create_consistent_sqlite_backup(
 def restore_consistent_sqlite_backup(
     backup_path: str | Path,
     destination_path: str | Path,
+    *,
+    _on_published: Callable[[Path], None] | None = None,
 ) -> Path:
     """Restore a verified SQLite backup to a new path without overwriting data.
 
@@ -143,6 +153,8 @@ def restore_consistent_sqlite_backup(
 
     if backup == destination:
         raise ValueError("backup_path and destination_path must be different.")
+    if _on_published is not None and not callable(_on_published):
+        raise ValueError("_on_published must be callable.")
     if not backup.is_file():
         raise FileNotFoundError(backup)
     if destination.exists():
@@ -196,6 +208,8 @@ def restore_consistent_sqlite_backup(
         # A hard link publishes the completed file atomically and never
         # replaces a destination created concurrently by another process.
         os.link(temporary, destination)
+        if _on_published is not None:
+            _on_published(destination)
         temporary.unlink()
         if os.name == "posix":
             _fsync_directory(destination.parent)

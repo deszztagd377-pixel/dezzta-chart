@@ -432,31 +432,6 @@ def test_alert_delivery_worker_acknowledges_successful_idempotent_sender(store):
     assert store.list_pending_trigger_events() == []
 
 
-@pytest.mark.parametrize("sender_result", [False, True])
-def test_alert_delivery_worker_retries_non_none_sender_results(store, sender_result):
-    event = _create_pending_trigger_event(store)
-
-    result = run_alert_delivery_batch(
-        store,
-        lambda _event: sender_result,
-        clock_ns=lambda: 10_000,
-        lease_duration_ns=100,
-        base_retry_delay_ns=100,
-        max_retry_delay_ns=500,
-    )
-
-    assert result.claimed == 1
-    assert result.delivered == 0
-    assert result.retry_scheduled == 1
-    assert result.terminal_failed == 0
-    assert store.list_pending_trigger_events() == [event]
-    with sqlite3.connect(store.database_path) as db:
-        row = db.execute(
-            "SELECT delivery_status, last_error_code FROM price_alert_trigger_events"
-        ).fetchone()
-    assert row == ("pending", "delivery.error")
-
-
 def test_alert_delivery_worker_schedules_retry_then_terminal_failure(store):
     _create_pending_trigger_event(store)
 

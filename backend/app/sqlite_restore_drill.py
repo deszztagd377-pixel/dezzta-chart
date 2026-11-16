@@ -241,11 +241,25 @@ def run_restore_drill(source_path: str | Path, backup_path: str | Path,
 
     backup_created = False
     restore_created = False
+
+    def _mark_created(role: str) -> None:
+        nonlocal backup_created, restore_created
+        if role == "backup":
+            backup_created = True
+        elif role == "restore":
+            restore_created = True
+        else:
+            raise ValueError("unknown restore-drill output role")
+
     try:
-        create_consistent_sqlite_backup(source, backup, overwrite=False)
-        backup_created = True
-        restore_consistent_sqlite_backup(backup, restored)
-        restore_created = True
+        create_consistent_sqlite_backup(
+            source, backup, overwrite=False,
+            _on_published=lambda _path: _mark_created("backup"),
+        )
+        restore_consistent_sqlite_backup(
+            backup, restored,
+            _on_published=lambda _path: _mark_created("restore"),
+        )
         backup_inventory = _inventory(backup)
         restored_inventory = _inventory(restored)
         if backup_inventory["counts"] != restored_inventory["counts"]:

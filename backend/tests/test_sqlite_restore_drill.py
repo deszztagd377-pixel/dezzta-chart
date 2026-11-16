@@ -91,6 +91,43 @@ def test_owner_device_restore_drill_checks_application_domains_and_redacts_paths
     assert report["restore_role"] == "restored_copy"
     assert "drill-test-subject" not in json.dumps(report)
 
+@pytest.mark.parametrize("failing_publication", ["backup", "restore"])
+def test_restore_drill_cleans_output_when_directory_fsync_fails_after_publish(
+    tmp_path, monkeypatch, failing_publication
+):
+    from app import sqlite_backup
+
+    source = tmp_path / "live.sqlite3"
+    backup = tmp_path / "backup.sqlite3"
+    restored = tmp_path / "restored.sqlite3"
+    _build_database(source)
+    source_before = source.read_bytes()
+    original_fsync = sqlite_backup._fsync_directory
+    calls = 0
+    fail_on = 1 if failing_publication == "backup" else 2
+
+    def fail_selected_directory_fsync(directory):
+        nonlocal calls
+        calls += 1
+        if calls == fail_on:
+            raise OSError("injected directory fsync failure")
+        return original_fsync(directory)
+
+    monkeypatch.setattr(
+        sqlite_backup, "_fsync_directory", fail_selected_directory_fsync
+    )
+
+    with pytest.raises(OSError, match="injected directory fsync failure"):
+        run_restore_drill(source, backup, restored)
+
+    assert source.read_bytes() == source_before
+    assert not backup.exists()
+    assert not restored.exists()
+    for output in (backup, restored):
+        for suffix in ("-journal", "-wal", "-shm"):
+            assert not (tmp_path / f"{output.name}{suffix}").exists()
+
+
 def test_failed_restore_verification_removes_only_drill_created_outputs(tmp_path, monkeypatch):
     source = tmp_path / "live.sqlite3"
     backup = tmp_path / "backup.sqlite3"
