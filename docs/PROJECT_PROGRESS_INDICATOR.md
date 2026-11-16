@@ -1540,7 +1540,7 @@ Stage 1 remains 30/40 provisionally accepted criteria. Gate 10 remains 0/10 offi
 - Source baseline recorded in the preceding TLS regression section: `f9abe38fa23a89846a7241e92e93958069ef2039`.
 - Added encrypted device-token persistence: `12e8707d1f8b29aae1770199550cdb4200a6c897`.
 - Corrected SQLite connection lifecycle and reactivation quota enforcement: `234e34bc156d46e9ff652273337ae3100b485d2d`.
-- Added focused regression suite: `5c08a1c9d2ca089ac7992b4e4becf74f0641e77b`.
+- Added focused regression suite: `5c08a1c` (full SHA is available in the linked commit history).
 - Files added:
   - `backend/app/alert_device_store.py`
   - `backend/tests/test_alert_device_store.py`
