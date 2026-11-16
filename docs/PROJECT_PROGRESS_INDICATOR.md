@@ -1828,3 +1828,52 @@ A focused review found two correctness details that needed tightening before cla
 - It refuses missing tables, duplicate table names, and unsafe identifiers; callers must explicitly list the tables belonging to one schema component so other domains in the shared SQLite file do not affect its baseline.
 - Added regression tests for deterministic fingerprints, fingerprint changes after index additions, missing tables, and identifier validation.
 - This remains a migration foundation primitive, not a completed adapter rollout. The current legacy stores have not yet been enrolled, and the new tests remain unverified until CI runs on the final commit.
+
+
+## Work cycle — expanded zero-cost source inventory and fail-closed provider catalog — 2026-11-16
+
+### Scope and result
+The owner clarified that the initial source list was only a small subset of the wider data ecosystem. This cycle expands the review across exchange-specific market data, aggregated crypto reference data, equities, FX reference data, macroeconomic series and country indicators. It does not claim that the internet's full provider ecosystem has been exhausted.
+
+### Implementation added
+- `backend/app/provider_catalog.py` — immutable provider-candidate inventory with typed cost class, freshness class, rights status, data families, authentication requirement, documented quota/limit, official documentation URL and caveat.
+- The catalog contains 10 reviewed entries: Alpaca Basic, Alpha Vantage Free, Twelve Data Basic, CoinGecko Demo, public exchange-specific market-data endpoints, FRED, Frankfurter, World Bank Indicators and Databento's trial/credit model.
+- `eligible_for_zero_cost_baseline` requires BOTH recurring-free cost classification AND explicitly approved intended-use rights.
+- Unknown provider IDs fail closed. Trial/credit sources are never classified as recurring-free. Candidates with unknown or restricted rights cannot be enabled by this policy helper.
+- `backend/tests/test_provider_catalog.py` — nine focused tests authored for unique IDs, unknown-provider rejection, rights gating, trial-credit exclusion, macro/reference classification and venue-scope distinctions.
+
+### Expanded source findings
+- Some endpoints are free for public market-data retrieval but are specific to one exchange/venue; they are not a consolidated global market feed.
+- Some free tiers are delayed, cached, limited by a daily/monthly quota, or explicitly not suitable for user-facing display.
+- FRED and World Bank are macro/economic reference sources, not live market-price feeds.
+- Frankfurter provides reference FX rates, not executable live bid/ask quotes.
+- Databento's introductory credits are finite and therefore excluded from the recurring-$0 baseline.
+- The fact that a request endpoint is public, keyless or $0 does not grant rights to redistribute data through this app.
+
+### Safety and integration boundary
+- The provider catalog is descriptive and fail-closed. It makes no network requests, does not hold credentials, does not instantiate provider clients, and does not activate any feed.
+- No new provider has been connected to the live pipeline. The runtime remains Databento-oriented.
+- No paid fallback, automatic upgrade, billing profile or paid hosting was introduced.
+- Each future adapter must be separately reviewed for exact data family, venue/feed scope, freshness, quota, terms, attribution, display/redistribution rights and failure behavior.
+- Existing canonical instrument identities, exact-decimal OHLCV persistence and ingestion contracts remain unchanged.
+
+### Progress accounting — unchanged
+- Stage 1: **30/40 provisional criteria; 300/400 ticks; 75% provisional**.
+- Gate 10: **0/10 officially closed**.
+- Open Stage 1 criteria/gates: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- Stages 2–6: **NOT SCORED**.
+- Overall: **20.90% historical owner-confirmed checkpoint only**; no fresh overall calculation.
+- No criteria or ticks awarded for source research, code, tests, CI or documentation alone.
+
+### Verification and cost
+- Provider catalog and tests are committed to `phase-2/market-data-foundation`.
+- Nine tests are authored but **not yet executed or confirmed by CI on the exact final commit**.
+- No GitHub Actions workflow run is currently available from the commit-status lookup; Vercel remains a separate deployment status and is not backend test evidence.
+- No Termux action was required.
+- No APK was built or verified.
+- No data source was activated.
+- ZERO COST maintained; no new paid service or subscription.
+- `main` remains untouched.
+
+### Next technical action
+Choose one narrow data family and one venue/feed scope after a documented rights review, then implement one adapter through the existing provider-neutral interfaces. Do not activate multiple sources at once or claim broad coverage from a single exchange-specific feed.
