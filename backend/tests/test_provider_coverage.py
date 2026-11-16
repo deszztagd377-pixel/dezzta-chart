@@ -146,6 +146,26 @@ def test_duplicate_provider_catalog_ids_are_ambiguous_and_rejected():
     assert report.rejected_mapping_count == 1
 
 
+def test_non_string_mapping_fields_fail_closed_without_raising():
+    malformed = ProviderInstrumentMapping(
+        provider_id=None,
+        instrument_id="BTC-USD",
+        venue="venue-x",
+        asset_class="crypto_spot_exchange_specific",
+        data_family="ohlcv",
+        evidence_ref="test-fixture:reviewed-mapping",
+    )
+    report = build_coverage_report(
+        ["BTC-USD"],
+        [malformed],
+        [_approved_candidate("provider-a")],
+    )
+    assert report.covered == ()
+    assert report.uncovered == ("BTC-USD",)
+    assert report.eligible_mapping_count == 0
+    assert report.rejected_mapping_count == 1
+
+
 def test_empty_watchlist_has_complete_zero_work_coverage():
     report = build_coverage_report([], [], [])
     assert report.coverage_ratio == 1.0
