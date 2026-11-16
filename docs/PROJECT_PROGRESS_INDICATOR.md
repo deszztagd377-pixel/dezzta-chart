@@ -1741,3 +1741,37 @@ ZERO COST maintained. No paid service or dependency was added. No Termux/device 
 - `285d969` adds a regression assertion that the decrypted token is absent from the object's representation.
 - These are implementation and test-authoring records only. CI execution is still pending/unverified; no test pass is claimed.
 - The owner-scoped enumeration closes one identified integration gap, but it does not create a sender worker. Delivery remains inactive until bounded worker lifecycle, retry/lease handling, permanent-token cleanup and client deduplication are implemented and tested.
+
+
+## Gate 10 work cycle — FCM outbox integration and long-lived foundation contract — 2026-11-16
+
+### Source changes
+- `a2b94a3` — added `backend/app/alert_fcm_delivery.py`, an owner-scoped fan-out adapter from the existing durable outbox to the encrypted device store and FCM sender.
+- `d148eb2` / `3b5b19b` — added/cleaned `backend/tests/test_alert_fcm_delivery.py` covering owner isolation, revoked-device exclusion, permanent invalid-token revocation, transient error propagation, and no-device behavior.
+- `9a54455` — added explicit opt-in worker settings. Defaults remain OFF. Worker requires the encrypted device store, valid injected 32-byte key, Firebase project ID, bounded poll/batch/lease/attempt limits; batch cannot exceed the 10-device owner quota.
+- `c79aeeb` — connected the existing `run_alert_delivery_batch` to FastAPI lifespan. Uses a bounded asyncio task and `asyncio.to_thread` for SQLite/FCM work; stops the task during shutdown; retains only aggregate batch counts and sanitized exception class for operational visibility.
+- `4f2bf6d` — added config boundary tests for disabled-by-default behavior, required prerequisites and bounded settings.
+- `2709136` — added FastAPI lifespan tests for opt-in startup/shutdown and default-off behavior.
+- `35af778` — added `docs/FOUNDATION_LONGEVITY_AND_DATA_EVOLUTION.md`, a long-horizon contract for canonical IDs, exact financial values, timestamp units, schema evolution, backups, restore, key lifecycle, event idempotency and compatibility.
+- `e0441b6` — documented worker opt-in and security boundaries in `docs/SECURITY_CONFIGURATION.md`.
+
+### Important behavior and safety boundary
+- This cycle reuses the existing SQLite outbox worker; it does not create a second queue.
+- Transient FCM errors propagate to the durable outbox retry/backoff policy. Permanent invalid-token errors revoke only the matching owner+installation; other devices continue.
+- If a transient error occurs after some devices received the event, a retry may resend to those devices. Delivery remains at-least-once; Android durable deduplication by `event_id` is mandatory and is not yet verified.
+- Worker remains OFF by default. It starts only when explicitly enabled and its encrypted device store/key and Firebase project prerequisites are valid. Actual ADC availability is checked at runtime startup; no production credential is included in source.
+- Worker execution is bounded to a maximum of 10 recipients per event batch and stops through FastAPI lifespan. A long-running synchronous FCM call can delay graceful shutdown; runtime timeout behavior and owner-host shutdown need live validation.
+- A single-process task is not a distributed singleton. If multiple backend replicas are deployed, they rely on the existing SQLite lease protocol for event claims; owner-host multi-process load and lease timing still need verification.
+
+### Long-horizon foundation assessment
+- Added an explicit long-life data evolution contract, but **no claim is made that one database binary or schema can remain unchanged for 100 years**.
+- Existing stores use idempotent table creation and additive alert-outbox migration, but there is not yet one unified versioned migration ledger across every durable domain. This remains an explicit foundational gap.
+- Device-token ciphertext does not yet carry a key version; safe multi-key rotation remains open.
+- Actual Android filesystem/WAL behavior, owner-host backup destination/key custody, real Firebase ADC, Android background/closed-app delivery and event-ID deduplication remain external acceptance items.
+
+### Validation state and progress accounting
+- Source, tests, and documentation are committed on `phase-2/market-data-foundation`; `main` was not touched.
+- Tests were authored, but execution on the exact final commit has **not yet been independently confirmed**. Do not report the new tests as passing until CI completes successfully.
+- No Stage 1 criterion closed and no ticks awarded for source, test files, or documentation alone.
+- Gate 10: **0/10 officially closed**. Stage 1: **30/40 provisional criteria, 300/400 ticks (75% provisional)**. Stages 2–6: **NOT SCORED**. Overall 20.90% remains a historical owner-confirmed checkpoint.
+- ZERO COST maintained. No Termux/device command needed in this cycle. No APK release or download link claimed.
