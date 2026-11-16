@@ -23,10 +23,12 @@ regexes = ['''^Latest observed exact-head CI/CodeQL/secret-audit checkpoint: b37
 paths = ['''PROJECT_STATUS.md$''']
 
 # Exact public commit SHA in the progress ledger is metadata, not a credential.
-# Keep the exception limited to this exact line and documentation file.
+# Match only this exact 40-character value and only in the progress document.
 [[allowlists]]
 description = "Exact public source-test commit metadata false positive"
 condition = "AND"
-regexTarget = "line"
-regexes = ['''^- Added focused regression suite: 5c08a1c9d2ca089ac7992b4e4becf74f0641e77b\.$''']
-paths = ['''docs/PROJECT_PROGRESS_INDICATOR\.md$''']
+regexTarget = "match"
+regexes = ['''^5c08a1c9d2ca089ac7992b4e4becf74f0641e77b
+'']
+paths = ['''docs/PROJECT_PROGRESS_INDICATOR\.md
+'']
