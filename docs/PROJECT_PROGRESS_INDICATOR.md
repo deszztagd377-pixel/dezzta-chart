@@ -1917,3 +1917,14 @@ The next repository-side action is to establish a verifiable test execution path
 ### Design decision
 
 The target is multi-provider capability, not a fixed number of sockets. Use one shared session per provider/endpoint/credential scope where multiplexing is documented, then fan out internally. Add separate sessions only for provider/venue/protocol isolation. Scale toward 5–10 approved providers only after each source passes recurring-$0, rights, feed-scope, quota, contract-test and measured-capacity gates. Never create one upstream socket per pair by default.
+
+
+## Complementary pair-coverage work cycle — 2026-11-16
+
+- Clarified the target architecture: multiple free providers can contribute disjoint/complementary instrument subsets; their eligible mappings form a coverage union.
+- Added `docs/PAIR_COVERAGE_FEDERATION_ZERO_COST.md` covering evidence-backed provider/instrument/venue mappings, routing, explicit fallback, quota and cost gates, data provenance, freshness, and rollout.
+- Linked the pair-coverage design from the source inventory.
+- No claim is made that any current candidate supports a particular pair. The current catalog is descriptive; all sources remain blocked pending rights and cost review.
+- No runtime adapter, socket, credential, provider activation, paid service or Termux operation was added.
+- No tests were executed in this documentation cycle; existing 11 catalog tests remain authored but unverified.
+- No Stage 1 ticks awarded. Stage 1 remains 30/40 provisional (300/400 ticks, 75%); Gate 10 remains 0/10 officially closed; open criteria remain 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. Stages 2–6 remain NOT SCORED; overall remains 20.90% historical only.
