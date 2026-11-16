@@ -199,3 +199,46 @@ def test_production_accepts_tls_redis_url_with_acl_credentials():
     )
     assert settings.redis_url.startswith("rediss://")
     assert "guard-password" not in repr(settings)
+
+
+def test_alert_delivery_worker_is_disabled_by_default():
+    settings = make_settings()
+    assert settings.alert_delivery_worker_enabled is False
+
+
+def test_alert_delivery_worker_requires_encrypted_device_store():
+    with pytest.raises(ValueError, match="requires ALERT_DEVICE_STORE_ENABLED"):
+        make_settings(
+            alert_delivery_worker_enabled=True,
+            firebase_project_id="test-project",
+        )
+
+
+def test_alert_delivery_worker_requires_firebase_project_id():
+    with pytest.raises(ValueError, match="requires FIREBASE_PROJECT_ID"):
+        make_settings(
+            alert_device_store_enabled=True,
+            alert_device_encryption_key=b"K" * 32,
+            alert_delivery_worker_enabled=True,
+        )
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("alert_delivery_poll_interval_seconds", 0),
+        ("alert_delivery_batch_size", 0),
+        ("alert_delivery_batch_size", 11),
+        ("alert_delivery_lease_seconds", 29),
+        ("alert_delivery_max_attempts", 33),
+    ],
+)
+def test_alert_delivery_worker_rejects_unsafe_limits(field, value):
+    with pytest.raises(ValueError):
+        make_settings(
+            alert_device_store_enabled=True,
+            alert_device_encryption_key=b"K" * 32,
+            alert_delivery_worker_enabled=True,
+            firebase_project_id="test-project",
+            **{field: value},
+        )
