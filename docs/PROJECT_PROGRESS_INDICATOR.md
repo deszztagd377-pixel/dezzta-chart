@@ -1624,7 +1624,11 @@ This is not production secret-injection acceptance. No owner host or Docker secr
 ### Validation and acceptance status
 
 - Regression tests have been added for the loader, permission boundary, opt-in setting, and FastAPI wiring.
-- CI for the final source/documentation revision is pending at the time of this documentation update. Do not describe the new tests as passed until the exact revision's Automated Tests workflow completes.
+- Exact implementation/progress revision `889893e` completed all three CI workflows successfully:
+  - Automated Tests [#43853960609](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43853960609) — **SUCCESS**. All **894 backend tests passed** in 27.26 seconds; frontend dependency audit, unit tests, build and bundle secret scans passed; Android host preflight and immutable preview-publisher tests passed; synthetic SQLite outbox benchmark passed (1,000 synthetic bars, four replay pages, two concurrent readers); backend dependency audit, container build, Redis ACL/AOF persistence and outage/recovery smoke, Trivy high/critical image scan, vulnerability-report export/upload and cleanup all passed.
+  - CodeQL [#43853960344](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43853960344) — **SUCCESS** for JavaScript/TypeScript and Python.
+  - Full Git History Secret Audit [#43853960320](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/43853960320) — **SUCCESS**.
+- The colored dashboard was subsequently refreshed in documentation-only commit `1be33e9`; that doc-only update does not change application source. The final branch head is checked again after the dashboard/progress refresh before this work cycle is reported complete.
 - Gate 8 remains open pending real owner-host secret injection and process-level proof.
 - Gate 31 remains open pending versioned key custody, backup, rotation and recovery exercise.
 - Gate 39 remains open: registration routes, sender, worker and real Firebase/Android delivery are not implemented.
