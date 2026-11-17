@@ -168,3 +168,12 @@ This closes a repository-side observability cardinality defect and its test-exec
 No paid service, provider, credential, plan upgrade, Termux command, package, repository, keyring, or production worker was introduced. `main` remains untouched.
 
 The detailed Gate 10 graphic is available at [`docs/assets/stage-1-gate-dashboard.svg`](assets/stage-1-gate-dashboard.svg); the six-stage project dashboard remains at [`docs/assets/project-progress-dashboard.svg`](assets/project-progress-dashboard.svg).
+
+
+## Latest Vercel preview metadata reconciliation — 2026-11-17
+
+After the Gate 38 code/test commit and documentation refresh, Vercel read-back confirmed both connected projects built the latest documentation commit `1dbc5a544c294fc74a441158af65ed6d1cb523d0` successfully:
+
+- FastAPI POC `dpl_GRGdGjm4W9dYuAD9FEFn84rdcHtm`: **READY**, https://dezzta-chart-ws-fyyd5o3ui-deszztagd377-pixel.vercel.app, SSO enabled for all deployment targets.
+- Main Vite frontend `dpl_CXHJ9UXKfK4jVQVsLzNumSkbfdex`: **READY**, https://dezzta-chart-la5w28fic-deszztagd377-pixel.vercel.app, SSO enabled for all deployment targets except custom domains.
+- Both project metadata responses report `live=false`. These are preview deployments only. No protection or billing setting was changed, and no production-data connection was created.
