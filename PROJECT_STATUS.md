@@ -2,6 +2,30 @@
 
 **Current checkpoint:** 2026-11-17  
 **Active branch:** `phase-2/market-data-foundation`  
+**Latest source/test commit:** `cfc56b7ba050201823952ea1b67dd38182dc9bfb`  
+**Latest documentation checkpoint before this status refresh:** `0305a7c78146ac2491e424ce9561cda8b6159372`
+
+- **Stage 1:** 30/40 provisional criteria; 300/400 ticks; **75% provisional**, not production accepted.
+- **Gate 10:** **0/10 formally closed**. Open external criteria: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- **Automated Tests & Build [44112080352](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44112080352): SUCCESS**, all 32/32 steps; backend pytest **1,009 passed in 36.34s**, including the integrated encrypted application restore test.
+- **CodeQL [44112080772](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44112080772): SUCCESS**; **Full Git History Secret Audit [44112080446](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44112080446): SUCCESS**.
+- **Vercel status:** isolated FastAPI WSS POC preview context **SUCCESS**; main Vite preview context **FAILURE due to Vercel build-rate limit**. No paid upgrade or repeated deployment was attempted. Existing last-known frontend preview remains a prior READY build; this test-only source change does not alter frontend source.
+- **Gate 30/31:** encrypted application snapshot → AES-256-GCM artifact → authenticated decrypt → full fresh-path application restore is now covered by an exact-head passing CI test. External host restore, off-host storage, separate key custody and retention remain OPEN.
+- **Gate 36:** browser reconnect/fresh-session pong, POC build context and all-target SSO are verified sub-checks. Gate 36 remains OPEN pending maximum-duration behavior, independent Fluid Compute read-back, Android Capacitor WebView WSS and production fan-out/cost acceptance.
+- **Gate 38:** metrics input hardening is CI-verified; durable aggregation, retention, host access controls and dashboard acceptance remain OPEN.
+- **Gate 39:** local sanitized operator reporter and zero-cost runbook exist; host collection, escalation and recovery drill remain OPEN.
+- **Stages 2–6:** NOT SCORED. Overall 20.90% is historical only.
+- **ZERO COST:** no paid plan, provider, subscription, billing activation, Termux package/repository/keyring change or production data connection. No Termux action required in this cycle.
+- **Protected `main`:** untouched.
+
+Detailed work cycle: [docs/WORK_CYCLE_2026-11-17_GATE10_BATCH6.md](docs/WORK_CYCLE_2026-11-17_GATE10_BATCH6.md).
+
+---
+
+# DEZZTA CHART — Current Project Status
+
+**Current checkpoint:** 2026-11-17  
+**Active branch:** `phase-2/market-data-foundation`  
 **Latest source commit:** `cfc56b7ba050201823952ea1b67dd38182dc9bfb`
 
 - **Stage 1:** 30/40 provisional criteria; 300/400 ticks; **75% provisional**, not production accepted.

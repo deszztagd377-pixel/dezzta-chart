@@ -28,7 +28,14 @@ It additionally verifies source-file immutability, decrypted/snapshot SHA-256 eq
 - The test is isolated and synthetic. It does not access a real owner database.
 - It does not prove off-host backup storage, separate key custody, retention/access controls, or restoration on the intended production host.
 - Criteria 30 and 31 remain externally OPEN. No Stage 1 ticks are awarded.
-- Exact-head CI is pending until the new source commit completes its workflow.
+- Exact source commit `cfc56b7ba050201823952ea1b67dd38182dc9bfb`: Automated Tests & Build [44112080352](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44112080352) **SUCCESS**, all **32/32 workflow steps** passed. Backend pytest: **1,009 passed in 36.34s**, including the new encrypted application backup → authenticated decrypt → full restore-drill test.
+- CodeQL [44112080772](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44112080772): **SUCCESS**.
+- Full Git History Secret Audit [44112080446](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44112080446): **SUCCESS**.
+- Vercel FastAPI WSS POC preview status: **SUCCESS**. Main Vite preview status: **FAILURE — Vercel build-rate limit**. No retry loop or plan upgrade; this test-only source change does not modify frontend code, and the last known frontend preview remains the earlier READY deployment.
+
+## Verification and platform blocker
+
+The exact-head repository checks passed as listed above. The Vercel FastAPI WSS POC preview context passed. The main Vite preview context was blocked by a Vercel build-rate limit; no paid upgrade, bypass, or retry loop was attempted. The previous known-good frontend preview remains the last known READY frontend build.
 
 ## Files changed
 - `backend/tests/test_sqlite_restore_drill.py`

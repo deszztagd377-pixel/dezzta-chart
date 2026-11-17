@@ -2729,5 +2729,15 @@ Owner-reported browser evidence now includes a normal prior-session close (`1000
 - The isolated test chains an actual application-domain SQLite fixture → SQLite Online Backup snapshot → AES-256-GCM encrypted artifact → authenticated decryption → fresh-path application restore drill.
 - It verifies restored domain counts, schema/content checks, integrity, post-restore write/read/cleanup, source immutability, report redaction, and temporary-artifact cleanup.
 - This strengthens repository evidence for criteria 30 and 31, but does not establish owner-controlled key custody, off-host storage, retention, or a restore on the actual target host. Both external criteria remain OPEN; no Stage 1 ticks are awarded.
-- Exact-head CI is pending for source commit `cfc56b7ba050201823952ea1b67dd38182dc9bfb`; no new test pass is claimed until the workflow completes.
+- Exact-head verification for source commit `cfc56b7ba050201823952ea1b67dd38182dc9bfb`: Automated Tests & Build **32/32 steps SUCCESS**, backend **1,009 passed in 36.34s**, CodeQL **SUCCESS**, and Full Git History Secret Audit **SUCCESS**. The FastAPI WSS POC preview context passed; the main Vite preview context was blocked by Vercel's build-rate limit. No paid upgrade or retry loop was used.
 - ZERO COST preserved. No Termux package, host, provider, storage account, or paid service introduced.
+
+
+### Batch 6 exact-head verification and Vercel rate-limit disposition — 2026-11-17
+
+- Exact source commit `cfc56b7ba050201823952ea1b67dd38182dc9bfb`: Automated Tests & Build [44112080352](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44112080352) **SUCCESS**, all **32/32 workflow steps** passed. Backend pytest: **1,009 passed in 36.34s**, including the new encrypted application backup → authenticated decrypt → full restore-drill test.
+- CodeQL [44112080772](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44112080772): **SUCCESS**.
+- Full Git History Secret Audit [44112080446](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44112080446): **SUCCESS**.
+- Vercel FastAPI WSS POC preview status: **SUCCESS**. Main Vite preview status: **FAILURE — Vercel build-rate limit**. No retry loop or plan upgrade; this test-only source change does not modify frontend code, and the last known frontend preview remains the earlier READY deployment.
+
+The integrated encrypted restore test is repository-verified. Criteria 30 and 31 remain externally OPEN pending actual owner-target recovery, separate key custody, off-host storage and retention. No Stage 1 ticks are awarded. Vercel preview status is distinct from GitHub Actions; the main frontend preview rate-limit failure is not a frontend test/build failure and was not bypassed with a paid plan.

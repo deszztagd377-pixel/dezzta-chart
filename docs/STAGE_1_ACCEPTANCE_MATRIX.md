@@ -735,4 +735,11 @@ The acceptance matrix is the source of truth for Gate 10 accounting. It currentl
 
 ### Batch 6 repository regression — 2026-11-17
 
-A new test in `backend/tests/test_sqlite_restore_drill.py` exercises the full encrypted application backup and restore sequence using existing production-code helpers and an isolated synthetic application database. It checks exact domain counts, schema and row content, integrity, post-restore write/read/cleanup, source immutability, privacy redaction and temporary-file cleanup. The test must pass exact-head CI before it is recorded as verified. Criteria 30 and 31 remain externally OPEN.
+A new test in `backend/tests/test_sqlite_restore_drill.py` exercises the full encrypted application backup and restore sequence using existing production-code helpers and an isolated synthetic application database. It checks exact domain counts, schema and row content, integrity, post-restore write/read/cleanup, source immutability, privacy redaction and temporary-file cleanup. Exact-head CI passed: Automated Tests & Build **32/32**, backend **1,009 passed in 36.34s**, CodeQL **SUCCESS**, and Full Git History Secret Audit **SUCCESS**. Criteria 30 and 31 remain externally OPEN.
+
+
+### Batch 6 exact-head evidence — 2026-11-17
+
+- Source commit `cfc56b7ba050201823952ea1b67dd38182dc9bfb`: Automated Tests & Build **SUCCESS (32/32)**; backend **1,009 passed in 36.34s**; CodeQL and Full Git History Secret Audit **SUCCESS**.
+- FastAPI WSS POC Vercel preview status passed. Main Vite preview status was blocked by Vercel build-rate limit; no paid upgrade or repeated build attempt was made.
+- This CI regression does not replace target-host backup restore or off-host key-custody acceptance. Gate 30 and 31 remain OPEN; Stage 1 remains 75% provisional.

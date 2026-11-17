@@ -192,3 +192,11 @@ This closes the browser-panel manual reconnect + fresh-session ping/pong sub-che
 - The project settings response does not expose `resourceConfig.fluid`. The source `vercel.json` requests `fluid: true`, but effective Fluid Compute remains **NOT INDEPENDENTLY VERIFIED**.
 - Runtime-log query for the latest deployment over 50 minutes returned no records. No logs in that window are not evidence of connection failure.
 - Gate 36 remains OPEN; no Stage 1 ticks are awarded.
+
+
+## Latest exact-head preview status — Batch 6 — 2026-11-17
+
+- Source commit: `cfc56b7ba050201823952ea1b67dd38182dc9bfb`.
+- The Vercel FastAPI WSS POC preview status context completed **SUCCESS**.
+- The main Vite frontend preview status context returned **FAILURE: Vercel build-rate limit**. This was a platform deployment-rate restriction, not a source test failure. No paid plan upgrade, deployment bypass, or retry loop was attempted.
+- The POC preview status is not a production WSS acceptance test. Maximum-duration behavior, effective Fluid Compute read-back, Android Capacitor WebView WSS against the authenticated production backend, cross-instance fan-out, and cost acceptance remain open.
