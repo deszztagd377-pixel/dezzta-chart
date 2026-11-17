@@ -2686,3 +2686,9 @@ Owner-reported browser evidence now includes a normal prior-session close (`1000
 - Finite duration samples are capped at 86,400,000 ms to keep metric sums JSON-safe; existing 127-series cardinality and histogram contract are preserved.
 - Two new test functions exercise invalid-input and overflow boundaries. Full exact-head CI is required before this increment is marked test-verified.
 - No external gate closed; Stage 1 stays 75% provisional and Gate 10 stays 0/10.
+
+
+### Gate 38–39 operations runbook — 2026-11-17
+
+- Added [Zero-cost Operations Runbook](OPERATIONS_RUNBOOK_ZERO_COST.md), covering the protected `/internal/metrics` and `/internal/alert-delivery` routes, token handling, local metric scope, sanitized alert events, adult operator ownership, escalation and recovery evidence.
+- The document clearly separates repository implementation from external acceptance. One-phone/no-host constraints mean Gates 38 and 39 remain OPEN; no new Stage 1 ticks are awarded.

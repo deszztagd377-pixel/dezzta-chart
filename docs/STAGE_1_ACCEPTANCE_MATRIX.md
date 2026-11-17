@@ -699,3 +699,10 @@ A local-only operational alert reporter is now integrated into the existing opt-
 - The 127-series cardinality cap and existing metrics schema are unchanged.
 - **External Gate 38 remains OPEN** because process-local metrics are not durable or aggregated across instances; bounded retention, self-hosted dashboard, host access controls and operational evidence remain outstanding.
 - No Stage 1 ticks awarded. Gate 10 remains 0/10; Stage 1 remains 300/400 (75% provisional).
+
+
+### Gate 38–39 zero-cost operations runbook — 2026-11-17
+
+- Added [OPERATIONS_RUNBOOK_ZERO_COST.md](OPERATIONS_RUNBOOK_ZERO_COST.md) documenting the existing protected process-local metrics routes, token requirements, privacy boundaries, 127-series limit, alert event meanings, adult operator responsibilities, escalation and recovery evidence.
+- The runbook explicitly says process-local metrics reset on restart and do not aggregate across instances; unit tests do not prove host collection or alert receipt.
+- The current one-phone environment has no independent host or second device. No operational acceptance is claimed; Gates 38 and 39 remain OPEN.

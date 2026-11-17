@@ -1,3 +1,11 @@
+## Gate 38–39 operations documentation — 2026-11-17
+
+- Added [docs/OPERATIONS_RUNBOOK_ZERO_COST.md](docs/OPERATIONS_RUNBOOK_ZERO_COST.md), covering protected operations routes, bearer-token handling, process-local metrics limits, sanitized alert signals, adult operator ownership, escalation and recovery evidence.
+- This is a documentation/control-definition increment only. It does not create host monitoring, durable retention, external alert delivery, or an on-call service.
+- Gates 38 and 39 remain OPEN. Stage 1 remains 75% provisional; Gate 10 remains 0/10. No ticks awarded. ZERO COST maintained; no Termux changes; `main` untouched.
+
+---
+
 ## Latest Gate 38 repository increment — observability input hardening (2026-11-17)
 
 - Updated `backend/app/observability.py` to safely normalize unhashable method labels, reject boolean status codes and boolean/string/non-finite durations, handle integer conversion overflow, and cap finite duration samples at 86,400,000 ms.
