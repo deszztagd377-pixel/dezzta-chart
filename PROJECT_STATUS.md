@@ -1,9 +1,9 @@
 ## Latest Gate 10 follow-up — 2026-11-17
 
-- Latest observed documentation work-cycle commit: `6facd5f39da3d147ae4ba12dbb490d5aa0ed7765` (the project-process audit report). The follow-up updates in this commit series are documentation/dashboard-only; no application runtime code or production configuration changed.
+- Latest code/test checkpoint: `ee9a68da14001839a1aebc03082187b4b34162ef` includes a bounded metrics-series cardinality correction and three new regression tests. Exact-head Automated Tests & Build, CodeQL, and Full Git History Secret Audit all passed. This commit changes only the backend's internal metrics cap and its tests; it does not enable production integrations.
 - Dedicated FastAPI POC project `dezzta-chart-ws-poc` deployment `dpl_BdtYsesCD478WnnWovZwK8ssENYU` is **READY** at https://dezzta-chart-ws-d99c5hwrc-deszztagd377-pixel.vercel.app, on documentation commit `3d208df252c7251a5936091ffd1006a57db7a13b`. SSO remains enabled for all deployment targets. This is not production market-data delivery.
 - Owner-device evidence now confirms protected HTTP `/health` 200, browser WSS ready/pong, owner-confirmed manual Disconnect → Connect, a distinct second session with first pong sequence 1, and idle-timeout on that session. The reconnect sub-check is PASS; Gate 36 overall remains OPEN.
-- Gate 36 remaining: maximum-duration close, independent effective Fluid Compute read-back, native Android WSS, production cross-instance fan-out, and cost/operational acceptance. The source `fluid: true` setting is not independent runtime evidence; Vercel read-back did not expose the effective setting/root directory.
+- Gate 36 remaining: maximum-duration close, independent effective Fluid Compute read-back, Android APK Capacitor WebView WSS against the authenticated market-data backend, production cross-instance fan-out, and cost/operational acceptance. The source `fluid: true` setting is not independent runtime evidence; Vercel read-back did not expose the effective setting/root directory.
 - Latest source/test checkpoint remains `07530d74c43b98de7b9a3f44b1c05eec5db9987e`: Automated Tests & Build [44076533920](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44076533920), CodeQL [44076533946](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44076533946), and Full Git History Secret Audit [44076533891](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44076533891) are recorded SUCCESS for that source checkpoint. The documentation-only follow-up is not described as a fresh full CI run.
 - Stage 1 remains **30/40 = 75% provisional**; Gate 10 remains **0/10 formally closed**; external criteria **8, 20, 25, 30, 31, 34, 35, 36, 38, 39** remain OPEN. No ticks awarded. Stages 2–6 remain NOT SCORED. Overall 20.90% remains historical only.
 - ZERO COST preserved; no paid services, plan upgrade, credentials, Termux command/package/repository/keyring change, or APK release. `main` remains untouched.
@@ -32,7 +32,7 @@ Repository: deszztagd377-pixel/dezzta-chart
 Baseline branch: main
 Baseline main HEAD: e3841681bc69b73619058deaf939df82ae5116a1
 Working branch: phase-2/market-data-foundation
-Latest observed exact-head source/test checkpoint: 07530d74c43b98de7b9a3f44b1c05eec5db9987e (Automated Tests & Build 44076533920, CodeQL 44076533946, Full Git History Secret Audit 44076533891 passed)
+Latest exact-head source/test checkpoint: ee9a68da14001839a1aebc03082187b4b34162ef (Automated Tests & Build 44098987046, CodeQL 44098987058, Full Git History Secret Audit 44098987124 passed)
 Audited application-source baseline: 436f8b374b8bf5ef1ef4b51944f0c99603acd12c
 `main` remains the protected baseline and is not a work target.
 
@@ -762,3 +762,11 @@ Do not repeat the earlier request for a PC, laptop, or second phone. Do not buy 
 - Stage 1 remains 30/40 provisional criteria = 300/400 ticks = 75% provisional. External criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain OPEN; no external tick was awarded.
 - Stages 2–6 remain NOT SCORED. Overall 20.90% remains a historical owner-confirmed checkpoint, not a fresh weighted calculation.
 - No Termux package/repository/keyring changes, crypto downgrade, production secret, paid service, or APK release occurred.
+
+
+## Gate 38 internal metrics cardinality correction — 2026-11-17
+
+- Fixed an off-by-one in `backend/app/observability.py`: the overflow bucket is now included inside the configured maximum of 127 total metric route series, instead of allowing 127 named series plus an additional overflow series.
+- Added `backend/tests/test_observability.py` with three regression tests for the exact 127-series ceiling, label sanitization/invalid values, and detached snapshots.
+- Exact-head backend test log confirms **999 passed in 26.96s**, including all three new tests. Automated Tests & Build [44098987046](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44098987046), CodeQL [44098987058](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44098987058), and Full Git History Secret Audit [44098987124](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44098987124) all passed on `ee9a68da14001839a1aebc03082187b4b34162ef`.
+- This is repository-side hardening only. Gate 38 remains OPEN until bounded metrics are integrated with durable aggregation/retention, protected host operations, and a verified dashboard/incident workflow. No Stage 1 tick is awarded.

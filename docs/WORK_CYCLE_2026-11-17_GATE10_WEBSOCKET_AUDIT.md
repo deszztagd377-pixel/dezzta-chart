@@ -136,3 +136,35 @@ This corrects the terminology for future Gate 36 work without changing the gate'
 ## Complete visual gate dashboard — 2026-11-17
 
 A dedicated ten-card colored gate tracker is now published at [`docs/assets/stage-1-gate-dashboard.svg`](assets/stage-1-gate-dashboard.svg). It shows all ten external criteria individually as OPEN, keeps the Stage 1 75% provisional checklist separate from the 0/10 formal gate closure count, and describes Gate 36 using the correct Android APK Capacitor WebView transport boundary. The six-stage dashboard remains a separate project-wide view. Both graphics are project-process documentation outside the APK; no application UI was changed.
+
+
+## Gate 38 code hardening and exact-head CI — 2026-11-17
+
+### Defect found and corrected
+
+The bounded request-metrics collector declared a maximum of 127 route series, but its previous overflow logic allowed 127 ordinary series and then created a separate overflow series (128 total). This was a real off-by-one in the memory/cardinality bound.
+
+- Updated `backend/app/observability.py` to reserve one slot for the shared overflow series. The strict total is now **127** series including overflow.
+- Added `backend/tests/test_observability.py` with three regression tests:
+  1. 300 unique route labels remain capped at 127 total series, with 174 observations in the overflow series.
+  2. Unrecognized methods, oversized routes and negative durations are normalized safely.
+  3. Returned snapshots are detached; caller mutation cannot alter internal metrics state.
+- No metrics endpoint was made public. The existing operator-token requirement, process-local scope, and no-store response remain unchanged.
+
+### Exact-head verification
+
+Source/test commit: `ee9a68da14001839a1aebc03082187b4b34162ef`.
+
+- Automated Tests & Build [44098987046](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44098987046): **SUCCESS**.
+- Backend pytest suite: **999 passed in 26.96s**. The job log individually marks all three new `test_observability.py` tests **PASSED**.
+- Frontend unit tests/build, secret scans, Android preflight/publisher tests, dependency audits, synthetic SQLite outbox benchmark, backend container build, Redis/persistent-volume container smoke test, image scan and vulnerability-report export/upload all completed successfully in the same CI job.
+- CodeQL [44098987058](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44098987058): **SUCCESS**.
+- Full Git History Secret Audit [44098987124](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44098987124): **SUCCESS**.
+
+### Acceptance and progress boundary
+
+This closes a repository-side observability cardinality defect and its test-execution uncertainty only. Gate 38 remains **OPEN** until durable aggregation/retention, target-host deployment, protected operator access and a verified dashboard/incident workflow are accepted. No external gate is closed, no Stage 1 tick is awarded, and the Stage 1 meter remains **300/400 = 75% provisional**.
+
+No paid service, provider, credential, plan upgrade, Termux command, package, repository, keyring, or production worker was introduced. `main` remains untouched.
+
+The detailed Gate 10 graphic is available at [`docs/assets/stage-1-gate-dashboard.svg`](assets/stage-1-gate-dashboard.svg); the six-stage project dashboard remains at [`docs/assets/project-progress-dashboard.svg`](assets/project-progress-dashboard.svg).
