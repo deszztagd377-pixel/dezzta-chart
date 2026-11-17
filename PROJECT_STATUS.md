@@ -2,6 +2,27 @@
 
 **Current checkpoint:** 2026-11-17  
 **Active branch:** `phase-2/market-data-foundation`  
+**Latest source commit:** `cfc56b7ba050201823952ea1b67dd38182dc9bfb`
+
+- **Stage 1:** 30/40 provisional criteria; 300/400 ticks; **75% provisional**, not production accepted.
+- **Gate 10:** **0/10 formally closed**. Open external criteria: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- **Latest previously verified source/test HEAD:** `d32645019db6c93532666f691c43cfe87b9fa8d8`: Automated Tests & Build [44107801447](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44107801447) **SUCCESS**, 32/32 steps; backend pytest **1,008 passed in 26.26s**. CodeQL [44107801732](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44107801732) and Full Git History Secret Audit [44107801473](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44107801473) **SUCCESS**.
+- **Batch 6:** added an integrated encrypted application-backup → authenticated decrypt → full restore-drill regression test for Gates 30/31. Exact-head CI is pending.
+- **Gate 36:** browser reconnect/fresh-session pong, POC build context and all-target SSO are verified sub-checks. Gate 36 remains OPEN pending maximum-duration behavior, independent Fluid Compute read-back, Android Capacitor WebView WSS and production fan-out/cost acceptance.
+- **Gate 38:** metrics input hardening is CI-verified; durable aggregation, retention, host access controls and dashboard acceptance remain OPEN.
+- **Gate 39:** local sanitized operator reporter and zero-cost runbook exist; host collection, escalation and recovery drill remain OPEN.
+- **Stages 2–6:** NOT SCORED. Overall 20.90% is historical only.
+- **ZERO COST:** no paid plan, provider, subscription, billing activation, Termux package/repository/keyring change or production data connection. No Termux action required in this cycle.
+- **Protected `main`:** untouched.
+
+Detailed work cycle: [docs/WORK_CYCLE_2026-11-17_GATE10_BATCH6.md](docs/WORK_CYCLE_2026-11-17_GATE10_BATCH6.md).
+
+---
+
+# DEZZTA CHART — Current Project Status
+
+**Current checkpoint:** 2026-11-17  
+**Active branch:** `phase-2/market-data-foundation`  
 **Latest documentation HEAD before current Vercel read-back update:** `2733c80f6958f4599a92365db4e753c2264e45e2`  
 **Latest verified source/test HEAD:** `d32645019db6c93532666f691c43cfe87b9fa8d8`
 

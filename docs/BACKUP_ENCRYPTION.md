@@ -65,7 +65,11 @@ unrecoverable. Do not send it through chat or commit it to Git.
 
 Automated tests cover round-trip recovery, wrong-key rejection, ciphertext
 tampering, invalid headers, temporary-file cleanup, destination preservation,
-concurrent destination creation, and owner-only POSIX permissions.
+concurrent destination creation, and owner-only POSIX permissions. The integrated
+Gate 10 Batch 6 regression additionally chains a real application-domain SQLite
+snapshot through AES-256-GCM encryption, authenticated decryption, and the full
+fresh-path application restore drill, checking domain counts and source
+immutability. This remains CI evidence, not an owner-host disaster-recovery drill.
 
 This implementation is repository-level encryption support, not proof of
 production key management. Stage 1 point 31 remains externally unverified until

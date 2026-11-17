@@ -2721,3 +2721,13 @@ Owner-reported browser evidence now includes a normal prior-session close (`1000
 - The project read-back does not expose the effective `resourceConfig.fluid` value. The version-controlled `vercel.json` still requests `fluid: true`, but effective runtime Fluid Compute remains **NOT INDEPENDENTLY VERIFIED**.
 - Runtime-log query for the latest deployment over the preceding 50 minutes returned no records. This is absence of observed logs, not evidence of a failed WSS connection.
 - Gate 36 remains OPEN; no Stage 1 ticks are awarded. Remaining external evidence includes maximum-duration close, effective Fluid Compute verification, Android Capacitor WebView WSS against the authenticated backend, production cross-instance fan-out, and cost/operational acceptance.
+
+
+## Gate 30–31 integrated encrypted-restore regression — Batch 6 — 2026-11-17
+
+- Added `test_encrypted_application_backup_round_trip_feeds_full_restore_drill` to `backend/tests/test_sqlite_restore_drill.py`.
+- The isolated test chains an actual application-domain SQLite fixture → SQLite Online Backup snapshot → AES-256-GCM encrypted artifact → authenticated decryption → fresh-path application restore drill.
+- It verifies restored domain counts, schema/content checks, integrity, post-restore write/read/cleanup, source immutability, report redaction, and temporary-artifact cleanup.
+- This strengthens repository evidence for criteria 30 and 31, but does not establish owner-controlled key custody, off-host storage, retention, or a restore on the actual target host. Both external criteria remain OPEN; no Stage 1 ticks are awarded.
+- Exact-head CI is pending for source commit `cfc56b7ba050201823952ea1b67dd38182dc9bfb`; no new test pass is claimed until the workflow completes.
+- ZERO COST preserved. No Termux package, host, provider, storage account, or paid service introduced.

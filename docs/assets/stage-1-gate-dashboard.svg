@@ -46,13 +46,13 @@
 <g transform="translate(715 254)">
  <rect width="204" height="210" rx="15" fill="#302514" stroke="#f59e0b"/><rect width="204" height="6" rx="3" fill="url(#amber)"/>
  <text x="16" y="34" class="k">GATE 30</text><text x="16" y="66" class="name">Restore drill</text>
- <text x="16" y="99" class="body"><tspan x="16">Actual target DB</tspan><tspan x="16" dy="19">backup restore and</tspan><tspan x="16" dy="19">application checks</tspan></text>
+ <text x="16" y="99" class="body"><tspan x="16">Encrypted snapshot</tspan><tspan x="16" dy="19">→ domain restore CI</tspan><tspan x="16" dy="19">target-host drill open</tspan></text>
  <rect x="16" y="169" width="76" height="24" rx="12" fill="#78350f"/><text x="29" y="185" class="pill">OPEN</text>
 </g>
 <g transform="translate(936 254)">
  <rect width="212" height="210" rx="15" fill="#302514" stroke="#f59e0b"/><rect width="212" height="6" rx="3" fill="url(#amber)"/>
  <text x="16" y="34" class="k">GATE 31</text><text x="16" y="66" class="name">Backup custody</text>
- <text x="16" y="99" class="body"><tspan x="16">Encrypted off-host</tspan><tspan x="16" dy="19">copy, separate key,</tspan><tspan x="16" dy="19">retention + recovery</tspan></text>
+ <text x="16" y="99" class="body"><tspan x="16">AES-GCM restore</tspan><tspan x="16" dy="19">pipeline CI added;</tspan><tspan x="16" dy="19">off-host key custody open</tspan></text>
  <rect x="16" y="169" width="76" height="24" rx="12" fill="#78350f"/><text x="29" y="185" class="pill">OPEN</text>
 </g>
 <!-- row 2 -->
@@ -86,6 +86,6 @@
  <text x="16" y="99" class="body"><tspan x="16">Local sanitized</tspan><tspan x="16" dy="19">operator logs +</tspan><tspan x="16" dy="19">transition alerts</tspan></text>
  <rect x="16" y="169" width="76" height="24" rx="12" fill="#78350f"/><text x="29" y="185" class="pill">OPEN</text>
 </g>
-<text x="52" y="760" class="sub">Gate 36 browser reconnect is PASS; POC build context and all-target SSO are verified. Fluid Compute, Android WebView WSS and production fan-out remain OPEN. Gate 38 CI and Gate 39 local reporter/runbook are implemented.</text>
-<text x="52" y="790" class="k">UPDATED 2026-11-17 • ROOT BUILD CONTEXT VERIFIED • FLUID COMPUTE STILL OPEN • 0/10 CLOSED</text>
+<text x="52" y="760" class="sub">Gate 30/31 encrypted application backup → restore pipeline regression added; owner-host restore and off-host key custody remain OPEN. Gate 36 build context/SSO verified; Fluid Compute and Android WSS remain OPEN. Gate 38 CI and Gate 39 local reporter/runbook are implemented.</text>
+<text x="52" y="790" class="k">UPDATED 2026-11-17 • GATE 30/31 INTEGRATED RESTORE TEST ADDED • 0/10 CLOSED</text>
 </svg>

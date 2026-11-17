@@ -64,8 +64,8 @@ This matrix separates repository implementation from evidence that must come fro
 27. **Implemented / test present** — backup output is checked with `PRAGMA integrity_check`.
 28. **Implemented / test present** — backup publication uses a temporary file and atomic replacement; POSIX snapshot data is flushed before publication and the parent directory is flushed after rename; pre-publication failures preserve the previous destination. Directory-flush failure is surfaced because rename durability is uncertain.
 29. **Implemented / test present** — POSIX backup files are restricted to owner-only permissions, and failure to set permissions prevents publication.
-30. **External verification required** — perform and record a restore drill from a real production-like backup into a fresh database, verifying application-level records as well as SQLite integrity.
-31. **External verification required** — encrypt backups before off-host transfer, store encryption keys separately, enforce retention/access policy, and prove a restore using the documented key-recovery procedure.
+30. **External verification required** — perform and record a restore drill from a real production-like backup into a fresh database, verifying application-level records as well as SQLite integrity. Batch 6 adds a CI integration test chaining encrypted snapshot recovery into the full application restore drill; this is repository evidence only and does not replace the target-host drill.
+31. **External verification required** — encrypt backups before off-host transfer, store encryption keys separately, enforce retention/access policy, and prove a restore using the documented key-recovery procedure. Batch 6 adds an end-to-end CI regression for snapshot → AES-256-GCM artifact → authenticated decrypt → application restore; off-host storage, separate key custody, retention, and owner-target recovery remain unverified.
 
 ### E. Container and deployment
 
@@ -731,3 +731,8 @@ The acceptance matrix is the source of truth for Gate 10 accounting. It currentl
 - Actual build log confirms Python 3.12 from `poc/vercel_ws/.python-version` and dependency installation from `poc/vercel_ws/requirements.txt`. The expected subdirectory build context is verified.
 - Project read-back omits the effective `resourceConfig.fluid` value. Although source `poc/vercel_ws/vercel.json` requests `fluid: true`, effective Fluid Compute remains unverified.
 - No Gate 36 closure or Stage 1 ticks are awarded. Remaining items: maximum-duration behavior, effective Fluid Compute read-back, Android Capacitor WebView WSS, production cross-instance fan-out, and cost/operational acceptance.
+
+
+### Batch 6 repository regression — 2026-11-17
+
+A new test in `backend/tests/test_sqlite_restore_drill.py` exercises the full encrypted application backup and restore sequence using existing production-code helpers and an isolated synthetic application database. It checks exact domain counts, schema and row content, integrity, post-restore write/read/cleanup, source immutability, privacy redaction and temporary-file cleanup. The test must pass exact-head CI before it is recorded as verified. Criteria 30 and 31 remain externally OPEN.
