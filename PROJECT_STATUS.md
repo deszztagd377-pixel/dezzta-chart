@@ -1,3 +1,16 @@
+## Latest Gate 10 follow-up — 2026-11-17
+
+- Latest observed documentation work-cycle commit: `6facd5f39da3d147ae4ba12dbb490d5aa0ed7765` (the project-process audit report). The follow-up updates in this commit series are documentation/dashboard-only; no application runtime code or production configuration changed.
+- Dedicated FastAPI POC project `dezzta-chart-ws-poc` deployment `dpl_BdtYsesCD478WnnWovZwK8ssENYU` is **READY** at https://dezzta-chart-ws-d99c5hwrc-deszztagd377-pixel.vercel.app, on documentation commit `3d208df252c7251a5936091ffd1006a57db7a13b`. SSO remains enabled for all deployment targets. This is not production market-data delivery.
+- Owner-device evidence now confirms protected HTTP `/health` 200, browser WSS ready/pong, owner-confirmed manual Disconnect → Connect, a distinct second session with first pong sequence 1, and idle-timeout on that session. The reconnect sub-check is PASS; Gate 36 overall remains OPEN.
+- Gate 36 remaining: maximum-duration close, independent effective Fluid Compute read-back, native Android WSS, production cross-instance fan-out, and cost/operational acceptance. The source `fluid: true` setting is not independent runtime evidence; Vercel read-back did not expose the effective setting/root directory.
+- Latest source/test checkpoint remains `07530d74c43b98de7b9a3f44b1c05eec5db9987e`: Automated Tests & Build [44076533920](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44076533920), CodeQL [44076533946](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44076533946), and Full Git History Secret Audit [44076533891](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44076533891) are recorded SUCCESS for that source checkpoint. The documentation-only follow-up is not described as a fresh full CI run.
+- Stage 1 remains **30/40 = 75% provisional**; Gate 10 remains **0/10 formally closed**; external criteria **8, 20, 25, 30, 31, 34, 35, 36, 38, 39** remain OPEN. No ticks awarded. Stages 2–6 remain NOT SCORED. Overall 20.90% remains historical only.
+- ZERO COST preserved; no paid services, plan upgrade, credentials, Termux command/package/repository/keyring change, or APK release. `main` remains untouched.
+- Detailed cycle: [docs/WORK_CYCLE_2026-11-17_GATE10_WEBSOCKET_AUDIT.md](docs/WORK_CYCLE_2026-11-17_GATE10_WEBSOCKET_AUDIT.md).
+
+---
+
 ## Latest exact-head audit — 2026-11-14 (Gate 10 work cycle)
 
 - Latest exact-HEAD verified source/test checkpoint on `phase-2/market-data-foundation`: `462bca4342d6cb585b6b389ae5996020c4c47dd3` (`fix(security): correct scoped Gitleaks allowlist syntax`). The exact-head Automated Tests #1149, CodeQL #507 and Full Git History Secret Audit #88 all completed successfully.
@@ -14,12 +27,12 @@
 
 > **Progress-history correction (2026-11-05):** The owner clarifies that conversational checkpoints progressed from **20.3% to 20.9%**. The older **19.60%** remains a historical formal estimate, not a later regression. **19.9% is not a verified calculation.** Do not publish a fresh overall percentage until the milestone ledger reconciles these records.
 
-Last audited: 2026-11-14
+Last audited: 2026-11-17
 Repository: deszztagd377-pixel/dezzta-chart
 Baseline branch: main
 Baseline main HEAD: e3841681bc69b73619058deaf939df82ae5116a1
 Working branch: phase-2/market-data-foundation
-Latest observed exact-head CI/CodeQL checkpoint: b37c69d6aaee2f764c3357834e868a3e53bddbe1 (CI #1141, CodeQL #499, secret audit #80 passed)
+Latest observed exact-head source/test checkpoint: 07530d74c43b98de7b9a3f44b1c05eec5db9987e (Automated Tests & Build 44076533920, CodeQL 44076533946, Full Git History Secret Audit 44076533891 passed)
 Audited application-source baseline: 436f8b374b8bf5ef1ef4b51944f0c99603acd12c
 `main` remains the protected baseline and is not a work target.
 
