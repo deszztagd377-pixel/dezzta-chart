@@ -33,6 +33,7 @@ This cycle implements a **local-only operator alert reporter** for the existing 
 - CodeQL run [44105086159](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44105086159): **SUCCESS**.
 - Full Git History Secret Audit run [44105086295](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44105086295): **SUCCESS**.
 - GitHub combined status for code commit `5a0c106d388b78ebb2c7821893d918879c5415da`: **SUCCESS**. Both Vercel preview contexts completed successfully (`dezzta-chart` and `dezzta-chart-ws-poc`). This remains preview deployment evidence only, not production backend or external alert acceptance.
+- Dedicated FastAPI synthetic POC deployment read-back: **READY**, deployment `dpl_kk7nMRFtTFkRNr5nvYDqxXm9czVx`, URL https://dezzta-chart-ws-erkkeiw0m-deszztagd377-pixel.vercel.app, source commit `5a0c106d388b78ebb2c7821893d918879c5415da`, branch `phase-2/market-data-foundation`. Project read-back reports `live=false` and SSO protection enabled for all deployment targets. Effective `fluid` and root-directory values were not exposed by project/deployment read-back, so those Gate 36 checks remain OPEN. This is the isolated synthetic POC, not the production market-data service.
 - Prior exact source checkpoint `ee9a68da14001839a1aebc03082187b4b34162ef` had the full 999-test backend suite and all three metrics-cardinality regressions passing.
 
 ## Gate 39 disposition
