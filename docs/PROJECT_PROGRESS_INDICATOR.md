@@ -1,7 +1,7 @@
 # DEZZTA CHART — Project Progress Indicator
 
 Status: **operational project-tracking specification**  
-Last audited: 2026-11-16  
+Last audited: 2026-11-17  
 Repository: https://github.com/deszztagd377-pixel/dezzta-chart  
 Official working branch: `phase-2/market-data-foundation`  
 Official current stage: **Stage 1 — Foundation, Security & Data Integrity**
@@ -2186,3 +2186,37 @@ A token-gated internal alert-delivery status endpoint was added at `/internal/al
 This is a repository-side observability improvement, not closure of Gate 38 or Gate 39. Worker status and metrics remain process-local; no durable retention, multi-process aggregation, dashboard, threshold alerting, operator acknowledgement, escalation or recovery drill is proven. The worker remains opt-in and must not be enabled by default.
 
 **Progress remains unchanged:** Stage 1 = 30/40 provisional = 300/400 ticks = **75% provisional**; Gate 10 = **0/10 officially closed**; Stages 2–6 = **NOT SCORED**; overall 20.90% remains a historical owner-confirmed checkpoint, not a fresh weighted calculation. No tick is awarded for this endpoint or for CI alone.
+
+
+## Work-cycle update — WebSocket replay/live handoff correction (2026-11-17)
+
+### Source baseline and finding
+
+- Repository: `deszztagd377-pixel/dezzta-chart`
+- Branch: `phase-2/market-data-foundation` only
+- Starting source HEAD: `5aaab6ad54c005b767b78682f1adc0919b3d7701`
+- A direct code audit found that the live queue serializes durable cursors as decimal strings, while the replay handoff cleanup compared only integer cursors. Notifications already represented by the replay could therefore be retained and emitted a second time after replay completion.
+
+### Repository remediation
+
+- Normalize integer and ASCII-decimal-string cursor values before the replay-boundary comparison.
+- Preserve unknown cursor shapes conservatively rather than silently discarding a notification.
+- Add parameterized regression coverage for cursors before, equal to, and after the replay boundary; both integer and string forms; and malformed values.
+- Update the WebSocket reliability design so its baseline describes the implemented transactional outbox/replay instead of the obsolete pre-implementation state.
+
+### Acceptance and blockers
+
+- Exact remediation commit CI: pending until GitHub Actions completes; no pass is claimed in advance.
+- Production WSS through the target reverse proxy: still requires target-host evidence.
+- Backend restart followed by authenticated replay: repository persistence tests exist; production-host drill remains open.
+- Browser/Android production connection and P50/P95/P99 end-to-end latency: not yet verified.
+- Vercel latest-HEAD deployment: not verified by this work cycle. The last observed Vercel commit status was rate-limited; a prior deployment on an older code commit is not evidence that this documentation/code candidate is deployed.
+
+### Progress accounting
+
+- Stage 1 remains **300/400 ticks = 75% provisional**; no acceptance tick is awarded for this fix until exact-HEAD CI and the relevant acceptance boundary pass.
+- Gate 10 remains **0/10 formally closed**. The ten criteria retain their separate external/owner-host evidence requirements.
+- Stages 2–6 remain **NOT SCORED**.
+- Overall **20.90% remains historical only**; no fresh weighted percentage is claimed.
+- Zero-cost policy unchanged. No paid host, provider, monitoring, managed Redis, or publication service is introduced.
+- Termux action: **not required** for this repository-side correction.

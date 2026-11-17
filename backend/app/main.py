@@ -83,6 +83,18 @@ class AlertDeviceRegistrationRequest(BaseModel):
     fcm_token: StrictStr = Field(min_length=1, max_length=4096)
 
 
+def _is_after_replay_boundary(cursor: object, boundary: int) -> bool:
+    """Keep only live notifications newer than a completed durable replay.
+
+    Queue cursors are decimal strings on the wire. Accept integers too for
+    focused tests; preserve unknown shapes conservatively.
+    """
+    if isinstance(cursor, int) and not isinstance(cursor, bool):
+        return cursor > boundary
+    if isinstance(cursor, str) and cursor.isascii() and cursor.isdigit():
+        return int(cursor) > boundary
+    return True
+
 def _allow_websocket_ping(ping_timestamps: deque[float], now: float) -> bool:
     cutoff = now - WEBSOCKET_PING_WINDOW_SECONDS
     while ping_timestamps and ping_timestamps[0] <= cutoff:
@@ -1093,7 +1105,7 @@ def create_app(
                     while not subscription.queue.empty():
                         queued = subscription.queue.get_nowait()
                         queued_cursor = queued.get("cursor")
-                        if not isinstance(queued_cursor, int) or queued_cursor > replay_end_cursor:
+                        if _is_after_replay_boundary(queued_cursor, replay_end_cursor):
                             pending_live.append(queued)
                     # Re-sequence retained live notifications after the replay
                     # batch. This also handles a notification queued before the

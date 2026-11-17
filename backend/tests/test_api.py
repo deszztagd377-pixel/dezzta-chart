@@ -12,7 +12,11 @@ from dataclasses import replace
 
 from app.config import Settings
 from app.alert_device_store import SQLiteAlertDeviceStore
-from app.main import _allow_websocket_ping, create_app
+from app.main import (
+    _allow_websocket_ping,
+    _is_after_replay_boundary,
+    create_app,
+)
 from app.identity import IdentityProviderUnavailable, IdentityVerificationError, VerifiedPrincipal
 from app.instrument_identity import CanonicalInstrument
 from app.instrument_registry import ProviderInstrumentMapping
@@ -55,6 +59,25 @@ def test_websocket_ping_rate_limit_expires_messages_at_window_boundary() -> None
     assert _allow_websocket_ping(timestamps, 11.0)
     assert len(timestamps) == 1
 
+
+@pytest.mark.parametrize(
+    ("cursor", "boundary", "expected"),
+    [
+        (41, 42, False),
+        (42, 42, False),
+        (43, 42, True),
+        ("41", 42, False),
+        ("42", 42, False),
+        ("43", 42, True),
+        ("invalid", 42, True),
+        (None, 42, True),
+        (True, 42, True),
+    ],
+)
+def test_replay_handoff_compares_string_and_integer_live_cursors_safely(
+    cursor, boundary: int, expected: bool,
+) -> None:
+    assert _is_after_replay_boundary(cursor, boundary) is expected
 
 def test_application_durable_adapters_share_configured_database_path(tmp_path) -> None:
     """Pin the exact shared SQLite path used by every durable app adapter."""

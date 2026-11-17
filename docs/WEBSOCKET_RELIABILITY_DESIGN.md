@@ -1,9 +1,9 @@
 # Stage 1 — WebSocket Reliability and Market-Data Integrity Blueprint
 
-Status: owner-approved blueprint (2026-11-10). Durable outbox/replay implementation may proceed in reviewed increments. WebSocket-ticket code remains gated on a separate security review and passing threat-model tests.
+Status: owner-approved blueprint (2026-11-10); durable SQLite outbox/replay is implemented in the active branch. Production WSS acceptance and WebSocket-ticket security review remain open.
 
 Branch: `phase-2/market-data-foundation`
-Baseline inspected: commit `bb604521d37262bdeb6745111c012a088429863a`
+Latest source baseline audited: commit `5aaab6ad54c005b767b78682f1adc0919b3d7701`
 
 ## 1. Non-negotiable requirements
 
@@ -19,22 +19,24 @@ Baseline inspected: commit `bb604521d37262bdeb6745111c012a088429863a`
 
 - `OhlcvIngestionService` is a single-writer asyncio consumer. Provider callbacks enter a bounded buffer; overflow is counted and recorded as a coverage gap rather than silently discarded.
 - Accepted live bars are persisted through `SQLiteOhlcvStore.apply`, applied to the in-memory `OhlcvPipeline`, then passed to `OhlcvStreamHub.publish`.
-- `SQLiteOhlcvStore` persists normalized OHLCV revisions and local-sequence high-water state, but it does not currently persist WebSocket delivery events.
-- `OhlcvStreamHub` uses bounded in-memory per-subscription queues. Slow consumers are closed for resnapshot rather than silently skipping updates.
-- Snapshot registration and live publish are atomic relative to one another on the same event loop, but a process restart loses in-memory subscriptions and there is no durable replay cursor.
-- Current reconnect behavior is fresh authenticated snapshot/resubscription. Sustained write-rate and multi-process contention benchmarks remain outstanding.
+- `SQLiteOhlcvStore.apply` persists each accepted normalized OHLCV revision and its full outbox event in the same SQLite transaction. Rejected/duplicate/stale revisions do not create delivery events.
+- The durable outbox stores stable event IDs, monotonic global cursors, exact series identity, decimal-string OHLCV payloads, and a bounded 100,000-event replay window with a durable retention floor.
+- `OhlcvStreamHub` remains the low-latency in-memory fan-out path with bounded per-subscription queues. Slow consumers are explicitly forced to reconnect/resnapshot rather than silently skipping updates.
+- Snapshot high-water capture and stream registration occur without an intervening await on the single event loop. Reconnect replay is authenticated, entitlement-checked, exact-series filtered, paged, and falls back to `resnapshot_required` for expired/ahead/unavailable cursors.
+- A process restart loses in-memory subscriptions but does not erase committed outbox history; reconnect can replay while the requested cursor remains within the retained window. Production restart/replay on the target host remains unverified.
+- Sustained write-rate, multi-process contention, reverse-proxy WSS, Android/browser production integration, and P50/P95/P99 latency benchmarks remain outstanding.
 - The backend has exact decimal OHLCV normalization, provider-vs-derived precedence, explicit completeness/provenance fields, and multiple supported timeframes. Exchange-session correctness still depends on verified calendar artifacts and policy.
 
-## 3. Proposed durable event/replay design
+## 3. Implemented durable event/replay model and conformance requirements
 
-1. Extend the existing SQLite OHLCV persistence boundary with a durable outbox. The bar revision and its corresponding outbox event must be committed in the same SQLite transaction; never publish an event for a bar revision that failed persistence.
-2. Give each committed outbox event a monotonic durable cursor and stable event ID. Store the full canonical series identity (provider, dataset, publisher, instrument, series type, symbol, timeframe, bucket policy, calendar ID/version), operation/revision, source timestamps, sequence provenance, origin, completeness, and exact decimal OHLCV payload.
-3. Keep the current in-memory fan-out as the low-latency notification path, but treat the durable outbox as the recovery source of truth. A notification is only a hint that a cursor may have advanced.
-4. On reconnect, authenticate first, re-check entitlement for every requested series, then accept a bounded last-seen cursor per series (or a global cursor with server-side series filtering). Replay only authorized events after that cursor.
-5. If the cursor predates retained history, is malformed, or cannot be proven continuous, return an explicit resnapshot-required response. Never skip the gap and pretend replay is complete.
-6. Snapshot handoff must return a durable high-water cursor captured consistently with the snapshot. Replay begins strictly after that cursor. Clients deduplicate by stable event ID/cursor and apply revisions idempotently.
-7. Retention and cleanup must be bounded and observable. Never delete events newer than the minimum acknowledged/retained recovery boundary. If no client acknowledgements are supported, define a conservative time/size retention and force resnapshot when older cursors expire.
-8. Preserve fail-closed behavior: outbox write failure prevents the corresponding bar from being advertised as durably accepted; replay storage failure closes/rejects replay with a retryable degraded status rather than silently falling back to incomplete data.
+1. **Implemented:** `SQLiteOhlcvStore.apply` writes the accepted bar revision and outbox event atomically; outbox failure rolls back the bar transaction.
+2. **Implemented:** each event has a stable event ID, monotonic global cursor, full canonical series identity, exact decimal OHLCV values, timestamps, sequence provenance, origin, and completeness.
+3. **Implemented:** in-memory fan-out is the low-latency notification path; the durable outbox is the reconnect recovery source of truth.
+4. **Implemented:** reconnect authenticates first, verifies current identity and entitlement, and replays a bounded global cursor filtered by the exact authorized series identity.
+5. **Implemented:** expired, ahead, over-limit, malformed-page, or unavailable replay states produce an explicit resnapshot-required response; they are not silently treated as complete replay.
+6. **Implemented:** snapshot high-water is captured consistently with the snapshot/subscription handoff. Replay begins strictly after the client cursor; stable event IDs and cursors support client deduplication.
+7. **Implemented:** retention is bounded to 100,000 outbox events. The durable retention floor forces older cursors to resnapshot. Client acknowledgements and per-client retention are not implemented.
+8. **Implemented fail-closed boundary:** an outbox write failure prevents the corresponding bar from being committed/advertised; replay storage failures fall back to an explicit resnapshot response. Target-host failure behavior still requires production verification.
 
 ## 4. Reconnect and multi-series semantics
 
@@ -179,3 +181,12 @@ Candidate implementation on `phase-2/market-data-foundation`, commit `dac22020bf
 - The aggregation path deliberately skips derivation for `CME_SESSION_V1` bars until exchange-session-aligned bucket bounds are implemented and verified. UTC-fixed aggregation also stops before daily/weekly/monthly periods. This prevents incorrect session labeling but leaves futures multi-timeframe delivery incomplete.
 - The Databento SDK wrapper module marks its actual SDK calls unverified pending a real credentialed integration test.
 - The acceptance matrix now records the evidence required before any claim of all-pair/all-timeframe LIVE coverage. No provider entitlement, real SDK connection, full symbol-universe coverage, or end-to-end latency claim is inferred from unit tests.
+
+
+## 10. Work-cycle correction — replay/live handoff cursor representation (2026-11-17)
+
+A source audit found a representation mismatch in the post-replay queue drain: `OhlcvStreamHub` emits durable cursors as decimal strings, while the handoff cleanup previously recognized only integer cursors. As a result, queued notifications already covered by the durable replay boundary could be retained and delivered again as live updates.
+
+The remediation normalizes both integer and ASCII-decimal-string cursor representations before comparing them with the replay boundary. Unknown cursor shapes are conservatively retained rather than silently discarded. A parameterized regression test covers before/equal/after boundaries, both representations, and malformed values.
+
+Acceptance remains pending until the exact remediation commit's CI completes. This correction does not establish reverse-proxy WSS, Android/browser production connectivity, restart drill, or latency percentiles. Stage 1 scoring and all ten external acceptance gates remain unchanged until their separate evidence requirements are met.
