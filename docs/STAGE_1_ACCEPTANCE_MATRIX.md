@@ -756,3 +756,8 @@ The isolated Vercel POC now has an opt-in 330-second synthetic heartbeat probe: 
 
 
 Gate 36 deployment note (2026-11-18): the bounded synthetic lifetime probe now has a protected Vercel preview deployment in READY state (`dpl_EV3ScKYRdCA2X4seYFktuuoQgDx6`, source commit `08263d49ab12fd2195515d673b9e84588dcbac57`). This confirms deployment of the test harness only. The actual platform-close observation, effective Fluid Compute read-back, Android WebView acceptance and production fan-out remain open.
+
+
+### CI dependency audit blocker — 2026-11-18
+
+The current exact-HEAD Automated Tests run failed before tests/build at `npm audit` due five High findings in the dev-only transitive dependency `picomatch@4.0.7` (via `fdir`, `tinyglobby`, Vite and Vitest), GHSA-fc5q-39xc-vjpf / CVE-2026-112366. No patched picomatch version is published; upstream PR #235 closed unmerged and PR #238 remains open with a narrower scope. Do not force-downgrade Vitest, pin another known-affected picomatch version, or suppress the finding. CI remains blocked until a verified upstream release or a separately reviewed safe dependency replacement is available. This does not award ticks or close an external gate.
