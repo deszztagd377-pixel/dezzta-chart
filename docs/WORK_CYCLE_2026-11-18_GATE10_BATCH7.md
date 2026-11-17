@@ -110,3 +110,34 @@ This is a documentation-only commit. It does not claim that a new source test ra
 ## Vercel build-rate-limit status clarification — 2026-11-18
 
 The GitHub combined status for source commit `cfc56b7ba050201823952ea1b67dd38182dc9bfb` still reports the main Vite preview context as **FAILURE** with Vercel's build-rate-limit target URL. The dedicated FastAPI WSS POC preview context is **SUCCESS**. Separately, Vercel project/deployment read-back shows the last existing main Vite deployment `dpl_BzAaDUru7yhSX2pEWRt8EGxLLpdk` is **READY** (built from `545334d9a594b58c19168df1b059f44ed520949c`). These statements refer to different objects: a failed attempt to create a new preview for the later source commit versus a previously completed READY deployment. No retry, plan upgrade, billing activation, or deployment was triggered to bypass the rate limit. The current Vite preview remains available at its known READY deployment, but a new preview for the latest branch HEAD is not verified.
+
+
+## Batch 7 implementation addendum — bounded synthetic lifetime probe
+
+The previously documented blocker (the POC's 25-second idle timeout closing before Vercel's 300-second Hobby Fluid Compute maximum) has now been addressed in repository code without changing the server idle timeout or exposing a new route.
+
+### Runtime change
+
+- `poc/vercel_ws/index.py` now includes an explicit owner-started **bounded 330-second synthetic lifetime probe** button.
+- While active, it sends one synthetic ping every 10 seconds. This is below half the 25-second server idle timeout and far below the existing server message-rate cap of 12 messages per 10-second window.
+- It records monotonic elapsed time, heartbeat interval, probe start/stop, WebSocket close code/reason, and whether the client-side 330-second limit ended the probe.
+- The client stops the interval and deadline timer on socket close or manual disconnect. At 330 seconds it closes its own socket with a distinct normal-close reason.
+- The probe remains opt-in, synthetic-only, bounded, and protected by the existing Vercel deployment SSO. No server timeout was lengthened; no production data, credential, account, Redis, or database path was added.
+- A regression contract test was added at `backend/tests/test_vercel_ws_probe_contract.py`. It checks that the heartbeat remains at most half the server idle timeout, the client probe exceeds 300 seconds but is capped at 360 seconds, and timing/close instrumentation remains present.
+
+### Calculation and expected interpretation
+
+- Server idle timeout: 25 seconds.
+- Heartbeat interval: 10 seconds (15-second nominal safety margin; 2.5× faster than the idle timeout).
+- Vercel Hobby Fluid Compute documented maximum: 300 seconds.
+- Client-side bounded probe: 330 seconds (30-second observation margin beyond the documented platform maximum).
+- Server message rate cap: 12 messages per 10 seconds; probe emits approximately 1 message per 10 seconds, leaving substantial margin.
+
+A close near 300 seconds with a platform-originated close signature would support the maximum-duration finding. A close at 25 seconds indicates heartbeat delivery/idle handling failed. A client close at 330 seconds is only the probe's own safety bound and is **not** evidence that Vercel closed the connection. The probe has been implemented but has **not yet been executed against a new deployment**. No Gate 36 ticks are awarded yet.
+
+### Verification boundary
+
+- The new Python regression test is committed but its CI execution is pending at this report checkpoint.
+- No Vercel deployment, 330-second observation, production connection, billing action, or plan upgrade was initiated by this code change.
+- The existing main Vite preview build-rate-limit status remains separate from the dedicated WSS POC preview status.
+- Gate 36 remains OPEN pending deployed observation, effective Fluid Compute read-back, native Android WebView test, and production cross-instance fan-out/cost acceptance.
