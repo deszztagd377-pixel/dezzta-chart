@@ -81,5 +81,5 @@
   <text x="22" y="203" class="small">Release only after preceding gates pass</text>
 </g>
 <text x="54" y="802" class="small">Overall: 20.9% historical • Stage 1 75% provisional • Provider-aware WS routing verified</text>
-<text x="1146" y="825" text-anchor="end" class="k">UPDATED 2026-11-17 • EXACT-HEAD CI SUCCESS • FLUID CONFIG TESTED • SSO PREVIEW READY • WSS RECONNECT/IDLE PASS • AUTO-PING + HEALTH PROBES ADDED • GATE 10 OPEN</text>
+<text x="1146" y="825" text-anchor="end" class="k">UPDATED 2026-11-17 • LIVE HTTP 200 + WSS PING/PONG • EXACT-HEAD CI SUCCESS • SSO PRESERVED • GATE 36 OPEN • GATE 10 OPEN</text>
 </svg>
