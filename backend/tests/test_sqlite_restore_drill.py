@@ -231,3 +231,65 @@ def test_restore_inventory_requires_all_alert_runtime_tables(tmp_path, missing_t
         match="required application tables are missing",
     ):
         _inventory(source)
+
+def test_encrypted_application_backup_round_trip_feeds_full_restore_drill(tmp_path):
+    """Exercise SQLite snapshot -> authenticated encryption -> decrypt -> domain restore.
+
+    This isolated CI test does not claim off-host storage, owner key custody,
+    retention, or a restore on the production target.
+    """
+    import hashlib
+
+    from app.backup_encryption import decrypt_backup_file, encrypt_backup_file
+    from app.sqlite_backup import create_consistent_sqlite_backup
+
+    source = tmp_path / "source" / "application.sqlite3"
+    plaintext_snapshot = tmp_path / "snapshot" / "application.sqlite3"
+    encrypted_artifact = tmp_path / "encrypted" / "application.sqlite3.enc"
+    decrypted_snapshot = tmp_path / "decrypted" / "application.sqlite3"
+    drill_backup = tmp_path / "drill" / "verified-backup.sqlite3"
+    drill_restore = tmp_path / "drill-restore" / "application.sqlite3"
+    source.parent.mkdir()
+    _build_database(source)
+    source_before = source.read_bytes()
+    passphrase = b"ci-only-encrypted-restore-integration-key"
+
+    create_consistent_sqlite_backup(source, plaintext_snapshot)
+    encrypt_backup_file(plaintext_snapshot, encrypted_artifact, passphrase)
+    decrypt_backup_file(encrypted_artifact, decrypted_snapshot, passphrase)
+
+    assert encrypted_artifact.read_bytes() != plaintext_snapshot.read_bytes()
+    assert hashlib.sha256(decrypted_snapshot.read_bytes()).digest() == hashlib.sha256(
+        plaintext_snapshot.read_bytes()
+    ).digest()
+
+    report = run_restore_drill(decrypted_snapshot, drill_backup, drill_restore)
+
+    assert report["status"] == "passed"
+    assert report["integrity_check"] == "ok"
+    assert report["table_row_counts_match"] is True
+    assert report["table_content_match"] is True
+    assert report["schema_match"] is True
+    assert report["post_restore_write_read_cleanup"] == "passed"
+    assert report["application_domain_readback"] == {
+        "canonical_instruments": 1,
+        "provider_mappings": 0,
+        "entitlements": 1,
+        "alert_zones": 1,
+        "coverage_scopes": 1,
+        "coverage_intervals": 2,
+        "coverage_gaps": 1,
+        "ohlcv_bars": 1,
+        "ohlcv_series": 1,
+        "outbox_high_water": 1,
+    }
+    assert source.read_bytes() == source_before
+    assert "drill-test-subject" not in json.dumps(report)
+    assert str(tmp_path) not in json.dumps(report)
+    assert all(path.is_file() for path in (
+        plaintext_snapshot, encrypted_artifact, decrypted_snapshot,
+        drill_backup, drill_restore,
+    ))
+    assert list(tmp_path.rglob("*.encrypted-backup.tmp")) == []
+    assert list(tmp_path.rglob("*.sqlite-backup.tmp")) == []
+    assert list(tmp_path.rglob("*.sqlite-restore.tmp")) == []
