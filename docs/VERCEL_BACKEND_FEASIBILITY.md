@@ -127,3 +127,44 @@ No gate is closed by this feasibility audit. Platform capability is not the same
 - Stages 2–6 remain **NOT SCORED**.
 - Overall **20.90% remains a historical owner-confirmed checkpoint**, not a newly calculated total.
 - This audit earns **zero acceptance ticks**; it corrects architecture direction and documents the next verifiable work.
+
+
+## 2026-11-17 — Verified Python GA, repository boundary and free-tier blockers
+
+### Runtime status correction
+
+The Python runtime is now **Generally Available (GA)**, announced 2026-10-15. Vercel WebSockets became **Generally Available (GA)** on 2026-10-20. The earlier Beta label in historical notes is superseded. Current Vercel guidance explicitly describes Python ASGI WebSockets, including FastAPI, on Fluid Compute.
+
+The POC still has to verify the target project's Fluid Compute setting and actual deployed behavior. A platform capability is not proof that this repository's current project is configured for it.
+
+### Existing Vercel project boundary
+
+A fresh root inspection confirms the root `package.json` is a Vite/React frontend and the repository has no root `vercel.json` or root `api/` entrypoint. Do not inject a root API route or replace the frontend routing blindly. That could alter the existing frontend deployment.
+
+Safe POC boundary:
+- Keep the existing Vite project and production backend untouched.
+- Use a dedicated POC subdirectory as the Root Directory of a separate Vercel project, or another explicitly isolated project configuration.
+- Confirm project root, framework/build settings, Fluid Compute, and free-plan usage before deploying.
+- Do not add production credentials, Firebase auth, market data, durable writes, or background workers to the echo POC.
+- Prove HTTP health, WebSocket upgrade/echo, connection lifetime, disconnect and reconnect from the Android phone.
+
+### Zero-cost storage screening
+
+| Candidate | Verified free allowance | Security/recovery blocker | Gate disposition |
+|---|---|---|---|
+| Upstash Redis Free | 256 MB, 500K commands/month, 10 GB/month bandwidth | ACL is available only on paid databases; IP allowlist excludes Free | Reject for Gate 25 |
+| Cloud Firestore Spark | 1 GiB, 50K reads/day, 20K writes/day, 20K deletes/day, 10 GiB outbound/month | Managed backup, restore, PITR and clone require billing; quota exhaustion shuts the product off for the rest of the period | Does not close Gates 30/31 |
+| Firestore as record storage | Small prototype may fit Spark quotas | No demonstrated complete cross-instance WebSocket fan-out + separately controlled encrypted off-host backup + restore path | Not selected |
+
+References:
+- Python GA: https://vercel.com/changelog/python-on-vercel-is-now-generally-available
+- Python ASGI/FastAPI runtime: https://vercel.com/docs/functions/runtimes/python
+- WebSocket GA: https://vercel.com/changelog/websocket-support-is-now-generally-available
+- Python WebSocket/Fluid Compute guidance: https://vercel.com/i/wsgi-vs-asgi
+- Upstash Free pricing: https://upstash.com/pricing/redis
+- Upstash ACL availability: https://upstash.com/docs/redis/features/security
+- Upstash IP allowlist availability: https://upstash.com/docs/redis/help/production-checklist
+- Firestore Spark quotas and billing-required backup/restore/PITR: https://firebase.google.com/docs/firestore/quotas
+- Spark quota shutdown behavior: https://firebase.google.com/docs/projects/billing/firebase-pricing-plans
+
+**Decision:** no provider currently proves all required properties together: zero cost, durable OHLCV/outbox storage, cross-instance fan-out, TLS/ACL/private access, encrypted off-host backup and tested recovery. Do not select Upstash Free for Gate 25 or represent Firestore Spark as a complete backup solution.

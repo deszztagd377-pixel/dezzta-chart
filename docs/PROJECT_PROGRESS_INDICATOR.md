@@ -2326,3 +2326,61 @@ The Vercel platform capability changes the available deployment route, not the e
 - Stage 1 remains **300/400 ticks = 75% provisional**; Gate 10 remains **0/10 formally closed**.
 - Stages 2–6 remain **NOT SCORED**; overall **20.90% remains historical only**.
 - No paid service, new hardware, Termux package change, or production credential was introduced.
+
+
+---
+
+## 2026-11-17 — Exact-commit WebSocket and CI acceptance update
+
+**Exact validated commit:** `72f440e6dea3332005cdb99d10059ecea93393ba`  
+**Working branch:** `phase-2/market-data-foundation`
+
+### WebSocket replay/live race regression
+
+The deterministic test forcing a live event to arrive after the replay page is read but before replay/live handoff completed passed within the exact-commit backend test suite. It verifies:
+- four replay events arrive exactly once in ascending sequence;
+- `replay_complete` precedes the concurrently accepted live event;
+- the live cursor is newer than the replay boundary;
+- live sequence continues at 5 without a gap or duplicate.
+
+This verifies the repository race regression. It does **not** close Gate 36: deployed WSS, reverse-proxy behavior, reconnect/re-authentication on Android/browser, cross-instance fan-out and latency remain open.
+
+### Exact-HEAD validation results
+
+- Automated Tests & Build [run #44057082903](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44057082903): **SUCCESS**.
+- Frontend unit tests, production build, source/bundle secret scans: **SUCCESS**.
+- Backend test suite: **SUCCESS**, including the replay/live race regression.
+- Synthetic SQLite outbox benchmark and report upload: **SUCCESS**.
+- Backend dependency audit: **SUCCESS**.
+- Backend container build and Redis shared-guard + persistent-volume smoke test: **SUCCESS**.
+- Container vulnerability scan, report export and upload: **SUCCESS**.
+- CodeQL [run #44057083009](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44057083009), JavaScript/TypeScript and Python: **SUCCESS**.
+- Vercel branch deployment status: **SUCCESS** — [deployment record](https://vercel.com/deszztagd377-pixel/dezzta-chart/B89N8fH1cX4nuFqCzQnkdtuu4gTn).
+
+Vercel success proves a branch-commit deployment only. It does not prove production alias correctness, that the existing project includes the Python backend, or that production WSS works.
+
+### Current Gate 10 evidence matrix
+
+| Gate | Repository evidence | Still required |
+|---:|---|---|
+| 8 | Git-history and frontend secret scans pass | Host-side secret injection/isolation and zero-billing proof |
+| 20 | Firebase identity/entitlement code and tests exist | Real project sign-in, expiry/revocation and web/Android acceptance |
+| 25 | Redis ACL/TLS and persistent-volume behavior pass CI | A free target meeting ACL/private access, TLS, persistence and outage requirements |
+| 30 | Backup/restore implementation and CI drill pass | Target-environment restore drill and retained redacted evidence |
+| 31 | Authenticated encrypted backup helper and tamper/wrong-key tests pass | Free off-host destination, separately controlled key, retention and recovery drill |
+| 34 | Container persistent-volume smoke passes | Target restart durability, mount ownership/permissions and disk-pressure recovery |
+| 35 | Backend container and liveness checks pass | Actual HTTPS endpoint, external health check and host-secret boundary |
+| 36 | Authenticated routing, durable replay and replay/live race regression pass | Isolated Vercel/Python WSS POC, production WSS, cross-instance behavior and Android/browser reconnect/latency |
+| 38 | Bounded process-local metrics, privacy-preserving logs and gated alert status exist | Durable aggregation/retention, dashboard, thresholds, host access controls and operator acceptance |
+| 39 | Durable alert outbox and opt-in adapter exist | Zero-incremental-cost delivery proof, receipt/acknowledgement, escalation and recovery drill |
+
+### Progress accounting — unchanged
+
+- Stage 1: **300/400 ticks = 75% provisional** (30/40 provisional criteria).
+- Ten external acceptance criteria: **10 open**.
+- Gate 10: **0/10 formally closed**; CI success is not external acceptance.
+- Stages 2–6: **NOT SCORED**.
+- Overall: **20.90% historical owner-confirmed checkpoint only**; no new weighted total is claimed.
+- ZERO COST preserved; no paid service or publication fee introduced.
+- Termux was not needed in this repository-side cycle.
+- The Python runtime is GA as of 2026-10-15; historical Beta references above are superseded by the current platform audit in `VERCEL_BACKEND_FEASIBILITY.md`.

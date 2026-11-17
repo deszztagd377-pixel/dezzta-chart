@@ -87,3 +87,10 @@ The earlier version of this audit treated a Termux-hosted backend as the only on
 This makes a Vercel-hosted backend a realistic candidate without a laptop/PC, but does not automatically make the current backend production-compatible. The proof still required is explicit in `VERCEL_BACKEND_FEASIBILITY.md`: Python FastAPI WebSocket compatibility on the actual Vercel plan, durable/shared OHLCV and outbox storage, cross-instance fan-out, Firebase/Redis secret injection, and client reconnect/replay acceptance.
 
 No paid Vercel plan, paid Redis, market-data feed, new hardware, or owner credential was introduced. No Termux command was run. Stage 1 ticks remain unchanged until acceptance evidence exists.
+
+
+## Python runtime GA correction — 2026-11-17
+
+Historical Beta references in earlier notes are superseded. Vercel announced Python runtime GA on 2026-10-15 and WebSocket GA on 2026-10-20. Current guidance describes FastAPI ASGI WebSocket support on Fluid Compute. The actual project still needs an isolated POC and Fluid Compute configuration check. This platform update does not make SQLite durable or process-local fan-out cross-instance.
+
+The root project remains a Vite/React app with no root `vercel.json` or root `api/` Python entrypoint. Keep any POC isolated from the existing frontend deployment.
