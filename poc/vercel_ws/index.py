@@ -61,7 +61,7 @@ small{color:#91a4bd}
   let socket = null;
   let pingNumber = 0;
   const write = (value) => {
-    log.textContent += "\\n" + JSON.stringify(value);
+    log.textContent += "\n" + JSON.stringify(value);
     log.scrollTop = log.scrollHeight;
   };
   const setState = (value, connected) => {

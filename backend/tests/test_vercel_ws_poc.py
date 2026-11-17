@@ -35,6 +35,7 @@ def test_browser_probe_page_is_present_and_no_store() -> None:
     assert 'new WebSocket(' in response.text
     assert response.headers["cache-control"] == "no-store"
     assert "frame-ancestors 'none'" in response.headers["content-security-policy"]
+    assert 'log.textContent += "\\n" + JSON.stringify(value);' in response.text
 
 
 def test_websocket_sends_ready_then_ordered_synthetic_pongs() -> None:
