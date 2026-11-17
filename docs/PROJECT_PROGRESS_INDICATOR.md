@@ -2753,3 +2753,8 @@ The integrated encrypted restore test is repository-verified. Criteria 30 and 31
 - **No Stage 1 ticks awarded:** 300/400 = 75% provisional; Gate 10 = 0/10 formally closed; open criteria remain 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. Stages 2–6 NOT SCORED; overall 20.90% remains historical only.
 - ZERO COST preserved; no deployment, billing, paid upgrade, Vercel setting change, Termux action, or production connection was initiated in this documentation batch.
 - Full work-cycle evidence: [Batch 7 WebSocket lifetime report](WORK_CYCLE_2026-11-18_GATE10_BATCH7.md).
+
+
+### Batch 7 code-audit clarification — existing reconnect supervisor
+
+A follow-up source audit confirmed that the production frontend already has an authenticated reconnect supervisor in `src/services/ohlcvStreamSupervisor.ts`. It requests a fresh Firebase ID token on every attempt, uses bounded exponential backoff with jitter, resumes from the last validated durable cursor, preserves the current chart while reconnecting, validates replay/sequence continuity, and stops retrying for terminal authentication/entitlement/subscription rejection. Existing tests cover transient disconnect, token acquisition failures, cursor replay, sequence-gap recovery, terminal rejection, close/error races, and explicit stop. This is code-level evidence already included in the previous exact-head frontend test suite; it is not a new test run in this documentation batch. The outstanding Gate 36 items remain deployed Vercel maximum-duration close, independent effective Fluid Compute read-back, Android Capacitor WebView acceptance, and production cross-instance fan-out/cost acceptance.
