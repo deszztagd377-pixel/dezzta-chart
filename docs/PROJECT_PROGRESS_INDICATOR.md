@@ -2424,3 +2424,20 @@ The latest documentation-only branch commit is `8a4e297efa6c07b8e130b81fbb271c90
 Do not treat the two in-progress workflows as successful until their exact-head conclusions are read. Do not manually rerun them. The preview is not production WSS evidence.
 
 The Stage 1 meter remains **300/400 = 75% provisional**; all ten acceptance criteria remain open. This follow-up is documentation-only and awards no ticks.
+
+
+## Exact-HEAD Vercel security/build audit — 2026-11-17
+
+Audited HEAD: `3003226c982c2a51b52d6a4f5f64b1794c625ff0` on `phase-2/market-data-foundation`.
+
+- Automated Tests & Build run 44060747152: **SUCCESS**.
+- CodeQL run 44060747084: **SUCCESS**.
+- Full Git History Secret Audit run 44060747123: **SUCCESS**.
+- Vercel preview `dpl_5LXiSDH7jKh3dnvxfCywaRjfYbJs`: **READY**, preview target, exact audited commit.
+- Project SSO: enabled for `all_except_custom_domains`; password and trusted-IP restrictions disabled. No settings changed. GitHub repository is public.
+- Vite 6.4.5 build succeeded (1,526 modules; ~6 seconds), but main chunk is 537.43 kB minified / ~152.06 kB gzip and exceeds the 500 kB warning threshold.
+- npm emitted unknown `cache-dir` and install-script allowlist warnings for `@firebase/util`, `esbuild`, and `protobufjs`. These remain visible; no security check was weakened.
+- No authenticated screenshot/browser tool was available. Visual QA is **NOT VERIFIED**.
+- Existing Vite project remains frontend-only. The separate SSO-protected FastAPI/WSS POC is the next route; do not alter the Vite project's root settings.
+
+No Gate closure or Stage 1 ticks are awarded. Stage 1 remains **300/400 = 75% provisional**; Gate 10 **0/10 formally closed**; Stages 2–6 **NOT SCORED**; overall **20.90% historical only**. Zero-cost preserved; Termux not required.

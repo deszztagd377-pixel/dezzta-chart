@@ -111,3 +111,16 @@ No Termux command or package operation was required for this remote repository/V
 ## Follow-up exact-head deployment — 2026-11-17
 
 The documentation correction commit `8a4e297efa6c07b8e130b81fbb271c9085ba707e` on `phase-2/market-data-foundation` was automatically deployed by Vercel and reached **READY** at https://dezzta-chart-4nil5h92d-deszztagd377-pixel.vercel.app. It remains a frontend Vite preview; it does not validate Python FastAPI or production WSS.
+
+
+## Remote Vercel evidence — 2026-11-17
+
+The connected Vercel account confirms the existing project is a Hobby-plan Vite frontend. Exact preview `dpl_5LXiSDH7jKh3dnvxfCywaRjfYbJs` is READY on `phase-2/market-data-foundation` at `3003226c982c2a51b52d6a4f5f64b1794c625ff0`; it is not backend/WSS acceptance.
+
+SSO is enabled for `all_except_custom_domains`; password protection and trusted-IP restrictions are disabled. No setting was changed. Custom-domain protection must be assessed separately. GitHub reports this repository is public, so source and tracked history are visible regardless of Vercel protection.
+
+The current project response did not expose Root Directory or Fluid Compute. No root Python API entrypoint or root `vercel.json` exists in the audited tree. Keep the Vite project intact; use a separate SSO-protected Hobby project for the synthetic FastAPI/WSS proof.
+
+The build succeeded, but Vite reports a 537.43 kB minified main chunk (about 152.06 kB gzip) above the 500 kB warning threshold. npm also reports the `cache-dir` configuration warning and install-script allowlist warnings for three packages. No package scripts were approved automatically.
+
+The connector provided metadata and build events, not an authenticated screenshot. Visual inspection is not claimed. No Termux command or package/signature change was needed. Stage 1 stays 75% provisional; Gate 10 stays 0/10 formally closed.

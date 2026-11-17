@@ -195,3 +195,18 @@ The Vercel project is on Hobby. All subsequent POC design must remain within the
 The evidence refresh itself was committed as `8a4e297efa6c07b8e130b81fbb271c9085ba707e` on `phase-2/market-data-foundation`. The connected Vercel Git integration automatically created preview deployment `dpl_FGQfAqGjFnimCpBGDaAsW3uP9H2Z`, which reached **READY**. Preview URL: https://dezzta-chart-4nil5h92d-deszztagd377-pixel.vercel.app
 
 This is still a Vite frontend preview. It does not change the unresolved backend/WSS POC, durable-store, or cross-instance fan-out requirements. Root Directory and Fluid Compute remain unverified because the connected project-read response did not expose those fields.
+
+
+## Exact Vercel preview/security audit — 2026-11-17
+
+At exact HEAD `3003226c982c2a51b52d6a4f5f64b1794c625ff0`, the connected Vercel project is a Hobby-plan Vite frontend. Its latest preview `dpl_5LXiSDH7jKh3dnvxfCywaRjfYbJs` is READY for branch `phase-2/market-data-foundation`, but is not production acceptance or backend/WSS evidence.
+
+Project protection readout: SSO enabled for `all_except_custom_domains`; password protection and trusted-IP restrictions disabled. No settings were changed. Custom-domain access policy remains a separate check. The GitHub repository is public, so its tracked source/history remain publicly readable regardless of Vercel SSO.
+
+The current project response did not expose Root Directory or Fluid Compute. The repository tree has no root Python `api/` entrypoint or root `vercel.json`; preserve this Vite project unchanged and use a separate protected Hobby project for an isolated FastAPI/WSS POC.
+
+The Vite 6.4.5 build succeeded (1,526 modules; approximately 6 seconds), but the main chunk is 537.43 kB minified / approximately 152.06 kB gzip, above the 500 kB warning threshold. npm also warned about unknown `cache-dir` configuration and install scripts not allowlisted for `@firebase/util`, `esbuild`, and `protobufjs`. No warning was suppressed and no package scripts were automatically approved.
+
+The Vercel connection exposed metadata/build events only; no authenticated rendered-browser screenshot was available, so visual inspection is not claimed. No bypass/share URL was created. No paid service or Termux operation was introduced.
+
+This is not Gate 36 acceptance. Stage 1 remains 300/400 = 75% provisional; Gate 10 remains 0/10 formally closed.
