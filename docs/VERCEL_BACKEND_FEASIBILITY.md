@@ -3,7 +3,7 @@
 Audit date: 2026-11-17  
 Repository: `deszztagd377-pixel/dezzta-chart`  
 Branch: `phase-2/market-data-foundation`  
-Audited code baseline: `056cdd0a838ce2c47b4206af3801d6778af05675`  
+Audited code baseline: `8a4e297efa6c07b8e130b81fbb271c9085ba707e`  
 Policy: **ZERO COST — no laptop/PC requirement**
 
 ## Executive decision
@@ -179,12 +179,19 @@ Verified account/project facts:
 - Project: `dezzta-chart`, framework: **Vite**.
 - Linked Git repository: `deszztagd377-pixel/dezzta-chart`.
 - Exact branch: `phase-2/market-data-foundation`.
-- Exact commit: `056cdd0a838ce2c47b4206af3801d6778af05675`.
-- Vercel deployment: **READY**, preview deployment URL: `https://dezzta-chart-exhrc6h9y-deszztagd377-pixel.vercel.app`.
-- Deployment target is a preview (not verified as production); no new deployment was triggered during this audit.
+- Exact commit at the time of the first connector read: `056cdd0a838ce2c47b4206af3801d6778af05675` (historical checkpoint).
+- The follow-up documentation commit `8a4e297efa6c07b8e130b81fbb271c9085ba707e` was automatically deployed by the existing Git integration as a Vercel preview and reached **READY**: `https://dezzta-chart-4nil5h92d-deszztagd377-pixel.vercel.app`.
+- No manual redeploy or forced deployment was requested. The deployment target remains preview, not verified production.
 
 The available project read response confirms the Vite framework and project identity but does not expose the saved `rootDirectory` or Fluid Compute setting. Those two settings therefore remain **UNVERIFIED**; absence from the connector response is not evidence that either setting is enabled or disabled. Do not create or deploy a Python entrypoint in this Vite project until those settings can be inspected or an isolated second project is explicitly prepared.
 
 The deployment being READY proves that this exact branch commit built and deployed as a Vite preview. It does **not** prove a Python FastAPI runtime, HTTP backend health route, authenticated WebSocket upgrade, reconnect, cross-instance fan-out, durable storage, or production WSS.
 
 The Vercel project is on Hobby. All subsequent POC design must remain within the existing no-billing allowance; do not upgrade, enable paid products, or add paid integrations.
+
+
+## 2026-11-17 — Follow-up documentation commit deployment
+
+The evidence refresh itself was committed as `8a4e297efa6c07b8e130b81fbb271c9085ba707e` on `phase-2/market-data-foundation`. The connected Vercel Git integration automatically created preview deployment `dpl_FGQfAqGjFnimCpBGDaAsW3uP9H2Z`, which reached **READY**. Preview URL: https://dezzta-chart-4nil5h92d-deszztagd377-pixel.vercel.app
+
+This is still a Vite frontend preview. It does not change the unresolved backend/WSS POC, durable-store, or cross-instance fan-out requirements. Root Directory and Fluid Compute remain unverified because the connected project-read response did not expose those fields.

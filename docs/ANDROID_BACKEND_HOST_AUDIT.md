@@ -2,7 +2,7 @@
 
 Audit date: 2026-11-14  
 Branch: `phase-2/market-data-foundation`  
-Source checkpoint: `056cdd0a838ce2c47b4206af3801d6778af05675`  
+Source checkpoint: `8a4e297efa6c07b8e130b81fbb271c9085ba707e`  
 Status: **FEASIBILITY AUDIT COMPLETE — DEVICE HOST POC NOT EXECUTED**
 
 ## Executive finding
@@ -101,8 +101,13 @@ The root project remains a Vite/React app with no root `vercel.json` or root `ap
 The Vercel connector is now connected and read access to the project is confirmed:
 - Team plan: **Hobby**; zero-cost requirement remains mandatory.
 - Project `dezzta-chart` is linked to `deszztagd377-pixel/dezzta-chart` and uses Vite.
-- Preview deployment for `phase-2/market-data-foundation` at commit `056cdd0a838ce2c47b4206af3801d6778af05675` is **READY**.
+- The earlier preview deployment for commit `056cdd0a838ce2c47b4206af3801d6778af05675` was **READY**; the follow-up docs commit `8a4e297efa6c07b8e130b81fbb271c9085ba707e` also reached **READY** through the existing Git integration.
 - This is frontend preview deployment evidence only. It is not a backend/WSS acceptance test.
 - The connector response did not expose `rootDirectory` or Fluid Compute configuration. Both remain unverified and must not be assumed.
 
 No Termux command or package operation was required for this remote repository/Vercel audit. The existing Termux signature/keyring trust issue remains untouched.
+
+
+## Follow-up exact-head deployment — 2026-11-17
+
+The documentation correction commit `8a4e297efa6c07b8e130b81fbb271c9085ba707e` on `phase-2/market-data-foundation` was automatically deployed by Vercel and reached **READY** at https://dezzta-chart-4nil5h92d-deszztagd377-pixel.vercel.app. It remains a frontend Vite preview; it does not validate Python FastAPI or production WSS.

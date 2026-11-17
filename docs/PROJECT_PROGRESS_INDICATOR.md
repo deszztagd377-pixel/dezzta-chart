@@ -2408,3 +2408,19 @@ The Vercel team plan was read as **Hobby**. The project framework is Vite and th
 - Stages 2–6 remain **NOT SCORED**.
 - Overall **20.90% remains a historical checkpoint**, not a fresh calculation.
 - This refresh improves evidence traceability only; it does not claim production acceptance.
+
+
+## Follow-up exact-head evidence — 2026-11-17
+
+The latest documentation-only branch commit is `8a4e297efa6c07b8e130b81fbb271c9085ba707e` on `phase-2/market-data-foundation`.
+
+| Check | Exact run / deployment | State at last inspection |
+|---|---|---|
+| Automated Tests & Build | GitHub Actions run 44060521394 | **IN PROGRESS** |
+| CodeQL JavaScript/TypeScript + Python | GitHub Actions run 44060521420 | **IN PROGRESS** |
+| Full Git History Secret Audit | GitHub Actions run 44060521400 | **SUCCESS** |
+| Vercel preview | `dpl_FGQfAqGjFnimCpBGDaAsW3uP9H2Z` | **READY** |
+
+Do not treat the two in-progress workflows as successful until their exact-head conclusions are read. Do not manually rerun them. The preview is not production WSS evidence.
+
+The Stage 1 meter remains **300/400 = 75% provisional**; all ten acceptance criteria remain open. This follow-up is documentation-only and awards no ticks.
