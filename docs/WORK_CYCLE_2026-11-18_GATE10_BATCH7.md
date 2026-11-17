@@ -56,22 +56,24 @@ The next platform-lifetime probe must be isolated to the disposable POC and must
 
 A 60-second preview cap is a proposed test configuration, not yet applied. No deployment or long-lived connection test was triggered in this batch.
 
-## Architectural consequence for DEZZTA CHART
+## Architectural consequence and existing reconnect implementation
 
 A Vercel Hobby WebSocket can be used for short-lived realtime sessions, but it must not be treated as a permanent socket or durable worker.
 
-Required client/server behavior before production acceptance:
+**The production frontend already implements the client reconnect state machine** in `src/services/ohlcvStreamSupervisor.ts`; this audit confirmed the code and existing regression tests. It already provides:
 
-- Client reconnect state machine: disconnected → connecting → authenticated → subscribed → recovering → live.
-- Bounded exponential retry with jitter; stop retrying on permanent authentication/entitlement denial.
-- Reauthenticate and re-check entitlement after reconnect.
-- Restore the last acknowledged durable cursor; request replay and detect gaps.
-- Deduplicate replayed events and queued live events using stable cursor/sequence identity.
-- Force a fresh snapshot when the cursor is expired, invalid, or replay backlog exceeds a safe bound.
-- Keep cross-instance state, leases, quotas, and fan-out outside Function process memory.
-- Do not treat a synthetic POC ping/pong as proof of production market-data delivery.
+- bounded exponential retry with jitter;
+- fresh Firebase ID-token acquisition on every connection attempt;
+- resume from the last validated durable cursor;
+- chart-state preservation while reconnecting;
+- replay validation and sequence continuity before returning to live updates;
+- fresh snapshot recovery after sequence gaps;
+- terminal handling for authentication, authorization, and malformed-subscription close codes;
+- cancellation of pending retries when the stream is explicitly stopped.
 
-This aligns with the existing backend's durable outbox/replay and exact-series subscription design, but production acceptance still requires the actual shared-store and host evidence.
+Existing supervisor tests cover transient transport interruption, token-provider failure, fresh-token retry, durable-cursor replay, sequence-gap recovery, terminal authorization rejection, error/close races, and explicit stop. The backend also already contains durable outbox/replay and exact-series subscription behavior.
+
+**Still not proven externally:** deployed Vercel maximum-duration close, native Android Capacitor WebView behavior, independently read-back effective Fluid Compute, and production cross-instance state/lease/fan-out. A synthetic POC ping/pong does not prove production market-data delivery.
 
 ## Work completed in this batch
 
