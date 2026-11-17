@@ -29,10 +29,10 @@ This cycle implements a **local-only operator alert reporter** for the existing 
 
 ## Verification status at documentation time
 
-- Backend test step in Automated Tests run [44105086185](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44105086185): **SUCCESS**, including the new `test_alert_operations.py` tests. The complete workflow was still running its backend container build and subsequent image/report steps when this report was prepared; do not call the overall workflow complete until its final conclusion is SUCCESS.
-- CodeQL run [44105086159](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44105086159): **SUCCESS** for code commit `5a0c106d388b78ebb2c7821893d918879c5415da`.
-- Full Git History Secret Audit run [44105086295](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44105086295): **SUCCESS** for the same commit.
-- Vercel combined commit status reports both project preview deployments completed successfully. This is deployment status only; it is not production backend or external alert acceptance.
+- Automated Tests & Build run [44105086185](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44105086185): **SUCCESS**; the single `Test and Build` job completed all **32 steps** with no failed steps. Backend pytest collected **1,006 tests and all passed in 28.39s**, including all seven parameterized/case tests in `test_alert_operations.py`. Frontend tests/build/secret scans, Android preflight/release-publisher tests, dependency audits, SQLite outbox benchmark, backend container build, Redis + persistent-volume smoke test, image scan, vulnerability-report export/upload and cleanup also passed.
+- CodeQL run [44105086159](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44105086159): **SUCCESS**.
+- Full Git History Secret Audit run [44105086295](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44105086295): **SUCCESS**.
+- GitHub combined status for code commit `5a0c106d388b78ebb2c7821893d918879c5415da`: **SUCCESS**. Both Vercel preview contexts completed successfully (`dezzta-chart` and `dezzta-chart-ws-poc`). This remains preview deployment evidence only, not production backend or external alert acceptance.
 - Prior exact source checkpoint `ee9a68da14001839a1aebc03082187b4b34162ef` had the full 999-test backend suite and all three metrics-cardinality regressions passing.
 
 ## Gate 39 disposition
@@ -58,7 +58,7 @@ The local operator log path now exists and is regression-tested. It is not an en
 
 ## Next actions
 
-1. Confirm the complete Automated Tests & Build workflow reaches SUCCESS; inspect its backend/container/image steps, not only the backend pytest step.
+1. Complete CI verification is now confirmed: Automated Tests & Build, CodeQL, Full Git History Secret Audit, and both Vercel preview status contexts passed for code commit `5a0c106d388b78ebb2c7821893d918879c5415da`.
 2. Keep Gate 39 open until a no-cost target-host log collection, incident owner/escalation procedure, and actual recovery exercise are evidenced.
 3. Keep Gate 36 separate: browser reconnect is already PASS, but maximum-duration close, effective Fluid Compute read-back, APK WebView WSS to a compatible authenticated backend, cross-instance fan-out, and operational cost acceptance remain open.
 4. Continue repository-only work on the remaining gates without inventing owner-device or host evidence.

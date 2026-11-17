@@ -686,7 +686,7 @@ A local-only operational alert reporter is now integrated into the existing opt-
 - `backend/tests/test_alert_operations.py` covers deduplication, recovery, exception-message redaction, and strict counter validation.
 - `backend/app/main.py` invokes the reporter from the worker loop. It uses the application logger only; no new HTTP endpoint or external notification service is added.
 - Reporter output excludes owner identifiers, installation identifiers, FCM tokens, provider/event payloads, raw exception messages, and credentials.
-- Backend pytest step passed on code commit `5a0c106d388b78ebb2c7821893d918879c5415da`. CodeQL and full-history secret audit also passed. The complete Automated Tests workflow was still building/scanning the backend container at the time of this note.
+- Automated Tests & Build on code commit `5a0c106d388b78ebb2c7821893d918879c5415da` completed **SUCCESS** (32/32 steps); backend pytest collected 1,006 tests and all passed in 28.39s. CodeQL and full-history secret audit also passed. Both Vercel preview status contexts completed successfully. These results do not replace the target-host operational acceptance evidence.
 - **Repository-level local operator logging is implemented; external criterion 39 remains OPEN.** Actual host log collection, incident ownership/escalation, and a recovery exercise remain required. This does not implement end-user alert delivery; FCM remains opt-in/disabled by default and no live tick source is connected.
 - No Stage 1 ticks are awarded. The complete criterion 39 acceptance boundary remains unfulfilled. Stage 1 remains 75% provisional and Gate 10 remains 0/10 formally closed.
 - ZERO COST maintained: no service, subscription, provider, credential, billing change, or Termux modification.
