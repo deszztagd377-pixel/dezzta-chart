@@ -29,6 +29,7 @@ from app.instruments import InstrumentCatalog
 from app.instrument_registry import SQLiteInstrumentRegistry
 from app.alert_store import SQLitePriceAlertStore
 from app.alert_delivery import run_alert_delivery_batch
+from app.alert_operations import LocalAlertReporter
 from app.alert_device_store import AlertDeviceQuotaExceeded, SQLiteAlertDeviceStore
 from app.alert_fcm_delivery import build_alert_event_sender
 from app.fcm_sender import FirebaseCloudMessagingSender
@@ -253,6 +254,12 @@ def create_app(
         "last_error_code": None,
     }
 
+    # Local operator alerts are emitted to the application logger only. No
+    # external notification provider is required for this operational signal.
+    alert_reporter = LocalAlertReporter(
+        logging.getLogger("dezzta.alert_operations")
+    )
+
     @asynccontextmanager
     async def lifespan(_: FastAPI):
         worker_stop = asyncio.Event()
@@ -294,6 +301,13 @@ def create_app(
                                 "terminal_failed": batch.terminal_failed,
                                 "lease_lost": batch.lease_lost,
                             }
+                            alert_reporter.report_batch(
+                                claimed=batch.claimed,
+                                delivered=batch.delivered,
+                                retry_scheduled=batch.retry_scheduled,
+                                terminal_failed=batch.terminal_failed,
+                                lease_lost=batch.lease_lost,
+                            )
                             alert_delivery_status["last_error_code"] = None
                         except Exception as exc:
                             # Keep operational visibility without logging raw
@@ -301,6 +315,7 @@ def create_app(
                             alert_delivery_status["last_error_code"] = (
                                 exc.__class__.__name__[:64]
                             )
+                            alert_reporter.report_error(exc)
                         try:
                             await asyncio.wait_for(
                                 worker_stop.wait(),
