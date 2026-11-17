@@ -67,6 +67,8 @@ jobs:
         run: npm ci
 
       - name: Audit frontend dependencies
+        id: frontend_dependency_audit
+        continue-on-error: true
         run: npm audit --audit-level=high
 
       - name: Run frontend unit tests
@@ -347,3 +349,15 @@ jobs:
           path: trivy-current.json
           if-no-files-found: warn
           retention-days: 14
+
+      # Keep the audit as a required security gate, but enforce it only after
+      # independent tests/build/scans have had a chance to produce diagnostics.
+      - name: Enforce frontend dependency audit result
+        if: always()
+        env:
+          AUDIT_OUTCOME: ${{ steps.frontend_dependency_audit.outcome }}
+        run: |
+          if [ "$AUDIT_OUTCOME" != "success" ]; then
+            echo "::error::Frontend dependency audit failed; see the audit step above. No vulnerability was suppressed."
+            exit 1
+          fi
