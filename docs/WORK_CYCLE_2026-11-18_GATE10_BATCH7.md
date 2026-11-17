@@ -155,3 +155,21 @@ The isolated POC source and regression contract test were deployed by the reposi
 - No production alias was promoted. This is the isolated synthetic POC preview only.
 
 This confirms the updated POC has a READY deployment. It does **not** mean the 330-second probe has been run or that a Vercel 300-second platform close has been observed. Deployment SSO remains the existing access boundary; do not weaken or bypass it. The main Vite preview context on the same source was canceled from the Vercel Dashboard; the previously known frontend READY deployment remains distinct from this WSS POC deployment.
+
+
+## CI dependency-audit blocker — 2026-11-18
+
+The final exact-HEAD Automated Tests run `44203187496` on branch head `94f2580b63176e1d871fcb2bb7175ca4f26285c2` failed at **Audit frontend dependencies** before frontend unit tests or backend tests could run. The log identifies five High findings in the dependency tree, all through `picomatch@4.0.7` (transitively used by dev-only `fdir`, `tinyglobby`, Vite `6.4.5`, and Vitest `4.1.12`). The lockfile marks these dependencies as `dev: true`; they are not declared production dependencies.
+
+The relevant current GitHub Advisory is GHSA-fc5q-39xc-vjpf / CVE-2026-112366, a reported ReDoS in repeated single-branch extglob patterns. The advisory lists no patched version. The public npm registry currently lists `picomatch@4.0.7` as latest. Upstream remediation PR #235 was closed without merge; PR #238 remains open and its own description documents a narrower fix with known limitations. The advisory and upstream state are recorded here:
+
+- [GitHub Advisory GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf)
+- [picomatch issue #247 — release/remediation guidance](https://github.com/micromatch/picomatch/issues/247)
+- [picomatch PR #238 — narrow single-branch guard](https://github.com/micromatch/picomatch/pull/238)
+- [npm picomatch package and current published version](https://www.npmjs.com/package/picomatch)
+
+**Remediation decision:** no `npm audit fix --force`, no Vitest downgrade, no guessed override to an affected version, no suppression of the High finding, and no production-audit weakening. There is no verified patched release to install. The dependency audit therefore remains honestly blocked by upstream package remediation. The dependency is currently dev-only and the application does not expose a user-supplied glob-pattern API; this reduces application runtime exposure but does not make the advisory disappear or justify marking the audit PASS.
+
+The CI run stopped at npm audit, so frontend tests/build and backend tests were skipped in that run. Gitleaks history scan passed. The separate Git-history secret audit run `44203187501` passed. CodeQL was still pending at last read-back. Do not describe this source head as fully CI-green.
+
+No Stage 1 ticks are awarded for this batch. Gate 10 remains 0/10 formally closed; Stage 1 remains 300/400 = 75% provisional. This is a newly surfaced internal dependency-security blocker that must be revisited when upstream publishes a verified fix or when a thoroughly tested alternative glob stack is approved.
