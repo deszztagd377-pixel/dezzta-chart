@@ -2210,7 +2210,8 @@ This is a repository-side observability improvement, not closure of Gate 38 or G
 - Production WSS through the target reverse proxy: still requires target-host evidence.
 - Backend restart followed by authenticated replay: repository persistence tests exist; production-host drill remains open.
 - Browser/Android production connection and P50/P95/P99 end-to-end latency: not yet verified.
-- Vercel latest-HEAD deployment: not verified by this work cycle. The last observed Vercel commit status was rate-limited; a prior deployment on an older code commit is not evidence that this documentation/code candidate is deployed.
+- Vercel commit deployment for exact HEAD `eda917d71f2c7728b3fc3772a78364d47a56b007`: **SUCCESS** (`Deployment has completed`), status updated `2026-11-17T09:03:22Z`. Deployment record: https://vercel.com/deszztagd377-pixel/dezzta-chart/3VgNkUSV92oS7WGA8P6av1Jh3mWJ
+- This confirms the branch-commit deployment only; it does not prove the production alias, backend runtime, reverse-proxy WSS, or Android/browser production connectivity.
 
 ### Progress accounting
 
@@ -2220,3 +2221,17 @@ This is a repository-side observability improvement, not closure of Gate 38 or G
 - Overall **20.90% remains historical only**; no fresh weighted percentage is claimed.
 - Zero-cost policy unchanged. No paid host, provider, monitoring, managed Redis, or publication service is introduced.
 - Termux action: **not required** for this repository-side correction.
+
+
+### Exact-commit validation update — `eda917d71f2c7728b3fc3772a78364d47a56b007`
+
+- Frontend unit tests: **SUCCESS**.
+- Frontend production build: **SUCCESS**.
+- Backend test suite: **SUCCESS**.
+- Synthetic SQLite outbox benchmark: **SUCCESS**.
+- CodeQL Python and JavaScript/TypeScript: **SUCCESS**.
+- Full Git History Secret Audit: **SUCCESS**.
+- Backend dependency audit: completed successfully.
+- Backend container build: in progress at last check; shared Redis/persistent-volume smoke, Trivy image scan and report upload were still pending.
+- Automated Tests workflow therefore remains **IN PROGRESS**; do not mark the complete workflow green until its final conclusion is `success`.
+- Vercel branch-commit deployment: **SUCCESS** as recorded above. Production alias and backend WSS remain separate acceptance items.
