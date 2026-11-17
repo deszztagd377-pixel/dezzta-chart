@@ -2441,3 +2441,12 @@ Audited HEAD: `3003226c982c2a51b52d6a4f5f64b1794c625ff0` on `phase-2/market-data
 - Existing Vite project remains frontend-only. The separate SSO-protected FastAPI/WSS POC is the next route; do not alter the Vite project's root settings.
 
 No Gate closure or Stage 1 ticks are awarded. Stage 1 remains **300/400 = 75% provisional**; Gate 10 **0/10 formally closed**; Stages 2–6 **NOT SCORED**; overall **20.90% historical only**. Zero-cost preserved; Termux not required.
+
+
+## Isolated FastAPI/WebSocket POC implementation — 2026-11-17
+
+Repository-side POC implementation is added under `poc/vercel_ws/`, with automated tests in `backend/tests/test_vercel_ws_poc.py` and its acceptance plan in `docs/VERCEL_WEBSOCKET_POC.md`. It uses synthetic ping/pong only, includes message/rate/idle bounds, and has no production credentials or data integration.
+
+This is preparation for a separate SSO-protected Hobby Vercel project. The existing Vite project is not modified or repointed. POC CI and deployment evidence must be checked against the exact new commit before any acceptance status changes.
+
+No Gate 36 closure or Stage 1 tick is awarded at implementation time. Stage 1 remains 300/400 = 75% provisional; Gate 10 remains 0/10 formally closed. Stages 2–6 remain NOT SCORED. Zero-cost and no-Termux constraints remain.

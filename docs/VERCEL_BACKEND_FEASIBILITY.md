@@ -210,3 +210,12 @@ The Vite 6.4.5 build succeeded (1,526 modules; approximately 6 seconds), but the
 The Vercel connection exposed metadata/build events only; no authenticated rendered-browser screenshot was available, so visual inspection is not claimed. No bypass/share URL was created. No paid service or Termux operation was introduced.
 
 This is not Gate 36 acceptance. Stage 1 remains 300/400 = 75% provisional; Gate 10 remains 0/10 formally closed.
+
+
+## Isolated FastAPI/WebSocket POC — implementation boundary
+
+A synthetic-only FastAPI probe is now prepared at `poc/vercel_ws/index.py`. It is designed to be deployed as a separate Vercel project with Root Directory `poc/vercel_ws`, leaving the existing Vite project untouched. It exposes a no-store health response, a browser connection panel, and a bounded ping/pong WebSocket with idle close. It has no production market data, Firebase, Redis, SQLite or worker integration.
+
+The POC deployment must have SSO protection configured before its first deployment, use the Hobby plan, and remain without a custom domain or bypass link. Verify Fluid Compute by reading the new project's settings before calling the deployment ready. The automated TestClient tests prove application protocol behavior only; they do not substitute for deployed HTTP/WSS, Android/browser reconnect, maximum-duration or cross-instance acceptance.
+
+The POC does not solve production cross-instance fan-out or durable storage. No Stage 1 tick is awarded until external acceptance evidence exists.
