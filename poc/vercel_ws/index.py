@@ -76,12 +76,14 @@ small{color:#91a4bd}
     if (probeDeadline !== null) window.clearTimeout(probeDeadline);
     probeInterval = null;
     probeDeadline = null;
-    if (probeStartedAt !== null) {
-      write({type:"lifetime_probe_stopped",reason,elapsed_ms:Math.round(performance.now()-probeStartedAt)});
+    const elapsed = probeStartedAt === null ? null : Math.round(performance.now()-probeStartedAt);
+    if (elapsed !== null) {
+      write({type:"lifetime_probe_stopped",reason,elapsed_ms:elapsed});
       probeStartedAt = null;
     }
     probeButton.disabled = !socket || socket.readyState !== WebSocket.OPEN;
     probeButton.textContent = "Run bounded 330-second lifetime probe";
+    return elapsed;
   };
   const setState = (value, connected) => {
     status.textContent = value;
@@ -112,8 +114,7 @@ small{color:#91a4bd}
       }
     });
     socket.addEventListener("close", (event) => {
-      stopProbe("socket_closed");
-      const elapsed = probeStartedAt === null ? null : Math.round(performance.now()-probeStartedAt);
+      const elapsed = stopProbe("socket_closed");
       write({type:"websocket_close",code:event.code,reason:event.reason,elapsed_ms:elapsed});
       setState("Closed (" + event.code + ")", false);
     });
