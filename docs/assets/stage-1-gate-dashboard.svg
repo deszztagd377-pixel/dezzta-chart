@@ -71,7 +71,7 @@
 <g transform="translate(494 486)">
  <rect width="204" height="210" rx="15" fill="#302514" stroke="#f59e0b"/><rect width="204" height="6" rx="3" fill="url(#amber)"/>
  <text x="16" y="34" class="k">GATE 36</text><text x="16" y="66" class="name">Authenticated WSS</text>
- <text x="16" y="99" class="body"><tspan x="16">Reverse proxy, web</tspan><tspan x="16" dy="19">and Android APK</tspan><tspan x="16" dy="19">Capacitor WebView</tspan></text>
+ <text x="16" y="99" class="body"><tspan x="16">POC root build</tspan><tspan x="16" dy="19">verified; Fluid</tspan><tspan x="16" dy="19">and Android WSS open</tspan></text>
  <rect x="16" y="169" width="76" height="24" rx="12" fill="#78350f"/><text x="29" y="185" class="pill">OPEN</text>
 </g>
 <g transform="translate(715 486)">
@@ -86,6 +86,6 @@
  <text x="16" y="99" class="body"><tspan x="16">Local sanitized</tspan><tspan x="16" dy="19">operator logs +</tspan><tspan x="16" dy="19">transition alerts</tspan></text>
  <rect x="16" y="169" width="76" height="24" rx="12" fill="#78350f"/><text x="29" y="185" class="pill">OPEN</text>
 </g>
-<text x="52" y="760" class="sub">Gate 36 browser reconnect + fresh-session pong is PASS (owner-confirmed); Gate 38 metrics hardening passed exact-head CI (1,008 backend tests); Gate 39 local operator logging and zero-cost runbook are implemented. Both external gates remain OPEN.</text>
-<text x="52" y="790" class="k">UPDATED 2026-11-17 • 1,008 BACKEND TESTS PASS • 0/10 EXTERNAL GATES CLOSED • ALL TEN OPEN</text>
+<text x="52" y="760" class="sub">Gate 36 browser reconnect is PASS; POC build context and all-target SSO are verified. Fluid Compute, Android WebView WSS and production fan-out remain OPEN. Gate 38 CI and Gate 39 local reporter/runbook are implemented.</text>
+<text x="52" y="790" class="k">UPDATED 2026-11-17 • ROOT BUILD CONTEXT VERIFIED • FLUID COMPUTE STILL OPEN • 0/10 CLOSED</text>
 </svg>

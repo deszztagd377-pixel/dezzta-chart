@@ -177,3 +177,17 @@ After the Gate 38 code/test commit and documentation refresh, Vercel read-back c
 - FastAPI POC `dpl_GRGdGjm4W9dYuAD9FEFn84rdcHtm`: **READY**, https://dezzta-chart-ws-fyyd5o3ui-deszztagd377-pixel.vercel.app, SSO enabled for all deployment targets.
 - Main Vite frontend `dpl_CXHJ9UXKfK4jVQVsLzNumSkbfdex`: **READY**, https://dezzta-chart-la5w28fic-deszztagd377-pixel.vercel.app, SSO enabled for all deployment targets except custom domains.
 - Both project metadata responses report `live=false`. These are preview deployments only. No protection or billing setting was changed, and no production-data connection was created.
+
+
+## Post-audit Vercel build-context verification — 2026-11-17
+
+A fresh read-only account audit was performed after the owner-device reconnect evidence.
+
+- Team: `deszztagd377-pixel's projects`, plan **Hobby**.
+- Project: `dezzta-chart-ws-poc`, ID `prj_yVSD5vtqiPxpSYBGE6hxXDRCIWs2`.
+- Latest deployment: `dpl_39dRJ6Ki9gU1PrXcN8YU4kQ7zCzW`, **READY**, branch `phase-2/market-data-foundation`, source commit `b789e229290290c91143077449a83ec94098162f`.
+- SSO protection is enabled for **all deployment targets**.
+- Build events explicitly state `Using Python 3.12 from poc/vercel_ws/.python-version` and `Installing required dependencies from poc/vercel_ws/requirements.txt`. This verifies the actual build input directory, so the Root Directory/build-context sub-check is now **PASS**.
+- Project and deployment metadata responses still omit the effective Fluid Compute flag. Source `fluid: true` remains a request/configuration declaration only; runtime Fluid Compute is **NOT INDEPENDENTLY VERIFIED**.
+- Latest-deployment runtime log query over 50 minutes returned no records; this is not a negative WSS test.
+- Gate 36 remains OPEN. No new Stage 1 ticks are awarded. Maximum-duration behavior, effective Fluid Compute, Android Capacitor WebView WSS against an authenticated backend, production fan-out, and cost/operational acceptance remain unresolved.

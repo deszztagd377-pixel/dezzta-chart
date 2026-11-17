@@ -2,13 +2,13 @@
 
 **Current checkpoint:** 2026-11-17  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest documentation HEAD before this reconciliation:** `b789e229290290c91143077449a83ec94098162f`  
+**Latest documentation HEAD before current Vercel read-back update:** `2733c80f6958f4599a92365db4e753c2264e45e2`  
 **Latest verified source/test HEAD:** `d32645019db6c93532666f691c43cfe87b9fa8d8`
 
 - **Stage 1:** 30/40 provisional criteria; 300/400 ticks; **75% provisional**, not production accepted.
 - **Gate 10:** **0/10 formally closed**. Open external criteria: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
 - **Exact-head CI for source commit:** Automated Tests & Build [44107801447](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44107801447) **SUCCESS**, all 32 steps passed; backend pytest **1,008 passed in 26.26s**. CodeQL [44107801732](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44107801732) and Full Git History Secret Audit [44107801473](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44107801473) **SUCCESS**. Both Vercel preview status contexts passed. These are repository/preview checks, not external production acceptance.
-- **Gate 36:** Browser health and manual reconnect/fresh-session ping-pong sub-checks are evidenced. Gate 36 overall remains OPEN.
+- **Gate 36:** Browser health and manual reconnect/fresh-session ping-pong sub-checks are evidenced. Latest READY Vercel build log confirms Python 3.12 and dependencies were loaded from `poc/vercel_ws/`; SSO is enabled for all targets. Effective Fluid Compute remains unverified. Gate 36 overall remains OPEN.
 - **Gate 38:** Metrics collector hardening passed CI; durable aggregation, retention, host access controls and dashboard acceptance remain OPEN.
 - **Gate 39:** Local sanitized operator reporter and zero-cost runbook exist; host collection, escalation and recovery drill remain OPEN.
 - **Stages 2–6:** NOT SCORED. Overall 20.90% is historical only.
@@ -837,3 +837,12 @@ Do not repeat the earlier request for a PC, laptop, or second phone. Do not buy 
 - Main Vite frontend project `dezzta-chart`: latest deployment `dpl_CXHJ9UXKfK4jVQVsLzNumSkbfdex`, READY, https://dezzta-chart-la5w28fic-deszztagd377-pixel.vercel.app. SSO protection is enabled for all deployment targets except custom domains.
 - Both latest deployments point to documentation-only commit `1dbc5a544c294fc74a441158af65ed6d1cb523d0`; both project read-backs report `live=false`. These are protected previews, not production releases or proof of live market-data delivery.
 - No Vercel protection setting, billing plan, custom domain, secret, or production target was changed.
+
+
+## Gate 36 deployment-context evidence — 2026-11-17
+
+- Vercel team context identifies the account as Hobby and the isolated FastAPI project as `dezzta-chart-ws-poc`.
+- Latest observed deployment: `dpl_39dRJ6Ki9gU1PrXcN8YU4kQ7zCzW`, READY, source `b789e229290290c91143077449a83ec94098162f`.
+- SSO protection: enabled for all deployment targets.
+- Build log confirms Python 3.12 from `poc/vercel_ws/.python-version` and requirements from `poc/vercel_ws/requirements.txt`, confirming the expected POC build subdirectory.
+- Project settings response omits effective Fluid Compute. Source `fluid: true` is not substituted for independent runtime read-back. Gate 36 remains OPEN.

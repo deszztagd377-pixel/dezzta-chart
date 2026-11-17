@@ -723,3 +723,11 @@ A local-only operational alert reporter is now integrated into the existing opt-
 ### Batch 4 authoritative count reconciliation — 2026-11-17
 
 The acceptance matrix is the source of truth for Gate 10 accounting. It currently lists **ten**, not four, external acceptance criteria: 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. Gate 10 remains 0/10 formally closed. Stage 1 remains 300/400 ticks = 75% provisional. No partial or repository-only ticks are awarded.
+
+
+### Gate 36 deployment-context sub-check — 2026-11-17
+
+- Latest observed isolated FastAPI POC deployment `dpl_39dRJ6Ki9gU1PrXcN8YU4kQ7zCzW` is **READY** on the Hobby team; SSO protection is enabled for all deployment targets.
+- Actual build log confirms Python 3.12 from `poc/vercel_ws/.python-version` and dependency installation from `poc/vercel_ws/requirements.txt`. The expected subdirectory build context is verified.
+- Project read-back omits the effective `resourceConfig.fluid` value. Although source `poc/vercel_ws/vercel.json` requests `fluid: true`, effective Fluid Compute remains unverified.
+- No Gate 36 closure or Stage 1 ticks are awarded. Remaining items: maximum-duration behavior, effective Fluid Compute read-back, Android Capacitor WebView WSS, production cross-instance fan-out, and cost/operational acceptance.

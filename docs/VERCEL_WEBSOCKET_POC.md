@@ -180,3 +180,15 @@ After the earlier two-session event log, the owner explicitly confirmed that the
 - The explicit `Closed (1000)` event is not present in this particular combined log. The manual action is confirmed by the owner, while the new ready/session ID and fresh-session pong are visible in the log.
 
 This closes the browser-panel manual reconnect + fresh-session ping/pong sub-check as **owner-confirmed**. It does not close Gate 36. Still pending: observed Vercel maximum-duration close, independent Fluid Compute runtime read-back, native Android WSS behavior, production cross-instance fan-out, and remaining cost/operational acceptance. The POC remains synthetic-only and is not connected to production market data. No Stage 1 ticks are awarded by this evidence alone; Gate 36 remains OPEN and Gate 10 remains 0/10 formally closed.
+
+
+## Latest Vercel deployment and build-context read-back — 2026-11-17
+
+- Vercel team plan: **Hobby**.
+- Project: `dezzta-chart-ws-poc`; project ID `prj_yVSD5vtqiPxpSYBGE6hxXDRCIWs2`.
+- Latest deployment observed: `dpl_39dRJ6Ki9gU1PrXcN8YU4kQ7zCzW`; state **READY**; source commit `b789e229290290c91143077449a83ec94098162f`; branch `phase-2/market-data-foundation`.
+- Project protection read-back: SSO **enabled for all deployment targets**.
+- Build log: **Python 3.12 from `poc/vercel_ws/.python-version`**; dependencies installed from **`poc/vercel_ws/requirements.txt`**. This is direct build-log evidence that the intended POC subdirectory was used.
+- The project settings response does not expose `resourceConfig.fluid`. The source `vercel.json` requests `fluid: true`, but effective Fluid Compute remains **NOT INDEPENDENTLY VERIFIED**.
+- Runtime-log query for the latest deployment over 50 minutes returned no records. No logs in that window are not evidence of connection failure.
+- Gate 36 remains OPEN; no Stage 1 ticks are awarded.
