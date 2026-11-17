@@ -2630,3 +2630,17 @@ Owner-reported browser evidence now includes a normal prior-session close (`1000
 - Gate 36: **OPEN**. Gate 10: **0/10 formally closed**.
 - Stage 1: **300/400 = 75% provisional**. No ticks awarded for smoke evidence or CI alone.
 - Zero-cost preserved; no SSO relaxation, bypass URL, or production data connection introduced.
+
+
+## Latest Gate 10 follow-up — 2026-11-17
+
+- Dedicated FastAPI POC project `dezzta-chart-ws-poc` remains SSO-protected for all deployment targets. Vercel read-back confirmed deployment `dpl_BdtYsesCD478WnnWovZwK8ssENYU` is **READY** on commit `3d208df252c7251a5936091ffd1006a57db7a13b`; this is a documentation-only source commit, not a new runtime implementation or production acceptance.
+- Owner-device protected `/health` returned HTTP **200**, `ok=true`, and the expected `synthetic-only` payload with `production_data_connected=false`.
+- Browser WebSocket first session produced `ready` and `pong`, session `cc666ac1083f422e8ed11ef5be19b5a2`, sequence 1.
+- Owner explicitly confirmed manual **Disconnect → Connect** between sessions. The second session used a new ID `b6bad24977f94799bfd4f573a884b0ac`, produced its own first pong at sequence 1, and later emitted `idle_timeout`. The explicit `Closed (1000)` event is not present in the combined trace; manual action is owner-confirmed.
+- Gate 36 browser reconnect + fresh-session ping/pong sub-check: **PASS — owner-confirmed**. Gate 36 overall remains **OPEN**: Vercel maximum-duration close, independent effective Fluid Compute read-back, native Android WSS, production cross-instance fan-out, and cost/operational acceptance remain open.
+- Source `poc/vercel_ws/vercel.json` still declares `fluid: true` and regression coverage checks the source setting. The Vercel project/deployment read responses did not independently expose effective Fluid Compute or root-directory configuration. Do not infer runtime confirmation from a READY deployment.
+- Gate 10 remains **0/10 formally closed**. Stage 1 remains **30/40 provisional criteria = 300/400 ticks = 75% provisional**. No tick is awarded for this sub-check alone. Open criteria remain **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- Stages 2–6 remain **NOT SCORED**. Overall **20.90%** remains a historical owner-confirmed checkpoint, not a fresh weighted calculation.
+- ZERO COST preserved. No paid service, plan upgrade, provider, credential, or Termux package/repository/keyring change was made. No Termux action is required for this remote audit; the existing Google Play package-signature/keyring issue remains unresolved.
+- Complete evidence and next actions: [2026-11-17 Gate 10 WebSocket audit](WORK_CYCLE_2026-11-17_GATE10_WEBSOCKET_AUDIT.md). The dashboard remains a project-process tracker outside the APK.
