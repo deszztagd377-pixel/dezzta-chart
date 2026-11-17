@@ -1,6 +1,6 @@
 # DEZZTA CHART — Isolated Vercel WebSocket POC
 
-Status: **latest exact-HEAD CI SUCCESS; protected preview READY; live HTTP/WSS acceptance partial**  
+Status: **protected live HTTP health + synthetic WSS ping/pong observed; exact-HEAD CI SUCCESS; Gate 36 remains OPEN**  
 Date: 2026-11-17  
 Working branch: `phase-2/market-data-foundation`
 
@@ -34,10 +34,10 @@ The endpoint accepts only synthetic ping messages and sends synthetic pong respo
 | Separate Vercel project | Dedicated FastAPI project; build log confirms `poc/vercel_ws` source | **READY** |
 | Deployment protection | SSO enabled for all deployment targets; no custom domain | **VERIFIED** |
 | Fluid Compute | Update request set `true`; project read-back omits field | **NOT INDEPENDENTLY VERIFIED** |
-| HTTP health | Protected real request to `/health` | Pending |
-| WebSocket upgrade | Browser panel receives `ready`, then ordered `pong` responses | **PARTIAL — one owner-reported ready/pong session** |
-| Disconnect/reconnect | Close then reconnect obtains a new session ID and sequence restarts | **PARTIAL — fresh session ID observed; second-session sequence not tested** |
-| Idle/lifetime behavior | Idle close and Vercel maximum-duration close are observed | **PARTIAL — idle_timeout observed; maximum-duration close not tested** |
+| HTTP health | Protected real request to `/health` | **PASS — owner-device event http_health, status 200, ok=true, expected synthetic-only payload** |
+| WebSocket upgrade | Browser panel receives `ready`, then ordered `pong` responses | **PASS — owner-device ready followed by pong, browser-1, sequence 1, matching session ID** |
+| Disconnect/reconnect | Close then reconnect obtains a new session ID and sequence restarts | **PARTIAL — prior normal close and fresh IDs observed; fresh-session automatic ping/pong now passes, but one uninterrupted close-to-reconnect trace is not captured** |
+| Idle/lifetime behavior | Idle close and Vercel maximum-duration close are observed | **PARTIAL — owner-device idle_timeout observed; Vercel maximum-duration close not tested** |
 | Cross-instance behavior | Separate sessions do not rely on process-local shared state; this POC intentionally has none | Pending |
 | Cost | Project remains Hobby and usage stays within no-billing allowance | Pending |
 
@@ -149,3 +149,22 @@ This is a testability improvement and repository-level regression coverage. It i
 The browser panel now requests the same-origin /health endpoint with no-store caching and same-origin credentials when the page loads. It writes the HTTP status, success flag and returned JSON into the existing event log. Because the panel itself is behind deployment SSO, the health request reuses the already-authorized browser session; no bypass secret or public route is introduced. A sanitized error event is logged if the request fails.
 
 A regression assertion checks that the panel retains this health probe. This is still only test-harness implementation: it does not prove a live health response until the owner opens the latest protected deployment and the event log shows http_health with HTTP 200 and the expected synthetic-only payload. Gate 36 remains OPEN and no ticks are awarded.
+
+
+## Owner-device protected HTTP + fresh WebSocket round-trip — 2026-11-17
+
+The owner opened the latest protected preview and supplied this event sequence:
+
+- http_health: HTTP **200**, ok=true, payload status=ok, service=dezzta-ws-poc, mode=synthetic-only, production_data_connected=false.
+- ready: WebSocket session ID d576d71e45684042adcca47624a86c4b, mode synthetic-only.
+- pong: ID browser-1, sequence **1**, with the same session ID as ready.
+- idle_timeout: emitted for that same session ID; expected short-lived idle closure.
+
+This owner-device evidence now verifies the protected same-origin HTTP health request and a deployed browser WebSocket handshake plus successful automatic synthetic ping/pong round trip on the same session. It also confirms the configured idle-timeout path. The payload explicitly reports that production data is not connected.
+
+Exact-head CI for the latest source commit 07530d74c43b98de7b9a3f44b1c05eec5db9987e:
+- Automated Tests & Build [44076533920](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44076533920): **SUCCESS**; frontend/backend tests, audits, container build, Redis/persistent-volume smoke test and image scan/report steps completed.
+- CodeQL [44076533946](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44076533946): **SUCCESS**.
+- Full Git History Secret Audit [44076533891](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44076533891): **SUCCESS**.
+
+Remaining Gate 36 acceptance: capture a single explicit manual close-to-reconnect trace with a fresh session and first pong, observe the Vercel maximum-duration close, independently read back the Fluid Compute runtime setting, test the native Android client, and validate production cross-instance fan-out. This POC remains synthetic-only; it does not prove production data delivery or fan-out. Gate 36 stays OPEN, no Stage 1 ticks are awarded, and Gate 10 remains 0/10 formally closed.
