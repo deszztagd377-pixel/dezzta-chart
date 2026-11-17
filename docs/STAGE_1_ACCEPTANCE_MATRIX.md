@@ -743,3 +743,8 @@ A new test in `backend/tests/test_sqlite_restore_drill.py` exercises the full en
 - Source commit `cfc56b7ba050201823952ea1b67dd38182dc9bfb`: Automated Tests & Build **SUCCESS (32/32)**; backend **1,009 passed in 36.34s**; CodeQL and Full Git History Secret Audit **SUCCESS**.
 - FastAPI WSS POC Vercel preview status passed. Main Vite preview status was blocked by Vercel build-rate limit; no paid upgrade or repeated build attempt was made.
 - This CI regression does not replace target-host backup restore or off-host key-custody acceptance. Gate 30 and 31 remain OPEN; Stage 1 remains 75% provisional.
+
+
+### Batch 7 WebSocket platform-lifetime finding — 2026-11-18
+
+Vercel documents a 300-second default and maximum Function duration on Hobby with Fluid Compute. WebSocket sessions are bound to the Function invocation and close when its maximum duration is reached. The isolated POC's own 25-second idle timeout currently prevents a passive session from reaching that platform boundary. A bounded POC-only maximum-duration test design is documented in `docs/WORK_CYCLE_2026-11-18_GATE10_BATCH7.md`; the temporary 60-second cap has not been applied. This is an architectural/test-plan clarification, not platform-close evidence. Criterion 36 remains OPEN and earns no ticks. Stage 1 remains 300/400 (75% provisional); Gate 10 remains 0/10 formally closed.
