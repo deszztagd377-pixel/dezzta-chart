@@ -105,3 +105,16 @@ The ten external acceptance criteria remain exactly:
 ## Final disposition
 
 **Progress is recorded; no unsupported gate closure is claimed.** The reconnect loop is no longer a blocker. The remaining Gate 36 work is now narrowed to maximum-duration behavior, independent runtime configuration read-back, native Android WSS, production fan-out, and cost/operational acceptance. The ten external Stage 1 criteria remain open, with zero incremental spend and no Termux changes.
+
+
+## Post-audit CI log reconciliation — 2026-11-17
+
+The exact source/test checkpoint `07530d74c43b98de7b9a3f44b1c05eec5db9987e` was checked against the actual GitHub Actions job log, not only the green workflow summary.
+
+- Automated Tests & Build run: [44076533920](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44076533920).
+- Job: `Test and Build`, job ID `134015967433`, conclusion **SUCCESS**.
+- Backend test command: `python -m pytest -vv -ra --durations=20 --timeout=120 --timeout-method=signal -o faulthandler_timeout=120`.
+- All **11** tests in `backend/tests/test_provider_catalog.py` are individually present in the job log and marked **PASSED**. This resolves the earlier 2026-11-16 report's statement that the eleven catalog tests were authored but unexecuted/unverified.
+- The same job also records successful frontend tests/build, frontend and backend dependency audits, source/bundle secret scans, Android preflight/release-publisher tests, backend container build, Redis/persistent-volume smoke test, image scan, and vulnerability-report export/upload. These remain CI/container evidence, not owner-device or production-host acceptance.
+- The catalog remains fail-closed and no candidate provider was activated. Passing catalog tests do not grant data display/redistribution rights, guarantee a recurring $0 production feed, or prove freshness/quotas in live operation.
+- This evidence closes the **test-execution uncertainty** for the catalog code only. It does not close any of the ten external Stage 1 criteria, award ticks, or change the 75% provisional meter.
