@@ -2768,3 +2768,8 @@ The GitHub status for source commit `cfc56b7ba050201823952ea1b67dd38182dc9bfb` s
 ### Batch 7 implementation update — bounded WebSocket lifetime probe
 
 The 25-second idle-timeout obstacle has been addressed in the isolated POC page: an explicit opt-in probe sends one synthetic heartbeat every 10 seconds and stops automatically at 330 seconds. It logs monotonic elapsed time and WebSocket close details. The heartbeat is at most half the server idle timeout; the 330-second client cap gives a 30-second margin beyond Vercel Hobby's documented 300-second maximum while bounding resource use. A regression contract test was added at `backend/tests/test_vercel_ws_probe_contract.py`. The code is implemented, but no new deployment or live maximum-duration observation has occurred yet, so Gate 36 remains OPEN and no Stage 1 ticks are awarded. The main Vite preview rate-limit issue also remains open; the last existing frontend deployment remains READY.
+
+
+### Batch 7 protected POC deployment evidence — 2026-11-18
+
+The bounded synthetic lifetime probe source and its regression contract test now have a dedicated Vercel preview deployment in **READY** state: `dpl_EV3ScKYRdCA2X4seYFktuuoQgDx6`, source commit `08263d49ab12fd2195515d673b9e84588dcbac57`, URL `https://dezzta-chart-ws-qywwkeiui-deszztagd377-pixel.vercel.app`. This is the protected synthetic POC preview, not production. The 330-second probe itself has not been run, so no platform max-duration close is claimed and Gate 36 remains OPEN. The main Vite preview for this newer source was canceled from the Vercel Dashboard; the previous frontend READY deployment is a separate, older build.
