@@ -131,3 +131,8 @@ A source-level inspection of `src/services/ohlcvWebSocketClient.ts`, `src/servic
 - The owner need not repeat the browser reconnect test. Android acceptance remains an external device test after a compatible backend endpoint and approved no-billing configuration exist.
 
 This corrects the terminology for future Gate 36 work without changing the gate's acceptance requirement or awarding a Stage 1 tick.
+
+
+## Complete visual gate dashboard — 2026-11-17
+
+A dedicated ten-card colored gate tracker is now published at [`docs/assets/stage-1-gate-dashboard.svg`](assets/stage-1-gate-dashboard.svg). It shows all ten external criteria individually as OPEN, keeps the Stage 1 75% provisional checklist separate from the 0/10 formal gate closure count, and describes Gate 36 using the correct Android APK Capacitor WebView transport boundary. The six-stage dashboard remains a separate project-wide view. Both graphics are project-process documentation outside the APK; no application UI was changed.
