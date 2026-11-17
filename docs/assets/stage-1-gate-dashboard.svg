@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="820" viewBox="0 0 1200 820" role="img" aria-labelledby="title desc">
+<title id="title">DEZZTA CHART — Stage 1 external Gate 10 dashboard</title>
+<desc id="desc">Ten external Stage 1 acceptance criteria are open: Gate 8 host secret injection, Gate 20 Firebase authentication and revocation, Gate 25 Redis security and persistence, Gate 30 target restore drill, Gate 31 off-host encrypted backup and key custody, Gate 34 persistent volume recovery, Gate 35 HTTPS host readiness, Gate 36 authenticated WSS including Android Capacitor WebView, Gate 38 operational metrics and dashboard, and Gate 39 zero-cost alerting and incident process. Zero of ten external gates are formally closed. Stage 1 remains 75 percent provisional, 300 of 400 ticks. This is a project-process dashboard, not an APK feature.</desc>
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0b1220"/><stop offset="1" stop-color="#172554"/></linearGradient>
+ <linearGradient id="amber" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b45309"/><stop offset="1" stop-color="#f59e0b"/></linearGradient>
+ <style>
+ .h{font:700 32px system-ui,sans-serif;fill:#f8fafc}.sub{font:500 15px system-ui,sans-serif;fill:#cbd5e1}
+ .k{font:700 11px system-ui,sans-serif;letter-spacing:1px;fill:#94a3b8}
+ .name{font:700 18px system-ui,sans-serif;fill:#f8fafc}.body{font:500 13px system-ui,sans-serif;fill:#cbd5e1}
+ .pill{font:800 10px system-ui,sans-serif;letter-spacing:.7px;fill:#fde68a}
+ </style>
+</defs>
+<rect width="1200" height="820" rx="28" fill="url(#bg)"/>
+<circle cx="1110" cy="45" r="150" fill="#f59e0b" opacity=".06"/>
+<text x="52" y="55" class="k">PROJECT PROCESS TRACKER • STAGE 1 • ZERO-COST ROADMAP</text>
+<text x="52" y="101" class="h">TEN EXTERNAL ACCEPTANCE GATES</text>
+<text x="52" y="130" class="sub">Only complete evidence closes a gate • repository progress is not production acceptance</text>
+<rect x="52" y="154" width="1096" height="74" rx="16" fill="#1e293b" stroke="#475569"/>
+<rect x="72" y="172" width="7" height="38" rx="4" fill="#f59e0b"/>
+<text x="98" y="183" class="k">FORMALLY CLOSED</text>
+<text x="98" y="209" style="font:800 27px system-ui,sans-serif;fill:#fbbf24">0 / 10</text>
+<text x="420" y="183" class="k">STAGE 1 CHECKLIST METER</text>
+<text x="420" y="209" style="font:800 24px system-ui,sans-serif;fill:#6ee7b7">75% PROVISIONAL • 300 / 400 TICKS</text>
+<text x="1010" y="183" class="k">REMAINING</text>
+<text x="1010" y="209" style="font:800 24px system-ui,sans-serif;fill:#fbbf24">10 GATES</text>
+<!-- row 1 -->
+<g transform="translate(52 254)">
+ <rect width="204" height="210" rx="15" fill="#302514" stroke="#f59e0b"/><rect width="204" height="6" rx="3" fill="url(#amber)"/>
+ <text x="16" y="34" class="k">GATE 08</text><text x="16" y="66" class="name">Host secrets</text>
+ <text x="16" y="99" class="body"><tspan x="16">Owner-controlled</tspan><tspan x="16" dy="19">no-billing secret</tspan><tspan x="16" dy="19">injection + checks</tspan></text>
+ <rect x="16" y="169" width="76" height="24" rx="12" fill="#78350f"/><text x="29" y="185" class="pill">OPEN</text>
+</g>
+<g transform="translate(273 254)">
+ <rect width="204" height="210" rx="15" fill="#302514" stroke="#f59e0b"/><rect width="204" height="6" rx="3" fill="url(#amber)"/>
+ <text x="16" y="34" class="k">GATE 20</text><text x="16" y="66" class="name">Firebase auth</text>
+ <text x="16" y="99" class="body"><tspan x="16">Sign-in, expiry,</tspan><tspan x="16" dy="19">revocation and</tspan><tspan x="16" dy="19">entitlement denial</tspan></text>
+ <rect x="16" y="169" width="76" height="24" rx="12" fill="#78350f"/><text x="29" y="185" class="pill">OPEN</text>
+</g>
+<g transform="translate(494 254)">
+ <rect width="204" height="210" rx="15" fill="#302514" stroke="#f59e0b"/><rect width="204" height="6" rx="3" fill="url(#amber)"/>
+ <text x="16" y="34" class="k">GATE 25</text><text x="16" y="66" class="name">Redis security</text>
+ <text x="16" y="99" class="body"><tspan x="16">TLS, ACL, private</tspan><tspan x="16" dy="19">binding, persistence</tspan><tspan x="16" dy="19">and failure tests</tspan></text>
+ <rect x="16" y="169" width="76" height="24" rx="12" fill="#78350f"/><text x="29" y="185" class="pill">OPEN</text>
+</g>
+<g transform="translate(715 254)">
+ <rect width="204" height="210" rx="15" fill="#302514" stroke="#f59e0b"/><rect width="204" height="6" rx="3" fill="url(#amber)"/>
+ <text x="16" y="34" class="k">GATE 30</text><text x="16" y="66" class="name">Restore drill</text>
+ <text x="16" y="99" class="body"><tspan x="16">Actual target DB</tspan><tspan x="16" dy="19">backup restore and</tspan><tspan x="16" dy="19">application checks</tspan></text>
+ <rect x="16" y="169" width="76" height="24" rx="12" fill="#78350f"/><text x="29" y="185" class="pill">OPEN</text>
+</g>
+<g transform="translate(936 254)">
+ <rect width="212" height="210" rx="15" fill="#302514" stroke="#f59e0b"/><rect width="212" height="6" rx="3" fill="url(#amber)"/>
+ <text x="16" y="34" class="k">GATE 31</text><text x="16" y="66" class="name">Backup custody</text>
+ <text x="16" y="99" class="body"><tspan x="16">Encrypted off-host</tspan><tspan x="16" dy="19">copy, separate key,</tspan><tspan x="16" dy="19">retention + recovery</tspan></text>
+ <rect x="16" y="169" width="76" height="24" rx="12" fill="#78350f"/><text x="29" y="185" class="pill">OPEN</text>
+</g>
+<!-- row 2 -->
+<g transform="translate(52 486)">
+ <rect width="204" height="210" rx="15" fill="#302514" stroke="#f59e0b"/><rect width="204" height="6" rx="3" fill="url(#amber)"/>
+ <text x="16" y="34" class="k">GATE 34</text><text x="16" y="66" class="name">Persistent data</text>
+ <text x="16" y="99" class="body"><tspan x="16">Volume, ownership,</tspan><tspan x="16" dy="19">restart durability</tspan><tspan x="16" dy="19">and disk recovery</tspan></text>
+ <rect x="16" y="169" width="76" height="24" rx="12" fill="#78350f"/><text x="29" y="185" class="pill">OPEN</text>
+</g>
+<g transform="translate(273 486)">
+ <rect width="204" height="210" rx="15" fill="#302514" stroke="#f59e0b"/><rect width="204" height="6" rx="3" fill="url(#amber)"/>
+ <text x="16" y="34" class="k">GATE 35</text><text x="16" y="66" class="name">Host readiness</text>
+ <text x="16" y="99" class="body"><tspan x="16">HTTPS health,</tspan><tspan x="16" dy="19">startup failure and</tspan><tspan x="16" dy="19">backend-only secrets</tspan></text>
+ <rect x="16" y="169" width="76" height="24" rx="12" fill="#78350f"/><text x="29" y="185" class="pill">OPEN</text>
+</g>
+<g transform="translate(494 486)">
+ <rect width="204" height="210" rx="15" fill="#302514" stroke="#f59e0b"/><rect width="204" height="6" rx="3" fill="url(#amber)"/>
+ <text x="16" y="34" class="k">GATE 36</text><text x="16" y="66" class="name">Authenticated WSS</text>
+ <text x="16" y="99" class="body"><tspan x="16">Reverse proxy, web</tspan><tspan x="16" dy="19">and Android APK</tspan><tspan x="16" dy="19">Capacitor WebView</tspan></text>
+ <rect x="16" y="169" width="76" height="24" rx="12" fill="#78350f"/><text x="29" y="185" class="pill">OPEN</text>
+</g>
+<g transform="translate(715 486)">
+ <rect width="204" height="210" rx="15" fill="#302514" stroke="#f59e0b"/><rect width="204" height="6" rx="3" fill="url(#amber)"/>
+ <text x="16" y="34" class="k">GATE 38</text><text x="16" y="66" class="name">Observability</text>
+ <text x="16" y="99" class="body"><tspan x="16">Bounded metrics,</tspan><tspan x="16" dy="19">logs, dashboard</tspan><tspan x="16" dy="19">and access control</tspan></text>
+ <rect x="16" y="169" width="76" height="24" rx="12" fill="#78350f"/><text x="29" y="185" class="pill">OPEN</text>
+</g>
+<g transform="translate(936 486)">
+ <rect width="212" height="210" rx="15" fill="#302514" stroke="#f59e0b"/><rect width="212" height="6" rx="3" fill="url(#amber)"/>
+ <text x="16" y="34" class="k">GATE 39</text><text x="16" y="66" class="name">Incident alerts</text>
+ <text x="16" y="99" class="body"><tspan x="16">No-cost delivery,</tspan><tspan x="16" dy="19">ownership, escalation</tspan><tspan x="16" dy="19">and recovery process</tspan></text>
+ <rect x="16" y="169" width="76" height="24" rx="12" fill="#78350f"/><text x="29" y="185" class="pill">OPEN</text>
+</g>
+<text x="52" y="760" class="sub">Gate 36 browser reconnect + fresh-session pong sub-check is PASS (owner-confirmed); the overall gate remains OPEN.</text>
+<text x="52" y="790" class="k">UPDATED 2026-11-17 • ALL TEN EXTERNAL CRITERIA OPEN • NO TICKS AWARDED WITHOUT COMPLETE ACCEPTANCE</text>
+</svg>
