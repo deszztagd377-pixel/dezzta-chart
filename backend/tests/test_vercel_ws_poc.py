@@ -42,6 +42,8 @@ def test_browser_probe_page_is_present_and_no_store() -> None:
     assert 'new WebSocket(' in response.text
     assert response.headers["cache-control"] == "no-store"
     assert "frame-ancestors 'none'" in response.headers["content-security-policy"]
+    assert 'fetch("/health", {cache:"no-store",credentials:"same-origin"})' in response.text
+    assert '"http_health"' in response.text
     assert 'log.textContent += "\\n" + JSON.stringify(value);' in response.text
 
 

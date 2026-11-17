@@ -142,3 +142,10 @@ The browser panel now sends one bounded synthetic ping automatically whenever it
 Regression coverage now verifies that two separate TestClient WebSocket sessions receive distinct session IDs and each starts the server-side pong sequence at 1. A browser-panel assertion protects the automatic fresh-session ping behavior.
 
 This is a testability improvement and repository-level regression coverage. It is not owner-device evidence of a deployed second-session pong, maximum Vercel connection duration, /health, Android-native WSS, or cross-instance fan-out. Gate 36 remains OPEN; no Stage 1 ticks are awarded.
+
+
+## Protected HTTP health probe in the browser panel — 2026-11-17
+
+The browser panel now requests the same-origin /health endpoint with no-store caching and same-origin credentials when the page loads. It writes the HTTP status, success flag and returned JSON into the existing event log. Because the panel itself is behind deployment SSO, the health request reuses the already-authorized browser session; no bypass secret or public route is introduced. A sanitized error event is logged if the request fails.
+
+A regression assertion checks that the panel retains this health probe. This is still only test-harness implementation: it does not prove a live health response until the owner opens the latest protected deployment and the event log shows http_health with HTTP 200 and the expected synthetic-only payload. Gate 36 remains OPEN and no ticks are awarded.

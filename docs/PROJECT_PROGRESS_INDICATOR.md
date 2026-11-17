@@ -2605,3 +2605,13 @@ Owner-reported browser evidence now includes a normal prior-session close (`1000
 - Gate 36: OPEN; Gate 10: 0/10 formally closed.
 - Stage 1: 300/400 ticks = 75% provisional; no new ticks awarded by this code/test change.
 - Cost: $0 incremental; no new service, package, account, secret, or Termux command.
+
+
+## Gate 36 — protected HTTP health probe checkpoint (2026-11-17)
+
+- Browser panel /health request: IMPLEMENTED — same-origin fetch on page load, no-store, same-origin credentials.
+- Event output: IMPLEMENTED — HTTP status, ok flag and JSON response are recorded; failed requests produce a sanitized error event.
+- SSO boundary: PRESERVED — no public endpoint, bypass secret, or protection change.
+- Browser-panel regression: ADDED — test asserts health fetch settings and event output.
+- Live deployed HTTP 200 /health response: PENDING OWNER-DEVICE OBSERVATION.
+- Gate 36 remains OPEN; Stage 1 remains 75% provisional; Gate 10 remains 0/10 formally closed.

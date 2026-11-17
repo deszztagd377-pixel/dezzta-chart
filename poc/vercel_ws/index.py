@@ -104,6 +104,16 @@ small{color:#91a4bd}
   };
   pingButton.addEventListener("click", sendPing);
   disconnectButton.addEventListener("click", () => socket?.close(1000, "manual test disconnect"));
+
+  // The page is already behind deployment SSO; reuse that same browser session.
+  // This gives the owner a protected HTTP health result in the same event log.
+  fetch("/health", {cache:"no-store",credentials:"same-origin"})
+    .then(async (response) => {
+      let body = null;
+      try { body = await response.json(); } catch { body = {type:"invalid_health_response"}; }
+      write({type:"http_health",status:response.status,ok:response.ok,body});
+    })
+    .catch(() => write({type:"http_health_error"}));
 })();
 </script>
 </body>

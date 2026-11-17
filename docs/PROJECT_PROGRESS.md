@@ -2483,3 +2483,10 @@ The isolated browser probe panel now automatically sends one synthetic ping afte
 Added backend regression coverage for two independent WebSocket sessions: each must receive a distinct session ID, and each session's first pong must have sequence 1 and carry its own session ID. Added a browser-panel source assertion for automatic ping-on-ready behavior.
 
 This improves the test harness and CI evidence only. It does not substitute for owner-device evidence on the deployed preview, protected /health, Vercel maximum-duration behavior, Android-native WSS, or cross-instance production fan-out. Gate 36 remains OPEN. No Stage 1 ticks are awarded; the official Stage 1 meter remains 300/400 = 75% provisional and Gate 10 remains 0/10 formally closed.
+
+
+## Gate 36 — same-session protected HTTP health probe — 2026-11-17
+
+The isolated browser panel now performs a same-origin GET to /health on page load, with no-store caching and same-origin credentials. It logs the response status, success flag and JSON payload in the same event stream as WebSocket events. The request reuses the authenticated SSO browser session; no public bypass, token exposure or SSO relaxation is introduced. A regression assertion protects the request configuration and event type.
+
+This is a harness improvement only. A live /health response is not yet claimed until the protected deployed panel reports HTTP 200 and the expected synthetic-only payload. Gate 36 remains OPEN; Stage 1 remains 300/400 = 75% provisional and Gate 10 remains 0/10 formally closed. No ticks are added.
