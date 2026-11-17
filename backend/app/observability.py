@@ -23,7 +23,9 @@ class RequestMetrics:
         key = (method, route)
         with self._lock:
             if key not in self._series:
-                if len(self._series) >= _MAX_ROUTE_SERIES:
+                # Reserve one slot for the shared overflow series so the
+                # configured maximum includes, rather than adds to, overflow.
+                if len(self._series) >= _MAX_ROUTE_SERIES - 1:
                     key = ("OTHER", "__overflow__")
                 self._series.add(key)
             request_key = (key[0], key[1], status)
