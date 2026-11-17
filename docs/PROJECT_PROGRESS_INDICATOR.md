@@ -2763,3 +2763,8 @@ A follow-up source audit confirmed that the production frontend already has an a
 ### Batch 7 Vercel preview-rate-limit clarification — 2026-11-18
 
 The GitHub status for source commit `cfc56b7ba050201823952ea1b67dd38182dc9bfb` still reports the main Vite preview context as **FAILURE — Vercel build-rate limit**, while the dedicated FastAPI WSS POC preview context is **SUCCESS**. Vercel deployment read-back separately confirms the last existing main Vite deployment `dpl_BzAaDUru7yhSX2pEWRt8EGxLLpdk` is **READY** from commit `545334d9a594b58c19168df1b059f44ed520949c`. The READY deployment is available, but a new preview for the later branch source is not verified. No retries, paid upgrade, or billing activation were attempted. This is a platform build-rate restriction, not a source test failure.
+
+
+### Batch 7 implementation update — bounded WebSocket lifetime probe
+
+The 25-second idle-timeout obstacle has been addressed in the isolated POC page: an explicit opt-in probe sends one synthetic heartbeat every 10 seconds and stops automatically at 330 seconds. It logs monotonic elapsed time and WebSocket close details. The heartbeat is at most half the server idle timeout; the 330-second client cap gives a 30-second margin beyond Vercel Hobby's documented 300-second maximum while bounding resource use. A regression contract test was added at `backend/tests/test_vercel_ws_probe_contract.py`. The code is implemented, but no new deployment or live maximum-duration observation has occurred yet, so Gate 36 remains OPEN and no Stage 1 ticks are awarded. The main Vite preview rate-limit issue also remains open; the last existing frontend deployment remains READY.
