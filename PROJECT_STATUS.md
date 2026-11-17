@@ -24,7 +24,7 @@
 
 ---
 
-## Latest Gate 10 follow-up — 2026-11-17
+## Historical Gate 10 follow-up — 2026-11-17 (superseded by newer checkpoints)
 
 - Latest code/test checkpoint: `ee9a68da14001839a1aebc03082187b4b34162ef` includes a bounded metrics-series cardinality correction and three new regression tests. Exact-head Automated Tests & Build, CodeQL, and Full Git History Secret Audit all passed. This commit changes only the backend's internal metrics cap and its tests; it does not enable production integrations.
 - Latest dedicated FastAPI POC preview deployment `dpl_GRGdGjm4W9dYuAD9FEFn84rdcHtm` is **READY** at https://dezzta-chart-ws-fyyd5o3ui-deszztagd377-pixel.vercel.app on documentation-only commit `1dbc5a544c294fc74a441158af65ed6d1cb523d0`; SSO is enabled for **all** deployment targets. Latest main Vite frontend preview `dpl_CXHJ9UXKfK4jVQVsLzNumSkbfdex` is **READY** at https://dezzta-chart-la5w28fic-deszztagd377-pixel.vercel.app on the same commit; SSO is enabled for all deployments except custom domains. Both project read-backs report `live=false`; neither is claimed as production market-data delivery.
