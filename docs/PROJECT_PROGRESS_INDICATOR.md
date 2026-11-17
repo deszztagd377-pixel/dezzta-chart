@@ -2741,3 +2741,15 @@ Owner-reported browser evidence now includes a normal prior-session close (`1000
 - Vercel FastAPI WSS POC preview status: **SUCCESS**. Main Vite preview status: **FAILURE — Vercel build-rate limit**. No retry loop or plan upgrade; this test-only source change does not modify frontend code, and the last known frontend preview remains the earlier READY deployment.
 
 The integrated encrypted restore test is repository-verified. Criteria 30 and 31 remain externally OPEN pending actual owner-target recovery, separate key custody, off-host storage and retention. No Stage 1 ticks are awarded. Vercel preview status is distinct from GitHub Actions; the main frontend preview rate-limit failure is not a frontend test/build failure and was not bypassed with a paid plan.
+
+
+## Batch 7 update — 2026-11-18: WebSocket lifetime constraint
+
+- Active branch head at audit start: `de90b32a87111458f9225cc5151a59420f1fe8fb`; supporting Batch 7 report added in commit `d75b724133809c837e8936b9494e5ce252a7d182`.
+- Vercel Hobby + Fluid Compute documented default/maximum function duration: **300 seconds (5 minutes)**. WebSocket connections are pinned to a Function instance and close when that invocation reaches its maximum duration; reconnect and durable resumption are application responsibilities.
+- The isolated POC's current 25-second idle timeout prevents a passive browser tab from reaching the platform's 300-second duration cap. A safe bounded test design is recorded; a temporary 60-second POC-only maxDuration override is proposed but **not applied**.
+- Latest Vercel records remain READY for both the dedicated FastAPI WSS POC and the main Vite frontend. The POC remains SSO-protected for all deployment targets. READY records do not establish remaining account quota or guarantee a future build.
+- Gate 36 remains OPEN. No platform max-duration close, independent effective Fluid Compute read-back, Android Capacitor WebView acceptance, or production cross-instance fan-out is claimed.
+- **No Stage 1 ticks awarded:** 300/400 = 75% provisional; Gate 10 = 0/10 formally closed; open criteria remain 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. Stages 2–6 NOT SCORED; overall 20.90% remains historical only.
+- ZERO COST preserved; no deployment, billing, paid upgrade, Vercel setting change, Termux action, or production connection was initiated in this documentation batch.
+- Full work-cycle evidence: [Batch 7 WebSocket lifetime report](WORK_CYCLE_2026-11-18_GATE10_BATCH7.md).
