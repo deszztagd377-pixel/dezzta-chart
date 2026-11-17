@@ -73,3 +73,20 @@ On source commit `ce079f8402a08b2d3bcdf64c3c80f41b8230fffd`:
 - Android debug APK build: SUCCESS (`44063590583`).
 
 Gate 36 remains OPEN until a protected HTTP health request, WebSocket upgrade, ordered ping/pong, disconnect/reconnect and connection-lifetime test are observed.
+
+
+## Follow-up probe-panel correction and latest exact-head evidence — 2026-11-17
+
+Commit f372e3ff6fb68e9747bc6b4069be120e7a5213f1 corrects the browser panel's log separator so each ready/pong/error event is displayed on a separate line. A regression assertion in backend/tests/test_vercel_ws_poc.py protects the expected JavaScript newline literal.
+
+Exact-HEAD verification:
+- Automated Tests & Build run [44070243153](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44070243153): **SUCCESS**; 211 frontend tests and 993 backend tests passed. Frontend build/secret scan, backend dependency audit, synthetic outbox benchmark, backend container build, Redis shared-guard + persistent-volume smoke test, and image scan/report upload all passed.
+- CodeQL [44070243169](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44070243169): **SUCCESS** for JavaScript/TypeScript and Python.
+- Full Git History Secret Audit [44070243157](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44070243157): **SUCCESS**.
+- Trivy image scan filtered to HIGH/CRITICAL reported zero findings for the Alpine OS image and every listed Python package target.
+- Dedicated Vercel POC preview dpl_GXoAVpfXF7raiWJCVZrmf4PyPLmw from this exact commit: **READY**, region iad1; SSO protection remains enabled for all deployment targets. No bypass/share URL or custom domain was added.
+- A 30-minute runtime-log query returned no records. This is not a failed connection test; it means no request was observed in that query window. Protected HTTP/WSS, ping/pong, disconnect/reconnect, lifetime and Android browser acceptance remain pending.
+
+The Android owner reports that the debug APK installed and launched on the Infinix device. This confirms package installation and app startup only. It does not verify screen rendering, backend connectivity, Firebase identity, market data, or end-to-end security. The APK binary remains built from app-code commit ce079f8402a08b2d3bcdf64c3c80f41b8230fffd; the later f372e3f change touches only the isolated POC and its test, not the Android app.
+
+Gate 36 remains OPEN. Stage 1 remains 300/400 = 75% provisional; Gate 10 remains 0/10 formally closed. No ticks are awarded for CI, preview readiness, or installation alone.

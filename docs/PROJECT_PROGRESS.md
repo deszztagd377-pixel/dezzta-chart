@@ -2427,3 +2427,14 @@ The upstream `ProviderManager` remains Databento-oriented. The documented bounde
 **No gate is officially closed by this CI/deployment result.** Stage 1 remains 30/40 provisional = 300/400 ticks = **75% provisional**; Gate 10 remains **0/10 officially closed**. Stages 2–6 remain **NOT SCORED**. Overall 20.90% remains a historical checkpoint; no fresh weighted total is asserted.
 
 No Termux action was required or performed. No paid hosting, provider, monitoring service or publication fee was introduced.
+
+
+## Gate 10 batch 13 — WebSocket probe panel correction and exact-head acceptance (2026-11-17)
+
+- Fixed the isolated synthetic WebSocket probe panel's event-log separator so messages render on separate lines; added a regression assertion in backend/tests/test_vercel_ws_poc.py.
+- Exact code HEAD f372e3ff6fb68e9747bc6b4069be120e7a5213f1: Automated Tests [#44070243153](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44070243153), CodeQL [#44070243169](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44070243169), and Full Git History Secret Audit [#44070243157](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44070243157) all completed SUCCESS.
+- Validation: 211 frontend tests and 993 backend tests passed; frontend build/source/bundle scans, backend dependency audit, synthetic SQLite outbox benchmark, backend container build, Redis shared-guard + persistent-volume smoke test, Trivy HIGH/CRITICAL scan and report upload passed. Trivy reported zero HIGH/CRITICAL findings across the scanned OS and Python package targets.
+- Dedicated SSO-protected FastAPI POC preview dpl_GXoAVpfXF7raiWJCVZrmf4PyPLmw from the exact commit reached READY. No bypass/share URL or custom domain was created. The latest 30-minute runtime-log query returned no records; live protected HTTP/WSS acceptance has not yet been observed.
+- Owner-reported Android debug APK installation and launch succeeded. This is only a local install/startup smoke test; UI rendering, backend connection, Firebase identity and market-data acceptance remain unverified. APK app-code source remains ce079f8402a08b2d3bcdf64c3c80f41b8230fffd; the newer POC-only change does not alter APK app code.
+- Gate 36 remains OPEN. Stage 1 remains 300/400 = 75% provisional; Gate 10 remains 0/10 formally closed. Gates 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain open pending their distinct external acceptance. Stages 2–6 remain NOT SCORED; overall 20.90% remains historical only.
+- Zero-cost preserved. No paid services or Termux changes.

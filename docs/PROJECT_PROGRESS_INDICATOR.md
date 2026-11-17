@@ -2513,3 +2513,45 @@ The zero-cost GitHub Actions Android debug APK workflow run `44063590583` comple
 ### Stage 1 scoring
 
 These results improve implementation and build evidence, but do not satisfy production acceptance for the ten external gates. Keep Stage 1 at **300/400 = 75% provisional**, Gate 10 at **0/10 formally closed**, Stages 2–6 **NOT SCORED**, and overall 20.90% as historical only. No ticks are awarded solely for a successful preview or debug APK.
+
+
+---
+
+## 2026-11-17 — Gate 10 work-cycle checkpoint (exact code commit f372e3ff6fb68e9747bc6b4069be120e7a5213f1)
+
+### Evidence verified in this cycle
+
+- Corrected the isolated WebSocket browser probe's event-log line separator and added a regression assertion.
+- Automated Tests & Build run [44070243153](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44070243153): **SUCCESS**; 211 frontend tests and 993 backend tests passed. Frontend build and source/bundle secret scans, backend dependency audit, synthetic outbox benchmark, backend container build, Redis shared-guard + persistent-volume smoke test, Trivy image scan and report upload passed.
+- CodeQL run [44070243169](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44070243169): **SUCCESS** for JavaScript/TypeScript and Python.
+- Full Git History Secret Audit run [44070243157](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44070243157): **SUCCESS**.
+- Trivy's HIGH/CRITICAL scan reported zero findings for the scanned Alpine OS image and listed Python package targets.
+- Dedicated SSO-protected FastAPI POC preview dpl_GXoAVpfXF7raiWJCVZrmf4PyPLmw from the exact commit is **READY**. The POC project still has SSO enabled for all deployment targets; no bypass/share URL or custom domain was created.
+- The owner reports the debug APK installed and launched on the Android device. This is installation/startup evidence only, not UI, backend, identity, market-data or security acceptance.
+
+### Ten-gate evidence and remaining acceptance
+
+| Gate | Current verified repository/platform evidence | Remaining blocker / acceptance |
+|---:|---|---|
+| 8 | Full-history secret audit and frontend source/bundle scans pass. | Owner-host secret injection/isolation and verified zero-billing deployment configuration. |
+| 20 | Firebase verifier, revocation checks, entitlement checks and tests exist. | Real Firebase project sign-in, expiry/revocation and account/entitlement acceptance on web/Android. |
+| 25 | Redis ACL/TLS and persistent-volume behavior pass CI. | Select a genuinely free target with ACL/private access, TLS, persistence and outage behavior; Upstash Free does not meet ACL/IP allowlist requirements. |
+| 30 | SQLite backup/restore helpers and repository restore drill/tests exist. | Actual owner-target database restore drill and retained redacted verification report. |
+| 31 | AES-256-GCM authenticated backup encryption and tamper/wrong-key tests pass. | Separate key custody, free off-host destination, retention controls and successful recovery drill. |
+| 34 | Container persistent-volume and ownership smoke test passes. | Target-host restart durability, mount permissions and disk-pressure recovery. |
+| 35 | Backend container and health checks pass in CI. | Real HTTPS endpoint, external health probe and host-secret boundary. |
+| 36 | Synthetic FastAPI/WSS POC, CI tests, SSO-protected READY preview and Android APK install/startup evidence. | Protected live HTTP/WSS request, ping/pong, disconnect/reconnect, connection lifetime, Fluid Compute read-back and Android/browser acceptance. |
+| 38 | Bounded process-local metrics, privacy-preserving logs and token-gated status endpoints exist. | Durable retention, multi-process aggregation, dashboard, alert thresholds and host access controls. |
+| 39 | Durable alert outbox, lease/retry worker, encrypted device-token store and FCM adapter exist; worker remains opt-in. | Zero-incremental-cost proof, Android receipt/acknowledgement, escalation and recovery drill. |
+
+### Official meter — unchanged
+
+- Stage 1: **300/400 ticks = 75% provisional** (30/40 provisional criteria).
+- Gate 10: **0/10 formally closed**; all ten external acceptance criteria remain open.
+- Stages 2–6: **NOT SCORED**.
+- Overall **20.90% is a historical owner-confirmed checkpoint only**, not a fresh weighted calculation.
+- No ticks awarded for CI success, Vercel preview readiness or APK installation/startup alone.
+- ZERO COST preserved. No paid plan, data provider, hosting, monitoring, or publication fee introduced.
+- Termux was not needed. Existing package-signature/keyring issue remains untouched.
+
+The six-stage colored dashboard remains the official visual format. Its card colors and layout are unchanged; this checkpoint updates only the evidence description and date/status footer.
