@@ -2555,3 +2555,8 @@ These results improve implementation and build evidence, but do not satisfy prod
 - Termux was not needed. Existing package-signature/keyring issue remains untouched.
 
 The six-stage colored dashboard remains the official visual format. Its card colors and layout are unchanged; this checkpoint updates only the evidence description and date/status footer.
+
+
+### WebSocket platform configuration hardening — 2026-11-17
+
+A follow-up code change adds `poc/vercel_ws/vercel.json` with explicit `fluid: true` because Vercel's documented WebSocket path for Python ASGI requires Fluid Compute. The POC test suite now parses the deployment config and asserts Fluid Compute remains enabled. This is configuration-level evidence only; protected live WSS acceptance remains pending. The POC project stays isolated and SSO-protected, with no bypass link or paid service.

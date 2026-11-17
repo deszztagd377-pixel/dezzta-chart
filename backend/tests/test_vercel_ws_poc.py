@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 
 import pytest
@@ -9,11 +10,17 @@ from starlette.websockets import WebSocketDisconnect
 
 ROOT = Path(__file__).resolve().parents[2]
 APP_PATH = ROOT / "poc" / "vercel_ws" / "index.py"
+VERCEL_CONFIG_PATH = ROOT / "poc" / "vercel_ws" / "vercel.json"
 SPEC = importlib.util.spec_from_file_location("dezzta_vercel_ws_poc", APP_PATH)
 assert SPEC is not None and SPEC.loader is not None
 POC = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(POC)
 client = TestClient(POC.app)
+
+
+def test_vercel_project_explicitly_enables_fluid_compute() -> None:
+    config = json.loads(VERCEL_CONFIG_PATH.read_text(encoding="utf-8"))
+    assert config["fluid"] is True
 
 
 def test_health_is_synthetic_only_and_never_claims_production_data() -> None:

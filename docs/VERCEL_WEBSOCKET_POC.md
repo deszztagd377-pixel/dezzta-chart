@@ -90,3 +90,10 @@ Exact-HEAD verification:
 The Android owner reports that the debug APK installed and launched on the Infinix device. This confirms package installation and app startup only. It does not verify screen rendering, backend connectivity, Firebase identity, market data, or end-to-end security. The APK binary remains built from app-code commit ce079f8402a08b2d3bcdf64c3c80f41b8230fffd; the later f372e3f change touches only the isolated POC and its test, not the Android app.
 
 Gate 36 remains OPEN. Stage 1 remains 300/400 = 75% provisional; Gate 10 remains 0/10 formally closed. No ticks are awarded for CI, preview readiness, or installation alone.
+
+
+## Explicit Fluid Compute configuration — 2026-11-17
+
+The dedicated project Root Directory is `poc/vercel_ws`. This directory now contains a version-controlled `vercel.json` with `"fluid": true`, so the WebSocket POC explicitly requests Fluid Compute at the deployment level rather than relying only on an earlier dashboard/API setting. A regression test parses this file and asserts the setting is true. Vercel documents the `fluid` property for per-deployment configuration and supports Python runtime; see [Fluid Compute configuration](https://vercel.com/docs/fluid-compute) and [Vercel project configuration](https://vercel.com/docs/project-configuration/vercel-json).
+
+This removes ambiguity in the repository configuration, but it is not proof that a live WebSocket handshake works. The next exact-commit deployment must be READY, then the protected HTTP health request and WSS connect/ready/ping/pong/disconnect/reconnect/lifetime checks must still be observed. Keep SSO enabled for all deployment targets and do not create a bypass URL.

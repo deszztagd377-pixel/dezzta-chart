@@ -2438,3 +2438,11 @@ No Termux action was required or performed. No paid hosting, provider, monitorin
 - Owner-reported Android debug APK installation and launch succeeded. This is only a local install/startup smoke test; UI rendering, backend connection, Firebase identity and market-data acceptance remain unverified. APK app-code source remains ce079f8402a08b2d3bcdf64c3c80f41b8230fffd; the newer POC-only change does not alter APK app code.
 - Gate 36 remains OPEN. Stage 1 remains 300/400 = 75% provisional; Gate 10 remains 0/10 formally closed. Gates 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain open pending their distinct external acceptance. Stages 2–6 remain NOT SCORED; overall 20.90% remains historical only.
 - Zero-cost preserved. No paid services or Termux changes.
+
+
+## Gate 36 follow-up — explicit Fluid Compute config
+
+- Added version-controlled `poc/vercel_ws/vercel.json` with `fluid: true` for the dedicated FastAPI POC Root Directory.
+- Added a regression test to assert the deployment config continues to enable Fluid Compute.
+- Vercel documents Fluid Compute as required for Python WebSocket serving on Functions; per-deployment `fluid` config is supported. This improves reproducibility but does not replace protected live HTTP/WSS acceptance.
+- No changes to the main Vite project, app runtime, production data flows, or deployment protection. Gate 36 remains OPEN pending actual handshake and lifecycle checks.
