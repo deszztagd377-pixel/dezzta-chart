@@ -36,7 +36,7 @@ The endpoint accepts only synthetic ping messages and sends synthetic pong respo
 | Fluid Compute | Update request set `true`; project read-back omits field | **NOT INDEPENDENTLY VERIFIED** |
 | HTTP health | Protected real request to `/health` | **PASS — owner-device event http_health, status 200, ok=true, expected synthetic-only payload** |
 | WebSocket upgrade | Browser panel receives `ready`, then ordered `pong` responses | **PASS — owner-device ready followed by pong, browser-1, sequence 1, matching session ID** |
-| Disconnect/reconnect | Close then reconnect obtains a new session ID and sequence restarts | **PARTIAL — prior normal close and fresh IDs observed; fresh-session automatic ping/pong now passes, but one uninterrupted close-to-reconnect trace is not captured** |
+| Disconnect/reconnect | Owner performs manual disconnect then reconnect; new session ID and fresh-session ping/pong | **PASS — owner explicitly confirmed pressing Disconnect then Connect between two distinct ready/pong sessions; second session used a new ID and restarted at sequence 1. The browser log omitted an explicit Closed (1000) event, so the action is owner-confirmed rather than visible in the event trace** |
 | Idle/lifetime behavior | Idle close and Vercel maximum-duration close are observed | **PARTIAL — owner-device idle_timeout observed; Vercel maximum-duration close not tested** |
 | Cross-instance behavior | Separate sessions do not rely on process-local shared state; this POC intentionally has none | Pending |
 | Cost | Project remains Hobby and usage stays within no-billing allowance | Pending |
@@ -168,3 +168,15 @@ Exact-head CI for the latest source commit 07530d74c43b98de7b9a3f44b1c05eec5db99
 - Full Git History Secret Audit [44076533891](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44076533891): **SUCCESS**.
 
 Remaining Gate 36 acceptance: capture a single explicit manual close-to-reconnect trace with a fresh session and first pong, observe the Vercel maximum-duration close, independently read back the Fluid Compute runtime setting, test the native Android client, and validate production cross-instance fan-out. This POC remains synthetic-only; it does not prove production data delivery or fan-out. Gate 36 stays OPEN, no Stage 1 ticks are awarded, and Gate 10 remains 0/10 formally closed.
+
+
+## Owner-confirmed manual disconnect → reconnect with fresh-session pong — 2026-11-17
+
+After the earlier two-session event log, the owner explicitly confirmed that they pressed **Disconnect** and then **Connect** between the two sessions. The supplied browser log contains:
+
+- First session: `ready` and `pong`, session ID `cc666ac1083f422e8ed11ef5be19b5a2`, first pong sequence 1.
+- After the owner-confirmed manual Disconnect → Connect action, second session: `ready` and `pong`, new session ID `b6bad24977f94799bfd4f573a884b0ac`, first pong sequence 1.
+- The second session subsequently emitted `idle_timeout` for its own session ID.
+- The explicit `Closed (1000)` event is not present in this particular combined log. The manual action is confirmed by the owner, while the new ready/session ID and fresh-session pong are visible in the log.
+
+This closes the browser-panel manual reconnect + fresh-session ping/pong sub-check as **owner-confirmed**. It does not close Gate 36. Still pending: observed Vercel maximum-duration close, independent Fluid Compute runtime read-back, native Android WSS behavior, production cross-instance fan-out, and remaining cost/operational acceptance. The POC remains synthetic-only and is not connected to production market data. No Stage 1 ticks are awarded by this evidence alone; Gate 36 remains OPEN and Gate 10 remains 0/10 formally closed.
