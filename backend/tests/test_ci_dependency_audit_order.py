@@ -12,11 +12,11 @@ def test_frontend_dependency_audit_runs_diagnostics_before_final_enforcement():
     workflow = workflow_path.read_text(encoding="utf-8")
 
     audit_match = re.search(
-        r"(?ms)^      - name: Audit frontend dependencies\\n(?P<body>.*?)(?=^      - name:|\\Z)",
+        r"(?ms)^      - name: Audit frontend dependencies\n(?P<body>.*?)(?=^      - name:|\Z)",
         workflow,
     )
     enforcement_match = re.search(
-        r"(?ms)^      - name: Enforce frontend dependency audit result\\n(?P<body>.*?)(?=^      - name:|\\Z)",
+        r"(?ms)^      - name: Enforce frontend dependency audit result\n(?P<body>.*?)(?=^      - name:|\Z)",
         workflow,
     )
 
