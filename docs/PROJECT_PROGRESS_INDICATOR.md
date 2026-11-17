@@ -2477,3 +2477,39 @@ The first deployment request defaulted to production and was canceled before com
 ### Gate accounting
 
 Gate 36 remains OPEN. The POC implementation, CI success and staging deployment are valuable evidence but do not prove live WSS behavior. Stage 1 remains **300/400 = 75% provisional**; Gate 10 remains **0/10 formally closed**. No progress ticks are awarded for deployment readiness alone.
+
+
+## 2026-11-17 follow-up — bundle split, protected deployments and APK evidence
+
+### Frontend build optimization
+
+The exact-commit Vercel build for `ce079f8402a08b2d3bcdf64c3c80f41b8230fffd` confirms the previous 537.43 kB minified entry chunk has been split into:
+- Application entry: **198.72 kB** (62.83 kB gzip)
+- Chart vendor: **166.40 kB** (53.58 kB gzip)
+- Firebase vendor: **171.85 kB** (35.99 kB gzip)
+
+The application entry chunk is smaller by **338.71 kB (63.02%)**, and the previous >500 kB entry-chunk warning is gone. Important accuracy note: the gzip total is approximately 152.40 kB compared with 152.06 kB before, so this is a chunk/cache boundary improvement, not a claim that total compressed transfer size fell. The build completed successfully and Vercel marked the preview READY.
+
+### Protected WebSocket POC deployments
+
+- FastAPI POC staging deployment `dpl_EJgJNiLxZxupJYSGo4M2SH14oYTF`: READY.
+- Latest FastAPI POC preview deployment `dpl_Ns63oEgDLBVYaSBrjcFefiNGXKY3`: READY.
+- Both are in the dedicated `dezzta-chart-ws-poc` project; SSO protection is enabled for all deployment targets.
+- Main Vite preview `dpl_3NqxWPshEa9cNVKjmFiYtrs23gjJ`: READY.
+- POC build log confirms Python 3.12 and requirements loaded from `poc/vercel_ws/`. Root Directory was set to that subdirectory. Fluid Compute enablement was requested, but the project read-back does not expose the saved flag; keep it unverified.
+- No temporary protection bypass was created. Runtime logs currently show no request records for the POC deployment, so deployed HTTP/WSS acceptance is still pending.
+
+### Android APK build
+
+The zero-cost GitHub Actions Android debug APK workflow run `44063590583` completed **SUCCESS** on the exact source commit `ce079f8402a08b2d3bcdf64c3c80f41b8230fffd`. The build assembled and verified the APK, calculated its checksum and uploaded artifact `14319008182` (`dezzta-chart-android-debug-apk`). The extracted APK is 4,234,737 bytes; SHA-256 `4db7a2898cd028154f6e282a9d514e83732ec89f4aebdf9d821f27da73c0a16e`. The workflow's immutable preview-release step was skipped; this is a temporary CI artifact, not a Google Play release.
+
+### Exact-commit CI
+
+- Automated Tests & Build `44063590646`: **SUCCESS**.
+- CodeQL `44063590667`: **SUCCESS**.
+- Full Git History Secret Audit `44063590758`: **SUCCESS**.
+- Android debug APK build `44063590583`: **SUCCESS**.
+
+### Stage 1 scoring
+
+These results improve implementation and build evidence, but do not satisfy production acceptance for the ten external gates. Keep Stage 1 at **300/400 = 75% provisional**, Gate 10 at **0/10 formally closed**, Stages 2–6 **NOT SCORED**, and overall 20.90% as historical only. No ticks are awarded solely for a successful preview or debug APK.

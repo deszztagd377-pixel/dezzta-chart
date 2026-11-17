@@ -50,3 +50,26 @@ The POC deliberately does not solve cross-instance market-data fan-out. Producti
 ## Stage 1 accounting
 
 This POC adds testable repository evidence for Gate 36 but does not close Gate 36 or award any Stage 1 ticks. Stage 1 remains 300/400 = 75% provisional; Gate 10 remains 0/10 formally closed until external acceptance evidence is recorded.
+
+
+## Latest deployed evidence — 2026-11-17
+
+- First explicitly targeted staging deployment: `dpl_EJgJNiLxZxupJYSGo4M2SH14oYTF` — **READY**.
+- Latest branch preview from commit `ce079f8402a08b2d3bcdf64c3c80f41b8230fffd`: `dpl_Ns63oEgDLBVYaSBrjcFefiNGXKY3` — **READY**.
+- Both deployments belong to `dezzta-chart-ws-poc`; SSO is enabled for all deployment targets. No custom domain or bypass share URL was created.
+- Build logs confirm Python 3.12 and requirements loaded from `poc/vercel_ws/`.
+- Fluid Compute was explicitly requested in project settings, but the available read-back omits that flag. It remains **not independently verified**.
+- Runtime logs returned no records for the latest POC deployment during the last 50-minute window. No protected HTTP or WebSocket test request has yet been observed.
+- Main Vite preview from the same code commit is READY (`dpl_3NqxWPshEa9cNVKjmFiYtrs23gjJ`).
+
+The first create-deployment request inherited the production target and was canceled before completion; it is not the accepted deployment. The actual staging deployment and latest preview are protected by SSO.
+
+### CI evidence
+
+On source commit `ce079f8402a08b2d3bcdf64c3c80f41b8230fffd`:
+- Automated Tests & Build: SUCCESS (`44063590646`).
+- CodeQL: SUCCESS (`44063590667`).
+- Full Git History Secret Audit: SUCCESS (`44063590758`).
+- Android debug APK build: SUCCESS (`44063590583`).
+
+Gate 36 remains OPEN until a protected HTTP health request, WebSocket upgrade, ordered ping/pong, disconnect/reconnect and connection-lifetime test are observed.

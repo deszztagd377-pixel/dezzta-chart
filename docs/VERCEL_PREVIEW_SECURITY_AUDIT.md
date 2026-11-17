@@ -74,3 +74,17 @@ This audit adds evidence but closes no Gate and earns no Stage 1 tick:
 - Overall: **20.90% historical checkpoint only**; no fresh weighted calculation.
 - Termux: not required for this remote audit.
 - Zero-cost: preserved.
+
+## 2026-11-17 follow-up — exact commit `ce079f8402a08b2d3bcdf64c3c80f41b8230fffd`
+
+- Vercel main Vite preview `dpl_3NqxWPshEa9cNVKjmFiYtrs23gjJ`: **READY**.
+- Vercel FastAPI POC preview `dpl_Ns63oEgDLBVYaSBrjcFefiNGXKY3`: **READY**; protected by project SSO for all deployment targets.
+- Vercel FastAPI POC staging deployment `dpl_EJgJNiLxZxupJYSGo4M2SH14oYTF`: **READY**.
+- No custom domain or temporary protection-bypass URL was created for the POC.
+- The available Vercel runtime-log query returned no records for the POC deployment during the last 50-minute window. This means no live HTTP/WSS test request has yet been observed; it is not a failed test.
+- Project update explicitly requested Root Directory `poc/vercel_ws`, Fluid Compute enabled, and 60-second default function timeout. Build logs prove Python 3.12 and requirements were read from the POC subdirectory. The project read-back omits the Fluid Compute flag, so it remains **not independently verified**.
+- Main Vite bundle split is described in the project progress documentation. No security settings on the main Vite project were changed.
+- Exact commit CI: Automated Tests & Build run `44063590646` SUCCESS; CodeQL `44063590667` SUCCESS; Full Git History Secret Audit `44063590758` SUCCESS; Android debug APK build `44063590583` SUCCESS.
+- The Android APK artifact is a temporary CI artifact, not a public Play Store release. It expires 2026-11-24. SHA-256 of the extracted APK: `4db7a2898cd028154f6e282a9d514e83732ec89f4aebdf9d821f27da73c0a16e`.
+
+No Stage 1 ticks are awarded from deployment readiness or APK generation. Gate 36 remains open until a protected live HTTP/WSS request, ping/pong and reconnect test are observed.

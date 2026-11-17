@@ -240,3 +240,18 @@ An initial deployment request that inherited the production target was canceled 
 The three exact-commit GitHub workflows passed: Automated Tests & Build (`44062060115`), CodeQL (`44062060069`), and Full Git History Secret Audit (`44062060090`).
 
 **Acceptance still pending:** protected HTTP health request, authenticated WSS upgrade and ping/pong, disconnect/reconnect, max-duration behavior and Android/browser testing. No temporary deployment bypass URL was generated because it would grant access to a protected deployment. Gate 36 remains open and no Stage 1 ticks are awarded for READY status alone.
+
+
+## Verified deployment and APK follow-up — 2026-11-17
+
+The dedicated FastAPI POC now has a READY staging deployment (`dpl_EJgJNiLxZxupJYSGo4M2SH14oYTF`) and a newer READY preview deployment (`dpl_Ns63oEgDLBVYaSBrjcFefiNGXKY3`) from code commit `ce079f8402a08b2d3bcdf64c3c80f41b8230fffd`. Both are in project `dezzta-chart-ws-poc`, with SSO enabled for all deployment targets. The main Vite preview from the same commit is also READY (`dpl_3NqxWPshEa9cNVKjmFiYtrs23gjJ`).
+
+The POC project update explicitly set Root Directory `poc/vercel_ws`, Fluid Compute enabled and a 60-second default timeout. Build logs confirm Python 3.12 and dependency installation from the POC subdirectory. The available project read-back omits Root Directory and Fluid Compute fields; Root Directory is supported by the build evidence, while Fluid Compute remains not independently verified.
+
+No POC runtime logs were found for the last 50-minute query window. No protected HTTP health request or WebSocket connection has been observed yet. We did not use the Vercel authenticated-fetch helper because it creates a temporary protection-bypass share link; the no-public-access requirement takes priority. A team member can use the normal SSO-protected deployment alias for visual/transport testing.
+
+The Vite entry chunk was reduced from 537.43 kB to 198.72 kB minified (338.71 kB / 63.02% smaller) by isolating Firebase and lightweight-charts vendor chunks. The two vendor chunks are 171.85 kB and 166.40 kB; total gzip is approximately 152.40 kB, so no total transfer-size reduction is claimed. Vercel build succeeded and no >500 kB chunk warning remains.
+
+The zero-cost Android debug APK workflow completed successfully (run `44063590583`), with checksum-verified artifact `14319008182`. This is a temporary debug APK artifact, not a Play Store release. Automated Tests `44063590646`, CodeQL `44063590667`, and Secret Audit `44063590758` all passed on the same code commit.
+
+No Gate 36 closure or Stage 1 ticks are awarded until protected HTTP/WSS, ping/pong and reconnect are actually observed.
