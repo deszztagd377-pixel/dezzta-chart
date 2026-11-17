@@ -2615,3 +2615,18 @@ Owner-reported browser evidence now includes a normal prior-session close (`1000
 - Browser-panel regression: ADDED — test asserts health fetch settings and event output.
 - Live deployed HTTP 200 /health response: PENDING OWNER-DEVICE OBSERVATION.
 - Gate 36 remains OPEN; Stage 1 remains 75% provisional; Gate 10 remains 0/10 formally closed.
+
+
+## Gate 36 — live owner-device HTTP/WSS smoke evidence — 2026-11-17
+
+- Protected same-origin /health: **PASS**, HTTP 200, ok=true, expected synthetic-only JSON; production_data_connected=false.
+- Browser WebSocket handshake: **PASS**, ready received.
+- Automatic synthetic ping/pong: **PASS**, browser-1, sequence 1, same session ID d576d71e45684042adcca47624a86c4b.
+- Idle timeout: **OBSERVED** for the same session.
+- Exact-head Automated Tests & Build 44076533920: **SUCCESS**.
+- Exact-head CodeQL 44076533946: **SUCCESS**.
+- Exact-head Full Git History Secret Audit 44076533891: **SUCCESS**.
+- Still OPEN: one explicit manual close-to-reconnect trace with fresh-session pong; maximum Vercel connection lifetime; independent Fluid Compute runtime read-back; native Android WSS; production cross-instance fan-out.
+- Gate 36: **OPEN**. Gate 10: **0/10 formally closed**.
+- Stage 1: **300/400 = 75% provisional**. No ticks awarded for smoke evidence or CI alone.
+- Zero-cost preserved; no SSO relaxation, bypass URL, or production data connection introduced.
