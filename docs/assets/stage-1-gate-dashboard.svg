@@ -86,6 +86,6 @@
  <text x="16" y="99" class="body"><tspan x="16">Local sanitized</tspan><tspan x="16" dy="19">operator logs +</tspan><tspan x="16" dy="19">transition alerts</tspan></text>
  <rect x="16" y="169" width="76" height="24" rx="12" fill="#78350f"/><text x="29" y="185" class="pill">OPEN</text>
 </g>
-<text x="52" y="760" class="sub">Gate 30/31 encrypted backup → full restore pipeline CI PASS (1,009 tests); owner-host restore and off-host key custody remain OPEN. Gate 36: reconnect supervisor is CI-covered; bounded 330s synthetic heartbeat probe implemented (10s cadence / 25s idle). Deployment observation, Fluid read-back, Android WSS and production fan-out remain OPEN.</text>
-<text x="52" y="790" class="k">UPDATED 2026-11-18 • BOUNDED WSS PROBE IMPLEMENTED • DEPLOYMENT TEST PENDING • 0/10 CLOSED</text>
+<text x="52" y="760" class="sub">Gate 30/31 encrypted backup → full restore pipeline CI PASS (1,009 tests); owner-host restore and off-host key custody remain OPEN. Gate 36: reconnect supervisor is CI-covered; bounded 330s synthetic heartbeat probe deployed READY (10s cadence / 25s idle). Actual platform-close observation, Fluid read-back, Android WSS and production fan-out remain OPEN.</text>
+<text x="52" y="790" class="k">UPDATED 2026-11-18 • BOUNDED WSS PROBE DEPLOYED READY • LIFETIME TEST PENDING • 0/10 CLOSED</text>
 </svg>
