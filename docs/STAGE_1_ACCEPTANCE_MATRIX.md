@@ -748,3 +748,8 @@ A new test in `backend/tests/test_sqlite_restore_drill.py` exercises the full en
 ### Batch 7 WebSocket platform-lifetime finding — 2026-11-18
 
 Vercel documents a 300-second default and maximum Function duration on Hobby with Fluid Compute. WebSocket sessions are bound to the Function invocation and close when its maximum duration is reached. The isolated POC's own 25-second idle timeout currently prevents a passive session from reaching that platform boundary. A bounded POC-only maximum-duration test design is documented in `docs/WORK_CYCLE_2026-11-18_GATE10_BATCH7.md`; the temporary 60-second cap has not been applied. This is an architectural/test-plan clarification, not platform-close evidence. Criterion 36 remains OPEN and earns no ticks. Stage 1 remains 300/400 (75% provisional); Gate 10 remains 0/10 formally closed.
+
+
+### Gate 36 — bounded synthetic lifetime probe implementation (2026-11-18)
+
+The isolated Vercel POC now has an opt-in 330-second synthetic heartbeat probe: 10-second heartbeat cadence against the 25-second server idle timeout, with monotonic elapsed-time and WebSocket close-event logging. A regression contract test verifies the timing bounds and instrumentation. This addresses the POC's prior idle-timeout design obstacle at source level. It does not yet prove the deployed Function maximum-duration close. Gate 36 remains OPEN pending new protected deployment observation, effective Fluid Compute read-back, Android WebView acceptance, and production cross-instance fan-out/cost evidence.
