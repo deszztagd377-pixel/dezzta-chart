@@ -1,3 +1,16 @@
+## Latest Gate 39 repository increment — 2026-11-17
+
+- Code commit `5a0c106d388b78ebb2c7821893d918879c5415da` adds a local-only sanitized operator alert reporter to the existing opt-in alert-delivery worker.
+- New files: `backend/app/alert_operations.py` and `backend/tests/test_alert_operations.py`; integration: `backend/app/main.py`.
+- Reporter emits transition-based local JSON warnings for retry/degraded states, terminal failures, lease loss and worker exceptions; emits recovery on return to healthy; deduplicates repeated states; validates counters; never logs owner IDs, tokens, provider/event payloads, credentials or raw exception text.
+- Backend pytest step in Automated Tests [44105086185](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44105086185) passed, including the new tests. At this snapshot, full container/image workflow remained in progress. CodeQL [44105086159](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44105086159) and Full Git History Secret Audit [44105086295](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44105086295) passed for the same code commit.
+- Gate 39 repository-level local operator logging increment: **implemented and test-step passed**. Gate 39 external acceptance remains **OPEN**: no host log collection, owner escalation, recovery drill, live tick source, or end-user delivery is claimed. FCM worker remains disabled by default.
+- Gate 10 remains **0/10**. Stage 1 remains **300/400 = 75% provisional**. No ticks awarded. Open external criteria remain 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. Stages 2–6 remain NOT SCORED; 20.90% remains historical only.
+- ZERO COST preserved. No new service, paid resource, credential, provider, FCM activation, or Termux change. `main` untouched.
+- Full cycle report: [docs/WORK_CYCLE_2026-11-17_GATE10_BATCH2.md](docs/WORK_CYCLE_2026-11-17_GATE10_BATCH2.md).
+
+---
+
 ## Latest Gate 10 follow-up — 2026-11-17
 
 - Latest code/test checkpoint: `ee9a68da14001839a1aebc03082187b4b34162ef` includes a bounded metrics-series cardinality correction and three new regression tests. Exact-head Automated Tests & Build, CodeQL, and Full Git History Secret Audit all passed. This commit changes only the backend's internal metrics cap and its tests; it does not enable production integrations.

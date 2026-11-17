@@ -2664,3 +2664,16 @@ Owner-reported browser evidence now includes a normal prior-session close (`1000
 - Stages 2–6 remain **NOT SCORED**. Overall **20.90%** remains a historical owner-confirmed checkpoint, not a fresh weighted calculation.
 - ZERO COST preserved. No paid service, plan upgrade, provider, credential, or Termux package/repository/keyring change was made. No Termux action is required for this remote audit; the existing Google Play package-signature/keyring issue remains unresolved.
 - Complete evidence and next actions: [2026-11-17 Gate 10 WebSocket audit](WORK_CYCLE_2026-11-17_GATE10_WEBSOCKET_AUDIT.md). The dashboard remains a project-process tracker outside the APK.
+
+
+## Gate 39 local operator alert increment — 2026-11-17
+
+- Code commit: `5a0c106d388b78ebb2c7821893d918879c5415da`.
+- Added `backend/app/alert_operations.py`, tests in `backend/tests/test_alert_operations.py`, and integration in `backend/app/main.py`.
+- The existing opt-in delivery worker now emits local sanitized JSON operator warnings for retry scheduling, terminal failure, lost leases and worker exceptions; state transitions are deduplicated and a recovery log is emitted after healthy processing resumes.
+- The reporter logs no owner IDs, installation IDs, FCM tokens, provider/event payloads, raw exception messages, or credentials. It uses only the application logger and adds no external dependency or notification provider.
+- The backend pytest step in run [44105086185](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44105086185) passed with the new tests. The complete workflow was still in progress at the time of this entry (container build/image/report stages); CodeQL [44105086159](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44105086159) and Full Git History Secret Audit [44105086295](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44105086295) passed.
+- Gate 39 repository-level operator-log implementation is present; **external Gate 39 remains OPEN** pending target-host log collection, escalation ownership and recovery drill. This is not end-user price-alert delivery. FCM worker remains disabled by default and no live tick source is connected.
+- Gate 10 remains **0/10**; Stage 1 remains **300/400 ticks = 75% provisional**. No ticks awarded. Stages 2–6 remain NOT SCORED.
+- No paid service, provider, credential, Firebase billing, or Termux change. `main` untouched.
+- Full evidence: [Gate 10 work cycle — local operational alert path](WORK_CYCLE_2026-11-17_GATE10_BATCH2.md).
