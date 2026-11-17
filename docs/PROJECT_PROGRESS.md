@@ -2456,3 +2456,8 @@ No Termux action was required or performed. No paid hosting, provider, monitorin
 - Explicit `fluid: true` config and regression test are present. Live HTTP/WSS acceptance and runtime Fluid read-back remain pending.
 - No Gate closure or ticks awarded. Stage 1 remains 300/400 = 75% provisional; Gate 10 0/10 formally closed; all ten external criteria remain open. Stages 2–6 NOT SCORED; overall 20.90% historical only.
 - Zero-cost maintained; no Termux action needed.
+
+
+## 2026-11-17 — owner-device WebSocket smoke evidence
+
+The owner reports opening the SSO-protected FastAPI preview and seeing **Connected**, a server `ready` handshake in `synthetic-only` mode, then a successful synthetic ping/pong (ID `browser-1`, sequence `1`) in the same session. This confirms the basic browser-to-server and server-to-browser path for one synthetic session. It is not production market-data or cross-instance evidence. Disconnect/reconnect with a fresh session, connection lifetime/close behavior, authenticated health endpoint, and cross-instance fan-out remain unverified. Gate 36 stays OPEN; no formal gate or Stage 1 tick is awarded.

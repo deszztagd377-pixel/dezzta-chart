@@ -2575,3 +2575,15 @@ A follow-up code change adds `poc/vercel_ws/vercel.json` with explicit `fluid: t
 - Zero-cost preserved. No Termux action was needed; the existing package-signature/keyring issue remains untouched.
 
 The protected preview is ready for owner-side access testing. A successful Vercel dashboard login alone does not establish preview authorization; the owner must open the preview URL while signed into the authorized Vercel account. Do not weaken SSO to make the test easier.
+
+
+## Owner-device browser smoke test — 2026-11-17
+
+The project owner opened the SSO-protected preview in a browser and reported the following visible result:
+
+- Browser panel showed **Connected**.
+- Server handshake event: `type=ready`, `mode=synthetic-only`, session ID `bcb292945f444cf79f593fa65027ce56`.
+- Browser sent synthetic ping with ID `browser-1`; server returned `type=pong`, `sequence=1`, matching session ID.
+- This is owner-reported browser evidence of a successful authenticated WebSocket connect and one bidirectional ping/pong exchange. It is not a server-side independent trace and does not validate production market-data traffic.
+- Still pending: authenticated `/health` result, manual disconnect followed by a fresh reconnect/session, short-lived connection close behavior and lifetime measurement, repeatability, and cross-instance production fan-out.
+- Gate 36 remains OPEN; no Stage 1 ticks or formal gate closure are awarded from this single smoke test.

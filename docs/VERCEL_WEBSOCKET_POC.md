@@ -108,3 +108,15 @@ This removes ambiguity in the repository configuration, but it is not proof that
 - SSO remains enabled. No public bypass/share URL or custom domain was created. Vercel dashboard access does not itself prove the preview is authorized for the owner account.
 - The explicit `fluid: true` source config is regression-tested. Runtime Fluid setting is not independently read back.
 - Still pending: authenticated HTTP health request, WebSocket ready/ping/pong, manual disconnect/reconnect, maximum connection lifetime, browser/Android acceptance, and production cross-instance fan-out. Gate 36 stays OPEN until these are observed.
+
+
+## Owner-device browser smoke test — 2026-11-17
+
+The project owner opened the SSO-protected preview in a browser and reported the following visible result:
+
+- Browser panel showed **Connected**.
+- Server handshake event: `type=ready`, `mode=synthetic-only`, session ID `bcb292945f444cf79f593fa65027ce56`.
+- Browser sent synthetic ping with ID `browser-1`; server returned `type=pong`, `sequence=1`, matching session ID.
+- This is owner-reported browser evidence of a successful authenticated WebSocket connect and one bidirectional ping/pong exchange. It is not a server-side independent trace and does not validate production market-data traffic.
+- Still pending: authenticated `/health` result, manual disconnect followed by a fresh reconnect/session, short-lived connection close behavior and lifetime measurement, repeatability, and cross-instance production fan-out.
+- Gate 36 remains OPEN; no Stage 1 ticks or formal gate closure are awarded from this single smoke test.
