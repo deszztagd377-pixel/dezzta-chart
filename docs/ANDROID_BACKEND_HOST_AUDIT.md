@@ -38,9 +38,9 @@ A one-phone local backend remains a candidate only. It is not yet accepted becau
 
 ## Zero-cost topology assessment
 
-The only topology worth a controlled feasibility test under the one-device constraint is a manually started, loopback-only Termux backend with the APK as client. This is **not approved for implementation yet**.
+**A dedicated laptop/PC is not required for the project workflow.** The owner develops from an Android phone, and repository changes/deployments can be handled through GitHub and Vercel. Termux is already installed on the phone, but it is not the preferred always-on production host. A phone-local backend would stop when Android suspends or terminates the process and is not suitable as the assumed public service.\n\nThe preferred cloud-host candidate is a Vercel-managed Python backend with native WebSocket support, subject to the compatibility and persistence proof in [VERCEL_BACKEND_FEASIBILITY.md](VERCEL_BACKEND_FEASIBILITY.md). Vercel announced WebSocket support as generally available on 2026-10-20. Its Python runtime supports FastAPI but is documented as Beta. The current FastAPI application is **not deployable unchanged** because its SQLite files and in-process stream hub are not durable/shared across serverless instances. This is a scoped architecture migration, not a request for new hardware.\n\nTermux remains a development/preflight option only. The known package-signature/keyring issue remains a no-go for package changes until trusted repository metadata is available.
 
-Before integration code changes, prove:
+Before integration code changes, prove the Vercel Python/FastAPI WebSocket path and select a durable shared store that has a verified zero-cost tier and meets the security contract. A Vercel Function's writable `/tmp` directory is scratch space, not durable SQLite storage. The existing process-local `OhlcvStreamHub` also cannot coordinate clients connected to different instances.\n\nIf the Vercel proof fails, evaluate the already-installed Termux environment as a development-only fallback; do not require a PC, weaken TLS/ACL, or expose a phone-local service as public production. Before any Termux package changes, resolve the existing signature/keyring trust failure.\n\nThe following Android-local requirements remain relevant only if a device-host POC is ever explicitly needed:
 - Full Python/Bionic backend imports, including the exact cryptography version.
 - A genuine Redis-compatible server with TLS, ACLs, persistence, required commands, and restart behavior.
 - Private Termux SQLite storage, owner-only permissions, backup/restore, and process recovery.
@@ -73,3 +73,17 @@ Phone-local backup is not off-host backup. Loopback testing cannot close off-hos
 This audit clarifies dependencies for criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, and 39. It is repository architecture evidence only, not owner-device acceptance. All ten remain open.
 
 Stage 1 remains 300/400 ticks = 75% provisional (30/40 criteria provisionally accepted). Stages 2–6 remain NOT SCORED. Overall 20.90% remains a historical checkpoint only.
+
+
+## Vercel serverless backend correction — 2026-11-17
+
+The earlier version of this audit treated a Termux-hosted backend as the only one-phone topology worth testing. That conclusion is superseded.
+
+- Vercel WebSocket support became generally available on 2026-10-20: https://vercel.com/changelog/websocket-support-is-now-generally-available
+- Vercel's Python runtime supports FastAPI, Django and Flask, but remains documented as Beta: https://vercel.com/docs/functions/runtimes/python
+- Vercel Functions have a read-only filesystem with writable `/tmp` scratch storage; that scratch space is not a persistent database: https://vercel.com/docs/functions/runtimes
+- Function instances are bounded by maximum duration and can be recycled; clients must reconnect and resubscribe: https://vercel.com/docs/functions/limitations
+
+This makes a Vercel-hosted backend a realistic candidate without a laptop/PC, but does not automatically make the current backend production-compatible. The proof still required is explicit in `VERCEL_BACKEND_FEASIBILITY.md`: Python FastAPI WebSocket compatibility on the actual Vercel plan, durable/shared OHLCV and outbox storage, cross-instance fan-out, Firebase/Redis secret injection, and client reconnect/replay acceptance.
+
+No paid Vercel plan, paid Redis, market-data feed, new hardware, or owner credential was introduced. No Termux command was run. Stage 1 ticks remain unchanged until acceptance evidence exists.

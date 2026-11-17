@@ -2284,3 +2284,45 @@ The repository/CI prerequisites are green, but the ten criteria still require di
 - Termux: **not required** for this repository-only validation cycle.
 
 This section supersedes earlier 2026-11-17 notes that described the exact-HEAD Automated Tests workflow as still running. Historical snapshots are retained for audit chronology.
+
+
+---
+
+## 2026-11-17 — Phone-only deployment correction and Vercel WebSocket capability audit
+
+**Working branch:** `phase-2/market-data-foundation`  
+**Code baseline before this update:** `465a2152d9dcbce1e7b847e435ab9dab1114f674`  
+**Owner device constraint:** Android phone only; no laptop/desktop PC. Termux is already installed but is not assumed to be the production host.
+
+### Important architecture correction
+
+Earlier work overemphasized a phone-local Termux backend as the only one-device topology. That is superseded. Vercel WebSocket support became generally available on 2026-10-20, and Vercel's Python runtime supports FastAPI (currently Beta). A Vercel-managed backend POC can therefore be developed and deployed without a laptop/PC.
+
+This does **not** mean the current backend can be deployed unchanged:
+- The backend uses local SQLite for durable OHLCV/outbox and related records.
+- Vercel Functions have read-only filesystems except temporary `/tmp` scratch storage.
+- `OhlcvStreamHub` keeps subscriptions in process memory; it does not provide cross-instance fan-out.
+- Function connections are bounded by maximum duration and need reconnect/re-authenticate/replay.
+- A continuously running provider or notification worker cannot be assumed on serverless functions.
+
+Detailed feasibility and staged plan: [VERCEL_BACKEND_FEASIBILITY.md](VERCEL_BACKEND_FEASIBILITY.md). The previous Android host audit has been corrected accordingly.
+
+### WebSocket test coverage addition
+
+A deterministic regression test was added to force a valid live bar to arrive after the durable replay page is read but before replay/live handoff completes. It checks:
+- all four pre-existing replay events are delivered exactly once and in sequence;
+- the concurrent live event is delivered after `replay_complete`;
+- its durable cursor is newer than the replay boundary;
+- its sequence continues at 5 without a gap or duplicate.
+
+The test was committed as `301837b8216ad06f53e52602d07171e2ad65ebde`. Exact-HEAD CI is **in progress**; the test is not yet treated as validated.
+
+### Gate 10 and progress accounting
+
+The Vercel platform capability changes the available deployment route, not the external acceptance status:
+- Gate 36 now has a feasible managed WebSocket hosting candidate; Python FastAPI compatibility, durable shared storage and Android reconnect acceptance remain open.
+- Gates 8, 20, 25, 30, 31, 34, 35, 38 and 39 retain their distinct security, persistence, recovery, identity and operator evidence requirements.
+- No Gate is closed by this architecture audit or by adding a test.
+- Stage 1 remains **300/400 ticks = 75% provisional**; Gate 10 remains **0/10 formally closed**.
+- Stages 2–6 remain **NOT SCORED**; overall **20.90% remains historical only**.
+- No paid service, new hardware, Termux package change, or production credential was introduced.
