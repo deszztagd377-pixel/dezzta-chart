@@ -12,6 +12,16 @@ This matrix separates repository implementation from evidence that must come fro
 - **External verification required** — requires a real provider, deployment, managed service, client, or operational exercise.
 - **Approval / design required** — must not be implemented or enabled until the owner approves the scope and threat model.
 
+## Latest verified repository checkpoint — 2026-11-17
+
+- Exact source/test commit: `d32645019db6c93532666f691c43cfe87b9fa8d8`.
+- Automated Tests & Build [44107801447](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44107801447): **SUCCESS**, 32/32 steps; backend pytest **1,008 passed in 26.26s**.
+- CodeQL [44107801732](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44107801732): **SUCCESS**.
+- Full Git History Secret Audit [44107801473](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44107801473): **SUCCESS**.
+- Both Vercel preview status contexts completed successfully. Preview status is not production acceptance.
+- Current accounting: **30/40 provisional = 300/400 = 75%**; **0/10 external gates closed**. Open criteria: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- Gate 38 metrics-input hardening is test-verified at repository level; Gate 39 local operator logging and zero-cost runbook are present. Neither external gate is closed.
+
 ## Forty-point acceptance checklist
 
 ### A. Configuration and secret handling
@@ -708,3 +718,8 @@ A local-only operational alert reporter is now integrated into the existing opt-
 - The current one-phone environment has no independent host or second device. No operational acceptance is claimed; Gates 38 and 39 remain OPEN.
 
 - Exact-head verification for source commit `d32645019db6c93532666f691c43cfe87b9fa8d8`: Automated Tests & Build **32/32 steps SUCCESS**, backend **1,008 passed in 26.26s**; CodeQL and Full Git History Secret Audit **SUCCESS**; both Vercel preview status contexts **SUCCESS**. This remains repository evidence only; external Gate 38 remains OPEN.
+
+
+### Batch 4 authoritative count reconciliation — 2026-11-17
+
+The acceptance matrix is the source of truth for Gate 10 accounting. It currently lists **ten**, not four, external acceptance criteria: 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. Gate 10 remains 0/10 formally closed. Stage 1 remains 300/400 ticks = 75% provisional. No partial or repository-only ticks are awarded.

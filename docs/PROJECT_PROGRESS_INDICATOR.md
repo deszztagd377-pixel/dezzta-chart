@@ -2684,7 +2684,7 @@ Owner-reported browser evidence now includes a normal prior-session close (`1000
 
 - Added strict normalization for malformed metric method/status/duration inputs, including NaN, ±infinity, booleans, strings, unhashable method labels and extremely large finite values.
 - Finite duration samples are capped at 86,400,000 ms to keep metric sums JSON-safe; existing 127-series cardinality and histogram contract are preserved.
-- Two new test functions exercise invalid-input and overflow boundaries. Full exact-head CI is required before this increment is marked test-verified.
+- Two new test functions exercise invalid-input and overflow boundaries. Both passed in the exact-head backend suite: **1,008 passed in 26.26s** (Automated Tests & Build run 44107801447). CodeQL run 44107801732 and Full Git History Secret Audit run 44107801473 also passed on the same source commit.
 - No external gate closed; Stage 1 stays 75% provisional and Gate 10 stays 0/10.
 
 
@@ -2698,3 +2698,14 @@ Owner-reported browser evidence now includes a normal prior-session close (`1000
 
 - The [operations runbook](OPERATIONS_RUNBOOK_ZERO_COST.md) defines protected metrics/status routes, bearer-token safety, process-local limitations, sanitized alert events, adult operator ownership, escalation, and recovery evidence.
 - This is a documented procedure only. It does not create host log collection, durable metrics, or an active on-call service; Gates 38 and 39 remain externally OPEN.
+
+
+## Current-state reconciliation — Batch 4 — 2026-11-17
+
+- Authoritative Stage 1 count remains **30/40 provisional criteria = 300/400 ticks = 75% provisional**.
+- Authoritative Gate 10 count remains **0/10 formally closed**. Ten external criteria remain OPEN: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**. There are not four formally accepted/remaining external gates in the current matrix.
+- Latest source/test commit `d32645019db6c93532666f691c43cfe87b9fa8d8`: Automated Tests & Build **32/32 steps SUCCESS**; backend pytest **1,008 passed in 26.26s**; CodeQL and full-history secret audit **SUCCESS**; both Vercel preview status contexts **SUCCESS**.
+- Latest documentation HEAD before this reconciliation: `b789e229290290c91143077449a83ec94098162f`. This Batch 4 update is documentation-only and does not change runtime code or claim new CI.
+- Gate 36 browser reconnect/fresh-session pong remains PASS as a sub-check; Gate 36 overall remains OPEN for maximum-duration behavior, independent runtime configuration read-back, Capacitor WebView WSS against an authenticated backend, production fan-out, and cost/operational acceptance.
+- Gates 38–39 repository hardening/runbook are implemented, but external host metrics/log collection, retention, access control, operator escalation and recovery exercise remain outstanding.
+- Stages 2–6 remain NOT SCORED; 20.90% remains historical only. ZERO COST maintained; no Termux action required; `main` untouched.

@@ -1,3 +1,28 @@
+# DEZZTA CHART — Current Project Status
+
+**Current checkpoint:** 2026-11-17  
+**Active branch:** `phase-2/market-data-foundation`  
+**Latest documentation HEAD before this reconciliation:** `b789e229290290c91143077449a83ec94098162f`  
+**Latest verified source/test HEAD:** `d32645019db6c93532666f691c43cfe87b9fa8d8`
+
+- **Stage 1:** 30/40 provisional criteria; 300/400 ticks; **75% provisional**, not production accepted.
+- **Gate 10:** **0/10 formally closed**. Open external criteria: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- **Exact-head CI for source commit:** Automated Tests & Build [44107801447](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44107801447) **SUCCESS**, all 32 steps passed; backend pytest **1,008 passed in 26.26s**. CodeQL [44107801732](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44107801732) and Full Git History Secret Audit [44107801473](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44107801473) **SUCCESS**. Both Vercel preview status contexts passed. These are repository/preview checks, not external production acceptance.
+- **Gate 36:** Browser health and manual reconnect/fresh-session ping-pong sub-checks are evidenced. Gate 36 overall remains OPEN.
+- **Gate 38:** Metrics collector hardening passed CI; durable aggregation, retention, host access controls and dashboard acceptance remain OPEN.
+- **Gate 39:** Local sanitized operator reporter and zero-cost runbook exist; host collection, escalation and recovery drill remain OPEN.
+- **Stages 2–6:** NOT SCORED. Overall 20.90% is historical only.
+- **ZERO COST:** No paid plan, provider, subscription, billing activation or Termux package/repository/keyring change. No Termux action required in this cycle.
+- **Protected `main`:** untouched.
+
+## Latest work cycle — Batch 4 reconciliation
+
+This documentation-only batch corrected the stale Gate 38 CI-pending statement in the progress indicator, made the latest exact-head verification prominent in the status/matrix, and reconciled the 10-gate count across the project documentation. It does not add Stage 1 ticks or close any external gate.
+
+Detailed report: [docs/WORK_CYCLE_2026-11-17_GATE10_BATCH4.md](docs/WORK_CYCLE_2026-11-17_GATE10_BATCH4.md).
+
+---
+
 ## Gate 38–39 operations documentation — 2026-11-17
 
 - Added [docs/OPERATIONS_RUNBOOK_ZERO_COST.md](docs/OPERATIONS_RUNBOOK_ZERO_COST.md), covering protected operations routes, bearer-token handling, process-local metrics limits, sanitized alert signals, adult operator ownership, escalation and recovery evidence.
