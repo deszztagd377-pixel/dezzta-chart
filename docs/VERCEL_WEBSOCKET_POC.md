@@ -1,6 +1,6 @@
 # DEZZTA CHART — Isolated Vercel WebSocket POC
 
-Status: **repository implementation prepared; protected Vercel deployment and live browser verification pending**  
+Status: **CI SUCCESS; protected staging deployment READY; live HTTP/WSS acceptance pending**  
 Date: 2026-11-17  
 Working branch: `phase-2/market-data-foundation`
 
@@ -8,7 +8,7 @@ Working branch: `phase-2/market-data-foundation`
 
 Prove only the platform transport path for FastAPI ASGI over Vercel Fluid Compute. This is a disposable synthetic probe, not the DEZZTA CHART production backend.
 
-The POC is isolated under `poc/vercel_ws/` so the existing Vite project, its root settings, routing and frontend deployment remain untouched. The separate Vercel project must use this directory as its Root Directory and SSO protection must be enabled before its first deployment.
+The POC is isolated under `poc/vercel_ws/` so the existing Vite project, its root settings, routing and frontend deployment remain untouched. The separate Vercel project is configured with this directory as its Root Directory and SSO protection is enabled for all deployment targets. Its staging deployment is READY; live transport acceptance remains pending.
 
 ## Implemented
 
@@ -30,11 +30,11 @@ The endpoint accepts only synthetic ping messages and sends synthetic pong respo
 
 | Check | Required evidence | State |
 |---|---|---|
-| Repository unit tests | Exact-HEAD CI test results | Pending |
-| Separate Vercel project | Dedicated project, Root Directory `poc/vercel_ws`, Hobby plan | Pending |
-| Deployment protection | SSO enabled before first deployment | Pending |
-| Fluid Compute | Read-back confirms enabled | Pending |
-| HTTP health | Deployed `/health` returns the exact synthetic-only payload | Pending |
+| Repository unit tests | Automated Tests & Build run `44062060115` | **SUCCESS** |
+| Separate Vercel project | Dedicated FastAPI project; build log confirms `poc/vercel_ws` source | **READY** |
+| Deployment protection | SSO enabled for all deployment targets; no custom domain | **VERIFIED** |
+| Fluid Compute | Update request set `true`; project read-back omits field | **NOT INDEPENDENTLY VERIFIED** |
+| HTTP health | Protected real request to `/health` | Pending |
 | WebSocket upgrade | Browser panel receives `ready`, then ordered `pong` responses | Pending |
 | Disconnect/reconnect | Close then reconnect obtains a new session ID and sequence restarts | Pending |
 | Idle/lifetime behavior | Idle close and Vercel maximum-duration close are observed | Pending |

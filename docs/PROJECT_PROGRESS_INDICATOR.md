@@ -2450,3 +2450,30 @@ Repository-side POC implementation is added under `poc/vercel_ws/`, with automat
 This is preparation for a separate SSO-protected Hobby Vercel project. The existing Vite project is not modified or repointed. POC CI and deployment evidence must be checked against the exact new commit before any acceptance status changes.
 
 No Gate 36 closure or Stage 1 tick is awarded at implementation time. Stage 1 remains 300/400 = 75% provisional; Gate 10 remains 0/10 formally closed. Stages 2–6 remain NOT SCORED. Zero-cost and no-Termux constraints remain.
+
+
+## POC deployment checkpoint — 2026-11-17 (exact commit `8a58120b2e60dee9cb947729e00f0239da1ad361`)
+
+### Verified evidence
+
+- GitHub Actions Automated Tests & Build: **SUCCESS** (run `44062060115`).
+- CodeQL: **SUCCESS** (run `44062060069`).
+- Full Git History Secret Audit: **SUCCESS** (run `44062060090`).
+- Vercel isolated FastAPI POC deployment: **READY**, deployment `dpl_EJgJNiLxZxupJYSGo4M2SH14oYTF`, target `staging`, region `iad1`.
+- Exact source: branch `phase-2/market-data-foundation`, commit `8a58120b2e60dee9cb947729e00f0239da1ad361`.
+- Build log confirms Python 3.12 selected from `poc/vercel_ws/.python-version`, dependencies installed from `poc/vercel_ws/requirements.txt`, and Vercel build completed in approximately 3 seconds.
+- Dedicated project `dezzta-chart-ws-poc`: framework FastAPI; SSO enabled for **all** deployments; no custom domains. No public bypass URL was created.
+- Project update request explicitly set Root Directory `poc/vercel_ws`, Fluid Compute `true`, and function timeout 60 seconds. Build path confirms the subdirectory source was used. The available project-read response does not expose the saved Fluid Compute flag, so Fluid Compute remains **requested but not independently read-back verified**.
+
+### Still not verified
+
+- Protected HTTP health response from a real request.
+- Authenticated browser WebSocket upgrade, ping/pong and disconnect/reconnect.
+- Real connection lifetime and cross-instance behavior.
+- Android browser/device test.
+
+The first deployment request defaulted to production and was canceled before completion. The actual successful deployment is the explicitly selected **staging** deployment above. No production deployment is being treated as acceptance.
+
+### Gate accounting
+
+Gate 36 remains OPEN. The POC implementation, CI success and staging deployment are valuable evidence but do not prove live WSS behavior. Stage 1 remains **300/400 = 75% provisional**; Gate 10 remains **0/10 formally closed**. No progress ticks are awarded for deployment readiness alone.

@@ -219,3 +219,24 @@ A synthetic-only FastAPI probe is now prepared at `poc/vercel_ws/index.py`. It i
 The POC deployment must have SSO protection configured before its first deployment, use the Hobby plan, and remain without a custom domain or bypass link. Verify Fluid Compute by reading the new project's settings before calling the deployment ready. The automated TestClient tests prove application protocol behavior only; they do not substitute for deployed HTTP/WSS, Android/browser reconnect, maximum-duration or cross-instance acceptance.
 
 The POC does not solve production cross-instance fan-out or durable storage. No Stage 1 tick is awarded until external acceptance evidence exists.
+
+
+## Isolated WebSocket POC — deployed staging checkpoint (2026-11-17)
+
+The separate `dezzta-chart-ws-poc` Vercel project now has a successful **staging** deployment:
+- Deployment: `dpl_EJgJNiLxZxupJYSGo4M2SH14oYTF`
+- State: **READY**
+- URL: `https://dezzta-chart-ws-69ieqiztj-deszztagd377-pixel.vercel.app`
+- Source commit: `8a58120b2e60dee9cb947729e00f0239da1ad361`
+- Branch: `phase-2/market-data-foundation`
+- Region: `iad1`
+- Framework: FastAPI
+- SSO protection: enabled for all deployment targets; no custom domain attached.
+
+The build log confirms Python 3.12 and dependencies were selected from `poc/vercel_ws/`; Vercel completed the build in approximately 3 seconds. The project update request set Root Directory `poc/vercel_ws`, Fluid Compute `true`, and default function timeout 60 seconds. The available read-back response does not include Root Directory or Fluid Compute fields. The build confirms the source subdirectory was used; the Fluid Compute setting is still **not independently verified**.
+
+An initial deployment request that inherited the production target was canceled before completion. The successful deployment explicitly uses the staging target. Do not count the canceled request as a production release.
+
+The three exact-commit GitHub workflows passed: Automated Tests & Build (`44062060115`), CodeQL (`44062060069`), and Full Git History Secret Audit (`44062060090`).
+
+**Acceptance still pending:** protected HTTP health request, authenticated WSS upgrade and ping/pong, disconnect/reconnect, max-duration behavior and Android/browser testing. No temporary deployment bypass URL was generated because it would grant access to a protected deployment. Gate 36 remains open and no Stage 1 ticks are awarded for READY status alone.
