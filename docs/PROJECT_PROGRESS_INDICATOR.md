@@ -2587,3 +2587,8 @@ The project owner opened the SSO-protected preview in a browser and reported the
 - This is owner-reported browser evidence of a successful authenticated WebSocket connect and one bidirectional ping/pong exchange. It is not a server-side independent trace and does not validate production market-data traffic.
 - Still pending: authenticated `/health` result, manual disconnect followed by a fresh reconnect/session, short-lived connection close behavior and lifetime measurement, repeatability, and cross-instance production fan-out.
 - Gate 36 remains OPEN; no Stage 1 ticks or formal gate closure are awarded from this single smoke test.
+
+
+## 2026-11-17 — WebSocket reconnect follow-up
+
+Owner-reported browser evidence now includes a normal prior-session close (`1000`), a new `ready` session ID (`47f6768472b44268a51cb8caec4f65a5`) distinct from the initial session, and a subsequent `idle_timeout` event for that new session. This supports reconnect/new-session behavior and idle-timeout closure. No second-session ping/pong was reported. Gate 36 remains OPEN and Stage 1 remains 75% provisional; no ticks are added. See [VERCEL_WEBSOCKET_POC.md](VERCEL_WEBSOCKET_POC.md) for the complete acceptance record.

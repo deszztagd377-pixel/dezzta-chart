@@ -1,6 +1,6 @@
 # DEZZTA CHART — Isolated Vercel WebSocket POC
 
-Status: **latest exact-HEAD CI SUCCESS; protected preview READY; live HTTP/WSS acceptance pending**  
+Status: **latest exact-HEAD CI SUCCESS; protected preview READY; live HTTP/WSS acceptance partial**  
 Date: 2026-11-17  
 Working branch: `phase-2/market-data-foundation`
 
@@ -35,9 +35,9 @@ The endpoint accepts only synthetic ping messages and sends synthetic pong respo
 | Deployment protection | SSO enabled for all deployment targets; no custom domain | **VERIFIED** |
 | Fluid Compute | Update request set `true`; project read-back omits field | **NOT INDEPENDENTLY VERIFIED** |
 | HTTP health | Protected real request to `/health` | Pending |
-| WebSocket upgrade | Browser panel receives `ready`, then ordered `pong` responses | Pending |
-| Disconnect/reconnect | Close then reconnect obtains a new session ID and sequence restarts | Pending |
-| Idle/lifetime behavior | Idle close and Vercel maximum-duration close are observed | Pending |
+| WebSocket upgrade | Browser panel receives `ready`, then ordered `pong` responses | **PARTIAL — one owner-reported ready/pong session** |
+| Disconnect/reconnect | Close then reconnect obtains a new session ID and sequence restarts | **PARTIAL — fresh session ID observed; second-session sequence not tested** |
+| Idle/lifetime behavior | Idle close and Vercel maximum-duration close are observed | **PARTIAL — idle_timeout observed; maximum-duration close not tested** |
 | Cross-instance behavior | Separate sessions do not rely on process-local shared state; this POC intentionally has none | Pending |
 | Cost | Project remains Hobby and usage stays within no-billing allowance | Pending |
 
@@ -120,3 +120,16 @@ The project owner opened the SSO-protected preview in a browser and reported the
 - This is owner-reported browser evidence of a successful authenticated WebSocket connect and one bidirectional ping/pong exchange. It is not a server-side independent trace and does not validate production market-data traffic.
 - Still pending: authenticated `/health` result, manual disconnect followed by a fresh reconnect/session, short-lived connection close behavior and lifetime measurement, repeatability, and cross-instance production fan-out.
 - Gate 36 remains OPEN; no Stage 1 ticks or formal gate closure are awarded from this single smoke test.
+
+
+## Owner-device reconnect and idle-timeout evidence — 2026-11-17
+
+The owner repeated the browser test after the first successful connect/ping exchange and reported:
+
+- The prior connection was displayed as `Closed (1000)`, consistent with the manual disconnect completing with a normal WebSocket close code.
+- A subsequent connection produced a new `ready` event with session ID `47f6768472b44268a51cb8caec4f65a5`, distinct from the first session ID `bcb292945f444cf79f593fa65027ce56`.
+- The new session later emitted `type=idle_timeout` for that same session ID, and the panel returned to a closed state.
+- This is owner-reported evidence that a fresh session was created after disconnect and that the server's idle-timeout close path was observed. The owner did not report sending a ping on this second session, so a second-session pong and sequence reset are **not** claimed.
+- The exact preview deployment used for this second test was not identified in the report. The latest documentation commit's dedicated preview is separately confirmed READY.
+
+Gate 36 remains OPEN. Remaining acceptance includes a protected `/health` response, ping/pong on the fresh session, a measured maximum-duration/lifetime close, repeatability, Android-native client behavior, independent Fluid Compute runtime confirmation, and production cross-instance fan-out. No Stage 1 ticks are awarded.

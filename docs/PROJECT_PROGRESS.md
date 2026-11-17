@@ -2461,3 +2461,16 @@ No Termux action was required or performed. No paid hosting, provider, monitorin
 ## 2026-11-17 — owner-device WebSocket smoke evidence
 
 The owner reports opening the SSO-protected FastAPI preview and seeing **Connected**, a server `ready` handshake in `synthetic-only` mode, then a successful synthetic ping/pong (ID `browser-1`, sequence `1`) in the same session. This confirms the basic browser-to-server and server-to-browser path for one synthetic session. It is not production market-data or cross-instance evidence. Disconnect/reconnect with a fresh session, connection lifetime/close behavior, authenticated health endpoint, and cross-instance fan-out remain unverified. Gate 36 stays OPEN; no formal gate or Stage 1 tick is awarded.
+
+
+---
+
+## 2026-11-17 — Owner-reported WebSocket reconnect/idle-timeout evidence
+
+On the SSO-protected synthetic WebSocket browser panel, the owner reported that the prior session closed with code `1000`; a subsequent connection emitted a fresh `ready` event with session ID `47f6768472b44268a51cb8caec4f65a5`, different from the first observed session `bcb292945f444cf79f593fa65027ce56`. The new session then emitted `idle_timeout` for the same session ID and returned to a closed state.
+
+This supports manual disconnect/reconnect creating a distinct session and the server idle-timeout close path operating. No second-session ping/pong was reported, so no second-session pong or sequence-reset claim is made. The exact deployment URL used for this follow-up was not included in the owner report.
+
+Exact latest documentation HEAD before this record: `9fee5bd53c661a6fecb3e7191b055f8f332bc611`. Its Automated Tests & Build [44073208476](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44073208476), CodeQL [44073208283](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44073208283), and Full Git History Secret Audit [44073208375](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44073208375) all completed **SUCCESS**. Dedicated Vercel POC deployment `dpl_5UqXmPcPha4ySMs6mMfQWaMiHseT` is **READY** from that exact HEAD.
+
+Gate 36 remains OPEN. Stage 1 remains 300/400 ticks = 75% provisional; Gate 10 remains 0/10 formally closed. No progress ticks are awarded for this partial external smoke test. The remaining checks include protected `/health`, ping/pong on the fresh session, measured maximum-duration behavior, repeatability, Android-native acceptance, independent Fluid Compute runtime confirmation, and production cross-instance fan-out.
