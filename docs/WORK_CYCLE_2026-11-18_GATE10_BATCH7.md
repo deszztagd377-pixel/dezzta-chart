@@ -105,3 +105,8 @@ The six-stage colored dashboard and Stage 1 ten-gate dashboard remain the author
 ## Verification boundary
 
 This is a documentation-only commit. It does not claim that a new source test ran, a new Vercel deployment was created, the maximum-duration close was observed, or Gate 36 was closed.
+
+
+## Vercel build-rate-limit status clarification — 2026-11-18
+
+The GitHub combined status for source commit `cfc56b7ba050201823952ea1b67dd38182dc9bfb` still reports the main Vite preview context as **FAILURE** with Vercel's build-rate-limit target URL. The dedicated FastAPI WSS POC preview context is **SUCCESS**. Separately, Vercel project/deployment read-back shows the last existing main Vite deployment `dpl_BzAaDUru7yhSX2pEWRt8EGxLLpdk` is **READY** (built from `545334d9a594b58c19168df1b059f44ed520949c`). These statements refer to different objects: a failed attempt to create a new preview for the later source commit versus a previously completed READY deployment. No retry, plan upgrade, billing activation, or deployment was triggered to bypass the rate limit. The current Vite preview remains available at its known READY deployment, but a new preview for the latest branch HEAD is not verified.
