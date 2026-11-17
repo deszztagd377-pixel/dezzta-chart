@@ -221,3 +221,8 @@ The POC page now offers an explicit owner-started lifetime probe. It sends one s
 Interpretation is strict: a platform-originated close around 300 seconds is evidence of the Function maximum; a 25-second close is an idle/heartbeat failure; a client-initiated close at 330 seconds is only the probe safety timeout and must not be reported as a Vercel maximum-duration close. The probe is synthetic-only, opt-in, SSO-protected, and has not yet been executed against a new deployment. No server idle timeout was increased.
 
 Regression contract: `backend/tests/test_vercel_ws_probe_contract.py` checks heartbeat-vs-idle arithmetic, the bounded duration, and the presence of elapsed-time/close instrumentation.
+
+
+## Updated preview deployment — 2026-11-18
+
+The bounded heartbeat probe source is deployed to a protected Vercel preview and read back as **READY**: `dpl_EV3ScKYRdCA2X4seYFktuuoQgDx6` from source commit `08263d49ab12fd2195515d673b9e84588dcbac57`. Preview URL: `https://dezzta-chart-ws-qywwkeiui-deszztagd377-pixel.vercel.app`. The deployment is isolated synthetic-only; it is not a production alias. The actual 330-second observation remains pending, so no platform maximum-duration behavior is claimed yet.
