@@ -118,3 +118,16 @@ The exact source/test checkpoint `07530d74c43b98de7b9a3f44b1c05eec5db9987e` was 
 - The same job also records successful frontend tests/build, frontend and backend dependency audits, source/bundle secret scans, Android preflight/release-publisher tests, backend container build, Redis/persistent-volume smoke test, image scan, and vulnerability-report export/upload. These remain CI/container evidence, not owner-device or production-host acceptance.
 - The catalog remains fail-closed and no candidate provider was activated. Passing catalog tests do not grant data display/redistribution rights, guarantee a recurring $0 production feed, or prove freshness/quotas in live operation.
 - This evidence closes the **test-execution uncertainty** for the catalog code only. It does not close any of the ten external Stage 1 criteria, award ticks, or change the 75% provisional meter.
+
+
+## Android WebSocket transport clarification — 2026-11-17
+
+A source-level inspection of `src/services/ohlcvWebSocketClient.ts`, `src/services/ohlcvStreamSupervisor.ts`, and `.github/workflows/android-apk.yml` clarifies the Android acceptance boundary:
+
+- The application transport currently uses the standard JavaScript `WebSocket` API by default (`new WebSocket(url)`) and permits an injected `webSocketFactory` for tests/adapters.
+- The APK workflow creates a temporary Capacitor 7 Android wrapper around the built web frontend. It does not show a separate Kotlin/Java native WebSocket client or package/supervise the FastAPI backend.
+- Therefore the relevant Android acceptance test is **WSS from the installed Android APK's Capacitor WebView using the existing JavaScript client**, not a separate native-socket implementation. No native transport is assumed or invented.
+- This test still cannot be claimed: the installed APK has not been shown connecting to an approved deployed `/ws/market-data` backend with Firebase authentication, and the synthetic POC endpoint `/ws` is not the production market-data protocol.
+- The owner need not repeat the browser reconnect test. Android acceptance remains an external device test after a compatible backend endpoint and approved no-billing configuration exist.
+
+This corrects the terminology for future Gate 36 work without changing the gate's acceptance requirement or awarding a Stage 1 tick.
