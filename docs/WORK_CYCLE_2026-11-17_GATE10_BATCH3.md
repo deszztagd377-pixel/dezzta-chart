@@ -2,7 +2,8 @@
 
 Date: 2026-11-17  
 Branch: `phase-2/market-data-foundation`  
-Base head: `30389f7fc1dc6627a1e13e03fd8daffeed0e1f7a`  
+Source commit: `d32645019db6c93532666f691c43cfe87b9fa8d8`
+Latest documentation head: `545334d9a594b58c19168df1b059f44ed520949c`  
 Protected `main`: untouched
 
 ## Objective

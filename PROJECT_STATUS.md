@@ -11,7 +11,7 @@
 - Updated `backend/app/observability.py` to safely normalize unhashable method labels, reject boolean status codes and boolean/string/non-finite durations, handle integer conversion overflow, and cap finite duration samples at 86,400,000 ms.
 - Added regression tests in `backend/tests/test_observability.py` for NaN, ±infinity, booleans, strings, unhashable labels, boolean status codes and extreme finite samples.
 - The existing 127-series cap, overflow series, route sanitization, histogram shape and detached snapshot contract are preserved.
-- Exact-head CI is pending; no test pass is claimed before workflow completion.
+- Exact-head source commit `d32645019db6c93532666f691c43cfe87b9fa8d8` passed Automated Tests & Build [44107801447](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44107801447): all 32 steps passed and backend pytest reported **1,008 passed in 26.26s**. CodeQL [44107801732](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44107801732) and Full Git History Secret Audit [44107801473](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44107801473) also passed; both Vercel preview status contexts passed.
 - External Gate 38 remains OPEN pending durable aggregation, bounded retention, self-hosted dashboard and host access-control evidence. Gate 39 remains OPEN pending host log collection, incident escalation and recovery exercise.
 - Gate 10 remains 0/10. Stage 1 remains 300/400 = 75% provisional. No ticks awarded. ZERO COST preserved; no Termux changes. `main` untouched.
 - Full report: [docs/WORK_CYCLE_2026-11-17_GATE10_BATCH3.md](docs/WORK_CYCLE_2026-11-17_GATE10_BATCH3.md).

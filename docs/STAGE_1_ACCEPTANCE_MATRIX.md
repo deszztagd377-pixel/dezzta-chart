@@ -706,3 +706,5 @@ A local-only operational alert reporter is now integrated into the existing opt-
 - Added [OPERATIONS_RUNBOOK_ZERO_COST.md](OPERATIONS_RUNBOOK_ZERO_COST.md) documenting the existing protected process-local metrics routes, token requirements, privacy boundaries, 127-series limit, alert event meanings, adult operator responsibilities, escalation and recovery evidence.
 - The runbook explicitly says process-local metrics reset on restart and do not aggregate across instances; unit tests do not prove host collection or alert receipt.
 - The current one-phone environment has no independent host or second device. No operational acceptance is claimed; Gates 38 and 39 remain OPEN.
+
+- Exact-head verification for source commit `d32645019db6c93532666f691c43cfe87b9fa8d8`: Automated Tests & Build **32/32 steps SUCCESS**, backend **1,008 passed in 26.26s**; CodeQL and Full Git History Secret Audit **SUCCESS**; both Vercel preview status contexts **SUCCESS**. This remains repository evidence only; external Gate 38 remains OPEN.
