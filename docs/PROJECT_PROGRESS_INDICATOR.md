@@ -8,6 +8,25 @@ Official current stage: **Stage 1 — Foundation, Security & Data Integrity**
 
 > This document defines the **project-process progress indicator**. It is not an in-app technical indicator, chart overlay, or APK feature. Technical indicators such as SMA, EMA, RSI, MACD and Bollinger Bands are separate product work governed by Stage 4.
 
+
+## Current verified snapshot — 2026-11-17
+
+<badge>Authoritative current-state summary</badge>
+
+- **Official stage:** Stage 1 — Foundation, Security & Data Integrity.
+- **Stage 1 checklist:** **300/400 ticks = 75% provisional** (30/40 provisional criteria). This is not production acceptance.
+- **Gate 10:** **0/10 external criteria formally closed**. The ten open criteria are 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39.
+- **Gate 36 browser sub-check:** protected HTTP health 200, two distinct WSS sessions, owner-confirmed manual Disconnect → Connect, first pong sequence 1 in each session, and idle-timeout are evidenced. The reconnect sub-check is PASS; Gate 36 overall remains OPEN.
+- **Gate 36 remaining:** maximum-duration close, independent effective Fluid Compute/root-directory read-back, Android APK Capacitor WebView WSS against a compatible authenticated backend, production cross-instance fan-out, and cost/operational acceptance.
+- **Android wording correction:** the current APK packages the web frontend in a Capacitor wrapper and uses the JavaScript WebSocket API in its WebView. No separate Kotlin/Java native WebSocket transport is claimed.
+- **CI evidence:** source/test checkpoint `07530d74c43b98de7b9a3f44b1c05eec5db9987e` passed the recorded Automated Tests & Build, CodeQL and full-history secret-audit workflows. The CI job log independently confirms all 11 `test_provider_catalog.py` tests passed. These are repository/CI results, not production acceptance.
+- **Stages 2–6:** NOT SCORED. Overall 20.90% remains a historical checkpoint only.
+- **ZERO COST:** no paid plan, external provider, or Termux package/repository/keyring change was introduced. No Termux command is required for this remote audit.
+- **Branch:** `phase-2/market-data-foundation`; `main` untouched.
+
+Detailed ten-gate visual: [Stage 1 Gate Dashboard](assets/stage-1-gate-dashboard.svg).
+
+
 ## Visual presentation standard — permanent through Stage 6
 
 The project-process indicator uses the same six-card dashboard layout in every progress report and documentation snapshot. The visual reference is embedded below:
