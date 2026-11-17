@@ -753,3 +753,6 @@ Vercel documents a 300-second default and maximum Function duration on Hobby wit
 ### Gate 36 — bounded synthetic lifetime probe implementation (2026-11-18)
 
 The isolated Vercel POC now has an opt-in 330-second synthetic heartbeat probe: 10-second heartbeat cadence against the 25-second server idle timeout, with monotonic elapsed-time and WebSocket close-event logging. A regression contract test verifies the timing bounds and instrumentation. This addresses the POC's prior idle-timeout design obstacle at source level. It does not yet prove the deployed Function maximum-duration close. Gate 36 remains OPEN pending new protected deployment observation, effective Fluid Compute read-back, Android WebView acceptance, and production cross-instance fan-out/cost evidence.
+
+
+Gate 36 deployment note (2026-11-18): the bounded synthetic lifetime probe now has a protected Vercel preview deployment in READY state (`dpl_EV3ScKYRdCA2X4seYFktuuoQgDx6`, source commit `08263d49ab12fd2195515d673b9e84588dcbac57`). This confirms deployment of the test harness only. The actual platform-close observation, effective Fluid Compute read-back, Android WebView acceptance and production fan-out remain open.
