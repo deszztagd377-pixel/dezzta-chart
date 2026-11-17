@@ -2490,3 +2490,22 @@ This improves the test harness and CI evidence only. It does not substitute for 
 The isolated browser panel now performs a same-origin GET to /health on page load, with no-store caching and same-origin credentials. It logs the response status, success flag and JSON payload in the same event stream as WebSocket events. The request reuses the authenticated SSO browser session; no public bypass, token exposure or SSO relaxation is introduced. A regression assertion protects the request configuration and event type.
 
 This is a harness improvement only. A live /health response is not yet claimed until the protected deployed panel reports HTTP 200 and the expected synthetic-only payload. Gate 36 remains OPEN; Stage 1 remains 300/400 = 75% provisional and Gate 10 remains 0/10 formally closed. No ticks are added.
+
+
+## Gate 36 — owner-device protected HTTP and fresh WSS round-trip — 2026-11-17
+
+The owner supplied a live browser event sequence from the latest protected POC preview:
+
+- Same-origin protected /health returned HTTP **200**, ok=true, with the expected dezzta-ws-poc / synthetic-only response and production_data_connected=false.
+- WebSocket emitted ready for session d576d71e45684042adcca47624a86c4b.
+- The browser's automatic synthetic ping returned pong, ID browser-1, sequence **1**, carrying the matching session ID.
+- The same session emitted idle_timeout, confirming the bounded idle-close path.
+
+This upgrades Gate 36 evidence from harness-only to owner-device live HTTP and WSS smoke evidence. It does not connect production market data, Firebase, Redis, or a production worker.
+
+Exact-head CI for 07530d74c43b98de7b9a3f44b1c05eec5db9987e completed:
+- Automated Tests & Build 44076533920: **SUCCESS**, all listed test, audit, container, Redis/persistent-volume and image-scan/report steps completed.
+- CodeQL 44076533946: **SUCCESS**.
+- Full Git History Secret Audit 44076533891: **SUCCESS**.
+
+Still open for Gate 36: one explicit manual close-to-reconnect trace showing a fresh session and first pong; Vercel maximum-duration close; independent Fluid Compute runtime read-back; native Android WSS acceptance; and production cross-instance fan-out. Gate 36 remains OPEN; Stage 1 remains 300/400 = 75% provisional; Gate 10 remains 0/10 formally closed. No ticks are added for this smoke test or CI result.
