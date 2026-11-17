@@ -141,3 +141,17 @@ A close near 300 seconds with a platform-originated close signature would suppor
 - No Vercel deployment, 330-second observation, production connection, billing action, or plan upgrade was initiated by this code change.
 - The existing main Vite preview build-rate-limit status remains separate from the dedicated WSS POC preview status.
 - Gate 36 remains OPEN pending deployed observation, effective Fluid Compute read-back, native Android WebView test, and production cross-instance fan-out/cost acceptance.
+
+
+## Protected POC preview deployment result — 2026-11-18
+
+The isolated POC source and regression contract test were deployed by the repository's existing Vercel Git integration:
+
+- Deployment: `dpl_EV3ScKYRdCA2X4seYFktuuoQgDx6`
+- State: **READY**
+- Source commit: `08263d49ab12fd2195515d673b9e84588dcbac57`
+- Preview URL: `https://dezzta-chart-ws-qywwkeiui-deszztagd377-pixel.vercel.app`
+- Alias: `https://dezzta-chart-ws-poc-git-phase-2-marke-513321-deszztagd377-pixel.vercel.app`
+- No production alias was promoted. This is the isolated synthetic POC preview only.
+
+This confirms the updated POC has a READY deployment. It does **not** mean the 330-second probe has been run or that a Vercel 300-second platform close has been observed. Deployment SSO remains the existing access boundary; do not weaken or bypass it. The main Vite preview context on the same source was canceled from the Vercel Dashboard; the previously known frontend READY deployment remains distinct from this WSS POC deployment.
