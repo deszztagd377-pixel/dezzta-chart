@@ -47,6 +47,7 @@ small{color:#91a4bd}
 <div class="status" id="status" role="status" aria-live="polite">Disconnected</div>
 <button id="connect">Connect</button>
 <button id="ping" disabled>Send synthetic ping</button>
+<button id="probe" disabled>Run bounded 330-second lifetime probe</button>
 <button id="disconnect" disabled>Disconnect</button>
 <pre id="log" aria-live="polite">Waiting for a test connection.</pre>
 <small>Connection is intentionally short-lived. Reconnect manually after a close to verify a fresh session.</small>
@@ -58,16 +59,35 @@ small{color:#91a4bd}
   const connectButton = document.getElementById("connect");
   const pingButton = document.getElementById("ping");
   const disconnectButton = document.getElementById("disconnect");
+  const probeButton = document.getElementById("probe");
+  const HEARTBEAT_INTERVAL_MS = 10000;
+  const PROBE_LIMIT_MS = 330000;
   let socket = null;
   let pingNumber = 0;
+  let probeInterval = null;
+  let probeDeadline = null;
+  let probeStartedAt = null;
   const write = (value) => {
     log.textContent += "\n" + JSON.stringify(value);
     log.scrollTop = log.scrollHeight;
+  };
+  const stopProbe = (reason) => {
+    if (probeInterval !== null) window.clearInterval(probeInterval);
+    if (probeDeadline !== null) window.clearTimeout(probeDeadline);
+    probeInterval = null;
+    probeDeadline = null;
+    if (probeStartedAt !== null) {
+      write({type:"lifetime_probe_stopped",reason,elapsed_ms:Math.round(performance.now()-probeStartedAt)});
+      probeStartedAt = null;
+    }
+    probeButton.disabled = !socket || socket.readyState !== WebSocket.OPEN;
+    probeButton.textContent = "Run bounded 330-second lifetime probe";
   };
   const setState = (value, connected) => {
     status.textContent = value;
     connectButton.disabled = connected;
     pingButton.disabled = !connected;
+    probeButton.disabled = !connected || probeInterval !== null;
     disconnectButton.disabled = !connected;
   };
   connectButton.addEventListener("click", () => {
@@ -91,7 +111,12 @@ small{color:#91a4bd}
         write({type:"invalid_server_message"});
       }
     });
-    socket.addEventListener("close", (event) => setState("Closed (" + event.code + ")", false));
+    socket.addEventListener("close", (event) => {
+      stopProbe("socket_closed");
+      const elapsed = probeStartedAt === null ? null : Math.round(performance.now()-probeStartedAt);
+      write({type:"websocket_close",code:event.code,reason:event.reason,elapsed_ms:elapsed});
+      setState("Closed (" + event.code + ")", false);
+    });
     socket.addEventListener("error", () => {
       write({type:"transport_error",detail:"Check protected deployment access and WebSocket upgrade."});
       setState("Connection error", false);
@@ -103,7 +128,28 @@ small{color:#91a4bd}
     socket.send(JSON.stringify({type:"ping",id:"browser-" + pingNumber}));
   };
   pingButton.addEventListener("click", sendPing);
-  disconnectButton.addEventListener("click", () => socket?.close(1000, "manual test disconnect"));
+  probeButton.addEventListener("click", () => {
+    if (!socket || socket.readyState !== WebSocket.OPEN || probeInterval !== null) return;
+    probeStartedAt = performance.now();
+    write({type:"lifetime_probe_started",heartbeat_interval_ms:HEARTBEAT_INTERVAL_MS,probe_limit_ms:PROBE_LIMIT_MS,mode:"synthetic-only"});
+    probeButton.disabled = true;
+    probeButton.textContent = "Lifetime probe running…";
+    probeInterval = window.setInterval(() => {
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        stopProbe("socket_not_open");
+        return;
+      }
+      sendPing();
+    }, HEARTBEAT_INTERVAL_MS);
+    probeDeadline = window.setTimeout(() => {
+      stopProbe("client_probe_limit_reached");
+      if (socket && socket.readyState === WebSocket.OPEN) socket.close(1000, "bounded synthetic probe complete");
+    }, PROBE_LIMIT_MS);
+  });
+  disconnectButton.addEventListener("click", () => {
+    stopProbe("manual_disconnect");
+    socket?.close(1000, "manual test disconnect");
+  });
 
   // The page is already behind deployment SSO; reuse that same browser session.
   // This gives the owner a protected HTTP health result in the same event log.
