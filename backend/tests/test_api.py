@@ -11,6 +11,7 @@ from starlette.websockets import WebSocketDisconnect
 from dataclasses import replace
 
 from app.config import Settings
+import app.main as main_module
 from app.alert_device_store import SQLiteAlertDeviceStore
 from app.main import (
     _allow_websocket_ping,
@@ -1960,3 +1961,59 @@ def test_internal_metrics_endpoint_requires_token_and_returns_bounded_snapshot()
     health_rows = [item for item in payload["requests"] if item["route"] == "/health" and item["method"] == "GET"]
     assert health_rows and health_rows[0]["count"] >= 1
     assert all("metrics-token" not in str(item) for item in payload.values())
+
+
+def test_websocket_live_event_arriving_after_replay_read_is_delivered_after_replay(monkeypatch) -> None:
+    """Force a live publish after the replay page is read but before handoff."""
+    application = _app_with_bars()
+    real_asyncio = main_module.asyncio
+
+    class AsyncioProxy:
+        def __getattr__(self, name):
+            return getattr(real_asyncio, name)
+
+        async def to_thread(self, function, /, *args, **kwargs):
+            result = function(*args, **kwargs)
+            if getattr(function, "__name__", "") == "replay_outbox":
+                application.state.provider._ingest.ingest_batch(
+                    [_record(4)], "ohlcv-1s"
+                )
+            return result
+
+    monkeypatch.setattr(main_module, "asyncio", AsyncioProxy())
+    client = TestClient(application)
+
+    with client.websocket_connect("/ws/market-data") as websocket:
+        websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+        assert websocket.receive_json()["type"] == "market_data.status"
+        websocket.send_json({
+            "type": "market_data.subscribe",
+            "version": 1,
+            "cursor": "0",
+            "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+            "series": {
+                "dataset": "GLBX.MDP3",
+                "publisherId": 1,
+                "instrumentId": 101,
+                "rawSymbol": "ESZ6",
+                "timeframe": "1s",
+            },
+        })
+
+        started = websocket.receive_json()
+        assert started["type"] == "market_data.ohlcv.replay_started"
+        assert started["count"] == 4
+        replayed = [websocket.receive_json() for _ in range(started["count"])]
+        assert all(item["replayed"] is True for item in replayed)
+        assert [item["sequence"] for item in replayed] == [1, 2, 3, 4]
+
+        complete = websocket.receive_json()
+        assert complete["type"] == "market_data.ohlcv.replay_complete"
+        assert complete["count"] == 4
+
+        live = websocket.receive_json()
+        assert live["type"] == "market_data.ohlcv.update"
+        assert live["sequence"] == 5
+        assert int(live["cursor"]) > int(complete["cursor"])
+        assert live["bar"]["tsStartNs"] == str(_T0 + 4 * _NS)
+        assert live.get("replayed", False) is False
