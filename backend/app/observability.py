@@ -1,7 +1,9 @@
 """Bounded, process-local HTTP request metrics for private operations scraping."""
+import math
 from threading import Lock
 
 _LATENCY_BUCKETS_MS = (5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000)
+_MAX_DURATION_MS = 86_400_000.0  # One day; keep pathological samples finite and bounded.
 _ALLOWED_METHODS = frozenset(("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"))
 _MAX_ROUTE_SERIES = 127
 
@@ -16,10 +18,28 @@ class RequestMetrics:
         self._latency: dict[tuple[str, str], dict[str, object]] = {}
 
     def record(self, method: str, route: str, status_code: int, duration_ms: float) -> None:
-        method = method if method in _ALLOWED_METHODS else "OTHER"
+        method = method if isinstance(method, str) and method in _ALLOWED_METHODS else "OTHER"
         route = route if isinstance(route, str) and route.startswith("/") and len(route) <= 160 else "unmatched"
-        status = f"{status_code // 100}xx" if isinstance(status_code, int) and 100 <= status_code <= 599 else "other"
-        duration = max(0.0, float(duration_ms)) if isinstance(duration_ms, (int, float)) else 0.0
+        status = (
+            f"{status_code // 100}xx"
+            if isinstance(status_code, int)
+            and not isinstance(status_code, bool)
+            and 100 <= status_code <= 599
+            else "other"
+        )
+        try:
+            raw_duration = (
+                float(duration_ms)
+                if isinstance(duration_ms, (int, float)) and not isinstance(duration_ms, bool)
+                else 0.0
+            )
+        except (OverflowError, ValueError):
+            raw_duration = 0.0
+        duration = (
+            min(max(0.0, raw_duration), _MAX_DURATION_MS)
+            if math.isfinite(raw_duration)
+            else 0.0
+        )
         key = (method, route)
         with self._lock:
             if key not in self._series:

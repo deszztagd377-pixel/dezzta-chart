@@ -53,3 +53,29 @@ def test_request_metrics_snapshot_is_detached_from_internal_state():
     fresh = metrics.snapshot()
     assert fresh["requests"][0]["count"] == 1
     assert fresh["latency_ms"][0]["buckets"][0]["count"] == 1
+
+
+def test_request_metrics_rejects_non_finite_and_boolean_durations():
+    metrics = RequestMetrics()
+
+    for value in (float("nan"), float("inf"), float("-inf"), True, "5"):
+        metrics.record("GET", "/health", 200, value)
+
+    snapshot = metrics.snapshot()
+    assert snapshot["latency_ms"][0]["count"] == 5
+    assert snapshot["latency_ms"][0]["sum_ms"] == 0.0
+    assert all(bucket["count"] == 5 for bucket in snapshot["latency_ms"][0]["buckets"])
+
+
+def test_request_metrics_caps_extreme_finite_duration_and_rejects_unhashable_labels():
+    metrics = RequestMetrics()
+    metrics.record(["GET"], "/health", True, float("nan"))
+    metrics.record("GET", "/health", 200, 1e308)
+
+    snapshot = metrics.snapshot()
+    assert snapshot["requests"] == [
+        {"method": "GET", "route": "/health", "status_class": "2xx", "count": 1},
+        {"method": "OTHER", "route": "/health", "status_class": "other", "count": 1},
+    ]
+    assert snapshot["latency_ms"][0]["sum_ms"] == 86_400_000.0
+    assert snapshot["latency_ms"][1]["sum_ms"] == 0.0

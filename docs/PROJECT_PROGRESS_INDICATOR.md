@@ -18,7 +18,7 @@ Official current stage: **Stage 1 — Foundation, Security & Data Integrity**
 - **Gate 10:** **0/10 external criteria formally closed**. The ten open criteria are 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39.
 - **Gate 36 browser sub-check:** protected HTTP health 200, two distinct WSS sessions, owner-confirmed manual Disconnect → Connect, first pong sequence 1 in each session, and idle-timeout are evidenced. The reconnect sub-check is PASS; Gate 36 overall remains OPEN.
 - **Gate 36 remaining:** maximum-duration close, independent effective Fluid Compute/root-directory read-back, Android APK Capacitor WebView WSS against a compatible authenticated backend, production cross-instance fan-out, and cost/operational acceptance.
-- **Gate 38 repository sub-check:** corrected the metrics route-series cap to a strict 127 total series including overflow; three regression tests and the full 999-test backend suite pass. Gate 38 remains OPEN because durable aggregation, retention, protected host operations and dashboard acceptance are not yet proven.
+- **Gate 38 repository sub-check:** metrics collector has a strict 127 total series including overflow, sanitized labels, detached snapshots, and now rejects non-finite/boolean/string durations, handles unhashable method labels and clamps extreme finite samples. Two additional regression tests have been added; exact-head CI is pending. Gate 38 remains OPEN because durable aggregation, retention, protected host operations and dashboard acceptance are not yet proven.
 - **Android wording correction:** the current APK packages the web frontend in a Capacitor wrapper and uses the JavaScript WebSocket API in its WebView. No separate Kotlin/Java native WebSocket transport is claimed.
 - **CI evidence:** exact source/test checkpoint `5a0c106d388b78ebb2c7821893d918879c5415da` passed Automated Tests & Build [44105086185](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44105086185), CodeQL [44105086159](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44105086159), and Full Git History Secret Audit [44105086295](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44105086295). Backend suite: **1,006 passed in 28.39s**, including seven local operator-alert test cases and the earlier metrics cardinality regressions. Both Vercel preview status contexts completed successfully. Earlier provider-catalog audit also confirmed all 11 catalog tests passed. These are repository/CI/preview results, not production acceptance.
 - **Stages 2–6:** NOT SCORED. Overall 20.90% remains a historical checkpoint only.
@@ -2678,3 +2678,11 @@ Owner-reported browser evidence now includes a normal prior-session close (`1000
 - Gate 10 remains **0/10**; Stage 1 remains **300/400 ticks = 75% provisional**. No ticks awarded. Stages 2–6 remain NOT SCORED.
 - No paid service, provider, credential, Firebase billing, or Termux change. `main` untouched.
 - Full evidence: [Gate 10 work cycle — local operational alert path](WORK_CYCLE_2026-11-17_GATE10_BATCH2.md).
+
+
+### Gate 38 observability input hardening — 2026-11-17
+
+- Added strict normalization for malformed metric method/status/duration inputs, including NaN, ±infinity, booleans, strings, unhashable method labels and extremely large finite values.
+- Finite duration samples are capped at 86,400,000 ms to keep metric sums JSON-safe; existing 127-series cardinality and histogram contract are preserved.
+- Two new test functions exercise invalid-input and overflow boundaries. Full exact-head CI is required before this increment is marked test-verified.
+- No external gate closed; Stage 1 stays 75% provisional and Gate 10 stays 0/10.

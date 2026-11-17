@@ -77,7 +77,7 @@
 <g transform="translate(715 486)">
  <rect width="204" height="210" rx="15" fill="#302514" stroke="#f59e0b"/><rect width="204" height="6" rx="3" fill="url(#amber)"/>
  <text x="16" y="34" class="k">GATE 38</text><text x="16" y="66" class="name">Observability</text>
- <text x="16" y="99" class="body"><tspan x="16">Bounded metrics,</tspan><tspan x="16" dy="19">logs, dashboard</tspan><tspan x="16" dy="19">and access control</tspan></text>
+ <text x="16" y="99" class="body"><tspan x="16">127-series cap +</tspan><tspan x="16" dy="19">finite metrics input</tspan><tspan x="16" dy="19">and host dashboard</tspan></text>
  <rect x="16" y="169" width="76" height="24" rx="12" fill="#78350f"/><text x="29" y="185" class="pill">OPEN</text>
 </g>
 <g transform="translate(936 486)">
@@ -86,6 +86,6 @@
  <text x="16" y="99" class="body"><tspan x="16">Local sanitized</tspan><tspan x="16" dy="19">operator logs +</tspan><tspan x="16" dy="19">transition alerts</tspan></text>
  <rect x="16" y="169" width="76" height="24" rx="12" fill="#78350f"/><text x="29" y="185" class="pill">OPEN</text>
 </g>
-<text x="52" y="760" class="sub">Gate 36 browser reconnect + fresh-session pong is PASS (owner-confirmed); Gate 39 local operator logging is implemented. Both external gates remain OPEN.</text>
-<text x="52" y="790" class="k">UPDATED 2026-11-17 • GATE 39 LOCAL LOG REPORTER IMPLEMENTED • ALL TEN EXTERNAL GATES OPEN</text>
+<text x="52" y="760" class="sub">Gate 36 browser reconnect + fresh-session pong is PASS (owner-confirmed); Gate 38 metrics input hardening and Gate 39 local operator logging are implemented. Both external gates remain OPEN.</text>
+<text x="52" y="790" class="k">UPDATED 2026-11-17 • GATE 38 METRICS INPUT HARDENING • GATE 39 LOCAL ALERT REPORTER • ALL EXTERNAL GATES OPEN</text>
 </svg>

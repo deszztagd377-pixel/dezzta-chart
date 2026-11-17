@@ -68,7 +68,7 @@ This matrix separates repository implementation from evidence that must come fro
 ### F. Operations and production acceptance
 
 37. **Implemented / test present** — the market-data status endpoint exposes bounded application-level operational state; it is not external monitoring.
-38. **External verification required / paid observability prohibited** — configure self-hosted metrics/log collection, bounded retention, dashboards, and access controls on existing hardware, or explicitly defer if resource limits prevent safe operation.
+38. **External verification required / paid observability prohibited** — repository collector has bounded 127-series cardinality, sanitized labels, process-local counters/histograms, detached snapshots, and now rejects non-finite/boolean/string durations while clamping extreme finite samples. Still configure self-hosted metrics/log collection, bounded retention, dashboards, and access controls on existing hardware, or explicitly defer if resource limits prevent safe operation. This repository hardening does not close the external criterion.
 39. **External verification required / paid delivery prohibited** — demonstrate a no-incremental-cost local alert path and document incident ownership, escalation, and recovery steps. Do not assume email/SMS/push delivery is free.
 40. **Owner-approved design — complete (2026-11-10)** — the owner explicitly approved the detailed replay cursor model, outbox retention policy, reconnect semantics, benchmark plan, and short-lived scoped WebSocket-ticket threat model in [WEBSOCKET_RELIABILITY_DESIGN.md](WEBSOCKET_RELIABILITY_DESIGN.md). This closes the owner-approval criterion. Durable outbox/replay implementation still requires incremental code review and regression evidence; ticket exchange additionally remains gated on an independent security review before ticket code is added.
 
@@ -690,3 +690,12 @@ A local-only operational alert reporter is now integrated into the existing opt-
 - **Repository-level local operator logging is implemented; external criterion 39 remains OPEN.** Actual host log collection, incident ownership/escalation, and a recovery exercise remain required. This does not implement end-user alert delivery; FCM remains opt-in/disabled by default and no live tick source is connected.
 - No Stage 1 ticks are awarded. The complete criterion 39 acceptance boundary remains unfulfilled. Stage 1 remains 75% provisional and Gate 10 remains 0/10 formally closed.
 - ZERO COST maintained: no service, subscription, provider, credential, billing change, or Termux modification.
+
+
+### Gate 38 repository input-hardening increment — 2026-11-17
+
+- `backend/app/observability.py` safely normalizes unhashable method labels, rejects boolean status codes and boolean/string/non-finite durations, handles integer-to-float overflow, and clamps finite samples to 86,400,000 ms.
+- `backend/tests/test_observability.py` adds regression coverage for NaN, ±infinity, booleans, strings, unhashable labels, boolean status codes and extreme finite durations.
+- The 127-series cardinality cap and existing metrics schema are unchanged.
+- **External Gate 38 remains OPEN** because process-local metrics are not durable or aggregated across instances; bounded retention, self-hosted dashboard, host access controls and operational evidence remain outstanding.
+- No Stage 1 ticks awarded. Gate 10 remains 0/10; Stage 1 remains 300/400 (75% provisional).

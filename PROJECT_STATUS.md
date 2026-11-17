@@ -1,3 +1,15 @@
+## Latest Gate 38 repository increment — observability input hardening (2026-11-17)
+
+- Updated `backend/app/observability.py` to safely normalize unhashable method labels, reject boolean status codes and boolean/string/non-finite durations, handle integer conversion overflow, and cap finite duration samples at 86,400,000 ms.
+- Added regression tests in `backend/tests/test_observability.py` for NaN, ±infinity, booleans, strings, unhashable labels, boolean status codes and extreme finite samples.
+- The existing 127-series cap, overflow series, route sanitization, histogram shape and detached snapshot contract are preserved.
+- Exact-head CI is pending; no test pass is claimed before workflow completion.
+- External Gate 38 remains OPEN pending durable aggregation, bounded retention, self-hosted dashboard and host access-control evidence. Gate 39 remains OPEN pending host log collection, incident escalation and recovery exercise.
+- Gate 10 remains 0/10. Stage 1 remains 300/400 = 75% provisional. No ticks awarded. ZERO COST preserved; no Termux changes. `main` untouched.
+- Full report: [docs/WORK_CYCLE_2026-11-17_GATE10_BATCH3.md](docs/WORK_CYCLE_2026-11-17_GATE10_BATCH3.md).
+
+---
+
 ## Latest Gate 39 repository increment — 2026-11-17
 
 - Code commit `5a0c106d388b78ebb2c7821893d918879c5415da` adds a local-only sanitized operator alert reporter to the existing opt-in alert-delivery worker.
