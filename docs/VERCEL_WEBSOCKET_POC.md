@@ -133,3 +133,12 @@ The owner repeated the browser test after the first successful connect/ping exch
 - The exact preview deployment used for this second test was not identified in the report. The latest documentation commit's dedicated preview is separately confirmed READY.
 
 Gate 36 remains OPEN. Remaining acceptance includes a protected `/health` response, ping/pong on the fresh session, a measured maximum-duration/lifetime close, repeatability, Android-native client behavior, independent Fluid Compute runtime confirmation, and production cross-instance fan-out. No Stage 1 ticks are awarded.
+
+
+## Browser probe repeat-session improvement — 2026-11-17
+
+The browser panel now sends one bounded synthetic ping automatically whenever it receives a new ready message. It resets the browser ping counter for each fresh session, so the first automatic ping on every session uses browser-1; the server response should be pong with sequence 1 and the same session ID. The manual ping button remains available for additional ordered exchanges.
+
+Regression coverage now verifies that two separate TestClient WebSocket sessions receive distinct session IDs and each starts the server-side pong sequence at 1. A browser-panel assertion protects the automatic fresh-session ping behavior.
+
+This is a testability improvement and repository-level regression coverage. It is not owner-device evidence of a deployed second-session pong, maximum Vercel connection duration, /health, Android-native WSS, or cross-instance fan-out. Gate 36 remains OPEN; no Stage 1 ticks are awarded.

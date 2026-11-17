@@ -2592,3 +2592,16 @@ The project owner opened the SSO-protected preview in a browser and reported the
 ## 2026-11-17 — WebSocket reconnect follow-up
 
 Owner-reported browser evidence now includes a normal prior-session close (`1000`), a new `ready` session ID (`47f6768472b44268a51cb8caec4f65a5`) distinct from the initial session, and a subsequent `idle_timeout` event for that new session. This supports reconnect/new-session behavior and idle-timeout closure. No second-session ping/pong was reported. Gate 36 remains OPEN and Stage 1 remains 75% provisional; no ticks are added. See [VERCEL_WEBSOCKET_POC.md](VERCEL_WEBSOCKET_POC.md) for the complete acceptance record.
+
+
+## Gate 36 — automated fresh-session ping checkpoint (2026-11-17)
+
+- Browser probe behavior: IMPLEMENTED — a fresh ready event triggers one automatic synthetic ping; the browser-side ping ID resets to browser-1 per session.
+- Manual ping: PRESERVED — button remains enabled after WebSocket open for additional ordered exchanges.
+- Backend regression: ADDED — two independent sessions must have different session IDs and each first pong must restart at sequence 1 with matching session identity.
+- Browser-panel regression: ADDED — source assertion protects the automatic ping-on-ready behavior.
+- Deployed owner-device second-session pong: NOT YET OBSERVED.
+- Protected /health, maximum Vercel connection lifetime, Android-native WSS, runtime Fluid Compute read-back and cross-instance production fan-out: OPEN.
+- Gate 36: OPEN; Gate 10: 0/10 formally closed.
+- Stage 1: 300/400 ticks = 75% provisional; no new ticks awarded by this code/test change.
+- Cost: $0 incremental; no new service, package, account, secret, or Termux command.

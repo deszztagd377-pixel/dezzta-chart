@@ -80,6 +80,12 @@ small{color:#91a4bd}
       try {
         const message = JSON.parse(event.data);
         write(message);
+        if (message.type === "ready") {
+          // Every fresh server session receives one automatic synthetic round-trip.
+          // Reset the browser-side ID so each session starts at browser-1.
+          pingNumber = 0;
+          sendPing();
+        }
         if (message.type === "idle_timeout") setState("Server closed idle session", false);
       } catch {
         write({type:"invalid_server_message"});
@@ -91,11 +97,12 @@ small{color:#91a4bd}
       setState("Connection error", false);
     });
   });
-  pingButton.addEventListener("click", () => {
+  const sendPing = () => {
     if (!socket || socket.readyState !== WebSocket.OPEN) return;
     pingNumber += 1;
     socket.send(JSON.stringify({type:"ping",id:"browser-" + pingNumber}));
-  });
+  };
+  pingButton.addEventListener("click", sendPing);
   disconnectButton.addEventListener("click", () => socket?.close(1000, "manual test disconnect"));
 })();
 </script>

@@ -66,6 +66,31 @@ def test_websocket_sends_ready_then_ordered_synthetic_pongs() -> None:
         assert first["session_id"] == second["session_id"] == ready["session_id"]
 
 
+def test_websocket_fresh_session_gets_a_new_id_and_resets_sequence() -> None:
+    session_ids: list[str] = []
+    for number in (1, 2):
+        with client.websocket_connect("/ws") as websocket:
+            ready = websocket.receive_json()
+            assert ready["type"] == "ready"
+            session_ids.append(ready["session_id"])
+            websocket.send_json({"type": "ping", "id": f"session-{number}"})
+            pong = websocket.receive_json()
+            assert pong["type"] == "pong"
+            assert pong["id"] == f"session-{number}"
+            assert pong["sequence"] == 1
+            assert pong["session_id"] == ready["session_id"]
+    assert session_ids[0] != session_ids[1]
+
+
+def test_browser_probe_automatically_pings_each_fresh_session() -> None:
+    response = client.get("/")
+    assert response.status_code == 200
+    assert 'if (message.type === "ready")' in response.text
+    assert "pingNumber = 0;" in response.text
+    assert "sendPing();" in response.text
+    assert 'pingButton.addEventListener("click", sendPing);' in response.text
+
+
 def test_websocket_rejects_oversized_message() -> None:
     with client.websocket_connect("/ws") as websocket:
         assert websocket.receive_json()["type"] == "ready"

@@ -2474,3 +2474,12 @@ This supports manual disconnect/reconnect creating a distinct session and the se
 Exact latest documentation HEAD before this record: `9fee5bd53c661a6fecb3e7191b055f8f332bc611`. Its Automated Tests & Build [44073208476](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44073208476), CodeQL [44073208283](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44073208283), and Full Git History Secret Audit [44073208375](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44073208375) all completed **SUCCESS**. Dedicated Vercel POC deployment `dpl_5UqXmPcPha4ySMs6mMfQWaMiHseT` is **READY** from that exact HEAD.
 
 Gate 36 remains OPEN. Stage 1 remains 300/400 ticks = 75% provisional; Gate 10 remains 0/10 formally closed. No progress ticks are awarded for this partial external smoke test. The remaining checks include protected `/health`, ping/pong on the fresh session, measured maximum-duration behavior, repeatability, Android-native acceptance, independent Fluid Compute runtime confirmation, and production cross-instance fan-out.
+
+
+## Gate 36 — fresh-session round-trip automation — 2026-11-17
+
+The isolated browser probe panel now automatically sends one synthetic ping after every server ready event. The ping identifier resets to browser-1 for each session, allowing the owner to see whether each reconnect receives a matching pong with sequence 1 without needing a separate manual button press. The manual ping button remains available and continues the sequence.
+
+Added backend regression coverage for two independent WebSocket sessions: each must receive a distinct session ID, and each session's first pong must have sequence 1 and carry its own session ID. Added a browser-panel source assertion for automatic ping-on-ready behavior.
+
+This improves the test harness and CI evidence only. It does not substitute for owner-device evidence on the deployed preview, protected /health, Vercel maximum-duration behavior, Android-native WSS, or cross-instance production fan-out. Gate 36 remains OPEN. No Stage 1 ticks are awarded; the official Stage 1 meter remains 300/400 = 75% provisional and Gate 10 remains 0/10 formally closed.
