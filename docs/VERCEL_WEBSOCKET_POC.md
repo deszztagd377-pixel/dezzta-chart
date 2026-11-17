@@ -200,3 +200,15 @@ This closes the browser-panel manual reconnect + fresh-session ping/pong sub-che
 - The Vercel FastAPI WSS POC preview status context completed **SUCCESS**.
 - The main Vite frontend preview status context returned **FAILURE: Vercel build-rate limit**. This was a platform deployment-rate restriction, not a source test failure. No paid plan upgrade, deployment bypass, or retry loop was attempted.
 - The POC preview status is not a production WSS acceptance test. Maximum-duration behavior, effective Fluid Compute read-back, Android Capacitor WebView WSS against the authenticated production backend, cross-instance fan-out, and cost acceptance remain open.
+
+
+## Batch 7 — Hobby function lifetime and bounded maximum-duration test plan — 2026-11-18
+
+- The current dedicated FastAPI POC and main Vite deployments were independently read back as **READY**. The POC remains protected by SSO for all deployment targets; both projects remain preview-only (`live=false`).
+- Vercel's published Fluid Compute limits specify Hobby default and maximum Function duration as **300 seconds (5 minutes)**. WebSocket sessions close when their Function invocation reaches its configured maximum duration. This is expected platform lifecycle behavior, not a transport failure.
+- Current POC idle timeout is **25 seconds**. A passive browser connection therefore closes from the POC's own idle policy long before the platform's 300-second ceiling. A platform lifetime test must send synthetic heartbeat pings at intervals shorter than 25 seconds and capture elapsed time plus the close event.
+- A temporary POC-only `maxDuration` cap (suggested 60 seconds) is a bounded test option; it has **not** been configured or deployed. It would prove the platform-enforced close mechanism at the temporary cap, not prove the full 300-second Hobby ceiling.
+- Do not use production market data, production credentials, a public bypass URL, or a custom domain for this test. Keep SSO enabled. Do not trigger a 300-second observation until Hobby usage allowance and zero-billing constraints are confirmed.
+- Production clients must reconnect with bounded backoff, reauthenticate/recheck entitlement, resume from a durable cursor, deduplicate replay/live overlap, and resnapshot on replay gaps. Function memory cannot be the durable cross-instance state layer.
+- Gate 36 remains OPEN. No platform max-duration close or independent effective Fluid Compute setting read-back is claimed. Android WebView WSS and production cross-instance fan-out remain open.
+- Supporting report: [Batch 7](WORK_CYCLE_2026-11-18_GATE10_BATCH7.md).
