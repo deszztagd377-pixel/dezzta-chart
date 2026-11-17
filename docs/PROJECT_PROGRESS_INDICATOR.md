@@ -2384,3 +2384,27 @@ Vercel success proves a branch-commit deployment only. It does not prove product
 - ZERO COST preserved; no paid service or publication fee introduced.
 - Termux was not needed in this repository-side cycle.
 - The Python runtime is GA as of 2026-10-15; historical Beta references above are superseded by the current platform audit in `VERCEL_BACKEND_FEASIBILITY.md`.
+
+
+## 2026-11-17 — Exact-head CI and Vercel evidence refresh
+
+Audited exact branch commit: `056cdd0a838ce2c47b4206af3801d6778af05675` on `phase-2/market-data-foundation`.
+
+| Verification | Exact run / evidence | Result |
+|---|---|---|
+| Automated Tests & Build | GitHub Actions run 44057926407; Test and Build job | **SUCCESS** |
+| CodeQL JavaScript/TypeScript | GitHub Actions run 44057926358 | **SUCCESS** |
+| CodeQL Python | GitHub Actions run 44057926358 | **SUCCESS** |
+| Full Git History Secret Audit | GitHub Actions run 44057926322 | **SUCCESS** |
+| Vercel preview deployment | Deployment `dpl_BhwrF8rhMWzteFQ1kgPy5ZSs7kZm`, same branch and SHA | **READY** |
+
+The Vercel team plan was read as **Hobby**. The project framework is Vite and the linked repository is the expected GitHub repository. The connector's project response did not expose Root Directory or Fluid Compute settings, so neither is marked verified. The READY preview is not evidence of a Python backend or production WSS.
+
+### Gate accounting after this refresh
+
+- Stage 1 remains **300/400 ticks = 75% provisional** (30/40 criteria).
+- The ten external acceptance criteria remain **0/10 formally closed**.
+- No Stage 1 ticks are awarded for green CI, documentation corrections, account connection, or a frontend preview deployment.
+- Stages 2–6 remain **NOT SCORED**.
+- Overall **20.90% remains a historical checkpoint**, not a fresh calculation.
+- This refresh improves evidence traceability only; it does not claim production acceptance.

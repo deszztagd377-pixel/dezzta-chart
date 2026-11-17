@@ -3,7 +3,7 @@
 Audit date: 2026-11-17  
 Repository: `deszztagd377-pixel/dezzta-chart`  
 Branch: `phase-2/market-data-foundation`  
-Audited code baseline: `465a2152d9dcbce1e7b847e435ab9dab1114f674`  
+Audited code baseline: `056cdd0a838ce2c47b4206af3801d6778af05675`  
 Policy: **ZERO COST — no laptop/PC requirement**
 
 ## Executive decision
@@ -32,7 +32,7 @@ However, the existing FastAPI backend must **not** be pointed at Vercel and decl
 | Capability | Current platform evidence | Consequence |
 |---|---|---|
 | Vercel WebSockets | Generally available since 2026-10-20 | A Vercel-hosted WSS endpoint is now a valid architecture candidate |
-| Python runtime | Supports FastAPI, Django and Flask; documented Beta | A small compatibility POC is required before production |
+| Python runtime | Generally available; current guidance supports FastAPI/ASGI | A small compatibility POC is still required before production |
 | Function lifecycle | Connections are pinned to an instance and bounded by function max duration | Client reconnect, backoff, re-authentication and replay are mandatory |
 | Filesystem | Read-only except temporary `/tmp` scratch storage | Local SQLite files cannot be treated as durable production storage |
 | Instance state | Separate instances can handle different connections | Process-local subscription maps cannot provide global fan-out |
@@ -168,3 +168,23 @@ References:
 - Spark quota shutdown behavior: https://firebase.google.com/docs/projects/billing/firebase-pricing-plans
 
 **Decision:** no provider currently proves all required properties together: zero cost, durable OHLCV/outbox storage, cross-instance fan-out, TLS/ACL/private access, encrypted off-host backup and tested recovery. Do not select Upstash Free for Gate 25 or represent Firestore Spark as a complete backup solution.
+
+
+## 2026-11-17 — Live connector and exact-commit deployment verification
+
+The Vercel account connection is now active and has been read successfully through the Vercel integration.
+
+Verified account/project facts:
+- Vercel team plan: **Hobby** (zero-cost plan; do not upgrade).
+- Project: `dezzta-chart`, framework: **Vite**.
+- Linked Git repository: `deszztagd377-pixel/dezzta-chart`.
+- Exact branch: `phase-2/market-data-foundation`.
+- Exact commit: `056cdd0a838ce2c47b4206af3801d6778af05675`.
+- Vercel deployment: **READY**, preview deployment URL: `https://dezzta-chart-exhrc6h9y-deszztagd377-pixel.vercel.app`.
+- Deployment target is a preview (not verified as production); no new deployment was triggered during this audit.
+
+The available project read response confirms the Vite framework and project identity but does not expose the saved `rootDirectory` or Fluid Compute setting. Those two settings therefore remain **UNVERIFIED**; absence from the connector response is not evidence that either setting is enabled or disabled. Do not create or deploy a Python entrypoint in this Vite project until those settings can be inspected or an isolated second project is explicitly prepared.
+
+The deployment being READY proves that this exact branch commit built and deployed as a Vite preview. It does **not** prove a Python FastAPI runtime, HTTP backend health route, authenticated WebSocket upgrade, reconnect, cross-instance fan-out, durable storage, or production WSS.
+
+The Vercel project is on Hobby. All subsequent POC design must remain within the existing no-billing allowance; do not upgrade, enable paid products, or add paid integrations.

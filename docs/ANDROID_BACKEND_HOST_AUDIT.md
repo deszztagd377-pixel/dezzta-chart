@@ -2,7 +2,7 @@
 
 Audit date: 2026-11-14  
 Branch: `phase-2/market-data-foundation`  
-Source checkpoint: `6c58daea1312e78d51956323ca03a2a9b6375e20`  
+Source checkpoint: `056cdd0a838ce2c47b4206af3801d6778af05675`  
 Status: **FEASIBILITY AUDIT COMPLETE — DEVICE HOST POC NOT EXECUTED**
 
 ## Executive finding
@@ -38,7 +38,7 @@ A one-phone local backend remains a candidate only. It is not yet accepted becau
 
 ## Zero-cost topology assessment
 
-**A dedicated laptop/PC is not required for the project workflow.** The owner develops from an Android phone, and repository changes/deployments can be handled through GitHub and Vercel. Termux is already installed on the phone, but it is not the preferred always-on production host. A phone-local backend would stop when Android suspends or terminates the process and is not suitable as the assumed public service.\n\nThe preferred cloud-host candidate is a Vercel-managed Python backend with native WebSocket support, subject to the compatibility and persistence proof in [VERCEL_BACKEND_FEASIBILITY.md](VERCEL_BACKEND_FEASIBILITY.md). Vercel announced WebSocket support as generally available on 2026-10-20. Its Python runtime supports FastAPI but is documented as Beta. The current FastAPI application is **not deployable unchanged** because its SQLite files and in-process stream hub are not durable/shared across serverless instances. This is a scoped architecture migration, not a request for new hardware.\n\nTermux remains a development/preflight option only. The known package-signature/keyring issue remains a no-go for package changes until trusted repository metadata is available.
+**A dedicated laptop/PC is not required for the project workflow.** The owner develops from an Android phone, and repository changes/deployments can be handled through GitHub and Vercel. Termux is already installed on the phone, but it is not the preferred always-on production host. A phone-local backend would stop when Android suspends or terminates the process and is not suitable as the assumed public service.\n\nThe preferred cloud-host candidate is a Vercel-managed Python backend with native WebSocket support, subject to the compatibility and persistence proof in [VERCEL_BACKEND_FEASIBILITY.md](VERCEL_BACKEND_FEASIBILITY.md). Vercel announced WebSocket support as generally available on 2026-10-20. Its Python runtime became generally available on 2026-10-15 and current guidance supports FastAPI. The current FastAPI application is **not deployable unchanged** because its SQLite files and in-process stream hub are not durable/shared across serverless instances. This is a scoped architecture migration, not a request for new hardware.\n\nTermux remains a development/preflight option only. The known package-signature/keyring issue remains a no-go for package changes until trusted repository metadata is available.
 
 Before integration code changes, prove the Vercel Python/FastAPI WebSocket path and select a durable shared store that has a verified zero-cost tier and meets the security contract. A Vercel Function's writable `/tmp` directory is scratch space, not durable SQLite storage. The existing process-local `OhlcvStreamHub` also cannot coordinate clients connected to different instances.\n\nIf the Vercel proof fails, evaluate the already-installed Termux environment as a development-only fallback; do not require a PC, weaken TLS/ACL, or expose a phone-local service as public production. Before any Termux package changes, resolve the existing signature/keyring trust failure.\n\nThe following Android-local requirements remain relevant only if a device-host POC is ever explicitly needed:
 - Full Python/Bionic backend imports, including the exact cryptography version.
@@ -80,7 +80,7 @@ Stage 1 remains 300/400 ticks = 75% provisional (30/40 criteria provisionally ac
 The earlier version of this audit treated a Termux-hosted backend as the only one-phone topology worth testing. That conclusion is superseded.
 
 - Vercel WebSocket support became generally available on 2026-10-20: https://vercel.com/changelog/websocket-support-is-now-generally-available
-- Vercel's Python runtime supports FastAPI, Django and Flask, but remains documented as Beta: https://vercel.com/docs/functions/runtimes/python
+- Vercel's Python runtime supports FastAPI, Django and Flask and became generally available on 2026-10-15: https://vercel.com/docs/functions/runtimes/python
 - Vercel Functions have a read-only filesystem with writable `/tmp` scratch storage; that scratch space is not a persistent database: https://vercel.com/docs/functions/runtimes
 - Function instances are bounded by maximum duration and can be recycled; clients must reconnect and resubscribe: https://vercel.com/docs/functions/limitations
 
@@ -94,3 +94,15 @@ No paid Vercel plan, paid Redis, market-data feed, new hardware, or owner creden
 Historical Beta references in earlier notes are superseded. Vercel announced Python runtime GA on 2026-10-15 and WebSocket GA on 2026-10-20. Current guidance describes FastAPI ASGI WebSocket support on Fluid Compute. The actual project still needs an isolated POC and Fluid Compute configuration check. This platform update does not make SQLite durable or process-local fan-out cross-instance.
 
 The root project remains a Vite/React app with no root `vercel.json` or root `api/` Python entrypoint. Keep any POC isolated from the existing frontend deployment.
+
+
+## 2026-11-17 — Vercel account and deployment evidence
+
+The Vercel connector is now connected and read access to the project is confirmed:
+- Team plan: **Hobby**; zero-cost requirement remains mandatory.
+- Project `dezzta-chart` is linked to `deszztagd377-pixel/dezzta-chart` and uses Vite.
+- Preview deployment for `phase-2/market-data-foundation` at commit `056cdd0a838ce2c47b4206af3801d6778af05675` is **READY**.
+- This is frontend preview deployment evidence only. It is not a backend/WSS acceptance test.
+- The connector response did not expose `rootDirectory` or Fluid Compute configuration. Both remain unverified and must not be assumed.
+
+No Termux command or package operation was required for this remote repository/Vercel audit. The existing Termux signature/keyring trust issue remains untouched.
