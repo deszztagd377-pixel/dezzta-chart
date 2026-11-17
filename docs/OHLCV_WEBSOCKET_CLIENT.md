@@ -40,3 +40,23 @@ The transport and its unit tests establish code-level integration only; they do 
 - A candle with an existing UTC timestamp replaces that candle (supporting open-candle revisions); a new timestamp is inserted in chronological order.
 - The resulting full series is revalidated before the immutable snapshot is published to subscribers.
 - This is a tested store capability, not yet a claim that the WebSocket transport is wired into the chart or Firebase authentication.
+
+
+## Vercel Function lifetime and reconnect supervisor — 2026-11-18
+
+Vercel Hobby with Fluid Compute documents a 300-second maximum Function duration. A WebSocket connection is pinned to the Function invocation and is expected to close when that invocation reaches its configured maximum duration. This is a normal lifecycle boundary; a client must recover without losing validated chart state.
+
+The production client already has the core recovery supervisor in `src/services/ohlcvStreamSupervisor.ts`:
+
+- bounded exponential reconnect delay with jitter (default 500 ms minimum and 15,000 ms maximum);
+- fresh Firebase ID-token acquisition for each connection attempt;
+- durable-cursor resume on the next authenticated subscription;
+- chart snapshot preservation while reconnecting;
+- replay validation and sequence continuity before returning to live state;
+- sequence-gap recovery through a fresh connection and snapshot;
+- terminal handling for authentication, authorization, and malformed-subscription close codes (4401, 4403, 4400), avoiding endless retry loops;
+- cancellation of pending reconnects when the owner stops the stream.
+
+Existing supervisor tests cover transport interruption and reconnect, fresh token acquisition, cursor replay, sequence-gap recovery, token-provider transient failures, terminal authorization rejection, close/error races, and explicit stop. These are repository-level tests; they do not prove a deployed Vercel 300-second close, native Android WebView behavior, or production cross-instance fan-out.
+
+The isolated synthetic POC currently has a 25-second idle timeout. A passive tab will close from that application timeout long before the Hobby platform maximum. A platform-lifetime test therefore needs synthetic heartbeat traffic below the idle threshold and must capture the final close event. A temporary POC-only 60-second `maxDuration` test cap is proposed but not applied. Keep SSO enabled and do not use production data or credentials.
