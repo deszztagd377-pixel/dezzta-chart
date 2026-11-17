@@ -2235,3 +2235,52 @@ This is a repository-side observability improvement, not closure of Gate 38 or G
 - Backend container build: in progress at last check; shared Redis/persistent-volume smoke, Trivy image scan and report upload were still pending.
 - Automated Tests workflow therefore remains **IN PROGRESS**; do not mark the complete workflow green until its final conclusion is `success`.
 - Vercel branch-commit deployment: **SUCCESS** as recorded above. Production alias and backend WSS remain separate acceptance items.
+
+
+## Authoritative exact-HEAD work-cycle update — 2026-11-17
+
+**Working branch:** `phase-2/market-data-foundation`  
+**Audited HEAD:** `bcae0f3658cc7bc14ea4a688960d4d592f508c03`  
+**Previous WebSocket remediation commit:** `eda917d71f2c7728b3fc3772a78364d47a56b007`
+
+### WebSocket replay/live handoff — repository validation
+
+The replay/live handoff cursor-type correction is included in the audited HEAD. The regression test suite and full automated workflow passed. The fix removes queued live notifications at or below the completed replay boundary when the cursor is represented as either an integer or an ASCII decimal string; unknown cursor shapes are retained conservatively. This closes the identified repository-level duplicate-delivery defect, but not production WSS acceptance.
+
+### Exact-HEAD automation and deployment evidence
+
+All three GitHub Actions workflows completed successfully on the exact audited HEAD:
+- [Automated Tests #44052383437](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44052383437) — **SUCCESS**. Frontend tests/build and secret scans; backend tests; bounded synthetic SQLite outbox benchmark; dependency audit; backend container build; Redis shared-guard + persistent-volume smoke test; Trivy scan; report export/upload all completed successfully.
+- [CodeQL #44052383309](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44052383309) — **SUCCESS**.
+- [Full Git History Secret Audit #44052383362](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44052383362) — **SUCCESS**.
+- Vercel commit status for this HEAD — **SUCCESS / Deployment has completed**. This is branch deployment evidence only; it does not prove production-domain alias, backend runtime, reverse-proxy WSS, or Android/browser production integration.
+
+### Gate 10 disposition — no unsupported closure
+
+The repository/CI prerequisites are green, but the ten criteria still require distinct owner-controlled acceptance evidence. Current disposition:
+
+| Criterion | Repository-side evidence | Remaining closure evidence |
+|---:|---|---|
+| 8 | Full reachable Git-history secret scan passes; frontend source and built-bundle secret scans pass | Host-side secret injection, runtime secret isolation and no-billing proof |
+| 20 | Firebase identity/entitlement code and tests exist | Real Firebase project configuration, expiry/revocation and supported web/Android production acceptance |
+| 25 | Redis ACL + persistent-volume CI smoke test passes | Owner-host private binding, TLS, secret custody, restart persistence and outage behavior |
+| 30 | Full SQLite backup/restore drill and CI tests pass | Run against the actual target database/device and retain the redacted drill report |
+| 31 | AES-256-GCM/PBKDF2 authenticated backup helper and tamper/wrong-key tests pass | Separately stored owner-controlled key, zero-cost off-host destination, retention policy and real recovery drill |
+| 34 | Container persistent-volume and application UID/GID ownership smoke test passes | Target-host restart durability, mount/permissions and disk-pressure recovery |
+| 35 | Backend container build and liveness route pass CI | Actual HTTPS termination, external health check and host-secret boundary |
+| 36 | Authenticated provider-aware WebSocket routing, durable replay and replay/live handoff regression pass CI | Authenticated WSS through the real reverse proxy plus supported browser/Android client verification and latency evidence |
+| 38 | Bounded token-gated process-local metrics and private alert-worker status endpoint exist | Durable/multi-process metrics, retention, dashboard, thresholds, access/network controls and operator acceptance |
+| 39 | Durable alert outbox, bounded lease/retry worker and owner-scoped FCM adapter exist; worker remains opt-in | Confirm zero incremental delivery cost; prove operator receipt/acknowledgement, escalation, durable monitoring and recovery drill |
+
+**No gate is officially closed by this CI run.** Do not enable the alert worker by default, weaken authentication/TLS, expose internal endpoints publicly, or introduce paid services to force acceptance. Where host access, credentials, a real provider project, or owner-device execution is required, the blocker is external and cannot be honestly cleared by repository-only changes.
+
+### Progress accounting — unchanged
+
+- Stage 1: **300/400 ticks = 75% provisional**, 30/40 criteria provisionally accepted; 10 external criteria remain open.
+- Gate 10: **0/10 formally closed** pending the evidence above.
+- Stages 2–6: **NOT SCORED**; no stage transition is implied.
+- Overall project: **20.90% historical owner-confirmed checkpoint only**; no fresh weighted calculation is approved.
+- Zero-cost: no paid Vercel upgrade, hosting, managed Redis, market-data feed, monitoring or publication service was added.
+- Termux: **not required** for this repository-only validation cycle.
+
+This section supersedes earlier 2026-11-17 notes that described the exact-HEAD Automated Tests workflow as still running. Historical snapshots are retained for audit chronology.
