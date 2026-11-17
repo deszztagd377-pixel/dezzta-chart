@@ -2446,3 +2446,13 @@ No Termux action was required or performed. No paid hosting, provider, monitorin
 - Added a regression test to assert the deployment config continues to enable Fluid Compute.
 - Vercel documents Fluid Compute as required for Python WebSocket serving on Functions; per-deployment `fluid` config is supported. This improves reproducibility but does not replace protected live HTTP/WSS acceptance.
 - No changes to the main Vite project, app runtime, production data flows, or deployment protection. Gate 36 remains OPEN pending actual handshake and lifecycle checks.
+
+
+## 2026-11-17 — latest Gate 10 evidence refresh (exact HEAD ad2abeba3f6372eee97e23dc1fd738e9d2578fd0)
+
+- Automated Tests & Build [44071698421](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44071698421): **SUCCESS**. Frontend/backend tests, frontend build and secret scans, synthetic outbox benchmark, backend container build, Redis shared-guard/persistent-volume smoke test, image scan, report export and upload passed.
+- CodeQL [44071698260](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44071698260): **SUCCESS**; Full Git History Secret Audit [44071698322](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44071698322): **SUCCESS**.
+- Isolated Vercel FastAPI preview `dpl_7xdoEjEo1sWdeusHTse8Zp3rzDnD` is READY from this exact SHA. SSO remains enabled; no bypass link or custom domain.
+- Explicit `fluid: true` config and regression test are present. Live HTTP/WSS acceptance and runtime Fluid read-back remain pending.
+- No Gate closure or ticks awarded. Stage 1 remains 300/400 = 75% provisional; Gate 10 0/10 formally closed; all ten external criteria remain open. Stages 2–6 NOT SCORED; overall 20.90% historical only.
+- Zero-cost maintained; no Termux action needed.

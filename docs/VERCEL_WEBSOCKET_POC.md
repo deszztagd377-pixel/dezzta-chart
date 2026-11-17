@@ -1,6 +1,6 @@
 # DEZZTA CHART — Isolated Vercel WebSocket POC
 
-Status: **CI SUCCESS; protected staging deployment READY; live HTTP/WSS acceptance pending**  
+Status: **latest exact-HEAD CI SUCCESS; protected preview READY; live HTTP/WSS acceptance pending**  
 Date: 2026-11-17  
 Working branch: `phase-2/market-data-foundation`
 
@@ -97,3 +97,14 @@ Gate 36 remains OPEN. Stage 1 remains 300/400 = 75% provisional; Gate 10 remains
 The dedicated project Root Directory is `poc/vercel_ws`. This directory now contains a version-controlled `vercel.json` with `"fluid": true`, so the WebSocket POC explicitly requests Fluid Compute at the deployment level rather than relying only on an earlier dashboard/API setting. A regression test parses this file and asserts the setting is true. Vercel documents the `fluid` property for per-deployment configuration and supports Python runtime; see [Fluid Compute configuration](https://vercel.com/docs/fluid-compute) and [Vercel project configuration](https://vercel.com/docs/project-configuration/vercel-json).
 
 This removes ambiguity in the repository configuration, but it is not proof that a live WebSocket handshake works. The next exact-commit deployment must be READY, then the protected HTTP health request and WSS connect/ready/ping/pong/disconnect/reconnect/lifetime checks must still be observed. Keep SSO enabled for all deployment targets and do not create a bypass URL.
+
+
+## Latest exact-HEAD verification — 2026-11-17
+
+- Source commit: `ad2abeba3f6372eee97e23dc1fd738e9d2578fd0` on `phase-2/market-data-foundation`.
+- Automated Tests & Build [44071698421](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44071698421): **SUCCESS**, including frontend/backend tests, frontend build and secret scans, backend benchmark, container build, Redis/persistent-volume smoke test, image scan and report export/upload.
+- CodeQL [44071698260](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44071698260): **SUCCESS**. Full Git History Secret Audit [44071698322](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44071698322): **SUCCESS**.
+- Latest deployment `dpl_7xdoEjEo1sWdeusHTse8Zp3rzDnD`: **READY**, exact source SHA above; URL: https://dezzta-chart-ws-9wlnhsgf4-deszztagd377-pixel.vercel.app.
+- SSO remains enabled. No public bypass/share URL or custom domain was created. Vercel dashboard access does not itself prove the preview is authorized for the owner account.
+- The explicit `fluid: true` source config is regression-tested. Runtime Fluid setting is not independently read back.
+- Still pending: authenticated HTTP health request, WebSocket ready/ping/pong, manual disconnect/reconnect, maximum connection lifetime, browser/Android acceptance, and production cross-instance fan-out. Gate 36 stays OPEN until these are observed.

@@ -2560,3 +2560,18 @@ The six-stage colored dashboard remains the official visual format. Its card col
 ### WebSocket platform configuration hardening — 2026-11-17
 
 A follow-up code change adds `poc/vercel_ws/vercel.json` with explicit `fluid: true` because Vercel's documented WebSocket path for Python ASGI requires Fluid Compute. The POC test suite now parses the deployment config and asserts Fluid Compute remains enabled. This is configuration-level evidence only; protected live WSS acceptance remains pending. The POC project stays isolated and SSO-protected, with no bypass link or paid service.
+
+
+## Exact-HEAD verification — 2026-11-17 (commit ad2abeba3f6372eee97e23dc1fd738e9d2578fd0)
+
+- Branch: `phase-2/market-data-foundation`; the main branch was not changed.
+- Automated Tests & Build [run 44071698421](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44071698421): **SUCCESS**. Frontend tests/build and secret scans, backend tests, bounded synthetic outbox benchmark, backend container build, Redis shared-guard/persistent-volume smoke test, image scan, vulnerability-report export and upload all completed successfully.
+- CodeQL [run 44071698260](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44071698260): **SUCCESS**.
+- Full Git History Secret Audit [run 44071698322](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44071698322): **SUCCESS**.
+- Dedicated FastAPI POC deployment `dpl_7xdoEjEo1sWdeusHTse8Zp3rzDnD`: **READY**, exact source SHA `ad2abeba3f6372eee97e23dc1fd738e9d2578fd0`, preview URL [protected POC](https://dezzta-chart-ws-9wlnhsgf4-deszztagd377-pixel.vercel.app). Deployment remains SSO-protected. No bypass URL, custom domain, paid plan or public exposure was introduced.
+- The repository explicitly sets `fluid: true` in `poc/vercel_ws/vercel.json`, and a regression test checks it. This is source/deployment configuration evidence; it does **not** prove a live WSS handshake or independently expose Vercel's runtime Fluid setting.
+- Gate 36 remains OPEN pending an authenticated request to `/health`, browser WebSocket connect/ready/ping/pong/disconnect/reconnect and connection-lifetime checks. Cross-instance production fan-out is also not proven.
+- Stage 1 remains **300/400 ticks = 75% provisional**; all ten external criteria (8, 20, 25, 30, 31, 34, 35, 36, 38, 39) remain open and Gate 10 remains **0/10 formally closed**. Stages 2–6 remain NOT SCORED. Overall 20.90% remains a historical checkpoint, not a fresh calculation.
+- Zero-cost preserved. No Termux action was needed; the existing package-signature/keyring issue remains untouched.
+
+The protected preview is ready for owner-side access testing. A successful Vercel dashboard login alone does not establish preview authorization; the owner must open the preview URL while signed into the authorized Vercel account. Do not weaken SSO to make the test easier.
