@@ -212,3 +212,12 @@ This closes the browser-panel manual reconnect + fresh-session ping/pong sub-che
 - Production clients must reconnect with bounded backoff, reauthenticate/recheck entitlement, resume from a durable cursor, deduplicate replay/live overlap, and resnapshot on replay gaps. Function memory cannot be the durable cross-instance state layer.
 - Gate 36 remains OPEN. No platform max-duration close or independent effective Fluid Compute setting read-back is claimed. Android WebView WSS and production cross-instance fan-out remain open.
 - Supporting report: [Batch 7](WORK_CYCLE_2026-11-18_GATE10_BATCH7.md).
+
+
+## Bounded 330-second synthetic lifetime probe
+
+The POC page now offers an explicit owner-started lifetime probe. It sends one synthetic ping every 10 seconds, records browser monotonic elapsed time and close code/reason, and automatically stops at 330 seconds. The existing server idle timeout remains 25 seconds, so the heartbeat has a 15-second nominal margin. The existing rate cap permits 12 messages per 10-second window; this probe emits approximately one per window. The 330-second bound provides a 30-second observation margin beyond Vercel Hobby Fluid Compute's documented 300-second maximum while ensuring the browser-side probe itself cannot run indefinitely.
+
+Interpretation is strict: a platform-originated close around 300 seconds is evidence of the Function maximum; a 25-second close is an idle/heartbeat failure; a client-initiated close at 330 seconds is only the probe safety timeout and must not be reported as a Vercel maximum-duration close. The probe is synthetic-only, opt-in, SSO-protected, and has not yet been executed against a new deployment. No server idle timeout was increased.
+
+Regression contract: `backend/tests/test_vercel_ws_probe_contract.py` checks heartbeat-vs-idle arithmetic, the bounded duration, and the presence of elapsed-time/close instrumentation.
