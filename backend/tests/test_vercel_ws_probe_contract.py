@@ -54,10 +54,8 @@ def test_synthetic_websocket_lifetime_probe_is_bounded_and_beats_idle_timeout():
 
     # An idle_timeout message can arrive just before the WebSocket close event.
     # The UI must wait for that authoritative close event before enabling Connect.
-    idle_handler = re.search(
-        r'if \(message\.type === "idle_timeout"\) \{([\\s\\S]*?)\\n        \}',
-        source,
-    )
-    assert idle_handler is not None
-    assert 'setState("Server closed idle session", false)' not in idle_handler.group(1)
-    assert 'waiting for close' in idle_handler.group(1)
+    idle_handler_start = source.index('if (message.type === "idle_timeout") {')
+    idle_handler_end = source.index("\\n        }", idle_handler_start)
+    idle_handler = source[idle_handler_start:idle_handler_end]
+    assert 'setState("Server closed idle session", false)' not in idle_handler
+    assert 'waiting for close' in idle_handler
