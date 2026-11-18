@@ -325,7 +325,7 @@ describe('OHLCV stream supervisor', () => {
     expect(supervisor.status).toBe('reconnecting');
     expect(onError).toHaveBeenCalledOnce();
 
-    await vi.advanceTimersByTimeAsync(99);
+    await vi.advanceTimersByTimeAsync(49);
     expect(factory).toHaveBeenCalledOnce();
     await vi.advanceTimersByTimeAsync(1);
     await vi.waitFor(() => expect(sockets).toHaveLength(2));
