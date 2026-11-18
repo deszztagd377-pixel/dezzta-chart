@@ -237,3 +237,19 @@ The exact-head CI run passed all backend pytest tests, including the WebSocket P
 The bounded 330-second browser probe is opt-in and synthetic-only. A further measurement-integrity guard now invalidates and closes an active probe if the page becomes hidden. Background tabs and screen-off states can throttle browser timers; such an interval must not be treated as platform-duration evidence. Keep the page visible for the full observation. A client-initiated close at 330 seconds is still not evidence that Vercel itself terminated the connection at 300 seconds.
 
 Remaining Gate 36 evidence: a real foreground 330-second run with close code/reason/elapsed-time read-back, effective Fluid Compute read-back from the deployed runtime, native Android WebView WSS, cross-instance fan-out, and owner acceptance of the zero-cost operating model. No production data or credentials are connected.
+
+## Batch 13 exact-head deployment and CI read-back — 18 November 2026
+
+Source commit `c3bcb0c6011f1f7228be17d16d227f325d7cbb29` has both protected previews in **READY** state:
+- WSS POC: `dpl_HYCzptpjB6ZkWGjmDhqAz1QkDozc` — https://dezzta-chart-ws-haperxrzp-deszztagd377-pixel.vercel.app
+- Frontend: `dpl_2f6nmwUWNWC1iLBaMBn4AMeZwBwv` — https://dezzta-chart-1e4eknez2-deszztagd377-pixel.vercel.app
+
+Exact-head CI:
+- Backend pytest: 1,013 passed in 29.73s, including all WebSocket POC and probe contract tests.
+- Frontend tests/build and credential scans passed.
+- Backend container build and persistent-volume/Redis ACL smoke test passed.
+- Trivy report: zero HIGH and zero CRITICAL.
+- CodeQL and full Git History Secret Audit passed.
+- Overall workflow remains failed only because the final npm audit enforcement correctly blocks five High dev-dependency findings through picomatch 4.0.7.
+
+The 330-second probe remains opt-in and synthetic-only. Its hidden-page invalidation is covered by the regression contract. The exact preview being READY is not evidence that the 330-second run was performed, that Vercel itself closed at 300 seconds, or that native Android WebView/cross-instance fan-out works. Do not close Gate 36 on deployment status alone.

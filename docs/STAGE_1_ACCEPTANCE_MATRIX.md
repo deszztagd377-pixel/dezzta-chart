@@ -4,6 +4,20 @@
 
 Branch: `phase-2/market-data-foundation`
 
+
+## Latest verified repository checkpoint — Batch 13 — 2026-11-18
+
+- Exact source commit: `c3bcb0c6011f1f7228be17d16d227f325d7cbb29`.
+- Automated Tests [44271321142](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44271321142): **FAILURE only at final frontend dependency-audit enforcement**.
+- Backend pytest: **1,013 passed in 29.73s**. Frontend tests/build, frontend credential scans, Android preflight/publisher tests, backend audit, Docker build, persistent-volume/Redis ACL smoke test, and Trivy scan all passed.
+- Trivy backend image report: **0 HIGH / 0 CRITICAL**.
+- CodeQL [44271321171](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44271321171): **SUCCESS**.
+- Full Git History Secret Audit [44271321225](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44271321225): **SUCCESS**.
+- Exact commit Vercel previews: WSS `dpl_HYCzptpjB6ZkWGjmDhqAz1QkDozc` **READY**; frontend `dpl_2f6nmwUWNWC1iLBaMBn4AMeZwBwv` **READY**.
+- Five High npm audit findings remain through dev-only `picomatch@4.0.7`. Upstream PR #238 is open/unmerged and has no successful check-runs recorded at this read-back. Do not suppress, waive, or mislabel it as fixed.
+- A new regression test verifies the vulnerable transitive glob tooling remains development-only and absent from runtime dependencies. This is exposure reduction only; it does not close the npm audit.
+- Stage 1 remains **300/400 = 75% provisional**, 30/40 provisional criteria; Gate 10 remains **0/10 closed**. Open: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+
 This matrix separates repository implementation from evidence that must come from a real deployment. A source-code check or a test file is **not** proof that the corresponding production control has passed. Do not mark an item complete without attaching reproducible evidence (CI run, deployment output, restore report, or monitoring test result).
 
 ## Status legend
