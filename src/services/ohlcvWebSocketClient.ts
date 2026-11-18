@@ -186,10 +186,15 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
       }
     }
     if (state !== 'closed') setState('closed');
-    // Preserve normal close-event ordering when close() succeeds. If close()
-    // itself throws, no native close event is guaranteed, so notify the
-    // supervisor with a synthetic terminal failure to avoid a stalled retry.
-    if (closeRequestFailed) notifyClose(1011, 'OHLCV stream failure');
+    // Preserve normal close-event ordering while the socket is still open or
+    // closing. If close() throws, or the platform already reports CLOSED
+    // before its close event is delivered, notify the supervisor synthetically.
+    if (closeRequestFailed || socket.readyState === 3) {
+      notifyClose(
+        1011,
+        closeRequestFailed ? 'OHLCV stream failure' : 'OHLCV stream ended before close event',
+      );
+    }
   };
 
   const refreshHandshakeTimer = () => {

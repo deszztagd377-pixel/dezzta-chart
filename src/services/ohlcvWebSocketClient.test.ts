@@ -276,10 +276,32 @@ describe('connectOhlcvStream', () => {
     socket.emit('close', Object.assign(new Event('close'), { code: 1000, reason: 'late close event' }));
     expect(onClose).toHaveBeenCalledOnce();
     connection.close();
+
+    const alreadyClosedSocket = new FakeSocket();
+    const alreadyClosedObserver = vi.fn();
+    const alreadyClosedConnection = connectOhlcvStream({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      token: 'verified-token',
+      webSocketFactory: () => alreadyClosedSocket as unknown as WebSocket,
+      onSnapshot: vi.fn(),
+      onUpdate: vi.fn(),
+      onClose: alreadyClosedObserver,
+    });
+    alreadyClosedSocket.readyState = 3;
+    expect(() => alreadyClosedSocket.message({ type: 'unexpected.message', version: 1 })).not.toThrow();
+    expect(alreadyClosedConnection.state).toBe('closed');
+    expect(alreadyClosedObserver).toHaveBeenCalledOnce();
+    expect(alreadyClosedObserver).toHaveBeenCalledWith(
+      1011,
+      'OHLCV stream ended before close event',
+    );
+    alreadyClosedSocket.emit('close', Object.assign(new Event('close'), { code: 1000, reason: 'late close event' }));
+    expect(alreadyClosedObserver).toHaveBeenCalledOnce();
   });
 
-  it('isolates a throwing status observer and continues the authenticated handshake', () => {
-    const socket = new FakeSocket();
+  it('isolates a throwing status observer and continues the authenticated handshake', () =>    const socket = new FakeSocket();
     const onStatus = vi.fn(() => {
       throw new Error('consumer status observer failed');
     });
