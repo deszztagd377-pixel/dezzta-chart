@@ -164,7 +164,13 @@ export function startOhlcvStreamSupervisor(
         onStatus: (status) => {
           if (stopped) return;
           if (status === 'authenticated') setStatus('authenticated');
-          if (status === 'subscribed') setStatus('subscribed');
+          if (status === 'subscribed') {
+            // A validated replay completion is just as healthy as a fresh
+            // snapshot. Reset backoff here too, otherwise a later outage after
+            // replay recovery inherits the previous failure streak.
+            attempt = 0;
+            setStatus('subscribed');
+          }
           if (status === 'closed') connection = null;
         },
         onError: (error) => {

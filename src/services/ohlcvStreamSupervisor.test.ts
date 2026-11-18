@@ -177,6 +177,65 @@ describe('OHLCV stream supervisor', () => {
     supervisor.stop();
   });
 
+  it('resets reconnect backoff after a cursor replay recovers the stream', async () => {
+    vi.useFakeTimers();
+    const sockets: FakeSocket[] = [];
+    const factory = vi.fn(() => {
+      const socket = new FakeSocket();
+      sockets.push(socket);
+      return socket as unknown as WebSocket;
+    });
+    const getIdToken = vi.fn().mockResolvedValue('fresh-token');
+    const supervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken,
+      webSocketFactory: factory,
+      minReconnectDelayMs: 100,
+      maxReconnectDelayMs: 400,
+      random: () => 0,
+    });
+
+    await vi.waitFor(() => expect(sockets).toHaveLength(1));
+    sockets[0].readyState = 1;
+    sockets[0].emit('open', new Event('open'));
+    sockets[0].message({ type: 'market_data.status', version: 1 });
+    sockets[0].message({ ...snapshot, watermark: 0, cursor: '100' });
+
+    sockets[0].serverClose(1006, 'first network interruption');
+    await vi.advanceTimersByTimeAsync(50);
+    await vi.waitFor(() => expect(sockets).toHaveLength(2));
+
+    sockets[1].readyState = 1;
+    sockets[1].emit('open', new Event('open'));
+    sockets[1].message({ type: 'market_data.status', version: 1 });
+    sockets[1].message({
+      type: 'market_data.ohlcv.replay_started',
+      version: 1,
+      streamId: 'stream-replay',
+      fromCursor: '100',
+      throughCursor: '100',
+      count: 0,
+    });
+    sockets[1].message({
+      type: 'market_data.ohlcv.replay_complete',
+      version: 1,
+      cursor: '100',
+      count: 0,
+    });
+    expect(supervisor.status).toBe('subscribed');
+
+    sockets[1].serverClose(1006, 'second network interruption');
+    expect(supervisor.status).toBe('reconnecting');
+    await vi.advanceTimersByTimeAsync(49);
+    expect(factory).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(1);
+    await vi.waitFor(() => expect(sockets).toHaveLength(3));
+    expect(getIdToken).toHaveBeenCalledTimes(3);
+    supervisor.stop();
+  });
+
   it('seeds the backend store from the first validated update after an empty snapshot', async () => {
     const socket = new FakeSocket();
     const supervisor = startOhlcvStreamSupervisor({
