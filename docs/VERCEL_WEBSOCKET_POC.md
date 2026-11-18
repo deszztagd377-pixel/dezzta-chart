@@ -280,3 +280,14 @@ Verification target: `4256c5e3ccab82255d115beaf961afd4794a3a42`.
 - Effective Fluid Compute read-back, native Android WebView WSS, cross-instance fan-out and cost/operational acceptance remain open. Gate 36 remains OPEN.
 - For branch head `a5e90f75329c937a4ef11d560bab3b434e7f24e8`, both Vercel project status contexts report `build-rate-limit`; exact-SHA deployment lookup returned zero deployments. Previous READY previews remain tied to `72a959f...`; do not report current head as deployed.
 - GitHub CI [44280286764](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44280286764): 1,014 backend tests passed in 31.94s and all build/security/infra steps passed except the final npm audit enforcement (five High dev-only picomatch findings). CodeQL and full history secret audit passed.
+
+
+## Batch 17 — exact active branch and deployment restriction — 18 Nov 2026
+
+- Active branch head read directly from GitHub: `fabf2c63fa8df13dc42da3afdbc6ed45682a4a3a`; parent `a5e90f75329c937a4ef11d560bab3b434e7f24e8`.
+- Exact-head Vercel status contexts for WSS POC and frontend both report **“Deployment rate limited — retry in 24 hours.”**
+- Exact-SHA Vercel deployment lookup returned zero deployment records for both projects. The current branch head is not deployed.
+- Latest previously observed READY preview records are source `72a959f375f7c1e999be25e73e5fd00fdc24abb0`; they must not be represented as the current branch deployment.
+- No retry loop, billing activation, paid plan upgrade, SSO weakening or production promotion was performed.
+- Existing HTTP 200 checks are limited to protected health/page delivery in synthetic-only mode. No actual WebSocket handshake/round-trip, owner-visible 330-second foreground test, platform-originated close, Android WebView, Fluid Compute effective setting or cross-instance fan-out is claimed.
+- Gate 36 remains OPEN. No Termux needed for this repository/CI/Vercel read-back cycle.

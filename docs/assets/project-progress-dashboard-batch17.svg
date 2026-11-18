@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="t d">
+<title id="t">DEZZTA CHART project progress — Batch 17</title>
+<desc id="d">Stage 1 remains 75 percent provisional, Gate 10 zero of ten closed. Exact branch head has CI blocked only by five High picomatch audit findings, Vercel build rate limit, and WebSocket external acceptance remains open.</desc>
+<rect width="1200" height="720" rx="24" fill="#0b1220"/>
+<g font-family="Arial,sans-serif">
+<text x="40" y="48" fill="#f8fafc" font-size="30" font-weight="700">DEZZTA CHART — PROJECT PROGRESS</text>
+<text x="40" y="80" fill="#94a3b8" font-size="16">18 NOV 2026 • BATCH 17 • ACTIVE BRANCH HEAD RECONCILED • ZERO COST</text>
+<rect x="36" y="112" width="350" height="210" rx="18" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
+<text x="62" y="152" fill="#d1fae5" font-size="20" font-weight="700">STAGE 1 — ACTIVE</text>
+<text x="62" y="215" fill="#fff" font-size="54" font-weight="700">75%</text>
+<text x="190" y="211" fill="#a7f3d0" font-size="18">PROVISIONAL</text>
+<rect x="62" y="237" width="296" height="16" rx="8" fill="#052e24"/><rect x="62" y="237" width="222" height="16" rx="8" fill="#34d399"/>
+<text x="62" y="282" fill="#d1fae5" font-size="16">300 / 400 ticks • 30 / 40 criteria</text>
+<text x="62" y="307" fill="#fcd34d" font-size="16" font-weight="700">Gate 10: 0 / 10 closed</text>
+<rect x="404" y="112" width="760" height="210" rx="18" fill="#172554" stroke="#60a5fa" stroke-width="2"/>
+<text x="432" y="154" fill="#dbeafe" font-size="20" font-weight="700">AUDITED BRANCH HEAD</text>
+<text x="432" y="190" fill="#bfdbfe" font-size="17">fabf2c63fa8df13dc42da3afdbc6ed45682a4a3a</text>
+<text x="432" y="232" fill="#fca5a5" font-size="20" font-weight="700">VERCEL: BUILD RATE LIMITED</text>
+<text x="432" y="264" fill="#fecaca" font-size="16">Both preview contexts blocked • zero exact-SHA deployments</text>
+<text x="432" y="294" fill="#cbd5e1" font-size="15">No retry loop • no paid upgrade • no billing • SSO retained</text>
+<rect x="36" y="344" width="1128" height="108" rx="16" fill="#312e81" stroke="#818cf8" stroke-width="2"/>
+<text x="62" y="382" fill="#e0e7ff" font-size="20" font-weight="700">GATE 10 — 10 OPEN CRITERIA</text>
+<text x="62" y="420" fill="#c7d2fe" font-size="19">8 • 20 • 25 • 30 • 31 • 34 • 35 • 36 • 38 • 39</text>
+<rect x="36" y="474" width="350" height="112" rx="14" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
+<text x="60" y="514" fill="#d1fae5" font-size="18" font-weight="700">BACKEND / SECURITY</text>
+<text x="60" y="550" fill="#a7f3d0" font-size="16">CI tests &amp; CodeQL/history scans pass</text>
+<rect x="404" y="474" width="350" height="112" rx="14" fill="#7f1d1d" stroke="#f87171" stroke-width="2"/>
+<text x="428" y="514" fill="#fee2e2" font-size="18" font-weight="700">DEPENDENCY AUDIT</text>
+<text x="428" y="550" fill="#fecaca" font-size="16">5 High • picomatch 4.0.7 • enforced</text>
+<rect x="772" y="474" width="392" height="112" rx="14" fill="#78350f" stroke="#fbbf24" stroke-width="2"/>
+<text x="796" y="514" fill="#fef3c7" font-size="18" font-weight="700">WEBSOCKET GATE 36</text>
+<text x="796" y="550" fill="#fde68a" font-size="16">HTTP only • live WSS proof pending</text>
+<text x="40" y="634" fill="#cbd5e1" font-size="18" font-weight="700">STAGES 2–6: NOT SCORED</text>
+<text x="40" y="666" fill="#94a3b8" font-size="15">Project indicator only — outside APK • No production promotion • no Termux required</text>
+<text x="40" y="695" fill="#94a3b8" font-size="13">No score awarded for docs-only work, HTTP health, or unverified external controls.</text>
+</g></svg>
