@@ -87,3 +87,12 @@ No progress ticks are awarded for workflow refactoring, CI diagnostics, or docum
 - No Termux install or command required.
 - No command or code edit required from the owner.
 - `main` remains untouched.
+
+
+## Additional Vercel read-back (2026-11-18)
+
+The team plan was read back as Hobby. Two latest listed branch previews are READY:
+- WSS POC deployment `dpl_7HQmpEAPpxnvcSQFz8umK7u1kf71`, source `001e142d3981cea99bed5da957d266af6261b2dc`, Python 3.12 build completed, preview URL `https://dezzta-chart-ws-8pyssexdc-deszztagd377-pixel.vercel.app`.
+- Vite frontend deployment `dpl_Ejcq4EaG2dWnFoeDLza8s8wqeUcB`, source `9e654a842f4e320d775fd8cb3489af65eb700376`, Vite 6.4.5 build completed with 1,526 modules, preview URL `https://dezzta-chart-eg6ipi7za-deszztagd377-pixel.vercel.app`.
+
+These successful deployments supersede the blanket impression that every current preview is blocked by build-rate-limit, but their source commits predate the latest Batch 8 workflow/test changes. They are previews, not production. No new deployment was initiated, no plan upgrade/billing occurred, and they do not close Gate 36.
