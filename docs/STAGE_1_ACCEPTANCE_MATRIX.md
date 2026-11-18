@@ -896,3 +896,38 @@ Accounting unchanged:
 - Open criteria: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.
 - Stages 2–6: NOT SCORED.
 - No Stage 1 ticks or Gate closures are awarded for CI diagnostics alone.
+
+## Batch 16 — exact-head CI + protected WSS HTTP read-back — 18 Nov 2026
+
+**Branch head audited:** `a5e90f75329c937a4ef11d560bab3b434e7f24e8`.
+
+### Exact-head automated evidence
+
+- Automated Tests [44280286764](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44280286764): **FAILURE only at final frontend dependency-audit enforcement**.
+- Backend pytest: **1,014 passed in 31.94s**. Alert recovery, concurrent observability metrics, dependency-exposure, WebSocket protocol, bounded-probe contract and all other backend tests passed.
+- Frontend unit tests/build, source and built-bundle credential scans, Android preflight/publisher tests, synthetic outbox benchmark, backend dependency audit, container build, Redis/persistent-volume smoke test, and Trivy scan/report steps passed.
+- CodeQL [44280286768](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44280286768): **SUCCESS**.
+- Full Git History Secret Audit [44280286699](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44280286699): **SUCCESS**.
+- The only failing enforcement is still five High npm audit findings through dev-only `picomatch@4.0.7` / GHSA-fc5q-39xc-vjpf. Do not suppress, waive, force-downgrade or call this fixed.
+
+### WebSocket POC — protected preview read-back
+
+- Last READY WSS preview: `dpl_C9bGENGcUpmgTFaxyyPNjg1Ehapv`, source `72a959f375f7c1e999be25e73e5fd00fdc24abb0`.
+- Protected `/health` request returned **HTTP 200** with `status=ok`, `service=dezzta-ws-poc`, `mode=synthetic-only`, `production_data_connected=false`.
+- Protected root page returned **HTTP 200** and contains the 330-second probe control and 10-second heartbeat configuration.
+- This proves HTTP health and page delivery only. No actual WebSocket upgrade/round-trip, owner-visible foreground 330-second observation, platform-originated 300-second close, effective Fluid Compute read-back, native Android WebView WSS or cross-instance fan-out is claimed. Gate 36 remains OPEN.
+
+### Vercel build-rate restriction
+
+- Exact-head Vercel commit status for `a5e90f75329c937a4ef11d560bab3b434e7f24e8`: both WSS and frontend contexts **FAILURE** with the platform `build-rate-limit` link.
+- Filtered deployment lookup for exact SHA returned **zero deployment records** for both projects. Do not label this commit READY.
+- Previous known READY previews remain on `72a959f375f7c1e999be25e73e5fd00fdc24abb0`. Existing READY previews were not changed; no redeploy retry loop, paid upgrade, billing activation or SSO weakening was performed.
+- Team usage counters and exact reset time were not exposed by the available read-back; no quota remainder or reset estimate is invented.
+
+### Stage 1 accounting — unchanged
+
+- Stage 1: **300/400 ticks = 75% provisional; 30/40 criteria**.
+- Gate 10: **0/10 formally closed**.
+- Still open: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- Stages 2–6: **NOT SCORED**.
+- No score awarded for a passing test suite, documentation, or HTTP-only WSS checks without the external acceptance evidence.

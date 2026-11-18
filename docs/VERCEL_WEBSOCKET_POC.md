@@ -269,3 +269,14 @@ Verification target: `4256c5e3ccab82255d115beaf961afd4794a3a42`.
 - No owner-observed foreground 330-second run, platform-originated maximum-duration close, effective Fluid Compute read-back, native Android WebView WSS or cross-instance fan-out is recorded. Gate 36 remains OPEN.
 - No production promotion, no SSO weakening, no paid resources, and no Termux requirement.
 
+
+
+## Batch 16 — protected HTTP read-back and current deployment restriction — 18 Nov 2026
+
+- Audited branch head `a5e90f75329c937a4ef11d560bab3b434e7f24e8`.
+- The last READY WSS preview `dpl_C9bGENGcUpmgTFaxyyPNjg1Ehapv` (source `72a959f375f7c1e999be25e73e5fd00fdc24abb0`) returned HTTP 200 from `/health` with synthetic-only mode and production_data_connected=false.
+- The root page returned HTTP 200 and includes the bounded 330-second probe and 10-second heartbeat UI.
+- These are HTTP checks only. No live WebSocket upgrade/round-trip or owner-observed 330-second foreground run has been performed. A client close at 330 seconds is not proof of Vercel's 300-second platform close.
+- Effective Fluid Compute read-back, native Android WebView WSS, cross-instance fan-out and cost/operational acceptance remain open. Gate 36 remains OPEN.
+- For branch head `a5e90f75329c937a4ef11d560bab3b434e7f24e8`, both Vercel project status contexts report `build-rate-limit`; exact-SHA deployment lookup returned zero deployments. Previous READY previews remain tied to `72a959f...`; do not report current head as deployed.
+- GitHub CI [44280286764](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44280286764): 1,014 backend tests passed in 31.94s and all build/security/infra steps passed except the final npm audit enforcement (five High dev-only picomatch findings). CodeQL and full history secret audit passed.
