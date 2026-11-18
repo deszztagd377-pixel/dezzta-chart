@@ -247,6 +247,79 @@ describe('connectOhlcvStream', () => {
     expect(socket.closed[0].code).toBe(1011);
   });
 
+  it('isolates a throwing status observer and continues the authenticated handshake', () => {
+    const socket = new FakeSocket();
+    const onStatus = vi.fn(() => {
+      throw new Error('consumer status observer failed');
+    });
+    const onError = vi.fn();
+    const connection = connectOhlcvStream({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      token: 'verified-token',
+      webSocketFactory: () => socket as unknown as WebSocket,
+      onSnapshot: vi.fn(),
+      onUpdate: vi.fn(),
+      onStatus,
+      onError,
+    });
+
+    socket.readyState = 1;
+    socket.emit('open', new Event('open'));
+    expect(() => socket.message({ type: 'market_data.status', version: 1 })).not.toThrow();
+    expect(connection.state).toBe('authenticated');
+    expect(JSON.parse(socket.sent[1]).type).toBe('market_data.subscribe');
+    expect(onStatus).toHaveBeenCalledWith('authenticated');
+    expect(onError).not.toHaveBeenCalled();
+    connection.close();
+  });
+
+  it('converts an authentication send exception into a terminal transport failure', () => {
+    const { socket, onError, connection } = setup();
+    socket.send = () => {
+      throw new Error('platform send failed');
+    };
+
+    expect(() => {
+      socket.readyState = 1;
+      socket.emit('open', new Event('open'));
+    }).not.toThrow();
+
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError.mock.calls[0][0].message).toMatch(/authentication send failed/i);
+    expect(connection.state).toBe('closed');
+    expect(socket.closed[0].code).toBe(1011);
+  });
+
+  it('reaches closed state when close observers or the platform close call throw', () => {
+    const { socket, connection } = setup();
+    const onClose = vi.fn(() => {
+      throw new Error('consumer close observer failed');
+    });
+    const secondSocket = new FakeSocket();
+    const second = connectOhlcvStream({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      token: 'verified-token',
+      webSocketFactory: () => secondSocket as unknown as WebSocket,
+      onSnapshot: vi.fn(),
+      onUpdate: vi.fn(),
+      onClose,
+    });
+    secondSocket.readyState = 1;
+    expect(() => second.close()).not.toThrow();
+    expect(second.state).toBe('closed');
+    expect(onClose).toHaveBeenCalledOnce();
+
+    socket.close = () => {
+      throw new Error('platform close failed');
+    };
+    expect(() => connection.close()).not.toThrow();
+    expect(connection.state).toBe('closed');
+  });
+
   it('rejects an unsolicited heartbeat pong when no ping is outstanding', () => {
     const { socket, onError, connection } = setup();
     socket.readyState = 1;

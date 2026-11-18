@@ -118,7 +118,11 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
 
   const setState = (next: OhlcvStreamConnection['state']) => {
     state = next;
-    options.onStatus?.(next);
+    try {
+      options.onStatus?.(next);
+    } catch {
+      // Status observers are diagnostic/UI hooks and must not break transport state.
+    }
   };
   const clearTimer = () => {
     if (timer !== null) clearTimeout(timer);
@@ -181,7 +185,11 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
 
   socket.addEventListener('open', () => {
     if (state !== 'connecting') return;
-    socket.send(JSON.stringify({ type: 'auth', token: options.token }));
+    try {
+      socket.send(JSON.stringify({ type: 'auth', token: options.token }));
+    } catch {
+      fail(new Error('OHLCV WebSocket authentication send failed.'));
+    }
   });
 
   socket.addEventListener('message', (message) => {
@@ -384,7 +392,11 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
     clearTimer();
     clearHeartbeat();
     const closeEvent = event as CloseEvent;
-    options.onClose?.(closeEvent.code, closeEvent.reason);
+    try {
+      options.onClose?.(closeEvent.code, closeEvent.reason);
+    } catch {
+      // Close observers must not prevent the terminal state transition.
+    }
     if (state !== 'closed') setState('closed');
   });
 
@@ -393,7 +405,11 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
       clearTimer();
       clearHeartbeat();
       if (socket.readyState === 1 || socket.readyState === 0) {
-        socket.close(1000, 'Client closed OHLCV stream');
+        try {
+          socket.close(1000, 'Client closed OHLCV stream');
+        } catch {
+          // Local shutdown remains terminal even if the platform rejects close().
+        }
       }
       setState('closed');
     },
