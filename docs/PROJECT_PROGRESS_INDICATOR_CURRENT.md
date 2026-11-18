@@ -337,8 +337,9 @@ No Stage 1 ticks or Gate 10 closures are awarded for this configuration/document
 ### Deployment policy decision and implementation
 
 - Team plan read-back: **Hobby**. Project Deployment Policy API rejected the attempted preview-only source allowlist with HTTP 403 `pro_plan_required`; no paid upgrade was attempted.
-- Implemented the documented Git configuration fallback in both Vercel project roots: `git.deploymentEnabled.main=true` and `git.deploymentEnabled.phase-2/market-data-foundation=false`. This blocks automatic Git deployments from the active working branch while preserving the configured `main` production branch. It does not disable other deployment sources or globally disable Preview.
-- Frontend project root is the repository root; WSS project root is `poc/vercel_ws`, where its existing `fluid: true` configuration is preserved. The root frontend config is newly added; the WSS config is extended without removing Fluid Compute configuration.
+- The shared repository-root `vercel.json` applies to both Git-linked projects and contains `git.deploymentEnabled.main=true` plus `git.deploymentEnabled.phase-2/market-data-foundation=false`. This blocks automatic Git deployments from the active working branch while preserving the configured `main` production branch; it does not disable other deployment sources or globally disable Preview.
+- Build logs show the WSS project's Vercel build entrypoint is `.` (repository root), while Python dependencies are discovered under `poc/vercel_ws/`. Therefore `poc/vercel_ws/vercel.json` is not the authoritative project-root config for this deployment. Batch 26 corrects this by putting `fluid: true` in the shared repository-root config. The frontend is a static Vite project with no serverless function in this deployment, so the Fluid setting has no active function workload there.
+- A project-level `resourceConfig.fluid=true` update was also accepted by the Vercel API, but the available project read-back does not expose the effective field; no field-level confirmation is claimed.
 - This commit is intentionally the single planned branch update for both projects. Vercel deployment creation must be checked against the exact resulting SHA. The config is documented by Vercel as suppressing Git deployments for matching branches before a deployment is created; Ignored Build Step remains only a secondary build filter.
 - No Vercel API deployment policy was enabled (Hobby restriction); no project was paused, no preview was deleted, no SSO setting changed, and no production promotion occurred.
 
@@ -372,3 +373,21 @@ No Stage 1 ticks or Gate 10 closures are awarded for this configuration/document
 - This is a client lifecycle reliability fix. It does not prove public Vercel WebSocket Upgrade, platform 300-second lifetime behavior, Android WebView, or cross-instance fan-out. Gate 36 remains OPEN.
 - Stage 1 remains **75% provisional — 300/400 ticks; 30/40 criteria**. Gate 10 remains **0/10 formally closed**; open criteria **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**. No score increase is awarded for this code/test addition alone.
 - Zero-cost maintained; no Termux, billing, paid service, deployment, or `main` change.
+
+
+## Batch 26 — Vercel root configuration correction and Fluid Compute declaration — 18 Nov 2026
+
+### Root-directory evidence and correction
+
+- Read the WSS preview build events for `dpl_4mPXXnj2XLLoNZYe5JkdQ1M7r5tg`. Vercel reports build `entrypoint: "."`, clones the repository root, and resolves Python from `poc/vercel_ws/.python-version` and dependencies from `poc/vercel_ws/requirements.txt`. This confirms the WSS project's build root is the repository root; the nested `poc/vercel_ws/vercel.json` is not the authoritative project-root configuration for that deployment.
+- Updated the shared root `vercel.json` to include `"fluid": true`, preserving the branch-scoped `git.deploymentEnabled` rules. This makes Fluid Compute explicit for the WSS Python function while keeping the active working branch's Git preview deployment disabled and `main` enabled.
+- The frontend project uses Vite and serves static output; no frontend serverless function is present in this deployment. The shared Fluid flag therefore has no active frontend function workload.
+- Vercel documents Fluid Compute as enabled by default for projects created after 23 April 2025, and the WSS project was created on 17 November 2026. The explicit root setting removes reliance on that default. Hobby's documented maximum function duration remains 300 seconds; Fluid Compute does not make a 330-second invocation permissible on Hobby.
+- The Vercel API accepted a WSS project-level `resourceConfig.fluid=true` update, but read-back does not expose the effective field. The root `vercel.json` is the authoritative, version-controlled configuration; effective deployment behavior still requires a future permitted deployment and runtime verification.
+
+### Validation and progress
+
+- Root JSON parsed successfully before commit. Branch guard values remain `main=true` and `phase-2/market-data-foundation=false`.
+- No Vercel deployment was created by the settings update. The branch remains protected from Git-triggered preview creation by the root config; exact-SHA deployment records and status contexts must still be checked after the commit.
+- Stage 1 remains **75% provisional — 300/400 ticks; 30/40 criteria**. Gate 10 remains **0/10 formally closed**; open criteria **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**. Stages 2–6 remain **NOT SCORED**. Overall current percentage remains **NOT ESTABLISHED**; 20.9% remains historical only.
+- Zero-cost maintained. No Termux, billing changes, paid service, production promotion, or `main` modification.
