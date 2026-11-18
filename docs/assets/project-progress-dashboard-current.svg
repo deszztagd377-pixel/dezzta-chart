@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="940" viewBox="0 0 1280 940" role="img" aria-labelledby="title desc">
 <title id="title">DEZZTA CHART project progress — Batch 46 WebSocket lifecycle hardening</title>
-<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 46 isolates lifecycle observer exceptions, catches authentication send failures, and guarantees local terminal state when socket close throws. Frontend/backend tests, builds, Redis smoke, APK, CodeQL, and Git-history secret audit passed; Trivy scan is running. Prior picomatch audit blocker remains unresolved. Gate 10 remains 0/10.</desc>
+<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 46 isolates lifecycle observer exceptions, catches authentication send failures, and guarantees local terminal state when socket close throws. Frontend 231/231 + backend 1,032/1,032; build, Redis, Trivy (0 vulnerabilities), APK, CodeQL, secret audit passed. Only npm audit fails. Gate 10 remains 0/10.</desc>
 <rect width="1280" height="940" rx="28" fill="#0b1220"/>
 <g font-family="Arial,sans-serif">
 <text x="48" y="58" fill="#f8fafc" font-size="32" font-weight="700">DEZZTA CHART — PROJECT PROGRESS</text>
@@ -46,12 +46,12 @@
 <text x="474" y="744" fill="#d1fae5" font-size="18" font-weight="700">WEBSOCKET — LIFECYCLE FIX</text>
 <text x="474" y="778" fill="#a7f3d0" font-size="15">Status/close observers isolated</text>
 <text x="474" y="807" fill="#a7f3d0" font-size="15">Send/close failures fail safely</text>
-<text x="474" y="836" fill="#fcd34d" font-size="15">Frontend/backend tests + APK PASS • CodeQL PASS</text>
+<text x="474" y="836" fill="#fcd34d" font-size="15">231 + 1,032 tests PASS • APK/CodeQL PASS</text>
 <rect x="860" y="704" width="376" height="176" rx="14" fill="#78350f" stroke="#fbbf24" stroke-width="2"/>
 <text x="882" y="744" fill="#fef3c7" font-size="18" font-weight="700">GATE 10 — OPEN</text>
 <text x="882" y="778" fill="#fde68a" font-size="15">8, 20, 25, 30, 31</text>
 <text x="882" y="807" fill="#fde68a" font-size="15">34, 35, 36, 38, 39</text>
 <text x="882" y="836" fill="#fde68a" font-size="15">0 / 10 formally closed</text>
 <text x="48" y="918" fill="#94a3b8" font-size="14">No Stage 1 ticks for source/tests alone • no deployment • no Termux • main untouched</text>
-</g><text x="474" y="865" fill="#a7f3d0" font-size="14">Secret history audit PASS • Trivy pending</text>
+</g><text x="474" y="865" fill="#a7f3d0" font-size="14">Secret history audit PASS • npm audit only failure</text>
 </svg>

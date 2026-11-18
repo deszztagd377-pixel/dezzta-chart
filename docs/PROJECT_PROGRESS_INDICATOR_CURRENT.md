@@ -1,10 +1,10 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 18 November 2026 — Batch 46 source committed; exact-head CI running  
+**Audit timestamp:** 18 November 2026 — Batch 46 exact-head CI completed; only final frontend npm audit enforcement failed  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest source SHA under CI:** `4f746496b23cc9208804023bbb554a4e07c6480b`  
-**Batch 46 CI:** CodeQL, full Git-history secret audit, Android debug APK, frontend tests/build, backend tests, synthetic outbox benchmark, backend dependency audit, backend container build, and Redis/persistent-volume smoke passed; Trivy scan still running at documentation time  
-**Known dependency blocker:** picomatch GHSA-fc5q-39xc-vjpf has no published patched release; audit remains fail-closed  
+**Latest source SHA validated by CI:** `4f746496b23cc9208804023bbb554a4e07c6480b`  
+**Latest documentation HEAD:** pending this documentation commit  
+**Batch 46 CI:** frontend 231/231, backend 1,032/1,032; frontend build, credential scans, backend dependency audit, container build, Redis/persistent-volume smoke, Trivy (0 vulnerabilities), APK, CodeQL, and Git-history secret audit passed; final npm audit enforcement failed on five High picomatch findings  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
@@ -33,7 +33,9 @@
 - Source SHA: `4f746496b23cc9208804023bbb554a4e07c6480b`.
 - CodeQL [44334598939](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44334598939): SUCCESS for JavaScript/TypeScript and Python.
 - Full Git History Secret Audit [44334598934](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44334598934): SUCCESS.
-- Automated Tests [44334598973](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44334598973): frontend unit tests and production build, backend tests, synthetic SQLite outbox benchmark/report upload, backend dependency audit, backend container build, and shared Redis guard + persistent-volume smoke all passed. Trivy container scan was still running at this documentation snapshot; final workflow conclusion is pending.
+- Automated Tests [44334598973](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44334598973): **FAILURE only at final step 27, Enforce frontend dependency audit result**. Frontend Vitest: **231 passed across 28 files**. Backend pytest: **1,032 passed in 30.78 seconds**. Frontend production build, source/bundle credential scans (77 source files), Android preflight/publisher tests, synthetic SQLite outbox benchmark/report, backend dependency audit, backend container build, shared Redis guard + persistent-volume smoke, and Trivy scan/report all passed.
+- Trivy: **0 vulnerabilities** reported for the Alpine 3.24.4 base and each scanned Python package target. Report artifact [14439909868](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44334598973/artifacts/14439909868) uploaded successfully. Synthetic outbox benchmark artifact [14440682369](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44334598973/artifacts/14440682369) uploaded; it is synthetic-only, not production market-data performance evidence.
+- The sole failed step is frontend `npm audit --audit-level=high`: **five High findings** for GHSA-fc5q-39xc-vjpf in `picomatch` through Vite/fdir and Vitest/tinyglobby. npm proposes `npm audit fix --force`, which would install `vitest@3.1.4` as a breaking change. No downgrade, override, suppression, lockfile manipulation, or threshold weakening was applied.
 - Android APK [44334599093](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44334599093): SUCCESS; debug APK assembled, checksum verified, and uploaded as artifact [14441570921](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44334599093/artifacts/14441570921). Preview release was skipped; no release was published.
 - The preceding source batch's frontend dependency audit remains blocked by five High picomatch findings (GHSA-fc5q-39xc-vjpf). No patched release was found in the previous upstream recheck. Do not downgrade dependencies, add speculative overrides, suppress the advisory, alter the lockfile without an upstream fix, or weaken the audit threshold.
 - No deployment, preview release, paid service, or Termux use.
