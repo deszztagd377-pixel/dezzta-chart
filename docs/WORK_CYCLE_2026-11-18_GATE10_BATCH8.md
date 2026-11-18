@@ -25,7 +25,9 @@ The workflow ran `npm audit --audit-level=high` before frontend tests/build and 
 2. `backend/tests/test_ci_dependency_audit_order.py`
    - Added static regression coverage for the audit step ID and command.
    - Verifies the audit continues diagnostics but is still enforced at the end.
+   - Verifies frontend unit tests, frontend build, backend tests, and container image scanning occur between audit and final enforcement.
    - Verifies the final enforcement step is ordered after the container vulnerability report upload.
+   - Strengthened by follow-up commit `0e92295918a46dbb741b27d1bbd60618e8f7bc85`.
 
 3. `docs/PROJECT_PROGRESS_INDICATOR.md`
    - Updated audit date and added Batch 8 evidence/status.
