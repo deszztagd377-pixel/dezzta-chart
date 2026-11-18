@@ -1,12 +1,12 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 18 November 2026, 18:05 WIB  
+**Audit timestamp:** 18 November 2026, 18:52 WIB  
 **Active branch:** `phase-2/market-data-foundation`  
-**Verification target:** `64f348cebccbfb3fad2b9efe5a066d28962970f6`  
+**Verification target:** `362ff6ed2a492383fc0d9ee2ce2f284146004b3d`  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
-![Six-stage colored project dashboard](assets/project-progress-dashboard-batch18.svg)
+![Six-stage colored project dashboard](assets/project-progress-dashboard-batch19.svg)
 
 ## Six-stage progress
 
@@ -241,3 +241,38 @@ Still open: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**. No new external acceptanc
 The Batch 18 READY deployment records are for audited source `64f348cebccbfb3fad2b9efe5a066d28962970f6`, not the later documentation-only branch head. After Batch 18 documentation commit `ef453a1af9310d2c19fad8ae7afc1262530216cc`, GitHub reports WSS deployment **PENDING** and frontend deployment **FAILURE: Deployment rate limited — retry in 24 hours**. The dashboard now labels these separately to avoid presenting prior READY previews as current-head deployments. The Batch 18 technical CI/HTTP results remain scoped to source `64f348c`. No retry loop, paid upgrade, billing, SSO change or production promotion.
 
 Overall project remains **CURRENT % NOT ESTABLISHED**; **20.9% HISTORICAL ONLY**. Stage 1 remains 75% provisional; Gate 10 0/10 closed.
+
+
+## Batch 19 — executable WebSocket protocol contract and corrected progress accounting — 18 Nov 2026
+
+### WebSocket protocol regression coverage added
+
+Added `backend/tests/test_vercel_ws_protocol.py`. It imports the isolated synthetic POC application by its repository path and uses FastAPI/Starlette TestClient to exercise the ASGI WebSocket protocol, not just source-text patterns. Coverage includes:
+
+1. WebSocket handshake, ready message and ping/pong round-trip with matching session ID and sequence.
+2. Invalid-message error followed by close code 1003.
+3. Oversized-message error followed by close code 1009.
+4. Twelve-message/ten-second rate boundary and rate-limited close code 1013 on the next message.
+5. HTTP health response explicitly declaring `synthetic-only` and `production_data_connected=false`.
+
+**Evidence boundary:** these are executable in-process ASGI protocol tests. They do not prove public Vercel WSS upgrade, browser behavior, 330-second platform lifetime, Android WebView, Fluid Compute effective settings, or multi-instance fan-out. Gate 36 remains OPEN until those external observations exist.
+
+### CI checkpoint before Batch 19 commit
+
+- Latest branch CI run [44288721128](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44288721128) was still running at read-back; frontend tests/build, source and bundle credential scans, Android preflight/publisher tests, backend pytest (PASS), synthetic outbox benchmark, backend dependency audit had passed; backend image build was in progress. Do not claim this run complete.
+- CodeQL run [44288721099](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44288721099): SUCCESS.
+- Full Git History Secret Audit run [44288721127](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44288721127): SUCCESS.
+- Vercel commit status for `362ff6e`: both WSS POC and frontend report **Deployment rate limited — retry in 24 hours**. No retry loops, plan upgrade, billing or SSO change.
+
+### Dependency blocker — confirmed path and safe decision
+
+The root lockfile contains `picomatch@4.0.7` as `dev: true`, with transitive parents `tinyglobby@0.2.17`, `vite@6.4.5`, and `vitest@4.1.12`, all also development-only. The GitHub Advisory [GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf) still reports High severity, affected through 4.0.7, and no patched version. Upstream issue [#247](https://github.com/micromatch/picomatch/issues/247) remains open in the latest read. No reviewed/released fix is available to justify a lockfile override. Do not downgrade to 4.0.4: that release addressed a different earlier advisory, not this later single-branch extglob finding. Keep npm audit enforcement fail-closed; dev-only status is exposure reduction, not remediation.
+
+### Progress accounting
+
+- Stage 1: **75% provisional**, 300/400 ticks, 30/40 provisional criteria.
+- Gate 10: **0/10 formally closed**; open criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.
+- Stages 2–6: **NOT SCORED**.
+- Overall current project percentage: **NOT ESTABLISHED** because M1–M8 weights and criterion mapping are not approved/scored. Historical 20.9% is retained only as a historical checkpoint, not presented as current.
+
+No Gate 10 closure or Stage 1 tick increase is awarded from adding tests alone. No Termux required. Zero-cost constraints maintained. `main` untouched.

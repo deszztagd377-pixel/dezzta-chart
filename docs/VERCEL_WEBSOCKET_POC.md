@@ -301,3 +301,10 @@ Verification target: `4256c5e3ccab82255d115beaf961afd4794a3a42`.
 - Protected root page: HTTP 200; browser client includes Connect, Disconnect, synthetic ping and bounded 330-second probe controls.
 - HTTP fetch did not negotiate WebSocket Upgrade. No actual WSS handshake, ping/pong, 330-second foreground observation, platform close attribution, Android WebView, Fluid Compute effective setting or cross-instance fan-out is claimed.
 - Gate 36 remains OPEN. No production data is connected.
+
+
+## Batch 19 — executable ASGI WebSocket protocol tests — 18 Nov 2026
+
+Added `backend/tests/test_vercel_ws_protocol.py` to execute the synthetic POC app through FastAPI TestClient. It verifies the ASGI WebSocket handshake, ready/session identity, ping/pong round-trip and sequence, invalid-message close 1003, oversized-message close 1009, rate-limit close 1013 after 12 messages in a 10-second window, and synthetic-only health response.
+
+These tests validate the app's WebSocket protocol contract in-process. They do **not** establish public Vercel WSS upgrade or actual browser/mobile transport. Protected Vercel deployment for branch head `362ff6e` is currently rate limited; no attempt is made to bypass that quota. Gate 36 remains OPEN pending real external observations.
