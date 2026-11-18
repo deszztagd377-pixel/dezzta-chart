@@ -4,7 +4,7 @@
 **Active branch:** `phase-2/market-data-foundation`  
 **Latest source SHA under exact-head CI:** `a1af6824d3b7b83d6c4e9af7cb81d9cde1892dc2`  
 **Parent source SHA:** `689e90af890c7fe54023189bd631bff64f3ac0c3`  
-**Batch 44 CI so far:** frontend unit tests, frontend production build, frontend source/bundle credential scans, and full reachable Git-history secret audit passed; backend tests, container/Redis/Trivy, APK, CodeQL, and final npm audit enforcement are pending  
+**Batch 44 CI so far:** frontend unit tests, frontend production build, frontend source/bundle credential scans, backend tests, synthetic outbox benchmark, backend dependency audit, Android debug APK build/artifact, CodeQL (JavaScript/TypeScript + Python), and full reachable Git-history secret audit passed; backend container build is in progress, with Redis/Trivy and final npm audit enforcement pending  
 **Previous fully evaluated source SHA:** `09dd096580b30bce5789d12ab09f9ee41ac4234d` — functional checks passed; workflow failed only at fail-closed npm audit (5 High picomatch findings)  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
@@ -29,10 +29,11 @@
 
 ### Exact-head validation
 - Exact-head source SHA: `a1af6824d3b7b83d6c4e9af7cb81d9cde1892dc2`.
-- GitHub Actions Automated Tests run [44329450510](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44329450510): frontend unit tests passed; frontend production build passed; frontend source and production-bundle credential scans passed; Android host-preflight and immutable-publisher tests passed. Backend tests, synthetic outbox benchmark, backend audit/container/Redis/Trivy steps, and final npm audit enforcement were pending at this documentation snapshot.
+- GitHub Actions Automated Tests run [44329450510](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44329450510): frontend unit tests, frontend production build, frontend source/bundle credential scans, backend tests, synthetic outbox benchmark/report upload, backend dependency audit, Android host-preflight and immutable-publisher tests all passed. Backend container image build is in progress; Redis/persistent-volume smoke, Trivy scan/report, and final npm audit enforcement have not yet run. Do not call the workflow green or failed until its final conclusion is recorded.
 - Full Git History Secret Audit [44329450526](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44329450526): SUCCESS.
-- Android APK [44329450397](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44329450397) and CodeQL [44329450525](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44329450525): in progress at this documentation snapshot.
-- The informational dependency-audit step passed its report generation; the final fail-closed enforcement step has not yet run. Do not call the workflow green or failed until its final conclusion is recorded.
+- Android APK [44329450397](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44329450397): SUCCESS; verified artifact uploaded (artifact ID 14439470186, SHA-256 `09d51847dab2e239fda1a19846cf80c027be8742477fc76989f7da61660fe27b`). Immutable preview release step was skipped; no release was published.
+- CodeQL [44329450525](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44329450525): SUCCESS for JavaScript/TypeScript and Python.
+- The informational dependency-audit step passed its report generation; final fail-closed enforcement is still pending. Do not call the workflow green or failed until its final conclusion is recorded.
 - The exact-head frontend unit-test step passed; detailed test count is not inferred from the step status alone.
 
 ### WebSocket / Gate 36 disposition

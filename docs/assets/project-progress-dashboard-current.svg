@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="940" viewBox="0 0 1280 940" role="img" aria-labelledby="title desc">
 <title id="title">DEZZTA CHART project progress — Batch 44 replay-recovery backoff reset</title>
-<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 44 fixes the WebSocket supervisor so a validated cursor-replay recovery resets reconnect backoff. Frontend unit tests, production build, frontend credential scans, and Git-history secret audit passed on source SHA a1af6824d3b7b83d6c4e9af7cb81d9cde1892dc2. Backend tests, container/Redis/Trivy, APK, CodeQL, and final npm audit enforcement are pending. Picomatch 4.0.7 advisory remains unresolved; no suppression or downgrade. Gate 10 remains 0/10.</desc>
+<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 44 fixes the WebSocket supervisor so a validated cursor-replay recovery resets reconnect backoff. Frontend unit tests, production build, frontend credential scans, and Git-history secret audit passed on source SHA a1af6824d3b7b83d6c4e9af7cb81d9cde1892dc2. Backend tests, outbox benchmark, backend dependency audit, APK, CodeQL, and secret audit passed. Container/Redis/Trivy and final npm audit enforcement are pending. Picomatch 4.0.7 advisory remains unresolved; no suppression or downgrade. Gate 10 remains 0/10.</desc>
 <rect width="1280" height="940" rx="28" fill="#0b1220"/>
 <g font-family="Arial,sans-serif">
 <text x="48" y="58" fill="#f8fafc" font-size="32" font-weight="700">DEZZTA CHART — PROJECT PROGRESS</text>
@@ -46,7 +46,7 @@
 <text x="474" y="744" fill="#d1fae5" font-size="18" font-weight="700">WEBSOCKET — BACKOFF FIX</text>
 <text x="474" y="778" fill="#a7f3d0" font-size="15">Replay recovery resets backoff</text>
 <text x="474" y="807" fill="#a7f3d0" font-size="15">Validated snapshot + replay success</text>
-<text x="474" y="836" fill="#fcd34d" font-size="15">Batch 44 exact-head CI pending</text>
+<text x="474" y="836" fill="#fcd34d" font-size="15">Batch 44 tests/build/APK/CodeQL PASS</text>
 <rect x="860" y="704" width="376" height="176" rx="14" fill="#78350f" stroke="#fbbf24" stroke-width="2"/>
 <text x="882" y="744" fill="#fef3c7" font-size="18" font-weight="700">GATE 10 — OPEN</text>
 <text x="882" y="778" fill="#fde68a" font-size="15">8, 20, 25, 30, 31</text>
