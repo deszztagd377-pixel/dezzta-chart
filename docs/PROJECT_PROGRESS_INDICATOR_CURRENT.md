@@ -2,28 +2,27 @@
 
 **Audit timestamp:** 18 November 2026 — repository/documentation reconciliation  
 **Active branch:** `phase-2/market-data-foundation`  
-**Repository HEAD verified:** `0126c847b015f08645b8b64cdb37ad458bc2fd43`  
+**Repository HEAD audited:** `0c12dc54bce9fb5694b57e13928d995ff258ecef` (Batch 30 documentation-only HEAD; this progress update is the next documentation reconciliation)  
 **Latest source-code baseline:** `e6db77210dd28bd82196b2b7bf7d8d7e7256fc37` (Batch 27; subsequent commits are documentation/config reconciliation)  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
 ![Six-stage colored project dashboard](assets/project-progress-dashboard-batch19.svg)
 
-## Latest verified update — Batch 30
+## Latest verified update — Batch 31
 
-- Exact active branch HEAD: `0126c847b015f08645b8b64cdb37ad458bc2fd43`. The latest two commits after the Batch 27 source baseline are documentation-only; no application source changed in those commits.
-- Exact-head GitHub Actions Automated Tests run [44304765032](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44304765032): **frontend Vitest 212/212 PASS; backend pytest 1,030 PASS in 35.88s; frontend production build PASS; frontend source/bundle credential scans PASS; Android preflight/publisher tests PASS; synthetic outbox benchmark PASS; backend dependency audit PASS; backend container build PASS; Redis/persistent-volume smoke PASS; Trivy scan/report steps PASS**.
-- The overall Automated Tests workflow remains **FAILURE solely at final frontend dependency-audit enforcement**. The npm audit step reports five High findings through development-only `picomatch` / `GHSA-fc5q-39xc-vjpf`; its suggested `npm audit fix --force` would downgrade Vite to 6.2.7 (breaking change). No force downgrade, suppression, waiver, or speculative override was applied.
-- Exact-head CodeQL run [44304764936](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44304764936): **SUCCESS**. Full Git History Secret Audit [44304764965](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44304764965): **SUCCESS**.
-- Exact-SHA Vercel deployment lookups for both projects at HEAD `0126c847...` returned zero deployments. No deployment or retry was created. Root `vercel.json` preserves `main=true` and `phase-2/market-data-foundation=false`.
-- Existing WSS preview `dpl_4mPXXnj2XLLoNZYe5JkdQ1M7r5tg` is **READY**, source `9873a5fd1c52a0cbab94683c0c309732407212e8`, preview-only (`target=null`). Protected `/health` returned HTTP 200 with `mode=synthetic-only` and `production_data_connected=false`. This is HTTP health evidence, not a WebSocket Upgrade or production data connection.
-- Existing frontend deployment `dpl_tYw6Y4dbeSzwR6t7shtkKpT7nxBc` is **CANCELED by the configured Ignored Build Step**: its log states the command returned exit code 0 because the changed paths did not require a frontend build. This is intentional filtering, not a compile failure.
-- Exact-head frontend WebSocket tests passed: client 6, stream protocol 14, supervisor 14. Backend pytest includes the synthetic ASGI WebSocket protocol, probe contract, and production backend stream tests; all are within the 1,030 passing backend tests.
-- Hobby Fluid Compute's documented function maximum is 300 seconds. The POC's 330-second foreground observation is deliberately longer to detect a possible platform close around the 300-second boundary; no such owner-observed runtime measurement is yet recorded. Gate 36 remains OPEN.
-- Advisory sources [GitHub](https://github.com/advisories/GHSA-fc5q-39xc-vjpf) and [OSV](https://osv.dev/vulnerability/GHSA-fc5q-39xc-vjpf) still list affected versions through 4.0.7 and no patched version. Keep audit enforcement fail-closed.
-- Gate 30 remains OPEN pending an owner-target restore drill. Gate 31 remains OPEN pending zero-cost off-host storage, separate recovery-key custody, retention/access policy, and an external restore. Gate 36 remains OPEN pending real WSS Upgrade/ping-pong, foreground duration attribution, Android WebView, effective Fluid Compute read-back, and fan-out evidence.
-- No Stage 1 score increase or Gate 10 closure is awarded from passing CI tests or HTTP-only WSS checks without the required external acceptance.
-- ZERO COST maintained. No billing, paid service, production promotion, deployment retry, or SSO change. `main` untouched. No Termux required for this cycle.
+- **Audited exact HEAD:** `0c12dc54bce9fb5694b57e13928d995ff258ecef` on `phase-2/market-data-foundation`. This commit is documentation-only relative to source baseline `e6db77210dd28bd82196b2b7bf7d8d7e7256fc37`; no application source changed.
+- Exact-HEAD Automated Tests run [44306105968](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44306105968): **FAILURE only at the final frontend dependency-audit enforcement**. Frontend Vitest **212/212 PASS** (26 files); backend pytest **1,030 PASS in 26.29s**; frontend production build, source/bundle credential scans, Android preflight and immutable publisher tests, synthetic SQLite outbox benchmark, backend dependency audit, backend container build, Redis/persistent-volume smoke, Trivy image scan and vulnerability-report export all PASS.
+- Exact-HEAD CodeQL run [44306106124](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44306106124): **SUCCESS** for JavaScript/TypeScript and Python. Full Git History Secret Audit [44306106134](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44306106134): **SUCCESS**.
+- The only failing enforcement remains **five High findings** through development-only `picomatch` / `GHSA-fc5q-39xc-vjpf`. The exact run's npm output says `npm audit fix --force` would install `vitest@3.1.4`, a breaking change. No force downgrade, dependency override, suppression, or waiver was applied. Keep audit enforcement fail-closed.
+- **WebSocket source evidence:** frontend client/protocol/supervisor suites passed in the 212 tests; backend stream, authenticated API WebSocket, synthetic POC protocol and bounded-probe contracts are included in the 1,030 passing backend tests. This does not prove deployed public WSS Upgrade/ping-pong, Android WebView, 330-second foreground observation, platform close attribution, effective Fluid Compute read-back, or fan-out.
+- Existing WSS preview remains preview-only and synthetic. Its prior protected `/health` HTTP 200 response explicitly reported `production_data_connected=false`; HTTP health is not a WebSocket transport acceptance.
+- **Gate 30 source audit:** `backend/app/sqlite_restore_drill.py` now commits the drill-owned probe record, reads it from a fresh read-only connection, commits cleanup, and verifies absence through another connection. The latest 1,030-test backend run passed. This is repository/CI evidence only; no owner-target application database restore has been run.
+- **Gate 31 source boundary:** `backend/app/sqlite_backup.py` provides consistent local SQLite snapshot/restore, integrity and foreign-key checks, owner-only POSIX permissions, atomic publication and fsync handling. Its own module contract explicitly does not encrypt or upload snapshots. Existing CI encrypted-snapshot integration evidence does not create an off-host artifact, separately controlled recovery key, retention/access policy, or owner-target recovery. Gate 31 stays OPEN.
+- Exact-SHA Vercel deployment lookups for audited HEAD `0c12dc54bce9...` returned zero deployment records for both projects. Root `vercel.json` keeps `main=true` and `phase-2/market-data-foundation=false`. No deployment, retry, production promotion, billing change, paid service, or SSO change.
+- **No Termux required for this remote GitHub/source/CI audit.** Actual owner-device restore and Android-native WSS acceptance are separate target-device activities; no installation or command is being requested in this batch.
+- No Stage 1 ticks or Gate 10 closures are awarded from CI/source evidence where owner-target acceptance is still missing. ZERO COST maintained; `main` untouched.
+
 ## Six-stage progress
 
 | Stage | Scope | Status | Progress |
@@ -492,3 +491,33 @@ No Stage 1 ticks or Gate 10 closures are awarded for this configuration/document
 - Overall current project percentage: **NOT ESTABLISHED** until M1–M8 weights and criterion mapping are approved. Historical 20.9% remains historical only.
 - No Termux required for CI, GitHub, or protected HTTP checks. Any future owner-device restore or Android-native verification requiring Termux must be raised before asking the owner to install or run anything.
 - ZERO COST maintained; no deployment, paid service, billing change, production promotion, or main-branch modification.
+
+
+## Batch 31 — multi-gate engineering reconciliation — 18 November 2026
+
+### Exact-head CI and security disposition
+
+The audited source baseline remains `e6db77210dd28bd82196b2b7bf7d8d7e7256fc37`; Batch 30 HEAD `0c12dc54bce9fb5694b57e13928d995ff258ecef` changed documentation only. Exact-head run [44306105968](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44306105968) reports frontend 212/212 and backend 1,030/1,030 passing, plus production build, credential scans, Android preflight/publisher tests, outbox benchmark, backend audit, container build, Redis/persistent-volume smoke and Trivy report steps passing. The workflow is still red solely because npm audit enforcement found five High dev-transitive picomatch findings. The exact audit log recommends a breaking Vitest downgrade; it was rejected. CodeQL [44306106124](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44306106124) and Full Git History Secret Audit [44306106134](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44306106134) both succeeded.
+
+### Gate 30 — local restore correctness vs owner-target proof
+
+Source review confirms the restore drill compares integrity, foreign keys, required application tables, row counts, row hashes, schema hash, domain-level records and outbox identity. The post-restore probe now commits before a fresh read-only read and commits cleanup before a separate absence check. CI passed the relevant backend suite. The remaining acceptance item is a timestamped drill against the actual owner-controlled application database; CI fixtures cannot substitute for that.
+
+### Gate 31 — encryption and off-host boundary
+
+The local SQLite helper is intentionally not an encryption or transfer layer. Existing repository evidence for encrypted snapshot/decrypt/restore is not equivalent to off-host retention. Still required: a genuinely zero-incremental-cost off-host destination, separately controlled recovery-key custody, explicit retention/access policy and successful recovery from that destination. No provider was provisioned or assumed.
+
+### Gate 36 — WebSocket boundary
+
+Frontend and backend WebSocket regression tests pass at the audited source baseline. The deployed POC evidence remains synthetic-only HTTP health. The external checks still missing are real public Upgrade and ping/pong, owner-observed foreground probe with platform close attribution, Android WebView, effective Fluid Compute configuration and cross-instance fan-out. No Vercel deployment was initiated because the branch guard disables branch deployments and the current goal is audit, not an unnecessary build.
+
+### Stage and Gate 10 indicator
+
+- Stage 1: **75% provisional — 300/400 ticks; 30/40 criteria**.
+- Gate 10: **0/10 formally closed**.
+- Still open: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- Stages 2–6: **NOT SCORED**.
+- Overall project percentage: **NOT ESTABLISHED** pending an approved M1–M8 weighting ledger and criterion mapping. Historical 20.9% remains historical only.
+- No stage ticks are awarded for documentation, CI alone, or source-level checks that do not meet the external acceptance condition.
+
+**Disposition:** no safe repository-only change can honestly close the remaining external gates or remediate the currently unpatched dependency advisory. Keep fail-closed controls; do not trade security or zero-cost constraints for a superficially green status.
