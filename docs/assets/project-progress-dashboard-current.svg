@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="940" viewBox="0 0 1280 940" role="img" aria-labelledby="title desc">
 <title id="title">DEZZTA CHART project progress — Batch 47 WebSocket supervisor observer isolation</title>
-<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 47 isolates supervisor onStatus/onError observers so callback exceptions cannot cancel reconnect scheduling. Frontend tests/build and Git-history audit passed; backend tests, APK, and CodeQL are running. Batch 46 audit blocker picomatch remains unresolved. Gate 10 remains 0/10.</desc>
+<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 47 isolates supervisor onStatus/onError observers so callback exceptions cannot cancel reconnect scheduling. Frontend 232/232 + backend 1,032/1,032; build, Redis, Trivy (0 vulnerabilities), APK, CodeQL, and Git-history audit passed. Only npm audit fails. Gate 10 remains 0/10.</desc>
 <rect width="1280" height="940" rx="28" fill="#0b1220"/>
 <g font-family="Arial,sans-serif">
 <text x="48" y="58" fill="#f8fafc" font-size="32" font-weight="700">DEZZTA CHART — PROJECT PROGRESS</text>

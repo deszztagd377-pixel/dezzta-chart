@@ -3,7 +3,7 @@
 **Audit timestamp:** 18 November 2026 — Batch 47 exact-head CI completed; only final frontend npm audit enforcement failed  
 **Active branch:** `phase-2/market-data-foundation`  
 **Latest source SHA validated by CI:** `6b82a3dd4ac20d0b6ee4e1b2b43b7f211de7f4dc`  
-**Latest documentation HEAD:** pending this documentation commit  
+**Latest documentation HEAD:** `ecae51acb6244d4ba0f1ccc4b59f33b11913a8b0`  
 **Batch 47 CI:** frontend 232/232, backend 1,032/1,032; frontend build, credential scans, backend dependency audit, container build, Redis/persistent-volume smoke, Trivy (0 vulnerabilities), APK, CodeQL, and Git-history secret audit passed; final npm audit enforcement failed on five High picomatch findings  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
