@@ -86,6 +86,17 @@ beforeEach(() => {
     .IS_REACT_ACT_ENVIRONMENT = true;
   vi.resetAllMocks();
   vi.stubGlobal('ResizeObserver', undefined as unknown as typeof ResizeObserver);
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+    width: 800,
+    height: 420,
+    top: 0,
+    left: 0,
+    right: 800,
+    bottom: 420,
+    x: 0,
+    y: 0,
+    toJSON: () => ({}),
+  } as DOMRect);
   setBrowserLifecycle(true, 'visible');
   stopHandles = [];
   container = document.createElement('div');
@@ -128,18 +139,6 @@ afterEach(() => {
 
 describe('CandlestickChart WebSocket browser lifecycle integration', () => {
   it('stops offline, recreates on return online, pauses hidden, and cleans up on unmount', () => {
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
-      width: 800,
-      height: 420,
-      top: 0,
-      left: 0,
-      right: 800,
-      bottom: 420,
-      x: 0,
-      y: 0,
-      toJSON: () => ({}),
-    } as DOMRect);
-
     renderChart();
     expect(mocks.startSupervisor).toHaveBeenCalledTimes(1);
     expect(stopHandles).toHaveLength(1);
