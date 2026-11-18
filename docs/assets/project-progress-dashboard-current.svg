@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="940" viewBox="0 0 1280 940" role="img" aria-labelledby="title desc">
 <title id="title">DEZZTA CHART project progress — Batch 49 explicit WebSocket close observer fallback</title>
-<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 49 adds an idempotent abnormal-close notification when an explicit client close request throws or the socket is already CLOSED. Exact-head CI is in progress; frontend tests/build/audit and backend tests have passed, while container validation is pending. APK, CodeQL and Git-history audit passed. Gate 10 remains 0/10.</desc>
+<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 49 adds an idempotent abnormal-close notification when an explicit client close request throws or the socket is already CLOSED. Exact-head CI SUCCESS: frontend 234/234, backend 1,032/1,032, npm audit, build, Redis smoke, Trivy, APK, CodeQL and Git-history audit passed. Gate 10 remains 0/10.</desc>
 <rect width="1280" height="940" rx="28" fill="#0b1220"/>
 <g font-family="Arial,sans-serif">
 <text x="48" y="58" fill="#f8fafc" font-size="32" font-weight="700">DEZZTA CHART — PROJECT PROGRESS</text>
@@ -28,7 +28,7 @@
 <rect x="860" y="420" width="376" height="112" rx="14" fill="#2e1065" stroke="#a78bfa" stroke-width="2"/>
 <text x="882" y="458" fill="#f8fafc" font-size="18" font-weight="700">3  Chart Engine / Timeframe</text>
 <text x="882" y="496" fill="#a78bfa" font-size="20" font-weight="700">NOT SCORED</text>
-<rect x="44" y="552" width="376" height="112" rx="14" fill="#78350f" stroke="#fbbf24" stroke-width="2"/>
+<rect x="44" y="552" width="376" height="112" rx="14" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
 <text x="66" y="590" fill="#f8fafc" font-size="18" font-weight="700">4  Indicators / Analytics</text>
 <text x="66" y="628" fill="#fbbf24" font-size="20" font-weight="700">NOT SCORED</text>
 <rect x="452" y="552" width="376" height="112" rx="14" fill="#831843" stroke="#f472b6" stroke-width="2"/>
@@ -38,15 +38,15 @@
 <text x="882" y="590" fill="#f8fafc" font-size="18" font-weight="700">6  Hardening / APK Release</text>
 <text x="882" y="628" fill="#94a3b8" font-size="20" font-weight="700">NOT SCORED</text>
 <rect x="44" y="704" width="376" height="176" rx="14" fill="#78350f" stroke="#fbbf24" stroke-width="2"/>
-<text x="66" y="744" fill="#fee2e2" font-size="18" font-weight="700">CI — IN PROGRESS</text>
-<text x="66" y="778" fill="#fecaca" font-size="15">npm audit passes at Batch 48</text>
-<text x="66" y="807" fill="#fecaca" font-size="15">Batch 49 frontend tests/build PASS</text>
-<text x="66" y="836" fill="#fecaca" font-size="15">Backend tests PASS • container pending</text>
+<text x="66" y="744" fill="#fee2e2" font-size="18" font-weight="700">CI — ALL CHECKS PASS</text>
+<text x="66" y="778" fill="#fecaca" font-size="15">Batch 49 exact-head CI SUCCESS</text>
+<text x="66" y="807" fill="#fecaca" font-size="15">234 frontend + 1,032 backend PASS</text>
+<text x="66" y="836" fill="#fecaca" font-size="15">npm audit • Redis • Trivy • APK PASS</text>
 <rect x="452" y="704" width="376" height="176" rx="14" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
 <text x="474" y="744" fill="#d1fae5" font-size="18" font-weight="700">WEBSOCKET — EXPLICIT CLOSE FIX</text>
 <text x="474" y="778" fill="#a7f3d0" font-size="15">Explicit close failure reported</text>
 <text x="474" y="807" fill="#a7f3d0" font-size="15">Close observer receives 1006 once</text>
-<text x="474" y="836" fill="#fcd34d" font-size="15">Batch 49 exact-head CI running</text>
+<text x="474" y="836" fill="#fcd34d" font-size="15">Exact-head CI SUCCESS • ZERO COST</text>
 <rect x="860" y="704" width="376" height="176" rx="14" fill="#78350f" stroke="#fbbf24" stroke-width="2"/>
 <text x="882" y="744" fill="#fef3c7" font-size="18" font-weight="700">GATE 10 — OPEN</text>
 <text x="882" y="778" fill="#fde68a" font-size="15">8, 20, 25, 30, 31</text>

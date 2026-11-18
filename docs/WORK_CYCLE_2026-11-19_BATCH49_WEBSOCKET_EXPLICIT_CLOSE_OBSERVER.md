@@ -27,18 +27,20 @@ A new test replaces the fake socket's `close()` with a throwing implementation, 
 ## Validation — exact source SHA
 Automated Tests: [44421919543](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919543).
 
-At documentation time:
-- Frontend dependency audit: PASS.
-- Frontend unit tests: PASS (exact count pending completed job log).
-- Frontend production build and source/bundle credential scans: PASS.
-- Android preflight/publisher tests: PASS.
-- Backend pytest: PASS (exact count pending completed job log).
-- Backend dependency audit: PASS.
-- Backend container build: IN PROGRESS.
-- Android APK: [44421919500](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919500) SUCCESS.
-- CodeQL: [44421919553](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919553) SUCCESS.
-- Git-history secret audit: [44421919501](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919501) SUCCESS.
-- Redis/persistent-volume smoke, Trivy, and overall CI conclusion: not yet confirmed.
+Completed exact-head results:
+- Frontend Vitest: **234 passed across 28 files**.
+- Backend pytest: **1,032 passed in 31.09 seconds**.
+- Frontend dependency audit: **PASS — 0 vulnerabilities**; no dependency downgrade, override, suppression, lockfile manipulation, or threshold weakening.
+- Frontend production build and source/bundle credential scans: PASS (77 frontend source files scanned).
+- Android preflight and immutable publisher tests: PASS.
+- Backend dependency audit and backend container build: PASS.
+- Shared Redis ACL + persistent-volume smoke: PASS.
+- Trivy image scan/report: PASS; report artifact [14483195008](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919543/artifacts/14483195008). This is CI evidence, not production-host acceptance.
+- Synthetic SQLite outbox benchmark artifact [14482701506](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919543/artifacts/14482701506): synthetic-only, not production market-data performance evidence.
+- Android APK [44421919500](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919500): SUCCESS; artifact [14481438680](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919500/artifacts/14481438680). Preview release skipped; no release published.
+- CodeQL [44421919553](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919553): SUCCESS.
+- Full Git History Secret Audit [44421919501](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919501): SUCCESS.
+- Automated Tests [44421919543](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919543): **SUCCESS**, no failed steps.
 
 ## Gate disposition
 - Gate 36 remains OPEN pending real public WSS, Android WebView, 330-second owner-observed session, effective host configuration and cross-instance fan-out evidence.

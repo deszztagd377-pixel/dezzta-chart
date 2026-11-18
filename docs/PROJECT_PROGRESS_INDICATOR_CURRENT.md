@@ -1,10 +1,9 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 19 November 2026 — Batch 49 explicit-close observer fallback committed; exact-head CI is in progress  
+**Audit timestamp:** 19 November 2026 — Batch 49 exact-head CI completed successfully  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest source SHA under validation:** `a8589e816b349d72db3d9093fd4b71eb01288813`  
-**Latest completed exact-head CI:** Batch 48 `0b0e710e7e5f9565157e4051bae0619bb4c48123` — SUCCESS, frontend 234/234, backend 1,032/1,032; npm audit, build, Redis smoke, Trivy, APK, CodeQL and Git-history audit passed  
-**Batch 49 CI:** [Automated Tests 44421919543](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919543) running; frontend audit/tests/build and backend tests passed so far; backend container build is in progress. Android APK, CodeQL and Git-history audit workflows succeeded.  
+**Latest source SHA validated by CI:** `a8589e816b349d72db3d9093fd4b71eb01288813`  
+**Batch 49 exact-head CI:** SUCCESS — frontend 234/234 across 28 files; backend 1,032/1,032; frontend dependency audit (0 vulnerabilities), production build, source/bundle credential scans, Android preflight/publisher tests, backend dependency audit, backend container build, Redis/persistent-volume smoke, Trivy scan/report, Android APK, CodeQL, and Git-history secret audit all passed  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
