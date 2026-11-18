@@ -77,7 +77,19 @@ export function startOhlcvStreamSupervisor(
 
   const setStatus = (next: OhlcvSupervisorStatus) => {
     currentStatus = next;
-    options.onStatus?.(next);
+    try {
+      options.onStatus?.(next);
+    } catch {
+      // UI/diagnostic observers must not interrupt reconnect or stop lifecycle.
+    }
+  };
+  const reportError = (error: Error) => {
+    try {
+      const observer = options.onError;
+      observer?.(error);
+    } catch {
+      // Error reporting is best-effort; supervisor recovery must continue.
+    }
   };
 
   const scheduleReconnect = () => {
@@ -115,7 +127,7 @@ export function startOhlcvStreamSupervisor(
           'No valid Firebase ID token is available. Sign in again before reconnecting.',
         );
         setStatus('stopped');
-        options.onError?.(new Error('Identity provider returned an empty ID token.'));
+        reportError(new Error('Identity provider returned an empty ID token.'));
         return;
       }
       connection = connectOhlcvStream({
@@ -175,7 +187,7 @@ export function startOhlcvStreamSupervisor(
         },
         onError: (error) => {
           if (stopped) return;
-          options.onError?.(error);
+          reportError(error);
           // Wait for the socket's authoritative close event before opening a replacement.
           // Scheduling here can race a delayed close and briefly overlap two sockets.
           setStatus('reconnecting');
@@ -204,7 +216,7 @@ export function startOhlcvStreamSupervisor(
                     : 'The server rejected the subscription request. Check the selected instrument and timeframe.',
             );
             setStatus('stopped');
-            options.onError?.(new Error(
+            reportError(new Error(
               code === 1008 ? 'Market-data WebSocket protocol policy rejected (1008).' :
               code === 4401 ? 'Market-data authentication rejected (4401).' :
               code === 4403 ? 'Market-data entitlement denied (4403).' :
@@ -217,7 +229,7 @@ export function startOhlcvStreamSupervisor(
       });
     } catch (error) {
       if (!stopped) {
-        options.onError?.(error instanceof Error ? error : new Error('OHLCV connection failed.'));
+        reportError(error instanceof Error ? error : new Error('OHLCV connection failed.'));
         reconnectAfterAttempt = true;
       }
     } finally {

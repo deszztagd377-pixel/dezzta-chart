@@ -287,6 +287,53 @@ describe('OHLCV stream supervisor', () => {
     supervisor.stop();
   });
 
+  it('continues reconnecting when supervisor status and error observers throw', async () => {
+    vi.useFakeTimers();
+    const sockets: FakeSocket[] = [];
+    const factory = vi.fn(() => {
+      const socket = new FakeSocket();
+      sockets.push(socket);
+      return socket as unknown as WebSocket;
+    });
+    const onStatus = vi.fn(() => {
+      throw new Error('consumer status observer failed');
+    });
+    const onError = vi.fn(() => {
+      throw new Error('consumer error observer failed');
+    });
+    const supervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken: async () => 'fresh-token',
+      webSocketFactory: factory,
+      onStatus,
+      onError,
+      minReconnectDelayMs: 100,
+      maxReconnectDelayMs: 400,
+      random: () => 0,
+    });
+
+    await vi.waitFor(() => expect(sockets).toHaveLength(1));
+    sockets[0].readyState = 1;
+    sockets[0].emit('open', new Event('open'));
+    sockets[0].message({ type: 'market_data.status', version: 1 });
+    sockets[0].message(snapshot);
+    expect(supervisor.status).toBe('subscribed');
+
+    expect(() => sockets[0].emit('error', new Event('error'))).not.toThrow();
+    expect(supervisor.status).toBe('reconnecting');
+    expect(onError).toHaveBeenCalledOnce();
+
+    await vi.advanceTimersByTimeAsync(99);
+    expect(factory).toHaveBeenCalledOnce();
+    await vi.advanceTimersByTimeAsync(1);
+    await vi.waitFor(() => expect(sockets).toHaveLength(2));
+    expect(factory).toHaveBeenCalledTimes(2);
+    expect(supervisor.status).toBe('connecting');
+    supervisor.stop();
+  });
+
   it('retries after a transient identity-token acquisition failure', async () => {
     vi.useFakeTimers();
     const sockets: FakeSocket[] = [];
