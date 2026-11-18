@@ -291,3 +291,13 @@ Verification target: `4256c5e3ccab82255d115beaf961afd4794a3a42`.
 - No retry loop, billing activation, paid plan upgrade, SSO weakening or production promotion was performed.
 - Existing HTTP 200 checks are limited to protected health/page delivery in synthetic-only mode. No actual WebSocket handshake/round-trip, owner-visible 330-second foreground test, platform-originated close, Android WebView, Fluid Compute effective setting or cross-instance fan-out is claimed.
 - Gate 36 remains OPEN. No Termux needed for this repository/CI/Vercel read-back cycle.
+
+
+## Batch 18 — exact-head READY deployment and HTTP read-back — 18 Nov 2026
+
+- Source SHA: `64f348cebccbfb3fad2b9efe5a066d28962970f6`.
+- WSS POC deployment `dpl_8iPQZm1Z2QJ4Dc8hjUPgSsPanPYb`: **READY**.
+- Protected `/health`: HTTP 200, `status=ok`, `mode=synthetic-only`, `production_data_connected=false`.
+- Protected root page: HTTP 200; browser client includes Connect, Disconnect, synthetic ping and bounded 330-second probe controls.
+- HTTP fetch did not negotiate WebSocket Upgrade. No actual WSS handshake, ping/pong, 330-second foreground observation, platform close attribution, Android WebView, Fluid Compute effective setting or cross-instance fan-out is claimed.
+- Gate 36 remains OPEN. No production data is connected.
