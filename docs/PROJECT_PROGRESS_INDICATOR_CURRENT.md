@@ -8,14 +8,16 @@
 
 ![Six-stage colored project dashboard](assets/project-progress-dashboard-batch19.svg)
 
-## Latest verified update — Batch 22
+## Latest verified update — Batch 23
 
-- Current branch HEAD: `fd27e0c3ad16b112ef9a9dc8fec7f8e43d34f6cb`.
-- Backend pytest, including WebSocket protocol tests: **PASS** in CI run `44294829089`.
-- Frontend unit tests/build, source and bundle credential scans, Android publisher tests, backend dependency audit, container build/smoke test, and container scan: **PASS**.
-- Final frontend dependency-audit enforcement: **FAIL** because `picomatch@4.0.7` remains reported by `npm audit`; no upstream patched npm release was available at audit time. The audit gate remains fail-closed.
-- Both Vercel status checks on this exact HEAD: **FAIL / build-rate-limit**. READY previews exist for earlier commit `bd6356d31df710ecface0e38055aeb0afabdc6b0`, not for this HEAD.
-- Batch 22 hardening adds explicit rejection of binary WebSocket frames with close code `1003`; CI verification is pending for the new commit.
+- Audited application-code parent: `60d2c182bf8b4600f138b020eef39c321ffb83e3`; this progress update is documentation-only.
+- Batch 22 WebSocket binary-frame regression: **PASS** in backend pytest job from CI run [44295544184](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44295544184). Binary input receives the invalid-message response and close code `1003`.
+- Automated Tests run [44295544184](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44295544184): **FAILURE only at final frontend dependency-audit enforcement**. Frontend tests/build, credential scans, Android tests, backend pytest, backend audit, container build, Redis/persistent-volume smoke test, and Trivy scan/report passed.
+- CodeQL run [44295544205](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44295544205): JavaScript/TypeScript and Python analyses **PASS**. Full Git History Secret Audit run [44295544181](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44295544181): **PASS**.
+- Exact current-head Vercel deployment lookup for `60d2c18`: **zero deployment records** for both projects. Earlier READY previews remain on `bd6356d31df710ecface0e38055aeb0afabdc6b0`; they are not current-head deployments.
+- Deployment-quota containment: project-level Ignored Build Step commands were configured for both Vercel projects. The frontend project skips changes confined to `poc/vercel_ws/`, `backend/`, `docs/`, and `.github/`; the WSS project skips unless `poc/vercel_ws/` changes. A temporary local Git fixture verified docs-only changes skip both, frontend-only changes run only frontend, and WSS-only changes run only WSS. Commands fail open to build if Git diff errors or previous/current SHA inputs are unavailable. No deployment was triggered by the settings update. The project read-back endpoint does not expose the ignored-build command itself, so persistence of that specific field is not independently confirmed by a field-level read-back.
+- Upstream advisory review refreshed on 18 Nov 2026: GitHub advisory GHSA-fc5q-39xc-vjpf remains published; relevant upstream PRs including #237, #238, #257, #262, #264, #267 and #268 remain open/unmerged. PR #260 also has unresolved performance/compatibility review findings. No official patched npm release is verified; keep dependency-audit enforcement fail-closed.
+- No production WSS handshake, Android WebView test, foreground 330-second observation, effective Fluid Compute read-back, or cross-instance fan-out is claimed. Gate 36 remains OPEN.
 
 ## Six-stage progress
 
@@ -41,7 +43,7 @@
 | 31 | Encrypted snapshot/recovery code and tests | Off-host artifact, separately controlled recovery key, retention/access policy and successful restore; zero-cost only |
 | 34 | CI persistent-volume smoke test passes | Existing-host mount identity, restrictive permissions, disk-pressure and restart durability/recovery evidence |
 | 35 | Backend container build and health-related tests pass | Existing-host HTTPS/certificate chain, fail-closed startup and redacted runtime-secret source evidence |
-| 36 | Synthetic WSS POC and ASGI lifecycle/protocol tests; earlier READY previews are on parent commit `bd6356d`, while current HEAD is rate-limited | New binary-frame regression pending CI; public WSS upgrade, foreground 330s observation, platform close attribution, effective Fluid setting read-back, native Android WebView WSS, cross-instance fan-out and owner cost acceptance |
+| 36 | Synthetic WSS POC and ASGI lifecycle/protocol tests; binary-frame rejection regression PASS in CI run `44295544184`; earlier READY previews are on `bd6356d`, not current code HEAD | Public WSS upgrade, foreground 330s observation, platform close attribution, effective Fluid setting read-back, native Android WebView WSS, cross-instance fan-out and owner cost acceptance |
 | 38 | Concurrent metrics regression and input-hardening tests | Durable aggregation, bounded retention, host access controls, self-hosted dashboard and owner acceptance |
 | 39 | Sanitized local alert/recovery tests and zero-cost runbook | Persistent alert evidence, named escalation owner and completed recovery drill |
 
@@ -285,3 +287,45 @@ The root lockfile contains `picomatch@4.0.7` as `dev: true`, with transitive par
 - Overall current project percentage: **NOT ESTABLISHED** because M1–M8 weights and criterion mapping are not approved/scored. Historical 20.9% is retained only as a historical checkpoint, not presented as current.
 
 No Gate 10 closure or Stage 1 tick increase is awarded from adding tests alone. No Termux required. Zero-cost constraints maintained. `main` untouched.
+
+
+## Batch 23 — WebSocket CI reconciliation, Vercel build filtering, and advisory re-audit — 18 Nov 2026
+
+### WebSocket verification
+
+The Batch 22 binary-frame regression is no longer pending. Backend pytest in run [44295544184](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44295544184) passed. The regression verifies a binary frame is rejected through the protocol error response and close code 1003. This is synthetic ASGI protocol evidence only; Gate 36 remains open.
+
+The same workflow completed with overall FAILURE because its final frontend dependency-audit enforcement step failed. Earlier test, build, credential-scan, backend, container, Redis/persistent-volume, and Trivy steps passed. Do not label the workflow green.
+
+### Vercel deployment filtering
+
+Both Git-linked Vercel projects were configured with project-level Ignored Build Step commands:
+
+- Frontend `dezzta-chart`: skip only when all changed paths are confined to `poc/vercel_ws/`, `backend/`, `docs/`, and `.github/`.
+- WebSocket POC `dezzta-chart-ws-poc`: skip unless a file under `poc/vercel_ws/` changed.
+
+The commands use `VERCEL_GIT_PREVIOUS_SHA` and `VERCEL_GIT_COMMIT_SHA`. The `git diff --quiet` pathspec behavior was verified in an isolated temporary Git repository:
+- docs-only change → frontend skip, WSS skip;
+- frontend-only change → frontend build, WSS skip;
+- WSS-only change → WSS build, frontend skip.
+
+The commands use `|| exit 1`, so missing refs or a Git diff error do not silently skip a needed build; they fall through to a build. Project settings updates were accepted by Vercel. The available project read-back preserves existing domains, SSO protection and latest READY preview records, but does not return the ignored-build command field itself. No deployment was triggered and no READY preview was deleted or promoted.
+
+This filtering is intended to reduce duplicate/irrelevant builds; it does not remove account-level build limits and is not yet proven by a subsequent Git-triggered Vercel deployment. The next real project push should be one deliberately planned batch, not a test-only push.
+
+### Dependency advisory re-audit
+
+GitHub issue [micromatch/picomatch#234](https://github.com/micromatch/picomatch/issues/234) remains open and was updated on 18 Nov 2026. Related upstream fix PRs [#237](https://github.com/micromatch/picomatch/pull/237), [#238](https://github.com/micromatch/picomatch/pull/238), [#257](https://github.com/micromatch/picomatch/pull/257), [#262](https://github.com/micromatch/picomatch/pull/262), [#264](https://github.com/micromatch/picomatch/pull/264), [#267](https://github.com/micromatch/picomatch/pull/267), and [#268](https://github.com/micromatch/picomatch/pull/268) were still open/unmerged at audit time. PR [#260](https://github.com/micromatch/picomatch/pull/260) contains further reported performance counterexamples and compatibility tradeoffs. These PRs are not official published releases. No unmerged patch or Git override is accepted as a production dependency remediation. Keep npm audit enforcement fail-closed until a maintainer-reviewed, published version and project-specific regression verification exist.
+
+### Progress and cost accounting
+
+- Stage 1: **75% provisional — 300/400 ticks; 30/40 criteria**.
+- Gate 10: **0/10 formally closed**.
+- Open criteria: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- Stages 2–6: **NOT SCORED**.
+- Overall current project percentage: **NOT ESTABLISHED**. Historical 20.9% remains historical only; M1–M8 weights and criterion mapping are not approved.
+- Cost: **ZERO COST policy retained**. No billing changes, paid services, deployments, promotions, or SSO weakening.
+- Termux: **not required**.
+- `main`: untouched.
+
+No Stage 1 ticks or Gate 10 closures are awarded for this configuration/documentation work.
