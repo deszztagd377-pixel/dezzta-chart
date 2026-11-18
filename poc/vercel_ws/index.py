@@ -110,7 +110,10 @@ small{color:#91a4bd}
           pingNumber = 0;
           sendPing();
         }
-        if (message.type === "idle_timeout") setState("Server closed idle session", false);
+        if (message.type === "idle_timeout") {
+          // The message announces the timeout; the close event remains authoritative.
+          status.textContent = "Idle timeout — waiting for close";
+        }
       } catch {
         write({type:"invalid_server_message"});
       }
