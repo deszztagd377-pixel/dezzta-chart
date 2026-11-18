@@ -776,3 +776,22 @@ The fail-fast behavior at the frontend dependency audit has been corrected witho
 ### Vercel READY preview read-back — 2026-11-18
 
 The Hobby plan remains active. The latest listed READY previews at read-back are WSS POC deployment `dpl_7HQmpEAPpxnvcSQFz8umK7u1kf71` from source commit `001e142d3981cea99bed5da957d266af6261b2dc` and Vite deployment `dpl_Ejcq4EaG2dWnFoeDLza8s8wqeUcB` from `9e654a842f4e320d775fd8cb3489af65eb700376`. Build logs confirm both builds completed. These are not proof of deployment of the newest Batch 8 commits and are not production releases. No extra deployment was triggered. Gate 36 remains OPEN pending actual platform lifetime, Android, fan-out, and operational acceptance.
+
+
+## Follow-on repository audit — 2026-11-18
+
+The active branch received additional repository-side work after the earlier verified checkpoint:
+- Gate 36 POC: Connect is locked during CONNECTING; Disconnect can cancel a pending handshake; a browser transport error no longer falsely marks the socket closed before the actual close event.
+- Gate 36 regression contract: assertions cover the connecting/cancellation/error-state transitions.
+- Gate 38 regression contract: added an 8-thread × 125-sample concurrency accounting test (1,000 total expected samples) and cumulative histogram bucket ordering.
+- Gate 39 regression contract: added a worker-error → healthy-batch recovery transition test and verifies exception messages are not logged.
+
+Relevant commits:
+- `60c3a2123112c88d840ca57f9da9db7dc0a7f023` — WebSocket source correction.
+- `254dc09e04bd3647b78d6499eb2d3703cfe34c7f` — WebSocket regression contract.
+- `2146f5931eed4d134183011f5009420d9f9a2881` — metrics concurrency test.
+- `265ca1948777c7ef02076c3381b597080cbcb65d` — alert recovery test.
+
+**Execution status:** these latest regression additions have not yet been executed in a verified exact-head GitHub Actions run. Treat them as implemented/test-present, not test-passed. The prior 1,008-test result belongs to the older exact commit documented above. No latest-source WSS deployment has been confirmed.
+
+**Gate status remains unchanged:** criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 are OPEN; Gate 10 is 0/10 closed; Stage 1 is 300/400 = 75% provisional. Repository tests do not satisfy the external host/device/operations requirements. ZERO COST maintained; no Termux action required.
