@@ -36,3 +36,9 @@ def test_synthetic_websocket_lifetime_probe_is_bounded_and_beats_idle_timeout():
     assert "setInterval" in source
     assert "clearInterval" in source
     assert 'socket.close(1000, "bounded synthetic probe complete")' in source
+
+    # A connecting socket must lock the Connect control until open or close;
+    # otherwise repeated taps can orphan a still-connecting WebSocket.
+    assert "const setState = (value, connected, connecting = false)" in source
+    assert "connectButton.disabled = connected || connecting" in source
+    assert 'setState("Connecting…", false, true)' in source
