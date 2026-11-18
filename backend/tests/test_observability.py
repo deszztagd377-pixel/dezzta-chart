@@ -105,6 +105,6 @@ def test_request_metrics_concurrent_recording_preserves_all_samples():
     assert histogram["count"] == expected
     assert histogram["buckets"][-1] == {"le_ms": None, "count": expected}
     assert all(
-        left["count"] >= right["count"]
+        left["count"] <= right["count"]
         for left, right in zip(histogram["buckets"], histogram["buckets"][1:])
     )

@@ -66,3 +66,18 @@ Do not close an external criterion on the basis of repository code or documentat
 - No code/document repair is delegated to the project owner.
 
 See [Batch 10 work-cycle report](WORK_CYCLE_2026-11-18_GATE10_BATCH10.md) and [Stage 1 acceptance addendum](STAGE_1_GATE10_BATCH10_ACCEPTANCE_ADDENDUM.md).
+
+
+## Exact-head CI and deployment read-back — 18 November 2026 (Batch 10)
+
+Commit: `90e7c479651a415a8d68ed1c0808291dc2baffe0`
+
+- Vercel WSS POC preview: **READY** for this exact commit.
+- Vercel frontend preview: **READY** for this exact commit.
+- Frontend unit tests/build and source/bundle credential checks: **SUCCESS**.
+- Backend pytest: **1,012 total; 1,011 passed; 1 failed**. The failure is the newly added concurrent histogram test's assertion direction: cumulative bucket counts are non-decreasing as the bucket upper bound increases. Batch 11 corrects the test from `left >= right` to `left <= right`. This was a test assertion defect; no evidence indicates metric sample loss.
+- Frontend `npm audit --audit-level=high`: **FAILED** due to five High findings through `picomatch@4.0.7` (GHSA-fc5q-39xc-vjpf). The workflow's final audit enforcement correctly fails. No suppression or forced downgrade is permitted.
+- Docker/container scan steps did not run to completion because the backend test job failed before image build. Artifact upload warnings for absent benchmark/image reports are expected downstream effects, not separate source defects.
+- Full Git History Secret Audit for this exact commit was pending at the last read-back; no result claimed.
+
+**Accounting unchanged:** Stage 1 = 300/400 ticks = 75% provisional; 30/40 criteria. Gate 10 = 0/10 formally closed. Open criteria remain 8, 20, 25, 30, 31, 34, 35, 36, 38, 39. Stages 2–6 are NOT SCORED.

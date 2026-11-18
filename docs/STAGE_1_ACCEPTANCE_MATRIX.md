@@ -797,3 +797,22 @@ Relevant commits:
 **Execution status:** these latest regression additions have not yet been executed in a verified exact-head GitHub Actions run. Treat them as implemented/test-present, not test-passed. The prior 1,008-test result belongs to the older exact commit documented above. No latest-source WSS deployment has been confirmed.
 
 **Gate status remains unchanged:** criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 are OPEN; Gate 10 is 0/10 closed; Stage 1 is 300/400 = 75% provisional. Repository tests do not satisfy the external host/device/operations requirements. ZERO COST maintained; no Termux action required.
+
+
+## Gate 10 Batch 11 — exact-head CI diagnosis and correction (2026-11-18)
+
+Exact audited parent commit: `90e7c479651a415a8d68ed1c0808291dc2baffe0`.
+
+Automated Tests run [44269828285](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44269828285) completed **FAILURE**:
+- Frontend tests, build, source/bundle secret scans, Android preflight and immutable preview publisher tests passed.
+- Backend pytest: **1,011 passed, 1 failed** (1,012 total).
+- Failure: `tests/test_observability.py::test_request_metrics_concurrent_recording_preserves_all_samples`.
+- Root cause: the test asserted cumulative histogram bucket counts in descending order. The collector correctly increments every bucket whose upper bound contains the sample, so cumulative counts must be non-decreasing.
+- Batch 11 changes only the test assertion from `left >= right` to `left <= right`; no production metrics code change is required for this failure.
+- The same run's frontend dependency audit reports five High findings via `picomatch@4.0.7` (GHSA-fc5q-39xc-vjpf). The final audit-enforcement step correctly failed. This is a separate outstanding dependency blocker and is not suppressed.
+- Backend container build, persistent-volume smoke test and Trivy scan were not reached after pytest failed.
+- Full Git History Secret Audit run [44269828220](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44269828220) was pending at last read-back.
+
+Both Vercel previews for commit `90e7c479...` were independently read back as **READY**. This does not make CI green or close external gates.
+
+No Gate 10 criterion is closed and no Stage 1 ticks are awarded for the correction until exact-head CI evidence passes. Stage 1 remains 300/400 = 75% provisional; Gate 10 remains 0/10 formally closed.

@@ -3,7 +3,7 @@
 <desc id="desc">Stage 1 active at 75 percent provisional, Gate 10 has zero of ten external criteria formally closed. Stages 2 through 6 are not scored.</desc>
 <rect width="1200" height="420" rx="22" fill="#0b1220"/>
 <text x="42" y="52" fill="#f8fafc" font-family="Arial,sans-serif" font-size="27" font-weight="700">DEZZTA CHART — PROJECT PROGRESS</text>
-<text x="42" y="82" fill="#94a3b8" font-family="Arial,sans-serif" font-size="15">18 NOV 2026 • Process indicator only • ZERO COST • Active branch: phase-2/market-data-foundation</text>
+<text x="42" y="82" fill="#94a3b8" font-family="Arial,sans-serif" font-size="15">18 NOV 2026 • Batch 11 CI correction underway • Process indicator only • ZERO COST • Active branch: phase-2/market-data-foundation</text>
 <g font-family="Arial,sans-serif">
 <rect x="40" y="112" width="350" height="212" rx="16" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
 <text x="64" y="151" fill="#d1fae5" font-size="17" font-weight="700">STAGE 1 — ACTIVE</text>
