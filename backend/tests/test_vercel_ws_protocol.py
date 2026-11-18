@@ -47,6 +47,19 @@ def test_synthetic_websocket_rejects_invalid_message_and_closes() -> None:
         assert disconnected.value.code == 1003
 
 
+def test_synthetic_websocket_rejects_binary_frames_and_closes() -> None:
+    with client.websocket_connect("/ws") as websocket:
+        assert websocket.receive_json()["type"] == "ready"
+        websocket.send_bytes(b"binary-payload")
+
+        error = websocket.receive_json()
+        assert error == {"type": "error", "code": "invalid_message"}
+
+        with pytest.raises(WebSocketDisconnect) as disconnected:
+            websocket.receive_json()
+        assert disconnected.value.code == 1003
+
+
 def test_synthetic_websocket_rejects_oversized_message_and_closes() -> None:
     with client.websocket_connect("/ws") as websocket:
         assert websocket.receive_json()["type"] == "ready"

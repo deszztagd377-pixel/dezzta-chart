@@ -1,14 +1,14 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 18 November 2026, 18:52 WIB  
+**Audit timestamp:** 18 November 2026, 18:29 WIB  
 **Active branch:** `phase-2/market-data-foundation`  
-**Verification target:** `362ff6ed2a492383fc0d9ee2ce2f284146004b3d`  
+**Verification target:** `fd27e0c3ad16b112ef9a9dc8fec7f8e43d34f6cb`  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
 ![Six-stage colored project dashboard](assets/project-progress-dashboard-batch19.svg)
 
-## Six-stage progress
+## Latest verified update — Batch 22\n\n- Current branch HEAD: `fd27e0c3ad16b112ef9a9dc8fec7f8e43d34f6cb`.\n- Backend pytest, including WebSocket protocol tests: **PASS** in CI run `44294829089`.\n- Frontend unit tests/build, source and bundle credential scans, Android publisher tests, backend dependency audit, container build/smoke test, and container scan: **PASS**.\n- Final frontend dependency-audit enforcement: **FAIL** because `picomatch@4.0.7` remains reported by `npm audit`; no upstream patched npm release was available at audit time. The audit gate remains fail-closed.\n- Both Vercel status checks on this exact HEAD: **FAIL / build-rate-limit**. READY previews exist for earlier commit `bd6356d31df710ecface0e38055aeb0afabdc6b0`, not for this HEAD.\n- Batch 22 hardening adds explicit rejection of binary WebSocket frames with close code `1003`; CI verification is pending for the new commit.\n\n## Six-stage progress
 
 | Stage | Scope | Status | Progress |
 |---:|---|---|---:|

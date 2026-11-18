@@ -222,9 +222,16 @@ async def websocket_probe(websocket: WebSocket) -> None:
     try:
         while True:
             try:
-                raw_message = await asyncio.wait_for(
-                    websocket.receive_text(), timeout=IDLE_TIMEOUT_SECONDS
+                incoming = await asyncio.wait_for(
+                    websocket.receive(), timeout=IDLE_TIMEOUT_SECONDS
                 )
+                if incoming.get("type") == "websocket.disconnect":
+                    return
+                raw_message = incoming.get("text")
+                if not isinstance(raw_message, str):
+                    await websocket.send_json({"type": "error", "code": "invalid_message"})
+                    await websocket.close(code=1003, reason="text messages only")
+                    return
             except asyncio.TimeoutError:
                 await websocket.send_json({"type": "idle_timeout", "session_id": session_id})
                 await websocket.close(code=1000, reason="idle test session complete")
