@@ -81,5 +81,5 @@
   <text x="22" y="203" class="small">Release only after preceding gates pass</text>
 </g>
 <text x="54" y="802" class="small">Overall: 20.9% historical • Stage 1 75% provisional • Provider-aware WS routing verified</text>
-<text x="1146" y="825" text-anchor="end" class="k">UPDATED 2026-11-18 • WSS PROBE DEPLOYED READY • PICOMATCH HIGH AUDIT BLOCKER • STAGE 1 75%</text>
+<text x="1146" y="825" text-anchor="end" class="k">UPDATED 2026-11-18 • WSS PROBE DEPLOYED READY • PICOMATCH AUDIT OPEN • CI DIAGNOSTICS FIX COMMITTED • STAGE 1 75%</text>
 </svg>
