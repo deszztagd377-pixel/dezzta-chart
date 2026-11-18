@@ -1,14 +1,14 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 18 November 2026, 18:58 WIB  
+**Audit timestamp:** 18 November 2026 — repository/documentation reconciliation  
 **Active branch:** `phase-2/market-data-foundation`  
-**Verification target:** `9873a5fd1c52a0cbab94683c0c309732407212e8`  
+**Verification target:** `e6db77210dd28bd82196b2b7bf7d8d7e7256fc37`  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
 ![Six-stage colored project dashboard](assets/project-progress-dashboard-batch19.svg)
 
-## Latest verified update — Batch 23
+## Latest verified update — Batch 28
 
 - Audited application-code parent: `60d2c182bf8b4600f138b020eef39c321ffb83e3`; latest branch documentation commit: `9873a5fd1c52a0cbab94683c0c309732407212e8`.
 - Batch 22 WebSocket binary-frame regression: **PASS** in backend pytest job from CI run [44295544184](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44295544184). Binary input receives the invalid-message response and close code `1003`.
@@ -414,3 +414,33 @@ No Stage 1 ticks or Gate 10 closures are awarded for this configuration/document
 - Exact-head CI has not yet executed for this commit; the new tests are implemented, not yet claimed PASS.
 - Stage 1 remains **75% provisional — 300/400 ticks; 30/40 criteria**. Gate 10 remains **0/10 formally closed**; open criteria **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**. No ticks are awarded for this source-level correction.
 - ZERO COST maintained. No Vercel deployment, paid service, billing change, production data access, or `main` modification. The actual phone-only execution may require Termux/Python; no Termux installation or command has been requested or performed in this batch.
+
+## Batch 28 — exact-head WebSocket and Gate 30/31 reconciliation — 18 Nov 2026
+
+### Exact branch and CI evidence
+
+- Active branch resolves to `e6db77210dd28bd82196b2b7bf7d8d7e7256fc37`; this is the current audited head.
+- GitHub combined commit status for that exact SHA returned an empty status list. The available workflow-run lookup is PR-triggered only, so this is **not evidence that push-triggered CI passed or failed**. No test result is inferred from missing status contexts.
+- Exact-SHA Vercel deployment lookup returned zero records for both linked projects. No deployment was created or retried in this audit.
+- `main` remains untouched. No deployment, production promotion, billing change, paid service, or Termux command was performed.
+
+### WebSocket client lifecycle audit
+
+- Re-read `ohlcvStreamSupervisor.ts`, `ohlcvStreamSupervisor.test.ts`, `ohlcvWebSocketClient.ts`, and `ohlcvWebSocketClient.test.ts` at the exact branch head.
+- The supervisor waits for the transport `onClose` event before scheduling a replacement socket after a transport error. Token acquisition failures retain their separate bounded retry path.
+- Existing regression coverage includes delayed close, duplicate close notification, stop-before-retry, stop-during-token-acquisition, cursor resume/replay, snapshot/update sequencing, sequence-gap rejection, and clean explicit close.
+- This is source/test-presence verification only. Vitest was not run in this audit and no new CI run is confirmed. Public WSS Upgrade, deployed ping/pong, Android WebView, 330-second platform close attribution, and multi-instance fan-out remain unverified; Gate 36 stays OPEN.
+
+### Gate 30/31 reconciliation
+
+- Batch 27's SQLite probe commits the drill-owned record, verifies it over a fresh read-only connection, commits cleanup, and verifies absence through another connection.
+- Two regression tests are present for committed readback and cleanup after injected readback failure. They are **implemented, not confirmed passing** until exact-head pytest/CI evidence is available.
+- Gate 30 remains OPEN pending a timestamped restore drill against the actual owner-controlled application database.
+- Gate 31 remains OPEN pending an actual zero-cost off-host artifact, separately controlled recovery key, retention/access policy, and successful recovery drill. No storage provider is assumed or provisioned.
+
+### Documentation reconciliation
+
+- The top-level audit target and latest-update heading are synchronized to the current branch head and Batch 28. Older historical batch records remain preserved below.
+- Stage and gate accounting is unchanged: Stage 1 **75% provisional (300/400 ticks; 30/40 criteria)**; Gate 10 **0/10 formally closed**; open criteria **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**; Stages 2–6 **NOT SCORED**; overall current percentage **NOT ESTABLISHED**; 20.9% is historical only.
+- No Stage 1 ticks or Gate 10 closures are awarded for documentation reconciliation or source/test additions without acceptance evidence.
+- ZERO COST maintained. No Termux installation or command requested or performed.
