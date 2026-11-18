@@ -1,3 +1,18 @@
+## Batch 14 — exact-head verification refresh — 2026-11-18
+
+Verification target source commit: `4256c5e3ccab82255d115beaf961afd4794a3a42`.
+
+- Automated Tests [44278716234](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44278716234): **FAILURE only at final frontend dependency-audit enforcement**.
+- Backend pytest: **1,014 passed in 30.07s**. Frontend tests/build and credential scans, Android preflight/publisher tests, synthetic outbox benchmark, backend audit, container build, Redis/persistent-volume smoke test and Trivy report steps passed.
+- CodeQL [44278716261](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44278716261): **SUCCESS**.
+- Full Git History Secret Audit [44278716240](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44278716240): **SUCCESS**.
+- Exact-source WSS preview `dpl_AtEV8yH6S5MwGApGaHQ8HagJTJsK` and frontend preview `dpl_2Jc2So3HmvEQ6yeESjrXbMLorivz`: **READY**.
+- The audit log confirms five High paths through dev-only `picomatch@4.0.7` (GHSA-fc5q-39xc-vjpf). Exposure regression passes but does not remediate the advisory; enforcement remains active.
+- Gate 36 remains OPEN: no owner-observed foreground 330-second platform-duration result, effective Fluid Compute read-back, native Android WebView WSS or cross-instance fan-out.
+- Accounting unchanged: Stage 1 **300/400 = 75% provisional**, 30/40 criteria; Gate 10 **0/10 closed**; open **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**. Stages 2–6 are not scored.
+
+---
+
 > **OWNER CONSTRAINT — ZERO MONEY (2026-11-10):** All Stage 1 acceptance work must comply with [ZERO_COST_POLICY.md](ZERO_COST_POLICY.md). Do not provision Fly.io, paid Redis, paid market-data APIs, paid backup/monitoring, paid email/SMS, paid runners, or any trial/plan that can create a charge. Earlier Fly.io deployment research is superseded and must not be executed. If a criterion cannot be satisfied at zero incremental cost, record it as constrained/deferred rather than purchasing a service.
 
 # Stage 1 — Production Acceptance Matrix
