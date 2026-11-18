@@ -3,7 +3,7 @@
 **Audit timestamp:** 18 November 2026 — Batch 46 source committed; exact-head CI running  
 **Active branch:** `phase-2/market-data-foundation`  
 **Latest source SHA under CI:** `4f746496b23cc9208804023bbb554a4e07c6480b`  
-**Batch 46 CI:** CodeQL and full Git-history secret audit passed; frontend tests/build passed; backend tests and Android APK assembly still running at documentation time  
+**Batch 46 CI:** CodeQL, full Git-history secret audit, Android debug APK, frontend tests/build, backend tests, synthetic outbox benchmark, backend dependency audit, backend container build, and Redis/persistent-volume smoke passed; Trivy scan still running at documentation time  
 **Known dependency blocker:** picomatch GHSA-fc5q-39xc-vjpf has no published patched release; audit remains fail-closed  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
@@ -33,8 +33,8 @@
 - Source SHA: `4f746496b23cc9208804023bbb554a4e07c6480b`.
 - CodeQL [44334598939](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44334598939): SUCCESS for JavaScript/TypeScript and Python.
 - Full Git History Secret Audit [44334598934](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44334598934): SUCCESS.
-- Automated Tests [44334598973](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44334598973): frontend unit tests and production build passed; backend test step was still running at the documentation snapshot. Final workflow conclusion is pending.
-- Android APK [44334599093](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44334599093): web build and temporary Capacitor wrapper/SDK setup passed; debug APK assembly was still running at the documentation snapshot. Final workflow conclusion is pending.
+- Automated Tests [44334598973](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44334598973): frontend unit tests and production build, backend tests, synthetic SQLite outbox benchmark/report upload, backend dependency audit, backend container build, and shared Redis guard + persistent-volume smoke all passed. Trivy container scan was still running at this documentation snapshot; final workflow conclusion is pending.
+- Android APK [44334599093](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44334599093): SUCCESS; debug APK assembled, checksum verified, and uploaded as artifact [14441570921](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44334599093/artifacts/14441570921). Preview release was skipped; no release was published.
 - The preceding source batch's frontend dependency audit remains blocked by five High picomatch findings (GHSA-fc5q-39xc-vjpf). No patched release was found in the previous upstream recheck. Do not downgrade dependencies, add speculative overrides, suppress the advisory, alter the lockfile without an upstream fix, or weaken the audit threshold.
 - No deployment, preview release, paid service, or Termux use.
 
