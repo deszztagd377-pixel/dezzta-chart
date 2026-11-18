@@ -175,19 +175,21 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
     } catch {
       // Error reporting is best-effort; lifecycle cleanup is mandatory.
     }
+    let closeRequestFailed = false;
     if (socket.readyState === 1 || socket.readyState === 0) {
       try {
         socket.close(1011, 'OHLCV stream protocol error');
       } catch {
         // A browser/socket implementation may reject close during teardown.
         // Keep the local state terminal even when the close request throws.
+        closeRequestFailed = true;
       }
     }
     if (state !== 'closed') setState('closed');
-    // Do not depend on the platform delivering a close event after fail().
-    // A rejected close() can leave the supervisor waiting forever for onClose.
-    // The notification is idempotent, so a later native close event is harmless.
-    notifyClose(1011, 'OHLCV stream failure');
+    // Preserve normal close-event ordering when close() succeeds. If close()
+    // itself throws, no native close event is guaranteed, so notify the
+    // supervisor with a synthetic terminal failure to avoid a stalled retry.
+    if (closeRequestFailed) notifyClose(1011, 'OHLCV stream failure');
   };
 
   const refreshHandshakeTimer = () => {
