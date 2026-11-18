@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="940" viewBox="0 0 1280 940" role="img" aria-labelledby="title desc">
 <title id="title">DEZZTA CHART project progress — Batch 41 empty-token retry-loop fix</title>
-<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 42 confirms exact-head functional checks: 226 frontend tests, 1,032 backend tests, build, backend container/Redis smoke, Trivy, APK, CodeQL, and secret audit passed. Automated Tests remains failed only because fail-closed npm audit reports five High picomatch advisory findings. Gate 10 remains 0/10; no gates closed by CI alone.</desc>
+<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 43 rechecked npm registry, GitHub Advisory, OSV, and same-day independent reporting: picomatch 4.0.7 remains latest, with no patched release listed. No speculative dependency change or audit suppression. Batch 42 exact-head tests/build/container/Redis/Trivy/APK/CodeQL/secret checks passed; npm audit remains the only CI failure. Gate 10 remains 0/10.</desc>
 <rect width="1280" height="940" rx="28" fill="#0b1220"/>
 <g font-family="Arial,sans-serif">
 <text x="48" y="58" fill="#f8fafc" font-size="32" font-weight="700">DEZZTA CHART — PROJECT PROGRESS</text>
-<text x="48" y="91" fill="#94a3b8" font-size="16">BATCH 42 • 18 NOV 2026 • phase-2/market-data-foundation • ZERO COST</text>
+<text x="48" y="91" fill="#94a3b8" font-size="16">BATCH 43 • 18 NOV 2026 • phase-2/market-data-foundation • ZERO COST</text>
 <rect x="44" y="122" width="370" height="220" rx="18" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
 <text x="70" y="164" fill="#d1fae5" font-size="21" font-weight="700">STAGE 1 — ACTIVE</text>
 <text x="70" y="235" fill="#fff" font-size="60" font-weight="700">75%</text>

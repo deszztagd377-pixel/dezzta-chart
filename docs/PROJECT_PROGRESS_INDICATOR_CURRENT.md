@@ -1,6 +1,6 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 18 November 2026 — Batch 42 exact-head CI triage completed; dependency audit remains blocked  
+**Audit timestamp:** 18 November 2026 — Batch 43 upstream advisory recheck confirms no patched picomatch release; dependency audit remains blocked  
 **Active branch:** `phase-2/market-data-foundation`  
 **Latest exact-head source/CI validation SHA:** `09dd096580b30bce5789d12ab09f9ee41ac4234d` (Batch 41 retry-loop fix plus corrected regression expectation)  
 **Parent exact HEAD:** `ec226b6a97d42d6bd0af19011f1043ed133775b7`  
@@ -13,7 +13,19 @@
 
 
 
-## Latest work cycle — Batch 42 (exact-head CI closure and dependency blocker triage)
+
+## Latest work cycle — Batch 43 (upstream dependency advisory recheck)
+
+**Recheck date:** 18 November 2026 • **Source SHA under validation:** `09dd096580b30bce5789d12ab09f9ee41ac4234d`.
+
+- npm registry still lists `picomatch@4.0.7` as `latest`; its version history shows no later published release. [npm package registry](https://www.npmjs.com/package/picomatch?activeTab=versions).
+- The advisory record continues to affect versions through 4.0.7 and does not list a patched version. [GitHub Advisory](https://github.com/advisories/GHSA-fc5q-39xc-vjpf) • [OSV record](https://osv.dev/vulnerability/GHSA-fc5q-39xc-vjpf).
+- A same-day independent maintainer issue reports the same state: no patched release and the dependency is development-only. [Independent same-day report](https://github.com/modelcontextprotocol/servers/issues/5594).
+- Upstream discussion remains disputed; no authoritative patched release was identified. Do not interpret a disputed advisory as permission to suppress CI.
+- **Decision:** no source or lockfile change. Keep Vite/Vitest versions stable, preserve npm audit fail-closed, and retain the existing dev-only exposure test. Recheck when a real upstream release outside the affected range is published.
+- This is a blocker status update, not a Gate closure or progress tick.
+
+## Previous work cycle — Batch 42 (exact-head CI closure and dependency blocker triage)
 
 **Validated source SHA:** `09dd096580b30bce5789d12ab09f9ee41ac4234d`  
 **Documentation base:** `497e1344d936241dd23b7404acaebb60954f2d24`.
