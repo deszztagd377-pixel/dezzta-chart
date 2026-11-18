@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+<title id="title">DEZZTA CHART project progress dashboard — 18 November 2026</title>
+<desc id="desc">Stage 1 active at 75 percent provisional, Gate 10 has zero of ten external criteria formally closed. Stages 2 through 6 are not scored.</desc>
+<rect width="1200" height="420" rx="22" fill="#0b1220"/>
+<text x="42" y="52" fill="#f8fafc" font-family="Arial,sans-serif" font-size="27" font-weight="700">DEZZTA CHART — PROJECT PROGRESS</text>
+<text x="42" y="82" fill="#94a3b8" font-family="Arial,sans-serif" font-size="15">18 NOV 2026 • Process indicator only • ZERO COST • Active branch: phase-2/market-data-foundation</text>
+<g font-family="Arial,sans-serif">
+<rect x="40" y="112" width="350" height="212" rx="16" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
+<text x="64" y="151" fill="#d1fae5" font-size="17" font-weight="700">STAGE 1 — ACTIVE</text>
+<text x="64" y="207" fill="#ffffff" font-size="42" font-weight="700">75%</text>
+<text x="176" y="204" fill="#a7f3d0" font-size="16">PROVISIONAL</text>
+<rect x="64" y="226" width="300" height="15" rx="7" fill="#064e3b" stroke="#6ee7b7"/>
+<rect x="64" y="226" width="225" height="15" rx="7" fill="#34d399"/>
+<text x="64" y="274" fill="#d1fae5" font-size="15">300 / 400 ticks • 30 / 40 provisional criteria</text>
+<text x="64" y="300" fill="#fcd34d" font-size="15" font-weight="700">Gate 10: 0 / 10 formally closed</text>
+<rect x="410" y="112" width="230" height="212" rx="16" fill="#082f49" stroke="#38bdf8" stroke-width="2"/>
+<text x="434" y="151" fill="#e0f2fe" font-size="17" font-weight="700">STAGE 2</text><text x="434" y="205" fill="#bae6fd" font-size="25" font-weight="700">NOT SCORED</text><text x="434" y="242" fill="#7dd3fc" font-size="14">Market Data Infrastructure</text>
+<rect x="660" y="112" width="230" height="212" rx="16" fill="#2e1065" stroke="#a78bfa" stroke-width="2"/>
+<text x="684" y="151" fill="#ede9fe" font-size="17" font-weight="700">STAGE 3</text><text x="684" y="205" fill="#ddd6fe" font-size="25" font-weight="700">NOT SCORED</text><text x="684" y="242" fill="#c4b5fd" font-size="14">Core Chart Engine</text>
+<rect x="910" y="112" width="250" height="212" rx="16" fill="#78350f" stroke="#fbbf24" stroke-width="2"/>
+<text x="934" y="151" fill="#fef3c7" font-size="17" font-weight="700">STAGE 4</text><text x="934" y="205" fill="#fde68a" font-size="25" font-weight="700">NOT SCORED</text><text x="934" y="242" fill="#fcd34d" font-size="14">Indicators &amp; Analytics</text>
+<rect x="40" y="344" width="545" height="52" rx="12" fill="#500724" stroke="#f472b6" stroke-width="2"/>
+<text x="64" y="377" fill="#fce7f3" font-size="16" font-weight="700">STAGE 5 — NOT SCORED • Advanced Tools</text>
+<rect x="605" y="344" width="555" height="52" rx="12" fill="#1e293b" stroke="#94a3b8" stroke-width="2"/>
+<text x="629" y="377" fill="#e2e8f0" font-size="16" font-weight="700">STAGE 6 — NOT SCORED • Release &amp; Operations</text>
+</g></svg>
