@@ -37,11 +37,11 @@
 <rect x="860" y="552" width="376" height="112" rx="14" fill="#1e293b" stroke="#94a3b8" stroke-width="2"/>
 <text x="882" y="590" fill="#f8fafc" font-size="18" font-weight="700">6  Hardening / APK Release</text>
 <text x="882" y="628" fill="#94a3b8" font-size="20" font-weight="700">NOT SCORED</text>
-<rect x="44" y="704" width="376" height="176" rx="14" fill="#78350f" stroke="#fbbf24" stroke-width="2"/>
-<text x="66" y="744" fill="#fee2e2" font-size="18" font-weight="700">CI — ALL CHECKS PASS</text>
-<text x="66" y="778" fill="#fecaca" font-size="15">Batch 49 CI SUCCESS</text>
-<text x="66" y="807" fill="#fecaca" font-size="15">234 frontend + 1,032 backend PASS</text>
-<text x="66" y="836" fill="#fecaca" font-size="15">npm audit • Redis • Trivy • APK PASS</text>
+<rect x="44" y="704" width="376" height="176" rx="14" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
+<text x="66" y="744" fill="#d1fae5" font-size="18" font-weight="700">CI — ALL CHECKS PASS</text>
+<text x="66" y="778" fill="#a7f3d0" font-size="15">Batch 50 CI SUCCESS</text>
+<text x="66" y="807" fill="#a7f3d0" font-size="15">234 frontend + 1,032 backend PASS</text>
+<text x="66" y="836" fill="#a7f3d0" font-size="15">npm audit • Redis • Trivy • APK PASS</text>
 <rect x="452" y="704" width="376" height="176" rx="14" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
 <text x="474" y="744" fill="#d1fae5" font-size="18" font-weight="700">WEBSOCKET — EXPLICIT CLOSE FIX</text>
 <text x="474" y="778" fill="#a7f3d0" font-size="15">Explicit close failure reported</text>

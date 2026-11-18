@@ -29,7 +29,14 @@
 ### CI correction trail
 - First Batch 50 CI attempt `44422763320` failed in two places: the test insertion had a syntax error, and the supervisor fake incorrectly reported CLOSED before its intentionally deferred close event. The latter made the new fallback correctly trigger early, exposing an unrealistic test fixture.
 - Corrected in commit `b30ce94ca278e527731d86e40ddf06c6dbd16b5b`: fixed test syntax and made the fake's lifecycle match browser CLOSING → CLOSED ordering.
-- Corrected exact-head run `44422985332`: frontend tests, frontend build/scans, backend tests and backend dependency audit have passed; backend container build remains in progress at documentation time. CodeQL and Git-history audit passed; Android APK build is in progress. Do not call Batch 50 CI complete until all jobs finish.
+- Corrected exact-head run [44422985332](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44422985332): **SUCCESS**, no failed steps.
+- Frontend Vitest: **234 passed across 28 files**; backend pytest: **1,032 passed in 30.94 seconds**.
+- Frontend npm audit: **PASS — 0 vulnerabilities**. Frontend production build, 77-file source/bundle credential scans, Android preflight/publisher tests, backend dependency audit, backend container build, shared Redis ACL + persistent-volume smoke, and Trivy image scan/report: PASS.
+- Trivy report artifact [14482732766](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44422985332/artifacts/14482732766); synthetic-only SQLite outbox benchmark [14482428443](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44422985332/artifacts/14482428443).
+- Android APK [44422985353](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44422985353): SUCCESS; artifact [14482822189](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44422985353/artifacts/14482822189). No preview release published.
+- CodeQL [44422985334](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44422985334): SUCCESS.
+- Full Git History Secret Audit [44422985415](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44422985415): SUCCESS.
+- No dependency downgrade, override, advisory suppression, lockfile manipulation, or audit threshold weakening.
 
 ### Gate/progress accounting
 - Gate 36 remains OPEN pending public WSS roundtrip, Android WebView lifecycle, effective host configuration, owner-observed 330-second session/close attribution and cross-instance fan-out.
@@ -62,19 +69,19 @@ Batch 48 covered a failed close request inside the transport's protocol/error fa
 - It asserts the API does not throw, local state becomes `closed`, and the observer receives exactly one `(1006, "Client close request failed")` notification.
 - Existing close-observer exception and failed-close reconnect regressions remain in place.
 
-### 4. Exact-head validation status
+### 4. Exact-head validation
 For source SHA `a8589e816b349d72db3d9093fd4b71eb01288813`:
-- Frontend dependency audit: PASS.
-- Frontend Vitest: PASS; exact count to be recorded from completed CI logs.
-- Frontend source/bundle credential scans and production build: PASS.
+- Automated Tests [44421919543](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919543): **SUCCESS**, no failed steps.
+- Frontend Vitest: **234 passed across 28 files**.
+- Backend pytest: **1,032 passed in 31.09 seconds**.
+- Frontend npm audit: **PASS — 0 vulnerabilities**.
+- Frontend production build and 77-file source/bundle credential scans: PASS.
 - Android preflight/publisher tests: PASS.
-- Backend pytest: PASS; exact count to be recorded from completed CI logs.
-- Backend dependency audit: PASS.
-- Backend container build: IN PROGRESS at documentation time.
-- Android APK [44421919500](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919500): SUCCESS.
+- Backend dependency audit, backend container build, shared Redis ACL + persistent-volume smoke, and Trivy image scan/report: PASS.
+- Trivy report artifact [14483195008](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919543/artifacts/14483195008); synthetic-only benchmark [14482701506](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919543/artifacts/14482701506).
+- Android APK [44421919500](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919500): SUCCESS; artifact [14481438680](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919500/artifacts/14481438680). No preview release published.
 - CodeQL [44421919553](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919553): SUCCESS.
-- Full Git History Secret Audit [44421919501](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919501): SUCCESS.
-- Redis/persistent-volume smoke, Trivy, and final workflow conclusion are not yet confirmed for Batch 49. Do not infer them from Batch 48.
+- Full Git History Secret Audit [44421919501](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919501): SUCCESS. Do not infer them from Batch 48.
 
 ### 5. Gate and progress disposition
 - Gate 36 remains OPEN: public WSS roundtrip, Android WebView transport/lifecycle, effective host configuration, owner-observed 330-second session/close attribution, and cross-instance fan-out still require external acceptance evidence.
