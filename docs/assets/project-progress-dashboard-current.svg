@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="940" viewBox="0 0 1280 940" role="img" aria-labelledby="title desc">
-<title id="title">DEZZTA CHART project progress — Batch 41 empty-token retry-loop fix</title>
-<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 43 rechecked npm registry, GitHub Advisory, OSV, and same-day independent reporting: picomatch 4.0.7 remains latest, with no patched release listed. No speculative dependency change or audit suppression. Batch 42 exact-head tests/build/container/Redis/Trivy/APK/CodeQL/secret checks passed; npm audit remains the only CI failure. Gate 10 remains 0/10.</desc>
+<title id="title">DEZZTA CHART project progress — Batch 44 replay-recovery backoff reset</title>
+<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 44 fixes the WebSocket supervisor so a validated cursor-replay recovery resets reconnect backoff. Frontend unit tests, production build, frontend credential scans, and Git-history secret audit passed on source SHA a1af6824d3b7b83d6c4e9af7cb81d9cde1892dc2. Backend tests, container/Redis/Trivy, APK, CodeQL, and final npm audit enforcement are pending. Picomatch 4.0.7 advisory remains unresolved; no suppression or downgrade. Gate 10 remains 0/10.</desc>
 <rect width="1280" height="940" rx="28" fill="#0b1220"/>
 <g font-family="Arial,sans-serif">
 <text x="48" y="58" fill="#f8fafc" font-size="32" font-weight="700">DEZZTA CHART — PROJECT PROGRESS</text>
-<text x="48" y="91" fill="#94a3b8" font-size="16">BATCH 43 • 18 NOV 2026 • phase-2/market-data-foundation • ZERO COST</text>
+<text x="48" y="91" fill="#94a3b8" font-size="16">BATCH 44 • 18 NOV 2026 • phase-2/market-data-foundation • ZERO COST</text>
 <rect x="44" y="122" width="370" height="220" rx="18" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
 <text x="70" y="164" fill="#d1fae5" font-size="21" font-weight="700">STAGE 1 — ACTIVE</text>
 <text x="70" y="235" fill="#fff" font-size="60" font-weight="700">75%</text>
@@ -38,20 +38,20 @@
 <text x="882" y="590" fill="#f8fafc" font-size="18" font-weight="700">6  Hardening / APK Release</text>
 <text x="882" y="628" fill="#94a3b8" font-size="20" font-weight="700">NOT SCORED</text>
 <rect x="44" y="704" width="376" height="176" rx="14" fill="#7f1d1d" stroke="#f87171" stroke-width="2"/>
-<text x="66" y="744" fill="#fee2e2" font-size="18" font-weight="700">CI — SECURITY BLOCKER</text>
+<text x="66" y="744" fill="#fee2e2" font-size="18" font-weight="700">CI — AUDIT BLOCKER</text>
 <text x="66" y="778" fill="#fecaca" font-size="15">5 High: picomatch@4.0.7</text>
 <text x="66" y="807" fill="#fecaca" font-size="15">Dev-only transitive dependency</text>
 <text x="66" y="836" fill="#fecaca" font-size="15">Audit fail-closed; no downgrade</text>
 <rect x="452" y="704" width="376" height="176" rx="14" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
-<text x="474" y="744" fill="#d1fae5" font-size="18" font-weight="700">WEBSOCKET — SOURCE</text>
-<text x="474" y="778" fill="#a7f3d0" font-size="15">1008 terminal close hardened</text>
-<text x="474" y="807" fill="#a7f3d0" font-size="15">Online + visible lifecycle gate added</text>
-<text x="474" y="836" fill="#fcd34d" font-size="15">Batch 39 CI: 225 + 1,032 PASS</text>
+<text x="474" y="744" fill="#d1fae5" font-size="18" font-weight="700">WEBSOCKET — BACKOFF FIX</text>
+<text x="474" y="778" fill="#a7f3d0" font-size="15">Replay recovery resets backoff</text>
+<text x="474" y="807" fill="#a7f3d0" font-size="15">Validated snapshot + replay success</text>
+<text x="474" y="836" fill="#fcd34d" font-size="15">Batch 44 exact-head CI pending</text>
 <rect x="860" y="704" width="376" height="176" rx="14" fill="#78350f" stroke="#fbbf24" stroke-width="2"/>
 <text x="882" y="744" fill="#fef3c7" font-size="18" font-weight="700">GATE 10 — OPEN</text>
 <text x="882" y="778" fill="#fde68a" font-size="15">8, 20, 25, 30, 31</text>
 <text x="882" y="807" fill="#fde68a" font-size="15">34, 35, 36, 38, 39</text>
 <text x="882" y="836" fill="#fde68a" font-size="15">0 / 10 formally closed</text>
 <text x="48" y="918" fill="#94a3b8" font-size="14">No Stage 1 ticks for source/tests alone • no deployment • no Termux • main untouched</text>
-</g><text x="474" y="865" fill="#a7f3d0" font-size="14">APK / CodeQL / secret audit PASS</text>
+</g><text x="474" y="865" fill="#a7f3d0" font-size="14">Secret history audit PASS • APK/CodeQL pending</text>
 </svg>

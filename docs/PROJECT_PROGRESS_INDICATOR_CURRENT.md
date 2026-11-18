@@ -1,10 +1,11 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 18 November 2026 — Batch 43 upstream advisory recheck confirms no patched picomatch release; dependency audit remains blocked  
+**Audit timestamp:** 18 November 2026 — Batch 44 implemented replay-recovery backoff reset; exact-head CI is running  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest exact-head source/CI validation SHA:** `09dd096580b30bce5789d12ab09f9ee41ac4234d` (Batch 41 retry-loop fix plus corrected regression expectation)  
-**Parent exact HEAD:** `ec226b6a97d42d6bd0af19011f1043ed133775b7`  
-**Exact-head CI:** functional checks passed (226 frontend, 1,032 backend, build, container/Redis smoke, Trivy, APK, CodeQL, secret audit); workflow failed only at fail-closed frontend npm audit (5 High picomatch findings)  
+**Latest source SHA under exact-head CI:** `a1af6824d3b7b83d6c4e9af7cb81d9cde1892dc2`  
+**Parent source SHA:** `689e90af890c7fe54023189bd631bff64f3ac0c3`  
+**Batch 44 CI so far:** frontend unit tests, frontend production build, frontend source/bundle credential scans, and full reachable Git-history secret audit passed; backend tests, container/Redis/Trivy, APK, CodeQL, and final npm audit enforcement are pending  
+**Previous fully evaluated source SHA:** `09dd096580b30bce5789d12ab09f9ee41ac4234d` — functional checks passed; workflow failed only at fail-closed npm audit (5 High picomatch findings)  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
@@ -13,6 +14,40 @@
 
 
 
+
+## Latest work cycle — Batch 44 (reset retry backoff after cursor-replay recovery)
+
+**Implementation source SHA:** `a1af6824d3b7b83d6c4e9af7cb81d9cde1892dc2`  
+**Parent source SHA:** `689e90af890c7fe54023189bd631bff64f3ac0c3`.
+
+### Defect and correction
+- The supervisor reset its exponential reconnect-attempt counter when a fresh snapshot arrived, but not when a reconnect recovered through the cursor-replay path.
+- The transport emits the same `subscribed` state after a validated replay-complete message. Before this batch, that healthy recovery left the previous failure streak intact; a later unrelated outage could therefore wait at a larger backoff interval than intended.
+- The supervisor now resets `attempt` whenever the transport reports `subscribed`. This covers both validated snapshot acceptance and validated replay completion; it does not reset on mere socket-open/authentication or an unvalidated message.
+- Added a deterministic regression test: initial snapshot with cursor, transport interruption, zero-event replay completion, second interruption, and assertion that the next retry uses the minimum delay rather than the doubled delay. It also verifies a fresh ID token is requested for the third connection.
+- No heartbeat cadence, cursor semantics, replay count/watermark checks, sequence guard, authentication, entitlement, or server behavior changed.
+
+### Exact-head validation
+- Exact-head source SHA: `a1af6824d3b7b83d6c4e9af7cb81d9cde1892dc2`.
+- GitHub Actions Automated Tests run [44329450510](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44329450510): frontend unit tests passed; frontend production build passed; frontend source and production-bundle credential scans passed; Android host-preflight and immutable-publisher tests passed. Backend tests, synthetic outbox benchmark, backend audit/container/Redis/Trivy steps, and final npm audit enforcement were pending at this documentation snapshot.
+- Full Git History Secret Audit [44329450526](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44329450526): SUCCESS.
+- Android APK [44329450397](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44329450397) and CodeQL [44329450525](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44329450525): in progress at this documentation snapshot.
+- The informational dependency-audit step passed its report generation; the final fail-closed enforcement step has not yet run. Do not call the workflow green or failed until its final conclusion is recorded.
+- The exact-head frontend unit-test step passed; detailed test count is not inferred from the step status alone.
+
+### WebSocket / Gate 36 disposition
+- This closes the identified client retry-backoff consistency defect at source level, subject to exact-head CI completion.
+- Gate 36 remains OPEN. Still required: real public WSS Upgrade and ping/pong; Android WebView foreground/background acceptance; owner-observed platform close attribution around the documented function lifetime; effective host configuration read-back; and cross-instance fan-out. Repository tests cannot substitute for those external observations.
+- No Vercel deployment, Cloudflare deployment/resource, production promotion, paid provider, billing action, or external credential operation was performed. No Termux required for this repository change or CI.
+- No Stage 1 tick or Gate 10 closure is awarded for this source/test change.
+
+### Progress accounting
+- Stage 1 remains **75% provisional — 300/400 ticks; 30/40 criteria**.
+- Gate 10 remains **0/10 formally closed**.
+- Open criteria remain **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- Stages 2–6 remain **NOT SCORED**.
+- Overall project percentage remains **NOT ESTABLISHED** until M1–M8 weights and criterion mapping are approved; 20.9% is historical only.
+- ZERO COST maintained. `main` untouched.
 
 ## Latest work cycle — Batch 43 (upstream dependency advisory recheck)
 
