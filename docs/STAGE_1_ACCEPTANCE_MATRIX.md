@@ -771,3 +771,8 @@ The fail-fast behavior at the frontend dependency audit has been corrected witho
 - A final `if: always()` enforcement step reads the audit step's actual outcome and exits non-zero unless the audit succeeded. The overall workflow therefore remains failed while the advisory exists.
 - `backend/tests/test_ci_dependency_audit_order.py` protects this ordering and mandatory final enforcement, and asserts frontend unit tests, frontend build, backend tests, and backend image scanning are placed between the audit and final enforcement.
 - The advisory itself remains open; this is not a dependency remediation. The next exact-head CI run must prove that the diagnostics now execute and that the final audit gate still fails honestly. Until that run is read back, no new CI pass is claimed and Stage 1 accounting remains unchanged.
+
+
+### Vercel READY preview read-back — 2026-11-18
+
+The Hobby plan remains active. The latest listed READY previews at read-back are WSS POC deployment `dpl_7HQmpEAPpxnvcSQFz8umK7u1kf71` from source commit `001e142d3981cea99bed5da957d266af6261b2dc` and Vite deployment `dpl_Ejcq4EaG2dWnFoeDLza8s8wqeUcB` from `9e654a842f4e320d775fd8cb3489af65eb700376`. Build logs confirm both builds completed. These are not proof of deployment of the newest Batch 8 commits and are not production releases. No extra deployment was triggered. Gate 36 remains OPEN pending actual platform lifetime, Android, fan-out, and operational acceptance.
