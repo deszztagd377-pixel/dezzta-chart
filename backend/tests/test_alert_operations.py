@@ -87,3 +87,27 @@ def test_local_reporter_rejects_invalid_counters(value):
             claimed=value, delivered=0, retry_scheduled=0,
             terminal_failed=0, lease_lost=0,
         )
+
+
+def test_local_reporter_recovers_after_worker_error_without_leaking_details(caplog):
+    logger = logging.getLogger("test.dezzta.alert_operations.error_recovery")
+    reporter = LocalAlertReporter(logger)
+    secret_message = "private provider response and credential material"
+
+    with caplog.at_level(logging.INFO, logger=logger.name):
+        reporter.report_error(RuntimeError(secret_message))
+        reporter.report_batch(
+            claimed=0, delivered=0, retry_scheduled=0,
+            terminal_failed=0, lease_lost=0,
+        )
+
+    records = [json.loads(record.message) for record in caplog.records]
+    assert [record["event"] for record in records] == [
+        "alert_delivery_worker_error", "alert_delivery_recovered"
+    ]
+    assert records[0]["error_code"] == "RuntimeError"
+    assert records[1] == {
+        "event": "alert_delivery_recovered",
+        "state": "healthy",
+    }
+    assert secret_message not in " ".join(record.message for record in caplog.records)
