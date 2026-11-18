@@ -1,22 +1,25 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 18 November 2026 — Batch 36 strict heartbeat acknowledgement; exact-head CI pending  
+**Audit timestamp:** 18 November 2026 — Batch 36 exact-head CI completed  
 **Active branch:** `phase-2/market-data-foundation`  
-**Audited parent exact HEAD:** `9c76726f031568fe126479f4aa3c34bf0d151e49`  
+**Current exact HEAD:** `11d3ea4ba426b1da021bf0f9c79abdc0205b3c9d`  
+**Parent exact HEAD:** `9c76726f031568fe126479f4aa3c34bf0d151e49`  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
 ![Six-stage colored project dashboard](assets/project-progress-dashboard-batch35.svg)
 
-## Latest work cycle — Batch 36 (strict heartbeat acknowledgement; exact-head CI pending)
+## Latest work cycle — Batch 36 (strict WebSocket heartbeat; exact-head CI completed)
 
-- Audited parent branch HEAD: `9c76726f031568fe126479f4aa3c34bf0d151e49`. The WebSocket client previously accepted any `market_data.pong` frame, even if unsolicited or missing the required version-1 envelope.
-- Source correction: accept pong only when the stream is subscribed, a ping acknowledgement is outstanding, and `version === 1`; otherwise fail closed. Added two frontend regression tests for unsolicited pong and unsupported pong version.
-- Existing heartbeat contract unchanged: one literal text `ping` every 20 seconds; version-1 JSON pong deadline 10 seconds. Client/server ceiling utilization remains **2.5%**.
-- Exact-head CI is pending for the resulting candidate commit. No test success or Gate 10 tick is claimed until the workflow completes.
-- Gate 36 remains OPEN: public WSS, Android WebView, 330-second owner-observed session/platform close attribution, effective Fluid Compute read-back, and cross-instance fan-out remain unverified.
+- Current exact branch HEAD: `11d3ea4ba426b1da021bf0f9c79abdc0205b3c9d`; parent: `9c76726f031568fe126479f4aa3c34bf0d151e49`.
+- Client correction: accept a heartbeat pong only while subscribed, only while a pong deadline is outstanding, and only with protocol `version: 1`. Unsolicited or unsupported-version pong frames fail closed. Two frontend regression tests were added.
+- Exact-head Automated Tests [44317099110](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44317099110): **FAILURE only at step 27, final frontend dependency-audit enforcement**. Steps 1–26 passed, including frontend tests/build, backend tests, synthetic SQLite outbox benchmark, backend dependency audit, backend container build, Redis/persistent-volume smoke test, Trivy image scan and report export.
+- Exact-head Android debug APK build [44317099094](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44317099094): **SUCCESS**. Exact-head CodeQL [44317099846](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44317099846): **SUCCESS**. Full Git History Secret Audit [44317099074](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44317099074): **SUCCESS**.
+- The final dependency enforcement remains blocked by the dev-only `picomatch@4.0.7` advisory path. Keep enforcement fail-closed; do not force a Vite downgrade, add a speculative override, patch package contents, suppress the finding, or waive the gate.
+- Heartbeat calculation unchanged: client `1/20 = 0.05` ping/s; server ceiling `20/10 = 2` ping/s; utilization **2.5%**; pong deadline 10 seconds.
+- Gate 36 remains OPEN: deployed public WSS, Android WebView runtime, owner-observed 330-second session/platform close attribution, effective Fluid Compute read-back, and cross-instance fan-out remain unverified.
 - No Vercel deployment/retry, Cloudflare resource, paid service, billing change, or publication action. Termux is not required.
-- Progress unchanged: Stage 1 **75% provisional (300/400 ticks; 30/40 criteria)**; Gate 10 **0/10 formally closed**; open criteria **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**; Stages 2–6 **NOT SCORED**; overall project percentage **NOT ESTABLISHED**.
+- Progress unchanged: Stage 1 **75% provisional (300/400 ticks; 30/40 criteria)**; Gate 10 **0/10 formally closed**; open criteria **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**; Stages 2–6 **NOT SCORED**; overall project percentage **NOT ESTABLISHED**. No ticks or closures awarded from CI alone.
 
 ## Previous work cycle — Batch 35 (verified on its recorded parent)
 

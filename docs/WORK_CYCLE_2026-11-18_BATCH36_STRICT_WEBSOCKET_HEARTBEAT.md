@@ -3,6 +3,7 @@
 **Date:** 18 November 2026 (WIB)  
 **Branch:** `phase-2/market-data-foundation`  
 **Parent exact HEAD:** `9c76726f031568fe126479f4aa3c34bf0d151e49`  
+**Resulting exact HEAD:** `11d3ea4ba426b1da021bf0f9c79abdc0205b3c9d`  
 **Scope:** fail-closed client validation for unsolicited and unsupported-version heartbeat pong frames  
 **Cost:** ZERO COST  
 **Deployment:** none  
@@ -28,7 +29,17 @@ Added frontend tests for:
 - unsolicited version-1 pong before any heartbeat ping;
 - unsupported pong protocol version after a ping has been sent.
 
-Existing tests continue to cover text ping cadence, valid version-1 acknowledgement, timeout, timer cleanup, snapshot/replay, and sequence-gap behavior. Exact-head CI is required to validate the change; source editing alone is not counted as test success.
+Existing tests continue to cover text ping cadence, valid version-1 acknowledgement, timeout, timer cleanup, snapshot/replay, and sequence-gap behavior.
+
+### Exact-head CI outcome
+
+For exact SHA `11d3ea4ba426b1da021bf0f9c79abdc0205b3c9d`:
+- Automated Tests [run 44317099110](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44317099110): failed only at step 27, final frontend dependency-audit enforcement. Steps 1–26 passed, including frontend unit tests and production build, backend tests, synthetic outbox benchmark, backend dependency audit, container build, Redis/persistent-volume smoke, Trivy scan and vulnerability-report export.
+- Android debug APK build [run 44317099094](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44317099094): success.
+- CodeQL [run 44317099846](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44317099846): success.
+- Full Git History Secret Audit [run 44317099074](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44317099074): success.
+
+The final dependency enforcement is still blocked by the existing development-tooling `picomatch@4.0.7` advisory. Do not weaken or bypass the audit. This exact-head CI result validates the WebSocket regression tests and build, but does not establish deployed public WSS or Android runtime acceptance.
 
 ## 4. Engineering calculation
 
@@ -48,4 +59,4 @@ No Vercel deployment, Cloudflare resource, paid service, host/database/storage p
 
 ## 7. Progress accounting
 
-No Stage 1 ticks or Gate 10 closures are awarded by source edits or pending CI. Stage 1 remains 75% provisional (300/400 ticks; 30/40 criteria); Gate 10 remains 0/10 formally closed; open criteria remain 8, 20, 25, 30, 31, 34, 35, 36, 38, 39. Stages 2–6 remain unscored and overall project progress remains not established.
+No Stage 1 ticks or Gate 10 closures are awarded by source edits or CI results alone. Stage 1 remains 75% provisional (300/400 ticks; 30/40 criteria); Gate 10 remains 0/10 formally closed; open criteria remain 8, 20, 25, 30, 31, 34, 35, 36, 38, 39. Stages 2–6 remain unscored and overall project progress remains not established.
