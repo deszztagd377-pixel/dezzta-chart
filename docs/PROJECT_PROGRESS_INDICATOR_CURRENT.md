@@ -8,7 +8,16 @@
 
 ![Six-stage colored project dashboard](assets/project-progress-dashboard-batch19.svg)
 
-## Latest verified update — Batch 22\n\n- Current branch HEAD: `fd27e0c3ad16b112ef9a9dc8fec7f8e43d34f6cb`.\n- Backend pytest, including WebSocket protocol tests: **PASS** in CI run `44294829089`.\n- Frontend unit tests/build, source and bundle credential scans, Android publisher tests, backend dependency audit, container build/smoke test, and container scan: **PASS**.\n- Final frontend dependency-audit enforcement: **FAIL** because `picomatch@4.0.7` remains reported by `npm audit`; no upstream patched npm release was available at audit time. The audit gate remains fail-closed.\n- Both Vercel status checks on this exact HEAD: **FAIL / build-rate-limit**. READY previews exist for earlier commit `bd6356d31df710ecface0e38055aeb0afabdc6b0`, not for this HEAD.\n- Batch 22 hardening adds explicit rejection of binary WebSocket frames with close code `1003`; CI verification is pending for the new commit.\n\n## Six-stage progress
+## Latest verified update — Batch 22
+
+- Current branch HEAD: `fd27e0c3ad16b112ef9a9dc8fec7f8e43d34f6cb`.
+- Backend pytest, including WebSocket protocol tests: **PASS** in CI run `44294829089`.
+- Frontend unit tests/build, source and bundle credential scans, Android publisher tests, backend dependency audit, container build/smoke test, and container scan: **PASS**.
+- Final frontend dependency-audit enforcement: **FAIL** because `picomatch@4.0.7` remains reported by `npm audit`; no upstream patched npm release was available at audit time. The audit gate remains fail-closed.
+- Both Vercel status checks on this exact HEAD: **FAIL / build-rate-limit**. READY previews exist for earlier commit `bd6356d31df710ecface0e38055aeb0afabdc6b0`, not for this HEAD.
+- Batch 22 hardening adds explicit rejection of binary WebSocket frames with close code `1003`; CI verification is pending for the new commit.
+
+## Six-stage progress
 
 | Stage | Scope | Status | Progress |
 |---:|---|---|---:|
@@ -32,11 +41,11 @@
 | 31 | Encrypted snapshot/recovery code and tests | Off-host artifact, separately controlled recovery key, retention/access policy and successful restore; zero-cost only |
 | 34 | CI persistent-volume smoke test passes | Existing-host mount identity, restrictive permissions, disk-pressure and restart durability/recovery evidence |
 | 35 | Backend container build and health-related tests pass | Existing-host HTTPS/certificate chain, fail-closed startup and redacted runtime-secret source evidence |
-| 36 | Synthetic WSS POC, lifecycle tests, 10s heartbeat / 25s idle timeout / bounded 330s probe; exact-head preview READY | Foreground duration observation, platform close attribution, effective Fluid setting read-back, native Android WebView WSS, cross-instance fan-out and owner cost acceptance |
+| 36 | Synthetic WSS POC and ASGI lifecycle/protocol tests; earlier READY previews are on parent commit `bd6356d`, while current HEAD is rate-limited | New binary-frame regression pending CI; public WSS upgrade, foreground 330s observation, platform close attribution, effective Fluid setting read-back, native Android WebView WSS, cross-instance fan-out and owner cost acceptance |
 | 38 | Concurrent metrics regression and input-hardening tests | Durable aggregation, bounded retention, host access controls, self-hosted dashboard and owner acceptance |
 | 39 | Sanitized local alert/recovery tests and zero-cost runbook | Persistent alert evidence, named escalation owner and completed recovery drill |
 
-## Exact-head CI — run 44278716234
+## Historical CI checkpoint (prior commit) — run 44278716234
 
 <badge color="danger">Overall workflow: FAILURE</badge> The single failing step is the final **Enforce frontend dependency audit result**. This is an intentional security gate, not a test/build crash.
 
@@ -56,7 +65,7 @@
 
 Job log confirms **five High findings** through development-only `picomatch@4.0.7`, advisory **GHSA-fc5q-39xc-vjpf**. The new dependency-exposure regression passes, proving affected glob tooling remains dev-only and absent from direct runtime dependencies. This is exposure reduction, **not remediation**. Keep final enforcement active. Do not force upgrades/downgrades, suppress, waive, or mislabel the finding as fixed.
 
-## Exact-head Vercel read-back
+## Historical Vercel read-back (older commit)
 
 Both protected previews are **READY** for source `4256c5e3ccab82255d115beaf961afd4794a3a42`:
 - WSS POC [preview](https://dezzta-chart-ws-4eo7d8j18-deszztagd377-pixel.vercel.app) — `dpl_AtEV8yH6S5MwGApGaHQ8HagJTJsK`.
