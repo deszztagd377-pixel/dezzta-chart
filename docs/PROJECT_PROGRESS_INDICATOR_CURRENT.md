@@ -330,3 +330,27 @@ GitHub issue [micromatch/picomatch#234](https://github.com/micromatch/picomatch/
 - `main`: untouched.
 
 No Stage 1 ticks or Gate 10 closures are awarded for this configuration/documentation work.
+
+
+## Batch 24 — branch-scoped Vercel preview containment and WebSocket evidence — 18 Nov 2026
+
+### Deployment policy decision and implementation
+
+- Team plan read-back: **Hobby**. Project Deployment Policy API rejected the attempted preview-only source allowlist with HTTP 403 `pro_plan_required`; no paid upgrade was attempted.
+- Implemented the documented Git configuration fallback in both Vercel project roots: `git.deploymentEnabled.main=true` and `git.deploymentEnabled.phase-2/market-data-foundation=false`. This blocks automatic Git deployments from the active working branch while preserving the configured `main` production branch. It does not disable other deployment sources or globally disable Preview.
+- Frontend project root is the repository root; WSS project root is `poc/vercel_ws`, where its existing `fluid: true` configuration is preserved. The root frontend config is newly added; the WSS config is extended without removing Fluid Compute configuration.
+- This commit is intentionally the single planned branch update for both projects. Vercel deployment creation must be checked against the exact resulting SHA. The config is documented by Vercel as suppressing Git deployments for matching branches before a deployment is created; Ignored Build Step remains only a secondary build filter.
+- No Vercel API deployment policy was enabled (Hobby restriction); no project was paused, no preview was deleted, no SSO setting changed, and no production promotion occurred.
+
+### WebSocket acceptance checkpoint
+
+- WSS preview `dpl_4mPXXnj2XLLoNZYe5JkdQ1M7r5tg` remains READY on `9873a5f`; protected `/health` and root page both returned HTTP 200 on 18 Nov 2026. Health payload remains `synthetic-only`, `production_data_connected=false`.
+- Backend ASGI tests cover handshake, synthetic ping/pong, invalid JSON/type, binary rejection (1003), oversized frame (1009), rate limit (1013), and idle timeout. These do not prove the deployed Vercel WebSocket Upgrade or browser-to-server round-trip.
+- Still unverified: public WSS Upgrade/ping-pong, foreground 330-second run and close attribution, Android WebView, effective Fluid Compute read-back, and cross-instance fan-out. Gate 36 remains OPEN.
+
+### CI/security and progress accounting
+
+- Latest fully inspected CI run remains [44295544184](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44295544184): frontend/backend tests and builds, secret scans, Android checks, backend audit, container/Redis/Trivy checks passed; final frontend dependency audit enforcement failed on five High findings through dev-only `picomatch@4.0.7` / GHSA-fc5q-39xc-vjpf. Enforcement remains fail-closed.
+- CodeQL [44295544205](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44295544205) and full Git history secret audit [44295544181](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44295544181) passed.
+- Stage 1 remains **75% provisional — 300/400 ticks; 30/40 criteria**. Gate 10 remains **0/10 formally closed**; open criteria **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**. Stages 2–6 remain **NOT SCORED**. Overall current percentage remains **NOT ESTABLISHED**; 20.9% is historical only.
+- Zero-cost maintained. No Termux, billing, paid services, production deployment, or `main` modification.

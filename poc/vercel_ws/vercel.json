@@ -1,4 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "fluid": true
+  "fluid": true,
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "phase-2/market-data-foundation": false
+    }
+  }
 }
