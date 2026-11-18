@@ -1,9 +1,10 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 19 November 2026 — Batch 49 exact-head CI completed successfully  
+**Audit timestamp:** 19 November 2026 — Batch 50 socket-already-CLOSED fallback committed; exact-head CI is in progress  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest source SHA validated by CI:** `a8589e816b349d72db3d9093fd4b71eb01288813`  
-**Batch 49 exact-head CI:** SUCCESS — frontend 234/234 across 28 files; backend 1,032/1,032; frontend dependency audit (0 vulnerabilities), production build, source/bundle credential scans, Android preflight/publisher tests, backend dependency audit, backend container build, Redis/persistent-volume smoke, Trivy scan/report, Android APK, CodeQL, and Git-history secret audit all passed  
+**Latest source SHA under validation:** `b30ce94ca278e527731d86e40ddf06c6dbd16b5b`  
+**Latest completed exact-head CI:** Batch 49 `a8589e816b349d72db3d9093fd4b71eb01288813` — SUCCESS, frontend 234/234, backend 1,032/1,032; npm audit, build, Redis smoke, Trivy, APK, CodeQL and Git-history audit passed  
+**Batch 50 CI:** [Automated Tests 44422985332](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44422985332) — frontend tests/build and backend tests passed after fixture correction; backend container build is still running. CodeQL and Git-history audit passed; Android APK workflow is running.  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
@@ -12,6 +13,33 @@
 
 
 
+
+## Latest work cycle — Batch 50 (socket already CLOSED before native close event)
+
+**Source SHA:** `b30ce94ca278e527731d86e40ddf06c6dbd16b5b`  
+**Parent:** `a483d6627a1d406aa93feced856392fa4792369b`  
+**Exact-head CI:** [Automated Tests 44422985332](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44422985332).
+
+### Defect and fix
+- Batch 48/49 synthetic close notification covered a platform `socket.close()` exception.
+- Batch 50 adds the adjacent terminal case: the socket already reports native `CLOSED` before its close event reaches the transport.
+- The `fail()` path now sends the idempotent synthetic terminal notification in either case; a later native event cannot duplicate it.
+- The regression test sets the fake socket to CLOSED, injects a protocol failure, and verifies one `onClose(1011, "OHLCV stream ended before close event")` notification.
+- The fake supervisor socket was corrected to model browser semantics: when a close event is deferred, `readyState` remains CLOSING (2) until the deferred native event is delivered. This preserves the invariant that a replacement connection must not start while the old socket is still closing.
+
+### CI correction trail
+- First Batch 50 CI attempt `44422763320` failed in two places: the test insertion had a syntax error, and the supervisor fake incorrectly reported CLOSED before its intentionally deferred close event. The latter made the new fallback correctly trigger early, exposing an unrealistic test fixture.
+- Corrected in commit `b30ce94ca278e527731d86e40ddf06c6dbd16b5b`: fixed test syntax and made the fake's lifecycle match browser CLOSING → CLOSED ordering.
+- Corrected exact-head run `44422985332`: frontend tests, frontend build/scans, backend tests and backend dependency audit have passed; backend container build remains in progress at documentation time. CodeQL and Git-history audit passed; Android APK build is in progress. Do not call Batch 50 CI complete until all jobs finish.
+
+### Gate/progress accounting
+- Gate 36 remains OPEN pending public WSS roundtrip, Android WebView lifecycle, effective host configuration, owner-observed 330-second session/close attribution and cross-instance fan-out.
+- Gate 10 remains **0/10** formally closed; open criteria: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- Stage 1 remains **75% provisional (300/400 ticks; 30/40 criteria)**. No progress tick is awarded for source/test/doc work alone.
+- Stages 2–6 NOT SCORED; overall project percentage NOT ESTABLISHED until M1–M8 weights and criterion mapping are approved.
+- ZERO COST; no deployment; no Termux; `main` untouched.
+
+---
 
 ## Latest work cycle — Batch 49 (explicit WebSocket close observer fallback)
 
