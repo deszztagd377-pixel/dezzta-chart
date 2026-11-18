@@ -25,22 +25,20 @@ A new test replaces the fake socket's `close()` with a throwing implementation, 
 3. `onClose` is called once with code `1006` and reason `Client close request failed`.
 
 ## Validation — exact source SHA
-Automated Tests: [44421919543](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919543).
 
-Completed exact-head results:
+Automated Tests [44421919543](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919543): **SUCCESS**, no failed steps.
+
 - Frontend Vitest: **234 passed across 28 files**.
 - Backend pytest: **1,032 passed in 31.09 seconds**.
-- Frontend dependency audit: **PASS — 0 vulnerabilities**; no dependency downgrade, override, suppression, lockfile manipulation, or threshold weakening.
-- Frontend production build and source/bundle credential scans: PASS (77 frontend source files scanned).
+- Frontend npm audit: **PASS — 0 vulnerabilities**.
+- Frontend production build and 77-file source/bundle credential scans: PASS.
 - Android preflight and immutable publisher tests: PASS.
-- Backend dependency audit and backend container build: PASS.
-- Shared Redis ACL + persistent-volume smoke: PASS.
-- Trivy image scan/report: PASS; report artifact [14483195008](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919543/artifacts/14483195008). This is CI evidence, not production-host acceptance.
-- Synthetic SQLite outbox benchmark artifact [14482701506](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919543/artifacts/14482701506): synthetic-only, not production market-data performance evidence.
-- Android APK [44421919500](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919500): SUCCESS; artifact [14481438680](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919500/artifacts/14481438680). Preview release skipped; no release published.
+- Backend dependency audit, backend container build, shared Redis ACL + persistent-volume smoke, and Trivy image scan/report: PASS.
+- Trivy report artifact [14483195008](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919543/artifacts/14483195008); synthetic-only SQLite outbox benchmark [14482701506](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919543/artifacts/14482701506).
+- Android APK [44421919500](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919500): SUCCESS; artifact [14481438680](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919500/artifacts/14481438680). No preview release published.
 - CodeQL [44421919553](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919553): SUCCESS.
 - Full Git History Secret Audit [44421919501](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919501): SUCCESS.
-- Automated Tests [44421919543](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919543): **SUCCESS**, no failed steps.
+
 
 ## Gate disposition
 - Gate 36 remains OPEN pending real public WSS, Android WebView, 330-second owner-observed session, effective host configuration and cross-instance fan-out evidence.
