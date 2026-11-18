@@ -1,8 +1,8 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 18 November 2026, 18:29 WIB  
+**Audit timestamp:** 18 November 2026, 18:58 WIB  
 **Active branch:** `phase-2/market-data-foundation`  
-**Verification target:** `fd27e0c3ad16b112ef9a9dc8fec7f8e43d34f6cb`  
+**Verification target:** `9873a5fd1c52a0cbab94683c0c309732407212e8`  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
@@ -10,14 +10,15 @@
 
 ## Latest verified update — Batch 23
 
-- Audited application-code parent: `60d2c182bf8b4600f138b020eef39c321ffb83e3`; this progress update is documentation-only.
+- Audited application-code parent: `60d2c182bf8b4600f138b020eef39c321ffb83e3`; latest branch documentation commit: `9873a5fd1c52a0cbab94683c0c309732407212e8`.
 - Batch 22 WebSocket binary-frame regression: **PASS** in backend pytest job from CI run [44295544184](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44295544184). Binary input receives the invalid-message response and close code `1003`.
 - Automated Tests run [44295544184](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44295544184): **FAILURE only at final frontend dependency-audit enforcement**. Frontend tests/build, credential scans, Android tests, backend pytest, backend audit, container build, Redis/persistent-volume smoke test, and Trivy scan/report passed.
 - CodeQL run [44295544205](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44295544205): JavaScript/TypeScript and Python analyses **PASS**. Full Git History Secret Audit run [44295544181](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44295544181): **PASS**.
-- Exact current-head Vercel deployment lookup for `60d2c18`: **zero deployment records** for both projects. Earlier READY previews remain on `bd6356d31df710ecface0e38055aeb0afabdc6b0`; they are not current-head deployments.
-- Deployment-quota containment: project-level Ignored Build Step commands were configured for both Vercel projects. The frontend project skips changes confined to `poc/vercel_ws/`, `backend/`, `docs/`, and `.github/`; the WSS project skips unless `poc/vercel_ws/` changes. A temporary local Git fixture verified docs-only changes skip both, frontend-only changes run only frontend, and WSS-only changes run only WSS. Commands fail open to build if Git diff errors or previous/current SHA inputs are unavailable. No deployment was triggered by the settings update. The project read-back endpoint does not expose the ignored-build command itself, so persistence of that specific field is not independently confirmed by a field-level read-back.
+- Exact WSS preview deployment [`dpl_4mPXXnj2XLLoNZYe5JkdQ1M7r5tg`](https://vercel.com/deszztagd377-pixel/dezzta-chart-ws-poc/4mPXXnj2XLLoNZYe5JkdQ1M7r5tg): **READY** on commit `9873a5f` (preview only, `target=null`). Protected `/health` returned HTTP 200 with `synthetic-only` and `production_data_connected=false`; root page returned HTTP 200 with Connect, Disconnect, synthetic ping and bounded 330-second probe controls.
+- Frontend deployment for the same commit was **CANCELED by the Ignored Build Step** after it returned exit code 0. Its previous READY deployment remains on `bd6356d`; compare evidence confirms the intervening changes touched only WebSocket POC, backend test and documentation paths, not frontend application files.
+- Deployment filtering is now evidenced in Vercel build logs. The WSS build ran because the previous successful WSS deployment was still `bd6356d`, and the commit range contained pending changes under `poc/vercel_ws/`; the build brought those WebSocket changes into a READY preview. The frontend build was correctly skipped. Both Vercel status contexts on `9873a5f` are **SUCCESS** (frontend skip counts as success; WSS deployment is READY).
 - Upstream advisory review refreshed on 18 Nov 2026: GitHub advisory GHSA-fc5q-39xc-vjpf remains published; relevant upstream PRs including #237, #238, #257, #262, #264, #267 and #268 remain open/unmerged. PR #260 also has unresolved performance/compatibility review findings. No official patched npm release is verified; keep dependency-audit enforcement fail-closed.
-- No production WSS handshake, Android WebView test, foreground 330-second observation, effective Fluid Compute read-back, or cross-instance fan-out is claimed. Gate 36 remains OPEN.
+- No actual public WebSocket Upgrade/ping-pong, Android WebView test, foreground 330-second observation, effective Fluid Compute read-back, or cross-instance fan-out is claimed. Gate 36 remains OPEN.
 
 ## Six-stage progress
 
@@ -309,9 +310,9 @@ The commands use `VERCEL_GIT_PREVIOUS_SHA` and `VERCEL_GIT_COMMIT_SHA`. The `git
 - frontend-only change → frontend build, WSS skip;
 - WSS-only change → WSS build, frontend skip.
 
-The commands use `|| exit 1`, so missing refs or a Git diff error do not silently skip a needed build; they fall through to a build. Project settings updates were accepted by Vercel. The available project read-back preserves existing domains, SSO protection and latest READY preview records, but does not return the ignored-build command field itself. No deployment was triggered and no READY preview was deleted or promoted.
+The commands use `|| exit 1`, so missing refs or a Git diff error do not silently skip a needed build; they fall through to a build. Project settings updates were accepted by Vercel. The available project read-back preserves existing domains, SSO protection and latest READY preview records, but does not return the ignored-build command field itself. The settings update itself did not trigger a deployment. The subsequent Git push produced a needed WSS catch-up deployment and skipped the frontend build; no preview was deleted or promoted.
 
-This filtering is intended to reduce duplicate/irrelevant builds; it does not remove account-level build limits and is not yet proven by a subsequent Git-triggered Vercel deployment. The next real project push should be one deliberately planned batch, not a test-only push.
+This filtering is intended to reduce duplicate/irrelevant builds; it does not remove account-level build limits. First Git-triggered validation: frontend skip confirmed; WSS build ran only because WebSocket code changes had accumulated since the last successful WSS deployment. The WSS preview is now READY on the latest branch commit. The next documentation-only push should skip both projects, but that post-catch-up case has not yet been separately observed.
 
 ### Dependency advisory re-audit
 
