@@ -1,3 +1,17 @@
+## Batch 15 — upstream dependency remediation review — 2026-11-18
+
+Fresh upstream review confirms there is no safe patch/release to integrate yet:
+
+- GHSA-fc5q-39xc-vjpf remains published; current GitHub advisory page is marked Unreviewed and lists no patched version. OSV continues to carry the record.
+- Issue [picomatch #247](https://github.com/micromatch/picomatch/issues/247) remains open. Snyk-specific revocation does not revoke the GitHub advisory.
+- PR [#238](https://github.com/micromatch/picomatch/pull/238) remains open; reviews reproduce remaining exponential behavior for `+(*)`, `*(*)`, and `+(a*)`.
+- PR [#237](https://github.com/micromatch/picomatch/pull/237) remains open; review comments report unhandled multi-branch and quoted/bracket semantic edge cases.
+- PR [#246](https://github.com/micromatch/picomatch/pull/246) targets the v2 branch and is not applicable as a drop-in fix for this project's picomatch 4.x path.
+- PR [#235](https://github.com/micromatch/picomatch/pull/235) is closed and contains maintainer disagreement about the vulnerability's threat model. This is not an official withdrawal of the GitHub advisory.
+
+No upstream PR is merged/released as a validated fix. No patch or override was applied. The npm audit enforcement remains active. Stage 1 remains 75% provisional; Gate 10 remains 0/10 closed.
+
+
 ## Batch 14 — exact-head verification refresh — 2026-11-18
 
 Verification target source commit: `4256c5e3ccab82255d115beaf961afd4794a3a42`.
