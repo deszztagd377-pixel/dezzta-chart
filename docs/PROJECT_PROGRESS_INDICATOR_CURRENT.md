@@ -1,9 +1,10 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 18 November 2026 — Batch 44 exact-head CI completed; sole failure is fail-closed frontend npm audit  
+**Audit timestamp:** 18 November 2026 — Batch 45 WebSocket callback-isolation fix committed; exact-head CI running  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest source SHA validated by CI:** `a1af6824d3b7b83d6c4e9af7cb81d9cde1892dc2`  
-**Batch 44 CI:** frontend 227/227, backend 1,032/1,032, frontend build, backend container, Redis/persistent-volume smoke, Trivy, APK, CodeQL, and Git-history secret audit passed; final npm audit enforcement failed only on five High picomatch findings  
+**Latest source SHA under CI:** `b1311ae469c546a60a5db3d6f744709e5586ea30`  
+**Batch 45 CI snapshot:** frontend unit tests/build and credential scans passed; CodeQL and full Git-history secret audit passed; backend tests and Android APK build still running at documentation time  
+**Known dependency blocker:** picomatch GHSA-fc5q-39xc-vjpf remains without a published patched release; keep audit fail-closed  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
@@ -12,6 +13,39 @@
 
 
 
+
+## Latest work cycle — Batch 45 (WebSocket error-observer isolation)
+
+**Implementation source SHA:** `b1311ae469c546a60a5db3d6f744709e5586ea30`  
+**Parent source SHA:** `c7e198508bdfbf4e13b727b748427baaab135147`.
+
+### Defect and correction
+- The transport's terminal `fail(error)` path invoked the caller-provided `onError` callback before closing the socket and setting terminal state.
+- If application-level error reporting itself threw, that exception escaped the transport handler and could interrupt socket cleanup. This is an observer failure, not a network/protocol failure, and must not strand transport resources.
+- Error notification is now isolated in a guarded best-effort call. Cleanup continues even if the observer throws.
+- Socket close is also guarded so a platform implementation throwing during teardown cannot prevent local terminal-state transition.
+- Added regression coverage: a deliberately throwing consumer error observer is triggered by an unexpected protocol message; the test requires no uncaught throw, exactly one error callback, terminal `closed` state, and a 1011 close request.
+- No protocol message, server behavior, heartbeat interval, replay cursor, sequence semantics, auth, entitlement, retry policy, or hosting setting changed.
+
+### Exact-head CI snapshot
+- Source SHA: `b1311ae469c546a60a5db3d6f744709e5586ea30`.
+- Automated Tests [44333017089](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44333017089): frontend unit tests, frontend production build, source/bundle credential scans, Android preflight and publisher tests passed. Backend test step was still running at the time of this snapshot; no final workflow conclusion or detailed test count is claimed yet.
+- CodeQL [44333017068](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44333017068): SUCCESS for both Python and JavaScript/TypeScript.
+- Full Git History Secret Audit [44333017053](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44333017053): SUCCESS.
+- Android APK [44333017051](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44333017051): web build and temporary Capacitor wrapper setup passed; Android debug APK assembly was still running at this snapshot.
+- CI is not declared all-green until Automated Tests and APK jobs complete. The frontend dependency audit step is configured continue-on-error so the workflow can run tests; final enforcement remains fail-closed.
+- No deployment, preview release, billing action, paid provider, or Termux use.
+
+### Dependency blocker recheck
+- npm registry still lists picomatch 4.0.7 as latest; GitHub Advisory and OSV still list versions through 4.0.7 as affected with no fixed version published. [npm versions](https://www.npmjs.com/package/picomatch?activeTab=versions) • [GitHub Advisory](https://github.com/advisories/GHSA-fc5q-39xc-vjpf) • [OSV](https://osv.dev/vulnerability/GHSA-fc5q-39xc-vjpf).
+- No compatible upstream patch is available. Do not use `npm audit fix --force`, downgrade Vite/Vitest, invent an override, suppress the advisory, or lower the audit threshold. The dependency remains development-only per the existing dependency-boundary test, but that does not make CI audit green.
+
+### Gate and progress disposition
+- Gate 36 remains OPEN: public WSS transport, Android WebView lifecycle, host effective configuration, owner-observed session duration/close attribution, and cross-instance fan-out still require external acceptance evidence.
+- Gate 10 remains **0/10** formally closed; open criteria remain **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- Stage 1 remains **75% provisional — 300/400 ticks; 30/40 criteria**. No tick is awarded for this code/test/documentation batch.
+- Stages 2–6 remain NOT SCORED; overall project percentage remains NOT ESTABLISHED until M1–M8 weights and mapping are approved.
+- ZERO COST maintained. `main` untouched.
 
 ## Latest work cycle — Batch 44 (reset retry backoff after cursor-replay recovery)
 
