@@ -1,7 +1,7 @@
 # DEZZTA CHART — Project Progress Indicator
 
 Status: **operational project-tracking specification**  
-Last audited: 2026-11-17  
+Last audited: 2026-11-18  
 Repository: https://github.com/deszztagd377-pixel/dezzta-chart  
 Official working branch: `phase-2/market-data-foundation`  
 Official current stage: **Stage 1 — Foundation, Security & Data Integrity**
@@ -2778,3 +2778,19 @@ The bounded synthetic lifetime probe source and its regression contract test now
 ### Batch 7 CI security blocker — picomatch advisory
 
 Automated Tests run `44203187496` on exact branch head `94f2580b63176e1d871fcb2bb7175ca4f26285c2` failed at frontend `npm audit`: five High findings trace to dev-only `picomatch@4.0.7` through `fdir`, `tinyglobby`, Vite and Vitest. Current GitHub Advisory GHSA-fc5q-39xc-vjpf / CVE-2026-112366 has no published patched version; npm lists 4.0.7 as latest. Upstream PR #235 was closed unmerged and PR #238 remains open with a narrower, limited mitigation. No forced downgrade, unsafe override, or audit suppression was applied. Because the CI workflow is fail-fast, frontend unit/build and backend tests were skipped on this run. Gitleaks passed; separate full-history secret audit passed; CodeQL remained pending at last read-back. This is an upstream dependency blocker, not a WebSocket implementation failure. Keep it visible as OPEN; no Stage 1 ticks are awarded. Details and references are in `docs/WORK_CYCLE_2026-11-18_GATE10_BATCH7.md`.
+
+
+## Batch 8 — CI diagnostic continuity without weakening the security gate — 2026-11-18
+
+- Branch: `phase-2/market-data-foundation`.
+- Latest source/test commit at this documentation checkpoint: `2a20201ccd5730a5f09765bb01677846cdfb3eca`.
+- Root cause addressed: the frontend `npm audit --audit-level=high` step previously failed fast and caused unrelated frontend unit tests, frontend build, and backend verification steps to be skipped.
+- Workflow correction: the audit step now records its outcome with `continue-on-error: true`; a final `if: always()` enforcement step checks that exact outcome after the independent diagnostics and artifact uploads. A failed audit still fails the overall job. No advisory is ignored, downgraded, suppressed, or waived.
+- Regression coverage: `backend/tests/test_ci_dependency_audit_order.py` checks the audit step identity, continued diagnostics, final mandatory enforcement, and ordering after container vulnerability report upload.
+- Security status: the upstream High `picomatch@4.0.7` advisory remains unresolved. This workflow change improves diagnostic coverage; it is **not** a vulnerability fix and does not make CI green.
+- Verification status: the workflow/test changes are committed, but the new exact-head GitHub Actions result has not yet been independently read back. Do not claim the new tests, full workflow, or build passed until that run is confirmed.
+- Vercel: previous preview checks were rate-limited by the Hobby build-rate limit. No plan upgrade, billing activation, retry loop, or production promotion was performed. The dedicated synthetic WSS preview remains the previously confirmed READY deployment; the 330-second probe itself has not been executed.
+- Gate accounting unchanged: Stage 1 **300/400 = 75% provisional**; Gate 10 **0/10 formally closed**; open criteria **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**. No ticks awarded for workflow refactoring or documentation.
+- Zero-cost check: no paid service, subscription, external provider, market-data source, Termux installation, or device-side command was introduced.
+
+Supporting detail: [Batch 8 work-cycle report](WORK_CYCLE_2026-11-18_GATE10_BATCH8.md).
