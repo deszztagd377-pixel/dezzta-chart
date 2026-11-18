@@ -79,3 +79,32 @@ def test_request_metrics_caps_extreme_finite_duration_and_rejects_unhashable_lab
     ]
     assert snapshot["latency_ms"][0]["sum_ms"] == 86_400_000.0
     assert snapshot["latency_ms"][1]["sum_ms"] == 0.0
+
+
+def test_request_metrics_concurrent_recording_preserves_all_samples():
+    from concurrent.futures import ThreadPoolExecutor
+
+    metrics = RequestMetrics()
+    workers = 8
+    samples_per_worker = 125
+
+    def record_batch(worker_index):
+        for sample_index in range(samples_per_worker):
+            metrics.record("GET", "/health", 200, worker_index + sample_index / 1000)
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        list(executor.map(record_batch, range(workers)))
+
+    snapshot = metrics.snapshot()
+    expected = workers * samples_per_worker
+    assert snapshot["requests"] == [{
+        "method": "GET", "route": "/health", "status_class": "2xx",
+        "count": expected,
+    }]
+    histogram = snapshot["latency_ms"][0]
+    assert histogram["count"] == expected
+    assert histogram["buckets"][-1] == {"le_ms": None, "count": expected}
+    assert all(
+        left["count"] >= right["count"]
+        for left, right in zip(histogram["buckets"], histogram["buckets"][1:])
+    )
