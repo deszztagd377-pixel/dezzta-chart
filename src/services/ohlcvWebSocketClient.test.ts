@@ -229,6 +229,24 @@ describe('connectOhlcvStream', () => {
     expect(socket.sent).toHaveLength(sentBeforeClose);
   });
 
+  it('always closes the transport when the error observer throws', () => {
+    const { socket, onError, connection } = setup();
+    onError.mockImplementation(() => {
+      throw new Error('consumer error observer failed');
+    });
+    socket.readyState = 1;
+    socket.emit('open', new Event('open'));
+    socket.message({ type: 'market_data.status', version: 1 });
+    socket.message(snapshot);
+
+    expect(() => socket.message({ type: 'unexpected.message', version: 1 })).not.toThrow();
+
+    expect(onError).toHaveBeenCalledOnce();
+    expect(connection.state).toBe('closed');
+    expect(socket.closed).toHaveLength(1);
+    expect(socket.closed[0].code).toBe(1011);
+  });
+
   it('rejects an unsolicited heartbeat pong when no ping is outstanding', () => {
     const { socket, onError, connection } = setup();
     socket.readyState = 1;

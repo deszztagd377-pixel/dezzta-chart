@@ -153,9 +153,21 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
   const fail = (error: Error) => {
     clearTimer();
     clearHeartbeat();
-    options.onError?.(error);
+    // Diagnostic observers must never interrupt transport cleanup. A consumer
+    // callback can throw; isolate that exception so the socket still closes
+    // and the connection state always reaches the terminal state.
+    try {
+      options.onError?.(error);
+    } catch {
+      // Error reporting is best-effort; lifecycle cleanup is mandatory.
+    }
     if (socket.readyState === 1 || socket.readyState === 0) {
-      socket.close(1011, 'OHLCV stream protocol error');
+      try {
+        socket.close(1011, 'OHLCV stream protocol error');
+      } catch {
+        // A browser/socket implementation may reject close during teardown.
+        // Keep the local state terminal even when the close request throws.
+      }
     }
     setState('closed');
   };
