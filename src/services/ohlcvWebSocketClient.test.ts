@@ -206,6 +206,44 @@ describe('connectOhlcvStream', () => {
     connection.close();
   });
 
+  it('sends a text ping heartbeat after subscription and accepts the server pong', () => {
+    vi.useFakeTimers();
+    const { socket, onError, connection } = setup();
+    socket.readyState = 1;
+    socket.emit('open', new Event('open'));
+    socket.message({ type: 'market_data.status', version: 1 });
+    socket.message(snapshot);
+
+    expect(connection.state).toBe('subscribed');
+    vi.advanceTimersByTime(20_000);
+    expect(socket.sent[socket.sent.length - 1]).toBe('ping');
+
+    socket.message({ type: 'market_data.pong', version: 1 });
+    vi.advanceTimersByTime(10_000);
+    expect(onError).not.toHaveBeenCalled();
+    expect(connection.state).toBe('subscribed');
+    connection.close();
+
+    const sentBeforeClose = socket.sent.length;
+    vi.advanceTimersByTime(60_000);
+    expect(socket.sent).toHaveLength(sentBeforeClose);
+  });
+
+  it('fails closed when a heartbeat pong is not received before its timeout', () => {
+    vi.useFakeTimers();
+    const { socket, onError, connection } = setup();
+    socket.readyState = 1;
+    socket.emit('open', new Event('open'));
+    socket.message({ type: 'market_data.status', version: 1 });
+    socket.message(snapshot);
+
+    vi.advanceTimersByTime(30_000);
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError.mock.calls[0][0].message).toMatch(/heartbeat pong timed out/i);
+    expect(connection.state).toBe('closed');
+    expect(socket.closed[0].code).toBe(1011);
+  });
+
   it('does not let the handshake timeout close a stream after its snapshot is accepted', () => {
     vi.useFakeTimers();
     const { socket, onError, connection } = setup();

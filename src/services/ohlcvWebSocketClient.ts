@@ -22,6 +22,10 @@ export interface OhlcvStreamOptions {
   onClose?: (code: number, reason: string) => void;
   webSocketFactory?: (url: string) => WebSocket;
   timeoutMs?: number;
+  /** Send a text ping after subscription to keep idle sessions active. */
+  heartbeatIntervalMs?: number;
+  /** Close the stream if the server does not answer a heartbeat. */
+  heartbeatTimeoutMs?: number;
 }
 
 export interface OhlcvStreamConnection {
@@ -91,6 +95,13 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
     throw new Error('WebSocket handshake timeout must be positive.');
   }
+  const heartbeatIntervalMs = options.heartbeatIntervalMs ?? 20_000;
+  const heartbeatTimeoutMs = options.heartbeatTimeoutMs ?? 10_000;
+  if (!Number.isFinite(heartbeatIntervalMs) || heartbeatIntervalMs < 1_000 ||
+      !Number.isFinite(heartbeatTimeoutMs) || heartbeatTimeoutMs < 1_000 ||
+      heartbeatTimeoutMs >= heartbeatIntervalMs) {
+    throw new Error('OHLCV WebSocket heartbeat bounds are invalid.');
+  }
 
   const factory = options.webSocketFactory ?? ((url: string) => new WebSocket(url));
   const socket = factory(buildWebSocketUrl(options.baseUrl));
@@ -99,6 +110,8 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
   let replayExpectedCount: number | null = null;
   let replayReceivedCount = 0;
   let replayEndCursor: string | null = null;
+  let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  let pongTimer: ReturnType<typeof setTimeout> | null = null;
   let timer: ReturnType<typeof setTimeout> | null = setTimeout(() => {
     fail(new Error('OHLCV WebSocket handshake timed out.'));
   }, timeoutMs);
@@ -111,8 +124,35 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
     if (timer !== null) clearTimeout(timer);
     timer = null;
   };
+  const clearHeartbeat = () => {
+    if (heartbeatTimer !== null) clearInterval(heartbeatTimer);
+    if (pongTimer !== null) clearTimeout(pongTimer);
+    heartbeatTimer = null;
+    pongTimer = null;
+  };
+  const startHeartbeat = () => {
+    if (heartbeatTimer !== null || state !== 'subscribed') return;
+    heartbeatTimer = setInterval(() => {
+      if (state !== 'subscribed' || socket.readyState !== 1) return;
+      if (pongTimer !== null) {
+        fail(new Error('OHLCV WebSocket heartbeat pong timed out.'));
+        return;
+      }
+      try {
+        // The server protocol expects the literal text frame "ping".
+        socket.send('ping');
+        pongTimer = setTimeout(() => {
+          pongTimer = null;
+          fail(new Error('OHLCV WebSocket heartbeat pong timed out.'));
+        }, heartbeatTimeoutMs);
+      } catch {
+        fail(new Error('OHLCV WebSocket heartbeat send failed.'));
+      }
+    }, heartbeatIntervalMs);
+  };
   const fail = (error: Error) => {
     clearTimer();
+    clearHeartbeat();
     options.onError?.(error);
     if (socket.readyState === 1 || socket.readyState === 0) {
       socket.close(1011, 'OHLCV stream protocol error');
@@ -240,6 +280,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
         replayEndCursor = null;
         clearTimer();
         setState('subscribed');
+        startHeartbeat();
         return;
       }
 
@@ -270,6 +311,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
         clearTimer();
         options.onSnapshot(parsed.snapshot, candles);
         setState('subscribed');
+        startHeartbeat();
         return;
       }
 
@@ -308,7 +350,11 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
         return;
       }
 
-      if (value.type === 'market_data.pong') return;
+      if (value.type === 'market_data.pong') {
+        if (pongTimer !== null) clearTimeout(pongTimer);
+        pongTimer = null;
+        return;
+      }
       if (value.type === 'market_data.status' && state !== 'connecting') return;
       throw new Error(`Unexpected OHLCV WebSocket message in state ${state}.`);
     } catch (error) {
@@ -321,6 +367,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
   });
   socket.addEventListener('close', (event) => {
     clearTimer();
+    clearHeartbeat();
     const closeEvent = event as CloseEvent;
     options.onClose?.(closeEvent.code, closeEvent.reason);
     if (state !== 'closed') setState('closed');
@@ -329,6 +376,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
   return {
     close() {
       clearTimer();
+      clearHeartbeat();
       if (socket.readyState === 1 || socket.readyState === 0) {
         socket.close(1000, 'Client closed OHLCV stream');
       }

@@ -12,6 +12,7 @@
 4. Validate the returned `market_data.ohlcv.snapshot` envelope and every bar using the same strict snapshot adapter used by HTTP.
 5. Initialize the sequence guard from the server-provided `streamId` and `watermark`.
 6. Validate each update and accept only the next sequence number for the exact stream and series.
+7. After snapshot or replay completion, send the server's literal text-frame `ping` every 20 seconds and require `market_data.pong` within 10 seconds. Stop heartbeat timers on failure, remote close, or explicit stop.
 
 ## Recovery and safety
 
@@ -21,11 +22,12 @@
 - Contract/timeframe changes must close the previous connection before opening a new one.
 - No provider credentials are sent to the browser. The only credential passed to the socket is the short-lived verified user identity token.
 - Transport callbacks receive validated snapshots and chart-boundary candle numbers. Exact decimal strings and nanosecond timestamps remain strings until the existing chart adapter converts them.
+- Idle-session heartbeat uses the server's text protocol (`ping`), not JSON. The default cadence is 20 seconds, below the server's 20-pings-per-10-seconds ceiling; a missing pong times out after 10 seconds and triggers the existing reconnect supervisor.
 
 ## Not yet complete
 
 - Deployed browser/device verification against a test backend with Firebase identity and instrument entitlement configured.
-- Network/visibility transition behavior and operational heartbeat/timeout validation.
+- Deployed browser/device verification, Android WebView acceptance, network/visibility transition behavior, and operational heartbeat behavior on the real host. Unit tests now cover heartbeat send, pong acknowledgement, timeout, and timer cleanup.
 - External provider credentials, exchange entitlements, and actual provider delivery remain unverified and are not enabled by this client integration.
 
 The transport and its unit tests establish code-level integration only; they do not prove that the deployed frontend is receiving live exchange market data.
