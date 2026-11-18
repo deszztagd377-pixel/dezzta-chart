@@ -226,3 +226,14 @@ Regression contract: `backend/tests/test_vercel_ws_probe_contract.py` checks hea
 ## Updated preview deployment — 2026-11-18
 
 The bounded heartbeat probe source is deployed to a protected Vercel preview and read back as **READY**: `dpl_EV3ScKYRdCA2X4seYFktuuoQgDx6` from source commit `08263d49ab12fd2195515d673b9e84588dcbac57`. Preview URL: `https://dezzta-chart-ws-qywwkeiui-deszztagd377-pixel.vercel.app`. The deployment is isolated synthetic-only; it is not a production alias. The actual 330-second observation remains pending, so no platform maximum-duration behavior is claimed yet.
+
+
+## Batch 12 — preview and probe measurement integrity — 18 November 2026
+
+The exact source commit 9feb6cca8a51f563cae199eb33a6f57402eb3237 was independently read back as READY on the protected WSS preview. The deployment configuration includes fluid: true; this confirms the committed setting, not a measured platform maximum duration.
+
+The exact-head CI run passed all backend pytest tests, including the WebSocket POC protocol tests, and completed the synthetic backend container smoke test. Trivy's uploaded report contained zero HIGH and zero CRITICAL findings for the backend image.
+
+The bounded 330-second browser probe is opt-in and synthetic-only. A further measurement-integrity guard now invalidates and closes an active probe if the page becomes hidden. Background tabs and screen-off states can throttle browser timers; such an interval must not be treated as platform-duration evidence. Keep the page visible for the full observation. A client-initiated close at 330 seconds is still not evidence that Vercel itself terminated the connection at 300 seconds.
+
+Remaining Gate 36 evidence: a real foreground 330-second run with close code/reason/elapsed-time read-back, effective Fluid Compute read-back from the deployed runtime, native Android WebView WSS, cross-instance fan-out, and owner acceptance of the zero-cost operating model. No production data or credentials are connected.

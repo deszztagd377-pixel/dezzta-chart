@@ -98,8 +98,9 @@ def test_websocket_rejects_oversized_message() -> None:
         assert websocket.receive_json()["type"] == "ready"
         websocket.send_text("x" * (POC.MAX_MESSAGE_CHARS + 1))
         assert websocket.receive_json() == {"type": "error", "code": "message_too_large"}
-        with pytest.raises(WebSocketDisconnect):
+        with pytest.raises(WebSocketDisconnect) as closed:
             websocket.receive_json()
+        assert closed.value.code == 1009
 
 
 def test_websocket_rejects_invalid_message_shape() -> None:
@@ -107,8 +108,9 @@ def test_websocket_rejects_invalid_message_shape() -> None:
         assert websocket.receive_json()["type"] == "ready"
         websocket.send_json({"type": "subscribe", "id": "not-supported"})
         assert websocket.receive_json() == {"type": "error", "code": "invalid_message"}
-        with pytest.raises(WebSocketDisconnect):
+        with pytest.raises(WebSocketDisconnect) as closed:
             websocket.receive_json()
+        assert closed.value.code == 1003
 
 
 def test_websocket_enforces_bounded_message_rate(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -121,8 +123,9 @@ def test_websocket_enforces_bounded_message_rate(monkeypatch: pytest.MonkeyPatch
             assert websocket.receive_json()["type"] == "pong"
         websocket.send_json({"type": "ping", "id": "rate-3"})
         assert websocket.receive_json() == {"type": "error", "code": "rate_limited"}
-        with pytest.raises(WebSocketDisconnect):
+        with pytest.raises(WebSocketDisconnect) as closed:
             websocket.receive_json()
+        assert closed.value.code == 1013
 
 
 def test_websocket_closes_an_idle_session(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -130,5 +133,6 @@ def test_websocket_closes_an_idle_session(monkeypatch: pytest.MonkeyPatch) -> No
     with client.websocket_connect("/ws") as websocket:
         assert websocket.receive_json()["type"] == "ready"
         assert websocket.receive_json()["type"] == "idle_timeout"
-        with pytest.raises(WebSocketDisconnect):
+        with pytest.raises(WebSocketDisconnect) as closed:
             websocket.receive_json()
+        assert closed.value.code == 1000

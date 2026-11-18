@@ -81,3 +81,40 @@ Commit: `90e7c479651a415a8d68ed1c0808291dc2baffe0`
 - Full Git History Secret Audit for this exact commit was pending at the last read-back; no result claimed.
 
 **Accounting unchanged:** Stage 1 = 300/400 ticks = 75% provisional; 30/40 criteria. Gate 10 = 0/10 formally closed. Open criteria remain 8, 20, 25, 30, 31, 34, 35, 36, 38, 39. Stages 2–6 are NOT SCORED.
+
+
+## Exact-head verification read-back — Batch 12 — 18 November 2026
+
+Commit under verification: 9feb6cca8a51f563cae199eb33a6f57402eb3237.
+
+Automated Tests run [44270272294](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44270272294) completed FAILURE, with the failure isolated to the required frontend dependency audit enforcement. Diagnostic continuity worked: independent checks completed rather than being skipped.
+
+Verified successful steps:
+- Frontend unit tests, production build, source and built-bundle credential scans.
+- Android host preflight and immutable preview publisher contract tests.
+- Backend pytest completed successfully, including the corrected cumulative histogram test and WebSocket POC tests.
+- Synthetic SQLite outbox benchmark completed and its artifact was uploaded.
+- Backend dependency audit passed.
+- Backend Docker image build passed.
+- Persistent-volume / Redis ACL smoke test passed, including restart persistence, fail-closed outage response, non-root identity, and SQLite integrity.
+- Trivy container scan completed. Its uploaded JSON report contains zero HIGH and zero CRITICAL vulnerabilities across the Alpine OS and Python package targets.
+- CodeQL run [44270272422](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44270272422) passed.
+- Full Git History Secret Audit run [44270272360](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44270272360) passed.
+
+Remaining CI blocker:
+- Frontend npm audit reports five High findings through dev-only transitive picomatch@4.0.7, GHSA-fc5q-39xc-vjpf / CVE-2026-112366, reached through fdir, tinyglobby, Vite and Vitest.
+- The current npm registry still lists picomatch@4.0.7 as latest, while the advisory affects versions through 4.0.7 and has no published fixed version. A forced downgrade to Vite 6.2.7 would be a breaking dependency change and is not a verified patch for picomatch. No downgrade, suppression, override, or audit waiver is applied.
+- The final audit-enforcement step correctly fails the workflow. Do not call the overall CI green.
+
+Vercel preview read-back for the same source commit:
+- WSS POC deployment dpl_EFLLSev63hRMKu9FEbrVTCUtR8Vg: READY.
+- Frontend deployment dpl_9vazakEetH3VW4Qht3T5ymknWFdo: READY.
+- WSS vercel.json explicitly sets fluid: true. This is source configuration evidence, not proof of effective runtime entitlement or a 330-second platform observation.
+- The actual bounded 330-second WebSocket run and native Android WebView WSS remain unverified. Gate 36 stays OPEN.
+
+Accounting unchanged:
+- Stage 1: 300/400 ticks = 75% provisional; 30/40 provisional criteria.
+- Gate 10: 0/10 formally closed.
+- Open criteria: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.
+- Stages 2–6: NOT SCORED.
+- No Stage 1 ticks or Gate closures are awarded for CI diagnostics alone.

@@ -50,7 +50,7 @@ small{color:#91a4bd}
 <button id="probe" disabled>Run bounded 330-second lifetime probe</button>
 <button id="disconnect" disabled>Disconnect</button>
 <pre id="log" aria-live="polite">Waiting for a test connection.</pre>
-<small>Connection is intentionally short-lived. Reconnect manually after a close to verify a fresh session.</small>
+<small>Connection is intentionally short-lived. Reconnect manually after a close to verify a fresh session. Keep this page visible during the 330-second probe; hiding the page invalidates the observation.</small>
 </main>
 <script>
 (() => {
@@ -157,6 +157,16 @@ small{color:#91a4bd}
   disconnectButton.addEventListener("click", () => {
     stopProbe("manual_disconnect");
     socket?.close(1000, "manual test disconnect");
+  });
+  // Background tabs and screen-off states can throttle browser timers. Do not
+  // count a hidden-page interval as evidence about the platform's max duration.
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden && probeStartedAt !== null) {
+      stopProbe("page_hidden_probe_invalidated");
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.close(1000, "probe invalidated: page hidden");
+      }
+    }
   });
 
   // The page is already behind deployment SSO; reuse that same browser session.

@@ -36,6 +36,11 @@ def test_synthetic_websocket_lifetime_probe_is_bounded_and_beats_idle_timeout():
     assert "setInterval" in source
     assert "clearInterval" in source
     assert 'socket.close(1000, "bounded synthetic probe complete")' in source
+    # Hidden tabs can throttle browser timers; invalidate instead of claiming a false duration.
+    assert 'document.addEventListener("visibilitychange"' in source
+    assert "if (document.hidden && probeStartedAt !== null)" in source
+    assert 'stopProbe("page_hidden_probe_invalidated")' in source
+    assert 'socket.close(1000, "probe invalidated: page hidden")' in source
 
     # A connecting socket must lock the Connect control until open or close;
     # otherwise repeated taps can orphan a still-connecting WebSocket.
