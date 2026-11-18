@@ -1,11 +1,10 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 18 November 2026 — Batch 44 implemented replay-recovery backoff reset; exact-head CI is running  
+**Audit timestamp:** 18 November 2026 — Batch 44 exact-head CI completed; sole failure is fail-closed frontend npm audit  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest source SHA under exact-head CI:** `a1af6824d3b7b83d6c4e9af7cb81d9cde1892dc2`  
-**Parent source SHA:** `689e90af890c7fe54023189bd631bff64f3ac0c3`  
-**Batch 44 CI so far:** frontend unit tests, frontend production build, frontend source/bundle credential scans, backend tests, synthetic outbox benchmark, backend dependency audit, Android debug APK build/artifact, CodeQL (JavaScript/TypeScript + Python), and full reachable Git-history secret audit passed; backend container build is in progress, with Redis/Trivy and final npm audit enforcement pending  
-**Previous fully evaluated source SHA:** `09dd096580b30bce5789d12ab09f9ee41ac4234d` — functional checks passed; workflow failed only at fail-closed npm audit (5 High picomatch findings)  
+**Latest source SHA validated by CI:** `a1af6824d3b7b83d6c4e9af7cb81d9cde1892dc2`  
+**Latest documentation HEAD:** `0d221b8a9f4bf6bcd17d6b6125578df6a4ac0c66`  
+**Batch 44 CI:** frontend 227/227, backend 1,032/1,032, frontend build, backend container, Redis/persistent-volume smoke, Trivy, APK, CodeQL, and Git-history secret audit passed; final npm audit enforcement failed only on five High picomatch findings  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
