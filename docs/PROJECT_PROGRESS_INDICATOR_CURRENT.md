@@ -1,9 +1,10 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 18 November 2026 — Batch 45 exact-head CI completed; only final frontend npm audit enforcement failed  
+**Audit timestamp:** 18 November 2026 — Batch 46 source committed; exact-head CI running  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest source SHA validated by CI:** `b1311ae469c546a60a5db3d6f744709e5586ea30`  
-**Batch 45 CI:** frontend 228/228, backend 1,032/1,032; build, credential scans, backend dependency audit, container build, Redis/persistent-volume smoke, Trivy (0 HIGH/CRITICAL), APK, CodeQL, and Git-history secret audit passed; final npm audit enforcement failed on five High picomatch findings  
+**Latest source SHA under CI:** `4f746496b23cc9208804023bbb554a4e07c6480b`  
+**Batch 46 CI:** CodeQL and full Git-history secret audit passed; frontend tests/build passed; backend tests and Android APK assembly still running at documentation time  
+**Known dependency blocker:** picomatch GHSA-fc5q-39xc-vjpf has no published patched release; audit remains fail-closed  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
@@ -12,6 +13,37 @@
 
 
 
+
+## Latest work cycle — Batch 46 (WebSocket lifecycle observer and socket failure hardening)
+
+**Implementation source SHA:** `4f746496b23cc9208804023bbb554a4e07c6480b`  
+**Parent source SHA:** `8fecf72ece008455c82221ffbabd59ea0b945cfd`.
+
+### Defects and correction
+- Batch 45 isolated exceptions from `onError`, but the remaining lifecycle callbacks could still throw into native WebSocket event dispatch.
+- `onStatus` is now best-effort and cannot interrupt the transport state transition.
+- `onClose` is now best-effort and cannot prevent the connection from entering its terminal `closed` state.
+- Authentication-frame `socket.send()` exceptions are converted into a controlled terminal transport failure and reported through the isolated error observer.
+- Explicit `connection.close()` now reaches local `closed` state even if the platform's `socket.close()` throws.
+- Added three regression tests covering throwing status observers, authentication send exceptions, and close observer/platform close exceptions.
+- Existing `onError` isolation remains intact. Snapshot/update/cursor callback failures still fail the stream closed rather than silently dropping data.
+- No wire protocol, server route, heartbeat cadence, replay cursor, sequence semantics, authentication policy, entitlement, retry schedule, or deployment setting changed.
+
+### Exact-head CI status
+- Source SHA: `4f746496b23cc9208804023bbb554a4e07c6480b`.
+- CodeQL [44334598939](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44334598939): SUCCESS for JavaScript/TypeScript and Python.
+- Full Git History Secret Audit [44334598934](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44334598934): SUCCESS.
+- Automated Tests [44334598973](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44334598973): frontend unit tests and production build passed; backend test step was still running at the documentation snapshot. Final workflow conclusion is pending.
+- Android APK [44334599093](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44334599093): web build and temporary Capacitor wrapper/SDK setup passed; debug APK assembly was still running at the documentation snapshot. Final workflow conclusion is pending.
+- The preceding source batch's frontend dependency audit remains blocked by five High picomatch findings (GHSA-fc5q-39xc-vjpf). No patched release was found in the previous upstream recheck. Do not downgrade dependencies, add speculative overrides, suppress the advisory, alter the lockfile without an upstream fix, or weaken the audit threshold.
+- No deployment, preview release, paid service, or Termux use.
+
+### Gate and progress disposition
+- Gate 36 remains OPEN: public WSS roundtrip, Android WebView transport/lifecycle, host effective configuration, owner-observed 330-second session/close attribution, and cross-instance fan-out still require external acceptance evidence.
+- Gate 10 remains **0/10** formally closed; open criteria remain **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- Stage 1 remains **75% provisional — 300/400 ticks; 30/40 criteria**. No progress tick is awarded for this source/test batch.
+- Stages 2–6 remain NOT SCORED; overall project percentage remains NOT ESTABLISHED until M1–M8 weights and criterion mapping are approved.
+- ZERO COST maintained. `main` untouched.
 
 ## Latest work cycle — Batch 45 (WebSocket error-observer isolation)
 
