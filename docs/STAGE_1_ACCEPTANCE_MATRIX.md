@@ -761,3 +761,13 @@ Gate 36 deployment note (2026-11-18): the bounded synthetic lifetime probe now h
 ### CI dependency audit blocker — 2026-11-18
 
 The current exact-HEAD Automated Tests run failed before tests/build at `npm audit` due five High findings in the dev-only transitive dependency `picomatch@4.0.7` (via `fdir`, `tinyglobby`, Vite and Vitest), GHSA-fc5q-39xc-vjpf / CVE-2026-112366. No patched picomatch version is published; upstream PR #235 closed unmerged and PR #238 remains open with a narrower scope. Do not force-downgrade Vitest, pin another known-affected picomatch version, or suppress the finding. CI remains blocked until a verified upstream release or a separately reviewed safe dependency replacement is available. This does not award ticks or close an external gate.
+
+
+### CI diagnostic continuity correction — Batch 8 — 2026-11-18
+
+The fail-fast behavior at the frontend dependency audit has been corrected without weakening the security requirement:
+
+- `Audit frontend dependencies` has a stable step ID and `continue-on-error: true` so independent tests, build, backend checks, and image diagnostics can run even while npm reports the unresolved High advisory.
+- A final `if: always()` enforcement step reads the audit step's actual outcome and exits non-zero unless the audit succeeded. The overall workflow therefore remains failed while the advisory exists.
+- `backend/tests/test_ci_dependency_audit_order.py` protects this ordering and mandatory final enforcement.
+- The advisory itself remains open; this is not a dependency remediation. The next exact-head CI run must prove that the diagnostics now execute and that the final audit gate still fails honestly. Until that run is read back, no new CI pass is claimed and Stage 1 accounting remains unchanged.
