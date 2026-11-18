@@ -1,10 +1,11 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 18 November 2026 — Batch 46 exact-head CI completed; only final frontend npm audit enforcement failed  
+**Audit timestamp:** 18 November 2026 — Batch 47 supervisor observer isolation committed; exact-head CI running  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest source SHA validated by CI:** `4f746496b23cc9208804023bbb554a4e07c6480b`  
-**Latest documentation HEAD:** pending this documentation commit  
-**Batch 46 CI:** frontend 231/231, backend 1,032/1,032; frontend build, credential scans, backend dependency audit, container build, Redis/persistent-volume smoke, Trivy (0 vulnerabilities), APK, CodeQL, and Git-history secret audit passed; final npm audit enforcement failed on five High picomatch findings  
+**Latest source SHA under CI:** `6b82a3dd4ac20d0b6ee4e1b2b43b7f211de7f4dc`  
+**Latest fully validated source SHA:** `4f746496b23cc9208804023bbb554a4e07c6480b` (Batch 46)  
+**Batch 47 CI snapshot:** frontend tests/build and full Git-history secret audit passed; backend tests, Android APK, and CodeQL were still running at documentation time  
+**Known dependency blocker:** picomatch GHSA-fc5q-39xc-vjpf remains without a compatible patched release; audit remains fail-closed  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
@@ -13,6 +14,37 @@
 
 
 
+
+## Latest work cycle — Batch 47 (WebSocket supervisor observer isolation)
+
+**Implementation source SHA:** `bec43c87a2b8022c2cd8bf83e1aad884158ab271`  
+**Test-timing correction commit:** `6b82a3dd4ac20d0b6ee4e1b2b43b7f211de7f4dc`  
+**Parent of implementation:** `44450dbcc087e92ed5119732a475a0d4e926066e`.
+
+### Defect and correction
+- The transport callbacks are now guarded (Batch 46), but the supervisor still directly invoked its own consumer-provided `onStatus` and `onError` callbacks.
+- A throwing `onStatus` could interrupt `scheduleReconnect()` before its timer was installed. A throwing `onError` could interrupt error handling or terminal authentication/entitlement reporting.
+- Supervisor status updates now commit local status first and isolate consumer observer exceptions.
+- All supervisor error notifications now go through a best-effort `reportError()`; callback failure cannot interrupt reconnect, stop, or terminal error handling.
+- Added regression test: both consumer observers deliberately throw; after a validated stream is established and transport fails, the supervisor must still schedule and open the next socket using the bounded retry delay.
+- First CI attempt on implementation SHA `bec43c87...` exposed a test expectation error: the test waited 99 ms before asserting no reconnect, but deterministic jitter with min delay 100 ms and random=0 correctly schedules at 50 ms. This was a test timing mistake, not a product-code regression. Corrected the assertion to 49 ms + 1 ms in commit `6b82a3dd...`, matching the existing jitter calculation and neighboring tests. The corrected exact-head run is the authoritative result.
+- No wire protocol, backend, auth, entitlement, replay, sequence, heartbeat, retry formula, or deployment setting changed.
+
+### Exact-head CI snapshot
+- Corrected source SHA: `6b82a3dd4ac20d0b6ee4e1b2b43b7f211de7f4dc`.
+- Automated Tests [44336190424](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44336190424): frontend unit tests and production build passed; backend tests were still running at documentation time. Final conclusion pending.
+- Full Git History Secret Audit [44336190330](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44336190330): SUCCESS.
+- CodeQL [44336190195](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44336190195): running at documentation time.
+- Android APK [44336190344](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44336190344): running at documentation time.
+- The previous fully validated Batch 46 exact-head CI [44334598973](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44334598973) had 231 frontend tests and 1,032 backend tests passing; the sole failure was final npm audit enforcement for five High picomatch findings. Batch 47 does not modify frontend dependencies.
+- No deployment, paid service, or Termux use.
+
+### Gate and progress disposition
+- Gate 36 remains OPEN pending external public WSS, Android WebView, host configuration, owner-observed long session, and cross-instance fan-out evidence.
+- Gate 10 remains **0/10** formally closed; open criteria remain **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- Stage 1 remains **75% provisional — 300/400 ticks; 30/40 criteria**. No tick is awarded for this code/test/documentation batch.
+- Stages 2–6 remain NOT SCORED; overall project percentage remains NOT ESTABLISHED until M1–M8 weights and criterion mapping are approved.
+- ZERO COST maintained. `main` untouched.
 
 ## Latest work cycle — Batch 46 (WebSocket lifecycle observer and socket failure hardening)
 
