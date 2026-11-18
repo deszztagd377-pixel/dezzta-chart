@@ -2814,3 +2814,50 @@ Commits:
 - Regression contract: `be0849ab54ca77b9acd3827abb60a56597cb9cdd`
 
 This is a repository-level POC reliability correction only. It does not prove deployed behavior, 330-second platform lifetime, effective Fluid Compute, Android WebView WSS, production fan-out, or external operational acceptance. Gate 36 remains OPEN; no Stage 1 ticks are awarded. Stage 1 remains 300/400 ticks (75% provisional), Gate 10 remains 0/10 formally closed, and criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain OPEN. Stages 2–6 remain NOT SCORED. ZERO COST maintained; no Termux action required.
+
+
+## Follow-on work cycle — WebSocket state safety + operations regression coverage — 2026-11-18
+
+### WebSocket POC corrections
+A second source audit found two additional edge cases around CONNECTING:
+- The Disconnect control was unavailable while the socket was still connecting, so a slow handshake could not be cancelled from the page.
+- The browser `error` event was treated as proof that the socket was closed. Browser WebSocket errors do not guarantee the readyState is already CLOSED; enabling Connect immediately could leave the page reporting a false disconnected state while the original socket was still in flight.
+
+Corrections on the active branch:
+- Connect remains disabled during CONNECTING.
+- Disconnect is enabled during CONNECTING and OPEN, allowing the user to cancel a pending handshake.
+- The `error` event reports a transport error but preserves the in-flight state until the authoritative `close` event updates the controls.
+- The WebSocket contract test checks all three behaviors and the error-handler state transition.
+
+Commits:
+- Initial duplicate-connect correction: `90d8bff3952aed32f44a821c939e4a50be1b777a`
+- Expanded connection/cancellation correction: `60c3a2123112c88d840ca57f9da9db7dc0a7f023`
+- WebSocket regression contract additions and regex correction: `be0849ab54ca77b9acd3827abb60a56597cb9cdd`, `f1c60ff07bf55d11581900f948efe28c86cbf426`, `0f2061cf53a625fa07573f510546028d40df45ac`, `254dc09e04bd3647b78d6499eb2d3703cfe34c7f`
+
+### Gate 38 repository regression coverage
+Added a concurrent-recording regression test for `RequestMetrics`: 8 worker threads × 125 samples = **1,000 expected samples**. It asserts no request/histogram samples are lost and that histogram bucket counts remain cumulative. Existing collector remains bounded to 127 total series, including overflow. This is a test addition, not durable aggregation or external observability acceptance.
+
+Commit: `2146f5931eed4d134183011f5009420d9f9a2881`.
+
+### Gate 39 repository regression coverage
+Added a transition test proving a sanitized worker-error record followed by a healthy batch emits one recovery transition and never includes the exception message. This verifies the local reporter's state transition and secret-safe logging contract; it does not prove persistent host log retention, escalation, or incident ownership.
+
+Commit: `265ca1948777c7ef02076c3381b597080cbcb65d`.
+
+### Verification and deployment boundary
+These changes are committed to `phase-2/market-data-foundation`. The GitHub connector available in this work cycle does not expose push-triggered workflow runs for exact-head read-back; no test execution is claimed. No Vercel deployment was triggered for the new WSS POC changes. The last READY WSS POC preview remains on an older source commit, so the latest POC corrections are not yet deployment-verified. Vercel Hobby build-rate limits remain enforced; no upgrade, billing, SSO weakening, or repeated deployment attempt was made.
+
+### Progress accounting — unchanged
+- Stage 1: **300/400 ticks = 75% provisional** (30/40 provisional criteria).
+- Gate 10: **0/10 formally closed**.
+- Still OPEN: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- Stages 2–6: **NOT SCORED**.
+- Overall project: no fresh percentage asserted; 20.90% is historical only.
+- No Stage 1 ticks awarded for these repository-only changes or unexecuted tests.
+- ZERO COST preserved. No Termux install or command required; no owner-side file/code repair requested. `main` remains untouched.
+
+### Next safe actions
+1. Read exact-head CI evidence through an available GitHub Actions read path; do not infer CI status from Vercel checks.
+2. Keep the WSS POC protected and avoid another build until the free deployment quota permits a single intentional deployment.
+3. Continue Gate 38/39 repository checks only where they do not misrepresent process-local metrics or logger output as durable host operations.
+4. Do not close external criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 or 39 without the corresponding target-environment evidence.
