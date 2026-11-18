@@ -1,37 +1,39 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 18 November 2026 — Batch 34 WebSocket heartbeat correction; exact-head CI pending  
+**Audit timestamp:** 18 November 2026 — Batch 35 heartbeat route integration coverage; candidate CI pending  
 **Active branch:** `phase-2/market-data-foundation`  
-**Parent source HEAD audited:** `09c2a651ccd0999ea17118cbdbcef868de7ccc45` (Batch 33); Batch 34 candidate adds the client heartbeat fix  
-**Latest source-code baseline:** `e6db77210dd28bd82196b2b7bf7d8d7e7256fc37` (Batch 27; subsequent commits are documentation/config reconciliation)  
+**Parent exact HEAD:** `62678abfa16b59c7927f94ad19fe4f8552982f15`  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
-![Six-stage colored project dashboard](assets/project-progress-dashboard-batch34.svg)
+![Six-stage colored project dashboard](assets/project-progress-dashboard-batch35.svg)
 
-## Latest work cycle — Batch 34 (candidate CI pending)
+## Latest work cycle — Batch 35 (candidate CI pending)
 
-- **Parent exact HEAD:** `09c2a651ccd0999ea17118cbdbcef868de7ccc45` on `phase-2/market-data-foundation`. Batch 33's commit is the parent of this candidate. The Batch 34 exact-head CI result is pending and must be checked before this candidate can be called green.
-- **Automated Tests** [44308452242](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44308452242): job **FAILURE only at step 27, `Enforce frontend dependency audit result`**. All preceding steps completed successfully: frontend unit tests, production build, source and built-bundle credential scans, Android host preflight and immutable publisher tests, backend tests, synthetic SQLite outbox benchmark, backend dependency audit, container build, Redis guard/persistent-volume smoke, Trivy scan and vulnerability-report export. This is not a green workflow; test counts are not restated because the current run's log totals were not separately extracted.
-- **CodeQL** [44308451979](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44308451979): **SUCCESS** for Python and JavaScript/TypeScript. **Full Git History Secret Audit** [44308452071](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44308452071): **SUCCESS**.
-- **Gate 30/31 deeper source audit:** `sqlite_backup.py` uses SQLite Online Backup API, integrity and foreign-key checks, same-directory temporary files, owner-only POSIX permissions, file/directory fsync, and atomic publication. Restore refuses an existing destination and fails closed if atomic hard-link publication is unavailable. `backup_encryption.py` uses the versioned `DZCBK01` envelope, PBKDF2-HMAC-SHA256 (600,000 iterations), AES-256-GCM, authenticated header, 1 MiB streaming chunks, and publishes decrypted plaintext only after GCM authentication succeeds. POSIX artifacts are restricted to owner-only permissions.
-- The restore drill inventories the required application tables, checks integrity/foreign keys, compares table row counts, per-row hashes and schema hashes, performs domain readback, then commits and independently verifies a drill-owned write/read/cleanup probe. CI tests include encrypted snapshot → decrypt → full restore integration and failure cleanup. **These are repository/CI guarantees only**; no owner production DB was accessed.
-- **Gate 30/31 external blockers remain:** fresh-path restore on the actual owner target; an off-host encrypted artifact; recovery key custody separated from the artifact; documented retention/access policy; and a successful recovery exercise from that off-host copy. No storage provider is provisioned or assumed free.
-- **Gate 36 WebSocket deeper audit:** `/ws/market-data` checks origin, connection capacity, requires a time-bounded authentication message, verifies Firebase identity, validates exact series identity and entitlement, captures a durable outbox cursor with snapshot subscription, supports bounded replay, rejects slow-consumer overflow with a resnapshot-required close, periodically re-verifies identity/authorization and renews the shared connection lease, and cleans up subscription/tasks on disconnect. The hub's live subscriber queues are process-local; cross-instance fan-out is not established by this code. The isolated Vercel POC remains synthetic-only.
-- **Gate 36 remains OPEN:** Batch 34 addresses a verified client heartbeat omission (the backend expects literal text `ping`, while the client previously only accepted `market_data.pong`). Candidate code now sends ping every 20 seconds after snapshot/replay and fails closed if pong is not received within 10 seconds; regression tests cover send/ack/timeout/cleanup. This does not prove live public WSS, Android WebView, foreground 330-second session, platform close attribution, Fluid Compute read-back, or cross-instance fan-out.
-- **npm security blocker rechecked:** official npm registry still lists `picomatch@4.0.7` as latest, while GitHub Advisory `GHSA-fc5q-39xc-vjpf` and OSV still list versions through 4.0.7 as affected with no patched version stated. No safe published fix was identified. Do not downgrade Vite, force-install, hand-patch, add speculative overrides, suppress, or waive the finding.
-- **Deployment/cost:** no Vercel deployment/retry, no Cloudflare resource, no paid service, no billing/plan change. Branch deployment remains disabled by policy; `main` untouched.
-- **Termux:** not required for this remote repository/source/CI audit. If a future owner-device restore or Android-native WSS acceptance step genuinely requires Termux or another tool, explain the reason and exact scope before requesting anything.
-- **Progress accounting unchanged:** Stage 1 **75% provisional (300/400 ticks; 30/40 criteria)**; Gate 10 **0/10 formally closed**; open criteria **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**; Stages 2–6 **NOT SCORED**; overall project percentage **NOT ESTABLISHED**. No ticks or closures awarded from this read-only audit.
+- Parent exact-head Automated Tests [44310352740](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44310352740): **FAILURE only at final frontend dependency-audit enforcement**. All functional, build, container, Redis/persistent-volume smoke, and Trivy/report steps before enforcement succeeded.
+- Parent exact-head Android debug APK build [44310351406](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44310351406): **SUCCESS**. The APK was built and verified as a CI artifact; no preview release was published.
+- Parent exact-head CodeQL [44310351525](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44310351525): **SUCCESS**. Full Git History Secret Audit [44310351555](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44310351555): **SUCCESS**.
+- Batch 35 adds backend route-level tests for the actual authenticated text-frame `ping` → JSON `market_data.pong` exchange and for fail-closed rejection of unsupported control frames. Candidate's own CI is pending until exact SHA runs finish.
+- Heartbeat rate calculation: client 1 ping/20 s = 0.05/s; server ceiling 20/10 s = 2/s; client steady-state rate = **2.5%** of ceiling. Pong timeout = 10 s.
+- Gate 36 remains OPEN: deployed public WSS, Android WebView, owner-observed 330-second session/platform close attribution, effective Fluid Compute read-back, and cross-instance fan-out remain unverified.
+- Dependency blocker remains five High paths via dev-only `picomatch@4.0.7`. Keep enforcement fail-closed; no downgrade, speculative override, hand patch, suppression, or waiver.
+- No Vercel deployment/retry, Cloudflare resource, paid service, database/host/storage provisioning, billing change, or publication action. Termux is not required for this batch.
+- Progress remains conservative: Stage 1 **75% provisional (300/400 ticks; 30/40 criteria)**; Gate 10 **0/10 formally closed**; open criteria **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**; Stages 2–6 **NOT SCORED**; overall project percentage **NOT ESTABLISHED**. Historical overall checkpoint **20.9%** is not recomputed. No ticks or gate closures are awarded by tests alone.
+
+## Batch 34 verified CI outcome
+
+- Automated Tests [44310352740](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44310352740): final frontend dependency-audit enforcement failed; all preceding functional/build/container/security scan steps succeeded.
+- Android debug APK Build [44310351406](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44310351406): SUCCESS.
+- CodeQL [44310351525](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44310351525): SUCCESS.
+- Full Git History Secret Audit [44310351555](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44310351555): SUCCESS.
 
 ## Batch 34 source correction
 
-See [Batch 34 WebSocket heartbeat correction](WORK_CYCLE_2026-11-18_BATCH34_WEBSOCKET_HEARTBEAT.md). The candidate's own CI is pending; do not treat this candidate as verified until the exact SHA's Automated Tests, CodeQL, and secret-history audit are terminal.
+See [Batch 34 WebSocket heartbeat correction](WORK_CYCLE_2026-11-18_BATCH34_WEBSOCKET_HEARTBEAT.md). Client heartbeat uses the literal text `ping` every 20 seconds and expects `market_data.pong` within 10 seconds. The client tests cover send, acknowledgement, timeout, and cleanup.
 
-## Previous verified update — Batch 33
+## Batch 33 verified audit
 
-- Batch 33 exact HEAD: `09c2a651ccd0999ea17118cbdbcef868de7ccc45`. Automated Tests [44308452242](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44308452242) failed only at final frontend dependency-audit enforcement; CodeQL [44308451979](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44308451979) and Full Git History Secret Audit [44308452071](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44308452071) succeeded.
-- This corrects the previous progress snapshot's stale Batch 32 SHA and stale run IDs; the previous Batch 33 block below is retained as historical audit notes.
+See the Batch 33 historical audit notes below. Gate 30/31 backup/restore and Gate 36 authenticated WebSocket source reviews remain repository-level evidence only; owner-host acceptance is still required.
 
 ## Previous verified update — Batch 32
 

@@ -2017,3 +2017,59 @@ def test_websocket_live_event_arriving_after_replay_read_is_delivered_after_repl
         assert int(live["cursor"]) > int(complete["cursor"])
         assert live["bar"]["tsStartNs"] == str(_T0 + 4 * _NS)
         assert live.get("replayed", False) is False
+
+
+def test_websocket_client_ping_receives_protocol_pong() -> None:
+    """The production client heartbeat frame must round-trip through the route."""
+    application = _app_with_bars()
+    client = TestClient(application)
+
+    with client.websocket_connect("/ws/market-data") as websocket:
+        websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+        assert websocket.receive_json()["type"] == "market_data.status"
+        websocket.send_json({
+            "type": "market_data.subscribe",
+            "version": 1,
+            "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+            "series": {
+                "dataset": "GLBX.MDP3",
+                "publisherId": 1,
+                "instrumentId": 101,
+                "rawSymbol": "ESZ6",
+                "timeframe": "1s",
+            },
+        })
+        assert websocket.receive_json()["type"] == "market_data.ohlcv.snapshot"
+
+        websocket.send_text("ping")
+        assert websocket.receive_json() == {
+            "type": "market_data.pong",
+            "version": 1,
+        }
+
+
+def test_websocket_rejects_non_ping_client_control_frame() -> None:
+    application = _app_with_bars()
+    client = TestClient(application)
+
+    with client.websocket_connect("/ws/market-data") as websocket:
+        websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+        assert websocket.receive_json()["type"] == "market_data.status"
+        websocket.send_json({
+            "type": "market_data.subscribe",
+            "version": 1,
+            "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+            "series": {
+                "dataset": "GLBX.MDP3",
+                "publisherId": 1,
+                "instrumentId": 101,
+                "rawSymbol": "ESZ6",
+                "timeframe": "1s",
+            },
+        })
+        assert websocket.receive_json()["type"] == "market_data.ohlcv.snapshot"
+
+        websocket.send_text("not-a-ping")
+        with pytest.raises(WebSocketDisconnect) as closed:
+            websocket.receive_json()
+        assert closed.value.code == 1008

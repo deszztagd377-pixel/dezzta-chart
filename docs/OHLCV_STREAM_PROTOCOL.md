@@ -111,11 +111,18 @@ subscription is marked and the WebSocket closes with code 1013 so the client
 must reconnect and obtain a fresh snapshot; the server does not silently skip
 an update to keep the socket alive. Client disconnects remove subscriptions.
 
+## Client/server heartbeat contract
+
+The authenticated client sends the literal WebSocket text frame `ping` every 20 seconds after the initial snapshot or replay is accepted. The server answers with JSON `{"type":"market_data.pong","version":1}`. The client requires the pong within 10 seconds; on timeout it closes the transport and lets the existing supervisor reconnect with a fresh ID token and last accepted durable cursor.
+
+The server permits at most 20 pings per rolling 10-second window. At the default client cadence, the steady-state rate is 0.5 ping per 10 seconds, or 2.5% of that ceiling. Backend route integration tests now verify the exact ping/pong frame contract and reject unsupported client control frames with close code 1008. Frontend tests verify heartbeat send, acknowledgement, timeout, and timer cleanup. These are controlled source/CI tests, not a deployed WSS acceptance.
+
 ## Remaining lifecycle work
 
-1. Validate reconnect/backoff, heartbeat/timeout behavior, visibility/network transitions, and snapshot recovery with controlled test fixtures.
+1. Validate visibility/network transitions and snapshot recovery with controlled test fixtures.
 2. Verify the integrated client against a deployed test backend with authentication configured, without enabling external provider delivery.
-3. Durable replay/recovery across backend restarts is not implemented. Every reconnect currently receives a fresh in-memory snapshot and new stream ID.
+3. Observe real public WSS Upgrade/ping-pong and Android WebView foreground/background behavior on the intended host.
+4. Durable replay/recovery across backend restarts is not implemented. Every reconnect currently receives a fresh in-memory snapshot and new stream ID.
 
 The HTTP snapshot endpoint remains independently available and does not yet
 carry a stream watermark; the atomic watermark is currently supplied by the
