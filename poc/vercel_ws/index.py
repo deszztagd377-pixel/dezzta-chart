@@ -85,9 +85,10 @@ small{color:#91a4bd}
     probeButton.textContent = "Run bounded 330-second lifetime probe";
     return elapsed;
   };
-  const setState = (value, connected) => {
+  const setState = (value, connected, connecting = false) => {
     status.textContent = value;
-    connectButton.disabled = connected;
+    // Prevent a second socket from replacing the active connecting socket.
+    connectButton.disabled = connected || connecting;
     pingButton.disabled = !connected;
     probeButton.disabled = !connected || probeInterval !== null;
     disconnectButton.disabled = !connected;
@@ -96,7 +97,7 @@ small{color:#91a4bd}
     if (socket && socket.readyState <= WebSocket.OPEN) return;
     const scheme = location.protocol === "https:" ? "wss:" : "ws:";
     socket = new WebSocket(scheme + "//" + location.host + "/ws");
-    setState("Connecting…", false);
+    setState("Connecting…", false, true);
     socket.addEventListener("open", () => setState("Connected", true));
     socket.addEventListener("message", (event) => {
       try {
