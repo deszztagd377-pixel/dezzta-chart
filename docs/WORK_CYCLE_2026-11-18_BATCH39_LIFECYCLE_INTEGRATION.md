@@ -26,7 +26,9 @@ No production code changes or dependency changes are included in Batch 39. The e
 
 ## Validation and acceptance boundary
 
-- Exact-head CI for this test-only batch is pending; do not claim its tests pass until CI reports the exact commit SHA.
+- Exact-head CI completed on `b389070bea42e84e4efba7c778a2026c51ef5545`, a fixture-sharing follow-up descendant of the lifecycle test commit. Frontend: **225/225 tests passed across 28 files**. Backend: **1,032 passed in 52.01s**.
+- Automated Tests [44324423988](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44324423988): **FAILURE only at step 27**, the final npm audit enforcement. All functional/build/container/Redis/persistent-volume/Trivy steps before it passed. Android APK [44324423899](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44324423899), CodeQL [44324424075](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44324424075), and Full Git History Secret Audit [44324424084](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44324424084) all **SUCCESS**.
+- npm audit still reports five High findings through development-only `picomatch@4.0.7` (GHSA-fc5q-39xc-vjpf). CI includes a passing test that verifies this advisory-bearing package is dev-only. No patched version is listed by the advisory; no downgrade, override, patch, suppression, waiver, or audit weakening was applied.
 - The test mocks chart rendering and WebSocket transport. It validates React lifecycle ownership, not browser-native WebSocket frames, Android WebView behavior, a deployed WSS Upgrade, platform close attribution, Fluid Compute read-back, or cross-instance fan-out.
 - Gate 36 remains OPEN until external runtime evidence is captured.
 

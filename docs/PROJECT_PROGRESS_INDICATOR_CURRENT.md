@@ -1,24 +1,25 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 18 November 2026 — Batch 38 exact-head CI completed; frontend dependency audit remains blocked  
+**Audit timestamp:** 18 November 2026 — Batch 39 exact-head CI completed; frontend dependency audit remains blocked  
 **Active branch:** `phase-2/market-data-foundation`  
-**Current branch HEAD:** `09a81b455fb12b15515899d366bb9b2f1318fb54` (documentation-only correction after CI)  
-**Latest source-validation SHA:** `90f2bea6dfc1e2834c5e9d2aed352c854b905c39`  
-**Parent exact HEAD:** `0f9c5a1d291d2d601fd63a8bc2c36b95c9ae8d14`  
-**Exact-head CI:** completed — functional/build/security checks passed; final npm audit enforcement failed  
+**Current branch HEAD:** `b389070bea42e84e4efba7c778a2026c51ef5545`  
+**Latest source-validation SHA:** `9c36ab295d3488500f97c20887d3e7e2ed305db3` (Batch 39 lifecycle integration tests; exact-head validation run on fixture-sharing HEAD above)  
+**Parent exact HEAD:** `09a81b455fb12b15515899d366bb9b2f1318fb54`  
+**Exact-head CI:** completed — 225 frontend tests and 1,032 backend tests passed; APK, CodeQL, and secret-history audit passed; final npm audit enforcement failed  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
-![Six-stage colored project dashboard](assets/project-progress-dashboard-batch38.svg)
+![Six-stage colored project dashboard](assets/project-progress-dashboard-batch39.svg)
 
-## Latest work cycle — Batch 39 (WebSocket lifecycle integration acceptance tests; exact-head CI pending)
+## Latest work cycle — Batch 39 (WebSocket lifecycle integration acceptance tests; exact-head CI completed)
 
-- Parent exact branch HEAD: `09a81b455fb12b15515899d366bb9b2f1318fb54`.
-- Batch 38 pure-policy tests passed as part of the exact-head 222 frontend tests, but they did not directly mount `CandlestickChart` and prove that browser events stop/recreate the real supervisor owner.
-- Added a jsdom React integration test with mocked chart renderer and transport boundary. It exercises initial connection, offline stop, online recreation, background stop, foreground recreation, and unmount cleanup. Separate cases verify no supervisor is created while initially offline or initially hidden; streaming starts only after the corresponding online/visible event.
-- This closes a test-coverage gap, not Gate 36 itself. Android WebView, deployed WSS, platform lifetime attribution, Fluid Compute read-back and fan-out still require external acceptance.
-- Exact-head CI is pending. The existing dependency audit remains fail-closed; no dependency changes or suppression are part of this batch.
-- No Vercel deploy, Cloudflare resource, billing action, paid service, or Termux operation.
+- Parent exact branch HEAD: `09a81b455fb12b15515899d366bb9b2f1318fb54`; lifecycle integration source/test commit: `9c36ab295d3488500f97c20887d3e7e2ed305db3`; current exact-head CI target: `b389070bea42e84e4efba7c778a2026c51ef5545` (shared chart-layout fixture follow-up).
+- Added a jsdom React integration test with mocked chart renderer and transport boundary. It verifies initial online/visible mount, offline stop, online recreation, background stop, foreground recreation, unmount cleanup, and initially offline/hidden mounts waiting until the matching event.
+- Exact-head frontend tests: **225/225 passed across 28 files**. Exact-head backend tests: **1,032 passed in 52.01 seconds**. Frontend production build, source/bundle credential scans, Android preflight/publisher tests, synthetic SQLite outbox benchmark, backend dependency audit, container build, Redis/persistent-volume smoke, Trivy scan/report all completed successfully before final dependency enforcement.
+- Exact-head Automated Tests [44324423988](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44324423988): **FAILURE only at step 27**, final frontend dependency-audit enforcement. The audit reports five High findings rooted in `picomatch@4.0.7`; a dedicated backend test confirms the advisory-bearing package remains development-only. This is not permission to suppress the advisory: no patched upstream release is listed, and no downgrade, speculative override, package patch, waiver, or audit weakening was applied.
+- Exact-head Android APK [44324423899](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44324423899): **SUCCESS**. CodeQL [44324424075](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44324424075): **SUCCESS**. Full Git History Secret Audit [44324424084](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44324424084): **SUCCESS**.
+- The React/jsdom tests prove component effect ownership and event cleanup only. They do not prove Android WebView, deployed WSS, platform close attribution, Fluid Compute read-back, or cross-instance fan-out. Gate 36 remains OPEN pending external acceptance.
+- No Vercel deploy, Cloudflare resource, billing action, paid service, or Termux operation. No Stage 1 ticks or Gate 10 closures are awarded for tests alone.
 
 ## Previous work cycle — Batch 38 (browser network and visibility lifecycle; exact-head CI completed)
 

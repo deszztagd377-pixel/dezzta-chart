@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="940" viewBox="0 0 1280 940" role="img" aria-labelledby="title desc">
-<title id="title">DEZZTA CHART project progress — Batch 38</title>
-<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 37 WebSocket policy fix passed functional CI but final npm audit remains blocked by five High picomatch findings. APK, CodeQL and full history secret audit passed. Batch 38 adds online and visibility lifecycle gating; Batch 39 adds component-level lifecycle tests; exact-head CI pending.</desc>
+<title id="title">DEZZTA CHART project progress — Batch 39 exact-head CI</title>
+<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 39 exact-head functional CI passed; final npm audit remains blocked by five High picomatch findings. APK, CodeQL and full history secret audit passed. Batch 38 adds online and visibility lifecycle gating; Batch 39 component-level lifecycle tests pass in exact-head CI: 225 frontend and 1,032 backend tests. APK, CodeQL and secret-history audit pass. Final npm audit remains blocked by five High dev-only picomatch findings.</desc>
 <rect width="1280" height="940" rx="28" fill="#0b1220"/>
 <g font-family="Arial,sans-serif">
 <text x="48" y="58" fill="#f8fafc" font-size="32" font-weight="700">DEZZTA CHART — PROJECT PROGRESS</text>
@@ -46,7 +46,7 @@
 <text x="474" y="744" fill="#d1fae5" font-size="18" font-weight="700">WEBSOCKET — SOURCE</text>
 <text x="474" y="778" fill="#a7f3d0" font-size="15">1008 terminal close hardened</text>
 <text x="474" y="807" fill="#a7f3d0" font-size="15">Online + visible lifecycle gate added</text>
-<text x="474" y="836" fill="#fcd34d" font-size="15">Batch 38 CI: 222 + 1,032 PASS</text>
+<text x="474" y="836" fill="#fcd34d" font-size="15">Batch 39 CI: 225 + 1,032 PASS</text>
 <rect x="860" y="704" width="376" height="176" rx="14" fill="#78350f" stroke="#fbbf24" stroke-width="2"/>
 <text x="882" y="744" fill="#fef3c7" font-size="18" font-weight="700">GATE 10 — OPEN</text>
 <text x="882" y="778" fill="#fde68a" font-size="15">8, 20, 25, 30, 31</text>
