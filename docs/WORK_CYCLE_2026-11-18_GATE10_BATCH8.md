@@ -96,3 +96,37 @@ The team plan was read back as Hobby. Two latest listed branch previews are READ
 - Vite frontend deployment `dpl_Ejcq4EaG2dWnFoeDLza8s8wqeUcB`, source `9e654a842f4e320d775fd8cb3489af65eb700376`, Vite 6.4.5 build completed with 1,526 modules, preview URL `https://dezzta-chart-eg6ipi7za-deszztagd377-pixel.vercel.app`.
 
 These successful deployments supersede the blanket impression that every current preview is blocked by build-rate-limit, but their source commits predate the latest Batch 8 workflow/test changes. They are previews, not production. No new deployment was initiated, no plan upgrade/billing occurred, and they do not close Gate 36.
+
+
+## Follow-on work cycle — WebSocket duplicate-connect correction (2026-11-18)
+
+### Defect found and corrected
+During a direct review of `poc/vercel_ws/index.py`, the UI state helper was found to enable the Connect button during the CONNECTING state. A fast repeated tap could open a second WebSocket and overwrite the page's reference to the first in-flight socket. The connection transition now calls `setState("Connecting…", false, true)`; the helper disables Connect when either connected or connecting.
+
+### Regression protection
+`backend/tests/test_vercel_ws_probe_contract.py` now asserts:
+- the state helper accepts a distinct connecting state;
+- Connect is disabled while connecting;
+- the connection-start transition explicitly sets connecting=true.
+
+### Commits
+- `90d8bff3952aed32f44a821c939e4a50be1b777a` — source correction.
+- `be0849ab54ca77b9acd3827abb60a56597cb9cdd` — regression contract.
+- `101522729945a052ccc8b08e605a9fb597bdcb37` — project progress indicator update.
+
+### Verification boundary
+The source and regression contract were committed to `phase-2/market-data-foundation`. This work cycle did not execute the test suite and does not claim runtime pass. No new Vercel deployment was requested. Existing preview READY status refers to earlier source commits; latest code deployment remains unverified. Vercel build-rate-limit is not bypassed, no plan upgrade or billing action is taken, and SSO protection is unchanged.
+
+### Stage and Gate accounting
+- Stage 1: **300/400 ticks = 75% provisional**; no ticks awarded for this repository-only fix.
+- Gate 10: **0/10 formally closed**.
+- Open criteria: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- Stages 2–6: **NOT SCORED**.
+- Overall project percentage: no new score asserted; historical 20.90% remains historical only.
+- ZERO COST: maintained. No Termux install, command, package, repository, keyring, hosting upgrade, paid provider, or publication fee introduced.
+
+### Next technical focus
+1. Read back exact-head GitHub Actions results to confirm that diagnostics continue past npm audit and the final audit enforcement still fails while the High advisory remains unresolved.
+2. Continue Gate 36 without consuming paid quota: verify protected deployment source and effective runtime settings where available; do not treat the browser POC as Android or production acceptance.
+3. Continue repository-side Gate 38/39 work only where it can improve correctness without pretending process-local metrics or local alert logs are durable host operations.
+4. Keep external criteria 8, 20, 25, 30, 31, 34 and 35 open until their actual owner/host evidence exists.
