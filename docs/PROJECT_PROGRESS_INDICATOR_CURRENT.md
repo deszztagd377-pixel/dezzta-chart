@@ -1,10 +1,10 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 18 November 2026 — Batch 41 empty-token retry-loop fix committed; exact-head CI running  
+**Audit timestamp:** 18 November 2026 — Batch 42 exact-head CI triage completed; dependency audit remains blocked  
 **Active branch:** `phase-2/market-data-foundation`  
 **Latest exact-head source/CI validation SHA:** `09dd096580b30bce5789d12ab09f9ee41ac4234d` (Batch 41 retry-loop fix plus corrected regression expectation)  
 **Parent exact HEAD:** `ec226b6a97d42d6bd0af19011f1043ed133775b7`  
-**Exact-head CI:** running — frontend unit tests/build and source/bundle credential scans passed; full-history secret audit passed; backend, APK, CodeQL pending; dependency audit remains fail-closed  
+**Exact-head CI:** functional checks passed (226 frontend, 1,032 backend, build, container/Redis smoke, Trivy, APK, CodeQL, secret audit); workflow failed only at fail-closed frontend npm audit (5 High picomatch findings)  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
@@ -12,7 +12,30 @@
 
 
 
-## Latest work cycle — Batch 41 (empty-token retry-loop prevention)
+
+## Latest work cycle — Batch 42 (exact-head CI closure and dependency blocker triage)
+
+**Validated source SHA:** `09dd096580b30bce5789d12ab09f9ee41ac4234d`  
+**Documentation base:** `497e1344d936241dd23b7404acaebb60954f2d24`.
+
+- **Frontend tests:** 226 tests across 28 files passed.
+- **Backend tests:** 1,032 passed.
+- **Frontend production build:** passed (Vite 6.4.5).
+- **Credential controls:** frontend source/bundle scan passed; 77 source files checked.
+- **Backend runtime checks:** backend dependencies audit passed; backend container build passed; shared Redis guard + persistent-volume smoke passed; Trivy container scan and vulnerability report export/upload passed.
+- **Synthetic outbox benchmark:** passed with 1,000 inserted/replayed synthetic bars and two concurrent replay readers; explicitly not market-data performance evidence.
+- **Android debug APK:** build passed.
+- **CodeQL:** passed.
+- **Full reachable Git-history secret audit:** passed.
+- **Only CI failure:** final frontend `npm audit --audit-level=high` enforcement. It reports five High findings from the same `picomatch` advisory GHSA-fc5q-39xc-vjpf through Vite/fdir and Vitest/tinyglobby. npm proposes `--force` would install Vitest 3.1.4 (breaking downgrade). That is not accepted as a safe remediation. The advisory-bearing package is still development-only (the dedicated dependency-boundary test passed), but this does not make the audit green. No suppression, downgrade, override, lockfile manipulation, or threshold weakening was applied.
+- **Result:** functional/security/build checks listed above passed, but Automated Tests workflow conclusion is **FAILURE** by design because dependency enforcement remains fail-closed. Do not call CI all-green.
+- **Run references:** Automated Tests [44327851319](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44327851319); APK [44327851485](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44327851485); CodeQL [44327851364](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44327851364); secret audit [44327851417](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44327851417).
+- **Stage/Gate accounting unchanged:** Stage 1 75% provisional; Gate 10 0/10; open criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, 39; Stages 2–6 unscored; overall project percentage not established. CI passing is engineering evidence, not external gate acceptance.
+- **No deployment or paid resources:** no Vercel/Cloudflare deployment/resource, billing, paid provider, or Termux action.
+
+**Batch 42 conclusion:** Batch 41 WebSocket credential-state fix has passed all frontend/backend functional tests and the APK build; CI's remaining red status is isolated to the unresolved High-severity development dependency advisory. The next dependency action is to re-check upstream fixed-release availability and assess a compatible upgrade only when a real patched release exists. Do not weaken enforcement to obtain a green badge.
+
+## Previous work cycle — Batch 41 (empty-token retry-loop prevention)
 
 **Implementation base:** `53d166037f4d2f7f43be74da184dce57a9a4f85d`  
 **Implementation commits:** `ec226b6a97d42d6bd0af19011f1043ed133775b7`, followed by regression-test correction `09dd096580b30bce5789d12ab09f9ee41ac4234d`.
