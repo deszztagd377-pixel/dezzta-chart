@@ -780,6 +780,8 @@ The Hobby plan remains active. The latest listed READY previews at read-back are
 
 ## Follow-on repository audit — 2026-11-18
 
+Detailed evidence: [Gate 10 Batch 9 work-cycle report](WORK_CYCLE_2026-11-18_GATE10_BATCH9.md).
+
 The active branch received additional repository-side work after the earlier verified checkpoint:
 - Gate 36 POC: Connect is locked during CONNECTING; Disconnect can cancel a pending handshake; a browser transport error no longer falsely marks the socket closed before the actual close event.
 - Gate 36 regression contract: assertions cover the connecting/cancellation/error-state transitions.
