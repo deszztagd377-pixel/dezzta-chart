@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="940" viewBox="0 0 1280 940" role="img" aria-labelledby="title desc">
-<title id="title">DEZZTA CHART project progress — Batch 40 cross-gate source audit</title>
-<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 40 audited source evidence for Gates 8 and 20, plus external evidence gaps for Gates 25, 30–31, 34–36, 38–39. Stage 1 remains 75% provisional; Gate 10 remains 0/10. CI functional checks pass but npm audit remains blocked by five High findings through development-only picomatch@4.0.7; no patched upstream release is listed.</desc>
+<title id="title">DEZZTA CHART project progress — Batch 41 empty-token retry-loop fix</title>
+<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 41 fixes an empty/whitespace Firebase ID token retry loop. New regression coverage distinguishes terminal missing credentials from transient token-provider failures. Exact-head CI is running; frontend tests/build and secret-history audit passed. Gate 10 remains 0/10 and picomatch audit remains blocked.</desc>
 <rect width="1280" height="940" rx="28" fill="#0b1220"/>
 <g font-family="Arial,sans-serif">
 <text x="48" y="58" fill="#f8fafc" font-size="32" font-weight="700">DEZZTA CHART — PROJECT PROGRESS</text>
-<text x="48" y="91" fill="#94a3b8" font-size="16">BATCH 40 • 18 NOV 2026 • phase-2/market-data-foundation • ZERO COST</text>
+<text x="48" y="91" fill="#94a3b8" font-size="16">BATCH 41 • 18 NOV 2026 • phase-2/market-data-foundation • ZERO COST</text>
 <rect x="44" y="122" width="370" height="220" rx="18" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
 <text x="70" y="164" fill="#d1fae5" font-size="21" font-weight="700">STAGE 1 — ACTIVE</text>
 <text x="70" y="235" fill="#fff" font-size="60" font-weight="700">75%</text>

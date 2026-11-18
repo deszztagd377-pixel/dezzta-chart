@@ -1,17 +1,36 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 18 November 2026 — Batch 40 cross-gate source audit completed; frontend dependency audit remains blocked  
+**Audit timestamp:** 18 November 2026 — Batch 41 empty-token retry-loop fix committed; exact-head CI running  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest exact-head source/CI validation SHA:** `b389070bea42e84e4efba7c778a2026c51ef5545` (Batch 39 lifecycle integration tests plus shared fixture follow-up)  
-**Parent exact HEAD:** `09a81b455fb12b15515899d366bb9b2f1318fb54`  
-**Exact-head CI:** completed — 225 frontend tests and 1,032 backend tests passed; APK, CodeQL, and secret-history audit passed; final npm audit enforcement failed  
+**Latest exact-head source/CI validation SHA:** `09dd096580b30bce5789d12ab09f9ee41ac4234d` (Batch 41 retry-loop fix plus corrected regression expectation)  
+**Parent exact HEAD:** `ec226b6a97d42d6bd0af19011f1043ed133775b7`  
+**Exact-head CI:** running — frontend unit tests/build and source/bundle credential scans passed; full-history secret audit passed; backend, APK, CodeQL pending; dependency audit remains fail-closed  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
 ![Six-stage colored project dashboard](assets/project-progress-dashboard-current.svg)
 
 
-## Latest work cycle — Batch 40 (cross-gate source audit and dependency blocker reassessment)
+
+## Latest work cycle — Batch 41 (empty-token retry-loop prevention)
+
+**Implementation base:** `53d166037f4d2f7f43be74da184dce57a9a4f85d`  
+**Implementation commits:** `ec226b6a97d42d6bd0af19011f1043ed133775b7`, followed by regression-test correction `09dd096580b30bce5789d12ab09f9ee41ac4234d`.
+
+- **Defect identified:** the supervisor treated an empty/whitespace Firebase ID token as a transient connection failure. It retried with exponential backoff even though the credential was still unusable, creating a pointless identity-provider retry loop.
+- **Fix:** empty or whitespace ID tokens now stop the current supervisor, mark the matching market-data snapshot unavailable with a sign-in-specific reason, report one explicit error, and wait for a new authenticated session/supervisor. Transient token-provider rejections remain retryable.
+- **Regression coverage:** added parameterized tests for empty and whitespace-only token values; removed the obsolete test that expected an empty token to be retried. Existing transient-token-failure retry test remains.
+- **CI correction:** first exact-head run exposed the obsolete expectation (not a production-code failure); the test was corrected in a follow-up commit. The latest exact-head run is now testing the corrected state.
+- **Latest SHA:** `09dd096580b30bce5789d12ab09f9ee41ac4234d`.
+- **CI at documentation update:** frontend unit tests and frontend production build passed; frontend source/bundle credential scans passed; full reachable-history secret audit passed. Backend dependency installation and tests, container/Redis smoke, APK build, and CodeQL were still in progress. Do not call CI fully green until all exact-head runs complete.
+- **Previous intermediate SHA:** `ec226b6a97d42d6bd0af19011f1043ed133775b7` failed because an older test still asserted that empty credentials should reconnect. That contradictory test was removed in the follow-up; no production behavior was rolled back.
+- **No dependency files changed:** picomatch advisory remains unresolved; CI audit stays fail-closed.
+- **Progress accounting unchanged:** Stage 1 75% provisional; Gate 10 0/10; open criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, 39; Stages 2–6 unscored; overall percentage not established.
+- **Cost/operations:** no Vercel deploy, Cloudflare resource, paid service, billing action, or Termux operation.
+
+**Batch 41 conclusion:** a credential-state retry loop has been eliminated without weakening retries for transient identity-provider failures. Final acceptance is contingent on corrected exact-head CI.
+
+## Previous work cycle — Batch 40 (cross-gate source audit and dependency blocker reassessment)
 
 **Audit base:** `2096356c4034dc2233f6c48a04a4d7579271ff52`  
 **Scope:** Gates 8, 20, 25, 30–31, 34–36, 38–39 plus the frontend dependency-audit blocker.
