@@ -3,7 +3,6 @@
 **Audit timestamp:** 18 November 2026 — Batch 44 exact-head CI completed; sole failure is fail-closed frontend npm audit  
 **Active branch:** `phase-2/market-data-foundation`  
 **Latest source SHA validated by CI:** `a1af6824d3b7b83d6c4e9af7cb81d9cde1892dc2`  
-**Latest documentation HEAD:** `0d221b8a9f4bf6bcd17d6b6125578df6a4ac0c66`  
 **Batch 44 CI:** frontend 227/227, backend 1,032/1,032, frontend build, backend container, Redis/persistent-volume smoke, Trivy, APK, CodeQL, and Git-history secret audit passed; final npm audit enforcement failed only on five High picomatch findings  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
@@ -35,10 +34,9 @@
 - Android APK [44329450397](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44329450397): SUCCESS; verified artifact uploaded (artifact ID 14439470186, SHA-256 `09d51847dab2e239fda1a19846cf80c027be8742477fc76989f7da61660fe27b`). Immutable preview release step was skipped; no release was published.
 - CodeQL [44329450525](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44329450525): SUCCESS for JavaScript/TypeScript and Python.
 - **Final CI conclusion:** Automated Tests is **FAILURE only because the fail-closed frontend dependency audit remains unresolved**. All listed functional, build, backend, container, Redis, Trivy, APK, CodeQL, and secret-history checks passed. Do not call CI all-green.
-- The exact-head frontend unit-test step passed; detailed test count is not inferred from the step status alone.
 
 ### WebSocket / Gate 36 disposition
-- This closes the identified client retry-backoff consistency defect at source level, subject to exact-head CI completion.
+- This closes the identified client retry-backoff consistency defect at source level; exact-head CI completed with the frontend regression suite passing. Gate 36 still requires external acceptance evidence.
 - Gate 36 remains OPEN. Still required: real public WSS Upgrade and ping/pong; Android WebView foreground/background acceptance; owner-observed platform close attribution around the documented function lifetime; effective host configuration read-back; and cross-instance fan-out. Repository tests cannot substitute for those external observations.
 - No Vercel deployment, Cloudflare deployment/resource, production promotion, paid provider, billing action, or external credential operation was performed. No Termux required for this repository change or CI.
 - No Stage 1 tick or Gate 10 closure is awarded for this source/test change.
