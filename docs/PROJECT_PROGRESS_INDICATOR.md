@@ -2803,3 +2803,14 @@ A fresh read-back of the Vercel Hobby team context confirms the plan is still `h
 - Vite frontend: deployment `dpl_Ejcq4EaG2dWnFoeDLza8s8wqeUcB`, source commit `9e654a842f4e320d775fd8cb3489af65eb700376`, URL `https://dezzta-chart-eg6ipi7za-deszztagd377-pixel.vercel.app`. Build logs show Vite 6.4.5 transformed 1,526 modules and completed the production build.
 
 These are READY previews from their respective source commits, not production aliases and not proof that the newest Batch 8 workflow/test commits have been deployed. The earlier rate-limit failure is therefore not the status of these two deployments; however, no claim is made that every subsequent commit can deploy without quota limits. No new deployment was triggered, no paid plan or billing was enabled, and Gate 36 remains OPEN because a real 330-second lifetime observation and the other external acceptance evidence are still missing.
+
+
+### Gate 36 WebSocket connection-state regression fix — 2026-11-18
+
+A source review found that the POC left the Connect control enabled while a WebSocket was still in the CONNECTING state. Repeated taps could create another socket and replace the page's reference to the earlier in-flight connection. The state transition now disables Connect during CONNECTING and re-enables it only after the connection is no longer active. The WebSocket contract test now asserts this behavior.
+
+Commits:
+- Source fix: `90d8bff3952aed32f44a821c939e4a50be1b777a`
+- Regression contract: `be0849ab54ca77b9acd3827abb60a56597cb9cdd`
+
+This is a repository-level POC reliability correction only. It does not prove deployed behavior, 330-second platform lifetime, effective Fluid Compute, Android WebView WSS, production fan-out, or external operational acceptance. Gate 36 remains OPEN; no Stage 1 ticks are awarded. Stage 1 remains 300/400 ticks (75% provisional), Gate 10 remains 0/10 formally closed, and criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain OPEN. Stages 2–6 remain NOT SCORED. ZERO COST maintained; no Termux action required.
