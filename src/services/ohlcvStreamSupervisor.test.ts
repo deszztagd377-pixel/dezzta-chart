@@ -14,9 +14,11 @@ class FakeSocket {
   }
   send(value: string) { this.sent.push(value); }
   deferCloseEvent = false;
+  throwOnClose = false;
   pendingClose: { code: number; reason: string } | null = null;
 
   close(code = 1000, reason = '') {
+    if (this.throwOnClose) throw new Error('platform close failed');
     this.readyState = 3;
     if (this.deferCloseEvent) {
       this.pendingClose = { code, reason };
@@ -331,6 +333,46 @@ describe('OHLCV stream supervisor', () => {
     await vi.waitFor(() => expect(sockets).toHaveLength(2));
     expect(factory).toHaveBeenCalledTimes(2);
     expect(supervisor.status).toBe('connecting');
+    supervisor.stop();
+  });
+
+  it('reconnects when transport failure is followed by a throwing socket.close', async () => {
+    vi.useFakeTimers();
+    const sockets: FakeSocket[] = [];
+    const factory = vi.fn(() => {
+      const socket = new FakeSocket();
+      sockets.push(socket);
+      return socket as unknown as WebSocket;
+    });
+    const onError = vi.fn();
+    const supervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken: async () => 'fresh-token',
+      webSocketFactory: factory,
+      onError,
+      minReconnectDelayMs: 100,
+      maxReconnectDelayMs: 400,
+      random: () => 0,
+    });
+
+    await vi.waitFor(() => expect(sockets).toHaveLength(1));
+    sockets[0].readyState = 1;
+    sockets[0].emit('open', new Event('open'));
+    sockets[0].message({ type: 'market_data.status', version: 1 });
+    sockets[0].message(snapshot);
+    sockets[0].throwOnClose = true;
+
+    expect(() => sockets[0].emit('error', new Event('error'))).not.toThrow();
+    expect(onError).toHaveBeenCalledOnce();
+    expect(supervisor.status).toBe('reconnecting');
+
+    await vi.advanceTimersByTimeAsync(49);
+    expect(factory).toHaveBeenCalledOnce();
+    await vi.advanceTimersByTimeAsync(1);
+    await vi.waitFor(() => expect(sockets).toHaveLength(2));
+    expect(factory).toHaveBeenCalledTimes(2);
     supervisor.stop();
   });
 

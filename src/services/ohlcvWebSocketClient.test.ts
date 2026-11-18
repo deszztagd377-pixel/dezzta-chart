@@ -247,6 +247,37 @@ describe('connectOhlcvStream', () => {
     expect(socket.closed[0].code).toBe(1011);
   });
 
+  it('notifies close exactly once when failure cleanup cannot call socket.close', () => {
+    const { socket, connection } = setup();
+    const onClose = vi.fn();
+    const second = connectOhlcvStream({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      token: 'verified-token',
+      webSocketFactory: () => socket as unknown as WebSocket,
+      onSnapshot: vi.fn(),
+      onUpdate: vi.fn(),
+      onClose,
+    });
+    socket.readyState = 1;
+    socket.emit('open', new Event('open'));
+    socket.message({ type: 'market_data.status', version: 1 });
+    socket.message(snapshot);
+    socket.close = () => {
+      throw new Error('platform close failed');
+    };
+
+    expect(() => socket.message({ type: 'unexpected.message', version: 1 })).not.toThrow();
+    expect(second.state).toBe('closed');
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(onClose).toHaveBeenCalledWith(1011, 'OHLCV stream failure');
+
+    socket.emit('close', Object.assign(new Event('close'), { code: 1000, reason: 'late close event' }));
+    expect(onClose).toHaveBeenCalledOnce();
+    connection.close();
+  });
+
   it('isolates a throwing status observer and continues the authenticated handshake', () => {
     const socket = new FakeSocket();
     const onStatus = vi.fn(() => {

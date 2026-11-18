@@ -124,6 +124,16 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
       // Status observers are diagnostic/UI hooks and must not break transport state.
     }
   };
+  let closeNotified = false;
+  const notifyClose = (code: number, reason: string) => {
+    if (closeNotified) return;
+    closeNotified = true;
+    try {
+      options.onClose?.(code, reason);
+    } catch {
+      // Close observers are best-effort and must not interrupt lifecycle recovery.
+    }
+  };
   const clearTimer = () => {
     if (timer !== null) clearTimeout(timer);
     timer = null;
@@ -173,7 +183,11 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
         // Keep the local state terminal even when the close request throws.
       }
     }
-    setState('closed');
+    if (state !== 'closed') setState('closed');
+    // Do not depend on the platform delivering a close event after fail().
+    // A rejected close() can leave the supervisor waiting forever for onClose.
+    // The notification is idempotent, so a later native close event is harmless.
+    notifyClose(1011, 'OHLCV stream failure');
   };
 
   const refreshHandshakeTimer = () => {
@@ -392,12 +406,8 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
     clearTimer();
     clearHeartbeat();
     const closeEvent = event as CloseEvent;
-    try {
-      options.onClose?.(closeEvent.code, closeEvent.reason);
-    } catch {
-      // Close observers must not prevent the terminal state transition.
-    }
     if (state !== 'closed') setState('closed');
+    notifyClose(closeEvent.code, closeEvent.reason);
   });
 
   return {
