@@ -44,7 +44,7 @@ def test_synthetic_websocket_lifetime_probe_is_bounded_and_beats_idle_timeout():
     assert 'setState("Connecting…", false, true)' in source
     assert "disconnectButton.disabled = !(connected || connecting)" in source
     error_match = re.search(
-        r'socket\\.addEventListener\\("error", \\(\\) => \\{([\\s\\S]*?)\\n    \\}\\);',
+        r'socket\.addEventListener\("error", \(\) => \{([\s\S]*?)\n    \}\);',
         source,
     )
     assert error_match is not None
