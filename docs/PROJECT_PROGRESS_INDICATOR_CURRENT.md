@@ -354,3 +354,21 @@ No Stage 1 ticks or Gate 10 closures are awarded for this configuration/document
 - CodeQL [44295544205](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44295544205) and full Git history secret audit [44295544181](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44295544181) passed.
 - Stage 1 remains **75% provisional — 300/400 ticks; 30/40 criteria**. Gate 10 remains **0/10 formally closed**; open criteria **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**. Stages 2–6 remain **NOT SCORED**. Overall current percentage remains **NOT ESTABLISHED**; 20.9% is historical only.
 - Zero-cost maintained. No Termux, billing, paid services, production deployment, or `main` modification.
+
+
+## Batch 25 — serialize WebSocket recovery after transport errors — 18 Nov 2026
+
+### Root cause and correction
+
+- The authenticated OHLCV client reports a transport/protocol error and then closes the underlying socket. The supervisor previously scheduled a reconnect immediately from `onError`, while also scheduling from the authoritative `onClose` event.
+- The timer guard prevented duplicate timers, but a delayed browser close event could arrive after the reconnect delay and allow a replacement socket to open while the previous socket was still closing.
+- Changed the supervisor so `onError` reports the error and sets the visible state to `reconnecting`, but does **not** start the retry timer. The authoritative `onClose` event now owns transport retry scheduling. Token-provider failures still use the existing catch/finally retry path.
+- Added a deferred-close regression test: after an error, advancing timers by 1,000 ms must not create a second socket until the original close event is delivered; after close, the bounded 50 ms test delay creates exactly one replacement with a fresh token.
+
+### Verification and boundaries
+
+- Source-level replacement and test insertion were validated against the exact active-branch file contents before commit. Full TypeScript/Vitest execution is pending the branch CI run; no test pass is claimed until CI reports it.
+- Existing cursor-resume, snapshot/replay, fresh-token, bounded-backoff, terminal authentication/entitlement close, and stop-cancellation tests are preserved.
+- This is a client lifecycle reliability fix. It does not prove public Vercel WebSocket Upgrade, platform 300-second lifetime behavior, Android WebView, or cross-instance fan-out. Gate 36 remains OPEN.
+- Stage 1 remains **75% provisional — 300/400 ticks; 30/40 criteria**. Gate 10 remains **0/10 formally closed**; open criteria **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**. No score increase is awarded for this code/test addition alone.
+- Zero-cost maintained; no Termux, billing, paid service, deployment, or `main` change.

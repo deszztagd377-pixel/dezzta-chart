@@ -13,8 +13,24 @@ class FakeSocket {
     this.listeners.set(type, [...(this.listeners.get(type) ?? []), callback]);
   }
   send(value: string) { this.sent.push(value); }
+  deferCloseEvent = false;
+  pendingClose: { code: number; reason: string } | null = null;
+
   close(code = 1000, reason = '') {
     this.readyState = 3;
+    if (this.deferCloseEvent) {
+      this.pendingClose = { code, reason };
+      return;
+    }
+    this.emitClose(code, reason);
+  }
+  completeClose() {
+    const pending = this.pendingClose;
+    if (!pending) throw new Error('No deferred close event is pending.');
+    this.pendingClose = null;
+    this.emitClose(pending.code, pending.reason);
+  }
+  private emitClose(code: number, reason: string) {
     this.emit('close', Object.assign(new Event('close'), { code, reason }));
   }
   serverClose(code: number, reason = '') { this.close(code, reason); }
@@ -456,6 +472,46 @@ describe('OHLCV stream supervisor', () => {
     await vi.advanceTimersByTimeAsync(1);
     await vi.waitFor(() => expect(sockets).toHaveLength(2));
     expect(factory).toHaveBeenCalledTimes(2);
+    expect(getIdToken).toHaveBeenCalledTimes(2);
+    supervisor.stop();
+  });
+
+  it('waits for the transport close event before opening a replacement connection', async () => {
+    vi.useFakeTimers();
+    const sockets: FakeSocket[] = [];
+    const factory = vi.fn(() => {
+      const socket = new FakeSocket();
+      sockets.push(socket);
+      return socket as unknown as WebSocket;
+    });
+    const getIdToken = vi.fn().mockResolvedValue('fresh-token');
+    const supervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken,
+      webSocketFactory: factory,
+      minReconnectDelayMs: 100,
+      maxReconnectDelayMs: 400,
+      random: () => 0,
+    });
+
+    await vi.waitFor(() => expect(sockets).toHaveLength(1));
+    sockets[0].deferCloseEvent = true;
+    sockets[0].readyState = 1;
+    sockets[0].emit('error', new Event('error'));
+
+    expect(supervisor.status).toBe('reconnecting');
+    // An error is advisory; no second socket may open before the old socket closes.
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(factory).toHaveBeenCalledOnce();
+    expect(getIdToken).toHaveBeenCalledOnce();
+
+    sockets[0].completeClose();
+    await vi.advanceTimersByTimeAsync(49);
+    expect(factory).toHaveBeenCalledOnce();
+    await vi.advanceTimersByTimeAsync(1);
+    await vi.waitFor(() => expect(sockets).toHaveLength(2));
     expect(getIdToken).toHaveBeenCalledTimes(2);
     supervisor.stop();
   });

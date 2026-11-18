@@ -159,7 +159,9 @@ export function startOhlcvStreamSupervisor(
         onError: (error) => {
           if (stopped) return;
           options.onError?.(error);
-          scheduleReconnect();
+          // Wait for the socket's authoritative close event before opening a replacement.
+          // Scheduling here can race a delayed close and briefly overlap two sockets.
+          setStatus('reconnecting');
         },
         onClose: (code, reason) => {
           if (stopped) return;
