@@ -10,15 +10,14 @@
 
 ## Latest verified update — Batch 28
 
-- Audited application-code parent: `60d2c182bf8b4600f138b020eef39c321ffb83e3`; latest branch documentation commit: `9873a5fd1c52a0cbab94683c0c309732407212e8`.
-- Batch 22 WebSocket binary-frame regression: **PASS** in backend pytest job from CI run [44295544184](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44295544184). Binary input receives the invalid-message response and close code `1003`.
-- Automated Tests run [44295544184](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44295544184): **FAILURE only at final frontend dependency-audit enforcement**. Frontend tests/build, credential scans, Android tests, backend pytest, backend audit, container build, Redis/persistent-volume smoke test, and Trivy scan/report passed.
-- CodeQL run [44295544205](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44295544205): JavaScript/TypeScript and Python analyses **PASS**. Full Git History Secret Audit run [44295544181](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44295544181): **PASS**.
-- Exact WSS preview deployment [`dpl_4mPXXnj2XLLoNZYe5JkdQ1M7r5tg`](https://vercel.com/deszztagd377-pixel/dezzta-chart-ws-poc/4mPXXnj2XLLoNZYe5JkdQ1M7r5tg): **READY** on commit `9873a5f` (preview only, `target=null`). Protected `/health` returned HTTP 200 with `synthetic-only` and `production_data_connected=false`; root page returned HTTP 200 with Connect, Disconnect, synthetic ping and bounded 330-second probe controls.
-- Frontend deployment for the same commit was **CANCELED by the Ignored Build Step** after it returned exit code 0. Its previous READY deployment remains on `bd6356d`; compare evidence confirms the intervening changes touched only WebSocket POC, backend test and documentation paths, not frontend application files.
-- Deployment filtering is now evidenced in Vercel build logs. The WSS build ran because the previous successful WSS deployment was still `bd6356d`, and the commit range contained pending changes under `poc/vercel_ws/`; the build brought those WebSocket changes into a READY preview. The frontend build was correctly skipped. Both Vercel status contexts on `9873a5f` are **SUCCESS** (frontend skip counts as success; WSS deployment is READY).
-- Upstream advisory review refreshed on 18 Nov 2026: GitHub advisory GHSA-fc5q-39xc-vjpf remains published; relevant upstream PRs including #237, #238, #257, #262, #264, #267 and #268 remain open/unmerged. PR #260 also has unresolved performance/compatibility review findings. No official patched npm release is verified; keep dependency-audit enforcement fail-closed.
-- No actual public WebSocket Upgrade/ping-pong, Android WebView test, foreground 330-second observation, effective Fluid Compute read-back, or cross-instance fan-out is claimed. Gate 36 remains OPEN.
+- Exact active branch head audited: `e6db77210dd28bd82196b2b7bf7d8d7e7256fc37` (Batch 27). The documentation-only Batch 28 commit reconciles this dashboard; it does not change application code.
+- Batch 27 Gate 30 correction: committed SQLite probe write, fresh read-only connection verification, committed cleanup, and fresh cleanup verification. Two regression tests are present; exact-head CI has not been confirmed.
+- WebSocket client supervisor now waits for transport `onClose` before scheduling a replacement after transport errors. Existing tests cover delayed close, duplicate close, cancellation, token acquisition, cursor replay, and sequence handling. Source/test presence is verified; Vitest execution is not.
+- Exact-head GitHub combined status for Batch 27 is empty. The available workflow-run lookup is PR-triggered only; therefore no push-triggered CI PASS or FAILURE is claimed.
+- Exact-SHA Vercel lookup for both linked projects returned zero deployments. No deployment was created or retried. The branch-scoped Vercel guard remains in place; `main` is untouched.
+- Dependency audit remains fail-closed for five High dev-transitive `picomatch@4.0.7` findings. No published, independently verified remediation was accepted; no suppression or speculative override.
+- Gate 30 remains OPEN pending owner-target restore. Gate 31 remains OPEN pending off-host backup, separately controlled recovery key, retention/access controls and successful recovery. Gate 36 remains OPEN pending public WSS, Android and runtime acceptance.
+- No Stage 1 score increase or Gate 10 closure is awarded for code/test additions without CI and external acceptance evidence.
 
 ## Six-stage progress
 
