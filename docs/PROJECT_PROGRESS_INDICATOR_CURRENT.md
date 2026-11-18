@@ -3,7 +3,6 @@
 **Audit timestamp:** 18 November 2026 — Batch 45 exact-head CI completed; only final frontend npm audit enforcement failed  
 **Active branch:** `phase-2/market-data-foundation`  
 **Latest source SHA validated by CI:** `b1311ae469c546a60a5db3d6f744709e5586ea30`  
-**Latest documentation HEAD:** pending this documentation commit  
 **Batch 45 CI:** frontend 228/228, backend 1,032/1,032; build, credential scans, backend dependency audit, container build, Redis/persistent-volume smoke, Trivy (0 HIGH/CRITICAL), APK, CodeQL, and Git-history secret audit passed; final npm audit enforcement failed on five High picomatch findings  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
@@ -30,7 +29,9 @@
 ### Exact-head CI snapshot
 - Source SHA: `b1311ae469c546a60a5db3d6f744709e5586ea30`.
 - Frontend Vitest exact result: **228 passed across 28 files**; backend pytest exact result: **1,032 passed in 38.68 seconds**.
-- Automated Tests [44333017089](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44333017089): frontend unit tests, frontend production build, source/bundle credential scans, Android preflight/publisher tests, backend tests, synthetic outbox benchmark/report, backend dependency audit, backend container build, and shared Redis guard + persistent-volume smoke passed. Trivy scan/report and final npm audit enforcement were still running at the time of this snapshot; no final workflow conclusion or detailed backend test count is claimed yet.
+- Automated Tests [44333017089](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44333017089): **FAILURE only at final step 27, Enforce frontend dependency audit result**. Frontend Vitest: **228 tests across 28 files passed**. Backend pytest: **1,032 passed in 38.68 seconds**. Frontend production build, source/bundle credential scans, Android preflight/publisher tests, synthetic SQLite outbox benchmark/report, backend dependency audit, backend container build, shared Redis guard + persistent-volume smoke, and Trivy scan/report all passed.
+- Trivy report: **0 HIGH/CRITICAL vulnerabilities** across the Alpine 3.24.4 base and scanned Python packages. Container report artifact [14441345073](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44333017089/artifacts/14441345073) uploaded successfully. Synthetic outbox benchmark artifact [14440566343](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44333017089/artifacts/14440566343) uploaded; synthetic only, not production market-data performance evidence.
+- The only failed step is frontend `npm audit --audit-level=high`: **five High findings** for GHSA-fc5q-39xc-vjpf in `picomatch` via Vite/fdir and Vitest/tinyglobby. The package is dev-only per the passing dependency-boundary test, but this does not satisfy audit enforcement. No downgrade, override, suppression, lockfile manipulation, or threshold weakening was applied.
 - CodeQL [44333017068](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44333017068): SUCCESS for both Python and JavaScript/TypeScript.
 - Full Git History Secret Audit [44333017053](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44333017053): SUCCESS.
 - Android APK [44333017051](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44333017051): SUCCESS; Android debug APK assembled, checksum verified, and short-lived artifact uploaded (artifact ID 14439198660). Preview release step was skipped; no release was published.
