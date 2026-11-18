@@ -34,3 +34,15 @@ def test_frontend_dependency_audit_runs_diagnostics_before_final_enforcement():
     assert workflow.index("Enforce frontend dependency audit result") > workflow.index(
         "Upload container vulnerability reports"
     )
+
+    audit_position = workflow.index("Audit frontend dependencies")
+    enforcement_position = workflow.index("Enforce frontend dependency audit result")
+    independent_diagnostics = (
+        "Run frontend unit tests",
+        "Build frontend",
+        "Run backend tests",
+        "Scan backend container image",
+    )
+    for step_name in independent_diagnostics:
+        assert step_name in workflow
+        assert audit_position < workflow.index(step_name) < enforcement_position
