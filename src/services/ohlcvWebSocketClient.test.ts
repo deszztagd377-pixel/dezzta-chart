@@ -349,6 +349,28 @@ describe('connectOhlcvStream', () => {
     };
     expect(() => connection.close()).not.toThrow();
     expect(connection.state).toBe('closed');
+
+    const failedCloseSocket = new FakeSocket();
+    const failedCloseObserver = vi.fn();
+    const failedCloseConnection = connectOhlcvStream({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      token: 'verified-token',
+      webSocketFactory: () => failedCloseSocket as unknown as WebSocket,
+      onSnapshot: vi.fn(),
+      onUpdate: vi.fn(),
+      onClose: failedCloseObserver,
+    });
+    failedCloseSocket.readyState = 1;
+    failedCloseSocket.close = () => {
+      throw new Error('platform close failed');
+    };
+
+    expect(() => failedCloseConnection.close()).not.toThrow();
+    expect(failedCloseConnection.state).toBe('closed');
+    expect(failedCloseObserver).toHaveBeenCalledOnce();
+    expect(failedCloseObserver).toHaveBeenCalledWith(1006, 'Client close request failed');
   });
 
   it('rejects an unsolicited heartbeat pong when no ping is outstanding', () => {

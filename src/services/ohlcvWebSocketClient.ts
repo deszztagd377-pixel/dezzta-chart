@@ -416,14 +416,24 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
     close() {
       clearTimer();
       clearHeartbeat();
+      let closeRequestFailed = false;
       if (socket.readyState === 1 || socket.readyState === 0) {
         try {
           socket.close(1000, 'Client closed OHLCV stream');
         } catch {
           // Local shutdown remains terminal even if the platform rejects close().
+          closeRequestFailed = true;
         }
       }
-      setState('closed');
+      if (state !== 'closed') setState('closed');
+      // Match fail(): callers must not wait forever for a native close event
+      // when the platform rejects close() or the socket is already CLOSED.
+      if (closeRequestFailed || socket.readyState === 3) {
+        notifyClose(
+          1006,
+          closeRequestFailed ? 'Client close request failed' : 'Client closed after transport ended',
+        );
+      }
     },
     get state() {
       return state;
