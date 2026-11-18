@@ -2,7 +2,7 @@
 
 **Audit timestamp:** 18 November 2026 — Batch 36 exact-head CI completed  
 **Active branch:** `phase-2/market-data-foundation`  
-**Current exact HEAD:** `11d3ea4ba426b1da021bf0f9c79abdc0205b3c9d`  
+**Batch 36 source-validation SHA:** `11d3ea4ba426b1da021bf0f9c79abdc0205b3c9d`  
 **Parent exact HEAD:** `9c76726f031568fe126479f4aa3c34bf0d151e49`  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
@@ -20,6 +20,16 @@
 - Gate 36 remains OPEN: deployed public WSS, Android WebView runtime, owner-observed 330-second session/platform close attribution, effective Fluid Compute read-back, and cross-instance fan-out remain unverified.
 - No Vercel deployment/retry, Cloudflare resource, paid service, billing change, or publication action. Termux is not required.
 - Progress unchanged: Stage 1 **75% provisional (300/400 ticks; 30/40 criteria)**; Gate 10 **0/10 formally closed**; open criteria **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**; Stages 2–6 **NOT SCORED**; overall project percentage **NOT ESTABLISHED**. No ticks or closures awarded from CI alone.
+
+## Cross-gate source audit — Batch 36 (evidence boundaries; no gate closures)
+
+- **Gate 25 — Redis shared guard:** source enforces production `rediss://` with non-empty ACL username/password, CA-chain and hostname verification, startup `PING`, atomic Lua HTTP counters and WebSocket leases, and fail-closed Redis error propagation. Exact-head CI passed backend tests and the Redis/persistent-volume smoke stage. Still missing: owner-controlled Redis ACL permission review, actual production TLS endpoint validation, restart/failure recovery evidence, and independent host acceptance.
+- **Gates 30–31 — backup/restore:** source implements SQLite Online Backup API snapshots, integrity checks, atomic publication, no-overwrite restore, foreign-key checks, application-domain inventory/hash comparison, post-restore write/read/cleanup probe, and AES-256-GCM authenticated backup encryption with PBKDF2-HMAC-SHA256 (600,000 iterations). Tests exercise synthetic application data and cryptographic tamper/wrong-key paths. Still missing: restore on the intended owner host, separately controlled off-host copy, independent key custody, retention controls, and a real recovery drill.
+- **Gate 8 — runtime secrets:** frontend source and production bundle credential scans passed exact-head CI; this does not prove that production secrets are injected from a protected host secret source or absent from runtime diagnostics.
+- **Gate 20 — identity:** Firebase Admin verification checks revocation and validates issuer/audience/subject claims; subscription authorization checks canonical instrument mapping and entitlement. A real Firebase project signed-token acceptance test (valid, expired, revoked, wrong-project) remains outstanding.
+- **Gates 34–35 — host durability and transport:** container/persistent-volume smoke passed in CI, but this does not prove the intended host's mount identity, ownership, disk-pressure behavior, restart durability, HTTPS certificate chain, or runtime secret-source configuration.
+- **Gates 38–39 — operations:** process-local metrics and sanitized local alert reporting are documented and tested at source level. External log collection, retention/rotation, protected dashboard, no-cost alert receipt, named adult operator, and recovery exercise remain unaccepted.
+- These are source-readiness findings only. They do not change Stage 1 ticks, Gate 10 formal closures, or the overall project percentage.
 
 ## Previous work cycle — Batch 35 (verified on its recorded parent)
 
