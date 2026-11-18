@@ -1,10 +1,9 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 19 November 2026 — Batch 50 socket-already-CLOSED fallback committed; exact-head CI is in progress  
+**Audit timestamp:** 19 November 2026 — Batch 50 exact-head CI completed successfully  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest source SHA under validation:** `b30ce94ca278e527731d86e40ddf06c6dbd16b5b`  
-**Latest completed exact-head CI:** Batch 49 `a8589e816b349d72db3d9093fd4b71eb01288813` — SUCCESS, frontend 234/234, backend 1,032/1,032; npm audit, build, Redis smoke, Trivy, APK, CodeQL and Git-history audit passed  
-**Batch 50 CI:** [Automated Tests 44422985332](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44422985332) — frontend tests/build and backend tests passed after fixture correction; backend container build is still running. CodeQL and Git-history audit passed; Android APK workflow is running.  
+**Latest source SHA validated by CI:** `b30ce94ca278e527731d86e40ddf06c6dbd16b5b`  
+**Batch 50 exact-head CI:** SUCCESS — frontend 234/234 across 28 files; backend 1,032/1,032; frontend dependency audit (0 vulnerabilities), production build, source/bundle credential scans, Android preflight/publisher tests, backend dependency audit, backend container build, Redis/persistent-volume smoke, Trivy scan/report, Android APK, CodeQL, and Git-history secret audit all passed  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
@@ -45,7 +44,7 @@
 
 **Source commit:** `a8589e816b349d72db3d9093fd4b71eb01288813`  
 **Parent:** `33f988dddb2cb55291299d63884d069648555b6a`  
-**Exact-head CI:** [Automated Tests 44421919543](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919543) — in progress at documentation time.
+**Exact-head CI:** [Automated Tests 44421919543](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919543) — **SUCCESS**.
 
 ### 1. Defect found
 Batch 48 covered a failed close request inside the transport's protocol/error failure path. A separate public shutdown path remained: `connection.close()` caught a platform exception and set local state to `closed`, but did not notify `onClose`. A consumer waiting on the close callback could therefore remain unaware that the close request had failed. The same path also did not synthesize a notification if the socket was already in native CLOSED state but the close event had not yet been delivered.
