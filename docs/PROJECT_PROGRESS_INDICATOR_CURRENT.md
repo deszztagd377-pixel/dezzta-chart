@@ -1,9 +1,10 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 19 November 2026 — Batch 48 WebSocket failed-close recovery fix; exact-head CI completed successfully  
+**Audit timestamp:** 19 November 2026 — Batch 49 explicit-close observer fallback committed; exact-head CI is in progress  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest source SHA validated by CI:** `0b0e710e7e5f9565157e4051bae0619bb4c48123`  
-**Batch 48 exact-head CI:** SUCCESS — frontend 234/234 across 28 files; backend 1,032/1,032; frontend dependency audit, production build, source/bundle credential scans, Android preflight/publisher tests, backend dependency audit, container build, Redis/persistent-volume smoke, Trivy scan/report, Android APK, CodeQL, and Git-history secret audit all passed  
+**Latest source SHA under validation:** `a8589e816b349d72db3d9093fd4b71eb01288813`  
+**Latest completed exact-head CI:** Batch 48 `0b0e710e7e5f9565157e4051bae0619bb4c48123` — SUCCESS, frontend 234/234, backend 1,032/1,032; npm audit, build, Redis smoke, Trivy, APK, CodeQL and Git-history audit passed  
+**Batch 49 CI:** [Automated Tests 44421919543](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919543) running; frontend audit/tests/build and backend tests passed so far; backend container build is in progress. Android APK, CodeQL and Git-history audit workflows succeeded.  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
@@ -12,6 +13,51 @@
 
 
 
+
+## Latest work cycle — Batch 49 (explicit WebSocket close observer fallback)
+
+**Source commit:** `a8589e816b349d72db3d9093fd4b71eb01288813`  
+**Parent:** `33f988dddb2cb55291299d63884d069648555b6a`  
+**Exact-head CI:** [Automated Tests 44421919543](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919543) — in progress at documentation time.
+
+### 1. Defect found
+Batch 48 covered a failed close request inside the transport's protocol/error failure path. A separate public shutdown path remained: `connection.close()` caught a platform exception and set local state to `closed`, but did not notify `onClose`. A consumer waiting on the close callback could therefore remain unaware that the close request had failed. The same path also did not synthesize a notification if the socket was already in native CLOSED state but the close event had not yet been delivered.
+
+### 2. Implementation
+- The explicit `connection.close()` path now records whether the platform's `socket.close()` request threw.
+- Local state is set to `closed` before any fallback notification.
+- If the close request throws, or the socket is already CLOSED, the transport sends one synthetic abnormal-close notification: code `1006`, with a sanitized reason.
+- The existing idempotent `notifyClose()` guard prevents duplicate delivery if a native close event arrives later.
+- If the platform accepts the close request and the socket remains CLOSING, the implementation continues to wait for the native close event; no early synthetic event is emitted.
+- No server protocol, authentication, entitlement, cursor, sequence, heartbeat cadence, retry formula, hosting, or market-data behavior changed.
+
+### 3. Regression coverage
+- Added a regression that forces the platform close request to throw during an explicit client close.
+- It asserts the API does not throw, local state becomes `closed`, and the observer receives exactly one `(1006, "Client close request failed")` notification.
+- Existing close-observer exception and failed-close reconnect regressions remain in place.
+
+### 4. Exact-head validation status
+For source SHA `a8589e816b349d72db3d9093fd4b71eb01288813`:
+- Frontend dependency audit: PASS.
+- Frontend Vitest: PASS; exact count to be recorded from completed CI logs.
+- Frontend source/bundle credential scans and production build: PASS.
+- Android preflight/publisher tests: PASS.
+- Backend pytest: PASS; exact count to be recorded from completed CI logs.
+- Backend dependency audit: PASS.
+- Backend container build: IN PROGRESS at documentation time.
+- Android APK [44421919500](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919500): SUCCESS.
+- CodeQL [44421919553](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919553): SUCCESS.
+- Full Git History Secret Audit [44421919501](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44421919501): SUCCESS.
+- Redis/persistent-volume smoke, Trivy, and final workflow conclusion are not yet confirmed for Batch 49. Do not infer them from Batch 48.
+
+### 5. Gate and progress disposition
+- Gate 36 remains OPEN: public WSS roundtrip, Android WebView transport/lifecycle, effective host configuration, owner-observed 330-second session/close attribution, and cross-instance fan-out still require external acceptance evidence.
+- Gate 10 remains **0/10** formally closed; open criteria remain **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- Stage 1 remains **75% provisional — 300/400 ticks; 30/40 criteria**. No tick is awarded for this source/test/documentation batch.
+- Stages 2–6 remain NOT SCORED; overall project percentage remains NOT ESTABLISHED until M1–M8 weights and criterion mapping are approved.
+- ZERO COST maintained. No deployment, paid service, or Termux use. `main` untouched.
+
+---
 
 ## Latest work cycle — Batch 48 (WebSocket failed-close recovery)
 
