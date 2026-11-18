@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="940" viewBox="0 0 1280 940" role="img" aria-labelledby="title desc">
 <title id="title">DEZZTA CHART project progress — Batch 45 WebSocket error-observer isolation</title>
-<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 45 isolates WebSocket error-observer exceptions so transport cleanup still closes the socket and reaches terminal state. Frontend tests/build/credential scans passed; CodeQL and full Git-history secret audit passed. Backend tests and Android APK assembly are still running. Picomatch 4.0.7 advisory remains unresolved; no suppression or downgrade. Gate 10 remains 0/10.</desc>
+<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 45 isolates WebSocket error-observer exceptions so transport cleanup still closes the socket and reaches terminal state. Frontend + backend tests, build, Redis smoke, APK, CodeQL, secret audit passed. Trivy scan and final npm audit enforcement remain pending. Picomatch 4.0.7 advisory remains unresolved; no suppression or downgrade. Gate 10 remains 0/10.</desc>
 <rect width="1280" height="940" rx="28" fill="#0b1220"/>
 <g font-family="Arial,sans-serif">
 <text x="48" y="58" fill="#f8fafc" font-size="32" font-weight="700">DEZZTA CHART — PROJECT PROGRESS</text>
@@ -46,12 +46,12 @@
 <text x="474" y="744" fill="#d1fae5" font-size="18" font-weight="700">WEBSOCKET — CLEANUP FIX</text>
 <text x="474" y="778" fill="#a7f3d0" font-size="15">Throwing error observer isolated</text>
 <text x="474" y="807" fill="#a7f3d0" font-size="15">Socket cleanup remains terminal</text>
-<text x="474" y="836" fill="#fcd34d" font-size="15">Frontend tests/build PASS • CodeQL PASS</text>
+<text x="474" y="836" fill="#fcd34d" font-size="15">Frontend + backend tests PASS • APK/CodeQL PASS</text>
 <rect x="860" y="704" width="376" height="176" rx="14" fill="#78350f" stroke="#fbbf24" stroke-width="2"/>
 <text x="882" y="744" fill="#fef3c7" font-size="18" font-weight="700">GATE 10 — OPEN</text>
 <text x="882" y="778" fill="#fde68a" font-size="15">8, 20, 25, 30, 31</text>
 <text x="882" y="807" fill="#fde68a" font-size="15">34, 35, 36, 38, 39</text>
 <text x="882" y="836" fill="#fde68a" font-size="15">0 / 10 formally closed</text>
 <text x="48" y="918" fill="#94a3b8" font-size="14">No Stage 1 ticks for source/tests alone • no deployment • no Termux • main untouched</text>
-</g><text x="474" y="865" fill="#a7f3d0" font-size="14">Secret history audit PASS • backend/APK pending</text>
+</g><text x="474" y="865" fill="#a7f3d0" font-size="14">Secret history audit PASS • Trivy/audit pending</text>
 </svg>

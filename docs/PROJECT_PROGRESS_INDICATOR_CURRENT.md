@@ -3,7 +3,7 @@
 **Audit timestamp:** 18 November 2026 — Batch 45 WebSocket callback-isolation fix committed; exact-head CI running  
 **Active branch:** `phase-2/market-data-foundation`  
 **Latest source SHA under CI:** `b1311ae469c546a60a5db3d6f744709e5586ea30`  
-**Batch 45 CI snapshot:** frontend unit tests/build and credential scans passed; CodeQL and full Git-history secret audit passed; backend tests and Android APK build still running at documentation time  
+**Batch 45 CI snapshot:** frontend unit tests/build and credential scans passed; backend tests, synthetic outbox benchmark, backend dependency audit, backend container build, Redis/persistent-volume smoke, CodeQL, Git-history secret audit, and Android debug APK all passed; Trivy and final npm audit enforcement were still running at documentation time  
 **Known dependency blocker:** picomatch GHSA-fc5q-39xc-vjpf remains without a published patched release; keep audit fail-closed  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
@@ -29,10 +29,10 @@
 
 ### Exact-head CI snapshot
 - Source SHA: `b1311ae469c546a60a5db3d6f744709e5586ea30`.
-- Automated Tests [44333017089](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44333017089): frontend unit tests, frontend production build, source/bundle credential scans, Android preflight and publisher tests passed. Backend test step was still running at the time of this snapshot; no final workflow conclusion or detailed test count is claimed yet.
+- Automated Tests [44333017089](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44333017089): frontend unit tests, frontend production build, source/bundle credential scans, Android preflight/publisher tests, backend tests, synthetic outbox benchmark/report, backend dependency audit, backend container build, and shared Redis guard + persistent-volume smoke passed. Trivy scan/report and final npm audit enforcement were still running at the time of this snapshot; no final workflow conclusion or detailed backend test count is claimed yet.
 - CodeQL [44333017068](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44333017068): SUCCESS for both Python and JavaScript/TypeScript.
 - Full Git History Secret Audit [44333017053](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44333017053): SUCCESS.
-- Android APK [44333017051](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44333017051): web build and temporary Capacitor wrapper setup passed; Android debug APK assembly was still running at this snapshot.
+- Android APK [44333017051](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44333017051): SUCCESS; Android debug APK assembled, checksum verified, and short-lived artifact uploaded (artifact ID 14439198660). Preview release step was skipped; no release was published.
 - CI is not declared all-green until Automated Tests and APK jobs complete. The frontend dependency audit step is configured continue-on-error so the workflow can run tests; final enforcement remains fail-closed.
 - No deployment, preview release, billing action, paid provider, or Termux use.
 
