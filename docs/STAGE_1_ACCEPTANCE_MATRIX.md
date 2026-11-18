@@ -769,5 +769,5 @@ The fail-fast behavior at the frontend dependency audit has been corrected witho
 
 - `Audit frontend dependencies` has a stable step ID and `continue-on-error: true` so independent tests, build, backend checks, and image diagnostics can run even while npm reports the unresolved High advisory.
 - A final `if: always()` enforcement step reads the audit step's actual outcome and exits non-zero unless the audit succeeded. The overall workflow therefore remains failed while the advisory exists.
-- `backend/tests/test_ci_dependency_audit_order.py` protects this ordering and mandatory final enforcement.
+- `backend/tests/test_ci_dependency_audit_order.py` protects this ordering and mandatory final enforcement, and asserts frontend unit tests, frontend build, backend tests, and backend image scanning are placed between the audit and final enforcement.
 - The advisory itself remains open; this is not a dependency remediation. The next exact-head CI run must prove that the diagnostics now execute and that the final audit gate still fails honestly. Until that run is read back, no new CI pass is claimed and Stage 1 accounting remains unchanged.
