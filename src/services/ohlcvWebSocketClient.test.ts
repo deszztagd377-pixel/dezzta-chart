@@ -301,7 +301,8 @@ describe('connectOhlcvStream', () => {
     expect(alreadyClosedObserver).toHaveBeenCalledOnce();
   });
 
-  it('isolates a throwing status observer and continues the authenticated handshake', () =>    const socket = new FakeSocket();
+  it('isolates a throwing status observer and continues the authenticated handshake', () => {
+    const socket = new FakeSocket();
     const onStatus = vi.fn(() => {
       throw new Error('consumer status observer failed');
     });

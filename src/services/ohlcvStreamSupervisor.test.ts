@@ -19,17 +19,20 @@ class FakeSocket {
 
   close(code = 1000, reason = '') {
     if (this.throwOnClose) throw new Error('platform close failed');
-    this.readyState = 3;
     if (this.deferCloseEvent) {
+      // A browser remains CLOSING until the native close event is delivered.
+      this.readyState = 2;
       this.pendingClose = { code, reason };
       return;
     }
+    this.readyState = 3;
     this.emitClose(code, reason);
   }
   completeClose() {
     const pending = this.pendingClose;
     if (!pending) throw new Error('No deferred close event is pending.');
     this.pendingClose = null;
+    this.readyState = 3;
     this.emitClose(pending.code, pending.reason);
   }
   private emitClose(code: number, reason: string) {
