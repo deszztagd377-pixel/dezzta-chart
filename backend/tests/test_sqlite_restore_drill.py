@@ -45,6 +45,65 @@ def _build_database(path):
     )
     assert SQLiteOhlcvStore(str(path)).apply(bar) == "inserted"
 
+def test_restore_probe_reads_committed_write_from_a_fresh_read_only_connection(
+    tmp_path, monkeypatch
+):
+    from app import sqlite_restore_drill
+
+    restored = tmp_path / "restored.sqlite3"
+    _build_database(restored)
+    original_ro = sqlite_restore_drill._ro
+    observed_probe_rows = []
+
+    def inspect_committed_probe(path):
+        connection = original_ro(path)
+        exists = connection.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+            ("__dezzta_restore_drill_probe",),
+        ).fetchone()
+        if exists:
+            row = connection.execute(
+                "SELECT probe_id, checked_at_utc "
+                "FROM __dezzta_restore_drill_probe"
+            ).fetchone()
+            observed_probe_rows.append(row is not None and bool(row["probe_id"]))
+        else:
+            observed_probe_rows.append(False)
+        return connection
+
+    monkeypatch.setattr(sqlite_restore_drill, "_ro", inspect_committed_probe)
+    sqlite_restore_drill._write_probe(restored)
+
+    assert observed_probe_rows == [True, False]
+    with sqlite3.connect(restored) as db:
+        assert db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+            ("__dezzta_restore_drill_probe",),
+        ).fetchone() is None
+
+
+def test_restore_probe_cleans_committed_probe_if_readback_fails(tmp_path, monkeypatch):
+    from app import sqlite_restore_drill
+
+    restored = tmp_path / "restored.sqlite3"
+    _build_database(restored)
+
+    def fail_readback(_path):
+        raise sqlite3.DatabaseError("injected committed readback failure")
+
+    monkeypatch.setattr(sqlite_restore_drill, "_ro", fail_readback)
+    with pytest.raises(
+        sqlite3.DatabaseError, match="injected committed readback failure"
+    ):
+        sqlite_restore_drill._write_probe(restored)
+
+    with sqlite3.connect(restored) as db:
+        assert db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+            ("__dezzta_restore_drill_probe",),
+        ).fetchone() is None
+
+
 def test_owner_device_restore_drill_checks_application_domains_and_redacts_paths(tmp_path):
     source = tmp_path / "live" / "application.sqlite3"
     backup = tmp_path / "backup" / "application-backup.sqlite3"

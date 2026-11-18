@@ -391,3 +391,26 @@ No Stage 1 ticks or Gate 10 closures are awarded for this configuration/document
 - No Vercel deployment was created by the settings update. The branch remains protected from Git-triggered preview creation by the root config; exact-SHA deployment records and status contexts must still be checked after the commit.
 - Stage 1 remains **75% provisional — 300/400 ticks; 30/40 criteria**. Gate 10 remains **0/10 formally closed**; open criteria **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**. Stages 2–6 remain **NOT SCORED**. Overall current percentage remains **NOT ESTABLISHED**; 20.9% remains historical only.
 - Zero-cost maintained. No Termux, billing changes, paid service, production promotion, or `main` modification.
+
+
+## Batch 27 — make Gate 30 post-restore write verification durable — 18 Nov 2026
+
+### Defect found
+
+- The existing restore drill's post-restore probe created a table, inserted a row, read it back, dropped the table, and committed all within one SQLite connection/transaction.
+- That proved transaction-local read-your-writes, but did **not** prove the inserted probe survived a commit and a fresh connection. The report label `post_restore_write_read_cleanup=passed` therefore overstated the durability property being exercised.
+
+### Correction
+
+- The probe now creates and inserts its unique drill-owned record, commits it, closes the writer, and reads the exact record through a separate read-only connection.
+- Only after successful committed readback does it drop the probe table in a new write transaction, commit cleanup, and verify absence through another read-only connection.
+- If committed readback fails, a best-effort cleanup removes only the drill-owned probe table while preserving the original failure. A pre-existing table with the same name is still rejected and is never removed.
+- Added two regression tests: (1) proves the probe row exists through the fresh read-only connection and is absent after cleanup; (2) injects a readback failure and proves the committed probe table is cleaned up.
+
+### Scope and evidence boundary
+
+- This strengthens repository-level restore verification. It does not prove the owner's actual Android database path, target-device execution, recovery time on the owner's device, or off-host disaster recovery.
+- Gate 30 remains **OPEN** until a timestamped drill runs against the actual application database on the owner-controlled target. Gate 31 remains **OPEN** for off-host destination, separate key custody, retention, and recovery.
+- Exact-head CI has not yet executed for this commit; the new tests are implemented, not yet claimed PASS.
+- Stage 1 remains **75% provisional — 300/400 ticks; 30/40 criteria**. Gate 10 remains **0/10 formally closed**; open criteria **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**. No ticks are awarded for this source-level correction.
+- ZERO COST maintained. No Vercel deployment, paid service, billing change, production data access, or `main` modification. The actual phone-only execution may require Termux/Python; no Termux installation or command has been requested or performed in this batch.

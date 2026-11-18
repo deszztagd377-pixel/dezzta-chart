@@ -190,25 +190,70 @@ def _hash(path: Path) -> str:
     return digest.hexdigest()
 
 def _write_probe(path: Path) -> None:
+    """Prove a committed write survives a fresh read connection, then clean it up."""
     table = "__dezzta_restore_drill_probe"
     probe_id = uuid4().hex
     timestamp = datetime.now(timezone.utc).isoformat()
-    db = sqlite3.connect(path, timeout=30)
+    created = False
     try:
-        if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
-                      (table,)).fetchone():
-            raise sqlite3.DatabaseError("restore probe table already exists")
-        db.execute("CREATE TABLE __dezzta_restore_drill_probe (probe_id TEXT PRIMARY KEY, checked_at_utc TEXT NOT NULL)")
-        db.execute("INSERT INTO __dezzta_restore_drill_probe VALUES (?, ?)", (probe_id, timestamp))
-        if db.execute("SELECT probe_id, checked_at_utc FROM __dezzta_restore_drill_probe").fetchone() != (probe_id, timestamp):
-            raise sqlite3.DatabaseError("post-restore write/read failed")
-        db.execute("DROP TABLE __dezzta_restore_drill_probe")
-        db.commit()
-    except Exception:
-        db.rollback()
+        with sqlite3.connect(path, timeout=30) as db:
+            if db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+                (table,),
+            ).fetchone():
+                raise sqlite3.DatabaseError("restore probe table already exists")
+            db.execute(
+                "CREATE TABLE __dezzta_restore_drill_probe "
+                "(probe_id TEXT PRIMARY KEY, checked_at_utc TEXT NOT NULL)"
+            )
+            db.execute(
+                "INSERT INTO __dezzta_restore_drill_probe VALUES (?, ?)",
+                (probe_id, timestamp),
+            )
+            db.commit()
+            created = True
+
+        # A separate read-only connection proves the write was committed,
+        # rather than merely visible inside the writer's transaction.
+        readback = _ro(path)
+        try:
+            row = readback.execute(
+                "SELECT probe_id, checked_at_utc "
+                "FROM __dezzta_restore_drill_probe"
+            ).fetchone()
+            if row is None or tuple(row) != (probe_id, timestamp):
+                raise sqlite3.DatabaseError("post-restore committed readback failed")
+        finally:
+            readback.close()
+
+        with sqlite3.connect(path, timeout=30) as db:
+            db.execute("DROP TABLE __dezzta_restore_drill_probe")
+            db.commit()
+        created = False
+
+        verification = _ro(path)
+        try:
+            remains = verification.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+                (table,),
+            ).fetchone()
+        finally:
+            verification.close()
+        if remains:
+            raise sqlite3.DatabaseError("restore probe cleanup failed")
+    except BaseException:
+        # The probe is drill-owned. If a committed probe cannot be verified,
+        # remove only that exact table and preserve the original failure.
+        if created:
+            try:
+                with sqlite3.connect(path, timeout=30) as cleanup:
+                    cleanup.execute(
+                        "DROP TABLE IF EXISTS __dezzta_restore_drill_probe"
+                    )
+                    cleanup.commit()
+            except Exception:
+                pass
         raise
-    finally:
-        db.close()
 
 def _remove_created_database(path: Path) -> None:
     """Remove one drill-owned database and SQLite sidecars after failed verification."""
