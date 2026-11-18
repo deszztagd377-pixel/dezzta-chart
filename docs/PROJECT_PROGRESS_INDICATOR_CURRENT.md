@@ -1,6 +1,6 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 18 November 2026 — Batch 39 exact-head CI completed; frontend dependency audit remains blocked  
+**Audit timestamp:** 18 November 2026 — Batch 40 cross-gate source audit completed; frontend dependency audit remains blocked  
 **Active branch:** `phase-2/market-data-foundation`  
 **Latest exact-head source/CI validation SHA:** `b389070bea42e84e4efba7c778a2026c51ef5545` (Batch 39 lifecycle integration tests plus shared fixture follow-up)  
 **Parent exact HEAD:** `09a81b455fb12b15515899d366bb9b2f1318fb54`  
@@ -8,7 +8,7 @@
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
-![Six-stage colored project dashboard](assets/project-progress-dashboard-batch39.svg)
+![Six-stage colored project dashboard](assets/project-progress-dashboard-current.svg)
 
 
 ## Latest work cycle — Batch 40 (cross-gate source audit and dependency blocker reassessment)
