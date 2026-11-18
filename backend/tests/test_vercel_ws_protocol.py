@@ -89,3 +89,61 @@ def test_synthetic_websocket_health_is_explicitly_non_production() -> None:
         "production_data_connected": False,
     }
     assert response.headers["cache-control"] == "no-store"
+
+
+
+def test_synthetic_websocket_idle_timeout_announces_then_closes(monkeypatch) -> None:
+    monkeypatch.setattr(POC_MODULE, "IDLE_TIMEOUT_SECONDS", 0.01)
+
+    with client.websocket_connect("/ws") as websocket:
+        ready = websocket.receive_json()
+        assert ready["type"] == "ready"
+
+        timeout = websocket.receive_json()
+        assert timeout == {
+            "type": "idle_timeout",
+            "session_id": ready["session_id"],
+        }
+
+        with pytest.raises(WebSocketDisconnect) as disconnected:
+            websocket.receive_json()
+        assert disconnected.value.code == 1000
+
+
+@pytest.mark.parametrize(
+    "raw_message",
+    [
+        "not-json",
+        "null",
+        "[]",
+        '{"type":"ping"}',
+        '{"type":"ping","id":""}',
+        '{"type":"ping","id":"' + ("x" * 65) + '"}',
+    ],
+)
+def test_synthetic_websocket_rejects_malformed_or_out_of_contract_payloads(
+    raw_message: str,
+) -> None:
+    with client.websocket_connect("/ws") as websocket:
+        assert websocket.receive_json()["type"] == "ready"
+        websocket.send_text(raw_message)
+
+        error = websocket.receive_json()
+        assert error == {"type": "error", "code": "invalid_message"}
+
+        with pytest.raises(WebSocketDisconnect) as disconnected:
+            websocket.receive_json()
+        assert disconnected.value.code == 1003
+
+
+def test_synthetic_websocket_root_has_no_store_and_restrictive_security_headers() -> None:
+    response = client.get("/")
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
+    assert response.headers["x-content-type-options"] == "nosniff"
+
+    policy = response.headers["content-security-policy"]
+    assert "default-src 'none'" in policy
+    assert "frame-ancestors 'none'" in policy
+    assert "base-uri 'none'" in policy
+    assert "connect-src 'self' wss:" in policy
