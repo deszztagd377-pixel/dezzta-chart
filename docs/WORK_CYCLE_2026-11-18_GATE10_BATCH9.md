@@ -70,3 +70,8 @@ Documentation commits:
 - **Gates 8, 20, 25, 30, 31, 34, 35:** require owner-controlled target environment evidence and remain open. Do not buy a managed service or weaken security to force closure.
 
 No broken code or document is being handed to the owner for repair.
+
+## Final documentation cross-links
+- Final project progress indicator link commit: `de66dac4e5d58b363d24cbc757c61421482c133e`.
+- Acceptance matrix Batch 9 report link commit: `1df00662de2f96721f2c807831dcb69e26ac9932`.
+- Progress dashboard remains intentionally at Stage 1 **75% provisional** and Gate 10 **0/10**; no external acceptance evidence was created by documentation updates.
