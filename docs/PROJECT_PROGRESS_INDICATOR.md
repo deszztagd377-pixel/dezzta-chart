@@ -2783,10 +2783,10 @@ Automated Tests run `44203187496` on exact branch head `94f2580b63176e1d871fcb2b
 ## Batch 8 — CI diagnostic continuity without weakening the security gate — 2026-11-18
 
 - Branch: `phase-2/market-data-foundation`.
-- Latest source/test commit at this documentation checkpoint: `2a20201ccd5730a5f09765bb01677846cdfb3eca`.
+- Latest source/test commit at this documentation checkpoint: `0e92295918a46dbb741b27d1bbd60618e8f7bc85`.
 - Root cause addressed: the frontend `npm audit --audit-level=high` step previously failed fast and caused unrelated frontend unit tests, frontend build, and backend verification steps to be skipped.
 - Workflow correction: the audit step now records its outcome with `continue-on-error: true`; a final `if: always()` enforcement step checks that exact outcome after the independent diagnostics and artifact uploads. A failed audit still fails the overall job. No advisory is ignored, downgraded, suppressed, or waived.
-- Regression coverage: `backend/tests/test_ci_dependency_audit_order.py` checks the audit step identity, continued diagnostics, final mandatory enforcement, and ordering after container vulnerability report upload.
+- Regression coverage: `backend/tests/test_ci_dependency_audit_order.py` checks the audit step identity, continued diagnostics, final mandatory enforcement, ordering after container vulnerability report upload, and placement of frontend unit tests, frontend build, backend tests, and container scanning before final enforcement.
 - Security status: the upstream High `picomatch@4.0.7` advisory remains unresolved. This workflow change improves diagnostic coverage; it is **not** a vulnerability fix and does not make CI green.
 - Verification status: the workflow/test changes are committed, but the new exact-head GitHub Actions result has not yet been independently read back. Do not claim the new tests, full workflow, or build passed until that run is confirmed.
 - Vercel: previous preview checks were rate-limited by the Hobby build-rate limit. No plan upgrade, billing activation, retry loop, or production promotion was performed. The dedicated synthetic WSS preview remains the previously confirmed READY deployment; the 330-second probe itself has not been executed.
