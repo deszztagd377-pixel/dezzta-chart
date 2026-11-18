@@ -414,6 +414,33 @@ describe('OHLCV stream supervisor', () => {
     supervisor.stop();
   });
 
+  it.each(['', '   '])(
+    'stops without retrying when the identity provider returns an empty token (%j)',
+    async (emptyToken) => {
+      vi.useFakeTimers();
+      const factory = vi.fn(() => new FakeSocket() as unknown as WebSocket);
+      const onError = vi.fn();
+      const supervisor = startOhlcvStreamSupervisor({
+        baseUrl: 'https://market.example.test',
+        identity,
+        canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+        getIdToken: async () => emptyToken,
+        webSocketFactory: factory,
+        onError,
+        minReconnectDelayMs: 10,
+        random: () => 0,
+      });
+
+      await vi.waitFor(() => expect(supervisor.status).toBe('stopped'));
+      await vi.advanceTimersByTimeAsync(1_000);
+
+      expect(factory).not.toHaveBeenCalled();
+      expect(onError).toHaveBeenCalledOnce();
+      expect(getMarketDataSnapshot().status).toBe('unavailable');
+      supervisor.stop();
+    },
+  );
+
   it('does not retry after the server rejects authentication or entitlement', async () => {
     vi.useFakeTimers();
     const sockets: FakeSocket[] = [];

@@ -105,7 +105,18 @@ export function startOhlcvStreamSupervisor(
       const token = await options.getIdToken();
       if (stopped) return;
       if (typeof token !== 'string' || token.trim().length === 0) {
-        throw new Error('Identity provider returned an empty ID token.');
+        // An empty credential is an authentication/session state, not a
+        // transient transport failure. Retrying it forever only hammers the
+        // identity provider; wait for a new session/supervisor instead.
+        stopped = true;
+        resetMarketDataSnapshot(
+          options.identity,
+          'unavailable',
+          'No valid Firebase ID token is available. Sign in again before reconnecting.',
+        );
+        setStatus('stopped');
+        options.onError?.(new Error('Identity provider returned an empty ID token.'));
+        return;
       }
       connection = connectOhlcvStream({
         ...options,
