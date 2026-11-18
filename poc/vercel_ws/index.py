@@ -91,7 +91,8 @@ small{color:#91a4bd}
     connectButton.disabled = connected || connecting;
     pingButton.disabled = !connected;
     probeButton.disabled = !connected || probeInterval !== null;
-    disconnectButton.disabled = !connected;
+    // Allow cancellation while CONNECTING as well as while OPEN.
+    disconnectButton.disabled = !(connected || connecting);
   };
   connectButton.addEventListener("click", () => {
     if (socket && socket.readyState <= WebSocket.OPEN) return;
@@ -120,8 +121,10 @@ small{color:#91a4bd}
       setState("Closed (" + event.code + ")", false);
     });
     socket.addEventListener("error", () => {
+      // A browser error event does not guarantee the socket is CLOSED yet.
+      // Keep the in-flight state until the authoritative close event arrives.
       write({type:"transport_error",detail:"Check protected deployment access and WebSocket upgrade."});
-      setState("Connection error", false);
+      status.textContent = "Connection error — waiting for close";
     });
   });
   const sendPing = () => {
