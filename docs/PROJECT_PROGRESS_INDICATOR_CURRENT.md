@@ -2,7 +2,8 @@
 
 **Audit timestamp:** 18 November 2026 — Batch 38 exact-head CI completed; frontend dependency audit remains blocked  
 **Active branch:** `phase-2/market-data-foundation`  
-**Current audited source HEAD:** `90f2bea6dfc1e2834c5e9d2aed352c854b905c39`  
+**Current branch HEAD:** `09a81b455fb12b15515899d366bb9b2f1318fb54` (documentation-only correction after CI)  
+**Latest source-validation SHA:** `90f2bea6dfc1e2834c5e9d2aed352c854b905c39`  
 **Parent exact HEAD:** `0f9c5a1d291d2d601fd63a8bc2c36b95c9ae8d14`  
 **Exact-head CI:** completed — functional/build/security checks passed; final npm audit enforcement failed  
 **Main:** untouched • **Cost:** ZERO COST  
@@ -10,7 +11,16 @@
 
 ![Six-stage colored project dashboard](assets/project-progress-dashboard-batch38.svg)
 
-## Latest work cycle — Batch 38 (browser network and visibility lifecycle; exact-head CI completed)
+## Latest work cycle — Batch 39 (WebSocket lifecycle integration acceptance tests; exact-head CI pending)
+
+- Parent exact branch HEAD: `09a81b455fb12b15515899d366bb9b2f1318fb54`.
+- Batch 38 pure-policy tests passed as part of the exact-head 222 frontend tests, but they did not directly mount `CandlestickChart` and prove that browser events stop/recreate the real supervisor owner.
+- Added a jsdom React integration test with mocked chart renderer and transport boundary. It exercises initial connection, offline stop, online recreation, background stop, foreground recreation, and unmount cleanup. Separate cases verify no supervisor is created while initially offline or initially hidden; streaming starts only after the corresponding online/visible event.
+- This closes a test-coverage gap, not Gate 36 itself. Android WebView, deployed WSS, platform lifetime attribution, Fluid Compute read-back and fan-out still require external acceptance.
+- Exact-head CI is pending. The existing dependency audit remains fail-closed; no dependency changes or suppression are part of this batch.
+- No Vercel deploy, Cloudflare resource, billing action, paid service, or Termux operation.
+
+## Previous work cycle — Batch 38 (browser network and visibility lifecycle; exact-head CI completed)
 
 - Parent exact branch HEAD: `0f9c5a1d291d2d601fd63a8bc2c36b95c9ae8d14`.
 - Finding: `CandlestickChart` started the authenticated stream whenever a contract was selected and the chart was ready, without gating on browser online state or document visibility. Mobile background timer throttling could cause needless heartbeat/reconnect activity.

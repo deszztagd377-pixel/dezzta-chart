@@ -73,3 +73,17 @@ The chart owner now binds supervisor lifetime to browser connectivity and docume
 - Returning online while visible creates a new supervisor, obtains a fresh Firebase ID token, and requests a new validated snapshot/watermark.
 - The client does not assume that a socket or its heartbeat timers survived background suspension.
 - This is browser-source behavior covered by the lifecycle policy unit tests; Android WebView and deployed-host acceptance remain part of Gate 36 and are not inferred from unit tests.
+
+
+## Browser lifecycle integration coverage — Batch 39
+
+The chart-level lifecycle behavior is now covered separately from the pure lifecycle policy:
+- mount while online/visible creates one supervisor;
+- offline event stops that supervisor and publishes an unavailable snapshot with an offline reason;
+- online event creates a new supervisor;
+- hidden visibility stops the current supervisor and publishes an unavailable background reason;
+- returning visible creates a fresh supervisor;
+- unmount stops the active supervisor.
+- An initially offline mount is verified not to create a supervisor until the online event arrives.
+
+These are jsdom integration tests with mocked chart rendering and transport. They verify React effect ownership and event cleanup, not native Android WebView behavior or deployed WSS acceptance.
