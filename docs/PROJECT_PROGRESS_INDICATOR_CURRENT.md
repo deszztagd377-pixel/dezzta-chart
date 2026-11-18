@@ -10,7 +10,26 @@
 
 ![Six-stage colored project dashboard](assets/project-progress-dashboard-batch39.svg)
 
-## Latest work cycle — Batch 39 (WebSocket lifecycle integration acceptance tests; exact-head CI completed)
+
+## Latest work cycle — Batch 40 (cross-gate source audit and dependency blocker reassessment)
+
+**Audit base:** `2096356c4034dc2233f6c48a04a4d7579271ff52`  
+**Scope:** Gates 8, 20, 25, 30–31, 34–36, 38–39 plus the frontend dependency-audit blocker.
+
+- **Dependency blocker reassessment:** npm registry still lists `picomatch@4.0.7` as latest; GHSA-fc5q-39xc-vjpf covers versions through 4.0.7 and publishes no patched version. The upstream fix discussion is disputed and its proposed fix was not merged. The current lockfile resolves the package only through development tooling (Vite/fdir and Vitest/tinyglobby); the project has already added a test that asserts the advisory-bearing package is development-only. No safe patched release or compatible non-breaking resolution was identified. Do not downgrade Vitest, pin an affected older release, add a speculative override, suppress the audit, or weaken the fail-closed CI policy.
+- **Gate 8 source review:** backend runtime secrets are loaded from backend environment/protected files; secret-bearing Settings fields are excluded from `repr()/str()`. Alert-device key loading requires an absolute regular file, canonical base64 encoding of exactly 32 bytes, and POSIX permissions denying group/other access. Tests cover malformed keys, wrong lengths, permissive file modes, missing key files, and secret redaction. Still missing: real owner-host secret injection, bundle/log/runtime leakage evidence from the actual deployed host, and independent operator acceptance.
+- **Gate 20 source review:** Firebase Admin verification calls `verify_id_token(..., check_revoked=True)`, validates project issuer/audience, identity subject, and auth_time, and normalizes SDK failures without leaking provider details. Entitlements are durable, account-scoped, canonical-instrument-scoped, default-deny, and revocable. Tests cover claim rejection, revocation-check invocation, wrong project, malformed tokens, grant isolation, revoke/regrant, and persistence. Still missing: real signed-token E2E against the approved Firebase project for valid, expired, revoked, and wrong-project tokens, plus real account/session acceptance. Mock verifier tests do not close Gate 20.
+- **Gate 25:** production configuration requires TLS Redis (`rediss://`) with ACL username/password; settings diagnostics redact the URL. CI Redis/persistent-volume smoke passed. Still missing: owner-controlled production ACL/TLS verification, restart/failure recovery, and host acceptance.
+- **Gates 30–31:** source and synthetic tests cover encrypted backup/restore and integrity checks (see existing backup/restore work-cycle records). Still missing: owner-target restore, separately controlled off-host backup/key custody, retention, and an independent recovery drill.
+- **Gates 34–35:** source configuration enforces production HTTPS CORS origins and TLS Redis. No real host mount/ownership/disk-pressure/restart-durability or deployed HTTPS/certificate/runtime-secret-source evidence is available.
+- **Gate 36:** Batch 38/39 prove browser online/visibility lifecycle policy and React effect cleanup in jsdom. They do not prove Android WebView, deployed WSS, 330-second platform lifetime, Fluid Compute read-back, or cross-instance fan-out.
+- **Gates 38–39:** process-local metrics and sanitized local alert events are implemented/documented, but no actual protected host collector, bounded retention/rotation, protected dashboard, named adult operator, verified no-cost escalation channel, or isolated live recovery/acknowledgement drill exists. The runbook correctly leaves both gates open.
+- **Progress accounting:** unchanged. Stage 1 remains 75% provisional (300/400 ticks; 30/40 criteria); Gate 10 remains 0/10 formally closed; open criteria remain 8, 20, 25, 30, 31, 34, 35, 36, 38, 39; Stages 2–6 are unscored; overall percentage remains not established. No test, source audit, or documentation change awards a tick or closes a gate.
+- **Cost and operations:** no Vercel deployment, Cloudflare resource, billing action, paid service, or Termux operation. No branch other than `phase-2/market-data-foundation` was changed; `main` remains untouched.
+
+**Batch 40 conclusion:** source controls are materially present for Gates 8 and 20, but their external acceptance evidence remains the critical blocker. The picomatch CI blocker has no upstream patched release at this audit; therefore the safe response is containment and monitoring, not an unsafe dependency mutation.
+
+## Previous work cycle — Batch 39 (WebSocket lifecycle integration acceptance tests; exact-head CI completed)
 
 - Parent exact branch HEAD: `09a81b455fb12b15515899d366bb9b2f1318fb54`; lifecycle integration source/test commit: `9c36ab295d3488500f97c20887d3e7e2ed305db3`; current exact-head CI target: `b389070bea42e84e4efba7c778a2026c51ef5545` (shared chart-layout fixture follow-up).
 - Added a jsdom React integration test with mocked chart renderer and transport boundary. It verifies initial online/visible mount, offline stop, online recreation, background stop, foreground recreation, unmount cleanup, and initially offline/hidden mounts waiting until the matching event.
