@@ -1,15 +1,28 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 18 November 2026 — repository/documentation reconciliation  
+**Audit timestamp:** 18 November 2026 — Batch 32 exact-head CI, Gate 36/38/39 and dependency review  
 **Active branch:** `phase-2/market-data-foundation`  
-**Repository HEAD audited:** `0c12dc54bce9fb5694b57e13928d995ff258ecef` (Batch 30 documentation-only HEAD; this progress update is the next documentation reconciliation)  
+**Repository HEAD audited:** `b9f81a9ca25a6ebdf390c40671a4429241c4c5d2` (Batch 31 documentation-only HEAD; Batch 32 is a documentation/dashboard-only reconciliation)  
 **Latest source-code baseline:** `e6db77210dd28bd82196b2b7bf7d8d7e7256fc37` (Batch 27; subsequent commits are documentation/config reconciliation)  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
-![Six-stage colored project dashboard](assets/project-progress-dashboard-batch19.svg)
+![Six-stage colored project dashboard](assets/project-progress-dashboard-batch32.svg)
 
-## Latest verified update — Batch 31
+## Latest verified update — Batch 32
+
+- **Audited branch HEAD:** `b9f81a9ca25a6ebdf390c40671a4429241c4c5d2` on `phase-2/market-data-foundation`. Source baseline remains `e6db77210dd28bd82196b2b7bf7d8d7e7256fc37`; Batch 31 changed only progress documentation. This Batch 32 bundle also changes documentation and the colored SVG only.
+- Exact-HEAD Automated Tests [44306971092](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44306971092): **FAILURE only at step 27, final frontend dependency-audit enforcement**. Frontend Vitest **212/212 PASS across 26 files**; backend pytest **1,030 PASS in 33.74s**; frontend build (1,526 modules), source/bundle credential scans, Android preflight and immutable publisher tests, synthetic outbox benchmark, backend dependency audit, container build, Redis/persistent-volume smoke, Trivy scan/report export all PASS.
+- Exact-HEAD CodeQL [44306971049](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44306971049): **SUCCESS**, JavaScript/TypeScript and Python. Full Git History Secret Audit [44306971204](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44306971204): **SUCCESS**.
+- The final dependency audit still reports five High paths through `picomatch@4.0.7` under Vite/Vitest development tooling. npm proposes a forced Vite downgrade to 6.2.7, which is breaking. Official npm registry still lists 4.0.7 as latest; GitHub/OSV advisory still affects versions through 4.0.7 and states no patched version. Upstream PR #194 is OPEN and addresses a different extglob parsing behavior; it is not a published security fix. No override, unreviewed patch, downgrade, suppression, or waiver is accepted.
+- **Gate 38 source audit:** request metrics are process-local, bounded to 127 route/method series including overflow, protected by an optional operator bearer token, and served with private/no-store headers. Unit tests cover cardinality, normalization, detached snapshots, invalid durations and concurrent recording. The remaining criterion is operational: host collection, bounded retention/rotation, disk-pressure proof, protected dashboard access, and a redacted incident trace. Process-local metrics reset on restart and do not aggregate across instances.
+- **Gate 39 source audit:** the opt-in worker emits sanitized local JSON transitions for degraded delivery, worker errors and recovery; tests cover deduplication, counter validation, recovery and redaction. The worker is disabled by default. This is local logging, not a guaranteed operator notification. Actual host log collection, accountable adult operator/escalation, no-cost alert receipt and isolated recovery exercise remain unproven.
+- **Gate 36:** the source and CI WebSocket regression suites pass, but the POC remains synthetic. No new Vercel deployment was created; no exact-head WSS Upgrade/ping-pong, Android WebView, 330-second owner-observed run, platform close attribution, effective Fluid Compute read-back, or cross-instance fan-out evidence exists.
+- **Gate 30/31:** repository restore/encryption tests remain useful evidence but do not replace owner-target restore, off-host artifact, separately controlled recovery key, retention/access policy, and external recovery.
+- Exact-head Vercel lookup on `b9f81a9ca25a6ebdf390c40671a4429241c4c5d2` returned zero deployments for both frontend and WSS projects. Root `vercel.json` keeps branch deployments disabled and `main` enabled. No deployment/retry, paid service, billing change, or Cloudflare resource.
+- **Termux:** not required for this remote repository/CI audit. Any later device-specific requirement will be explained before requesting action. No Stage 1 ticks or Gate 10 closures are awarded from this documentation/source audit.
+
+## Previous verified update — Batch 31
 
 - **Audited exact HEAD:** `0c12dc54bce9fb5694b57e13928d995ff258ecef` on `phase-2/market-data-foundation`. This commit is documentation-only relative to source baseline `e6db77210dd28bd82196b2b7bf7d8d7e7256fc37`; no application source changed.
 - Exact-HEAD Automated Tests run [44306105968](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44306105968): **FAILURE only at the final frontend dependency-audit enforcement**. Frontend Vitest **212/212 PASS** (26 files); backend pytest **1,030 PASS in 26.29s**; frontend production build, source/bundle credential scans, Android preflight and immutable publisher tests, synthetic SQLite outbox benchmark, backend dependency audit, backend container build, Redis/persistent-volume smoke, Trivy image scan and vulnerability-report export all PASS.
