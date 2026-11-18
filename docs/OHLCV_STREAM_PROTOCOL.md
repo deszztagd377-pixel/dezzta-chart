@@ -113,9 +113,9 @@ an update to keep the socket alive. Client disconnects remove subscriptions.
 
 ## Client/server heartbeat contract
 
-The authenticated client sends the literal WebSocket text frame `ping` every 20 seconds after the initial snapshot or replay is accepted. The server answers with JSON `{"type":"market_data.pong","version":1}`. The client requires the pong within 10 seconds; on timeout it closes the transport and lets the existing supervisor reconnect with a fresh ID token and last accepted durable cursor.
+The authenticated client sends the literal WebSocket text frame `ping` every 20 seconds after the initial snapshot or replay is accepted. The server answers with JSON `{"type":"market_data.pong","version":1}`. The client requires a version-1 pong only while a ping is outstanding and within 10 seconds. Unsolicited, malformed-version, or late pong frames fail the stream closed; on timeout it closes the transport and lets the existing supervisor reconnect with a fresh ID token and last accepted durable cursor.
 
-The server permits at most 20 pings per rolling 10-second window. At the default client cadence, the steady-state rate is 0.5 ping per 10 seconds, or 2.5% of that ceiling. Backend route integration tests now verify the exact ping/pong frame contract and reject unsupported client control frames with close code 1008. Frontend tests verify heartbeat send, acknowledgement, timeout, and timer cleanup. These are controlled source/CI tests, not a deployed WSS acceptance.
+The server permits at most 20 pings per rolling 10-second window. At the default client cadence, the steady-state rate is 0.5 ping per 10 seconds, or 2.5% of that ceiling. Backend route integration tests now verify the exact ping/pong frame contract and reject unsupported client control frames with close code 1008. Frontend tests verify heartbeat send, acknowledgement, timeout, timer cleanup, rejection of unsolicited pong frames, and strict pong-version validation. These are controlled source/CI tests, not a deployed WSS acceptance.
 
 ## Remaining lifecycle work
 

@@ -351,7 +351,10 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
       }
 
       if (value.type === 'market_data.pong') {
-        if (pongTimer !== null) clearTimeout(pongTimer);
+        if (state !== 'subscribed' || pongTimer === null || value.version !== 1) {
+          throw new Error('Unexpected or invalid OHLCV WebSocket heartbeat pong.');
+        }
+        clearTimeout(pongTimer);
         pongTimer = null;
         return;
       }

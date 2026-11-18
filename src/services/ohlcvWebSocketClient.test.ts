@@ -229,6 +229,38 @@ describe('connectOhlcvStream', () => {
     expect(socket.sent).toHaveLength(sentBeforeClose);
   });
 
+  it('rejects an unsolicited heartbeat pong when no ping is outstanding', () => {
+    const { socket, onError, connection } = setup();
+    socket.readyState = 1;
+    socket.emit('open', new Event('open'));
+    socket.message({ type: 'market_data.status', version: 1 });
+    socket.message(snapshot);
+
+    socket.message({ type: 'market_data.pong', version: 1 });
+
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError.mock.calls[0][0].message).toMatch(/unexpected or invalid.*pong/i);
+    expect(connection.state).toBe('closed');
+    expect(socket.closed[0].code).toBe(1011);
+  });
+
+  it('rejects a heartbeat pong with an unsupported protocol version', () => {
+    vi.useFakeTimers();
+    const { socket, onError, connection } = setup();
+    socket.readyState = 1;
+    socket.emit('open', new Event('open'));
+    socket.message({ type: 'market_data.status', version: 1 });
+    socket.message(snapshot);
+    vi.advanceTimersByTime(20_000);
+
+    socket.message({ type: 'market_data.pong', version: 2 });
+
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError.mock.calls[0][0].message).toMatch(/unexpected or invalid.*pong/i);
+    expect(connection.state).toBe('closed');
+    expect(socket.closed[0].code).toBe(1011);
+  });
+
   it('fails closed when a heartbeat pong is not received before its timeout', () => {
     vi.useFakeTimers();
     const { socket, onError, connection } = setup();

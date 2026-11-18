@@ -1,14 +1,24 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 18 November 2026 — Batch 35 heartbeat route integration coverage; candidate CI pending  
+**Audit timestamp:** 18 November 2026 — Batch 36 strict heartbeat acknowledgement; exact-head CI pending  
 **Active branch:** `phase-2/market-data-foundation`  
-**Parent exact HEAD:** `62678abfa16b59c7927f94ad19fe4f8552982f15`  
+**Audited parent exact HEAD:** `9c76726f031568fe126479f4aa3c34bf0d151e49`  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
 ![Six-stage colored project dashboard](assets/project-progress-dashboard-batch35.svg)
 
-## Latest work cycle — Batch 35 (candidate CI pending)
+## Latest work cycle — Batch 36 (strict heartbeat acknowledgement; exact-head CI pending)
+
+- Audited parent branch HEAD: `9c76726f031568fe126479f4aa3c34bf0d151e49`. The WebSocket client previously accepted any `market_data.pong` frame, even if unsolicited or missing the required version-1 envelope.
+- Source correction: accept pong only when the stream is subscribed, a ping acknowledgement is outstanding, and `version === 1`; otherwise fail closed. Added two frontend regression tests for unsolicited pong and unsupported pong version.
+- Existing heartbeat contract unchanged: one literal text `ping` every 20 seconds; version-1 JSON pong deadline 10 seconds. Client/server ceiling utilization remains **2.5%**.
+- Exact-head CI is pending for the resulting candidate commit. No test success or Gate 10 tick is claimed until the workflow completes.
+- Gate 36 remains OPEN: public WSS, Android WebView, 330-second owner-observed session/platform close attribution, effective Fluid Compute read-back, and cross-instance fan-out remain unverified.
+- No Vercel deployment/retry, Cloudflare resource, paid service, billing change, or publication action. Termux is not required.
+- Progress unchanged: Stage 1 **75% provisional (300/400 ticks; 30/40 criteria)**; Gate 10 **0/10 formally closed**; open criteria **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**; Stages 2–6 **NOT SCORED**; overall project percentage **NOT ESTABLISHED**.
+
+## Previous work cycle — Batch 35 (verified on its recorded parent)
 
 - Parent exact-head Automated Tests [44310352740](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44310352740): **FAILURE only at final frontend dependency-audit enforcement**. All functional, build, container, Redis/persistent-volume smoke, and Trivy/report steps before enforcement succeeded.
 - Parent exact-head Android debug APK build [44310351406](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44310351406): **SUCCESS**. The APK was built and verified as a CI artifact; no preview release was published.
