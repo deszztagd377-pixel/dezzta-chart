@@ -1,15 +1,28 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 18 November 2026 — Batch 37 WebSocket policy-close hardening; exact-head CI pending  
+**Audit timestamp:** 18 November 2026 — Batch 38 browser lifecycle hardening; exact-head CI pending  
 **Active branch:** `phase-2/market-data-foundation`  
-**Batch 36 source-validation SHA:** `11d3ea4ba426b1da021bf0f9c79abdc0205b3c9d`  
-**Parent exact HEAD:** `9c76726f031568fe126479f4aa3c34bf0d151e49`  
+**Batch 38 parent exact HEAD:** `0f9c5a1d291d2d601fd63a8bc2c36b95c9ae8d14`  
+**Batch 38 candidate CI:** pending exact-head run  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
-![Six-stage colored project dashboard](assets/project-progress-dashboard-batch35.svg)
+![Six-stage colored project dashboard](assets/project-progress-dashboard-batch38.svg)
 
-## Latest work cycle — Batch 37 (terminal WebSocket policy-close handling; exact-head CI pending)
+## Latest work cycle — Batch 38 (browser network and visibility lifecycle; exact-head CI pending)
+
+- Parent exact branch HEAD: `0f9c5a1d291d2d601fd63a8bc2c36b95c9ae8d14`.
+- Finding: `CandlestickChart` started the authenticated stream whenever a contract was selected and the chart was ready, without gating on browser online state or document visibility. Mobile background timer throttling could cause needless heartbeat/reconnect activity.
+- Added `getOhlcvStreamLifecycle`: a live supervisor is permitted only when `navigator.onLine` is true and `document.visibilityState` is `visible`.
+- Added `online`, `offline`, and `visibilitychange` listeners with cleanup. Offline/background transitions stop the previous supervisor, clear backend indicator eligibility and display a specific paused/unavailable reason. Returning online + visible creates a new supervisor and obtains a fresh token and snapshot.
+- Added five deterministic lifecycle-policy tests. No polling timer or additional request is introduced while paused.
+- Exact-head CI for Batch 38 is pending; do not count the new tests as passed until the run finishes.
+- Batch 37 exact-head CI [44319494393](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44319494393) failed only at final frontend npm audit enforcement; Android APK [44319494274](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44319494274), CodeQL [44319494237](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44319494237), and full-history secret audit [44319494266](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44319494266) succeeded.
+- The container scan found zero vulnerabilities in the scanned Alpine OS and Python package targets; Trivy's mirror fallback succeeded and its report artifact was uploaded.
+- Gate 36 remains OPEN pending deployed WSS, Android WebView, foreground platform-lifetime observation, Fluid Compute read-back, and cross-instance fan-out.
+- No deployment, paid service, billing change, Cloudflare resource, or Termux operation. No Stage 1 ticks or Gate 10 closures are awarded.
+
+## Previous work cycle — Batch 37 (terminal WebSocket policy-close handling; exact-head CI completed)
 
 - Parent exact branch HEAD: `de59c0ede125d31d2cd2cfa95c47082e44385214`.
 - Source audit found a deterministic retry-loop risk: backend explicitly closes with WebSocket code `1008` for unsupported client control frames and ping-rate-limit violations, while the supervisor treated every close except `4400/4401/4403` as transient and retried with unchanged client behavior.

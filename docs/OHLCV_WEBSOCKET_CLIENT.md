@@ -63,3 +63,13 @@ The production client already has the core recovery supervisor in `src/services/
 Existing supervisor tests cover transport interruption and reconnect, fresh token acquisition, cursor replay, sequence-gap recovery, token-provider transient failures, terminal authorization rejection, close/error races, and explicit stop. These are repository-level tests; they do not prove a deployed Vercel 300-second close, native Android WebView behavior, or production cross-instance fan-out.
 
 The isolated synthetic POC currently has a 25-second idle timeout. A passive tab will close from that application timeout long before the Hobby platform maximum. A platform-lifetime test therefore needs synthetic heartbeat traffic below the idle threshold and must capture the final close event. A temporary POC-only 60-second `maxDuration` test cap is proposed but not applied. Keep SSO enabled and do not use production data or credentials.
+
+
+## Browser network and visibility lifecycle — 2026-11-18
+
+The chart owner now binds supervisor lifetime to browser connectivity and document visibility:
+
+- `offline` or `visibilityState !== "visible"` stops the current supervisor and clears the active backend snapshot from indicator eligibility.
+- Returning online while visible creates a new supervisor, obtains a fresh Firebase ID token, and requests a new validated snapshot/watermark.
+- The client does not assume that a socket or its heartbeat timers survived background suspension.
+- This is browser-source behavior covered by the lifecycle policy unit tests; Android WebView and deployed-host acceptance remain part of Gate 36 and are not inferred from unit tests.

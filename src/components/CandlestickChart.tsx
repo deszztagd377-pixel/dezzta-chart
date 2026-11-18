@@ -9,6 +9,7 @@ import type { Timeframe } from '../types';
 import type { FuturesContractDto } from '../types/instrumentCatalogApi';
 import { demoCandles, getDemoCandleValidationErrors } from '../data/demoCandles';
 import { startOhlcvStreamSupervisor } from '../services/ohlcvStreamSupervisor';
+import { getOhlcvStreamLifecycle } from '../services/ohlcvStreamLifecycle';
 import {
   getMarketDataSnapshot,
   resetMarketDataSnapshot,
@@ -46,6 +47,33 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
   const [chartError, setChartError] = useState<string | null>(null);
   const [marketDataStatus, setMarketDataStatus] = useState<MarketDataStatus>('demo');
   const [marketDataDetail, setMarketDataDetail] = useState<string | null>(null);
+  const [streamLifecycle, setStreamLifecycle] = useState(() => getOhlcvStreamLifecycle(
+    typeof navigator === 'undefined' || navigator.onLine,
+    typeof document === 'undefined' ? 'visible' : document.visibilityState,
+  ));
+
+  // Mobile browsers may suspend timers while the app is backgrounded. Stop the
+  // stream while hidden/offline; a fresh supervisor obtains a new snapshot when
+  // the document is visible and the browser reports network connectivity.
+  useEffect(() => {
+    const syncLifecycle = () => {
+      setStreamLifecycle(getOhlcvStreamLifecycle(
+        navigator.onLine,
+        document.visibilityState,
+      ));
+    };
+
+    window.addEventListener('online', syncLifecycle);
+    window.addEventListener('offline', syncLifecycle);
+    document.addEventListener('visibilitychange', syncLifecycle);
+    syncLifecycle();
+
+    return () => {
+      window.removeEventListener('online', syncLifecycle);
+      window.removeEventListener('offline', syncLifecycle);
+      document.removeEventListener('visibilitychange', syncLifecycle);
+    };
+  }, []);
 
   useEffect(() => {
     const container = chartContainerRef.current;
@@ -270,6 +298,19 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       return;
     }
 
+    if (!streamLifecycle.shouldConnect) {
+      const detail = streamLifecycle.reason === 'offline'
+        ? 'Device is offline. Authenticated market-data streaming is paused until connectivity returns.'
+        : 'Chart is in the background. Streaming is paused until the app becomes visible again.';
+      setSeriesDataRef.current(demoCandles);
+      lastRenderedRevisionRef.current = null;
+      lastRenderedTimestampRef.current = null;
+      setMarketDataStatus('unavailable');
+      setMarketDataDetail(detail);
+      resetMarketDataSnapshot(identity, 'unavailable', detail);
+      return;
+    }
+
     // Clear prior series immediately. The supervisor owns the only live
     // transport and obtains an atomic snapshot + watermark before updates.
     setSeriesDataRef.current(demoCandles);
@@ -319,6 +360,8 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
     timeframe,
     user,
     getIdToken,
+    streamLifecycle.shouldConnect,
+    streamLifecycle.reason,
   ]);
 
   const selectedSymbol = selectedContract?.raw_symbol;
