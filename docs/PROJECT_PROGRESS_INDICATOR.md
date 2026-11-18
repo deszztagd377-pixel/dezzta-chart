@@ -2794,3 +2794,12 @@ Automated Tests run `44203187496` on exact branch head `94f2580b63176e1d871fcb2b
 - Zero-cost check: no paid service, subscription, external provider, market-data source, Termux installation, or device-side command was introduced.
 
 Supporting detail: [Batch 8 work-cycle report](WORK_CYCLE_2026-11-18_GATE10_BATCH8.md).
+
+
+### Vercel deployment read-back — 2026-11-18
+
+A fresh read-back of the Vercel Hobby team context confirms the plan is still `hobby`. The most recent listed branch deployments at read-back were READY for both linked projects:
+- Protected WSS POC: deployment `dpl_7HQmpEAPpxnvcSQFz8umK7u1kf71`, source commit `001e142d3981cea99bed5da957d266af6261b2dc`, URL `https://dezzta-chart-ws-8pyssexdc-deszztagd377-pixel.vercel.app`. Build logs show the Python 3.12 FastAPI POC completed and deployed.
+- Vite frontend: deployment `dpl_Ejcq4EaG2dWnFoeDLza8s8wqeUcB`, source commit `9e654a842f4e320d775fd8cb3489af65eb700376`, URL `https://dezzta-chart-eg6ipi7za-deszztagd377-pixel.vercel.app`. Build logs show Vite 6.4.5 transformed 1,526 modules and completed the production build.
+
+These are READY previews from their respective source commits, not production aliases and not proof that the newest Batch 8 workflow/test commits have been deployed. The earlier rate-limit failure is therefore not the status of these two deployments; however, no claim is made that every subsequent commit can deploy without quota limits. No new deployment was triggered, no paid plan or billing was enabled, and Gate 36 remains OPEN because a real 330-second lifetime observation and the other external acceptance evidence are still missing.
