@@ -19,6 +19,7 @@
 - Duplicate, stale, wrong-stream, wrong-series, malformed, or skipped-sequence events are not applied.
 - A sequence gap fails the session and closes the socket. The caller must reconnect and receive a new atomic snapshot; the client does not silently skip missing updates.
 - Server-directed close (including slow-client queue overflow) requires a fresh connection and snapshot.
+- Backend close code `1008` is a terminal protocol-policy rejection (unsupported client control frame or ping-rate violation). The supervisor marks the stream unavailable and does not reconnect with unchanged behavior; recreate it only after correcting the client policy/configuration or selected session.
 - Contract/timeframe changes must close the previous connection before opening a new one.
 - No provider credentials are sent to the browser. The only credential passed to the socket is the short-lived verified user identity token.
 - Transport callbacks receive validated snapshots and chart-boundary candle numbers. Exact decimal strings and nanosecond timestamps remain strings until the existing chart adapter converts them.

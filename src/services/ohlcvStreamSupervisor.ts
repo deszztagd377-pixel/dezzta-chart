@@ -166,24 +166,29 @@ export function startOhlcvStreamSupervisor(
         onClose: (code, reason) => {
           if (stopped) return;
           connection = null;
-          // Authentication, authorization, and malformed-subscription closes
-          // are terminal until the user/session/selection changes. Retrying
-          // these codes would create a needless reconnect loop.
-          if (code === 4400 || code === 4401 || code === 4403) {
+          // Authentication, authorization, malformed-subscription, and
+          // protocol-policy closes are terminal until the user/session/
+          // selection changes. Backend close 1008 covers unsupported client
+          // control frames and ping-rate violations; reconnecting unchanged
+          // would repeat the same policy violation indefinitely.
+          if (code === 1008 || code === 4400 || code === 4401 || code === 4403) {
             stopped = true;
             if (reconnectTimer !== null) clearTimeout(reconnectTimer);
             reconnectTimer = null;
             resetMarketDataSnapshot(
               options.identity,
               'unavailable',
-              code === 4401
-                ? 'Firebase authentication was rejected. Sign in again to restore access.'
-                : code === 4403
-                  ? 'The account is not entitled to this instrument or its access was revoked.'
-                  : 'The server rejected the subscription request. Check the selected instrument and timeframe.',
+              code === 1008
+                ? 'The server rejected the WebSocket protocol policy. Check client protocol and ping rate before reconnecting.'
+                : code === 4401
+                  ? 'Firebase authentication was rejected. Sign in again to restore access.'
+                  : code === 4403
+                    ? 'The account is not entitled to this instrument or its access was revoked.'
+                    : 'The server rejected the subscription request. Check the selected instrument and timeframe.',
             );
             setStatus('stopped');
             options.onError?.(new Error(
+              code === 1008 ? 'Market-data WebSocket protocol policy rejected (1008).' :
               code === 4401 ? 'Market-data authentication rejected (4401).' :
               code === 4403 ? 'Market-data entitlement denied (4403).' :
               'Market-data subscription rejected (4400).',

@@ -128,3 +128,7 @@ The HTTP snapshot endpoint remains independently available and does not yet
 carry a stream watermark; the atomic watermark is currently supplied by the
 WebSocket subscription snapshot response. No production provider connection,
 order-book/MBO stream, or end-to-end live frontend integration is claimed.
+
+## Client handling of policy close
+
+The backend uses WebSocket close code `1008` for unsupported client control frames and ping-rate-limit violations. The browser supervisor treats `1008` as terminal for the current stream instance: it marks market data unavailable and does not automatically reconnect with unchanged protocol behavior. A corrected client/session must create a new supervisor. This prevents a deterministic policy violation from becoming an unbounded reconnect loop.

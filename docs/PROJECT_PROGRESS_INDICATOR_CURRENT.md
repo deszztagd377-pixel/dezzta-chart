@@ -1,6 +1,6 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 18 November 2026 — Batch 36 exact-head CI completed  
+**Audit timestamp:** 18 November 2026 — Batch 37 WebSocket policy-close hardening; exact-head CI pending  
 **Active branch:** `phase-2/market-data-foundation`  
 **Batch 36 source-validation SHA:** `11d3ea4ba426b1da021bf0f9c79abdc0205b3c9d`  
 **Parent exact HEAD:** `9c76726f031568fe126479f4aa3c34bf0d151e49`  
@@ -8,6 +8,20 @@
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
 ![Six-stage colored project dashboard](assets/project-progress-dashboard-batch35.svg)
+
+## Latest work cycle — Batch 37 (terminal WebSocket policy-close handling; exact-head CI pending)
+
+- Parent exact branch HEAD: `de59c0ede125d31d2cd2cfa95c47082e44385214`.
+- Source audit found a deterministic retry-loop risk: backend explicitly closes with WebSocket code `1008` for unsupported client control frames and ping-rate-limit violations, while the supervisor treated every close except `4400/4401/4403` as transient and retried with unchanged client behavior.
+- Corrected the supervisor so `1008` is terminal for the current stream instance. It marks the market-data snapshot unavailable, reports a protocol-policy error, and does not reconnect until the owning session/selection recreates the supervisor after a corrected policy/configuration.
+- Added a regression test that triggers server close `1008`, advances all pending timers, and proves the socket factory was called exactly once.
+- Updated `docs/OHLCV_WEBSOCKET_CLIENT.md` and `docs/OHLCV_STREAM_PROTOCOL.md` to document this close-code contract.
+- No heartbeat cadence, pong deadline, authentication, entitlement, replay, cursor, or data-validation behavior changed.
+- CI audit blocker: exact package graph is `vite@6.4.5 → fdir@6.5.0 → picomatch@4.0.7` and `vitest@4.1.12 → tinyglobby@0.2.17 → picomatch@4.0.7`. The workflow reports five High findings. npm's automatic fix proposes downgrading Vitest to `3.1.4` (a breaking change); no safe maintainer-reviewed patched dependency is present in the current lockfile. Keep the audit fail-closed; do not force the downgrade or add speculative overrides.
+- Exact-parent CI for documentation SHA `de59c0ede125d31d2cd2cfa95c47082e44385214`: frontend tests/build, backend tests, synthetic outbox benchmark, backend dependency audit, container build, Redis/persistent-volume smoke, Trivy scan/report passed; final frontend dependency enforcement failed. CodeQL and full-history secret audit passed. This is parent evidence only; Batch 37 requires its own exact-head CI.
+- Gate 36 remains OPEN pending public WSS, Android WebView, 330-second platform lifecycle attribution, effective Fluid Compute read-back, and cross-instance fan-out.
+- No Vercel deployment, Cloudflare resource, paid service, billing change, or publication action. Termux is not required.
+- Progress accounting unchanged: Stage 1 **75% provisional (300/400 ticks; 30/40 criteria)**; Gate 10 **0/10 formally closed**; open criteria **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**; Stages 2–6 **NOT SCORED**; overall project percentage **NOT ESTABLISHED**. No ticks or gate closures are awarded by this source-only change.
 
 ## Latest work cycle — Batch 36 (strict WebSocket heartbeat; exact-head CI completed)
 

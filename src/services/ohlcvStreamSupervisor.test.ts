@@ -439,6 +439,34 @@ describe('OHLCV stream supervisor', () => {
     expect(getMarketDataSnapshot().status).toBe('unavailable');
   });
 
+  it('does not retry after a server protocol-policy close (1008)', async () => {
+    vi.useFakeTimers();
+    const sockets: FakeSocket[] = [];
+    const factory = vi.fn(() => {
+      const socket = new FakeSocket();
+      sockets.push(socket);
+      return socket as unknown as WebSocket;
+    });
+    const supervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken: async () => 'fresh-token',
+      webSocketFactory: factory,
+      minReconnectDelayMs: 10,
+      random: () => 0,
+    });
+
+    await vi.waitFor(() => expect(sockets).toHaveLength(1));
+    sockets[0].serverClose(1008, 'WebSocket ping rate limit exceeded');
+
+    expect(supervisor.status).toBe('stopped');
+    expect(getMarketDataSnapshot().status).toBe('unavailable');
+    await vi.runOnlyPendingTimersAsync();
+    expect(factory).toHaveBeenCalledOnce();
+    supervisor.stop();
+  });
+
   it('schedules only one reconnect when a transport error and close event race', async () => {
     vi.useFakeTimers();
     const sockets: FakeSocket[] = [];
