@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="940" viewBox="0 0 1280 940" role="img" aria-labelledby="title desc">
 <title id="title">DEZZTA CHART project progress — Batch 38</title>
-<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 37 WebSocket policy fix passed functional CI but final npm audit remains blocked by five High picomatch findings. APK, CodeQL and full history secret audit passed. Batch 38 adds online and visibility lifecycle gating; exact-head CI pending.</desc>
+<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 37 WebSocket policy fix passed functional CI but final npm audit remains blocked by five High picomatch findings. APK, CodeQL and full history secret audit passed. Batch 38 adds online and visibility lifecycle gating; exact-head CI completed — npm audit remains blocked.</desc>
 <rect width="1280" height="940" rx="28" fill="#0b1220"/>
 <g font-family="Arial,sans-serif">
 <text x="48" y="58" fill="#f8fafc" font-size="32" font-weight="700">DEZZTA CHART — PROJECT PROGRESS</text>
@@ -46,11 +46,12 @@
 <text x="474" y="744" fill="#d1fae5" font-size="18" font-weight="700">WEBSOCKET — SOURCE</text>
 <text x="474" y="778" fill="#a7f3d0" font-size="15">1008 terminal close hardened</text>
 <text x="474" y="807" fill="#a7f3d0" font-size="15">Online + visible lifecycle gate added</text>
-<text x="474" y="836" fill="#fcd34d" font-size="15">Batch 38 exact-head CI pending</text>
+<text x="474" y="836" fill="#fcd34d" font-size="15">222 frontend + 1,032 backend tests PASS</text>
 <rect x="860" y="704" width="376" height="176" rx="14" fill="#78350f" stroke="#fbbf24" stroke-width="2"/>
 <text x="882" y="744" fill="#fef3c7" font-size="18" font-weight="700">GATE 10 — OPEN</text>
 <text x="882" y="778" fill="#fde68a" font-size="15">8, 20, 25, 30, 31</text>
 <text x="882" y="807" fill="#fde68a" font-size="15">34, 35, 36, 38, 39</text>
 <text x="882" y="836" fill="#fde68a" font-size="15">0 / 10 formally closed</text>
 <text x="48" y="918" fill="#94a3b8" font-size="14">No Stage 1 ticks for source/tests alone • no deployment • no Termux • main untouched</text>
-</g></svg>
+</g><text x="474" y="865" fill="#a7f3d0" font-size="14">APK / CodeQL / secret audit PASS</text>
+</svg>

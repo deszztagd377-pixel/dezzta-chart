@@ -3,6 +3,7 @@
 **Date:** 18 November 2026  
 **Branch:** `phase-2/market-data-foundation`  
 **Parent exact HEAD:** `0f9c5a1d291d2d601fd63a8bc2c36b95c9ae8d14`  
+**Candidate source commit:** `90f2bea6dfc1e2834c5e9d2aed352c854b905c39`  
 **Scope:** WebSocket lifecycle hardening, deterministic policy tests, Gate 36 evidence update.  
 **Cost/device boundary:** ZERO COST; no deploy, no Cloudflare resource, no billing change, no Termux.
 
@@ -30,14 +31,25 @@ The chart component started an authenticated OHLCV supervisor whenever a contrac
 
 The lifecycle policy has two independent boolean preconditions. Only 1 of the 4 online/visible combinations permits a live supervisor. Event listeners are three total and are all removed on unmount. No polling timer or extra network request is added while paused.
 
-## 4. Validation boundary
+## 4. Exact-head CI outcome
+
+Candidate SHA `90f2bea6dfc1e2834c5e9d2aed352c854b905c39` was validated by:
+
+- Automated Tests [44321645937](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44321645937): final job **FAILURE only at step 27** (`Enforce frontend dependency audit result`). Frontend Vitest **222/222 across 27 files**, backend pytest **1,032 passed in 31.26s**, frontend production build, frontend source/bundle secret scans, Android preflight and publisher tests, synthetic outbox benchmark, backend dependency audit, backend container build, Redis/persistent-volume smoke, Trivy scan/report all passed.
+- Android debug APK [44321645986](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44321645986): **SUCCESS**; checksum verification and temporary CI artifact upload passed. Preview publication was skipped.
+- CodeQL [44321646301](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44321646301): **SUCCESS** for JavaScript/TypeScript and Python.
+- Full Git History Secret Audit [44321645942](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44321645942): **SUCCESS**.
+- The remaining npm audit failure reports five High transitive findings via `picomatch@4.0.7`; npm's proposed forced Vitest downgrade is breaking and was rejected. Keep enforcement fail-closed.
+- Trivy report: 0 vulnerabilities for Alpine 3.24.4 and the listed Python package targets. Initial mirror blob retrieval failed; fallback GHCR download succeeded and artifact `14434973310` was uploaded.
+
+## 5. Validation boundary
 
 - The new pure policy tests are part of the frontend Vitest suite.
 - The existing WebSocket client/protocol/supervisor tests remain unchanged and continue to cover reconnect, cursor replay, sequence gaps, terminal close policy, heartbeat, and explicit stop.
 - Exact-head CI must validate the new source commit before this batch is called green.
 - This does not prove Android WebView lifecycle behavior, a deployed WSS Upgrade, 330-second platform close attribution, Fluid Compute read-back, or cross-instance fan-out.
 
-## 5. Batch 37 exact-head CI reconciliation
+## 6. Batch 37 exact-head CI reconciliation
 
 For parent Batch 37 SHA `0f9c5a1d291d2d601fd63a8bc2c36b95c9ae8d14`:
 
@@ -48,13 +60,13 @@ For parent Batch 37 SHA `0f9c5a1d291d2d601fd63a8bc2c36b95c9ae8d14`:
 - The container Trivy report records zero vulnerabilities for the Alpine OS and Python package targets scanned. Trivy's first database mirror returned a missing-blob error; fallback GHCR retrieval succeeded and the JSON report artifact was uploaded.
 - The frontend audit blocker is not suppressed or weakened. npm's proposed forced downgrade is not applied.
 
-## 6. Gate 10 reconciliation
+## 7. Gate 10 reconciliation
 
 - Gate 36 source lifecycle handling is improved by this batch, but the gate remains **OPEN** until deployed browser/Android WebView and host acceptance evidence exists.
 - Gate 8, 20, 25, 30, 31, 34, 35, 38, and 39 remain externally unaccepted under the current evidence ledger.
 - No gate closure or Stage 1 tick is awarded for this source/test/documentation change alone.
 
-## 7. Progress and zero-cost disposition
+## 8. Progress and zero-cost disposition
 
 - Stage 1: **75% provisional — 300/400 ticks; 30/40 criteria**.
 - Gate 10: **0/10 formally closed**; open criteria **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.

@@ -1,22 +1,27 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 18 November 2026 — Batch 38 browser lifecycle hardening; exact-head CI pending  
+**Audit timestamp:** 18 November 2026 — Batch 38 exact-head CI completed; frontend dependency audit remains blocked  
 **Active branch:** `phase-2/market-data-foundation`  
-**Batch 38 parent exact HEAD:** `0f9c5a1d291d2d601fd63a8bc2c36b95c9ae8d14`  
-**Batch 38 candidate CI:** pending exact-head run  
+**Current audited source HEAD:** `90f2bea6dfc1e2834c5e9d2aed352c854b905c39`  
+**Parent exact HEAD:** `0f9c5a1d291d2d601fd63a8bc2c36b95c9ae8d14`  
+**Exact-head CI:** completed — functional/build/security checks passed; final npm audit enforcement failed  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
 ![Six-stage colored project dashboard](assets/project-progress-dashboard-batch38.svg)
 
-## Latest work cycle — Batch 38 (browser network and visibility lifecycle; exact-head CI pending)
+## Latest work cycle — Batch 38 (browser network and visibility lifecycle; exact-head CI completed)
 
 - Parent exact branch HEAD: `0f9c5a1d291d2d601fd63a8bc2c36b95c9ae8d14`.
 - Finding: `CandlestickChart` started the authenticated stream whenever a contract was selected and the chart was ready, without gating on browser online state or document visibility. Mobile background timer throttling could cause needless heartbeat/reconnect activity.
 - Added `getOhlcvStreamLifecycle`: a live supervisor is permitted only when `navigator.onLine` is true and `document.visibilityState` is `visible`.
 - Added `online`, `offline`, and `visibilitychange` listeners with cleanup. Offline/background transitions stop the previous supervisor, clear backend indicator eligibility and display a specific paused/unavailable reason. Returning online + visible creates a new supervisor and obtains a fresh token and snapshot.
 - Added five deterministic lifecycle-policy tests. No polling timer or additional request is introduced while paused.
-- Exact-head CI for Batch 38 is pending; do not count the new tests as passed until the run finishes.
+- Exact-head Automated Tests [44321645937](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44321645937): **FAILURE only at step 27, final frontend dependency-audit enforcement**. Frontend Vitest: **222/222 passed across 27 files**; backend pytest: **1,032 passed in 31.26s**. Frontend build, source/bundle secret scans, Android preflight/publisher tests, synthetic outbox benchmark, backend dependency audit, container build, Redis/persistent-volume smoke, Trivy scan/report all passed.
+- Exact-head Android debug APK [44321645986](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44321645986): **SUCCESS**; APK artifact checksum verified and uploaded. Immutable preview release step was skipped; no release was published.
+- Exact-head CodeQL [44321646301](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44321646301): **SUCCESS** for JavaScript/TypeScript and Python. Full Git History Secret Audit [44321645942](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44321645942): **SUCCESS**.
+- The sole failing enforcement is five High npm audit findings for `picomatch@4.0.7` through Vite/fdir and Vitest/tinyglobby. npm proposes `vitest@3.1.4` via `npm audit fix --force`, explicitly marked as a breaking change. No downgrade, override, suppression, waiver, or audit weakening was applied.
+- Trivy report artifact `144360...`? no; exact artifact IDs are `14436035035` (synthetic outbox benchmark) and `14434973310` (container vulnerability report). The scan summary records 0 vulnerabilities for Alpine 3.24.4 and each listed Python package. The first mirror returned a missing-blob error; fallback GHCR retrieval completed successfully.
 - Batch 37 exact-head CI [44319494393](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44319494393) failed only at final frontend npm audit enforcement; Android APK [44319494274](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44319494274), CodeQL [44319494237](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44319494237), and full-history secret audit [44319494266](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44319494266) succeeded.
 - The container scan found zero vulnerabilities in the scanned Alpine OS and Python package targets; Trivy's mirror fallback succeeded and its report artifact was uploaded.
 - Gate 36 remains OPEN pending deployed WSS, Android WebView, foreground platform-lifetime observation, Fluid Compute read-back, and cross-instance fan-out.
