@@ -253,3 +253,19 @@ Exact-head CI:
 - Overall workflow remains failed only because the final npm audit enforcement correctly blocks five High dev-dependency findings through picomatch 4.0.7.
 
 The 330-second probe remains opt-in and synthetic-only. Its hidden-page invalidation is covered by the regression contract. The exact preview being READY is not evidence that the 330-second run was performed, that Vercel itself closed at 300 seconds, or that native Android WebView/cross-instance fan-out works. Do not close Gate 36 on deployment status alone.
+
+
+## Batch 14 — exact-head verification refresh — 2026-11-18
+
+Verification target: `4256c5e3ccab82255d115beaf961afd4794a3a42`.
+
+- Automated Tests [44278716234](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44278716234) completed **FAILURE** only at final frontend dependency-audit enforcement.
+- Backend pytest: **1,014 passed in 30.07s**; WebSocket lifecycle/probe contracts passed.
+- Frontend tests/build and credential scans, Android preflight/publisher tests, synthetic outbox benchmark, backend audit, image build, Redis/persistent-volume smoke test and Trivy report steps passed.
+- CodeQL [44278716261](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44278716261) and Full Git History Secret Audit [44278716240](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44278716240) passed.
+- Exact-source WSS preview READY: `dpl_AtEV8yH6S5MwGApGaHQ8HagJTJsK`, https://dezzta-chart-ws-4eo7d8j18-deszztagd377-pixel.vercel.app.
+- Exact-source frontend preview READY: `dpl_2Jc2So3HmvEQ6yeESjrXbMLorivz`, https://dezzta-chart-bevptgcvw-deszztagd377-pixel.vercel.app.
+- Five High npm audit findings remain through dev-only `picomatch@4.0.7` / GHSA-fc5q-39xc-vjpf. The final enforcement failure is correct; no suppression or forced downgrade was applied.
+- No owner-observed foreground 330-second run, platform-originated maximum-duration close, effective Fluid Compute read-back, native Android WebView WSS or cross-instance fan-out is recorded. Gate 36 remains OPEN.
+- No production promotion, no SSO weakening, no paid resources, and no Termux requirement.
+
