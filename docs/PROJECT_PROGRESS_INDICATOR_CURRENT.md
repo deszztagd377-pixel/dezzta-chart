@@ -1,11 +1,10 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
-**Audit timestamp:** 18 November 2026 — Batch 47 supervisor observer isolation committed; exact-head CI running  
+**Audit timestamp:** 18 November 2026 — Batch 47 exact-head CI completed; only final frontend npm audit enforcement failed  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest source SHA under CI:** `6b82a3dd4ac20d0b6ee4e1b2b43b7f211de7f4dc`  
-**Latest fully validated source SHA:** `4f746496b23cc9208804023bbb554a4e07c6480b` (Batch 46)  
-**Batch 47 CI snapshot:** frontend tests/build and full Git-history secret audit passed; backend tests, Android APK, and CodeQL were still running at documentation time  
-**Known dependency blocker:** picomatch GHSA-fc5q-39xc-vjpf remains without a compatible patched release; audit remains fail-closed  
+**Latest source SHA validated by CI:** `6b82a3dd4ac20d0b6ee4e1b2b43b7f211de7f4dc`  
+**Latest documentation HEAD:** pending this documentation commit  
+**Batch 47 CI:** frontend 232/232, backend 1,032/1,032; frontend build, credential scans, backend dependency audit, container build, Redis/persistent-volume smoke, Trivy (0 vulnerabilities), APK, CodeQL, and Git-history secret audit passed; final npm audit enforcement failed on five High picomatch findings  
 **Main:** untouched • **Cost:** ZERO COST  
 **Indicator:** project documentation/dashboard only; NOT inside APK.
 
@@ -32,11 +31,14 @@
 
 ### Exact-head CI snapshot
 - Corrected source SHA: `6b82a3dd4ac20d0b6ee4e1b2b43b7f211de7f4dc`.
-- Automated Tests [44336190424](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44336190424): frontend unit tests and production build passed; backend tests were still running at documentation time. Final conclusion pending.
+- Automated Tests [44336190424](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44336190424): **FAILURE only at final step 27, Enforce frontend dependency audit result**. Frontend Vitest: **232 passed across 28 files**. Backend pytest: **1,032 passed in 30.84 seconds**. Frontend production build, source/bundle credential scans, Android preflight/publisher tests, synthetic SQLite outbox benchmark/report, backend dependency audit, backend container build, shared Redis guard + persistent-volume smoke, and Trivy scan/report all passed.
+- Trivy: **0 vulnerabilities** for Alpine 3.24.4 and all scanned Python package targets. Report artifact [14440834494](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44336190424/artifacts/14440834494) uploaded successfully. Synthetic outbox benchmark artifact [14440569027](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44336190424/artifacts/14440569027) uploaded; it is synthetic-only, not production market-data performance evidence.
+- Sole failure is frontend `npm audit --audit-level=high`: **five High findings** for GHSA-fc5q-39xc-vjpf in `picomatch`. The advisory remains unresolved; no dependency downgrade, override, suppression, lockfile manipulation, or threshold weakening was applied.
 - Full Git History Secret Audit [44336190330](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44336190330): SUCCESS.
-- CodeQL [44336190195](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44336190195): running at documentation time.
-- Android APK [44336190344](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44336190344): running at documentation time.
-- The previous fully validated Batch 46 exact-head CI [44334598973](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44334598973) had 231 frontend tests and 1,032 backend tests passing; the sole failure was final npm audit enforcement for five High picomatch findings. Batch 47 does not modify frontend dependencies.
+- CodeQL [44336190195](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44336190195): SUCCESS for JavaScript/TypeScript and Python.
+- Android APK [44336190344](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44336190344): SUCCESS; debug APK checksum verified and uploaded as artifact [14441103214](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44336190344/artifacts/14441103214). Preview release was skipped; no release was published.
+- The corrected Batch 47 exact-head source is `6b82a3dd...`. The earlier run on `bec43c87...` failed one newly added test because its 99 ms assertion was inconsistent with the actual 50 ms jittered retry; the test was corrected to 49 ms + 1 ms and passed on the authoritative corrected SHA. This was a test timing correction, not a production-code rollback.
+- **Final CI conclusion:** Automated Tests is **FAILURE only because the fail-closed frontend dependency audit remains unresolved**. All functional tests, builds, backend/container/Redis checks, Trivy, APK, CodeQL, and secret-history checks passed. Do not call CI all-green.
 - No deployment, paid service, or Termux use.
 
 ### Gate and progress disposition

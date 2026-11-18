@@ -37,10 +37,10 @@ The first test draft used 99 ms as the pre-retry observation window. With `minRe
 
 Corrected source SHA: `6b82a3dd4ac20d0b6ee4e1b2b43b7f211de7f4dc`.
 
-- Automated Tests: [44336190424](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44336190424) — frontend tests/build passed; backend tests still running at documentation snapshot.
+- Automated Tests: [44336190424](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44336190424) — **FAILURE only at final npm audit enforcement**. Frontend 232/232; backend 1,032/1,032; frontend build, credential scans, backend dependency audit, container build, Redis/persistent-volume smoke, and Trivy (0 vulnerabilities) passed.
 - Git-history Secret Audit: [44336190330](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44336190330) — SUCCESS.
-- CodeQL: [44336190195](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44336190195) — running at documentation snapshot.
-- Android APK: [44336190344](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44336190344) — running at documentation snapshot.
+- CodeQL: [44336190195](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44336190195) — SUCCESS for JavaScript/TypeScript and Python.
+- Android APK: [44336190344](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44336190344) — SUCCESS; artifact [14441103214](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44336190344/artifacts/14441103214).
 - Batch 46's exact-head result [44334598973](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44334598973): 231 frontend and 1,032 backend tests passed; sole failure was five High picomatch advisory findings at final npm audit enforcement. Batch 47 changes no frontend dependencies.
 
 ## 5. Gate/progress disposition

@@ -46,12 +46,12 @@
 <text x="474" y="744" fill="#d1fae5" font-size="18" font-weight="700">WEBSOCKET — SUPERVISOR FIX</text>
 <text x="474" y="778" fill="#a7f3d0" font-size="15">Supervisor observers isolated</text>
 <text x="474" y="807" fill="#a7f3d0" font-size="15">Reconnect timer survives observer errors</text>
-<text x="474" y="836" fill="#fcd34d" font-size="15">Frontend tests/build PASS • secret audit PASS</text>
+<text x="474" y="836" fill="#fcd34d" font-size="15">232 + 1,032 tests PASS • APK/CodeQL PASS</text>
 <rect x="860" y="704" width="376" height="176" rx="14" fill="#78350f" stroke="#fbbf24" stroke-width="2"/>
 <text x="882" y="744" fill="#fef3c7" font-size="18" font-weight="700">GATE 10 — OPEN</text>
 <text x="882" y="778" fill="#fde68a" font-size="15">8, 20, 25, 30, 31</text>
 <text x="882" y="807" fill="#fde68a" font-size="15">34, 35, 36, 38, 39</text>
 <text x="882" y="836" fill="#fde68a" font-size="15">0 / 10 formally closed</text>
 <text x="48" y="918" fill="#94a3b8" font-size="14">No Stage 1 ticks for source/tests alone • no deployment • no Termux • main untouched</text>
-</g><text x="474" y="865" fill="#a7f3d0" font-size="14">Backend/APK/CodeQL pending • npm audit blocker remains</text>
+</g><text x="474" y="865" fill="#a7f3d0" font-size="14">Secret history audit PASS • npm audit only failure</text>
 </svg>
