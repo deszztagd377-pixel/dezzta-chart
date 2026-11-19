@@ -2,7 +2,7 @@
 
 **Date:** 19 November 2026 • **Branch:** `phase-2/market-data-foundation`  
 **Baseline:** `35098bf07adb6a4b856dd8ce4c2034539e3e443f`  
-**Code/test commits:** `bc54265784b16daaab50bc4da64e93306105ee87`, `8b60a6974210e9ba4d5999455205c543d0067740`, `92922b5c11cf640a0fb2c9512d2d09e0b56f5084`, `4dc6e8d397ae3c62850cae38c83ccb0f783d08ab`, `8c5d43d9487b3fd6e85a0a6bc1233933d1491b9a`  
+**Code/test commits:** `bc54265784b16daaab50bc4da64e93306105ee87`, `8b60a6974210e9ba4d5999455205c543d0067740`, `92922b5c11cf640a0fb2c9512d2d09e0b56f5084`, `4dc6e8d397ae3c62850cae38c83ccb0f783d08ab`, `8c5d43d9487b3fd6e85a0a6bc1233933d1491b9a`, `a687a08293a29a31ea5190379e40ee4f5ab4455f`, `a59bfac3f3c6238a99439025d49f0ee1157ad624`, `0c2a6292728e819b2af062281817b71dbe100e70`  
 **Cost:** ZERO COST • no deployment • no paid service • no Termux • `main` untouched.
 
 ## Batch 62G-3 — atomic incremental replica event apply
@@ -22,14 +22,16 @@ Added `SQLiteOhlcvReplicaStore.apply_replica_event()`.
 - Mirrors the source's per-timeframe retention policy carried by snapshot format v2.
 - Does not write to the replica outbox. The source-writer `apply()` and replica snapshot export remain blocked.
 - Deduplication history is bounded to the latest 100,000 cursors, matching the source outbox retention window.
+- Replica checkpoint schema/protocol version is 3; event replay fails closed when a checkpoint version is outdated and requires a current snapshot install.
 
 ### Regression coverage added
 
-Four incremental-event test groups cover:
+Five incremental-event test groups cover:
 1. Contiguous event application, exact bar fidelity, durable cursor advance, duplicate replay and no outbox echo.
 2. Cursor gap, source mismatch, malformed decimal payload, duplicate event, conflicting event ID and stale event after deduplication-history pruning.
 3. Forced checkpoint-write failure after bar/ledger mutation; transaction rollback preserves previous bar, checkpoint and empty event ledger.
 4. Per-series retention parity: after an additional event, replica and source retain the same five bars under a five-bar timeframe cap.
+5. Outdated checkpoint protocol versions are rejected without advancing the cursor or mutating bars.
 
 **Validation:** source and tests are committed. Exact-head CI is not confirmed; no runtime pass is claimed. Prior CI results apply only to their recorded SHAs.
 
