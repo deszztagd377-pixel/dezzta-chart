@@ -1,5 +1,49 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
+**Audit:** 19 November 2026 — Batch 54  
+**Active branch:** `phase-2/market-data-foundation` • **Audited HEAD:** `fba43a12017e314baeb9e2719a50b441274126c6`  
+**Automated Tests:** [44470207284](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44470207284) — SUCCESS  
+**CodeQL:** [44470207308](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44470207308) — SUCCESS  
+**Full Git History Secret Audit:** [44470207366](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44470207366) — SUCCESS  
+**Tests:** Frontend 234/234 • Backend 1,032/1,032 • npm audit 0 vulnerabilities • Trivy report 0 vulnerabilities  
+**ZERO COST:** no deploy / paid services / billing activation • **Termux:** not required • **main:** untouched
+
+![Six-stage colored project dashboard](assets/project-progress-dashboard-current.svg)
+
+## Batch 54 verified results
+
+- Parsed exact-head Trivy JSON artifact: **0 vulnerabilities** reported in CI backend image.
+- Parsed synthetic outbox benchmark: 1,000 bars/events persisted and replayed; persist p95 10.20 ms; concurrent replay page p95 1.62 ms. One-process synthetic benchmark only, not a production SLO.
+- Gate 8/20/25/35 source and configuration audit completed. Source-level controls exist; production host, identity provider, Redis and TLS acceptance remain external.
+- WSS preview remains SSO-protected and synthetic-only; no new deployment, SSO bypass or fabricated browser round-trip.
+- Full report: [WORK_CYCLE_2026-11-19_BATCH54_CI_ARTIFACT_FORENSICS_GATE8_20_25_35.md](WORK_CYCLE_2026-11-19_BATCH54_CI_ARTIFACT_FORENSICS_GATE8_20_25_35.md).
+
+## Indicator tracker
+
+| Indicator | Calculation/data foundation | Visible chart |
+|---|---|---|
+| SMA 20 | Implemented + tested | Not integrated; Stage 4 parked |
+| EMA 20 | Implemented + tested | Not integrated; Stage 4 parked |
+| RSI 14 Wilder | Implemented + tested | Not integrated; Stage 4 parked |
+| MACD 12/26/9 | Implemented + tested | Not integrated; Stage 4 parked |
+| Bollinger 20,2 | Implemented + tested | Not integrated; Stage 4 parked |
+| Shared indicator hook | Implemented; validated selected backend snapshot only | No controls/panes |
+| Footprint | Offline deterministic simulation + fixtures | Wait for owner reference; OFF preserves standard spacing |
+| Heatmap | Not implemented/verified | Wait for owner reference |
+| Liquidation Maps | Not implemented/verified | Wait for owner reference |
+
+Seven calculation tests pass in the 234 frontend suite, including all 18 configured chart timeframes. No DEMO/loading/unavailable/error value is represented as live.
+
+## Progress accounting
+
+- Stage 1: **75% provisional — 300/400 ticks, 30/40 criteria**.
+- Gate 10: **0/10 formally closed**; criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, 39 remain OPEN.
+- Stages 2–6: **NOT SCORED**.
+- Overall project: **NOT ESTABLISHED**; historical 20.9% remains historical only.
+- No ticks or points awarded for audit/documentation/CI alone.
+
+# DEZZTA CHART — Project Progress Indicator (Current Snapshot)
+
 **Audit timestamp:** 19 November 2026 — Batch 53 exact-head CI and Gate 10 evidence audit  
 **Active branch:** `phase-2/market-data-foundation`  
 **Exact-head CI commit:** `8f377cfb07b082ce237cf3ac9137efbfbcc4f5d8`  
