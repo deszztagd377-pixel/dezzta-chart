@@ -703,8 +703,8 @@ def test_global_snapshot_exports_every_retained_series_with_verified_manifest(tm
     assert exported["cursor"] == exported["high_water"] == 3
     assert exported["row_count"] == verified["row_count"] == 3
     assert verified["source_id"] == store.source_id()
-    assert verified["format_version"] == 2
-    assert verified["bar_retention"] == store.retention
+    assert exported["format_version"] == verified["format_version"] == 2
+    assert exported["bar_retention"] == verified["bar_retention"] == store.retention
     assert SQLiteOhlcvStore(str(tmp_path / "global-source.sqlite3")).source_id() == store.source_id()
     assert {bar["bucket_policy"] for bar in bars} == {
         "UTC_LEGACY", "UTC_FIXED_V1", "CME_SESSION_V1",
