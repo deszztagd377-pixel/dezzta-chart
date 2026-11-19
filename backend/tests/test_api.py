@@ -2073,3 +2073,47 @@ def test_websocket_rejects_non_ping_client_control_frame() -> None:
         with pytest.raises(WebSocketDisconnect) as closed:
             websocket.receive_json()
         assert closed.value.code == 1008
+
+def test_websocket_ticket_endpoint_issues_single_use_ticket_for_verified_subject():
+    application = create_app(make_settings())
+    _install_test_identity(application)
+    client = TestClient(application)
+    response = client.post("/v1/auth/websocket-ticket", headers={"Authorization": "Bearer valid-firebase-token"})
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["purpose"] == "market-data" and payload["expiresIn"] == 90
+    assert isinstance(payload["ticket"], str) and len(payload["ticket"]) >= 40
+    with client.websocket_connect("/ws/market-data") as websocket:
+        websocket.send_json({"type": "auth", "ticket": payload["ticket"]})
+        assert websocket.receive_json()["type"] == "market_data.status"
+    with pytest.raises(WebSocketDisconnect) as disconnected:
+        with client.websocket_connect("/ws/market-data") as websocket:
+            websocket.send_json({"type": "auth", "ticket": payload["ticket"]})
+            websocket.receive_json()
+    assert disconnected.value.code == 4401
+
+
+def test_websocket_ticket_renewal_is_subject_bound_and_acknowledged():
+    application = _app_with_bars()
+    client = TestClient(application)
+    headers = {"Authorization": "Bearer valid-firebase-token"}
+    first = client.post("/v1/auth/websocket-ticket", headers=headers).json()["ticket"]
+    renewal = client.post("/v1/auth/websocket-ticket", headers=headers).json()["ticket"]
+    with client.websocket_connect("/ws/market-data") as websocket:
+        websocket.send_json({"type": "auth", "ticket": first})
+        assert websocket.receive_json()["type"] == "market_data.status"
+        websocket.send_json({
+            "type": "market_data.subscribe", "version": 1,
+            "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+            "series": {"dataset": "GLBX.MDP3", "publisherId": 1, "instrumentId": 101, "rawSymbol": "ESZ6", "timeframe": "1s"},
+        })
+        assert websocket.receive_json()["type"] == "market_data.ohlcv.snapshot"
+        websocket.send_json({"type": "auth.renew", "ticket": renewal})
+        assert websocket.receive_json() == {"type": "market_data.auth.renewed", "version": 1}
+
+
+def test_websocket_ticket_endpoint_rejects_invalid_bearer_token():
+    application = create_app(make_settings())
+    _install_test_identity(application)
+    response = TestClient(application).post("/v1/auth/websocket-ticket", headers={"Authorization": "Bearer invalid-token"})
+    assert response.status_code == 401

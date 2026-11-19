@@ -55,6 +55,7 @@ from app.ohlcv_stream import OhlcvStreamHub
 from app.ohlcv_store import SQLiteOhlcvStore
 from app.symbology import InstrumentResolver
 from app.shared_guard import RedisSharedGuard
+from app.websocket_tickets import InMemoryWebSocketTicketStore, WEBSOCKET_TICKET_PURPOSE, WEBSOCKET_TICKET_TTL_SECONDS
 from app.session_calendar_runtime import (
     build_provider_session_bar_validator,
     load_session_calendar_runtime,
@@ -162,6 +163,7 @@ def create_app(
             websocket_per_account_limit=config.websocket_connection_limit_per_account,
             websocket_lease_seconds=config.websocket_lease_seconds,
         )
+    websocket_ticket_store = shared_guard if shared_guard is not None else InMemoryWebSocketTicketStore()
     max_ohlcv_response_bars = min(
         max(1, config.ohlcv_max_response_bars),
         MAX_OHLCV_RESPONSE_BARS,
@@ -366,6 +368,7 @@ def create_app(
     application.state.instrument_entitlements = instrument_entitlements
     application.state.identity_verifier = identity_verifier
     application.state.shared_guard = shared_guard
+    application.state.websocket_ticket_store = websocket_ticket_store
     application.state.shared_guard_enabled = shared_guard is not None
     application.state.request_metrics = request_metrics
 
@@ -482,6 +485,19 @@ def create_app(
             "issuer": principal.issuer,
             "audience": principal.audience,
         }
+
+    @application.post("/v1/auth/websocket-ticket", tags=["authentication"])
+    async def issue_websocket_ticket(
+        principal: VerifiedPrincipal = Depends(require_verified_principal),
+    ) -> dict[str, object]:
+        issuer = getattr(application.state.websocket_ticket_store, "issue_websocket_ticket", None)
+        if not callable(issuer):
+            raise HTTPException(status_code=503, detail="WebSocket ticket protection is temporarily unavailable.")
+        try:
+            ticket = await issuer(principal.subject)
+        except Exception as exc:
+            raise HTTPException(status_code=503, detail="WebSocket ticket protection is temporarily unavailable.") from exc
+        return {"ticket": ticket, "expiresIn": WEBSOCKET_TICKET_TTL_SECONDS, "purpose": WEBSOCKET_TICKET_PURPOSE}
 
     if alert_device_store is not None:
         @application.post(
@@ -828,33 +844,40 @@ def create_app(
             except WebSocketDisconnect:
                 return
 
-            supplied_token = (
-                auth_message.get("token")
-                if isinstance(auth_message, dict)
-                and auth_message.get("type") == "auth"
-                else None
-            )
-
-            if not isinstance(supplied_token, str) or not supplied_token:
+            supplied_token = None
+            ticket_auth = False
+            principal = None
+            if not isinstance(auth_message, dict) or auth_message.get("type") != "auth":
                 await websocket.close(code=4401, reason="Authentication failed")
                 return
-
-            try:
-                principal = await asyncio.to_thread(
-                    application.state.identity_verifier.verify,
-                    supplied_token,
-                )
-            except IdentityProviderUnavailable:
-                await websocket.close(code=1013, reason="Identity verification unavailable")
-                return
-            except IdentityVerificationError:
-                await websocket.close(code=4401, reason="Authentication failed")
-                return
-            except Exception:
-                # An unexpected verifier failure must never leave the socket
-                # authenticated or expose provider/internal exception details.
-                await websocket.close(code=1013, reason="Identity verification unavailable")
-                return
+            supplied_ticket = auth_message.get("ticket")
+            if isinstance(supplied_ticket, str) and supplied_ticket:
+                try:
+                    subject = await application.state.websocket_ticket_store.consume_websocket_ticket(supplied_ticket, purpose=WEBSOCKET_TICKET_PURPOSE)
+                except Exception:
+                    await websocket.close(code=1013, reason="WebSocket ticket protection unavailable")
+                    return
+                if not isinstance(subject, str) or not subject:
+                    await websocket.close(code=4401, reason="Authentication ticket is invalid or expired")
+                    return
+                principal = VerifiedPrincipal(subject=subject, issuer="", audience="", auth_time=0)
+                ticket_auth = True
+            else:
+                supplied_token = auth_message.get("token")
+                if config.app_env.strip().lower() == "production" or not isinstance(supplied_token, str) or not supplied_token:
+                    await websocket.close(code=4401, reason="Authentication ticket is required")
+                    return
+                try:
+                    principal = await asyncio.to_thread(application.state.identity_verifier.verify, supplied_token)
+                except IdentityProviderUnavailable:
+                    await websocket.close(code=1013, reason="Identity verification unavailable")
+                    return
+                except IdentityVerificationError:
+                    await websocket.close(code=4401, reason="Authentication failed")
+                    return
+                except Exception:
+                    await websocket.close(code=1013, reason="Identity verification unavailable")
+                    return
 
             if shared_guard is not None:
                 try:
@@ -1220,15 +1243,11 @@ def create_app(
                                 return
                             next_lease_refresh = loop.time() + max(1.0, config.websocket_lease_seconds / 3)
                         if loop.time() >= next_entitlement_check:
-                            # A WebSocket can outlive the Firebase ID token used at
-                            # handshake. Reverify the same token (including revocation)
-                            # on the authorization deadline; fail closed on expiry,
-                            # revocation, identity drift, or verifier outage.
+                            if ticket_auth:
+                                await websocket.close(code=4401, reason="WebSocket authentication renewal required")
+                                return
                             try:
-                                refreshed_principal = await asyncio.to_thread(
-                                    application.state.identity_verifier.verify,
-                                    supplied_token,
-                                )
+                                refreshed_principal = await asyncio.to_thread(application.state.identity_verifier.verify, supplied_token)
                             except IdentityProviderUnavailable:
                                 await websocket.close(code=1013, reason="Identity verification unavailable")
                                 return
@@ -1236,8 +1255,6 @@ def create_app(
                                 await websocket.close(code=4401, reason="Authentication expired or revoked")
                                 return
                             except Exception:
-                                # Keep long-lived subscriptions fail-closed even
-                                # if a verifier adapter raises outside its contract.
                                 await websocket.close(code=1013, reason="Identity verification unavailable")
                                 return
                             if refreshed_principal != principal:
@@ -1265,13 +1282,36 @@ def create_app(
                                 client_message = receive_task.result()
                             except WebSocketDisconnect:
                                 return
-                            if client_message != "ping":
-                                await websocket.close(code=1008, reason="Unsupported client message")
-                                return
-                            if not _allow_websocket_ping(ping_timestamps, loop.time()):
-                                await websocket.close(code=1008, reason="WebSocket ping rate limit exceeded")
-                                return
-                            await websocket.send_json({"type": "market_data.pong", "version": 1})
+                            if client_message == "ping":
+                                if not _allow_websocket_ping(ping_timestamps, loop.time()):
+                                    await websocket.close(code=1008, reason="WebSocket ping rate limit exceeded")
+                                    return
+                                await websocket.send_json({"type": "market_data.pong", "version": 1})
+                            else:
+                                try:
+                                    control = json.loads(client_message)
+                                except (TypeError, ValueError):
+                                    control = None
+                                if not ticket_auth or not isinstance(control, dict) or control.get("type") != "auth.renew" or not isinstance(control.get("ticket"), str):
+                                    await websocket.close(code=1008, reason="Unsupported client message")
+                                    return
+                                try:
+                                    renewed_subject = await application.state.websocket_ticket_store.consume_websocket_ticket(control["ticket"], purpose=WEBSOCKET_TICKET_PURPOSE)
+                                except Exception:
+                                    await websocket.close(code=1013, reason="WebSocket ticket protection unavailable")
+                                    return
+                                if renewed_subject != principal.subject:
+                                    await websocket.close(code=4401, reason="Authentication renewal rejected")
+                                    return
+                                try:
+                                    still_authorized = await asyncio.to_thread(has_series_access)
+                                except Exception:
+                                    still_authorized = False
+                                if not still_authorized:
+                                    await websocket.close(code=4403, reason="Instrument access revoked")
+                                    return
+                                next_entitlement_check = loop.time() + WEBSOCKET_AUTHORIZATION_RECHECK_SECONDS
+                                await websocket.send_json({"type": "market_data.auth.renewed", "version": 1})
                             receive_task = asyncio.create_task(websocket.receive_text())
                         if queue_task in done:
                             if subscription.overflowed:

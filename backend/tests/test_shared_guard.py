@@ -11,6 +11,7 @@ from app.shared_guard import (
     WEBSOCKET_LEASE_SCRIPT,
     WEBSOCKET_RENEW_SCRIPT,
     WEBSOCKET_RELEASE_SCRIPT,
+    WEBSOCKET_TICKET_CONSUME_SCRIPT,
     RedisSharedGuard,
 )
 
@@ -23,10 +24,19 @@ class FakeRedis:
         self.renew_result = 1
         self.error = None
         self.closed = False
+        self.ticket_values = {}
 
     async def ping(self):
         if self.error:
             raise self.error
+        return True
+
+    async def set(self, key, value, *, ex, nx):
+        if self.error:
+            raise self.error
+        if nx and key in self.ticket_values:
+            return None
+        self.ticket_values[key] = value
         return True
 
     async def eval(self, script, numkeys, *values):
@@ -41,6 +51,8 @@ class FakeRedis:
             return self.renew_result
         if script == WEBSOCKET_RELEASE_SCRIPT:
             return 1
+        if script == WEBSOCKET_TICKET_CONSUME_SCRIPT:
+            return self.ticket_values.pop(values[0], None)
         raise AssertionError("Unexpected Redis script")
 
     async def aclose(self):
@@ -309,3 +321,20 @@ def test_plain_redis_client_does_not_enable_tls_options(monkeypatch):
     assert "ssl_cert_reqs" not in captured["options"]
     assert "ssl_check_hostname" not in captured["options"]
     assert captured["options"]["socket_connect_timeout"] == 2
+
+def test_websocket_ticket_is_digest_keyed_single_use_and_subject_bound():
+    redis = FakeRedis()
+    guard = make_guard(redis)
+    ticket = asyncio.run(guard.issue_websocket_ticket("verified-account"))
+    assert ticket not in repr(redis.ticket_values)
+    assert len(redis.ticket_values) == 1
+    assert asyncio.run(guard.consume_websocket_ticket(ticket)) == "verified-account"
+    assert asyncio.run(guard.consume_websocket_ticket(ticket)) is None
+
+
+def test_websocket_ticket_rejects_malformed_and_wrong_purpose():
+    redis = FakeRedis()
+    guard = make_guard(redis)
+    ticket = asyncio.run(guard.issue_websocket_ticket("verified-account"))
+    assert asyncio.run(guard.consume_websocket_ticket("short")) is None
+    assert asyncio.run(guard.consume_websocket_ticket(ticket, purpose="wrong-purpose")) is None

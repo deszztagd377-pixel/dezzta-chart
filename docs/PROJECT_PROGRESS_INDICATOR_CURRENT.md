@@ -1,3 +1,68 @@
+# BATCH 56 — Redis-backed single-use WebSocket ticket backend
+
+**Date:** 19 November 2026 (WIB) • **Branch:** `phase-2/market-data-foundation` • **Base:** `36c6e976a6199ce60784a457d1f87d42b1542ee7`  
+**Cost:** ZERO COST • no deployment • no billing • no Termux • `main` untouched
+
+## Backend implementation
+- Added `backend/app/websocket_tickets.py`: 90-second single-use in-memory store for development/tests only.
+- RedisSharedGuard issues 256-bit opaque tickets; Redis stores only SHA-256 digest-keyed records with verified subject/purpose, TTL 90 seconds, and atomic Lua GET+DEL consumption. Raw ticket is never stored in Redis.
+- Added `POST /v1/auth/websocket-ticket`; Firebase Bearer verification includes revocation checking. Existing `/v1/` shared HTTP rate limit and no-store response headers apply.
+- Production WSS now requires ticket auth; legacy token-in-frame remains only for non-production compatibility.
+- Added subject-bound `auth.renew` frames. Server consumes each renewal ticket once, rechecks instrument entitlement, acknowledges, and advances the 60-second authorization deadline. Missing renewal closes 4401.
+
+## Engineering calculations
+| Parameter | Value | Rationale |
+|---|---:|---|
+| Ticket entropy | 256 bits | 32 random bytes |
+| Ticket TTL | 90 s | Renewal margin |
+| Renewal target | 45 s | 15 s slack before deadline |
+| Server deadline | 60 s | Preserves prior revalidation cadence |
+| Redis consume | One-key Lua GET+DEL | Atomic single-use across workers |
+| Memory fallback | Non-production only | Local development without paid Redis |
+
+The planned frontend performs 60/45 = 1.33 ticket exchanges/minute per active connection plus reconnects. Existing shared HTTP limits cover issuance. No production capacity claim is made.
+
+## Tests added
+- Redis fake-client digest/replay/purpose tests.
+- Backend endpoint issue/replay/invalid-bearer tests and WSS renewal acknowledgement test.
+- Frontend integration and final exact-head CI are the next acceptance slice.
+
+## Gate 10
+| Gate | Batch 56 impact | Remaining blocker | Status |
+|---:|---|---|---|
+| 8 | None | Host secret injection, protected mounts, runtime log/readback | OPEN |
+| 20 | Ticket endpoint + WSS single-use renewal implemented | Real Firebase project valid/expired/revoked/wrong-project E2E | OPEN |
+| 25 | Redis atomic ticket consumption integrated | Independent owner Redis, multi-instance/outage drill | OPEN |
+| 30 | None | Actual owner database restore evidence | OPEN |
+| 31 | None | Zero-cost off-host copy, separate key custody, retention/restore | OPEN |
+| 34 | None | Owner-host volume/restart/disk-pressure evidence | OPEN |
+| 35 | None | Public HTTPS/WSS ingress, cert renewal, external scan | OPEN |
+| 36 | Protocol upgraded | Browser, Android WebView, 330-second attribution, cross-instance fanout | OPEN |
+| 38 | None | Durable cross-instance collector, retention and protected access | OPEN |
+| 39 | None | Named operator, escalation channel and acknowledgement drill | OPEN |
+
+## Indicator inventory
+| Indicator | Calculation foundation | Visible integration | State |
+|---|---|---|---|
+| SMA 20 | Implemented + tested | Not integrated | 🟨 |
+| EMA 20 | Implemented + tested | Not integrated | 🟨 |
+| RSI 14 Wilder | Implemented + tested | Not integrated | 🟨 |
+| MACD 12/26/9 | Implemented + tested | Not integrated | 🟨 |
+| Bollinger 20,2 | Implemented + tested | Not integrated | 🟨 |
+| `useMarketIndicators()` | Shared validated snapshot hook | No controls/panes | 🟨 |
+| Footprint | Offline deterministic simulation | Await reference visual | 🟨 |
+| Heatmap | Not implemented | Not implemented | 🟥 |
+| Liquidation Maps | Not implemented | Not implemented | 🟥 |
+
+Seven calculation tests remain in frontend suite; 18 timeframe coverage is not visible integration. Footprint OFF preserves ordinary candle spacing. Footprint/Heatmap visuals remain blocked on reference images.
+
+## Progress accounting
+- Stage 1: 🟩 **75% provisional**, 30/40 criteria, 300/400 ticks.
+- Gate 10: 🟥 **0/10 formally closed**. Gate 20/25 repository implementation improved; external evidence remains.
+- Stage 2: 🟦 NOT SCORED • Stage 3: 🟪 NOT SCORED • Stage 4: 🟨 NOT SCORED.
+- Stage 5: 🩷 NOT SCORED • Stage 6: ⬜ NOT SCORED.
+- Overall: **NOT ESTABLISHED**; historical 20.9% is not a current weighted score.
+
 # BATCH 55 — WebSocket authentication audit, ticket-exchange design, and final-head CI
 
 **Date:** 19 November 2026 (WIB)  

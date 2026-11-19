@@ -6,7 +6,11 @@ scripts. Redis errors propagate to the FastAPI boundary, which fails closed.
 from __future__ import annotations
 
 import hashlib
+import json
+import secrets
 import time
+
+from app.websocket_tickets import WEBSOCKET_TICKET_PURPOSE, WEBSOCKET_TICKET_TTL_SECONDS
 from typing import Any
 
 HTTP_LIMIT_SCRIPT = """
@@ -83,6 +87,14 @@ if KEYS[2] ~= 'dezzta:{guard-ws}:no-account' then
   redis.call('ZREM', KEYS[2], ARGV[1])
 end
 return 1
+"""
+
+WEBSOCKET_TICKET_CONSUME_SCRIPT = """
+-- dezzta:websocket-ticket-consume:v1
+local ticket = redis.call('GET', KEYS[1])
+if not ticket then return false end
+redis.call('DEL', KEYS[1])
+return ticket
 """
 
 
@@ -186,6 +198,34 @@ class RedisSharedGuard:
     def _account_key(self, account_subject: str) -> str:
         digest = self._digest(account_subject)
         return f"dezzta:{{guard-ws}}:account:{digest}"
+
+    async def issue_websocket_ticket(self, account_subject: str) -> str:
+        if not isinstance(account_subject, str) or not account_subject.strip() or len(account_subject) > 128:
+            raise ValueError("A verified account subject is required.")
+        for _ in range(3):
+            ticket = secrets.token_urlsafe(32)
+            key = f"dezzta:{{guard-ws}}:ticket:{self._digest(ticket)}"
+            value = json.dumps({"subject": account_subject, "purpose": WEBSOCKET_TICKET_PURPOSE}, separators=(",", ":"), sort_keys=True)
+            if await self._redis.set(key, value, ex=WEBSOCKET_TICKET_TTL_SECONDS, nx=True):
+                return ticket
+        raise RuntimeError("A unique WebSocket ticket could not be created.")
+
+    async def consume_websocket_ticket(self, ticket: str, *, purpose: str = WEBSOCKET_TICKET_PURPOSE) -> str | None:
+        if not isinstance(ticket, str) or not 40 <= len(ticket) <= 128 or not ticket.isascii():
+            return None
+        key = f"dezzta:{{guard-ws}}:ticket:{self._digest(ticket)}"
+        raw = await self._redis.eval(WEBSOCKET_TICKET_CONSUME_SCRIPT, 1, key)
+        if not isinstance(raw, str) or not raw:
+            return None
+        try:
+            payload = json.loads(raw)
+        except (TypeError, ValueError):
+            return None
+        subject = payload.get("subject") if isinstance(payload, dict) else None
+        stored_purpose = payload.get("purpose") if isinstance(payload, dict) else None
+        if not isinstance(subject, str) or not subject.strip() or len(subject) > 128 or stored_purpose != purpose:
+            return None
+        return subject
 
     async def _write_websocket_lease(
         self,
