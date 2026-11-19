@@ -1,3 +1,35 @@
+# CURRENT AUDITED CHECKPOINT — 19 NOVEMBER 2026 (BATCH 54)
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Audited HEAD:** `fba43a12017e314baeb9e2719a50b441274126c6`  
+**Automated Tests & Build:** [44470207284](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44470207284) — **SUCCESS**.  
+**CodeQL:** [44470207308](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44470207308) — **SUCCESS**.  
+**Full Git History Secret Audit:** [44470207366](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44470207366) — **SUCCESS**.
+
+## Batch 54 — artifact-level findings
+
+- Exact-head CI fully completed: frontend **234/234**, backend **1,032/1,032**, frontend npm audit **0 vulnerabilities**, backend dependency audit no known vulnerabilities, container build/smoke/Trivy report export all successful.
+- Downloaded and parsed Trivy artifact `14503114420`: `trivy-current.json` reports **0 vulnerabilities** in CI image `dezzta-chart-backend:ci`, digest `sha256:51c3bcf50e62d8e875028debf81d98204697a87e1ef2ed7035c27768b676d27e`.
+- Downloaded and parsed synthetic outbox benchmark artifact `14503597322`: 1,000 synthetic bars persisted and replayed; persist p50/p95/p99 = **2.60/10.20/26.99 ms**; concurrent replay page p50/p95/p99 = **0.36/1.62/8.86 ms**. Single-process runner microbenchmark only; not a production capacity claim.
+- Gate 8 audit: secret redaction, frontend source/bundle scans, and Git-history scan pass; actual production host secret injection remains unverified.
+- Gate 20 audit: Firebase client observer/auth tests and server revocation/issuer/audience checks exist; real project signed-token E2E is absent. Scoped short-lived WSS ticket exchange is not implemented; current client sends Firebase ID token in initial auth frame.
+- Gate 25 audit: atomic Redis Lua guards, TLS CA/hostname verification, ACL requirements, fail-closed behavior and CI outage smoke exist; production Redis endpoint/multi-instance proof absent.
+- Gate 35 audit: production CORS requires exact HTTPS origins; no accepted owner-host HTTPS backend, certificate renewal, external TLS scan, or Android WebView connection.
+- WSS preview remains READY and SSO-protected, project `live=false`; no real browser/device round-trip or 330-second session is claimed.
+- Detailed report: [Batch 54 CI artifact forensics + Gate 8/20/25/35 audit](docs/WORK_CYCLE_2026-11-19_BATCH54_CI_ARTIFACT_FORENSICS_GATE8_20_25_35.md).
+
+## Progress — unchanged, no speculative credit
+
+- **Stage 1:** 30/40 criteria; 300/400 ticks; **75% provisional**.
+- **Gate 10:** **0/10 formally closed**; open criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.
+- **Stages 2–6:** NOT SCORED.
+- **Overall project percentage:** NOT ESTABLISHED; historical 20.9% is not a newly weighted calculation.
+- **Indicators:** SMA/EMA/RSI/MACD/Bollinger calculation foundations + shared hook only; visible controls/panes remain Stage 4 parked. Footprint visual waits for owner reference; Heatmap/Liquidation Maps unimplemented/unverified pending references.
+- **ZERO COST:** no deploy, paid provider, billing activation, production promotion, or Termux operation.
+- **Protected `main`:** untouched.
+
+---
+
 # CURRENT AUDITED CHECKPOINT — 19 NOVEMBER 2026 (BATCH 53)
 
 **Active branch:** `phase-2/market-data-foundation`  
