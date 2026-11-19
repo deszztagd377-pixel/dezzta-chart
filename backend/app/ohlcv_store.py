@@ -1151,8 +1151,8 @@ class SQLiteOhlcvStore:
         finally:
             db.close()
 
-_REPLICA_PROTOCOL_VERSION = 2
-_REPLICA_SCHEMA_VERSION = 2
+_REPLICA_PROTOCOL_VERSION = 3
+_REPLICA_SCHEMA_VERSION = 3
 _SNAPSHOT_BAR_FIELDS = frozenset((
     "provider", "dataset", "publisher_id", "instrument_id", "series_type",
     "timeframe", "ts_start_ns", "raw_symbol", "open", "high", "low", "close",
@@ -1433,13 +1433,21 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
         try:
             db.execute("BEGIN IMMEDIATE")
             checkpoint = db.execute(
-                """SELECT source_id,applied_cursor,retention_floor,bar_retention_json
+                """SELECT source_id,applied_cursor,retention_floor,bar_retention_json,
+                    schema_version,protocol_version
                 FROM ohlcv_replica_checkpoint LIMIT 1"""
             ).fetchone()
             if checkpoint is None:
                 raise RuntimeError("Replica must install an authoritative snapshot before event apply.")
             if str(checkpoint["source_id"]) != source_id:
                 raise ValueError("Replica event source identity does not match its checkpoint.")
+            if (
+                int(checkpoint["schema_version"]) != _REPLICA_SCHEMA_VERSION
+                or int(checkpoint["protocol_version"]) != _REPLICA_PROTOCOL_VERSION
+            ):
+                raise RuntimeError(
+                    "Replica checkpoint version mismatch; install a current global snapshot before replay."
+                )
 
             current_cursor = int(checkpoint["applied_cursor"])
             current_floor = int(checkpoint["retention_floor"])
