@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import concurrent.futures
 import inspect
+import math
 from typing import Any, Callable
 
 
@@ -38,6 +39,7 @@ class EventLoopCallbackDispatcher:
         if (
             isinstance(timeout_seconds, bool)
             or not isinstance(timeout_seconds, (int, float))
+            or not math.isfinite(float(timeout_seconds))
             or timeout_seconds <= 0
         ):
             raise ValueError("timeout_seconds must be a positive number.")
@@ -69,6 +71,10 @@ class EventLoopCallbackDispatcher:
         try:
             future.result(timeout=self._timeout_seconds)
         except concurrent.futures.TimeoutError as exc:
+            if future.done():
+                # The callback itself raised TimeoutError; preserve its cause
+                # rather than misreporting it as a dispatcher deadline.
+                raise
             future.cancel()
             raise TimeoutError(
                 "Event-loop callback did not complete before the ACK deadline."
