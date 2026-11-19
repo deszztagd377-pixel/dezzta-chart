@@ -2,7 +2,7 @@
 
 **Date:** 19 November 2026 • **Branch:** `phase-2/market-data-foundation`  
 **Baseline:** `35098bf07adb6a4b856dd8ce4c2034539e3e443f`  
-**Code/test commits:** `fe1d05f214932268d25e2292079fe6752a32880f`, `307e6838fa3b2604f166cabff26bcc9affc1ac8a`, `ad8583a53cf68a89c368d01a8a9d51e959e83440`, `8e73cbc9c2e57bbf517dce024045dc59cac7749f`, `9c7217c3e9cf32ca7d53e1e07ec5a2b6607bc75c`, `608ccddc249a7f7183feb41ff05f15bc75601d35`  
+**Code/test commits:** `fe1d05f214932268d25e2292079fe6752a32880f`, `307e6838fa3b2604f166cabff26bcc9affc1ac8a`, `ad8583a53cf68a89c368d01a8a9d51e959e83440`, `8e73cbc9c2e57bbf517dce024045dc59cac7749f`, `9c7217c3e9cf32ca7d53e1e07ec5a2b6607bc75c`, `608ccddc249a7f7183feb41ff05f15bc75601d35`, `0a5fe3b10e55f94de8ffdc0230be61de21e255d3`, `4885eb0be9261d6d5d35fe97d87bd40b03d151c0`, `29e40aa59310b03693eb710f1b4b07106f720b7b`, `7e1b3186e29999aef642982bc3e14aa552ffe323`, `13004e0d083c1ce0b466d22b5ed5aeefad6c4b47`, `40883b0e194d35f4e894f57862e5bc208104579c`, `e4dbe1f899aa382438a144fb59e9584ae8d969bc`, `09c0f5b8e82f710c18901cd4849bedce01d1ba1f`, `3987c9dc46bd11ade96742c8da4867b594147051`  
 **Cost:** ZERO COST • no Vercel/Cloudflare deployment • no paid service • no Termux • `main` untouched.
 
 ## Batch 62G-2 — replica snapshot installation
@@ -18,6 +18,9 @@ Implemented `SQLiteOhlcvReplicaStore` in `backend/app/ohlcv_store.py` as a separ
 - Batch inserts are bounded to 1–5,000 records (default 500); no full-snapshot Python list is materialized.
 - Replica `apply()` is explicitly disabled so callers cannot accidentally use the authoritative writer path and create source outbox echo.
 - Replica `source_id()` is disabled; the authoritative identity is read from its upstream checkpoint, not confused with the replica database's local metadata.
+- Snapshot envelope format is now version 2 and includes the complete per-timeframe bar-retention policy in addition to the outbox retention floor; the replica checkpoint stores that policy as JSON.
+- A replica can only be initialized on a dedicated empty OHLCV read-model database. Existing authoritative bars/outbox state are detected and protected from replacement.
+- Replica snapshot export is blocked, as is source-writer `apply()`, to prevent a read model from being mistaken for a new authority.
 
 ### Atomicity and recovery boundary
 
@@ -27,11 +30,12 @@ A replica already bound to another source is rejected. A snapshot whose high-wat
 
 ### Regression coverage added
 
-Four replica test groups now cover:
+Five replica test groups now cover:
 1. Successful full snapshot install across UTC and CME series; exact decimal and timestamp preservation; checkpoint contents; stable replica identity after restart; no outbox echo; source-writer apply blocked.
 2. Wrong-source rejection and stale snapshot cursor rejection without mutation.
 3. A semantically invalid but correctly checksummed snapshot fails after a prior batch is inserted; transaction rollback preserves the previous bars and checkpoint.
 4. Numeric JSON decimal values are rejected even when the envelope checksum is valid, preventing lossy float-to-Decimal conversion.
+5. An existing authoritative database cannot be reused as a replica target; source bars and outbox remain intact. Replica export is also blocked.
 
 **Validation:** code and tests are committed, but exact-HEAD CI is not yet confirmed. No green test claim is made. The earlier 62F/62G-1 CI evidence applies only to its own exact commit SHA.
 
