@@ -103,3 +103,12 @@ The code was inspected after the newline correction and the follow-up header-int
 ## Next step
 
 Implement replica-side snapshot validation and atomic install into a separate local SQLite read model. Only after this install/checkpoint transaction is tested should the work cycle move to transactional event apply and Redis Streams.
+
+
+## Follow-up completion — Batch 62G-2
+
+The previously listed next step has now been implemented in the same approved integrated cycle. `SQLiteOhlcvReplicaStore` provides stable per-gateway identity, durable source checkpoint and atomic snapshot replacement. It validates every canonical bar, preserves exact decimal strings and CME calendar identity, blocks source-writer apply, and rolls back bars plus checkpoint together on semantic or integrity failure.
+
+Detailed implementation and regression coverage: `docs/WORK_CYCLE_2026-11-19_BATCH62G2_REPLICA_SNAPSHOT_INSTALL.md`.
+
+Exact-head CI for the follow-up implementation remains unconfirmed; no runtime pass is claimed.
