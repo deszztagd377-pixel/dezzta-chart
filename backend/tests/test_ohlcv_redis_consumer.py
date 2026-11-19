@@ -226,3 +226,144 @@ def test_real_redis_group_reset_starts_after_installed_snapshot_watermark(tmp_pa
     finally:
         redis.delete(stream_key)
         redis.close()
+
+
+
+def _consume_gateway_process(redis_url, stream_key, replica_path, consumer_name, result_queue):
+    import redis as redis_module
+
+    client = redis_module.Redis.from_url(redis_url, decode_responses=True)
+    try:
+        replica = SQLiteOhlcvReplicaStore(replica_path)
+        consumer = make_consumer(client, replica, stream_key, consumer_name)
+        result = consumer.consume_once()
+        result_queue.put({
+            "result": result,
+            "applied_cursor": replica.checkpoint()["applied_cursor"],
+        })
+    except BaseException as exc:
+        result_queue.put({"error": repr(exc)})
+        raise
+    finally:
+        client.close()
+
+
+def _publish_source_process(redis_url, source_path, stream_key, owner, barrier, result_queue):
+    import redis as redis_module
+
+    from app.ohlcv_redis_publisher import (
+        RedisOhlcvPublisher,
+        SQLiteOhlcvPublisherCheckpoint,
+    )
+
+    client = redis_module.Redis.from_url(redis_url, decode_responses=True)
+    try:
+        source = SQLiteOhlcvStore(source_path)
+        checkpoint = SQLiteOhlcvPublisherCheckpoint(
+            source, stream_key=stream_key,
+        )
+        publisher = RedisOhlcvPublisher(
+            source,
+            checkpoint,
+            client,
+            owner=owner,
+            lease_ttl_ms=10_000,
+            batch_size=10,
+        )
+        barrier.wait(timeout=20)
+        result_queue.put({"owner": owner, "result": publisher.publish_available()})
+    except BaseException as exc:
+        result_queue.put({"owner": owner, "error": repr(exc)})
+        raise
+    finally:
+        client.close()
+
+
+def test_two_independent_processes_broadcast_to_two_durable_gateway_replicas(tmp_path):
+    import multiprocessing
+
+    redis, stream_key = real_redis()
+    redis_url = os.environ["REDIS_TEST_URL"]
+    source = SQLiteOhlcvStore(str(tmp_path / "multi-process-source.sqlite3"))
+    snapshot_path = tmp_path / "multi-process-snapshot.jsonl"
+    make_snapshot(source, snapshot_path)
+    replica_a_path = str(tmp_path / "gateway-a.sqlite3")
+    replica_b_path = str(tmp_path / "gateway-b.sqlite3")
+    make_replica(source, snapshot_path, replica_a_path)
+    make_replica(source, snapshot_path, replica_b_path)
+    append_and_publish(source, redis, stream_key, 0)
+
+    context = multiprocessing.get_context("spawn")
+    result_queue = context.Queue()
+    processes = [
+        context.Process(
+            target=_consume_gateway_process,
+            args=(redis_url, stream_key, replica_a_path, "gateway-a-process", result_queue),
+        ),
+        context.Process(
+            target=_consume_gateway_process,
+            args=(redis_url, stream_key, replica_b_path, "gateway-b-process", result_queue),
+        ),
+    ]
+    try:
+        for process in processes:
+            process.start()
+        results = [result_queue.get(timeout=30) for _ in processes]
+        for process in processes:
+            process.join(timeout=30)
+            assert process.exitcode == 0
+        assert all("error" not in result for result in results)
+        assert all(result["result"]["applied"] == 1 for result in results)
+        assert all(result["applied_cursor"] == 1 for result in results)
+        assert len({result["result"]["received"] for result in results}) == 1
+    finally:
+        for process in processes:
+            if process.is_alive():
+                process.terminate()
+                process.join(timeout=5)
+        redis.delete(stream_key)
+        redis.close()
+
+
+def test_two_independent_publisher_processes_share_one_fenced_source_lease(tmp_path):
+    import multiprocessing
+
+    from app.ohlcv_redis_publisher import SQLiteOhlcvPublisherCheckpoint
+
+    redis, stream_key = real_redis()
+    redis_url = os.environ["REDIS_TEST_URL"]
+    source_path = str(tmp_path / "multi-publisher-source.sqlite3")
+    source = SQLiteOhlcvStore(source_path)
+    checkpoint = SQLiteOhlcvPublisherCheckpoint(source, stream_key=stream_key)
+    checkpoint.initialize_from_snapshot(0, now_ms=1_000)
+    assert source.apply(make_bar(0)) == "inserted"
+
+    context = multiprocessing.get_context("spawn")
+    barrier = context.Barrier(2)
+    result_queue = context.Queue()
+    processes = [
+        context.Process(
+            target=_publish_source_process,
+            args=(redis_url, source_path, stream_key, f"publisher-{index}", barrier, result_queue),
+        )
+        for index in range(2)
+    ]
+    try:
+        for process in processes:
+            process.start()
+        results = [result_queue.get(timeout=30) for _ in processes]
+        for process in processes:
+            process.join(timeout=30)
+            assert process.exitcode == 0
+        assert all("error" not in result for result in results)
+        assert sum(result["result"].get("published", 0) for result in results) == 1
+        assert redis.xlen(stream_key) == 1
+        assert redis.xrange(stream_key, min="-", max="+")[0][0] == "1-0"
+        assert checkpoint.state()["published_cursor"] == 1
+    finally:
+        for process in processes:
+            if process.is_alive():
+                process.terminate()
+                process.join(timeout=5)
+        redis.delete(stream_key)
+        redis.close()
