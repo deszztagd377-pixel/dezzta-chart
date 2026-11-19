@@ -142,3 +142,31 @@ def test_forward_rejects_pipeline_divergence_instead_of_silent_drop(tmp_path):
     pipeline.apply(conflicting)
     with pytest.raises(ReplicaPipelineDivergence):
         forward_replica_event(event, pipeline, OhlcvStreamHub())
+
+
+def test_replica_query_snapshot_returns_atomic_checkpoint_watermark(tmp_path):
+    source = SQLiteOhlcvStore(str(tmp_path / "source.sqlite3"))
+    assert source.apply(make_bar(0)) == "inserted"
+    assert source.apply(make_bar(1)) == "inserted"
+    replica = install_replica(source, tmp_path)
+
+    snapshot = replica.query_snapshot(
+        provider="databento", dataset="GLBX.MDP3",
+        publisher_id=1, instrument_id=123, timeframe="1m",
+        raw_symbol="ESZ6", limit=1,
+    )
+
+    assert snapshot["status"] if "status" in snapshot else True
+    assert snapshot["cursor"] == 2
+    assert snapshot["high_water"] == 2
+    assert snapshot["retention_floor"] == 0
+    assert snapshot["source_id"] == source.source_id()
+    assert snapshot["total"] == 2
+    assert len(snapshot["bars"]) == 1
+    assert snapshot["bars"][0].close == Decimal("102")
+
+
+def test_replica_query_snapshot_fails_closed_before_snapshot_install(tmp_path):
+    replica = SQLiteOhlcvReplicaStore(str(tmp_path / "empty-replica.sqlite3"))
+    with pytest.raises(RuntimeError, match="verified replica snapshot"):
+        replica.query_snapshot()
