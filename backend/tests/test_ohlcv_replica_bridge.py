@@ -230,7 +230,7 @@ def test_replica_snapshot_hub_registration_rejects_mixed_series_bars():
             [make_bar(0), make_bar(1).__class__(
                 provider="databento", dataset="GLBX.MDP3",
                 publisher_id=1, instrument_id=999, series_type="contract",
-                timeframe="1m", ts_start_ns=NS, raw_symbol="NQZ6",
+                timeframe="1m", ts_start_ns=60 * NS, raw_symbol="NQZ6",
                 open=Decimal("100"), high=Decimal("103"), low=Decimal("99"),
                 close=Decimal("102"), volume=Decimal("12.5"),
                 ts_event_ns=NS + 100, ts_received_ns=NS + 110,
@@ -241,3 +241,36 @@ def test_replica_snapshot_hub_registration_rejects_mixed_series_bars():
             instrument_id=123, raw_symbol="ESZ6", timeframe="1m",
             limit=10, bucket_policy="UTC_LEGACY",
         )
+
+
+def test_forward_rejects_event_series_that_disagrees_with_bar_payload():
+    from app.ohlcv_replica_bridge import _bar_from_event
+
+    bar = make_bar(0)
+    event = {
+        "type": "market_data.ohlcv.update", "version": 1,
+        "eventId": "series-mismatch", "operation": "upsert", "cursor": 1,
+        "series": {
+            "provider": bar.provider, "dataset": bar.dataset,
+            "publisherId": bar.publisher_id, "instrumentId": 999,
+            "seriesType": bar.series_type, "rawSymbol": bar.raw_symbol,
+            "timeframe": bar.timeframe, "bucketPolicy": bar.bucket_policy,
+            "calendarId": bar.calendar_id, "calendarVersion": bar.calendar_version,
+        },
+        "bar": {
+            "dataset": bar.dataset, "provider": bar.provider,
+            "publisherId": bar.publisher_id, "instrumentId": bar.instrument_id,
+            "rawSymbol": bar.raw_symbol, "seriesType": bar.series_type,
+            "timeframe": bar.timeframe, "bucketPolicy": bar.bucket_policy,
+            "calendarId": bar.calendar_id, "calendarVersion": bar.calendar_version,
+            "tsStartNs": str(bar.ts_start_ns), "open": str(bar.open),
+            "high": str(bar.high), "low": str(bar.low), "close": str(bar.close),
+            "volume": str(bar.volume), "tsEventNs": str(bar.ts_event_ns),
+            "tsReceivedNs": str(bar.ts_received_ns),
+            "tsProviderOutNs": None if bar.ts_provider_out_ns is None else str(bar.ts_provider_out_ns),
+            "sequence": bar.sequence, "sequenceOrigin": bar.sequence_origin,
+            "origin": bar.origin, "completeness": bar.completeness,
+        },
+    }
+    with pytest.raises(ValueError, match="series identity does not match"):
+        _bar_from_event(event)

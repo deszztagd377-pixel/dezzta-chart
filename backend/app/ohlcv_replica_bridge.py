@@ -94,6 +94,7 @@ def subscribe_replica_snapshot(
         or not isinstance(source_id, str) or not source_id
         or not isinstance(bars, list)
         or type(total) is not int or total < len(bars)
+        or snapshot.get("high_water") != cursor
     ):
         raise RuntimeError("Replica snapshot returned an invalid checkpoint/read-model result.")
     subscription, snapshot_bars, snapshot_total = stream_hub.subscribe_snapshot_bars(
@@ -144,6 +145,21 @@ def _bar_from_event(event: dict[str, Any]) -> OhlcvBar:
         "sequence", "sequenceOrigin", "origin", "completeness",
     }:
         raise ValueError("Replica event bar does not match the canonical contract.")
+    series = event["series"]
+    expected_series = {
+        "provider": payload["provider"],
+        "dataset": payload["dataset"],
+        "publisherId": payload["publisherId"],
+        "instrumentId": payload["instrumentId"],
+        "seriesType": payload["seriesType"],
+        "rawSymbol": payload["rawSymbol"],
+        "timeframe": payload["timeframe"],
+        "bucketPolicy": payload["bucketPolicy"],
+        "calendarId": payload["calendarId"],
+        "calendarVersion": payload["calendarVersion"],
+    }
+    if not isinstance(series, dict) or series != expected_series:
+        raise ValueError("Replica event series identity does not match its bar payload.")
     return OhlcvBar(
         provider=payload["provider"],
         dataset=payload["dataset"],

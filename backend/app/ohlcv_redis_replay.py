@@ -170,6 +170,12 @@ def replay_replica_history(
     """
     if not isinstance(checkpoint, dict):
         raise ValueError("checkpoint must be an object.")
+    if redis_client is None:
+        raise ValueError("redis_client is required.")
+    if not isinstance(stream_key, str) or not stream_key.strip():
+        raise ValueError("stream_key is required.")
+    if not isinstance(series_identity, dict) or set(series_identity) != set(_SERIES_KEYS):
+        raise ValueError("A complete canonical series identity is required.")
     source_id = checkpoint.get("source_id")
     through_cursor = checkpoint.get("applied_cursor")
     retention_floor = checkpoint.get("retention_floor")

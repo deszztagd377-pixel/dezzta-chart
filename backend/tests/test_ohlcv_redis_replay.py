@@ -239,3 +239,21 @@ def test_replica_replay_empty_cursor_interval_does_not_query_redis():
     assert result["status"] == "ok"
     assert result["events"] == []
     assert result["next_cursor"] == 5
+
+
+def test_replica_replay_validates_stream_and_series_even_at_empty_interval():
+    class NoCallRedis:
+        def xrange(self, *args, **kwargs):
+            raise AssertionError("Redis must not be queried for an empty interval")
+
+    checkpoint = {"source_id": SOURCE, "applied_cursor": 5, "retention_floor": 0}
+    with pytest.raises(ValueError, match="stream_key is required"):
+        replay_replica_history(
+            NoCallRedis(), stream_key=" ", checkpoint=checkpoint,
+            after_cursor=5, series_identity=IDENTITY,
+        )
+    with pytest.raises(ValueError, match="canonical series identity"):
+        replay_replica_history(
+            NoCallRedis(), stream_key="ohlcv", checkpoint=checkpoint,
+            after_cursor=5, series_identity={},
+        )

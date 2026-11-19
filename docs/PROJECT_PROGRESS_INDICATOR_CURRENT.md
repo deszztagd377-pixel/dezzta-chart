@@ -2824,3 +2824,16 @@ See `docs/INDICATOR_PROGRESS_LEDGER.md` for formula definitions, first-valid ind
 - No production `main.py` startup wiring. The timeout cannot forcibly interrupt a synchronous callback already running; durable cursor idempotency remains mandatory. Redis replay integration, dedicated relay ACL, worker lifecycle/drain, and multi-ASGI E2E remain open.
 - CI exact-head status must be verified before any green status is claimed. No deployment, paid service, or Termux requirement.
 - Indicator statuses unchanged. Stage 1 remains 75% provisional (30/40 criteria; 300/400 ticks); Gate 10 remains 0/10 closed; Stages 2–6 unscored; overall weighted project percentage not established.
+
+
+## Batch 62J-7 — 19 November 2026
+
+- Root cause addressed: a replica checkpoint could be newer than the in-memory pipeline because SQLite apply precedes the event-loop callback. Pairing that checkpoint with pipeline bars could produce a stale snapshot carrying a newer cursor.
+- Added OhlcvStreamHub.subscribe_snapshot_bars() and subscribe_replica_snapshot() to register bars and watermark from one atomic replica SQLite read view.
+- Added exact top-level event series/bar identity validation and replica snapshot high-water equality validation.
+- Added replay_replica_history() with fixed replica checkpoint watermark, cursor floor/ahead checks, exact series filtering, 10,000 matching-event cap, 50,000 global scan cap, and all-or-resnapshot behavior.
+- CI pre-fix run 44554770578 found 1,123 passed / 1 failed: one test fixture used a 1-second timestamp for a 1-minute bar. Corrected the fixture without weakening production validation. Exact-head verification for this fix is pending.
+- New batch document: docs/WORK_CYCLE_2026-11-19_BATCH62J7_REPLICA_SNAPSHOT_REPLAY_HANDOFF.md.
+- Gate 25 ACL command matrix drafted from actual code. No Redis ACL or production secret was changed; stream key/config contract and safe group-reset strategy remain blockers.
+- No main.py startup wiring, Vercel/Cloudflare deployment, paid service or Termux.
+- Stage 1 remains 75% provisional (30/40 criteria; 300/400 ticks). Gate 10 remains 0/10 closed. Stages 2–6 remain unscored; overall weighted project percentage remains unestablished.
