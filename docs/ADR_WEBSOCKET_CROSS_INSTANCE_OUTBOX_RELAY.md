@@ -182,3 +182,22 @@ This is still a storage primitive. It is not wired to the process-local hub, Red
 
 
 The replica checkpoint schema and event protocol are now version 3. Event replay fails closed if the stored checkpoint version does not match the current implementation; the gateway must install a current full snapshot before replay can resume. This prevents a replica with an obsolete deduplication/checkpoint contract from silently consuming new events.
+
+
+## Batch 62H-0 — publisher contract and implementation guard
+
+Repository audit confirms that Redis is already used by `RedisSharedGuard` for security limits/tickets, while OHLCV delivery still follows SQLite outbox -> process-local `OhlcvStreamHub`. These are separate concerns. The existing `read_outbox_batch()` is the global relay scan API; exact-series replay is not suitable for a global publisher.
+
+Publisher invariants for 62H:
+
+- Redis Stream ID is deterministic: `<global_cursor>-0`.
+- Source SQLite persists a publisher checkpoint and advances it only after confirmed append or exact same-ID read-back verification.
+- Crash after XADD and before checkpoint commit retries the same ID; an existing entry is success only when event ID and canonical payload match exactly.
+- A single publisher must be serialized/fenced per source stream. Process-local locking is insufficient.
+- No MAXLEN trimming until all consumer-group delivery and pending state can be proven safe. If source retention overtakes the publisher checkpoint, stop and require snapshot/rebuild; never skip.
+- Redis outage never rolls back source bar/outbox commits.
+- Every gateway uses its own consumer group. Shared groups would load-balance instead of broadcast.
+- ACK follows durable replica apply; gaps, retention expiry, validation failures and transaction failures are not ACKable.
+- No publisher/consumer is wired into app startup until append retry, pending reclaim, two-process parity and outage/recovery tests pass.
+
+Implementation remains split into 62H-1 checkpoint/identity, 62H-2 deterministic append and fencing, 62H-3 tests, then 62I consumer recovery and 62J multi-process parity. 62K remains owner-side Gate 25/36 evidence. Batch 62H-0 changed documentation only; no executable behavior or gate status changed.
