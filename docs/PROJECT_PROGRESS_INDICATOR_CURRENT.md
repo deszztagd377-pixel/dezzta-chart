@@ -1,3 +1,61 @@
+# CURRENT VERIFIED PROJECT STATUS — BATCH 62B
+
+**Date:** 19 November 2026 • **Branch:** phase-2/market-data-foundation • **Pre-cycle HEAD:** 97880bda671231a803d1abb06865fc849c16d686  
+**Cost:** ZERO COST • no deploy • Termux not required • main untouched.
+
+## Batch 62A exact-head CI
+
+| Workflow | Run | Result |
+|---|---:|---|
+| Automated Tests + Build | [44487591377](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44487591377) | SUCCESS |
+| CodeQL JS/TS + Python | [44487591390](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44487591390) | SUCCESS |
+| Full Git History Secret Audit | [44487591396](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44487591396) | SUCCESS |
+
+Backend pytest **1,044 passed in 36.68s**; frontend Vitest **236 passed / 28 files**; npm audit **0 vulnerabilities**; pip-audit **no known vulnerabilities**. Container smoke passed Redis ACL/AOF restart, outage fail-closed/reconnect, non-root/volume ownership, SQLite integrity/restart and HTTP rate-limit checks. Synthetic outbox benchmark and Trivy report uploaded. These are CI results, not production acceptance.
+
+## Gate 10 — all remain OPEN
+
+| Gate | Remaining acceptance evidence |
+|---:|---|
+| 8 | Owner-host secret injection, protected mounts, runtime readback |
+| 20 | Firebase valid/expired/revoked/wrong-project E2E |
+| 25 | Owner Redis, independent app instances, outage/recovery and operator evidence |
+| 30 | Actual owner target-database restore |
+| 31 | Zero-cost off-host copy, separate key custody, retention and restore |
+| 34 | Owner-host volume/restart/disk-pressure evidence |
+| 35 | Public HTTPS/WSS ingress, certificate renewal and external scan |
+| 36 | Snapshot-consistent cross-instance fan-out, browser/WebView and 330-second attribution |
+| 38 | Durable cross-instance collector, retention and protected access |
+| 39 | Named operator, escalation channel and acknowledgement drill |
+
+**Formal closure: 0/10.** Gate 25 gains process-level CI evidence only if Batch 62B passes. Gate 36 is blocked by missing snapshot-consistent multi-instance data topology in addition to external runtime acceptance.
+
+## Complete indicator progress ledger
+
+| Indicator | Calculation foundation / first valid output | Remaining visible work | State |
+|---|---|---|---|
+| SMA 20 | Rolling close mean; index 19; fixture-tested | Overlay, toggle, legend/value, stale-series clearing, render tests | 🟨 Foundation |
+| EMA 20 | SMA-seeded EMA, alpha 2/21; index 19; tested | Overlay, toggle, legend/value, stale-series clearing, render tests | 🟨 Foundation |
+| RSI 14 Wilder | Wilder-smoothed gains/losses; index 14; tested | 0–100 pane, 30/70 guides, toggle, lifecycle/render tests | 🟨 Foundation |
+| MACD 12/26/9 | EMA12−EMA26; MACD index 25, signal/histogram index 33; tested | Dedicated pane, signal, histogram, zero guide, render tests | 🟨 Foundation |
+| Bollinger 20,2 | Population standard deviation, 2σ; index 19; tested | Upper/middle/lower overlay, toggle, legend/value, render tests | 🟨 Foundation |
+| Shared useMarketIndicators() | Validated backend snapshot only; no demo fallback; warm-up nulls aligned | Visible binding, loading/error, immediate stale identity/timeframe clearing | 🟨 Foundation |
+| Footprint | Deterministic simulation, explicitly SIMULATED | Owner reference, reviewed blueprint, explicit-ON spaced cluster renderer | 🟨 Gated |
+| Heatmap | No verified implementation | Reference, blueprint, source contract, calculation, renderer, tests | 🟥 Not implemented |
+| Liquidation Maps | No verified implementation | Reference, blueprint, source contract, calculation, renderer, tests | 🟥 Not implemented |
+
+**Invariants:** warm-up outputs remain null and aligned to source candle indexes; fixture formula tests across 18 timeframes are not provider data-quality or visible-integration proof. Footprint OFF preserves standard candles; only explicit ON enables spaced cluster layout. Footprint/Heatmap/Liquidation visual work waits for owner references and reviewed blueprint. Stage 1 is active; Stage 4 visible indicator UI remains parked.
+
+## Progress accounting
+
+- Stage 1: **75% provisional** — 30/40 criteria, 300/400 ticks.
+- Gate 10: **0/10 closed**.
+- Stages 2–6: NOT SCORED.
+- Overall project: NOT ESTABLISHED; historical 20.9% is not current.
+- ZERO COST; no deployment; no Termux; main untouched.
+
+---
+
 # BATCH 57 — Exact-head CI closure and indicator acceptance reconciliation
 
 **Date:** 19 November 2026 (WIB)  

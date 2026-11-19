@@ -18,6 +18,22 @@
 
 Keep SQLite outbox as the source of truth. A bounded global outbox reader is the relay input. A future relay may publish committed events to Redis Streams; every app instance consumes through its own consumer group and forwards validated events to its local hub. Redis is transport, not a second canonical candle database.
 
+
+## Additional blocker discovered during Batch 62B architecture audit
+
+Redis fan-out alone is not a complete multi-instance WebSocket data plane. Each app process constructs its own SQLiteOhlcvStore, OhlcvPipeline, instrument registry, and process-local OhlcvStreamHub. A second process can consume a Redis event and still lack authoritative bars for a consistent initial snapshot. Sharing the WAL SQLite file between hosts is not an acceptable shortcut.
+
+Before wiring Redis Streams into application startup, choose and test a complete topology:
+1. **Authoritative writer + replicated local read models:** one identified ingestion owner writes the authoritative SQLite outbox; every gateway maintains a local replica from the durable stream. Replica application must be idempotent, must not re-emit source outbox events, and must expose a snapshot watermark consistent with its applied cursor.
+2. **Authoritative snapshot service:** gateways obtain snapshots and entitlement-scoped history from a separately defined authenticated source API while Redis Streams carries live updates. That API and its security/availability contract do not currently exist.
+
+The first option is the preferred zero-cost CI path, but requires single-writer ownership, source identity, replica-apply transaction, cursor/watermark contract, entitlement consistency, and recovery/resnapshot protocol. Do not implement partial fan-out without solving the snapshot read model.
+
+## Batch 62B Redis process-level security evidence
+
+The existing Redis CI service is zero-cost. Batch 62B adds a test using two independently spawned backend processes and separate Redis clients. Expected result: exactly one process consumes a single-use ticket and exactly one process acquires the shared per-account lease. This is CI evidence only, not owner-managed multi-instance acceptance. No Stream ACL permissions are added until the stream key schema and commands are reviewed.
+
+
 ## Delivery contract
 
 1. Relay reads globally ordered outbox pages after a durable cursor.

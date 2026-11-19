@@ -16,6 +16,28 @@ from app.shared_guard import (
 )
 
 
+
+
+def _redis_guard_process_worker(redis_url, ticket, account, connection_id, ready_queue, start_event, result_queue):
+    """Run an independent backend-process guard against shared Redis."""
+    async def exercise():
+        from redis.asyncio import Redis
+        redis = Redis.from_url(redis_url, decode_responses=True, socket_connect_timeout=3, socket_timeout=3)
+        guard = RedisSharedGuard(redis_url, websocket_global_limit=4, websocket_per_account_limit=1, websocket_lease_seconds=30, redis_client=redis)
+        try:
+            await guard.start()
+            ready_queue.put(("ready", connection_id))
+            if not start_event.wait(timeout=15):
+                raise TimeoutError("cross-process Redis test start barrier timed out")
+            consumed = await guard.consume_websocket_ticket(ticket)
+            acquired = await guard.acquire_websocket(connection_id, account)
+            result_queue.put(("result", connection_id, consumed, acquired))
+        except Exception as exc:
+            result_queue.put(("error", connection_id, exc.__class__.__name__))
+        finally:
+            await guard.close()
+    asyncio.run(exercise())
+
 class FakeRedis:
     def __init__(self):
         self.calls = []
@@ -361,6 +383,72 @@ def test_redis_websocket_ticket_lua_consume_is_single_use():
     not os.getenv("REDIS_TEST_URL"),
     reason="CI Redis integration service is not configured",
 )
+
+
+@pytest.mark.skipif(not os.getenv("REDIS_TEST_URL"), reason="CI Redis integration service is not configured")
+def test_redis_ticket_and_account_lease_are_atomic_across_backend_processes():
+    """Two independent backend processes must share atomic ticket and lease state."""
+    import multiprocessing
+    from redis.asyncio import Redis
+
+    redis_url = os.environ["REDIS_TEST_URL"]
+    suffix = uuid4().hex
+    account = f"cross-process-account-{suffix}"
+    connection_ids = [f"cross-process-ws-{suffix}-1", f"cross-process-ws-{suffix}-2"]
+
+    async def issue_ticket():
+        redis = Redis.from_url(redis_url, decode_responses=True)
+        guard = RedisSharedGuard(redis_url, redis_client=redis)
+        try:
+            await guard.start()
+            return await guard.issue_websocket_ticket(account)
+        finally:
+            await guard.close()
+
+    ticket = asyncio.run(issue_ticket())
+    context = multiprocessing.get_context("spawn")
+    ready_queue, result_queue = context.Queue(), context.Queue()
+    start_event = context.Event()
+    workers = [
+        context.Process(target=_redis_guard_process_worker,
+            args=(redis_url, ticket, account, cid, ready_queue, start_event, result_queue))
+        for cid in connection_ids
+    ]
+    leased = []
+    cleanup_redis = Redis.from_url(redis_url, decode_responses=True)
+    cleanup_guard = RedisSharedGuard(redis_url, websocket_global_limit=4,
+        websocket_per_account_limit=1, websocket_lease_seconds=30, redis_client=cleanup_redis)
+    try:
+        for worker in workers:
+            worker.start()
+        ready = [ready_queue.get(timeout=20) for _ in workers]
+        assert all(item[0] == "ready" for item in ready)
+        start_event.set()
+        outcomes = [result_queue.get(timeout=20) for _ in workers]
+        for worker in workers:
+            worker.join(timeout=20)
+            if worker.is_alive():
+                worker.terminate()
+                worker.join(timeout=5)
+                pytest.fail("Redis guard worker process did not exit")
+            assert worker.exitcode == 0
+        assert all(item[0] == "result" for item in outcomes), outcomes
+        assert sum(item[2] == account for item in outcomes) == 1
+        assert sum(item[3] is True for item in outcomes) == 1
+        leased = [item[1] for item in outcomes if item[3] is True]
+    finally:
+        start_event.set()
+        for worker in workers:
+            if worker.is_alive():
+                worker.terminate()
+                worker.join(timeout=5)
+        async def cleanup():
+            for cid in leased:
+                await cleanup_guard.release_websocket(cid, account)
+            await cleanup_guard.close()
+        asyncio.run(cleanup())
+
+
 def test_redis_ticket_and_lease_guards_share_atomic_state_across_clients():
     """Prove atomic ticket consumption and connection caps across Redis clients."""
     from redis.asyncio import Redis
