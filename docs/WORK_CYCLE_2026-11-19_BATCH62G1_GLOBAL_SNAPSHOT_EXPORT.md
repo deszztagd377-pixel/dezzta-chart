@@ -26,7 +26,7 @@ This is the first executable slice of the approved global snapshot protocol. It 
 4. Streams every row from `ohlcv_bars` in deterministic primary-key order.
 5. Uses `fetchmany(batch_size)`; default is 500 and accepted range is 1–5,000.
 6. Emits a JSONL header, canonical bar records and a footer manifest.
-7. Computes SHA-256 over canonical bar-record lines and records row count.
+7. Computes SHA-256 over the canonical header and every canonical bar-record line, protecting the source ID and watermark as well as bar payloads; records row count.
 8. Flushes and fsyncs the temporary output.
 9. Commits the source read transaction, then atomically renames the completed temporary file into place.
 
@@ -35,7 +35,7 @@ No default calendar filter is applied. UTC legacy, UTC fixed and calendar-qualif
 ### Verification
 
 `SQLiteOhlcvStore.verify_global_snapshot(snapshot_path)` streams the file and validates:
-- Header format/version and required source/generation/watermark fields.
+- Header format/version, non-empty source/generation identity, non-negative watermark, and retention-floor ordering.
 - Record ordering.
 - Manifest row count.
 - SHA-256 of canonical bar records.
@@ -83,6 +83,8 @@ The snapshot exporter does not publish a WebSocket event, append to outbox, or a
 - `a4ef6eca4ffe5dd15cb829f10090d54934216cf7` — source identity + snapshot export/verification.
 - `708532eb6b2edd4029176b2b95be822995305059` — corrected JSONL newline encoding before tests were added.
 - `0cbc8b53afde575362050fbb88fdfe3dba8dedbf` — three snapshot regression tests.
+- `498e644e1cc6037c02ea5c25935babc2e886a224` — include header metadata in SHA-256 and strictly validate watermarks.
+- `6463c968e25c86b6c07099dcc99c4415cd3c4b8d` — reject forged header watermark as well as payload tampering.
 - `089fa6d5557d8ee1981fa9660b605d4a86ed56d0` — project progress and indicator ledger checkpoint.
 
 The code was inspected after the newline correction. Exact-head CI remains the authority for runtime validation; no CI success is claimed in this report until run statuses are checked.
