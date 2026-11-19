@@ -2251,3 +2251,31 @@ Gate 25 and Gate 36 remain OPEN. The global outbox reader enables a safe relay i
 - Overall project percentage: NOT ESTABLISHED.
 - Batch 62 exact-head CI: pending until this commit's workflows finish.
 - ZERO COST; no Vercel/Cloudflare deployment; no Termux; `main` untouched.
+
+
+# BATCH 62H-0 — Redis publisher contract audit (19 November 2026)
+
+**Branch:** `phase-2/market-data-foundation` • **Parent:** `3bccf107ff88a2bc7330afa1015e85b20708c773` • **Scope:** documentation-only architecture audit; no executable code changed.
+
+Confirmed separation: RedisSharedGuard is a security primitive, not the OHLCV relay. The current OHLCV path persists bars/outbox in SQLite and fans out to the process-local OhlcvStreamHub. `read_outbox_batch()` is the existing bounded global cursor reader suitable for a future publisher.
+
+The 62H publisher contract now requires deterministic Redis Stream IDs (`cursor-0`), a source-SQLite publisher checkpoint, exact duplicate read-back verification after the XADD/checkpoint crash window, single-writer serialization/fencing, no unsafe MAXLEN trimming, explicit snapshot rebuild when source retention overtakes the publisher cursor, and source-write independence during Redis outage. Every gateway must have its own consumer group; ACK follows durable local replica apply only.
+
+**Next:** 62H-1 checkpoint schema/API, but only after exact-head validation of 62G. No startup wiring, Redis provision, deployment, or Termux is authorized by this documentation batch.
+
+## Indicator ledger — complete status retained
+
+This audit made no indicator code or formula changes. The full detailed ledger above remains canonical; the summary is reproduced in `docs/WORK_CYCLE_2026-11-19_BATCH62H0_REDIS_PUBLISHER_CONTRACT.md`. Status remains:
+- 🟨 SMA20: rolling mean, first index 19; calculation/fixtures present; overlay/toggle/legend/stale clearing/render tests pending.
+- 🟨 EMA20: SMA-seeded, alpha 2/21, first index 19; calculation/fixtures present; visible overlay lifecycle pending.
+- 🟨 RSI14: Wilder smoothing, first index 14; calculation/edge fixtures present; dedicated pane/30–70 guides/lifecycle pending.
+- 🟨 MACD12/26/9: EMA12−EMA26, MACD index 25, signal/histogram index 33; calculation fixtures present; pane/line/histogram/zero guide pending.
+- 🟨 Bollinger20,2: population standard deviation, first index 19; calculation fixture present; three-line overlay/lifecycle pending.
+- 🟨 Shared indicator hook: validated backend snapshot only; chart binding/loading/error/stale-identity clearing pending.
+- 🟨 Footprint: deterministic SIMULATED accumulator only; reference image + reviewed blueprint + ON-only spaced cluster renderer required.
+- 🟥 Heatmap: no implementation verified; reference/data/calculation/renderer/tests pending.
+- 🟥 Liquidation Maps: no implementation verified; reference/data/calculation/renderer/tests pending.
+
+Footprint OFF must preserve normal candle spacing. Do not begin Footprint/Heatmap/Liquidation visual implementation before receiving the corresponding owner reference images and reviewing the scoped blueprint. Stage 4 visible UI remains parked while Stage 1 is active.
+
+**Accounting unchanged:** Stage 1 75% provisional (30/40; 300/400); Gate 10 0/10 closed (all OPEN); Stages 2–6 NOT SCORED; overall percentage NOT ESTABLISHED because M1–M8 weights are not approved. No ticks or gate closure from this audit. ZERO COST; no deployment; no Termux; `main` untouched.
