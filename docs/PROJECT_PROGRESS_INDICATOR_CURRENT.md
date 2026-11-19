@@ -2,7 +2,7 @@
 
 **Date:** 19 November 2026 • **Branch:** `phase-2/market-data-foundation`  
 **Previous approved blueprint:** `189ed4ba514dcf725ec38a9a0dc95f389017b304`  
-**Code/test commits:** `a4ef6eca4ffe5dd15cb829f10090d54934216cf7`, `708532eb6b2edd4029176b2b95be822995305059`, `0cbc8b53afde575362050fbb88fdfe3dba8dedbf`  
+**Code/test commits:** `a4ef6eca4ffe5dd15cb829f10090d54934216cf7`, `708532eb6b2edd4029176b2b95be822995305059`, `0cbc8b53afde575362050fbb88fdfe3dba8dedbf`, `498e644e1cc6037c02ea5c25935babc2e886a224`, `6463c968e25c86b6c07099dcc99c4415cd3c4b8d`  
 **Cost:** ZERO COST • no deployment • no paid service • no Termux • `main` untouched.
 
 ## Batch 62G-1 — first executable slice of the approved eight-point cycle
@@ -12,9 +12,9 @@ Implemented in `backend/app/ohlcv_store.py`:
 - Added `export_global_snapshot(destination_path, batch_size=500)`.
 - Export pins one SQLite read transaction by reading outbox state first, then streams **all retained rows** from `ohlcv_bars` in deterministic primary-key order using `fetchmany()`.
 - The export includes every bucket/calendar identity, including CME session rows; it does not reuse the chart query's default calendar filters.
-- Header records source identity, generation ID, global high-water and retention floor. Footer records row count and SHA-256 over canonical bar records.
+- Header records source identity, generation ID, global high-water and retention floor. Footer records row count and SHA-256 over the canonical header plus every canonical bar record, protecting the source ID and watermark as well as payload rows.
 - Output is written to a temporary file, flushed/fsynced, then atomically renamed only after successful export and source read-transaction completion.
-- Added streaming `verify_global_snapshot()` to validate header, record order, row count and content digest without loading the whole file into memory.
+- Added streaming `verify_global_snapshot()` to validate header constraints, record order, row count and a content digest covering the header plus all bar records without loading the whole file into memory.
 - Added explicit destination protection and bounded batch-size validation.
 
 ### Consistency and resource notes
