@@ -54,6 +54,10 @@ Bar apply + checkpoint update must share one SQLite transaction. Redis ACK must 
 - Overall project percentage: **NOT ESTABLISHED** — M1–M8 weights remain unapproved.
 - Blueprint documentation earns no Stage ticks or Gate closures.
 
+**Documentation work in this checkpoint:**
+- `docs/WORK_CYCLE_2026-11-19_BATCH62G_INTEGRATED_WEBSOCKET_BLUEPRINT.md` — complete eight-point implementation sequence, cursor invariants, bounded snapshot requirements, failure matrix, Gate 10 packs and complete indicator ledger.
+- `docs/ADR_WEBSOCKET_CROSS_INSTANCE_OUTBOX_RELAY.md` — architecture decision updated with the newly verified global snapshot constraint and no-partial-activation rule.
+
 **Full indicator ledger and prior verified history are retained below unchanged.**
 
 ---
