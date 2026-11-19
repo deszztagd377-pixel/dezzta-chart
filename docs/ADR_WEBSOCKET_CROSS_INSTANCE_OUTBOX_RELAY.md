@@ -158,4 +158,6 @@ The first two executable parts of the approved snapshot protocol now exist:
 
 This is still a local storage primitive, not an activated distributed relay. Incremental replica event apply, event-ID idempotency, cursor gap handling, Redis Streams, consumer groups, pending reclaim and app-factory wiring remain pending. Do not activate Redis or change the WebSocket runtime until those pieces and their failure tests are complete.
 
+The snapshot envelope is format version 2 and includes the full configured per-timeframe bar-retention policy alongside the global outbox retention floor. The replica checkpoint persists both, so the cursor boundary and source retention configuration remain observable after restart. A replica may only initialize against a dedicated empty OHLCV read-model database; it refuses to overwrite existing bars or source outbox state. Replica source-writer apply and snapshot export are both blocked.
+
 The target-side snapshot swap uses a single write transaction and bounded batches. It is atomic to SQLite readers, but a large install can hold the target writer lock for the duration and increase WAL pressure. Measure snapshot size, install duration, writer wait and WAL growth before owner-host rollout. No production deployment or paid service is authorized.
