@@ -1166,6 +1166,17 @@ _REPLICA_INSERT_SQL = """INSERT INTO ohlcv_bars (
     ts_received_ns,sequence,sequence_origin,origin,completeness,
     ts_provider_out_ns,bucket_policy,calendar_id,calendar_version
 ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"""
+_REPLICA_UPSERT_SQL = _REPLICA_INSERT_SQL + """ 
+ON CONFLICT(provider,dataset,publisher_id,instrument_id,series_type,timeframe,
+            ts_start_ns,bucket_policy,calendar_id,calendar_version)
+DO UPDATE SET
+    raw_symbol=excluded.raw_symbol, open=excluded.open,
+    high=excluded.high, low=excluded.low, close=excluded.close,
+    volume=excluded.volume, ts_event_ns=excluded.ts_event_ns,
+    ts_received_ns=excluded.ts_received_ns, sequence=excluded.sequence,
+    sequence_origin=excluded.sequence_origin, origin=excluded.origin,
+    completeness=excluded.completeness,
+    ts_provider_out_ns=excluded.ts_provider_out_ns"""
 
 
 class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
@@ -1515,9 +1526,7 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                         int_value=MAX(int_value,excluded.int_value)""",
                     (bar.sequence,),
                 )
-            db.execute(_REPLICA_INSERT_SQL.replace(
-                "INSERT INTO ohlcv_bars", "INSERT OR REPLACE INTO ohlcv_bars", 1
-            ), self._values(bar))
+            db.execute(_REPLICA_UPSERT_SQL, self._values(bar))
 
             retention = json.loads(checkpoint["bar_retention_json"])
             cap = retention.get(bar.timeframe)
