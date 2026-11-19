@@ -2866,3 +2866,14 @@ See `docs/INDICATOR_PROGRESS_LEDGER.md` for formula definitions, first-valid ind
 - Real Redis 7 regression test keeps pending_idle_ms at 30 seconds, publishes a later cursor, and proves the pending earlier cursor is retried/ACKed first; callback order is [1, 1, 2].
 - No extra ACL permission is needed; XREADGROUP was already in the gateway's least-privilege command set.
 - Batch 62J-9 exact-head CI is the current verification target; no production ACL, deployment or secret change.
+
+
+## Batch 62J-11 — managed gateway worker lifecycle
+
+- Added a managed sequential Redis consumer thread with event-loop-safe callback dispatch, bounded exponential backoff, resnapshot-required terminal state and async shutdown.
+- Worker status omits exception text and connection details; only safe exception class names are exposed.
+- Added unit tests for start/stop, transient outage recovery, resnapshot stop, backoff bounds and maximum blocking read duration.
+- Added real Redis 7 integration test verifying worker-thread consume → asyncio hub fan-out → ACK → clean shutdown with no pending entry.
+- Worker remains a standalone lifecycle component; no main.py/FastAPI startup wiring until snapshot provisioning, dedicated Redis ACL/config, shutdown supervision and multi-ASGI E2E are proven.
+- Prior exact-head batch 62J-10 commit dea336d0ecf6727b33c8a534bb8e260112b5ba11: Automated Tests, CodeQL and Full Git History Secret Audit all SUCCESS (runs 44558962426, 44558964005, 44558962350).
+- No deployment, paid service or Termux. Stage 1 75% provisional; Gate 10 0/10 closed; overall weighted project percentage not established.

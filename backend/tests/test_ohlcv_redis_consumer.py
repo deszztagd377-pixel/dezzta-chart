@@ -14,9 +14,12 @@ from app.ohlcv_redis_replay import (
     read_redis_replay_page, replay_replica_history, RedisReplayResnapshotRequired,
 )
 from app.ohlcv_event_loop import EventLoopCallbackDispatcher
-from app.ohlcv_replica_bridge import forward_replica_event, hydrate_replica_pipeline
+from app.ohlcv_replica_bridge import (
+    forward_replica_event, hydrate_replica_pipeline, subscribe_replica_snapshot,
+)
 from app.ohlcv import OhlcvPipeline
 from app.ohlcv_stream import OhlcvStreamHub
+from app.ohlcv_redis_worker import RedisOhlcvGatewayWorker
 from app.ohlcv_redis_consumer import (
     RedisOhlcvReplicaConsumer,
     ReplicaResnapshotRequired,
@@ -704,6 +707,54 @@ def test_real_redis_retries_same_consumers_pending_before_reading_new_cursor(tmp
         assert next_event["acknowledged"] == 1
         assert replica.checkpoint()["applied_cursor"] == 2
         assert callback_calls == [1, 1, 2]
+    finally:
+        redis.delete(stream_key)
+        redis.close()
+
+
+def test_real_redis_gateway_worker_dispatches_and_shuts_down_cleanly(tmp_path):
+    redis, stream_key = real_redis()
+    source = SQLiteOhlcvStore(str(tmp_path / "managed-worker-source.sqlite3"))
+    snapshot_path = tmp_path / "managed-worker-snapshot.jsonl"
+    make_snapshot(source, snapshot_path)
+    replica = make_replica(
+        source, snapshot_path, tmp_path / "managed-worker-replica.sqlite3",
+    )
+    pipeline = OhlcvPipeline()
+    hub = OhlcvStreamHub()
+    subscription, snapshot_bars, total, checkpoint = subscribe_replica_snapshot(
+        replica, hub,
+        dataset="GLBX.MDP3", publisher_id=1, instrument_id=123,
+        raw_symbol="ESZ6", timeframe="1m", bucket_policy="UTC_LEGACY",
+        limit=10,
+    )
+    assert snapshot_bars == [] and total == 0 and checkpoint["cursor"] == 0
+    append_and_publish(source, redis, stream_key, 0)
+
+    async def scenario():
+        loop = asyncio.get_running_loop()
+        dispatcher = EventLoopCallbackDispatcher(
+            loop, lambda event: forward_replica_event(event, pipeline, hub),
+        )
+        consumer = make_consumer(
+            redis, replica, stream_key, "managed-gateway-worker", idle_ms=0,
+        )
+        worker = RedisOhlcvGatewayWorker(
+            consumer, dispatcher, poll_interval_seconds=0.01,
+        )
+        worker.start()
+        try:
+            message = await asyncio.wait_for(subscription.queue.get(), timeout=3)
+            assert message["cursor"] == "1"
+            assert message["eventId"]
+            assert replica.checkpoint()["applied_cursor"] == 1
+        finally:
+            assert await worker.stop_async(timeout_seconds=3)
+        assert worker.state["state"] == "stopped"
+        assert redis.xpending(stream_key, consumer.group_name)["pending"] == 0
+
+    try:
+        asyncio.run(scenario())
     finally:
         redis.delete(stream_key)
         redis.close()
