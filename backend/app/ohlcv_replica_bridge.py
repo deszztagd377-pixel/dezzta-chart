@@ -41,6 +41,85 @@ def hydrate_replica_pipeline(
     }
 
 
+
+def subscribe_replica_snapshot(
+    replica_store: SQLiteOhlcvReplicaStore,
+    stream_hub: OhlcvStreamHub,
+    *,
+    dataset: str,
+    publisher_id: int,
+    instrument_id: int,
+    raw_symbol: str,
+    timeframe: str,
+    limit: int,
+    bucket_policy: str,
+    calendar_id: str = "",
+    calendar_version: str = "",
+    provider: str = "databento",
+    series_type: str = "contract",
+) -> tuple[Any, list[OhlcvBar], int, dict[str, Any]]:
+    """Read replica bars+checkpoint atomically, then register the matching hub.
+
+    There must be no await between this call and returning to the WebSocket
+    handler. The SQLite read transaction supplies both the bars and cursor;
+    hub registration occurs synchronously on the event-loop thread. Thus a
+    consumer callback that committed before the read is represented in the
+    snapshot, while a callback committed after it is delivered as a live event.
+    """
+    if not isinstance(replica_store, SQLiteOhlcvReplicaStore):
+        raise TypeError("replica_store must be a SQLiteOhlcvReplicaStore.")
+    if not isinstance(stream_hub, OhlcvStreamHub):
+        raise TypeError("stream_hub must be an OhlcvStreamHub.")
+    snapshot = replica_store.query_snapshot(
+        provider=provider,
+        dataset=dataset,
+        publisher_id=publisher_id,
+        instrument_id=instrument_id,
+        series_type=series_type,
+        raw_symbol=raw_symbol,
+        timeframe=timeframe,
+        bucket_policy=bucket_policy,
+        calendar_id=calendar_id,
+        calendar_version=calendar_version,
+        limit=limit,
+    )
+    cursor = snapshot.get("cursor")
+    retention_floor = snapshot.get("retention_floor")
+    source_id = snapshot.get("source_id")
+    bars = snapshot.get("bars")
+    total = snapshot.get("total")
+    if (
+        type(cursor) is not int or cursor < 0
+        or type(retention_floor) is not int or retention_floor < 0
+        or not isinstance(source_id, str) or not source_id
+        or not isinstance(bars, list)
+        or type(total) is not int or total < len(bars)
+    ):
+        raise RuntimeError("Replica snapshot returned an invalid checkpoint/read-model result.")
+    subscription, snapshot_bars, snapshot_total = stream_hub.subscribe_snapshot_bars(
+        bars,
+        total=total,
+        dataset=dataset,
+        publisher_id=publisher_id,
+        instrument_id=instrument_id,
+        raw_symbol=raw_symbol,
+        timeframe=timeframe,
+        limit=limit,
+        bucket_policy=bucket_policy,
+        calendar_id=calendar_id,
+        calendar_version=calendar_version,
+        durable_cursor=cursor,
+        provider=provider,
+        series_type=series_type,
+    )
+    return subscription, snapshot_bars, snapshot_total, {
+        "cursor": cursor,
+        "high_water": snapshot.get("high_water"),
+        "retention_floor": retention_floor,
+        "source_id": source_id,
+    }
+
+
 def _bar_from_event(event: dict[str, Any]) -> OhlcvBar:
     if not isinstance(event, dict) or set(event) != {
         "type", "version", "eventId", "operation", "series", "bar", "cursor",

@@ -169,3 +169,75 @@ def test_replica_query_snapshot_fails_closed_before_snapshot_install(tmp_path):
     replica = SQLiteOhlcvReplicaStore(str(tmp_path / "empty-replica.sqlite3"))
     with pytest.raises(RuntimeError, match="verified replica snapshot"):
         replica.query_snapshot()
+
+
+def test_replica_snapshot_and_hub_registration_share_checkpoint_boundary(tmp_path):
+    from app.ohlcv_replica_bridge import subscribe_replica_snapshot
+
+    source = SQLiteOhlcvStore(str(tmp_path / "source.sqlite3"))
+    replica = install_replica(source, tmp_path)
+    pipeline = OhlcvPipeline()
+    hub = OhlcvStreamHub()
+
+    first = make_bar(0)
+    assert source.apply(first) == "inserted"
+    first_event = source.read_outbox_batch(after_cursor=0, limit=1)["events"][0]
+    # Simulate the consumer's durable SQLite commit before its event-loop
+    # callback has run. The replica checkpoint is ahead of the in-memory pipe.
+    assert replica.apply_replica_event(
+        first_event, source_id=source.source_id(),
+    )["status"] == "applied"
+
+    subscription, snapshot, total, checkpoint = subscribe_replica_snapshot(
+        replica, hub,
+        dataset="GLBX.MDP3", publisher_id=1, instrument_id=123,
+        raw_symbol="ESZ6", timeframe="1m", bucket_policy="UTC_LEGACY",
+        limit=10,
+    )
+    assert [bar.close for bar in snapshot] == [Decimal("101")]
+    assert total == 1
+    assert checkpoint == {
+        "cursor": 1, "high_water": 1, "retention_floor": 0,
+        "source_id": source.source_id(),
+    }
+    assert subscription.durable_cursor == 1
+
+    # The delayed callback catches up the pipeline but is correctly fenced
+    # from re-emitting an event already represented by the durable snapshot.
+    assert forward_replica_event(first_event, pipeline, hub) == "inserted"
+    assert subscription.queue.empty()
+
+    second = make_bar(1)
+    assert source.apply(second) == "inserted"
+    second_event = source.read_outbox_batch(after_cursor=1, limit=1)["events"][0]
+    assert replica.apply_replica_event(
+        second_event, source_id=source.source_id(),
+    )["status"] == "applied"
+    assert forward_replica_event(second_event, pipeline, hub) == "inserted"
+
+    live = subscription.queue.get_nowait()
+    assert live["cursor"] == "2"
+    assert live["eventId"] == second_event["eventId"]
+    assert live["sequence"] == 1
+    assert subscription.durable_cursor == 2
+
+
+def test_replica_snapshot_hub_registration_rejects_mixed_series_bars():
+    pipeline = OhlcvPipeline()
+    hub = OhlcvStreamHub()
+    with pytest.raises(ValueError, match="outside the requested exact series"):
+        hub.subscribe_snapshot_bars(
+            [make_bar(0), make_bar(1).__class__(
+                provider="databento", dataset="GLBX.MDP3",
+                publisher_id=1, instrument_id=999, series_type="contract",
+                timeframe="1m", ts_start_ns=NS, raw_symbol="NQZ6",
+                open=Decimal("100"), high=Decimal("103"), low=Decimal("99"),
+                close=Decimal("102"), volume=Decimal("12.5"),
+                ts_event_ns=NS + 100, ts_received_ns=NS + 110,
+                sequence=2, sequence_origin="local", origin="provider",
+                completeness="unknown",
+            )],
+            total=2, dataset="GLBX.MDP3", publisher_id=1,
+            instrument_id=123, raw_symbol="ESZ6", timeframe="1m",
+            limit=10, bucket_policy="UTC_LEGACY",
+        )

@@ -108,6 +108,61 @@ class OhlcvStreamHub:
         self._subscriptions[stream_id] = subscription
         return subscription, bars, total
 
+
+    def subscribe_snapshot_bars(
+        self,
+        bars: list[OhlcvBar],
+        *,
+        total: int,
+        dataset: str,
+        publisher_id: int,
+        instrument_id: int,
+        raw_symbol: str,
+        timeframe: str,
+        limit: int,
+        bucket_policy: str = BUCKET_POLICY_UTC_LEGACY,
+        calendar_id: str = "",
+        calendar_version: str = "",
+        durable_cursor: int = 0,
+        provider: str = "databento",
+        series_type: str = "contract",
+    ) -> tuple[OhlcvStreamSubscription, list[OhlcvBar], int]:
+        """Register a subscription from an externally consistent durable snapshot.
+
+        Use this when bars and durable_cursor were read from one database
+        transaction (for example, a gateway replica checkpoint). Unlike
+        subscribe_snapshot(), this method does not query the in-memory pipeline.
+        """
+        if not isinstance(bars, list) or any(not isinstance(bar, OhlcvBar) for bar in bars):
+            raise TypeError("bars must be a list of OhlcvBar instances")
+        if type(total) is not int or total < len(bars):
+            raise ValueError("total must be an integer >= the returned bar count")
+        if type(limit) is not int or limit < 1 or len(bars) > limit:
+            raise ValueError("limit must be positive and bars must not exceed it")
+        if not isinstance(provider, str) or not provider.strip():
+            raise ValueError("provider must be a non-empty string")
+        if not isinstance(series_type, str) or not series_type.strip():
+            raise ValueError("series_type must be a non-empty string")
+        if not isinstance(durable_cursor, int) or isinstance(durable_cursor, bool) or durable_cursor < 0:
+            raise ValueError("durable_cursor must be a non-negative integer")
+        provider = provider.strip().lower()
+        series_type = series_type.strip().lower()
+        identity = (
+            provider, dataset, publisher_id, instrument_id, series_type,
+            raw_symbol, timeframe, bucket_policy, calendar_id, calendar_version,
+        )
+        if any(self.identity_for(bar) != identity for bar in bars):
+            raise ValueError("Snapshot contains bars outside the requested exact series identity")
+        stream_id = uuid.uuid4().hex
+        subscription = OhlcvStreamSubscription(
+            stream_id=stream_id,
+            identity=identity,
+            queue=asyncio.Queue(maxsize=self._queue_capacity),
+            durable_cursor=durable_cursor,
+        )
+        self._subscriptions[stream_id] = subscription
+        return subscription, list(bars), total
+
     def publish(
         self, bar: OhlcvBar, *, durable_cursor: int | None = None,
         durable_event_id: str | None = None,
