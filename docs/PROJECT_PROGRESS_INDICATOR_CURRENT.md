@@ -2812,3 +2812,15 @@ See `docs/INDICATOR_PROGRESS_LEDGER.md` for formula definitions, first-valid ind
 - Latest code/test commits: `cdfbe6c4adea61da0f8c95a495d28845b98a3c7e`, `d76a8241d23336bae679923fc4d5be632abf07cf`, `fe9f93cb8938bf46eee404bcd6c9117067d8e06b`, `31a7bd7da63d26aff77d65c50d4624baccb6740e`, `2c983704ce1846716aed224bc16967a90ec53ee4`. Documentation commit: `2ed424b2139b96f06892697f1cfaa228c3af17d3`.
 - CI for the final batch head is not yet verified. No WebSocket endpoint wiring, worker startup, Vercel/Cloudflare deployment, paid service, or Termux requirement.
 - Indicator statuses are unchanged. Stage 1 remains 75% provisional (30/40 criteria; 300/400 ticks); Gate 10 remains 0/10 closed; Stages 2–6 unscored; overall weighted project percentage not established.
+
+
+## Batch 62J-6 — event-loop dispatch
+
+- Added `backend/app/ohlcv_event_loop.py` with `EventLoopCallbackDispatcher`, using `asyncio.run_coroutine_threadsafe` to execute callbacks on the owner loop and synchronously await completion before Redis ACK.
+- Added `backend/tests/test_ohlcv_event_loop.py` for owner-thread execution, awaitable callback completion, exception propagation, same-loop deadlock rejection and closed-loop rejection. Tests use standard-library `asyncio.run`; no additional pytest plugin/dependency.
+- Added real Redis 7 integration test connecting the consumer callback to `forward_replica_event` and verifying hub notification is queued before consumer ACK completes.
+- Documentation: `docs/WORK_CYCLE_2026-11-19_BATCH62J6_EVENT_LOOP_DISPATCH.md`.
+- Code/test commits: `9106c160f085197396fc46c991003819c4447c36`, `11632604f4b211770689b43dca9fb1b5e713ac01`, `848c86b47ab481adb625745cc57298d7879c74a1`, `59ca7749ffa3aceb2ce58b93b36b4d5a0d95d637`. Documentation commit: `f240976c14a5fcbdd3912bb82c05a6fe5c88b4df`.
+- No production `main.py` startup wiring. The timeout cannot forcibly interrupt a synchronous callback already running; durable cursor idempotency remains mandatory. Redis replay integration, dedicated relay ACL, worker lifecycle/drain, and multi-ASGI E2E remain open.
+- CI exact-head status must be verified before any green status is claimed. No deployment, paid service, or Termux requirement.
+- Indicator statuses unchanged. Stage 1 remains 75% provisional (30/40 criteria; 300/400 ticks); Gate 10 remains 0/10 closed; Stages 2–6 unscored; overall weighted project percentage not established.
