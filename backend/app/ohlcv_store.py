@@ -1226,6 +1226,13 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                     "ALTER TABLE ohlcv_replica_checkpoint "
                     "ADD COLUMN bar_retention_json TEXT NOT NULL DEFAULT '{}'"
                 )
+            db.execute(
+                """CREATE TABLE IF NOT EXISTS ohlcv_replica_applied_events (
+                    cursor INTEGER PRIMARY KEY NOT NULL CHECK(cursor > 0),
+                    event_id TEXT NOT NULL UNIQUE,
+                    payload_sha256 TEXT NOT NULL
+                )"""
+            )
             db.execute("COMMIT")
         except Exception:
             if db.in_transaction:
@@ -1273,6 +1280,300 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                 "schema_version": int(row["schema_version"]),
                 "protocol_version": int(row["protocol_version"]),
             }
+        finally:
+            db.close()
+
+    def apply_replica_event(
+        self,
+        event: dict[str, object],
+        *,
+        source_id: str,
+        retention_floor: int | None = None,
+    ) -> dict[str, object]:
+        """Apply one contiguous authoritative outbox event atomically.
+
+        A successful return means the local bars, deduplication record and
+        global checkpoint have committed together. Callers may ACK a durable
+        transport message only after this method returns status="applied" or
+        status="duplicate".
+        """
+        if not isinstance(source_id, str) or not source_id.strip():
+            raise ValueError("source_id must be a non-empty string.")
+        if not isinstance(event, dict) or set(event) != {
+            "type", "version", "eventId", "operation", "series", "bar", "cursor",
+        }:
+            raise ValueError("Replica event envelope does not match the canonical contract.")
+        if (
+            event.get("type") != "market_data.ohlcv.update"
+            or type(event.get("version")) is not int
+            or event["version"] != 1
+            or event.get("operation") != "upsert"
+        ):
+            raise ValueError("Replica event type, version or operation is unsupported.")
+
+        event_id = event.get("eventId")
+        cursor = event.get("cursor")
+        if not isinstance(event_id, str) or not event_id.strip():
+            raise ValueError("Replica event ID must be a non-empty string.")
+        if type(cursor) is not int or cursor < 1:
+            raise ValueError("Replica event cursor must be a positive integer.")
+
+        series = event.get("series")
+        payload = event.get("bar")
+        series_fields = {
+            "provider", "dataset", "publisherId", "instrumentId", "seriesType",
+            "rawSymbol", "timeframe", "bucketPolicy", "calendarId",
+            "calendarVersion",
+        }
+        bar_fields = {
+            "dataset", "provider", "publisherId", "instrumentId", "rawSymbol",
+            "seriesType", "timeframe", "bucketPolicy", "calendarId",
+            "calendarVersion", "tsStartNs", "open", "high", "low", "close",
+            "volume", "tsEventNs", "tsReceivedNs", "tsProviderOutNs",
+            "sequence", "sequenceOrigin", "origin", "completeness",
+        }
+        if not isinstance(series, dict) or set(series) != series_fields:
+            raise ValueError("Replica event series identity is incomplete or unknown.")
+        if not isinstance(payload, dict) or set(payload) != bar_fields:
+            raise ValueError("Replica event bar schema is incomplete or unknown.")
+
+        string_fields = (
+            "provider", "dataset", "seriesType", "rawSymbol", "timeframe",
+            "bucketPolicy", "calendarId", "calendarVersion", "open", "high",
+            "low", "close", "volume", "sequenceOrigin", "origin", "completeness",
+        )
+        integer_fields = ("publisherId", "instrumentId", "sequence")
+        timestamp_fields = ("tsStartNs", "tsEventNs", "tsReceivedNs")
+        if any(not isinstance(payload[field], str) for field in string_fields):
+            raise ValueError("Replica event decimal and string fields must be strings.")
+        if any(type(payload[field]) is not int for field in integer_fields):
+            raise ValueError("Replica event identifiers and sequence must be integers.")
+        for field in timestamp_fields:
+            value = payload[field]
+            if (
+                not isinstance(value, str)
+                or not value.isascii()
+                or not value.isdecimal()
+                or str(int(value)) != value
+            ):
+                raise ValueError("Replica event nanosecond timestamps must be canonical integer strings.")
+        provider_out = payload["tsProviderOutNs"]
+        if provider_out is not None and (
+            not isinstance(provider_out, str)
+            or not provider_out.isascii()
+            or not provider_out.isdecimal()
+            or str(int(provider_out)) != provider_out
+        ):
+            raise ValueError("Replica event provider timestamp must be a canonical integer string or null.")
+
+        series_to_bar = {
+            "provider": "provider",
+            "dataset": "dataset",
+            "publisherId": "publisherId",
+            "instrumentId": "instrumentId",
+            "seriesType": "seriesType",
+            "rawSymbol": "rawSymbol",
+            "timeframe": "timeframe",
+            "bucketPolicy": "bucketPolicy",
+            "calendarId": "calendarId",
+            "calendarVersion": "calendarVersion",
+        }
+        if any(series[key] != payload[value] for key, value in series_to_bar.items()):
+            raise ValueError("Replica event series and bar identities disagree.")
+
+        try:
+            bar = OhlcvBar(
+                provider=payload["provider"],
+                dataset=payload["dataset"],
+                publisher_id=payload["publisherId"],
+                instrument_id=payload["instrumentId"],
+                series_type=payload["seriesType"],
+                timeframe=payload["timeframe"],
+                ts_start_ns=int(payload["tsStartNs"]),
+                raw_symbol=payload["rawSymbol"],
+                open=Decimal(payload["open"]),
+                high=Decimal(payload["high"]),
+                low=Decimal(payload["low"]),
+                close=Decimal(payload["close"]),
+                volume=Decimal(payload["volume"]),
+                ts_event_ns=int(payload["tsEventNs"]),
+                ts_received_ns=int(payload["tsReceivedNs"]),
+                sequence=payload["sequence"],
+                sequence_origin=payload["sequenceOrigin"],
+                origin=payload["origin"],
+                completeness=payload["completeness"],
+                ts_provider_out_ns=None if provider_out is None else int(provider_out),
+                bucket_policy=payload["bucketPolicy"],
+                calendar_id=payload["calendarId"],
+                calendar_version=payload["calendarVersion"],
+            )
+        except (TypeError, ValueError, ArithmeticError) as exc:
+            raise ValueError("Replica event contains an invalid canonical OHLCV bar.") from exc
+
+        payload_digest = hashlib.sha256(
+            json.dumps(event, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        if retention_floor is not None and (
+            type(retention_floor) is not int or retention_floor < 0
+        ):
+            raise ValueError("retention_floor must be a non-negative integer.")
+
+        db = self._connect()
+        try:
+            db.execute("BEGIN IMMEDIATE")
+            checkpoint = db.execute(
+                """SELECT source_id,applied_cursor,retention_floor,bar_retention_json
+                FROM ohlcv_replica_checkpoint LIMIT 1"""
+            ).fetchone()
+            if checkpoint is None:
+                raise RuntimeError("Replica must install an authoritative snapshot before event apply.")
+            if str(checkpoint["source_id"]) != source_id:
+                raise ValueError("Replica event source identity does not match its checkpoint.")
+
+            current_cursor = int(checkpoint["applied_cursor"])
+            current_floor = int(checkpoint["retention_floor"])
+            if retention_floor is not None and retention_floor > current_cursor:
+                db.execute("ROLLBACK")
+                return {
+                    "status": "resnapshot_required",
+                    "reason": "retention_expired",
+                    "applied_cursor": current_cursor,
+                    "retention_floor": retention_floor,
+                }
+
+            if cursor <= current_cursor:
+                by_cursor = db.execute(
+                    "SELECT event_id,payload_sha256 FROM ohlcv_replica_applied_events WHERE cursor=?",
+                    (cursor,),
+                ).fetchone()
+                by_event = db.execute(
+                    "SELECT cursor,payload_sha256 FROM ohlcv_replica_applied_events WHERE event_id=?",
+                    (event_id,),
+                ).fetchone()
+                if by_cursor is None and by_event is None:
+                    db.execute("ROLLBACK")
+                    return {
+                        "status": "stale",
+                        "cursor": cursor,
+                        "applied_cursor": current_cursor,
+                    }
+                if (
+                    by_cursor is not None and by_event is not None
+                    and str(by_cursor["event_id"]) == event_id
+                    and int(by_event["cursor"]) == cursor
+                    and str(by_cursor["payload_sha256"]) == payload_digest
+                    and str(by_event["payload_sha256"]) == payload_digest
+                ):
+                    db.execute("ROLLBACK")
+                    return {
+                        "status": "duplicate",
+                        "cursor": cursor,
+                        "applied_cursor": current_cursor,
+                    }
+                raise ValueError("Replica event ID/cursor conflicts with an already applied event.")
+
+            if cursor > current_cursor + 1:
+                db.execute("ROLLBACK")
+                return {
+                    "status": "resnapshot_required",
+                    "reason": "cursor_gap",
+                    "expected_cursor": current_cursor + 1,
+                    "received_cursor": cursor,
+                    "applied_cursor": current_cursor,
+                }
+
+            duplicate_cursor = db.execute(
+                "SELECT event_id FROM ohlcv_replica_applied_events WHERE cursor=?",
+                (cursor,),
+            ).fetchone()
+            duplicate_event = db.execute(
+                "SELECT cursor FROM ohlcv_replica_applied_events WHERE event_id=?",
+                (event_id,),
+            ).fetchone()
+            if duplicate_cursor is not None or duplicate_event is not None:
+                raise ValueError("Replica event ID or cursor is already assigned to another event.")
+
+            existing_bar = db.execute(
+                """SELECT raw_symbol FROM ohlcv_bars WHERE provider=? AND dataset=?
+                AND publisher_id=? AND instrument_id=? AND series_type=?
+                AND timeframe=? AND ts_start_ns=? AND bucket_policy=?
+                AND calendar_id=? AND calendar_version=?""",
+                (
+                    bar.provider, bar.dataset, bar.publisher_id, bar.instrument_id,
+                    bar.series_type, bar.timeframe, bar.ts_start_ns,
+                    bar.bucket_policy, bar.calendar_id, bar.calendar_version,
+                ),
+            ).fetchone()
+            if existing_bar is not None and str(existing_bar["raw_symbol"]) != bar.raw_symbol:
+                raise ValueError("Replica bar primary-key identity conflicts with raw_symbol.")
+
+            if bar.sequence_origin == "local":
+                db.execute(
+                    """INSERT INTO ohlcv_store_state(state_key,int_value)
+                    VALUES ('max_local_sequence',?)
+                    ON CONFLICT(state_key) DO UPDATE SET
+                        int_value=MAX(int_value,excluded.int_value)""",
+                    (bar.sequence,),
+                )
+            db.execute(_REPLICA_INSERT_SQL.replace(
+                "INSERT INTO ohlcv_bars", "INSERT OR REPLACE INTO ohlcv_bars", 1
+            ), self._values(bar))
+
+            retention = json.loads(checkpoint["bar_retention_json"])
+            cap = retention.get(bar.timeframe)
+            if type(cap) is not int or cap < MIN_RETENTION[bar.timeframe]:
+                raise RuntimeError("Replica checkpoint has invalid bar-retention metadata.")
+            db.execute(
+                """DELETE FROM ohlcv_bars WHERE provider=? AND dataset=?
+                AND publisher_id=? AND instrument_id=? AND series_type=?
+                AND raw_symbol=? AND timeframe=? AND bucket_policy=?
+                AND calendar_id=? AND calendar_version=? AND ts_start_ns NOT IN (
+                    SELECT ts_start_ns FROM ohlcv_bars
+                    WHERE provider=? AND dataset=? AND publisher_id=?
+                    AND instrument_id=? AND series_type=? AND raw_symbol=?
+                    AND timeframe=? AND bucket_policy=? AND calendar_id=?
+                    AND calendar_version=? ORDER BY ts_start_ns DESC LIMIT ?
+                )""",
+                (
+                    bar.provider, bar.dataset, bar.publisher_id, bar.instrument_id,
+                    bar.series_type, bar.raw_symbol, bar.timeframe,
+                    bar.bucket_policy, bar.calendar_id, bar.calendar_version,
+                    bar.provider, bar.dataset, bar.publisher_id, bar.instrument_id,
+                    bar.series_type, bar.raw_symbol, bar.timeframe,
+                    bar.bucket_policy, bar.calendar_id, bar.calendar_version, cap,
+                ),
+            )
+            db.execute(
+                """INSERT INTO ohlcv_replica_applied_events(cursor,event_id,payload_sha256)
+                VALUES (?,?,?)""",
+                (cursor, event_id, payload_digest),
+            )
+            db.execute(
+                "DELETE FROM ohlcv_replica_applied_events WHERE cursor<=?",
+                (max(0, cursor - OUTBOX_MAX_EVENTS),),
+            )
+            observed_floor = current_floor
+            if retention_floor is not None:
+                observed_floor = max(current_floor, retention_floor)
+            updated = db.execute(
+                """UPDATE ohlcv_replica_checkpoint
+                SET applied_cursor=?,retention_floor=?
+                WHERE source_id=? AND applied_cursor=?""",
+                (cursor, observed_floor, source_id, current_cursor),
+            )
+            if updated.rowcount != 1:
+                raise RuntimeError("Replica checkpoint changed during event application.")
+            db.execute("COMMIT")
+            return {
+                "status": "applied",
+                "cursor": cursor,
+                "applied_cursor": cursor,
+                "retention_floor": observed_floor,
+            }
+        except Exception:
+            if db.in_transaction:
+                db.execute("ROLLBACK")
+            raise
         finally:
             db.close()
 
