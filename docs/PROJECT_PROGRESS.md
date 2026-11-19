@@ -1,3 +1,38 @@
+# CURRENT INDICATOR AND PROJECT PROGRESS — 19 NOVEMBER 2026 (BATCH 52)
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Stage 1:** 30/40 criteria • 300/400 ticks • **75% provisional**  
+**Gate 10:** 0/10 formally closed • open criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, 39  
+**Overall project:** NOT ESTABLISHED; 20.9% is historical only until the proposed M1–M8 ledger is approved and scored.
+
+## Indicator implementation tracker
+
+| Indicator / layer | Repository evidence | Visible chart status |
+|---|---|---|
+| SMA 20 | Calculation function and unit tests | Not integrated into visible chart UI |
+| EMA 20 | Calculation function and unit tests | Not integrated into visible chart UI |
+| RSI 14 (Wilder) | Calculation function and unit tests | Not integrated into visible chart UI |
+| MACD | Calculation function and unit tests | Not integrated into visible chart UI |
+| Bollinger Bands | Calculation function and unit tests | Not integrated into visible chart UI |
+| Shared indicator hook | `useMarketIndicators()` consumes validated shared market-data state | Hook exists; no visible controls/panes |
+| Footprint | Deterministic simulated aggregation engine and fixtures | Visual implementation pending owner reference; OFF must preserve standard candle spacing |
+| Heatmap | No implementation verified | Pending owner reference and later scoped implementation |
+| Liquidation Maps | No implementation verified | Pending owner reference and later scoped implementation |
+
+**Indicator acceptance rule:** calculations must use the validated selected canonical instrument/timeframe series. DEMO, loading, unavailable and error states must not be represented as live values. Calculation helpers do not count as a finished visible indicator.
+
+## Batch 52 Gate 10 audit
+
+- Gate 36: isolated synthetic WSS preview READY and SSO protected; effective Fluid Compute and owner-browser/Android/330-second/cross-instance evidence still open.
+- Gate 38: metrics hardened and bounded to 127 series; aggregation, retention, host collector and dashboard access acceptance still open.
+- Gate 39: sanitized local alert transitions/recovery implemented and unit-tested; actual host collection, responsible adult operator, escalation and recovery drill still open.
+- Existing POC regression suite contains 10 tests for configuration, health, browser probe, ping/pong, fresh session, auto-ping, oversize, invalid payload, rate limit and idle close.
+- No Stage 1 ticks awarded for Batch 52 audit/documentation. No overall points awarded.
+
+Detailed audit: [WORK_CYCLE_2026-11-19_BATCH52_WEBSOCKET_GATE10_EVIDENCE_AUDIT.md](WORK_CYCLE_2026-11-19_BATCH52_WEBSOCKET_GATE10_EVIDENCE_AUDIT.md).
+
+---
+
 # DEZZTA CHART — Progress Record
 
 Last verified snapshot: 2026-11-05  
