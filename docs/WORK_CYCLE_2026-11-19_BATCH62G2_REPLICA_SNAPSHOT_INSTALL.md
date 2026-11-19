@@ -17,8 +17,11 @@ Added `SQLiteOhlcvReplicaStore` to `backend/app/ohlcv_store.py`.
 
 - A stable `replica_id` is created once for each gateway SQLite database.
 - A durable checkpoint stores upstream source ID, replica ID, applied cursor, snapshot generation, retention floor, schema version and protocol version.
+- Snapshot envelope format version 2 carries the complete per-timeframe bar-retention policy as well as the global outbox retention floor; the policy is persisted in the replica checkpoint.
 - Replica `source_id()` is blocked because the local gateway is not the authoritative source.
 - Replica `apply()` is blocked so the authoritative writer path cannot accidentally create an outbox echo.
+- Replica `export_global_snapshot()` is blocked so a local read model cannot masquerade as a new authoritative source.
+- A first install is refused unless the target is a dedicated empty OHLCV read-model database; existing bars or source outbox state are protected.
 
 ### Snapshot install algorithm
 
@@ -45,12 +48,13 @@ Added `SQLiteOhlcvReplicaStore` to `backend/app/ohlcv_store.py`.
 
 ## Regression coverage
 
-Four new test groups:
+Five new test groups:
 
 1. Successful installation across UTC and CME series; exact Decimal and nanosecond fidelity; checkpoint contents; stable replica ID after restart; no outbox echo; source-writer apply blocked.
 2. Wrong-source and stale-cursor snapshots rejected without mutation.
 3. A semantically invalid snapshot with a valid recomputed digest fails after an earlier batch has been inserted; rollback preserves the old bars and checkpoint.
 4. Numeric JSON decimal values rejected despite a valid manifest digest.
+5. An existing authoritative database cannot be reused as a replica target; its bars and outbox remain intact. Replica snapshot export is blocked.
 
 ## Capacity and operational analysis
 
@@ -78,6 +82,15 @@ Four new test groups:
 - `8e73cbc9c2e57bbf517dce024045dc59cac7749f` — correct newline framing in test-generated snapshot files.
 - `9c7217c3e9cf32ca7d53e1e07ec5a2b6607bc75c` — strict type checks before Decimal and timestamp construction.
 - `608ccddc249a7f7183feb41ff05f15bc75601d35` — reject numeric JSON Decimal regression test.
+- `0a5fe3b10e55f94de8ffdc0230be61de21e255d3` — add bar-retention policy to snapshot format v2 and replica checkpoint.
+- `4885eb0be9261d6d5d35fe97d87bd40b03d151c0` — prevent replacing non-empty authoritative databases.
+- `29e40aa59310b03693eb710f1b4b07106f720b7b` — return retention policy metadata from exporter.
+- `7e1b3186e29999aef642982bc3e14aa552ffe323` — test snapshot format and retention policy.
+- `13004e0d083c1ce0b466d22b5ed5aeefad6c4b47` — fix stale-cursor test JSON import.
+- `40883b0e194d35f4e894f57862e5bc208104579c` — test authoritative database protection.
+- `e4dbe1f899aa382438a144fb59e9584ae8d969bc` — align reported snapshot format version.
+- `09c0f5b8e82f710c18901cd4849bedce01d1ba1f` — block snapshot export from replica stores.
+- `3987c9dc46bd11ade96742c8da4867b594147051` — test replica export protection.
 - `82fa07c9c41d14ab0e379e714ca4ad89d9eeab2c` — full project and indicator progress checkpoint.
 - `e85860d024466973a928245b41ae4a56d35aa710` — ADR architecture update.
 - `195258d7d8ecaaf1d3f001ef2538672d35665da4` — link 62G-2 follow-up from the 62G-1 report.
