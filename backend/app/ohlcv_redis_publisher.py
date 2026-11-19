@@ -207,18 +207,6 @@ class SQLiteOhlcvPublisherCheckpoint:
             raise ValueError("now_ms must be a non-negative integer.")
         if type(ttl_ms) is not int or not 1 <= ttl_ms <= _MAX_LEASE_TTL_MS:
             raise ValueError(f"ttl_ms must be between 1 and {_MAX_LEASE_TTL_MS}.")
-        source_page = self.source_store.read_outbox_batch(
-            after_cursor=expected_cursor, limit=1,
-        )
-        if (
-            source_page.get("status") != "ok"
-            or not source_page.get("events")
-            or source_page["events"][0] != event
-        ):
-            raise RuntimeError(
-                "Confirmed event does not match the next retained authoritative outbox record."
-            )
-
         source_id = self.source_store.source_id()
         db = self._connect()
         try:
@@ -313,6 +301,18 @@ class SQLiteOhlcvPublisherCheckpoint:
         expected_stream_id = f"{cursor}-0"
         if stream_id != expected_stream_id:
             raise ValueError("Redis Stream ID must equal the deterministic cursor ID.")
+
+        source_page = self.source_store.read_outbox_batch(
+            after_cursor=expected_cursor, limit=1,
+        )
+        if (
+            source_page.get("status") != "ok"
+            or not source_page.get("events")
+            or source_page["events"][0] != event
+        ):
+            raise RuntimeError(
+                "Confirmed event does not match the next retained authoritative outbox record."
+            )
 
         source_id = self.source_store.source_id()
         db = self._connect()
