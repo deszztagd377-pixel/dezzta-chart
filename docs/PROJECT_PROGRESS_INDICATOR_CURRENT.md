@@ -2279,3 +2279,14 @@ This audit made no indicator code or formula changes. The full detailed ledger a
 Footprint OFF must preserve normal candle spacing. Do not begin Footprint/Heatmap/Liquidation visual implementation before receiving the corresponding owner reference images and reviewing the scoped blueprint. Stage 4 visible UI remains parked while Stage 1 is active.
 
 **Accounting unchanged:** Stage 1 75% provisional (30/40; 300/400); Gate 10 0/10 closed (all OPEN); Stages 2–6 NOT SCORED; overall percentage NOT ESTABLISHED because M1–M8 weights are not approved. No ticks or gate closure from this audit. ZERO COST; no deployment; no Termux; `main` untouched.
+
+
+# BATCH 62G-4 — exact-head CI regression repair (19 November 2026)
+
+The Automated Tests workflow for `f093061f144120257fcb6d1eda44d51f966376ae` reported **1,061 passed / 1 failed**. Frontend unit tests/build passed and CodeQL succeeded. The sole failure was `test_replica_snapshot_rejects_numeric_decimal_fields_even_with_valid_digest`: the test fixture wrote literal backslash-n sequences instead of actual JSONL newlines, so parsing failed at the header before the intended Decimal type assertion.
+
+The test fixture in `backend/tests/test_ohlcv_store.py` was corrected to hash and write actual newline-delimited records. Production snapshot validation was not weakened or changed. Repair commit: `eeaf1586886a1c3aec2be1a32e6c182a6085ea81`. Exact-head CI for the repair commit remains pending; do not mark the test green until its run completes.
+
+**Indicator status unchanged:** SMA20, EMA20, RSI14, MACD12/26/9 and Bollinger20,2 have calculation/fixture foundations but visible integration remains pending; shared hook needs chart binding/loading/error/stale clearing; Footprint remains SIMULATED and reference/blueprint-gated; Heatmap and Liquidation Maps remain unimplemented. Footprint OFF retains normal candle spacing; explicit ON alone enables spaced clusters. The complete formula, warm-up, tests and remaining-work ledger above remains canonical.
+
+**Accounting unchanged:** Stage 1 75% provisional (30/40; 300/400); Gate 10 0/10 closed; Stages 2–6 NOT SCORED; overall project percentage NOT ESTABLISHED. No ticks or gates are awarded by this repair. ZERO COST; no deploy; no Termux; `main` untouched.
