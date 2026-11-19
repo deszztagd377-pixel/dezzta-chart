@@ -120,3 +120,27 @@ The backend application factory still creates one OhlcvPipeline, one process-loc
 **Implementation gate:** do not wire Redis Streams into application startup until writer ownership, source identity, replica apply without outbox re-emission, cursor/watermark consistency, catalog/entitlement synchronization and retention-triggered resnapshot are implemented and tested together. The next safe work is 62F–62J CI-only implementation/testing, followed by owner acceptance 62K. No deployment or paid infrastructure is authorized.
 
 The current indicator ledger and progress values are unchanged: Stage 1 75% provisional; Gate 10 0/10 closed; Stages 2–6 not scored; overall project percentage not established. No ticks are awarded for this audit.
+
+
+
+## Batch 62G — owner-approved integrated topology and global snapshot blocker
+
+Owner approved combining the eight architecture points into one dependency-ordered multi-work cycle. The detailed implementation contract and test matrix are recorded in `docs/WORK_CYCLE_2026-11-19_BATCH62G_INTEGRATED_WEBSOCKET_BLUEPRINT.md`.
+
+A further source review narrowed the snapshot constraint: `query_snapshot()` is a valid scoped snapshot primitive, but its default bucket/calendar filters omit calendar-qualified CME session rows. It therefore cannot be reused unchanged as a complete replica snapshot. A per-instrument snapshot also cannot advance a global cursor. Independently paginating separate SQLite read transactions would produce a mixed-time snapshot under concurrent writes; collecting every row into one unbounded in-memory list is not an acceptable capacity assumption.
+
+**Required correction before replica checkpointing:** add a bounded immutable snapshot generation/manifest (or equivalent stable transfer mechanism) that captures all retained series identities and one global high-water in a single source read view. The replica may publish the snapshot watermark only after all pages, counts/hashes and series coverage validate and the complete local snapshot is atomically installed.
+
+Integrated eight-point delivery order:
+1. Full retained snapshot generation and atomic installation.
+2. Stable source/replica identity and local checkpoint schema.
+3. Transactional idempotent replica apply without source-outbox echo.
+4. Deterministic Redis Streams append and one independent consumer group per gateway.
+5. Apply-before-ACK, pending reclaim and crash-safe local publication.
+6. Two independent backend processes/read models with parity checks.
+7. Failure/recovery matrix including Redis outage, cursor gap and retention expiry.
+8. Owner-side Gate 25/36 acceptance, only with real infrastructure and browser/WebView evidence.
+
+Cursor rules: only `E=C+1` is eligible for apply; `E<=C` is duplicate/stale and must not mutate or regress; `E>C+1` is a gap requiring resnapshot. Bar mutation and checkpoint update are one SQLite transaction. Redis ACK follows commit. Replica apply must never emit a new source outbox event.
+
+No Redis Streams publisher/consumer is activated at application startup until all eight points have implementation and test evidence. No SQLite WAL is shared between hosts. CI/local Redis remains supporting evidence, not Gate 25/36 owner acceptance.
