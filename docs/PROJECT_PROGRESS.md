@@ -1,3 +1,43 @@
+# CURRENT INDICATOR AND PROJECT PROGRESS — 19 NOVEMBER 2026 (BATCH 53)
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Exact-head CI:** Automated Tests [44468970676](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44468970676) SUCCESS • CodeQL [44468970595](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44468970595) SUCCESS • Secret Audit [44468970614](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44468970614) SUCCESS  
+**Test totals:** Frontend 234/234 (28 files) • Backend 1,032/1,032 • npm audit 0 vulnerabilities • CI container/persistent-volume smoke PASS  
+**Stage 1:** 30/40 criteria • 300/400 ticks • **75% provisional**  
+**Gate 10:** 0/10 formally closed • open 8, 20, 25, 30, 31, 34, 35, 36, 38, 39  
+**Overall project:** NOT ESTABLISHED; 20.9% remains historical only until M1–M8 ledger is approved and scored.
+
+## Technical indicator implementation tracker — Batch 53
+
+| Indicator / layer | Verified repository evidence | Visible chart status | Roadmap status |
+|---|---|---|---|
+| SMA 20 | Calculation + tests; warm-up alignment | Not integrated | Stage 4 parked |
+| EMA 20 | Calculation + tests; seeded SMA warm-up | Not integrated | Stage 4 parked |
+| RSI 14 (Wilder) | Calculation + tests; index 14 warm-up | Not integrated | Stage 4 parked |
+| MACD 12/26/9 | Calculation + tests; line index 25, signal index 33 | Not integrated | Stage 4 parked |
+| Bollinger Bands 20,2 | Calculation + tests; population deviation | Not integrated | Stage 4 parked |
+| Shared `useMarketIndicators()` | Reads exact validated shared backend snapshot; suppresses DEMO/loading/unavailable/error values | Hook exists; no controls/panes | Stage 4 parked |
+| Footprint | Deterministic offline simulated aggregation + fixtures | Visual implementation pending owner reference; OFF preserves normal candle spacing | Separately gated |
+| Heatmap | No implementation verified | Not implemented | Wait for owner reference |
+| Liquidation Maps | No implementation verified | Not implemented | Wait for owner reference |
+
+**Exact-head indicator test evidence:** 7 indicator calculation tests passed within the 234 frontend tests. Tests cover all 18 configured chart timeframes, warm-up alignment, Wilder RSI, MACD signal warm-up, Bollinger population standard deviation and invalid-input rejection.
+
+**No fabricated completion:** calculation helpers and a shared hook are groundwork, not finished visible indicators. Stage 4 is not opened; no indicator UI work is authorized during Stage 1. Footprint/Heatmap/Liquidation visual implementation remains gated on owner references and scoped review.
+
+## Batch 53 Gate 10 evidence update
+
+- **Gate 30:** integrated encrypted application backup → decrypt → fresh-path restore drill is CI-verified; owner target-host restore remains OPEN.
+- **Gate 31:** AES-256-GCM/PBKDF2 implementation and tamper/wrong-key tests pass; off-host artifact and separate recovery-key custody remain OPEN.
+- **Gate 34:** CI verifies mounted-volume ownership, SQLite integrity and restart persistence; actual owner-host volume/disk-pressure evidence remains OPEN.
+- **Gate 36:** WSS preview READY and SSO-protected; no runtime logs/errors observed in the queried window, but no browser/Android WSS round-trip or 330-second platform-lifetime evidence. Effective Fluid Compute setting is not exposed by the current project read-back.
+- **Gates 8, 20, 25, 35, 38, 39:** remain OPEN for external host/provider/operator acceptance.
+- No Gate 10 closure, Stage 1 tick, or overall-project point awarded in Batch 53.
+
+Detailed report: [WORK_CYCLE_2026-11-19_BATCH53_CI_GATE10_WSS_INDICATOR_AUDIT.md](WORK_CYCLE_2026-11-19_BATCH53_CI_GATE10_WSS_INDICATOR_AUDIT.md).
+
+---
+
 # CURRENT INDICATOR AND PROJECT PROGRESS — 19 NOVEMBER 2026 (BATCH 52)
 
 **Active branch:** `phase-2/market-data-foundation`  
