@@ -1,3 +1,63 @@
+# LATEST CHECKPOINT — BATCH 62G INTEGRATED WEBSOCKET BLUEPRINT APPROVED
+
+**Date:** 19 November 2026 • **Branch:** `phase-2/market-data-foundation`  
+**Baseline:** `1cb577c1de31e7a5c286075da5cf8f770b2c16e1` • **Blueprint commit:** `e25356ec66e49ab5b98918e602c746ce8b552fe3`  
+**Owner decision:** APPROVED — combine all eight WebSocket architecture points into one dependency-ordered multi-work cycle.  
+**Cost:** ZERO COST • no deployment • no paid service • no Termux • `main` untouched.
+
+## Batch 62F exact-head CI — 3/3 SUCCESS
+
+- Automated Tests + Build [44500814706](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44500814706): SUCCESS. Frontend tests/build, backend tests, bounded SQLite outbox benchmark, dependency audit, container build/smoke, image scan and report upload all completed.
+- CodeQL [44500815399](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44500815399): Python and JavaScript/TypeScript SUCCESS.
+- Full Git History Secret Audit [44500814616](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44500814616): SUCCESS.
+
+CI is supporting repository evidence only; no owner-host Gate 10 acceptance is inferred.
+
+## Batch 62G — integrated WebSocket blueprint
+
+Created `docs/WORK_CYCLE_2026-11-19_BATCH62G_INTEGRATED_WEBSOCKET_BLUEPRINT.md`.
+
+The eight approved points are consolidated into one work cycle:
+1. Full retained read-model snapshot with all series/calendar identities and one consistent global watermark.
+2. Stable source/replica identity and durable per-gateway checkpoint schema.
+3. Atomic, idempotent replica apply without source-outbox echo.
+4. Redis Streams publisher with deterministic retry identity and independent consumer groups per gateway.
+5. Apply-before-ACK ordering, crash recovery, pending reclaim and safe local hub publication.
+6. Two independent backend processes and read-model/watermark parity.
+7. Failure matrix: duplicate, stale, out-of-order, gap, malformed/conflicting event, restart, Redis outage, retention expiry and interrupted snapshot.
+8. Gate 25/36 owner acceptance: independent deployed instances, owner Redis, public WSS, browser/WebView and 330-second close attribution.
+
+### Newly confirmed blocker — global snapshot semantics
+
+The existing `query_snapshot()` is a correct scoped bars+watermark transaction, but it is not yet a complete global replica snapshot:
+- Default filters omit calendar-qualified CME session series.
+- Per-instrument snapshots cannot advance a global cursor.
+- Independently paginated read transactions can represent different source moments.
+- Unbounded in-memory materialization risks memory pressure.
+
+**Resolution path:** implement a bounded immutable snapshot generation/manifest or equivalent stable snapshot transfer, covering every retained series identity and one global watermark. Only after every page and manifest validates may the replica atomically install the snapshot and set its global checkpoint. No partial relay activation.
+
+### Replica cursor invariant
+
+For durable replica cursor (C) and incoming cursor (E):
+- (E=C+1): validate and apply transactionally.
+- (E\le C): duplicate/stale path; never mutate or regress checkpoint.
+- (E>C+1): integrity gap; stop and require resnapshot.
+
+Bar apply + checkpoint update must share one SQLite transaction. Redis ACK must follow that commit. Replica apply must not append a source outbox event.
+
+## Current project accounting
+
+- Stage 1: **75% provisional** — 30/40 criteria; 300/400 ticks.
+- Gate 10: **0/10 formally closed** — all ten remain OPEN.
+- Stages 2–6: **NOT SCORED**.
+- Overall project percentage: **NOT ESTABLISHED** — M1–M8 weights remain unapproved.
+- Blueprint documentation earns no Stage ticks or Gate closures.
+
+**Full indicator ledger and prior verified history are retained below unchanged.**
+
+---
+
 # LATEST VERIFIED CHECKPOINT — BATCH 62F OUTBOX CURSOR-INTEGRITY GUARD
 
 **Date:** 19 November 2026 • **Branch:** `phase-2/market-data-foundation`  
