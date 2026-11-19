@@ -1498,3 +1498,77 @@ No indicator implementation state changed in this CI-only batch. Preserve the fu
 - Overall project score: **NOT ESTABLISHED** pending approved M1–M8 weights and criterion mapping.
 
 **Batch 59 conclusion:** all exact-head CI workflows passed; no source edit was warranted; no external gate is falsely marked closed. No Vercel/Cloudflare deployment, no paid service, no Termux action and no `main` change.
+
+
+
+# BATCH 60 — Gate 10 zero-cost acceptance matrix and evidence quality controls (19 November 2026)
+
+**Branch:** `phase-2/market-data-foundation`
+**Parent:** `ade070ab04fcefd8f4b49103afe191224996bccf`
+**Scope:** documentation/evidence planning only; no production credentials, external service mutation, or source behavior change.
+**Cost:** ZERO • **Deployment:** none • **Termux:** not required • `main`: untouched.
+
+## 1. CI state and correction of evidence labels
+
+Batch 58 source HEAD `5099033ed76fbf4d40d9b4a7e2f3250904145d75` has 3/3 CI workflows SUCCESS: Automated Tests + Build (run 44483259055), CodeQL (44483258942), and Full Git History Secret Audit (44483258991). Its evidence includes 28 frontend test files, 1,040 backend tests, frontend dependency audit with zero vulnerabilities, backend dependency audit with no known vulnerabilities, backend container build, Redis/persistent-volume smoke, and completion of Trivy HIGH/CRITICAL scan/report export. No zero-finding Trivy claim is made.
+
+Batch 59 documentation commit `ade070ab04fcefd8f4b49103afe191224996bccf` triggered a separate CI set: Automated Tests + Build run 44483765684, CodeQL run 44483765691, and Full Git History Secret Audit run 44483766211. At the latest verified read-back for this batch, CodeQL and Secret Audit were SUCCESS; Automated Tests was still executing the backend container image scan/report workflow. Do not label the Batch 59 commit 3/3 PASS until run 44483765684 reaches completed/success. The dashboard distinguishes source-head CI from docs-commit CI.
+
+## 2. Gate 10 — evidence acceptance matrix
+
+All ten formal gates remain OPEN. The plan consolidates work into five evidence packs to reduce repeated setup while preserving each gate's independent acceptance decision.
+
+| Pack | Gates | Zero-cost work already evidenced | Required owner-side acceptance artifact | Pass condition / blocker |
+|---|---|---|---|---|
+| A — identity + shared guard | 20, 25 | Firebase verifier source checks issuer/audience/subject/auth_time and revocation; Redis guard tests atomic limits, ticket consume, lease lifecycle, TLS/ACL policy; CI Redis smoke | Redacted real-project matrix for valid, expired, revoked, wrong-project tokens; independent Redis ACL/TLS identity; two-instance consume/renew/release; Redis outage + recovery trace | All identity cases reject/accept correctly; ticket single-use across instances; no over-limit lease; fail-closed outage and bounded recovery. Missing real Firebase project and owner Redis endpoint. |
+| B — WSS runtime | 36 | Frontend/backend protocol tests for auth, ticket renewal, heartbeat/pong, cursor replay, sequence gaps, observer isolation and close fallback | Existing public HTTPS/WSS endpoint; real Upgrade + authenticated session; foreground/background browser and Android WebView; timed 330-second run with platform close attribution; two-instance fan-out trace | Real authenticated WSS round-trip, correct renewal/reconnect and fan-out, bounded/attributed close. Must not create a new deployment solely to obtain evidence. |
+| C — recovery + persistence | 30, 31, 34 | SQLite online backup/restore integrity and readback tests; AES-GCM encrypted backup tests; container persistent-volume smoke | Actual owner target-database restore record; encrypted artifact copied to an already-available zero-cost off-host destination; separately controlled recovery-key custody; retention/access record; owner-host mount/restart/disk-pressure trace | Restore passes integrity, FK, schema/domain checks and post-restore write/read; off-host recovery works without co-located key; data survives host restart and disk-pressure handling. Off-host destination/key custody currently unproven. |
+| D — runtime boundary + ingress | 8, 35 | Source/bundle/history secret scans, production configuration validation, container/health checks | Owner-host masked secret injection and protected mount readback; public HTTPS/WSS certificate chain, renewal observation and external ingress scan; sanitized runtime logs | No secret in source/bundle/logs; only intended runtime identity can read mounts; public TLS and renewal pass. Never capture secret values in evidence. |
+| E — telemetry + incident response | 38, 39 | Bounded/sanitized metrics and local incident reporter tests; local recovery/dedup logic | Durable cross-instance collector, retention/rotation, protected dashboard access; named responsible operator, escalation route, alert receipt and acknowledgement/recovery drill | Metrics survive process restart and aggregate across instances; alert is actually received and acknowledged by an accountable operator. Local JSON log alone is insufficient. |
+
+## 3. Common evidence schema — required for every pack
+
+Each accepted drill must preserve: (1) unique evidence ID and gate IDs; (2) UTC start/end timestamps; (3) tested environment/service identifier with secrets and personal data redacted; (4) operator role (no credentials); (5) exact scenario and expected result; (6) observed result and pass/fail; (7) redacted logs/trace and cryptographic digest of the retained artifact; (8) recovery/cleanup outcome; (9) cost delta = zero; and (10) independent reviewer/owner acknowledgement. No bearer tokens, private keys, passwords, raw customer identifiers, or secret environment values may enter the report.
+
+A test fixture, fake Firebase project, local Redis, synthetic WSS endpoint, CI container, or documentation statement is supporting engineering evidence only. It cannot be promoted to owner production acceptance. If a prerequisite does not exist at zero incremental cost, record BLOCKED with the exact missing dependency; do not provision paid infrastructure or burn deployment quota to force a green state.
+
+## 4. Execution order and dependency logic
+
+1. Pack A first: Gate 20 identity correctness and Gate 25 shared ticket/lease atomicity are prerequisites for trusting public WSS authentication.
+2. Pack B second: Gate 36 only after A passes; reuse the existing owner-approved endpoint and devices. The 330-second observation must capture actual platform close attribution, not infer it from a timer.
+3. Pack C in one controlled maintenance window: combine Gate 30 restore, Gate 31 off-host/key separation and Gate 34 persistence/restart evidence. Keep recovery-key custody separate from the backup artifact.
+4. Pack D: verify runtime secret injection and ingress/certificate chain on the existing host without deployment or secret disclosure.
+5. Pack E: test durable telemetry and a real human acknowledgement after collector/retention/access controls exist.
+
+No gate closes automatically when another pack passes. Each gate requires its own evidence review. Formal closure count remains **0/10** until all its acceptance criteria are met.
+
+## 5. Indicator progress — complete ledger retained, no false completion credit
+
+The complete per-indicator ledger and formula contract in this file remain authoritative and unchanged by this documentation cycle:
+
+| Indicator | Current calculation/data foundation | Remaining visible/acceptance work | Status |
+|---|---|---|---|
+| SMA 20 | Rolling close mean; first valid index 19; tested | Chart overlay, toggle, legend/current value, identity/timeframe clearing, render tests | 🟨 Foundation |
+| EMA 20 | SMA-seeded EMA; first valid index 19; tested | Chart overlay and lifecycle/render acceptance | 🟨 Foundation |
+| RSI 14 | Wilder smoothing; first valid index 14; tested | 0–100 pane, 30/70 guides, toggle and render/lifecycle tests | 🟨 Foundation |
+| MACD 12/26/9 | MACD first index 25; signal/histogram first index 33; tested | Dedicated pane, two lines, histogram, zero guide and lifecycle/render tests | 🟨 Foundation |
+| Bollinger 20,2 | Population standard deviation; first valid index 19; tested | Three-line/band overlay, toggle, legend and render tests | 🟨 Foundation |
+| Shared indicator hook | Validated backend snapshot only; null for demo/loading/unavailable/error | Visible binding and stale-data clearing on instrument/timeframe changes | 🟨 Foundation |
+| Footprint | Deterministic bounded SIMULATED data only | Owner visual reference + reviewed blueprint + ON-only spaced cluster renderer | 🟨 Gated |
+| Heatmap | No implementation verified | Owner reference + blueprint + source contract, calculations, renderer and tests | 🟥 Not implemented |
+| Liquidation Maps | No implementation verified | Owner reference + blueprint + source contract, calculations, renderer and tests | 🟥 Not implemented |
+
+Calculation details remain: SMA20 rolling mean; EMA20 SMA-seeded with alpha 2/21; RSI14 Wilder; MACD EMA12−EMA26 with EMA9 signal; Bollinger20,2 using population standard deviation. Warm-up outputs remain null and index-aligned. Tests across 18 timeframe labels are fixture formula evidence, not provider data-quality or visible integration proof. No per-indicator percentage is invented.
+
+Visual invariants remain mandatory: Footprint OFF keeps ordinary candlestick layout and spacing; only explicit ON enables spaced cluster layout. Footprint/Heatmap/Liquidation Maps visual implementation requires the relevant owner reference image(s) and scoped blueprint review. Stage 1 remains active, so visible Stage 4 indicator work stays parked.
+
+## 6. Progress and release accounting
+
+- Stage 1: **75% provisional; 30/40 criteria; 300/400 ticks** — unchanged.
+- Gate 10: **0/10 formally closed; all ten OPEN**.
+- Stages 2–6: **NOT SCORED**.
+- Overall project percentage: **NOT ESTABLISHED**; historical 20.9% is not a current weighted score.
+- ZERO COST maintained. No Vercel/Cloudflare deployment, paid resource, production promotion, Termux operation, or `main` change.
+- Documentation-only evidence planning awards no stage/gate completion ticks.
+
+**Batch 60 disposition:** the work packages, evidence schema, dependency order and indicator ledger are documented. External acceptance blockers are explicitly isolated rather than hidden by CI or mock results.

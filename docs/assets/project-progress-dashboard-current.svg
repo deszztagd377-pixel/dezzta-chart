@@ -1,10 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1160" viewBox="0 0 1280 1160" role="img" aria-labelledby="title desc">
-<title id="title">DEZZTA CHART project progress — Batch 59 exact-head CI passed</title>
-<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 50 adds idempotent terminal notification for an already-CLOSED socket; Batch 49 preserves the 1006 fallback when explicit close() throws. Batch 51 deployed the verified source to an SSO-protected preview. Batch 52 audited the 10-test WSS POC suite, Gate 38 metrics and Gate 39 local alert reporter; host/browser acceptance remains pending. Batch 58 exact-head CI all pass: Automated Tests + Build, CodeQL, Full Git History Secret Audit. Frontend 28 test files and backend 1,040 tests pass; backend container Redis/persistent-volume smoke and Trivy HIGH/CRITICAL scan/report completed. Image zero-findings is not claimed. Gate 10 remains 0/10 formally closed; external acceptance remains open. Gate 10 0/10.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1280" viewBox="0 0 1280 1280" role="img" aria-labelledby="title desc">
+<title id="title">DEZZTA CHART project progress — Batch 60 Gate 10 acceptance plan</title>
+<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 50 adds idempotent terminal notification for an already-CLOSED socket; Batch 49 preserves the 1006 fallback when explicit close() throws. Batch 51 deployed the verified source to an SSO-protected preview. Batch 52 audited the 10-test WSS POC suite, Gate 38 metrics and Gate 39 local alert reporter; host/browser acceptance remains pending. Batch 58 source HEAD CI 3/3 PASS. Batch 59 docs commit: CodeQL + Secret Audit PASS; Automated Tests run 44483765684 pending final completion at Batch 60 creation. Never conflate tested source HEADs. Gate 10 remains 0/10 formally closed; external acceptance remains open. Gate 10 0/10.</desc>
 <rect width="1280" height="1160" rx="28" fill="#0b1220"/>
 <g font-family="Arial,sans-serif">
 <text x="48" y="58" fill="#f8fafc" font-size="32" font-weight="700">DEZZTA CHART — PROJECT PROGRESS</text>
-<text x="48" y="91" fill="#94a3b8" font-size="16">BATCH 59 • 19 NOV 2026 • phase-2/market-data-foundation • ZERO COST</text>
+<text x="48" y="91" fill="#94a3b8" font-size="16">BATCH 60 • 19 NOV 2026 • phase-2/market-data-foundation • ZERO COST</text>
 <rect x="44" y="122" width="370" height="220" rx="18" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
 <text x="70" y="164" fill="#d1fae5" font-size="21" font-weight="700">STAGE 1 — ACTIVE</text>
 <text x="70" y="235" fill="#fff" font-size="60" font-weight="700">75%</text>
@@ -39,7 +39,7 @@
 <text x="882" y="628" fill="#94a3b8" font-size="20" font-weight="700">NOT SCORED</text>
 <rect x="44" y="704" width="376" height="176" rx="14" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
 <text x="66" y="744" fill="#d1fae5" font-size="18" font-weight="700">CI — ALL CHECKS PASS</text>
-<text x="66" y="778" fill="#a7f3d0" font-size="15">Batch 59 exact-head CI: 3/3 PASS</text>
+<text x="66" y="778" fill="#a7f3d0" font-size="15">Batch 58 source CI: 3/3 PASS</text>
 <text x="66" y="807" fill="#a7f3d0" font-size="15">Frontend 28 files • Backend 1,040 tests PASS</text>
 <text x="66" y="836" fill="#a7f3d0" font-size="15">CodeQL • Secret Audit • Automated CI PASS</text>
 <rect x="452" y="704" width="376" height="176" rx="14" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
@@ -52,7 +52,7 @@
 <text x="882" y="778" fill="#fde68a" font-size="15">8, 20, 25, 30, 31</text>
 <text x="882" y="807" fill="#fde68a" font-size="15">34, 35, 36, 38, 39</text>
 <text x="882" y="836" fill="#fde68a" font-size="15">0 / 10 formally closed</text>
-<text x="48" y="918" fill="#94a3b8" font-size="14">Batch 59 docs-only • no deployment • ZERO COST • no Termux • main untouched</text>
+<text x="48" y="918" fill="#94a3b8" font-size="14">Batch 60 docs/evidence plan • no deployment • ZERO COST • no Termux • main untouched</text>
 </g><text x="474" y="865" fill="#a7f3d0" font-size="14">APK • CodeQL • secret audit PASS • ZERO COST</text>
 <rect x="44" y="910" width="1192" height="210" rx="16" fill="#111827" stroke="#64748b" stroke-width="2"/>
 <text x="70" y="950" fill="#f8fafc" font-size="20" font-weight="700">TECHNICAL INDICATOR PROGRESS — FOUNDATION ONLY</text>
@@ -69,4 +69,8 @@
 <text x="880" y="1036" fill="#fecaca" font-size="15">Not implemented / unverified</text>
 <text x="880" y="1064" fill="#fecaca" font-size="15">Wait for references + Stage 4 gate</text>
 <text x="48" y="1144" fill="#94a3b8" font-size="14">SMA/EMA/RSI/MACD/Bollinger calculations are groundwork, not visible features • Stage 4 NOT SCORED</text>
+<rect x="44" y="1170" width="1192" height="92" rx="14" fill="#111827" stroke="#fbbf24" stroke-width="2"/>
+<text x="70" y="1204" fill="#fef3c7" font-size="18" font-weight="700">GATE 10 ACCEPTANCE PACKS — ALL GATES STILL OPEN</text>
+<text x="70" y="1238" fill="#fde68a" font-size="15">A: Firebase + Redis (20/25) • B: public WSS/WebView (36) • C: restore/off-host/persistence (30/31/34)</text>
+<text x="70" y="1260" fill="#fde68a" font-size="15">D: runtime secrets + ingress (8/35) • E: durable telemetry + operator acknowledgement (38/39)</text>
 </svg>
