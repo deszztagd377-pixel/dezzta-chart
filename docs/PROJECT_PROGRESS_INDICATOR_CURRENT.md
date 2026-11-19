@@ -2759,3 +2759,36 @@ Run `44537009483` exposed one test-fixture error: the CAS test supplied cursor 2
 ## Complete indicator ledger
 
 See `docs/INDICATOR_PROGRESS_LEDGER.md` for formula definitions, first-valid indexes, current implementation state, remaining chart UI/lifecycle acceptance, Footprint/Heatmap/Liquidation gates, and project accounting. The table above is a concise snapshot; the separate ledger is the canonical detailed record.
+
+
+# LIVE AUDIT CHECKPOINT — 19 NOVEMBER 2026 (WIB)
+
+## Exact-head CI reconciliation — Batch 62J-2 repair commit
+
+- Code commit: `9eb936778f75caa4b0c5aaa512f8e3091be8ad1b`.
+- Automated Tests run `44548655650`: SUCCESS; all 55 reported steps completed successfully, including frontend tests/build, backend tests, dependency audit, backend container build, Redis/persistent-volume smoke and image scan/report steps.
+- CodeQL run `44548655582`: SUCCESS for Python and JavaScript/TypeScript.
+- Full Git History Secret Audit run `44548655649`: SUCCESS.
+- The previous three bridge-test failures were test-fixture/API misuse: `outbox_event_for_bar()` returns cursor/eventId metadata, not a canonical event envelope. Tests now obtain the canonical event from `read_outbox_batch()`. Production assertions were not weakened.
+- Backend/frontend exact test totals were not exposed by the job summary retrieved in this audit; no numeric totals are asserted here.
+
+## Vercel live account audit — read-only
+
+- Team: `deszztagd377-pixel`; projects found: `dezzta-chart` and `dezzta-chart-ws-poc`.
+- Latest listed WebSocket POC deployment: `dpl_5VXGuNtmkxzWTDQkcGZgBrrL7WrK`, state `READY`, commit `9961471f1d72e3d35b4bf3f4314171d7b5fe2b1a`.
+- Latest listed main-project deployment: `dpl_tYw6Y4dbeSzwR6t7shtkKpT7nxBc`, state `CANCELED`; Vercel reports the Ignored Build Step documentation as its error link. This is not evidence of a usage-limit block.
+- Earlier main-project deployment `dpl_3hNjT1oQFn6h22BTY2b3Qh2RXKFS` is `READY`.
+- Team API response did not expose plan/quota counters. Billing charges endpoint returned `404 costs_not_found`. Therefore remaining quota, spend-to-date, and hard/soft limit status are **NOT VERIFIED**. READY proves deployment capability for that deployment, not remaining quota.
+- No deployment, promotion, configuration change, billing change, or service provisioning was performed during this audit.
+
+## WebSocket next engineering boundary
+
+62J-2 bridge code is exact-head CI-green, but it is still a library integration and is not started from `main.py`. The next safe batch must cover real-Redis callback ordering (durable apply before ACK), callback failure/no-ACK, ACK-loss redelivery, restart hydration, partial multi-subscriber fan-out, and then the replica snapshot/replay read model plus event-loop-safe worker dispatch. Dedicated `OHLCV_REDIS_URL` ACL separation must be derived from actual Redis commands and CI configuration; do not broaden the existing shared-guard ACL. Do not wire startup or deploy until these tests and lifecycle proofs pass.
+
+## Accounting unchanged
+
+- Stage 1: **75% provisional** — 30/40 criteria; 300/400 ticks.
+- Gate 10: **0/10 formally closed** — Gates 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain OPEN pending owner evidence.
+- Stages 2–6: NOT SCORED.
+- Overall weighted project percentage: NOT ESTABLISHED; M1–M8 weights remain unapproved.
+- ZERO COST maintained; no Vercel/Cloudflare deployment, no paid service, no Termux, and `main` untouched.
