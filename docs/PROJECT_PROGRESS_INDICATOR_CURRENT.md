@@ -1451,3 +1451,50 @@ The five calculation foundations are implemented and unit-tested. This does not 
 6. Keep indicator UI parked; preserve calculations and the full readiness ledger until Stage 4 authorization.
 
 **Batch 58 disposition:** exact-head CI closed successfully. No source-code change was justified by the inspected evidence; no gate was falsely closed. Documentation/dashboard are refreshed to reflect final CI state.
+
+
+# BATCH 59 — Exact-head CI finalization (19 November 2026)
+
+**Verified branch:** `phase-2/market-data-foundation`  
+**Exact tested HEAD:** `5099033ed76fbf4d40d9b4a7e2f3250904145d75`  
+**Cost:** ZERO • **Deployments:** none • **Termux:** not required • `main`: untouched
+
+## Exact-head CI results
+
+All three workflows for the exact Batch 58 HEAD completed successfully:
+
+| Workflow | Run | Result |
+|---|---:|---|
+| Automated Tests + Build | [44483259055](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44483259055) | SUCCESS |
+| CodeQL Security Analysis | [44483258942](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44483258942) | SUCCESS |
+| Full Git History Secret Audit | [44483258991](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44483258991) | SUCCESS |
+
+Automated Tests + Build evidence from run 44483259055:
+
+- Frontend: **28 test files passed**.
+- Backend: **1,040 tests passed in 29.42 seconds**.
+- Frontend npm audit: **0 vulnerabilities** (both audit invocations reported zero).
+- Backend dependency audit: **no known vulnerabilities found**.
+- Frontend production build and credential scanning completed successfully.
+- Android host preflight and immutable preview publisher tests completed successfully; these are test checks, not a device-side release.
+- Synthetic SQLite outbox benchmark completed and its report was uploaded. It is synthetic benchmark evidence only, not owner production-load acceptance.
+- Backend container image built; shared Redis guard + persistent-volume smoke test completed; Trivy HIGH/CRITICAL image scan and vulnerability-report export/upload completed. This record confirms the scan ran successfully; it does not assert zero image findings because the verified log excerpt does not establish a zero-finding count.
+
+CodeQL JavaScript/TypeScript and Python jobs both succeeded. Full reachable Git-history secret audit succeeded.
+
+## WebSocket / Gate 10 disposition
+
+No new WebSocket source defect was demonstrated by this CI cycle. Existing client regression suite covers ticket authentication/renewal, heartbeat and pong timeout, replay cursor, sequence-gap rejection, observer isolation, transport close fallback, and terminal state. Do not destabilize the state machine without a reproducible defect. Gate 36 remains OPEN for real public authenticated WSS, Android WebView foreground/background, 330-second attribution and cross-instance fan-out evidence.
+
+Formal Gate 10 closure remains **0/10**. Gates 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain OPEN pending the owner-host, Firebase, Redis, off-host backup, public ingress, device, collector and operator evidence specified in Batch 58. CI success is not substituted for those acceptance drills.
+
+## Indicator ledger and project score
+
+No indicator implementation state changed in this CI-only batch. Preserve the full per-indicator formula/readiness ledger in this document and Batch 58. SMA20, EMA20, RSI14, MACD12/26/9 and Bollinger20,2 calculation foundations remain unit-tested; user-facing chart overlays/panes remain pending. Shared hook remains backend-snapshot-only. Footprint remains simulation-only and gated by owner reference + approved blueprint. Heatmap and Liquidation Maps remain not implemented. Footprint OFF retains standard candles; only explicit ON may activate spaced cluster layout.
+
+- Stage 1: **75% provisional; 30/40 criteria; 300/400 ticks** — unchanged.
+- Gate 10: **0/10 formally closed** — unchanged.
+- Stages 2–6: **NOT SCORED**.
+- Overall project score: **NOT ESTABLISHED** pending approved M1–M8 weights and criterion mapping.
+
+**Batch 59 conclusion:** all exact-head CI workflows passed; no source edit was warranted; no external gate is falsely marked closed. No Vercel/Cloudflare deployment, no paid service, no Termux action and no `main` change.
