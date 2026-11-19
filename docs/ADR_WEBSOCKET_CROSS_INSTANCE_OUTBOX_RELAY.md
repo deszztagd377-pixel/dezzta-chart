@@ -179,3 +179,6 @@ The target-side snapshot swap uses a single write transaction and bounded batche
 Regression coverage now includes event apply, duplicate replay, conflicting IDs, stale history, cursor gaps, source mismatch, malformed decimals, source/replica retention parity and a forced checkpoint-write failure proving bar + ledger + checkpoint rollback together.
 
 This is still a storage primitive. It is not wired to the process-local hub, Redis Streams, consumer ACK or app startup. Those steps remain blocked until the publisher/consumer recovery protocol and two-process parity tests are complete. No production deployment or paid service is authorized.
+
+
+The replica checkpoint schema and event protocol are now version 3. Event replay fails closed if the stored checkpoint version does not match the current implementation; the gateway must install a current full snapshot before replay can resume. This prevents a replica with an obsolete deduplication/checkpoint contract from silently consuming new events.
