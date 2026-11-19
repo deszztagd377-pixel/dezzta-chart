@@ -714,11 +714,18 @@ def test_global_snapshot_exports_every_retained_series_with_verified_manifest(tm
     assert legacy_row["close"] == "101.000000000000000001"
     assert legacy_row["volume"] == "12.500000000000000009"
 
-    # A changed payload must fail the streaming manifest integrity check.
-    changed = destination.read_text().replace(
+    # Header metadata is included in the digest; a forged watermark is rejected.
+    original = destination.read_text()
+    changed_header = original.replace('"high_water":3', '"high_water":2', 1)
+    destination.write_text(changed_header)
+    with pytest.raises(ValueError, match="manifest"):
+        SQLiteOhlcvStore.verify_global_snapshot(str(destination))
+
+    # A changed payload must also fail the streaming manifest integrity check.
+    changed_payload = original.replace(
         "101.000000000000000001", "101.000000000000000002", 1,
     )
-    destination.write_text(changed)
+    destination.write_text(changed_payload)
     with pytest.raises(ValueError, match="manifest"):
         SQLiteOhlcvStore.verify_global_snapshot(str(destination))
 
