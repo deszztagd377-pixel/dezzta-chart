@@ -668,3 +668,134 @@ def test_outbox_event_lookup_does_not_confuse_same_timestamp_derived_revisions(t
     # A delayed callback for the earlier revision must not be mapped to the
     # newer outbox event just because its timestamps, sequence and OHLCV match.
     assert store.outbox_event_for_bar(open_bar) == open_event
+
+
+def test_global_snapshot_exports_every_retained_series_with_verified_manifest(tmp_path):
+    import json
+    from dataclasses import replace
+
+    path = str(tmp_path / "global-source.sqlite3")
+    store = SQLiteOhlcvStore(path)
+    legacy = make_bar(
+        start=0, close="101.000000000000000001",
+        volume="12.500000000000000009",
+    )
+    fixed = replace(
+        make_bar(start=0, bucket_policy="UTC_FIXED_V1"),
+        bucket_policy="UTC_FIXED_V1",
+    )
+    cme = replace(
+        make_bar(start=0, timeframe="1d"),
+        bucket_policy="CME_SESSION_V1",
+        calendar_id="CME_EQUITY_INDEX",
+        calendar_version="2026.11.1",
+    )
+    assert store.apply(legacy) == "inserted"
+    assert store.apply(fixed) == "inserted"
+    assert store.apply(cme) == "inserted"
+
+    destination = tmp_path / "global.snapshot.jsonl"
+    exported = store.export_global_snapshot(str(destination), batch_size=1)
+    verified = SQLiteOhlcvStore.verify_global_snapshot(str(destination))
+    records = [json.loads(line) for line in destination.read_text().splitlines()]
+    bars = [record["data"] for record in records if record["record"] == "bar"]
+
+    assert exported["cursor"] == exported["high_water"] == 3
+    assert exported["row_count"] == verified["row_count"] == 3
+    assert verified["source_id"] == store.source_id()
+    assert SQLiteOhlcvStore(str(tmp_path / "global-source.sqlite3")).source_id() == store.source_id()
+    assert {bar["bucket_policy"] for bar in bars} == {
+        "UTC_LEGACY", "UTC_FIXED_V1", "CME_SESSION_V1",
+    }
+    cme_row = next(bar for bar in bars if bar["bucket_policy"] == "CME_SESSION_V1")
+    assert cme_row["calendar_id"] == "CME_EQUITY_INDEX"
+    assert cme_row["calendar_version"] == "2026.11.1"
+    legacy_row = next(bar for bar in bars if bar["bucket_policy"] == "UTC_LEGACY")
+    assert legacy_row["close"] == "101.000000000000000001"
+    assert legacy_row["volume"] == "12.500000000000000009"
+
+    # A changed payload must fail the streaming manifest integrity check.
+    changed = destination.read_text().replace(
+        "101.000000000000000001", "101.000000000000000002", 1,
+    )
+    destination.write_text(changed)
+    with pytest.raises(ValueError, match="manifest"):
+        SQLiteOhlcvStore.verify_global_snapshot(str(destination))
+
+
+def test_global_snapshot_pins_bars_and_watermark_during_concurrent_write(
+    tmp_path, monkeypatch,
+):
+    import sqlite3
+    import threading
+
+    path = str(tmp_path / "global-snapshot-concurrent.sqlite3")
+    store = SQLiteOhlcvStore(path)
+    first = make_bar(start=0, event=100, sequence=1)
+    second = make_bar(
+        start=60 * NS, event=101, sequence=2, close="102",
+        instrument_id=456, raw_symbol="NQZ6",
+    )
+    assert store.apply(first) == "inserted"
+
+    state_read = threading.Event()
+    continue_export = threading.Event()
+    original_connect = sqlite3.connect
+    outcome = {}
+
+    class PausingConnection(sqlite3.Connection):
+        def execute(self, sql, parameters=()):
+            result = super().execute(sql, parameters)
+            if (
+                threading.current_thread().name == "snapshot-exporter"
+                and sql.startswith("SELECT state_key,int_value FROM ohlcv_outbox_state")
+            ):
+                state_read.set()
+                if not continue_export.wait(timeout=5):
+                    raise TimeoutError("global snapshot export barrier timed out")
+            return result
+
+    def connect_with_pausing_factory(*args, **kwargs):
+        kwargs["factory"] = PausingConnection
+        return original_connect(*args, **kwargs)
+
+    monkeypatch.setattr(sqlite3, "connect", connect_with_pausing_factory)
+
+    def export_snapshot():
+        try:
+            outcome["result"] = store.export_global_snapshot(
+                str(tmp_path / "pinned.snapshot.jsonl"), batch_size=1,
+            )
+        except Exception as exc:
+            outcome["error"] = exc
+
+    exporter = threading.Thread(target=export_snapshot, name="snapshot-exporter")
+    exporter.start()
+    try:
+        assert state_read.wait(timeout=5), "snapshot export did not pin its read view"
+        assert store.apply(second) == "inserted"
+    finally:
+        continue_export.set()
+        exporter.join(timeout=5)
+
+    assert not exporter.is_alive()
+    assert "error" not in outcome
+    snapshot = SQLiteOhlcvStore.verify_global_snapshot(
+        str(tmp_path / "pinned.snapshot.jsonl")
+    )
+    assert snapshot["cursor"] == snapshot["high_water"] == 1
+    assert snapshot["row_count"] == 1
+    assert store.outbox_high_water() == 2
+    assert store.stats()["bars"] == 2
+
+
+def test_global_snapshot_rejects_unsafe_destination_and_invalid_batch_size(tmp_path):
+    store = SQLiteOhlcvStore(str(tmp_path / "global-snapshot-validation.sqlite3"))
+    with pytest.raises(ValueError, match="destination_path"):
+        store.export_global_snapshot("")
+    with pytest.raises(ValueError, match="batch_size"):
+        store.export_global_snapshot(str(tmp_path / "invalid.snapshot"), batch_size=True)
+    with pytest.raises(ValueError, match="batch_size"):
+        store.export_global_snapshot(str(tmp_path / "invalid.snapshot"), batch_size=0)
+    with pytest.raises(ValueError, match="overwrite"):
+        store.export_global_snapshot(store.database_path)
