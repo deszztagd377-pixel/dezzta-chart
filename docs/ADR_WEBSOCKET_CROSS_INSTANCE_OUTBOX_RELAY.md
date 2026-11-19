@@ -201,3 +201,12 @@ Publisher invariants for 62H:
 - No publisher/consumer is wired into app startup until append retry, pending reclaim, two-process parity and outage/recovery tests pass.
 
 Implementation remains split into 62H-1 checkpoint/identity, 62H-2 deterministic append and fencing, 62H-3 tests, then 62I consumer recovery and 62J multi-process parity. 62K remains owner-side Gate 25/36 evidence. Batch 62H-0 changed documentation only; no executable behavior or gate status changed.
+
+
+## Batch 62H-1 — durable publisher checkpoint and fencing
+
+The source-local publisher checkpoint is implemented in `backend/app/ohlcv_redis_publisher.py`. It is bound to the authoritative `source_id` and a unique stream key, initializes only from a retained snapshot watermark, and stores the published cursor, deterministic last Stream ID, last event ID, lease owner/epoch/expiry and schema version in the source SQLite database.
+
+Publisher ownership uses a transactional SQLite lease. A live lease excludes another owner; expiry takeover increments a fencing epoch. Cursor advancement is a one-event compare-and-swap and requires the deterministic `<cursor>-0` Stream ID. The API name `record_confirmed_append` is intentional: it may only be called after a successful Redis append or exact deterministic-ID read-back. Redis append and duplicate verification are not part of 62H-1; they are the next 62H-2 slice. No startup wiring, Redis ACL change, MAXLEN trimming, or deployment is included.
+
+Tests use temporary local SQLite and cover snapshot watermark/retention, lease contention and fencing, deterministic cursor advancement, invalid gaps/IDs/expired leases, and compare-and-swap. Exact-head CI is required before declaring this batch validated.

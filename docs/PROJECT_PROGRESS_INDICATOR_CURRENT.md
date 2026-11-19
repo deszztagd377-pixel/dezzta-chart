@@ -1,3 +1,44 @@
+# LATEST CHECKPOINT — BATCH 62H-1 DURABLE PUBLISHER CHECKPOINT IMPLEMENTED
+
+**Date:** 19 November 2026 • **Branch:** `phase-2/market-data-foundation`  
+**Parent:** `26c72f51c20faa3f00a636735778e876ef16eb21`  
+**Implementation:** `backend/app/ohlcv_redis_publisher.py` and `backend/tests/test_ohlcv_redis_publisher.py`  
+**Detailed report:** `docs/WORK_CYCLE_2026-11-19_BATCH62H1_PUBLISHER_CHECKPOINT.md`  
+**Cost:** ZERO COST • no deployment • no paid service • no Termux • `main` untouched.
+
+## Batch 62H-1 summary
+
+Added a source-SQLite publisher checkpoint bound to stable source identity and one Redis stream key. Snapshot initialization checks the authoritative outbox retention floor/high-water. A transactional lease with fencing epochs excludes concurrent publishers; cursor advancement is a one-event compare-and-swap and requires deterministic `<cursor>-0` stream IDs. The API is explicitly `record_confirmed_append`; the Redis append/read-back itself is deferred to 62H-2. No startup wiring, Redis ACL change, stream trimming, or deployment is included.
+
+Regression coverage includes snapshot watermark validation, lease contention/renewal/expiry/fencing, deterministic cursor advancement, gap/ID/expiry rejection, and compare-and-swap protection. Exact-head CI must complete before this batch is considered validated.
+
+## Complete indicator ledger — status unchanged
+
+| Indicator | Calculation foundation / first valid output | Remaining visible work | Status |
+|---|---|---|---|
+| SMA 20 | Rolling arithmetic mean; index 19; calculation + fixtures | Overlay, toggle, legend/current value, stale clearing, render tests | 🟨 Foundation |
+| EMA 20 | SMA-seeded EMA, alpha 2/21; index 19; calculation + fixtures | Overlay, toggle, legend/current value, stale clearing, render tests | 🟨 Foundation |
+| RSI 14 | Wilder-smoothed gains/losses; index 14; calculation + edge fixtures | 0–100 pane, 30/70 guides, toggle, lifecycle/render tests | 🟨 Foundation |
+| MACD 12/26/9 | EMA12−EMA26; MACD index 25; signal/histogram index 33; warm-up fixtures | Pane, signal line, histogram, zero guide, render tests | 🟨 Foundation |
+| Bollinger 20,2 | Mean ±2 population standard deviations; index 19; fixture | Three-line overlay, toggle, legend/current values, render tests | 🟨 Foundation |
+| Shared indicator hook | Validated backend snapshot only; no DEMO fallback | Chart binding, loading/error, identity/timeframe stale clearing | 🟨 Foundation |
+| Footprint | Deterministic educational accumulator; SIMULATED only | Reference image, reviewed blueprint, explicit-ON spaced cluster renderer/tests | 🟨 Gated |
+| Heatmap | No implementation verified | Reference, blueprint, data contract, calculation, renderer, tests | 🟥 Not implemented |
+| Liquidation Maps | No implementation verified | Reference, blueprint, data contract, calculation, renderer, tests | 🟥 Not implemented |
+
+**Indicator invariants:** outputs stay aligned to candle indexes; warm-up values are null. Fixture coverage across 18 timeframe labels is not live-provider or visual-integration proof. Footprint OFF retains ordinary candle spacing; only explicit ON enables spaced clusters. Footprint/Heatmap/Liquidation visual work waits for owner reference images and reviewed scoped blueprints. Stage 4 visual work remains parked while Stage 1 is active.
+
+## Project accounting and Gate 10
+
+- Stage 1: **75% provisional** — 30/40 criteria; 300/400 ticks.
+- Gate 10: **0/10 formally closed** — all ten remain OPEN pending owner-side evidence.
+- Stages 2–6: **NOT SCORED**.
+- Overall project percentage: **NOT ESTABLISHED** — M1–M8 weights unapproved.
+- Batch 62H-1 earns no Stage ticks and closes no owner gate. Exact-head CI and owner evidence remain distinct.
+- ZERO COST; no Vercel/Cloudflare deployment; no Termux; `main` untouched.
+
+---
+
 # LATEST CHECKPOINT — BATCH 62G-3 INCREMENTAL REPLICA EVENT APPLY IMPLEMENTED
 
 **Date:** 19 November 2026 • **Branch:** `phase-2/market-data-foundation`  
