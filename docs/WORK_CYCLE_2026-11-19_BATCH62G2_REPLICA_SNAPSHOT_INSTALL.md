@@ -114,7 +114,7 @@ The complete indicator ledger remains in `docs/PROJECT_PROGRESS_INDICATOR_CURREN
 
 The next dependency is now implemented as `SQLiteOhlcvReplicaStore.apply_replica_event()`. It validates the source binding and event schema, applies only the next contiguous cursor, deduplicates by cursor + event ID + canonical payload digest, detects gaps/conflicts, preserves exact decimals/nanoseconds, mirrors per-series retention, and atomically commits bar + dedupe ledger + checkpoint without outbox echo.
 
-The regression suite covers duplicate replay, stale history, gap, source mismatch, malformed decimal, conflicting event ID, retention parity and forced checkpoint-write rollback. Exact-head CI remains pending confirmation.
+The regression suite covers duplicate replay, stale history, gap, source mismatch, malformed decimal, conflicting event ID, retention parity, forced checkpoint-write rollback and outdated protocol-version rejection. The current replica checkpoint schema/event protocol is version 3. Exact-head CI remains pending confirmation.
 
 Detailed report: `docs/WORK_CYCLE_2026-11-19_BATCH62G3_REPLICA_EVENT_APPLY.md`.
 
