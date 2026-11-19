@@ -1276,6 +1276,13 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
         finally:
             db.close()
 
+    def export_global_snapshot(
+        self, destination_path: str, *, batch_size: int = 500,
+    ) -> dict[str, object]:
+        raise RuntimeError(
+            "A replica cannot export an authoritative source snapshot."
+        )
+
     def apply(self, bar: OhlcvBar) -> str:
         raise RuntimeError(
             "Replica stores cannot use source-writer apply(); "
