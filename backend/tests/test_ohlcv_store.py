@@ -3,7 +3,7 @@ from decimal import Decimal
 import pytest
 
 from app.ohlcv import OhlcvBar, OhlcvPipeline
-from app.ohlcv_store import SQLiteOhlcvStore
+from app.ohlcv_store import SQLiteOhlcvStore, SQLiteOhlcvReplicaStore
 
 
 NS = 1_000_000_000
@@ -806,3 +806,147 @@ def test_global_snapshot_rejects_unsafe_destination_and_invalid_batch_size(tmp_p
         store.export_global_snapshot(str(tmp_path / "invalid.snapshot"), batch_size=0)
     with pytest.raises(ValueError, match="overwrite"):
         store.export_global_snapshot(store.database_path)
+
+
+def test_replica_installs_global_snapshot_atomically_without_outbox_echo(tmp_path):
+    from dataclasses import replace
+
+    source = SQLiteOhlcvStore(str(tmp_path / "authoritative.sqlite3"))
+    legacy = make_bar(
+        start=0, close="101.000000000000000001",
+        volume="12.500000000000000009",
+    )
+    cme = replace(
+        make_bar(start=0, timeframe="1d", instrument_id=456, raw_symbol="ESZ6"),
+        bucket_policy="CME_SESSION_V1",
+        calendar_id="CME_EQUITY_INDEX",
+        calendar_version="2026.11.1",
+    )
+    assert source.apply(legacy) == "inserted"
+    assert source.apply(cme) == "inserted"
+
+    snapshot_path = tmp_path / "replica.snapshot.jsonl"
+    exported = source.export_global_snapshot(str(snapshot_path), batch_size=1)
+    replica_path = str(tmp_path / "gateway-replica.sqlite3")
+    replica = SQLiteOhlcvReplicaStore(replica_path)
+    replica_id = replica.replica_id()
+
+    installed = replica.install_global_snapshot(
+        str(snapshot_path), expected_source_id=source.source_id(), batch_size=1,
+    )
+    assert installed["status"] == "installed"
+    assert installed["installed_rows"] == 2
+    assert installed["cursor"] == exported["high_water"] == 2
+    assert replica.load_bars() == [legacy, cme]
+    assert replica.checkpoint() == {
+        "source_id": source.source_id(),
+        "replica_id": replica_id,
+        "applied_cursor": 2,
+        "snapshot_generation": exported["generation_id"],
+        "retention_floor": exported["retention_floor"],
+        "schema_version": 1,
+        "protocol_version": 1,
+    }
+    # Imported bars are read-model state, never new source outbox events.
+    assert replica.outbox_high_water() == 0
+    with pytest.raises(RuntimeError, match="cannot use source-writer apply"):
+        replica.apply(legacy)
+
+    restarted = SQLiteOhlcvReplicaStore(replica_path)
+    assert restarted.replica_id() == replica_id
+    assert restarted.checkpoint() == replica.checkpoint()
+    assert restarted.load_bars() == [legacy, cme]
+
+
+def test_replica_snapshot_rejects_wrong_source_and_stale_cursor(tmp_path):
+    source = SQLiteOhlcvStore(str(tmp_path / "replica-source.sqlite3"))
+    assert source.apply(make_bar()) == "inserted"
+    snapshot = tmp_path / "source.snapshot.jsonl"
+    source.export_global_snapshot(str(snapshot))
+
+    replica = SQLiteOhlcvReplicaStore(str(tmp_path / "replica-target.sqlite3"))
+    with pytest.raises(ValueError, match="source identity"):
+        replica.install_global_snapshot(
+            str(snapshot), expected_source_id="not-the-source",
+        )
+    assert replica.checkpoint() is None
+    assert replica.load_bars() == []
+
+    replica.install_global_snapshot(str(snapshot))
+    with pytest.raises(ValueError, match="older than"):
+        # Re-exporting the same source at a lower watermark is constructed below.
+        stale_path = tmp_path / "stale.snapshot.jsonl"
+        lines = snapshot.read_text().splitlines()
+        header = json.loads(lines[0])
+        header["high_water"] = 0
+        import hashlib
+        digest = hashlib.sha256()
+        header_line = json.dumps(header, sort_keys=True, separators=(",", ":")).encode()
+        digest.update(header_line + b"\\n")
+        manifest = {"record": "manifest", "row_count": 0, "sha256": digest.hexdigest()}
+        stale_path.write_text(
+            header_line.decode() + "\\n"
+            + json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\\n"
+        )
+        replica.install_global_snapshot(str(stale_path))
+
+
+def test_replica_snapshot_semantic_failure_rolls_back_bars_and_checkpoint(tmp_path):
+    import hashlib
+    import json
+
+    source = SQLiteOhlcvStore(str(tmp_path / "replica-rollback-source.sqlite3"))
+    original = make_bar()
+    assert source.apply(original) == "inserted"
+    initial_path = tmp_path / "initial.snapshot.jsonl"
+    source.export_global_snapshot(str(initial_path))
+    replica = SQLiteOhlcvReplicaStore(str(tmp_path / "replica-rollback-target.sqlite3"))
+    replica.install_global_snapshot(str(initial_path))
+    before_checkpoint = replica.checkpoint()
+    before_bars = replica.load_bars()
+
+    second = make_bar(
+        start=60 * NS, event=101, sequence=2, close="102",
+        instrument_id=456, raw_symbol="NQZ6",
+    )
+    assert source.apply(second) == "inserted"
+    valid_path = tmp_path / "valid-next.snapshot.jsonl"
+    source.export_global_snapshot(str(valid_path))
+    source_lines = valid_path.read_text().splitlines()
+    header = json.loads(source_lines[0])
+    records = [json.loads(line) for line in source_lines[1:-1]]
+    malformed = next(
+        item for item in records
+        if item["record"] == "bar" and item["data"]["instrument_id"] == 456
+    )
+    malformed["data"]["close"] = "999"
+
+    digest = hashlib.sha256()
+    header_line = json.dumps(header, sort_keys=True, separators=(",", ":")).encode()
+    digest.update(header_line + b"\\n")
+    encoded_records = []
+    for record in records:
+        encoded = json.dumps(record, sort_keys=True, separators=(",", ":")).encode()
+        digest.update(encoded + b"\\n")
+        encoded_records.append(encoded.decode())
+    manifest = {
+        "record": "manifest",
+        "row_count": len(records),
+        "sha256": digest.hexdigest(),
+    }
+    forged_but_checksummed = tmp_path / "semantic-invalid.snapshot.jsonl"
+    forged_but_checksummed.write_text(
+        header_line.decode() + "\\n"
+        + "\\n".join(encoded_records) + "\\n"
+        + json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\\n"
+    )
+
+    # The envelope/checksum is valid; canonical OHLCV validation fails after
+    # the old rows have been deleted and a first new row may already be staged.
+    assert SQLiteOhlcvStore.verify_global_snapshot(str(forged_but_checksummed))["row_count"] == 2
+    with pytest.raises(ValueError, match="invalid canonical OHLCV bar"):
+        replica.install_global_snapshot(str(forged_but_checksummed), batch_size=1)
+
+    assert replica.checkpoint() == before_checkpoint
+    assert replica.load_bars() == before_bars
+    assert replica.outbox_high_water() == 0
