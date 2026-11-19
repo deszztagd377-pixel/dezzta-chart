@@ -6,6 +6,7 @@ import {
   publishMarketDataUpdate,
   resetMarketDataSnapshot,
 } from './marketDataStore';
+import { requestOhlcvWebSocketTicket } from './ohlcvWebSocketTicket';
 import {
   connectOhlcvStream,
   type OhlcvStreamConnection,
@@ -20,9 +21,10 @@ export type OhlcvSupervisorStatus =
   | 'stopped';
 
 export interface OhlcvStreamSupervisorOptions
-  extends Omit<OhlcvStreamOptions, 'token' | 'onSnapshot' | 'onUpdate' | 'onStatus' | 'onError' | 'onClose' | 'onCursor'> {
+  extends Omit<OhlcvStreamOptions, 'ticket' | 'getRenewalTicket' | 'token' | 'onSnapshot' | 'onUpdate' | 'onStatus' | 'onError' | 'onClose' | 'onCursor'> {
   /** Must return a fresh Firebase ID token; called again for every reconnect. */
   getIdToken: () => Promise<string>;
+  requestWebSocketTicket?: (baseUrl: string, idToken: string) => Promise<string>;
   minReconnectDelayMs?: number;
   maxReconnectDelayMs?: number;
   random?: () => number;
@@ -130,9 +132,18 @@ export function startOhlcvStreamSupervisor(
         reportError(new Error('Identity provider returned an empty ID token.'));
         return;
       }
+      const issueTicket = options.requestWebSocketTicket ?? requestOhlcvWebSocketTicket;
+      const getTicket = async () => {
+        const freshIdToken = await options.getIdToken();
+        if (typeof freshIdToken !== 'string' || !freshIdToken.trim()) throw new Error('A fresh Firebase ID token is required for WebSocket ticket renewal.');
+        return issueTicket(options.baseUrl, freshIdToken);
+      };
+      const ticket = await issueTicket(options.baseUrl, token);
+      if (stopped) return;
       connection = connectOhlcvStream({
         ...options,
-        token,
+        ticket,
+        getRenewalTicket: getTicket,
         resumeCursor,
         onCursor: (cursor) => {
           resumeCursor = cursor;

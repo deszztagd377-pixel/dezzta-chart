@@ -162,7 +162,7 @@ jobs:
             -e REDIS_ACL_PASSWORD="$redis_acl_password" \
             --entrypoint sh redis:7-alpine -c '
               umask 077
-              printf "user default off\nuser %s on >%s ~dezzta:{guard-http}:* ~dezzta:{guard-ws}:* +ping +select +eval +incr +expire +ttl +zremrangebyscore +zscore +zcard +zadd +pexpire +zrem\n" "$REDIS_ACL_USERNAME" "$REDIS_ACL_PASSWORD" > /data/users.acl
+              printf "user default off\nuser %s on >%s ~dezzta:{guard-http}:* ~dezzta:{guard-ws}:* +ping +select +eval +set +get +del +incr +expire +ttl +zremrangebyscore +zscore +zcard +zadd +pexpire +zrem\n" "$REDIS_ACL_USERNAME" "$REDIS_ACL_PASSWORD" > /data/users.acl
             '
           start_redis() {
             docker run --detach --name "$redis_container_name" \
@@ -185,6 +185,10 @@ jobs:
           }
           start_redis >/dev/null
           wait_for_redis
+          ticket_probe_key='dezzta:{guard-ws}:ticket:acl-probe'
+          docker exec -e REDISCLI_AUTH="$redis_acl_password" "$redis_container_name" redis-cli --user "$redis_acl_username" -n 15 SET "$ticket_probe_key" probe EX 30 NX >/dev/null
+          ticket_probe_value=$(docker exec -e REDISCLI_AUTH="$redis_acl_password" "$redis_container_name" redis-cli --user "$redis_acl_username" -n 15 --raw EVAL "local value=redis.call('GET',KEYS[1]); redis.call('DEL',KEYS[1]); return value or ''" 1 "$ticket_probe_key")
+          test "$ticket_probe_value" = "probe"
           docker exec -e REDISCLI_AUTH="$redis_acl_password" "$redis_container_name" redis-cli --user "$redis_acl_username" -n 15 ZADD 'dezzta:{guard-http}:ci-persistence-canary' 123 survived-redis-restart >/dev/null
           start_container() {
             docker run --detach --name "$container_name" \

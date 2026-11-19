@@ -94,7 +94,8 @@ function setup() {
     baseUrl: 'https://market.example.test/api/',
     identity,
     canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
-    token: 'verified-token',
+    ticket: 'ws-ticket-abcdefghijklmnopqrstuvwxyz1234567890',
+      getRenewalTicket: async () => 'renewed-ticket-abcdefghijklmnopqrstuvwxyz1234567890',
     webSocketFactory: () => socket as unknown as WebSocket,
     onSnapshot,
     onUpdate,
@@ -113,7 +114,7 @@ describe('connectOhlcvStream', () => {
     expect(connection.state).toBe('connecting');
     socket.readyState = 1;
     socket.emit('open', new Event('open'));
-    expect(JSON.parse(socket.sent[0])).toEqual({ type: 'auth', token: 'verified-token' });
+    expect(JSON.parse(socket.sent[0])).toEqual({ type: 'auth', ticket: 'ws-ticket-abcdefghijklmnopqrstuvwxyz1234567890' });
 
     socket.message({
       type: 'market_data.status',
@@ -151,7 +152,8 @@ describe('connectOhlcvStream', () => {
       baseUrl: 'https://market.example.test',
       identity,
       canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
-      token: 'verified-token',
+      ticket: 'ws-ticket-abcdefghijklmnopqrstuvwxyz1234567890',
+      getRenewalTicket: async () => 'renewed-ticket-abcdefghijklmnopqrstuvwxyz1234567890',
       resumeCursor: '9007199254740993123',
       onCursor,
       webSocketFactory: () => socket as unknown as WebSocket,
@@ -206,6 +208,33 @@ describe('connectOhlcvStream', () => {
     connection.close();
   });
 
+
+  it('renews its single-use ticket and waits for server acknowledgement', async () => {
+    vi.useFakeTimers();
+    const socket = new FakeSocket();
+    const getRenewalTicket = vi.fn().mockResolvedValue('renewed-ticket-abcdefghijklmnopqrstuvwxyz1234567890');
+    const connection = connectOhlcvStream({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      ticket: 'ws-ticket-abcdefghijklmnopqrstuvwxyz1234567890',
+      getRenewalTicket,
+      webSocketFactory: () => socket as unknown as WebSocket,
+      onSnapshot: vi.fn(),
+      onUpdate: vi.fn(),
+    });
+    socket.readyState = 1;
+    socket.emit('open', new Event('open'));
+    socket.message({ type: 'market_data.status', version: 1 });
+    socket.message(snapshot);
+    await vi.advanceTimersByTimeAsync(45_000);
+    expect(getRenewalTicket).toHaveBeenCalledOnce();
+    expect(JSON.parse(socket.sent[socket.sent.length - 1])).toEqual({ type: 'auth.renew', ticket: 'renewed-ticket-abcdefghijklmnopqrstuvwxyz1234567890' });
+    socket.message({ type: 'market_data.auth.renewed', version: 1 });
+    expect(connection.state).toBe('subscribed');
+    connection.close();
+  });
+
   it('sends a text ping heartbeat after subscription and accepts the server pong', () => {
     vi.useFakeTimers();
     const { socket, onError, connection } = setup();
@@ -254,7 +283,8 @@ describe('connectOhlcvStream', () => {
       baseUrl: 'https://market.example.test',
       identity,
       canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
-      token: 'verified-token',
+      ticket: 'ws-ticket-abcdefghijklmnopqrstuvwxyz1234567890',
+      getRenewalTicket: async () => 'renewed-ticket-abcdefghijklmnopqrstuvwxyz1234567890',
       webSocketFactory: () => socket as unknown as WebSocket,
       onSnapshot: vi.fn(),
       onUpdate: vi.fn(),
@@ -283,7 +313,8 @@ describe('connectOhlcvStream', () => {
       baseUrl: 'https://market.example.test',
       identity,
       canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
-      token: 'verified-token',
+      ticket: 'ws-ticket-abcdefghijklmnopqrstuvwxyz1234567890',
+      getRenewalTicket: async () => 'renewed-ticket-abcdefghijklmnopqrstuvwxyz1234567890',
       webSocketFactory: () => alreadyClosedSocket as unknown as WebSocket,
       onSnapshot: vi.fn(),
       onUpdate: vi.fn(),
@@ -311,7 +342,8 @@ describe('connectOhlcvStream', () => {
       baseUrl: 'https://market.example.test',
       identity,
       canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
-      token: 'verified-token',
+      ticket: 'ws-ticket-abcdefghijklmnopqrstuvwxyz1234567890',
+      getRenewalTicket: async () => 'renewed-ticket-abcdefghijklmnopqrstuvwxyz1234567890',
       webSocketFactory: () => socket as unknown as WebSocket,
       onSnapshot: vi.fn(),
       onUpdate: vi.fn(),
@@ -356,7 +388,8 @@ describe('connectOhlcvStream', () => {
       baseUrl: 'https://market.example.test',
       identity,
       canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
-      token: 'verified-token',
+      ticket: 'ws-ticket-abcdefghijklmnopqrstuvwxyz1234567890',
+      getRenewalTicket: async () => 'renewed-ticket-abcdefghijklmnopqrstuvwxyz1234567890',
       webSocketFactory: () => secondSocket as unknown as WebSocket,
       onSnapshot: vi.fn(),
       onUpdate: vi.fn(),
@@ -379,7 +412,8 @@ describe('connectOhlcvStream', () => {
       baseUrl: 'https://market.example.test',
       identity,
       canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
-      token: 'verified-token',
+      ticket: 'ws-ticket-abcdefghijklmnopqrstuvwxyz1234567890',
+      getRenewalTicket: async () => 'renewed-ticket-abcdefghijklmnopqrstuvwxyz1234567890',
       webSocketFactory: () => failedCloseSocket as unknown as WebSocket,
       onSnapshot: vi.fn(),
       onUpdate: vi.fn(),
@@ -480,7 +514,8 @@ describe('connectOhlcvStream', () => {
       baseUrl: 'file:///tmp',
       identity,
       canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
-      token: 'token',
+      ticket: 'ws-ticket-abcdefghijklmnopqrstuvwxyz1234567890',
+      getRenewalTicket: async () => 'renewed-ticket-abcdefghijklmnopqrstuvwxyz1234567890',
       webSocketFactory: factory,
       onSnapshot: vi.fn(),
       onUpdate: vi.fn(),

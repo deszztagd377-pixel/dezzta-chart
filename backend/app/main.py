@@ -376,7 +376,7 @@ def create_app(
         CORSMiddleware,
         allow_origins=list(config.cors_allowed_origins),
         allow_credentials=False,
-        allow_methods=["GET", "POST", "DELETE"] if alert_device_store is not None else ["GET"],
+        allow_methods=["GET", "POST", "DELETE"] if alert_device_store is not None else ["GET", "POST"],
         allow_headers=["Content-Type", "Authorization"],
     )
 
@@ -1349,7 +1349,7 @@ def create_app(
                 try:
                     await shared_guard.release_websocket(
                         connection_id,
-                        principal.subject if "principal" in locals() else None,
+                        principal.subject if principal is not None else None,
                     )
                 except Exception:
                     pass

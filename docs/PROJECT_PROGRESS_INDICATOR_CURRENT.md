@@ -1,3 +1,18 @@
+# BATCH 56B — Frontend ticket lifecycle, Redis ACL parity, and integration hardening
+
+- Frontend supervisor now exchanges fresh Firebase ID tokens over HTTPS for each connection and renewal. WebSocket frames carry only opaque tickets.
+- WebSocket client renews at 45 seconds, validates a 10-second acknowledgement deadline, and closes terminally on HTTP 401.
+- CORS now permits POST for ticket issuance when optional alert-device storage is disabled.
+- Global Redis connection lease is released when ticket authentication fails before a principal exists.
+- Redis ACL grants SET/GET/DEL only within the existing guard key patterns; unrelated key access remains denied. CI smoke tests scoped SET and Lua GET/DEL.
+- Added CORS preflight coverage, client renewal coverage, and Redis Lua single-use integration coverage.
+
+**Timing:** ticket TTL 90 seconds; renewal 45 seconds; server authorization deadline 60 seconds; ACK timeout 10 seconds. Approximate ticket issuance: 60/45 = 1.33 requests/minute/active socket.
+
+**Gate 10:** Gate 20/25 repository implementation strengthened; all external Firebase/host/browser evidence remains open. Gate 10 stays **0/10 formally closed**. Stage 1 remains 75% provisional. Overall project percentage remains NOT ESTABLISHED.
+
+**Indicators:** SMA20, EMA20, RSI14 Wilder, MACD12/26/9 and Bollinger20,2 have calculation foundations/tests but no visible integration; shared hook exists without controls/panes. Footprint remains offline simulation awaiting reference image; Heatmap and Liquidation Maps remain unimplemented. Footprint OFF preserves standard candle spacing.
+
 # BATCH 56 — Redis-backed single-use WebSocket ticket backend
 
 **Date:** 19 November 2026 (WIB) • **Branch:** `phase-2/market-data-foundation` • **Base:** `36c6e976a6199ce60784a457d1f87d42b1542ee7`  

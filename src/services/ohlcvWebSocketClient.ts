@@ -12,7 +12,9 @@ export interface OhlcvStreamOptions {
   baseUrl: string;
   identity: OhlcvSeriesIdentity;
   canonicalInstrumentId: string;
-  token: string;
+  ticket: string;
+  getRenewalTicket: () => Promise<string>;
+  ticketRenewalIntervalMs?: number;
   resumeCursor?: string;
   onCursor?: (cursor: string) => void;
   onSnapshot: (snapshot: OhlcvSnapshotMessage, candles: ChartData[]) => void;
@@ -84,7 +86,7 @@ function snapshotFromSocket(payload: unknown): {
  * new atomic snapshot/watermark after a gap or server-directed resnapshot.
  */
 export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConnection {
-  if (!options.token.trim()) throw new Error('A verified identity token is required.');
+  if (!options.ticket.trim()) throw new Error('A short-lived WebSocket ticket is required.');
   if (options.resumeCursor !== undefined && !/^\d+$/.test(options.resumeCursor)) {
     throw new Error('OHLCV resume cursor must be an unsigned decimal string.');
   }
@@ -112,6 +114,9 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
   let replayEndCursor: string | null = null;
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   let pongTimer: ReturnType<typeof setTimeout> | null = null;
+  let ticketRenewalTimer: ReturnType<typeof setTimeout> | null = null;
+  let renewalAckTimer: ReturnType<typeof setTimeout> | null = null;
+  let renewalPending = false;
   let timer: ReturnType<typeof setTimeout> | null = setTimeout(() => {
     fail(new Error('OHLCV WebSocket handshake timed out.'));
   }, timeoutMs);
@@ -144,6 +149,13 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
     heartbeatTimer = null;
     pongTimer = null;
   };
+  const clearTicketRenewal = () => {
+    if (ticketRenewalTimer !== null) clearTimeout(ticketRenewalTimer);
+    if (renewalAckTimer !== null) clearTimeout(renewalAckTimer);
+    ticketRenewalTimer = null;
+    renewalAckTimer = null;
+    renewalPending = false;
+  };
   const startHeartbeat = () => {
     if (heartbeatTimer !== null || state !== 'subscribed') return;
     heartbeatTimer = setInterval(() => {
@@ -167,6 +179,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
   const fail = (error: Error) => {
     clearTimer();
     clearHeartbeat();
+    clearTicketRenewal();
     // Diagnostic observers must never interrupt transport cleanup. A consumer
     // callback can throw; isolate that exception so the socket still closes
     // and the connection state always reaches the terminal state.
@@ -197,6 +210,39 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
     }
   };
 
+  const scheduleTicketRenewal = () => {
+    clearTicketRenewal();
+    if (state !== 'subscribed') return;
+    const interval = options.ticketRenewalIntervalMs ?? 45_000;
+    if (!Number.isFinite(interval) || interval < 5_000 || interval > 60_000) {
+      fail(new Error('WebSocket ticket renewal interval is outside safe bounds.'));
+      return;
+    }
+    ticketRenewalTimer = setTimeout(() => {
+      ticketRenewalTimer = null;
+      void (async () => {
+        try {
+          const renewedTicket = await options.getRenewalTicket();
+          if (state !== 'subscribed' || socket.readyState !== 1) return;
+          if (typeof renewedTicket !== 'string' || renewedTicket.length < 40 || renewedTicket.length > 128) throw new Error('WebSocket ticket renewal returned an invalid ticket.');
+          renewalPending = true;
+          socket.send(JSON.stringify({ type: 'auth.renew', ticket: renewedTicket }));
+          renewalAckTimer = setTimeout(() => { renewalAckTimer = null; fail(new Error('WebSocket ticket renewal acknowledgement timed out.')); }, 10_000);
+        } catch (error) {
+          if ((error as { status?: number } | null)?.status === 401) {
+            clearTimer(); clearHeartbeat(); clearTicketRenewal();
+            let closeFailed = false;
+            if (socket.readyState === 1 || socket.readyState === 0) { try { socket.close(4401, 'Authentication expired or revoked'); } catch { closeFailed = true; } }
+            if (state !== 'closed') setState('closed');
+            if (closeFailed || socket.readyState === 3) notifyClose(4401, 'Authentication expired or revoked');
+            return;
+          }
+          fail(error instanceof Error ? error : new Error('WebSocket ticket renewal failed.'));
+        }
+      })();
+    }, interval);
+  };
+
   const refreshHandshakeTimer = () => {
     clearTimer();
     timer = setTimeout(() => {
@@ -207,7 +253,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
   socket.addEventListener('open', () => {
     if (state !== 'connecting') return;
     try {
-      socket.send(JSON.stringify({ type: 'auth', token: options.token }));
+      socket.send(JSON.stringify({ type: 'auth', ticket: options.ticket }));
     } catch {
       fail(new Error('OHLCV WebSocket authentication send failed.'));
     }
@@ -322,6 +368,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
         clearTimer();
         setState('subscribed');
         startHeartbeat();
+        scheduleTicketRenewal();
         return;
       }
 
@@ -353,6 +400,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
         options.onSnapshot(parsed.snapshot, candles);
         setState('subscribed');
         startHeartbeat();
+        scheduleTicketRenewal();
         return;
       }
 
@@ -391,6 +439,15 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
         return;
       }
 
+      if (value.type === 'market_data.auth.renewed') {
+        if (state !== 'subscribed' || !renewalPending || value.version !== 1) throw new Error('Unexpected WebSocket authentication renewal acknowledgement.');
+        if (renewalAckTimer !== null) clearTimeout(renewalAckTimer);
+        renewalAckTimer = null;
+        renewalPending = false;
+        scheduleTicketRenewal();
+        return;
+      }
+
       if (value.type === 'market_data.pong') {
         if (state !== 'subscribed' || pongTimer === null || value.version !== 1) {
           throw new Error('Unexpected or invalid OHLCV WebSocket heartbeat pong.');
@@ -412,6 +469,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
   socket.addEventListener('close', (event) => {
     clearTimer();
     clearHeartbeat();
+    clearTicketRenewal();
     const closeEvent = event as CloseEvent;
     if (state !== 'closed') setState('closed');
     notifyClose(closeEvent.code, closeEvent.reason);
@@ -421,6 +479,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
     close() {
       clearTimer();
       clearHeartbeat();
+      clearTicketRenewal();
       let closeRequestFailed = false;
       if (socket.readyState === 1 || socket.readyState === 0) {
         try {

@@ -2117,3 +2117,17 @@ def test_websocket_ticket_endpoint_rejects_invalid_bearer_token():
     _install_test_identity(application)
     response = TestClient(application).post("/v1/auth/websocket-ticket", headers={"Authorization": "Bearer invalid-token"})
     assert response.status_code == 401
+
+def test_websocket_ticket_https_post_is_allowed_by_cors_preflight():
+    client = TestClient(create_app(make_settings()))
+    response = client.options(
+        "/v1/auth/websocket-ticket",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "authorization",
+        },
+    )
+    assert response.status_code == 200
+    assert "POST" in response.headers["access-control-allow-methods"]
+    assert response.headers["access-control-allow-origin"] == "http://localhost:5173"

@@ -338,3 +338,20 @@ def test_websocket_ticket_rejects_malformed_and_wrong_purpose():
     ticket = asyncio.run(guard.issue_websocket_ticket("verified-account"))
     assert asyncio.run(guard.consume_websocket_ticket("short")) is None
     assert asyncio.run(guard.consume_websocket_ticket(ticket, purpose="wrong-purpose")) is None
+
+@pytest.mark.skipif(not os.getenv("REDIS_TEST_URL"), reason="CI Redis integration service is not configured")
+def test_redis_websocket_ticket_lua_consume_is_single_use():
+    from redis.asyncio import Redis
+
+    async def exercise():
+        redis = Redis.from_url(os.environ["REDIS_TEST_URL"], decode_responses=True)
+        guard = RedisSharedGuard(os.environ["REDIS_TEST_URL"], redis_client=redis)
+        try:
+            await guard.start()
+            ticket = await guard.issue_websocket_ticket(f"ticket-account-{uuid4().hex}")
+            assert await guard.consume_websocket_ticket(ticket) is not None
+            assert await guard.consume_websocket_ticket(ticket) is None
+        finally:
+            await guard.close()
+
+    asyncio.run(exercise())

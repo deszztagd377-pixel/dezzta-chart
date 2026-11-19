@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getMarketDataSnapshot, resetMarketDataSnapshot } from './marketDataStore';
 import { startOhlcvStreamSupervisor } from './ohlcvStreamSupervisor';
 
@@ -71,8 +71,16 @@ const snapshot = {
   streamId: 'stream-a', watermark: 7, cursor: '100',
 };
 
+beforeEach(() => {
+  vi.stubGlobal('fetch', vi.fn(async () => ({
+    ok: true, status: 200,
+    json: async () => ({ ticket: 'ws-ticket-abcdefghijklmnopqrstuvwxyz1234567890', expiresIn: 90, purpose: 'market-data' }),
+  }) as unknown as Response));
+});
+
 afterEach(() => {
   vi.useRealTimers();
+  vi.unstubAllGlobals();
   resetMarketDataSnapshot(null, 'demo', 'test reset');
 });
 
@@ -92,7 +100,7 @@ describe('OHLCV stream supervisor', () => {
     await vi.waitFor(() => expect(socket.listeners.has('open')).toBe(true));
     socket.readyState = 1;
     socket.emit('open', new Event('open'));
-    expect(JSON.parse(socket.sent[0])).toEqual({ type: 'auth', token: 'fresh-id-token' });
+    expect(JSON.parse(socket.sent[0])).toEqual({ type: 'auth', ticket: 'ws-ticket-abcdefghijklmnopqrstuvwxyz1234567890' });
     socket.message({ type: 'market_data.status', version: 1 });
     expect(JSON.parse(socket.sent[1])).toMatchObject({
       type: 'market_data.subscribe',
