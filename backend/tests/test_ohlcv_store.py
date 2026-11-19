@@ -847,8 +847,8 @@ def test_replica_installs_global_snapshot_atomically_without_outbox_echo(tmp_pat
         "snapshot_generation": exported["generation_id"],
         "retention_floor": exported["retention_floor"],
         "bar_retention": source.retention,
-        "schema_version": 1,
-        "protocol_version": 1,
+        "schema_version": 2,
+        "protocol_version": 2,
     }
     # Imported bars are read-model state, never new source outbox events.
     assert replica.outbox_high_water() == 0
