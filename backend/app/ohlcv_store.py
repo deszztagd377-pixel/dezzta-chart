@@ -1211,6 +1211,12 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
         finally:
             db.close()
 
+    def source_id(self) -> str:
+        raise RuntimeError(
+            "A replica does not own an authoritative source identity; "
+            "inspect its upstream checkpoint instead."
+        )
+
     def replica_id(self) -> str:
         db = self._connect()
         try:
@@ -1345,7 +1351,7 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                         encoded = json.dumps(
                             record, sort_keys=True, separators=(",", ":")
                         ).encode("utf-8")
-                        digest.update(encoded + b"\\n")
+                        digest.update(encoded + b"\n")
                         batch.append(self._values(bar))
                         inserted += 1
                         if len(batch) >= batch_size:
