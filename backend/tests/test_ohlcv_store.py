@@ -1148,3 +1148,35 @@ def test_replica_event_bar_and_checkpoint_rollback_together_on_checkpoint_failur
         assert db.execute(
             "SELECT COUNT(*) FROM ohlcv_replica_applied_events"
         ).fetchone()[0] == 0
+
+
+def test_replica_incremental_apply_enforces_source_bar_retention_policy(tmp_path):
+    source = SQLiteOhlcvStore(
+        str(tmp_path / "retention-source.sqlite3"), retention={"1m": 5},
+    )
+    for index in range(5):
+        assert source.apply(make_bar(
+            start=index * 60 * NS, event=100 + index, sequence=index + 1,
+        )) == "inserted"
+
+    snapshot = tmp_path / "retention.snapshot.jsonl"
+    source.export_global_snapshot(str(snapshot))
+    replica = SQLiteOhlcvReplicaStore(str(tmp_path / "retention-replica.sqlite3"))
+    replica.install_global_snapshot(str(snapshot))
+    assert replica.checkpoint()["bar_retention"]["1m"] == 5
+
+    sixth = make_bar(
+        start=5 * 60 * NS, event=105, sequence=6,
+    )
+    assert source.apply(sixth) == "inserted"
+    page = source.read_outbox_batch(after_cursor=5, limit=10)
+    assert page["status"] == "ok"
+    result = replica.apply_replica_event(
+        page["events"][0],
+        source_id=source.source_id(),
+        retention_floor=page["retention_floor"],
+    )
+    assert result["status"] == "applied"
+    assert len(source.load_bars()) == len(replica.load_bars()) == 5
+    assert replica.load_bars() == source.load_bars()
+    assert replica.load_bars()[0].ts_start_ns == 60 * NS
