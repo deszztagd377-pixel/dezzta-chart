@@ -1,5 +1,57 @@
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
+**Audit timestamp:** 19 November 2026 — Batch 53 exact-head CI and Gate 10 evidence audit  
+**Active branch:** `phase-2/market-data-foundation`  
+**Exact-head CI commit:** `8f377cfb07b082ce237cf3ac9137efbfbcc4f5d8`  
+**Automated Tests:** [44468970676](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44468970676) — SUCCESS, 32/32 steps  
+**CodeQL:** [44468970595](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44468970595) — SUCCESS, both language jobs  
+**Full Git History Secret Audit:** [44468970614](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44468970614) — SUCCESS  
+**Test totals:** Frontend 234/234 across 28 files • Backend 1,032/1,032 • npm audit 0 vulnerabilities  
+**Main:** untouched • **Cost:** ZERO COST • **Termux:** not required  
+**Indicator:** documentation/dashboard only; NOT inside APK.
+
+![Six-stage colored project dashboard](assets/project-progress-dashboard-current.svg)
+
+## Latest work cycle — Batch 53 (exact-head CI + Gate 10 evidence)
+
+- The exact Batch 52 branch HEAD passed all 32 Automated Tests & Build steps, CodeQL Python + JS/TS, and full Git-history secret audit.
+- Backend CI verified container build, Redis ACL/AOF, fail-closed outage behavior, non-root UID/GID, mounted-volume ownership, SQLite integrity/restart persistence, and Trivy HIGH/CRITICAL scan/report.
+- Gate 30 integrated encrypted application restore drill is CI-verified but still lacks an owner target-host recovery.
+- Gate 31 encryption and tamper/wrong-key coverage pass; no off-host artifact or separate key custody is verified.
+- Gate 34 mounted-volume smoke passes in CI only; actual host volume and disk-pressure evidence remain absent.
+- The WSS POC preview remains READY and SSO-protected with project `live=false`. No runtime logs/errors appeared in the queried windows; this is not a successful WSS round-trip. Effective Fluid Compute setting is not exposed by the current project-details read-back.
+- No new deployment, SSO bypass, production promotion, paid resource, or Termux operation.
+
+### Technical indicator tracker
+
+| Indicator / layer | Calculation/data foundation | Visible chart status |
+|---|---|---|
+| SMA 20 | Implemented + tested | Not integrated; Stage 4 parked |
+| EMA 20 | Implemented + tested | Not integrated; Stage 4 parked |
+| RSI 14 Wilder | Implemented + tested | Not integrated; Stage 4 parked |
+| MACD 12/26/9 | Implemented + tested | Not integrated; Stage 4 parked |
+| Bollinger 20,2 | Implemented + tested | Not integrated; Stage 4 parked |
+| Shared indicator hook | Implemented; exact validated backend snapshot only | No controls/panes |
+| Footprint | Offline deterministic simulation + fixtures | Wait for owner visual reference; OFF keeps standard candle spacing |
+| Heatmap | No implementation verified | Wait for owner visual reference |
+| Liquidation Maps | No implementation verified | Wait for owner visual reference |
+
+Indicator test coverage: 7 calculation tests pass within the 234 frontend tests, including all 18 configured timeframes and warm-up/edge validation. These are not visible feature-completion credit.
+
+### Progress accounting
+
+- Stage 1: **75% provisional (300/400 ticks; 30/40 criteria)**.
+- Gate 10: **0/10 formally closed**; 8, 20, 25, 30, 31, 34, 35, 36, 38, 39 remain open.
+- Stages 2–6: **NOT SCORED**.
+- Overall project percentage: **NOT ESTABLISHED**; historical 20.9% retained without fresh recalculation.
+- No Stage 1 tick or overall point awarded for CI/audit/documentation work alone.
+
+Detailed report: [WORK_CYCLE_2026-11-19_BATCH53_CI_GATE10_WSS_INDICATOR_AUDIT.md](WORK_CYCLE_2026-11-19_BATCH53_CI_GATE10_WSS_INDICATOR_AUDIT.md).
+
+---
+
+# DEZZTA CHART — Project Progress Indicator (Current Snapshot)
+
 **Audit timestamp:** 19 November 2026 — Batch 50 exact-head CI completed successfully  
 **Active branch:** `phase-2/market-data-foundation`  
 **Latest source SHA validated by CI:** `b30ce94ca278e527731d86e40ddf06c6dbd16b5b`  
