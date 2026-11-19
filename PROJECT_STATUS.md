@@ -1,3 +1,35 @@
+# CURRENT AUDITED CHECKPOINT — 19 NOVEMBER 2026 (BATCH 53)
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Batch 53 documentation checkpoint:** pending final dashboard/status commits  
+**Exact-head Automated Tests & Build:** [44468970676](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44468970676) — **SUCCESS, 32/32 steps** on `8f377cfb07b082ce237cf3ac9137efbfbcc4f5d8`.  
+**Exact-head CodeQL:** [44468970595](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44468970595) — **SUCCESS**, Python and JavaScript/TypeScript.  
+**Exact-head Full Git History Secret Audit:** [44468970614](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44468970614) — **SUCCESS**.  
+**Latest WSS preview:** `dpl_5VXGuNtmkxzWTDQkcGZgBrrL7WrK` — READY, SSO protected, project `live=false`, synthetic-only.
+
+## Batch 53 — verified work
+
+- Frontend Vitest: **234 passed / 234 across 28 files**; backend pytest: **1,032 passed / 1,032**.
+- Frontend npm audit: **0 vulnerabilities**; production build and 77-file credential scan passed.
+- Backend container build, dependency audit, Redis ACL/AOF + mounted persistent-volume smoke, SQLite integrity/restart checks, Trivy HIGH/CRITICAL scan and report export passed.
+- CI persistent-volume evidence is limited to an ephemeral GitHub runner; it does not close Gate 34 on an owner-controlled host.
+- Gate 30/31 source and integrated CI restore path re-audited; owner target-host restore, off-host artifact and separate key custody remain absent.
+- WSS deployment read-back confirms READY, SSO for all targets, and `live=false`. Runtime logs show no entries in the available 30-minute window and no errors in the one-hour error query. No actual WSS round-trip is inferred.
+- The Vercel project details response did not expose effective `resourceConfig.fluid`; independent Fluid Compute read-back remains unresolved. No SSO bypass, public share link, or deployment was created.
+- Full technical indicator inventory was reconciled. SMA 20, EMA 20, Wilder RSI 14, MACD 12/26/9 and Bollinger 20,2 calculations/tests plus shared hook exist; visible controls/panes remain parked for Stage 4. Footprint visual work waits for its reference; Heatmap and Liquidation Maps remain unimplemented pending references.
+- Detailed report: [docs/WORK_CYCLE_2026-11-19_BATCH53_CI_GATE10_WSS_INDICATOR_AUDIT.md](docs/WORK_CYCLE_2026-11-19_BATCH53_CI_GATE10_WSS_INDICATOR_AUDIT.md).
+
+## Progress — unchanged, no speculative credit
+
+- **Stage 1:** 30/40 criteria; 300/400 ticks; **75% provisional**.
+- **Gate 10:** **0/10 formally closed**. Open criteria: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- **Stages 2–6:** NOT SCORED.
+- **Overall project percentage:** NOT ESTABLISHED. Historical 20.9% remains preserved, not a new weighted calculation.
+- **ZERO COST:** no deployment, paid plan/provider/storage, billing activation, production promotion, or Termux operation.
+- **Protected `main`:** untouched.
+
+---
+
 # CURRENT AUDITED CHECKPOINT — 19 NOVEMBER 2026 (BATCH 52)
 
 **Active branch:** `phase-2/market-data-foundation`  
