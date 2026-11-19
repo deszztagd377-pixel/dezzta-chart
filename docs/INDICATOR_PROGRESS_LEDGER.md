@@ -1,8 +1,8 @@
 # DEZZTA CHART — Complete Indicator Progress Ledger
 
-**Checkpoint:** 19 November 2026  
-**Branch:** \`phase-2/market-data-foundation\`  
-**Indicator implementation status:** unchanged by WebSocket Batch 62H-2.  
+**Checkpoint:** 19 November 2026 — refreshed after WebSocket 62H-3 / 62H-4 / 62I  
+**Branch:** `phase-2/market-data-foundation`  
+**Indicator implementation status:** unchanged by WebSocket Batches 62H-3, 62H-4 and 62I. The WebSocket reliability work does not award indicator progress.  
 **Interpretation:** statuses describe verified implementation boundaries, not a guessed completion percentage. No indicator weights or acceptance percentages have been approved, so per-indicator or total-indicator percentages are intentionally not fabricated.
 
 ## Color legend

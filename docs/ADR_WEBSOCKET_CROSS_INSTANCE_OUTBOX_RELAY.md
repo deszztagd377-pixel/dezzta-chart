@@ -219,16 +219,46 @@ The first exact-head backend run had one failing CAS test fixture (1,067 passed 
 
 ## Batch 62H-2 — deterministic Redis Streams publisher
 
-Implemented in \`backend/app/ohlcv_redis_publisher.py\` and covered by \`backend/tests/test_ohlcv_redis_publisher.py\`.
+Implemented in `backend/app/ohlcv_redis_publisher.py` and covered by `backend/tests/test_ohlcv_redis_publisher.py`.
 
 - The source SQLite checkpoint remains the authoritative publisher cursor.
-- Redis Stream ID is deterministic \`<cursor>-0\`.
-- Each entry stores \`source_id\`, \`event_id\` and the canonical complete JSON payload.
+- Redis Stream ID is deterministic `<cursor>-0`.
+- Each entry stores `source_id`, `event_id` and the canonical complete JSON payload.
 - On XADD error, the publisher reads back only that exact ID. It accepts an existing record only when all three fields match exactly. Conflicts fail closed; unavailable read-back leaves the SQLite checkpoint unchanged.
 - The bounded publisher loop renews and checks its SQLite fencing lease before each event, then advances the checkpoint only after append confirmation and authoritative outbox equality validation.
 - Source retention expiry stops publication and requires a new global snapshot.
 - No MAXLEN, startup wiring, consumer group, ACK, ACL change or deployment.
 
-Exact-head CI at \`f1f998a8659d206c797bdfac14b110a3849d4d68\`: 1,075 backend tests passed; 236 frontend tests across 28 files passed; frontend build/secret scans, backend container build/smoke, CodeQL and full-history secret audit passed. The container vulnerability report was uploaded as an artifact.
+Exact-head CI at `f1f998a8659d206c797bdfac14b110a3849d4d68`: 1,075 backend tests passed; 236 frontend tests across 28 files passed; frontend build/secret scans, backend container build/smoke, CodeQL and full-history secret audit passed. The container vulnerability report was uploaded as an artifact.
 
-The publisher is an injectable synchronous adapter; the caller owns scheduling and Redis client lifecycle. It is intentionally not started by \`main.py\`. 62H-3 real Redis restart/integration tests and 62I consumer recovery remain mandatory before any startup integration.
+The publisher is an injectable synchronous adapter; the caller owns scheduling and Redis client lifecycle. It is intentionally not started by `main.py`. 62H-3 real Redis restart/integration tests and 62I consumer recovery remain mandatory before any startup integration.
+
+
+## Batch 62H-3 / 62H-4 / 62I — real Redis integration and consumer
+
+The source publisher now has a real Redis integration suite, a fenced snapshot-rebase recovery path, and a separate per-gateway consumer module. See `docs/WORK_CYCLE_2026-11-19_BATCH62H3_H4_62I_CONSUMER.md`.
+
+### Publisher recovery
+
+- Real Redis tests prove deterministic `<cursor>-0` IDs, exact payload read-back after lost XADD reply, conflict rejection, uncertain-outcome checkpoint safety, and verification after client reconnection.
+- `SQLiteOhlcvPublisherCheckpoint.rebase_from_snapshot()` allows a forward-only recovery after a fresh snapshot has been installed. It validates source retention/high-water bounds, expected cursor CAS, rejects live leases, clears expired ownership and increments the fencing epoch.
+- Snapshot rebase is an explicit operation and is not wired to app startup.
+
+### Consumer protocol
+
+- `RedisOhlcvReplicaConsumer` derives an independent consumer group from each persistent replica identity and source ID.
+- A new group starts at the replica snapshot cursor. Existing groups survive worker restart.
+- `XAUTOCLAIM` reclaims abandoned pending messages before `XREADGROUP` reads new messages.
+- Each entry's source identity, field schema, canonical JSON, event ID and deterministic stream ID are verified.
+- The local replica's transactional apply must return `applied`, `duplicate` or `stale` before `XACK`.
+- Cursor gap, retention resnapshot request, malformed/conflicting payload, or deleted pending entry is not ACKed.
+- After a successful snapshot replacement, the quiesced gateway group can be destroyed and recreated at the installed snapshot watermark.
+- Redis Server 6.2+ is required for XAUTOCLAIM; the CI integration service uses Redis 7.
+
+### Exact-head evidence
+
+At `bb7ec0ebdd2565ca50d4020d3e99eec42292b062`: 1,088 backend tests passed; 236 frontend tests across 28 files passed; frontend build/scans, backend dependency audit, container build/smoke, CodeQL and full-history secret audit passed. Automated Tests run `44543198371`, CodeQL `44543198283`, Secret Audit `44543198433`.
+
+### Integration boundary
+
+Neither publisher nor consumer is wired into `main.py`. No WebSocket hub forwarding, worker supervisor, production Redis credentials, stream trimming, or deployment is included. A real two-process/two-host parity and outage matrix remains 62J; owner Gate 25/36 acceptance remains separate.

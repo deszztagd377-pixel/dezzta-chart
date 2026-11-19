@@ -1,18 +1,214 @@
-# LATEST CHECKPOINT — BATCH 62H-2 DETERMINISTIC REDIS STREAMS PUBLISHER IMPLEMENTED
+# LATEST CHECKPOINT — BATCH 62I PER-GATEWAY REDIS CONSUMER IMPLEMENTED
 
-**Date:** 19 November 2026 • **Branch:** \`phase-2/market-data-foundation\`  
-**Exact validated HEAD:** \`f1f998a8659d206c797bdfac14b110a3849d4d68\`  
-**Implementation:** \`backend/app/ohlcv_redis_publisher.py\`  
-**Tests:** \`backend/tests/test_ohlcv_redis_publisher.py\`  
-**Work report:** \`docs/WORK_CYCLE_2026-11-19_BATCH62H2_REDIS_PUBLISHER.md\`  
-**Complete indicator ledger:** \`docs/INDICATOR_PROGRESS_LEDGER.md\`  
-**Cost:** ZERO COST • no paid service • no deployment • no Termux • \`main\` untouched.
+**Date:** 19 November 2026 • **Branch:** `phase-2/market-data-foundation`  
+**Latest code HEAD:** `bb7ec0ebdd2565ca50d4020d3e99eec42292b062`  
+**Publisher recovery:** `backend/app/ohlcv_redis_publisher.py`  
+**Redis consumer:** `backend/app/ohlcv_redis_consumer.py`  
+**Publisher tests:** `backend/tests/test_ohlcv_redis_publisher.py`  
+**Consumer tests:** `backend/tests/test_ohlcv_redis_consumer.py`  
+**Complete indicator ledger:** `docs/INDICATOR_PROGRESS_LEDGER.md`  
+**Work report:** `docs/WORK_CYCLE_2026-11-19_BATCH62H3_H4_62I_CONSUMER.md`  
+**Cost:** ZERO COST • no paid service • no deployment • no Vercel/Cloudflare push • no Termux • `main` untouched.
+
+## Exact-head CI — all passed
+
+At code HEAD `bb7ec0ebdd2565ca50d4020d3e99eec42292b062`:
+
+- Backend: **1,088 passed in 32.15s**.
+- Frontend: **236 passed / 28 test files**.
+- Frontend build and source/bundle secret scans: passed.
+- Backend dependency audit: no known vulnerabilities reported.
+- Backend container build and Redis/persistent-volume smoke: passed.
+- CodeQL Python and JavaScript/TypeScript: passed.
+- Full Git History Secret Audit: passed.
+- Container vulnerability report: generated and uploaded.
+
+Runs: Automated Tests `44543198371`, CodeQL `44543198283`, Secret Audit `44543198433`.
+
+## WebSocket relay implementation sequence
+
+- **62G-1:** consistent bounded global snapshot export and manifest verification — implemented.
+- **62G-2:** isolated replica identity and atomic snapshot install — implemented.
+- **62G-3:** transactional incremental replica apply and bounded dedupe — implemented.
+- **62H-1:** durable source-SQLite publisher checkpoint and fenced lease — implemented.
+- **62H-2:** deterministic Redis XADD, exact-ID retry read-back, bounded publisher — implemented.
+- **62H-3:** five real Redis integration tests — implemented and CI-validated.
+- **62H-4:** explicit fenced publisher checkpoint rebase after retention snapshot — implemented and CI-validated.
+- **62I:** per-gateway Redis consumer group, pending reclaim, durable apply-before-ACK, snapshot group reset — implemented and CI-validated.
+- **62J:** actual two-process gateway parity, worker lifecycle, outage/recovery and failure matrix — next.
+- **62K:** owner-side Gate 25/36 acceptance — requires real owner-controlled infrastructure evidence.
+
+### 62H-3 real Redis coverage
+
+Five tests run against the Redis 7 service already present in GitHub Actions:
+1. Deterministic stream IDs and canonical payload fields.
+2. Lost XADD reply after Redis committed the entry.
+3. Conflicting existing deterministic ID rejected.
+4. Uncertain read-back leaves checkpoint unchanged; later exact retry recovers.
+5. New Redis client verifies an existing committed stream entry.
+
+Exact-head CI at `95b00d0432aef2a680adf52d5566577689ca6db9`: 1,080 backend tests and 236 frontend tests passed; all three workflows passed.
+
+### 62H-4 retention recovery
+
+Added `SQLiteOhlcvPublisherCheckpoint.rebase_from_snapshot()`:
+- Requires snapshot cursor inside the current authoritative retained window.
+- Uses an expected-cursor compare-and-swap.
+- Never moves the publisher cursor backward.
+- Rejects a live publisher lease.
+- Clears expired ownership and increments the fencing epoch.
+- Sets the next deterministic stream boundary to `<snapshot_cursor>-0`.
+
+This recovery method is explicit and must only be called after the matching global snapshot has been installed successfully on the affected replica(s). It is not wired to startup.
+
+Exact-head CI at `3cd58f4a4172b5b36316233518ab5e1e0ddcfffd`: 1,083 backend tests and 236 frontend tests passed; all three workflows passed.
+
+### 62I per-gateway consumer
+
+Added `RedisOhlcvReplicaConsumer`:
+- Stable consumer group derived from the persistent replica ID and source identity; each gateway has an independent broadcast group.
+- Fresh group starts at the installed replica snapshot watermark.
+- Existing group is preserved on process restart.
+- Pending deliveries are reclaimed through Redis `XAUTOCLAIM`.
+- Source ID, exact field set, canonical JSON, event ID and deterministic stream ID are validated before local apply.
+- The replica's atomic SQLite apply completes before Redis `XACK`.
+- `applied`, `duplicate` and `stale` are ACKable; cursor gaps, retention errors, malformed/conflicting events and deleted pending entries are not ACKed.
+- An explicit group reset destroys/recreates the gateway group at the newly installed snapshot watermark. The consumer must be quiesced during this operation.
+- One sequential worker is expected per gateway replica group. Multi-process orchestration and local WebSocket hub forwarding are not yet implemented.
+
+Five real Redis tests cover durable apply/ACK, ACK failure and pending reclaim, gap/no-ACK, independent broadcast to two replica databases, and group reset after snapshot install.
+
+## Explicitly not integrated
+
+- Publisher and consumer are not started by `main.py`.
+- No Redis ACL changes or production Redis endpoint are introduced.
+- No MAXLEN trimming is used.
+- No WebSocket hub forwarding or app startup worker lifecycle is enabled.
+- The current CI tests two independent gateway replica databases and independent groups in one test process; they do not prove two separately deployed backend processes.
+- Redis `XAUTOCLAIM` requires Redis Server 6.2 or newer; CI integration uses Redis 7.
+- No deployment, paid service, or Termux work.
+
+## Project accounting unchanged
+
+- Stage 1: **75% provisional** — 30/40 criteria; 300/400 ticks.
+- Gate 10: **0/10 formally closed** — all ten remain OPEN pending owner evidence.
+- Stages 2–6: **NOT SCORED**.
+- Overall project percentage: **NOT ESTABLISHED**; M1–M8 weights are unapproved.
+- WebSocket batches do not award indicator progress, Stage ticks or Gate closure.
+
+# LATEST CHECKPOINT — BATCH 62I PER-GATEWAY REDIS CONSUMER IMPLEMENTED
+
+**Date:** 19 November 2026 • **Branch:** `phase-2/market-data-foundation`  
+**Latest code HEAD:** `bb7ec0ebdd2565ca50d4020d3e99eec42292b062`  
+**Publisher recovery:** `backend/app/ohlcv_redis_publisher.py`  
+**Redis consumer:** `backend/app/ohlcv_redis_consumer.py`  
+**Publisher tests:** `backend/tests/test_ohlcv_redis_publisher.py`  
+**Consumer tests:** `backend/tests/test_ohlcv_redis_consumer.py`  
+**Complete indicator ledger:** `docs/INDICATOR_PROGRESS_LEDGER.md`  
+**Work report:** `docs/WORK_CYCLE_2026-11-19_BATCH62H3_H4_62I_CONSUMER.md`  
+**Cost:** ZERO COST • no paid service • no deployment • no Vercel/Cloudflare push • no Termux • `main` untouched.
+
+## Exact-head CI — all passed
+
+At code HEAD `bb7ec0ebdd2565ca50d4020d3e99eec42292b062`:
+
+- Backend: **1,088 passed in 32.15s**.
+- Frontend: **236 passed / 28 test files**.
+- Frontend build and source/bundle secret scans: passed.
+- Backend dependency audit: no known vulnerabilities reported.
+- Backend container build and Redis/persistent-volume smoke: passed.
+- CodeQL Python and JavaScript/TypeScript: passed.
+- Full Git History Secret Audit: passed.
+- Container vulnerability report: generated and uploaded.
+
+Runs: Automated Tests `44543198371`, CodeQL `44543198283`, Secret Audit `44543198433`.
+
+## WebSocket relay implementation sequence
+
+- **62G-1:** consistent bounded global snapshot export and manifest verification — implemented.
+- **62G-2:** isolated replica identity and atomic snapshot install — implemented.
+- **62G-3:** transactional incremental replica apply and bounded dedupe — implemented.
+- **62H-1:** durable source-SQLite publisher checkpoint and fenced lease — implemented.
+- **62H-2:** deterministic Redis XADD, exact-ID retry read-back, bounded publisher — implemented.
+- **62H-3:** five real Redis integration tests — implemented and CI-validated.
+- **62H-4:** explicit fenced publisher checkpoint rebase after retention snapshot — implemented and CI-validated.
+- **62I:** per-gateway Redis consumer group, pending reclaim, durable apply-before-ACK, snapshot group reset — implemented and CI-validated.
+- **62J:** actual two-process gateway parity, worker lifecycle, outage/recovery and failure matrix — next.
+- **62K:** owner-side Gate 25/36 acceptance — requires real owner-controlled infrastructure evidence.
+
+### 62H-3 real Redis coverage
+
+Five tests run against the Redis 7 service already present in GitHub Actions:
+1. Deterministic stream IDs and canonical payload fields.
+2. Lost XADD reply after Redis committed the entry.
+3. Conflicting existing deterministic ID rejected.
+4. Uncertain read-back leaves checkpoint unchanged; later exact retry recovers.
+5. New Redis client verifies an existing committed stream entry.
+
+Exact-head CI at `95b00d0432aef2a680adf52d5566577689ca6db9`: 1,080 backend tests and 236 frontend tests passed; all three workflows passed.
+
+### 62H-4 retention recovery
+
+Added `SQLiteOhlcvPublisherCheckpoint.rebase_from_snapshot()`:
+- Requires snapshot cursor inside the current authoritative retained window.
+- Uses an expected-cursor compare-and-swap.
+- Never moves the publisher cursor backward.
+- Rejects a live publisher lease.
+- Clears expired ownership and increments the fencing epoch.
+- Sets the next deterministic stream boundary to `<snapshot_cursor>-0`.
+
+This recovery method is explicit and must only be called after the matching global snapshot has been installed successfully on the affected replica(s). It is not wired to startup.
+
+Exact-head CI at `3cd58f4a4172b5b36316233518ab5e1e0ddcfffd`: 1,083 backend tests and 236 frontend tests passed; all three workflows passed.
+
+### 62I per-gateway consumer
+
+Added `RedisOhlcvReplicaConsumer`:
+- Stable consumer group derived from the persistent replica ID and source identity; each gateway has an independent broadcast group.
+- Fresh group starts at the installed replica snapshot watermark.
+- Existing group is preserved on process restart.
+- Pending deliveries are reclaimed through Redis `XAUTOCLAIM`.
+- Source ID, exact field set, canonical JSON, event ID and deterministic stream ID are validated before local apply.
+- The replica's atomic SQLite apply completes before Redis `XACK`.
+- `applied`, `duplicate` and `stale` are ACKable; cursor gaps, retention errors, malformed/conflicting events and deleted pending entries are not ACKed.
+- An explicit group reset destroys/recreates the gateway group at the newly installed snapshot watermark. The consumer must be quiesced during this operation.
+- One sequential worker is expected per gateway replica group. Multi-process orchestration and local WebSocket hub forwarding are not yet implemented.
+
+Five real Redis tests cover durable apply/ACK, ACK failure and pending reclaim, gap/no-ACK, independent broadcast to two replica databases, and group reset after snapshot install.
+
+## Explicitly not integrated
+
+- Publisher and consumer are not started by `main.py`.
+- No Redis ACL changes or production Redis endpoint are introduced.
+- No MAXLEN trimming is used.
+- No WebSocket hub forwarding or app startup worker lifecycle is enabled.
+- The current CI tests two independent gateway replica databases and independent groups in one test process; they do not prove two separately deployed backend processes.
+- Redis `XAUTOCLAIM` requires Redis Server 6.2 or newer; CI integration uses Redis 7.
+- No deployment, paid service, or Termux work.
+
+## Project accounting unchanged
+
+- Stage 1: **75% provisional** — 30/40 criteria; 300/400 ticks.
+- Gate 10: **0/10 formally closed** — all ten remain OPEN pending owner evidence.
+- Stages 2–6: **NOT SCORED**.
+- Overall project percentage: **NOT ESTABLISHED**; M1–M8 weights are unapproved.
+- WebSocket batches do not award indicator progress, Stage ticks or Gate closure.
+
+# HISTORICAL CHECKPOINT — BATCH 62H-2 DETERMINISTIC REDIS STREAMS PUBLISHER IMPLEMENTED
+
+**Date:** 19 November 2026 • **Branch:** `phase-2/market-data-foundation`  
+**Exact validated HEAD:** `f1f998a8659d206c797bdfac14b110a3849d4d68`  
+**Implementation:** `backend/app/ohlcv_redis_publisher.py`  
+**Tests:** `backend/tests/test_ohlcv_redis_publisher.py`  
+**Work report:** `docs/WORK_CYCLE_2026-11-19_BATCH62H2_REDIS_PUBLISHER.md`  
+**Complete indicator ledger:** `docs/INDICATOR_PROGRESS_LEDGER.md`  
+**Cost:** ZERO COST • no paid service • no deployment • no Termux • `main` untouched.
 
 ## Batch 62H-2 implementation
 
 Added deterministic Redis Streams append/read-back and a bounded publisher loop on top of the 62H-1 source-SQLite checkpoint.
 
-- Redis ID is exactly \`<cursor>-0\`.
+- Redis ID is exactly `<cursor>-0`.
 - Event payload is canonical JSON with sorted keys and compact separators.
 - Stream entry stores source ID, stable event ID and complete canonical payload.
 - If XADD fails, publisher reads back only the exact deterministic ID.
@@ -20,13 +216,13 @@ Added deterministic Redis Streams append/read-back and a bounded publisher loop 
 - A conflicting entry hard-fails; an unavailable read-back produces an uncertain outcome and does not advance the checkpoint.
 - Lease is renewed before each event and the fencing epoch is checked.
 - Checkpoint advances only after confirmed append/read-back and the source outbox event is revalidated.
-- Bounded pages use global \`read_outbox_batch()\`.
+- Bounded pages use global `read_outbox_batch()`.
 - Source retention expiry requires a fresh global snapshot; no cursor skipping.
 - No MAXLEN trimming, startup wiring, consumer group, ACL change or deployment.
 
 ### Exact-head CI — passed
 
-At HEAD \`f1f998a8659d206c797bdfac14b110a3849d4d68\`:
+At HEAD `f1f998a8659d206c797bdfac14b110a3849d4d68`:
 
 - Backend: **1,075 passed**.
 - Frontend: **236 passed / 28 test files**.
@@ -36,7 +232,7 @@ At HEAD \`f1f998a8659d206c797bdfac14b110a3849d4d68\`:
 - Full Git History Secret Audit: passed.
 - Container vulnerability report: generated and uploaded.
 
-Runs: Automated Tests \`44538993402\`, CodeQL \`44538993277\`, Secret Audit \`44538993352\`.
+Runs: Automated Tests `44538993402`, CodeQL `44538993277`, Secret Audit `44538993352`.
 
 The first 62H-2 CI attempt exposed one missing standard-library import. It was corrected in the validated HEAD; no production validation was weakened.
 
@@ -52,7 +248,7 @@ The first 62H-2 CI attempt exposed one missing standard-library import. It was c
 - 62J: two independent backend processes/read models and full failure matrix — pending.
 - 62K: owner-side Gate 25/36 acceptance — pending real infrastructure evidence.
 
-**Important:** publisher is deliberately not wired into \`main.py\`. No consumer exists yet, and no production cross-instance fan-out is claimed.
+**Important:** publisher is deliberately not wired into `main.py`. No consumer exists yet, and no production cross-instance fan-out is claimed.
 
 ## Project accounting unchanged
 
