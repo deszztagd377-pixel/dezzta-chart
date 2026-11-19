@@ -999,9 +999,11 @@ class SQLiteOhlcvStore:
                     timeframe,ts_start_ns,bucket_policy,calendar_id,calendar_version"""
             )
             with temporary.open("w", encoding="utf-8", newline="\n") as output:
-                output.write(json.dumps(
+                header_encoded = json.dumps(
                     header, sort_keys=True, separators=(",", ":")
-                ) + "\n")
+                ).encode("utf-8")
+                output.write(header_encoded.decode("utf-8") + "\n")
+                digest.update(header_encoded + b"\n")
                 while True:
                     rows = query.fetchmany(batch_size)
                     if not rows:
@@ -1073,11 +1075,16 @@ class SQLiteOhlcvStore:
                 or header.get("format") != "dezzta.ohlcv.global-snapshot"
                 or header.get("format_version") != 1
                 or not isinstance(header.get("source_id"), str)
+                or not header.get("source_id")
                 or not isinstance(header.get("generation_id"), str)
-                or not isinstance(header.get("high_water"), int)
-                or not isinstance(header.get("retention_floor"), int)
+                or not header.get("generation_id")
+                or type(header.get("high_water")) is not int
+                or header["high_water"] < 0
+                or type(header.get("retention_floor")) is not int
+                or not 0 <= header["retention_floor"] <= header["high_water"]
             ):
                 raise ValueError("Snapshot header contract is invalid.")
+            digest.update(first)
 
             for line in snapshot:
                 try:
@@ -1105,8 +1112,10 @@ class SQLiteOhlcvStore:
 
         if (
             manifest is None
-            or manifest.get("row_count") != row_count
-            or manifest.get("sha256") != digest.hexdigest()
+            or type(manifest.get("row_count")) is not int
+            or manifest["row_count"] != row_count
+            or not isinstance(manifest.get("sha256"), str)
+            or manifest["sha256"] != digest.hexdigest()
         ):
             raise ValueError("Snapshot manifest does not match its contents.")
         return {
