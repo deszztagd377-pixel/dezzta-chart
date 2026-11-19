@@ -8,6 +8,7 @@ import pytest
 from app.ohlcv import OhlcvBar
 from app.ohlcv_store import SQLiteOhlcvReplicaStore, SQLiteOhlcvStore
 from app.ohlcv_redis_publisher import RedisOhlcvStreamAppender
+from app.ohlcv_redis_replay import read_redis_replay_page, RedisReplayResnapshotRequired
 from app.ohlcv_redis_consumer import (
     RedisOhlcvReplicaConsumer,
     ReplicaResnapshotRequired,
@@ -19,11 +20,11 @@ NS = 1_000_000_000
 STREAM_KEY = "dezzta:market-data:ohlcv:v1"
 
 
-def make_bar(index=0):
+def make_bar(index=0, *, instrument_id=123, raw_symbol="ESZ6"):
     return OhlcvBar(
         provider="databento", dataset="GLBX.MDP3",
-        publisher_id=1, instrument_id=123, series_type="contract",
-        timeframe="1m", ts_start_ns=index * 60 * NS, raw_symbol="ESZ6",
+        publisher_id=1, instrument_id=instrument_id, series_type="contract",
+        timeframe="1m", ts_start_ns=index * 60 * NS, raw_symbol=raw_symbol,
         open=Decimal("100"), high=Decimal("103"), low=Decimal("99"),
         close=Decimal(str(101 + index)), volume=Decimal("12.5"),
         ts_event_ns=100 + index, ts_received_ns=110 + index,
@@ -448,6 +449,61 @@ def test_real_redis_callback_is_retried_after_ack_reply_loss(tmp_path):
         assert retry_notifications == [1]
         assert redis.xpending(stream_key, first.group_name)["pending"] == 0
         assert replica.checkpoint()["applied_cursor"] == 1
+    finally:
+        redis.delete(stream_key)
+        redis.close()
+
+
+def test_real_redis_replay_pages_global_cursor_and_filters_exact_series(tmp_path):
+    redis, stream_key = real_redis()
+    source = SQLiteOhlcvStore(str(tmp_path / "replay-source.sqlite3"))
+    appender = RedisOhlcvStreamAppender(
+        redis, stream_key=stream_key, source_id=source.source_id(),
+    )
+    identity = {
+        "provider": "databento", "dataset": "GLBX.MDP3",
+        "publisherId": 1, "instrumentId": 123,
+        "seriesType": "contract", "rawSymbol": "ESZ6",
+        "timeframe": "1m", "bucketPolicy": "UTC_LEGACY",
+        "calendarId": "", "calendarVersion": "",
+    }
+    try:
+        for index, bar in enumerate((
+            make_bar(0),
+            make_bar(1, instrument_id=999, raw_symbol="NQZ6"),
+            make_bar(2),
+        ), start=1):
+            assert source.apply(bar) == "inserted"
+            event = source.read_outbox_batch(
+                after_cursor=index - 1, limit=1,
+            )["events"][0]
+            assert appender.append_confirmed(event) == "appended"
+
+        first = read_redis_replay_page(
+            redis, stream_key=stream_key, source_id=source.source_id(),
+            after_cursor=0, through_cursor=3,
+            series_identity=identity, scan_limit=2,
+        )
+        assert [event["cursor"] for event in first["events"]] == [1]
+        assert first["next_cursor"] == 2
+        assert first["has_more"] is True
+
+        second = read_redis_replay_page(
+            redis, stream_key=stream_key, source_id=source.source_id(),
+            after_cursor=first["next_cursor"], through_cursor=3,
+            series_identity=identity, scan_limit=2,
+        )
+        assert [event["cursor"] for event in second["events"]] == [3]
+        assert second["next_cursor"] == 3
+        assert second["has_more"] is False
+
+        redis.xdel(stream_key, "2-0")
+        with pytest.raises(RedisReplayResnapshotRequired, match="expected 2"):
+            read_redis_replay_page(
+                redis, stream_key=stream_key, source_id=source.source_id(),
+                after_cursor=0, through_cursor=3,
+                series_identity=identity, scan_limit=10,
+            )
     finally:
         redis.delete(stream_key)
         redis.close()
