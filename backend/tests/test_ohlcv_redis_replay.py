@@ -19,7 +19,7 @@ IDENTITY = {
     "seriesType": "contract",
     "rawSymbol": "ESZ6",
     "timeframe": "1m",
-    "bucketPolicy": "utc_legacy",
+    "bucketPolicy": "UTC_LEGACY",
     "calendarId": "",
     "calendarVersion": "",
 }
