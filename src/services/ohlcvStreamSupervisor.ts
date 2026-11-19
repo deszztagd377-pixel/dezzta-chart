@@ -240,8 +240,19 @@ export function startOhlcvStreamSupervisor(
       });
     } catch (error) {
       if (!stopped) {
-        reportError(error instanceof Error ? error : new Error('OHLCV connection failed.'));
-        reconnectAfterAttempt = true;
+        if ((error as { status?: number } | null)?.status === 401) {
+          stopped = true;
+          resetMarketDataSnapshot(
+            options.identity,
+            'unavailable',
+            'Firebase authentication was rejected. Sign in again before reconnecting.',
+          );
+          setStatus('stopped');
+          reportError(new Error('Market-data WebSocket ticket authentication rejected (401).'));
+        } else {
+          reportError(error instanceof Error ? error : new Error('OHLCV connection failed.'));
+          reconnectAfterAttempt = true;
+        }
       }
     } finally {
       connecting = false;

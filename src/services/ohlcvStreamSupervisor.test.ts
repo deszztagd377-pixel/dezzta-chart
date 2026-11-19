@@ -565,6 +565,32 @@ describe('OHLCV stream supervisor', () => {
     },
   );
 
+
+  it('stops without retrying when the HTTPS ticket endpoint rejects authentication', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('fetch', vi.fn(async () => ({
+      ok: false,
+      status: 401,
+    }) as unknown as Response));
+    const factory = vi.fn(() => new FakeSocket() as unknown as WebSocket);
+    const onError = vi.fn();
+    const supervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken: async () => 'fresh-token',
+      webSocketFactory: factory,
+      onError,
+      minReconnectDelayMs: 10,
+      random: () => 0,
+    });
+    await vi.waitFor(() => expect(supervisor.status).toBe('stopped'));
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(factory).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledOnce();
+    supervisor.stop();
+  });
+
   it('does not retry after the server rejects authentication or entitlement', async () => {
     vi.useFakeTimers();
     const sockets: FakeSocket[] = [];

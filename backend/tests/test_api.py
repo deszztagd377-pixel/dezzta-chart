@@ -2133,3 +2133,39 @@ def test_websocket_ticket_https_post_is_allowed_by_cors_preflight():
     assert response.status_code == 200
     assert "POST" in response.headers["access-control-allow-methods"]
     assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+
+def test_websocket_releases_global_lease_when_auth_frame_times_out():
+    class RecordingSharedGuard:
+        def __init__(self):
+            self.acquired = None
+            self.released = []
+
+        async def start(self):
+            return None
+
+        async def close(self):
+            return None
+
+        async def allow_http(self, client_identity):
+            return True, 0
+
+        async def acquire_websocket(self, connection_id, account_subject=None):
+            self.acquired = (connection_id, account_subject)
+            return True
+
+        async def renew_websocket(self, connection_id, account_subject):
+            return True
+
+        async def release_websocket(self, connection_id, account_subject=None):
+            self.released.append((connection_id, account_subject))
+
+    guard = RecordingSharedGuard()
+    application = create_app(make_settings(), shared_guard=guard)
+    with TestClient(application) as client:
+        with pytest.raises(WebSocketDisconnect) as disconnected:
+            with client.websocket_connect("/ws/market-data") as websocket:
+                websocket.receive_json()
+
+    assert disconnected.value.code == 4401
+    assert guard.acquired is not None
+    assert guard.released == [(guard.acquired[0], None)]

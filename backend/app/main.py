@@ -830,6 +830,7 @@ def create_app(
                 await websocket.close(code=1013, reason="WebSocket capacity reached")
                 return
 
+        principal = None
         try:
             await websocket.accept()
 
@@ -846,7 +847,6 @@ def create_app(
 
             supplied_token = None
             ticket_auth = False
-            principal = None
             if not isinstance(auth_message, dict) or auth_message.get("type") != "auth":
                 await websocket.close(code=4401, reason="Authentication failed")
                 return
@@ -1244,7 +1244,7 @@ def create_app(
                             next_lease_refresh = loop.time() + max(1.0, config.websocket_lease_seconds / 3)
                         if loop.time() >= next_entitlement_check:
                             if ticket_auth:
-                                await websocket.close(code=4401, reason="WebSocket authentication renewal required")
+                                await websocket.close(code=1013, reason="WebSocket authentication renewal timed out")
                                 return
                             try:
                                 refreshed_principal = await asyncio.to_thread(application.state.identity_verifier.verify, supplied_token)

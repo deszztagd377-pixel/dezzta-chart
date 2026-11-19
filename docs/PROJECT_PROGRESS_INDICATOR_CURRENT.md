@@ -1,3 +1,12 @@
+# BATCH 56C — Authentication failure and lease lifecycle hardening
+
+- Initialized the WebSocket principal before the handshake wait, so timeout, disconnect, malformed frame, and invalid-ticket exits all release the reserved global Redis lease with a null account subject when no principal exists.
+- Missed periodic renewal now closes with transient 1013 rather than terminal 4401. The supervisor can reconnect and obtain a fresh ticket after a temporary background/network delay; actual Firebase 401 remains terminal.
+- Initial HTTPS ticket endpoint 401 now stops the supervisor instead of retrying forever. Transient 429/5xx/network failures retain bounded exponential backoff.
+- Added backend coverage for lease release when the initial auth frame times out and frontend coverage for terminal initial-ticket 401.
+
+**Gate 10:** no gate closure awarded. Gate 20/25 code paths strengthened; external Firebase/host/browser acceptance remains open. Stage 1 stays 75% provisional, Gate 10 stays 0/10, overall project score NOT ESTABLISHED.
+
 # BATCH 56B — Frontend ticket lifecycle, Redis ACL parity, and integration hardening
 
 - Frontend supervisor now exchanges fresh Firebase ID tokens over HTTPS for each connection and renewal. WebSocket frames carry only opaque tickets.
