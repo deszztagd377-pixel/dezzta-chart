@@ -1,3 +1,58 @@
+# LATEST CHECKPOINT — BATCH 62G-3 INCREMENTAL REPLICA EVENT APPLY IMPLEMENTED
+
+**Date:** 19 November 2026 • **Branch:** `phase-2/market-data-foundation`  
+**Baseline:** `35098bf07adb6a4b856dd8ce4c2034539e3e443f`  
+**Code/test commits:** `bc54265784b16daaab50bc4da64e93306105ee87`, `8b60a6974210e9ba4d5999455205c543d0067740`, `92922b5c11cf640a0fb2c9512d2d09e0b56f5084`, `4dc6e8d397ae3c62850cae38c83ccb0f783d08ab`, `8c5d43d9487b3fd6e85a0a6bc1233933d1491b9a`  
+**Cost:** ZERO COST • no deployment • no paid service • no Termux • `main` untouched.
+
+## Batch 62G-3 — atomic incremental replica event apply
+
+Added `SQLiteOhlcvReplicaStore.apply_replica_event()`.
+
+- Requires an installed snapshot and matches the caller-supplied authoritative source ID against the durable replica checkpoint.
+- Validates the exact outbox envelope, event type/version/operation, event ID, positive integer cursor, complete series identity and canonical bar schema.
+- Cross-checks the full series identity against the bar payload.
+- Preserves exact Decimal strings and integer nanosecond timestamps; rejects numeric decimal values, booleans in integer fields, non-canonical timestamps and malformed OHLCV.
+- Accepts only the next contiguous cursor (E=C+1).
+- Returns `duplicate` only when cursor, event ID and canonical payload digest all match a retained applied-event record.
+- Returns `stale` for an older cursor whose deduplication record has aged out; never mutates bars or regresses checkpoint.
+- Returns `resnapshot_required/cursor_gap` for (E>C+1); returns `resnapshot_required/retention_expired` when the observed source retention floor has overtaken the replica cursor.
+- Reused event IDs/cursors with conflicting identity or payload are hard errors.
+- Applies the bar, per-series retention pruning, bounded deduplication record and checkpoint cursor in one SQLite transaction.
+- Mirrors the source's per-timeframe retention policy carried by snapshot format v2.
+- Does not write to the replica outbox. The source-writer `apply()` and replica snapshot export remain blocked.
+- Deduplication history is bounded to the latest 100,000 cursors, matching the source outbox retention window.
+
+### Regression coverage added
+
+Four incremental-event test groups cover:
+1. Contiguous event application, exact bar fidelity, durable cursor advance, duplicate replay and no outbox echo.
+2. Cursor gap, source mismatch, malformed decimal payload, duplicate event, conflicting event ID and stale event after deduplication-history pruning.
+3. Forced checkpoint-write failure after bar/ledger mutation; transaction rollback preserves previous bar, checkpoint and empty event ledger.
+4. Per-series retention parity: after an additional event, replica and source retain the same five bars under a five-bar timeframe cap.
+
+**Validation:** source and tests are committed. Exact-head CI is not confirmed; no runtime pass is claimed. Prior CI results apply only to their recorded SHAs.
+
+## Integrated WebSocket status
+
+- **62G-1:** consistent bounded global snapshot export and manifest verification.
+- **62G-2:** isolated replica identity, format-v2 snapshot install, retention metadata and atomic checkpoint.
+- **62G-3:** transactional incremental event apply and bounded idempotency ledger.
+- **62H–62K:** Redis Streams, consumer recovery, two-process parity, failure matrix and owner Gate 25/36 acceptance remain pending.
+- No Redis publisher/consumer is wired into app startup. No public deployment is performed.
+
+## Project accounting — unchanged
+
+- Stage 1: **75% provisional** — 30/40 criteria; 300/400 ticks.
+- Gate 10: **0/10 formally closed** — all ten remain OPEN.
+- Stages 2–6: **NOT SCORED**.
+- Overall project percentage: **NOT ESTABLISHED** — M1–M8 weights are unapproved.
+- This code batch earns no Stage ticks and closes no Gate before exact-head CI and owner-side evidence.
+
+**Complete indicator ledger:** all existing formulas, first-valid indexes, calculation fixtures, visual integration gaps, and Footprint/Heatmap/Liquidation reference-image gates remain preserved below. No indicator implementation changed in this WebSocket cycle.
+
+---
+
 # LATEST CHECKPOINT — BATCH 62G-2 REPLICA SNAPSHOT INSTALL IMPLEMENTED
 
 **Date:** 19 November 2026 • **Branch:** `phase-2/market-data-foundation`  
