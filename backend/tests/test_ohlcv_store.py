@@ -854,6 +854,8 @@ def test_replica_installs_global_snapshot_atomically_without_outbox_echo(tmp_pat
     assert replica.outbox_high_water() == 0
     with pytest.raises(RuntimeError, match="cannot use source-writer apply"):
         replica.apply(legacy)
+    with pytest.raises(RuntimeError, match="cannot export an authoritative source"):
+        replica.export_global_snapshot(str(tmp_path / "replica-must-not-export.jsonl"))
 
     restarted = SQLiteOhlcvReplicaStore(replica_path)
     assert restarted.replica_id() == replica_id
