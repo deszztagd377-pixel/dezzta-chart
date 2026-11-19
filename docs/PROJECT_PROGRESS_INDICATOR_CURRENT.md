@@ -1,3 +1,61 @@
+# CURRENT VERIFIED PROJECT STATUS — BATCH 62C
+
+**Date:** 19 November 2026 • **Branch:** phase-2/market-data-foundation • **Pre-cycle HEAD:** 7063e1c9708bc3228aedb44153ed4c4461553e28  
+**Cost:** ZERO COST • no deploy • Termux not required • main untouched.
+
+## Exact-head CI — Batch 62B
+- Automated Tests run [44494115133](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44494115133): still IN PROGRESS at last observation, specifically backend container build; backend tests, benchmark and backend dependency audit already succeeded.
+- CodeQL run [44494114971](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44494114971): SUCCESS for Python and JS/TS.
+- Full Git History Secret Audit [44494115057](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44494115057): SUCCESS.
+- Batch 62B backend test suite includes the new two-process Redis single-use-ticket + account-cap race. Its worker only attempts account lease after it has consumed the one-time ticket.
+- Do not label Automated Tests 3/3 until the container build/smoke, image scan/report and final cleanup complete.
+
+## Batch 62C source changes
+- Added `SQLiteOhlcvStore.query_snapshot()`: exact query filters, bounded optional limit, selected bars, total count, durable outbox high-water and retention floor are read in one SQLite transaction.
+- Added regression tests for snapshot contents/watermark progression and invalid limits.
+- Tightened the cross-process Redis race test so ticket consumption and account lease winner are causally linked.
+- Added the architecture decision and acceptance boundaries to the ADR.
+
+## Gate 10 — all remain OPEN
+| Gate | Remaining owner acceptance |
+|---:|---|
+| 8 | Owner-host secret injection, protected mounts and runtime readback |
+| 20 | Real Firebase valid/expired/revoked/wrong-project E2E |
+| 25 | Owner Redis, independent deployed app instances, outage/recovery and operator evidence |
+| 30 | Actual owner target-database restore |
+| 31 | Zero-cost off-host copy, separate key custody, retention and restore |
+| 34 | Owner-host volume/restart/disk-pressure evidence |
+| 35 | Public HTTPS/WSS ingress, certificate renewal and external scan |
+| 36 | Snapshot-consistent cross-instance fan-out, browser/WebView and 330-second attribution |
+| 38 | Durable cross-instance collector, retention and protected access |
+| 39 | Named operator, escalation channel and acknowledgement drill |
+
+**Formal closure: 0/10.** Source/CI evidence is not owner production acceptance.
+
+## Complete indicator progress ledger
+| Indicator | Formula / first valid index | Existing foundation | Remaining visible work | State |
+|---|---|---|---|---|
+| SMA20 | Rolling close mean; 19 | Fixture-tested calculation | Overlay, toggle, legend/value, stale clear, render tests | 🟨 |
+| EMA20 | SMA seed; alpha 2/21; 19 | Fixture-tested calculation | Overlay, toggle, legend/value, stale clear, render tests | 🟨 |
+| RSI14 Wilder | Wilder smoothing; 14 | Fixture-tested calculation | 0–100 pane, 30/70 guides, toggle, lifecycle/render | 🟨 |
+| MACD12/26/9 | EMA12−EMA26; 25; signal/histogram 33 | Fixture-tested calculation | Pane, signal, histogram, zero guide, render tests | 🟨 |
+| Bollinger20,2 | Population σ ×2; 19 | Fixture-tested calculation | Three-line overlay, toggle, legend/value, render | 🟨 |
+| useMarketIndicators() | Backend snapshot, warm-up nulls aligned | No demo fallback | Visible binding, loading/error, stale identity/timeframe clear | 🟨 |
+| Footprint | Deterministic SIMULATED data | Simulation only | Owner reference + reviewed blueprint + ON-only cluster renderer | 🟨 gated |
+| Heatmap | No verified implementation | None | Reference, blueprint, source, calculations, renderer, tests | 🟥 |
+| Liquidation Maps | No verified implementation | None | Reference, blueprint, source, calculations, renderer, tests | 🟥 |
+
+**Indicator invariants:** warm-up nulls stay at original candle indexes; 18 timeframe formula fixtures do not prove live provider quality or visible integration. Footprint OFF retains standard candles; explicit ON alone enables spaced cluster layout. Footprint/Heatmap/Liquidation visual work awaits owner references and reviewed blueprint. Stage 1 active; Stage 4 visible indicator UI parked.
+
+## Progress accounting
+- Stage 1: **75% provisional** — 30/40 criteria, 300/400 ticks.
+- Gate 10: **0/10 closed**.
+- Stages 2–6: NOT SCORED.
+- Overall project: NOT ESTABLISHED.
+- ZERO COST; no deployment; no Termux; main untouched.
+
+---
+
 # CURRENT VERIFIED PROJECT STATUS — BATCH 62B
 
 **Date:** 19 November 2026 • **Branch:** phase-2/market-data-foundation • **Pre-cycle HEAD:** 97880bda671231a803d1abb06865fc849c16d686  

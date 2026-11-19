@@ -34,6 +34,16 @@ The first option is the preferred zero-cost CI path, but requires single-writer 
 The existing Redis CI service is zero-cost. Batch 62B adds a test using two independently spawned backend processes and separate Redis clients. Expected result: exactly one process consumes a single-use ticket and exactly one process acquires the shared per-account lease. This is CI evidence only, not owner-managed multi-instance acceptance. No Stream ACL permissions are added until the stream key schema and commands are reviewed.
 
 
+
+## Batch 62C — atomic snapshot + watermark primitive
+
+A second multi-instance prerequisite is now implemented at the SQLite storage boundary: `SQLiteOhlcvStore.query_snapshot()` reads the selected bar set, total count, outbox high-water cursor, and retention floor inside one SQLite read transaction. Since `apply()` commits a bar revision and its outbox event/state in one write transaction, this gives a future local replica/gateway a stable snapshot boundary to resume from.
+
+The method intentionally does **not** switch the live WebSocket route from its current in-memory pipeline. That route still relies on event-loop-confined snapshot registration; swapping it before a replica read model and authorization/catalog synchronization exist would be unsafe. The primitive is foundational and tested, not production multi-instance fan-out.
+
+The Redis process test was also tightened: a process that fails to consume the single-use ticket no longer attempts an authenticated account lease. Exactly one process must consume the ticket and that same process must be the sole lease winner.
+
+
 ## Delivery contract
 
 1. Relay reads globally ordered outbox pages after a durable cursor.

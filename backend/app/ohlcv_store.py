@@ -554,6 +554,96 @@ class SQLiteOhlcvStore:
         finally:
             db.close()
 
+    def query_snapshot(
+        self, *, dataset: str | None = None, publisher_id: int | None = None,
+        instrument_id: int | None = None, timeframe: str | None = None,
+        provider: str | None = None, raw_symbol: str | None = None,
+        series_type: str | None = None, bucket_policy: str | None = None,
+        calendar_id: str | None = None, calendar_version: str | None = None,
+        start_ns: int | None = None, end_ns: int | None = None,
+        limit: int | None = None,
+    ) -> dict[str, object]:
+        """Return bars and their durable outbox watermark from one SQLite snapshot.
+
+        The bar revision and its outbox cursor are committed in the same write
+        transaction. Reading both under one SQLite read transaction gives a
+        replica/gateway an unambiguous snapshot boundary for later replay.
+        """
+        if limit is not None and (
+            not isinstance(limit, int) or isinstance(limit, bool) or limit < 1
+        ):
+            raise ValueError("limit must be a positive integer.")
+
+        clauses: list[str] = []
+        params: list[object] = []
+        if bucket_policy is None:
+            clauses.append("bucket_policy IN (?,?)")
+            params.extend([BUCKET_POLICY_UTC_LEGACY, BUCKET_POLICY_UTC_FIXED_V1])
+        else:
+            clauses.append("bucket_policy=?")
+            params.append(bucket_policy)
+        if calendar_id is not None:
+            clauses.append("calendar_id=?")
+            params.append(calendar_id)
+        else:
+            clauses.append("calendar_id=''")
+        if calendar_version is not None:
+            clauses.append("calendar_version=?")
+            params.append(calendar_version)
+        else:
+            clauses.append("calendar_version=''")
+        for column, value in (
+            ("dataset", dataset), ("publisher_id", publisher_id),
+            ("instrument_id", instrument_id), ("timeframe", timeframe),
+            ("provider", provider), ("raw_symbol", raw_symbol),
+            ("series_type", series_type),
+        ):
+            if value is not None:
+                clauses.append(f"{column}=?")
+                params.append(value)
+        if start_ns is not None:
+            clauses.append("ts_start_ns>=?")
+            params.append(start_ns)
+        if end_ns is not None:
+            clauses.append("ts_start_ns<?")
+            params.append(end_ns)
+        where = " WHERE " + " AND ".join(clauses) if clauses else ""
+
+        db = self._connect()
+        try:
+            db.execute("BEGIN")
+            state = {
+                row["state_key"]: int(row["int_value"])
+                for row in db.execute(
+                    "SELECT state_key,int_value FROM ohlcv_outbox_state"
+                ).fetchall()
+            }
+            high_water = state.get("high_water", 0)
+            retention_floor = state.get("retention_floor", 0)
+            total = int(db.execute(
+                "SELECT COUNT(*) FROM ohlcv_bars" + where, params
+            ).fetchone()[0])
+            sql = (
+                "SELECT * FROM ohlcv_bars" + where
+                + " ORDER BY ts_start_ns DESC, provider DESC, dataset DESC, "
+                "publisher_id DESC, instrument_id DESC, series_type DESC, "
+                "raw_symbol DESC, timeframe DESC"
+            )
+            query_params = list(params)
+            if limit is not None:
+                sql += " LIMIT ?"
+                query_params.append(limit)
+            rows = db.execute(sql, query_params).fetchall()
+            return {
+                "bars": [self._from_row(row) for row in reversed(rows)],
+                "total": total,
+                "cursor": high_water,
+                "high_water": high_water,
+                "retention_floor": retention_floor,
+            }
+        finally:
+            db.close()
+
     def max_local_sequence(self) -> int:
         """High-water mark survives retention pruning and process restarts."""
         db = self._connect()

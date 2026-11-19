@@ -370,6 +370,44 @@ def test_outbox_commits_atomically_with_bar_and_replays_exact_decimal_payload(tm
     assert event["bar"]["tsEventNs"] == "1790000000123456789"
 
 
+
+
+def test_query_snapshot_returns_bars_and_outbox_watermark_from_same_committed_state(tmp_path):
+    store = SQLiteOhlcvStore(str(tmp_path / "snapshot-watermark.sqlite3"))
+    first = make_bar(start=0, event=100, sequence=1)
+    second = make_bar(
+        start=60 * NS, event=101, sequence=2, close="102",
+    )
+    assert store.apply(first) == "inserted"
+    snapshot_one = store.query_snapshot(
+        dataset="GLBX.MDP3", publisher_id=1, instrument_id=123,
+        provider="databento", raw_symbol="ESZ6", timeframe="1m",
+        series_type="contract", bucket_policy="UTC_LEGACY", limit=1,
+    )
+    assert snapshot_one["cursor"] == snapshot_one["high_water"] == 1
+    assert snapshot_one["total"] == 1
+    assert [bar.close for bar in snapshot_one["bars"]] == [Decimal("101")]
+
+    assert store.apply(second) == "inserted"
+    snapshot_two = store.query_snapshot(
+        dataset="GLBX.MDP3", publisher_id=1, instrument_id=123,
+        provider="databento", raw_symbol="ESZ6", timeframe="1m",
+        series_type="contract", bucket_policy="UTC_LEGACY",
+    )
+    assert snapshot_two["cursor"] == snapshot_two["high_water"] == 2
+    assert snapshot_two["total"] == 2
+    assert [bar.close for bar in snapshot_two["bars"]] == [
+        Decimal("101"), Decimal("102"),
+    ]
+
+
+def test_query_snapshot_validates_limit_before_reading(tmp_path):
+    store = SQLiteOhlcvStore(str(tmp_path / "snapshot-limit.sqlite3"))
+    with pytest.raises(ValueError, match="limit"):
+        store.query_snapshot(limit=True)
+    with pytest.raises(ValueError, match="limit"):
+        store.query_snapshot(limit=0)
+
 def test_global_outbox_batch_pages_all_series_in_cursor_order(tmp_path):
     store = SQLiteOhlcvStore(str(tmp_path / "outbox-global.sqlite3"))
     first = make_bar(start=0, event=100, sequence=1)

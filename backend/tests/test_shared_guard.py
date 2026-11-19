@@ -30,7 +30,12 @@ def _redis_guard_process_worker(redis_url, ticket, account, connection_id, ready
             if not start_event.wait(timeout=15):
                 raise TimeoutError("cross-process Redis test start barrier timed out")
             consumed = await guard.consume_websocket_ticket(ticket)
-            acquired = await guard.acquire_websocket(connection_id, account)
+            # A process that did not consume the one-time ticket must not try
+            # to reserve an authenticated account lease.
+            acquired = (
+                await guard.acquire_websocket(connection_id, consumed)
+                if consumed == account else False
+            )
             result_queue.put(("result", connection_id, consumed, acquired))
         except Exception as exc:
             result_queue.put(("error", connection_id, exc.__class__.__name__))
