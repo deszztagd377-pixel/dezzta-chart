@@ -208,6 +208,23 @@ class RedisOhlcvReplicaConsumer:
     def consume_once(self) -> dict[str, Any]:
         """Reclaim pending first, then read new messages; process sequentially."""
         self.ensure_group()
+        # Retry this consumer's own pending entries immediately. Waiting for
+        # min_idle_ms here would allow a later new cursor to be read and fanned
+        # out before a callback-failed earlier cursor owned by this same worker.
+        own_pending_response = self.redis.xreadgroup(
+            self.group_name,
+            self.consumer_name,
+            {self.stream_key: "0"},
+            count=self.batch_size,
+        )
+        own_pending_entries: list[tuple[Any, Any]] = []
+        for returned_stream, messages in own_pending_response or []:
+            if _redis_text(returned_stream) != self.stream_key:
+                raise ValueError("Redis returned an unexpected stream key for own pending entries.")
+            own_pending_entries.extend(messages)
+        if own_pending_entries:
+            return self._apply_and_ack(own_pending_entries, reclaimed=True)
+
         reclaimed = self.redis.xautoclaim(
             self.stream_key,
             self.group_name,

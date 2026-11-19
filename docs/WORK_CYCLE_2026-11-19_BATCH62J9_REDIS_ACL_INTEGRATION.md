@@ -46,3 +46,8 @@ This CI proof does not close Gate 25. Still required:
 - Safe maintenance procedure for retiring old snapshot-generation groups.
 
 No production ACL users, secrets, Redis configuration or deployments were changed.
+
+
+## Batch 62J-10 — pending-order guarantee
+
+The consumer now retries entries pending under its own consumer name with XREADGROUP ID 0 before attempting XAUTOCLAIM or reading new entries. This closes a callback-failure ordering gap without waiting for the pending idle threshold. XREADGROUP was already included in the restricted gateway ACL, so no permission expansion is needed. The real Redis 7 regression test proves callback order [1, 1, 2] with a 30-second pending idle threshold.

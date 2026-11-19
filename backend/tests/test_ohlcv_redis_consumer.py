@@ -660,3 +660,50 @@ def test_real_redis_relay_acl_separates_publisher_and_gateway_permissions(tmp_pa
         admin.execute_command("ACL", "DELUSER", publisher_user, gateway_user)
         admin.delete(stream_key, other_key)
         admin.close()
+
+
+def test_real_redis_retries_same_consumers_pending_before_reading_new_cursor(tmp_path):
+    redis, stream_key = real_redis()
+    source = SQLiteOhlcvStore(str(tmp_path / "same-consumer-pending-source.sqlite3"))
+    snapshot_path = tmp_path / "same-consumer-pending-snapshot.jsonl"
+    make_snapshot(source, snapshot_path)
+    replica = make_replica(
+        source, snapshot_path, tmp_path / "same-consumer-pending-replica.sqlite3",
+    )
+    callback_calls = []
+
+    def callback(event):
+        callback_calls.append(event["cursor"])
+        if len(callback_calls) == 1:
+            raise RuntimeError("transient same-consumer callback failure")
+
+    consumer = make_consumer(
+        redis, replica, stream_key, "same-consumer-retry-worker",
+        idle_ms=30_000, on_event_applied=callback,
+    )
+    try:
+        append_and_publish(source, redis, stream_key, 0)
+        with pytest.raises(RuntimeError, match="same-consumer callback failure"):
+            consumer.consume_once()
+        assert replica.checkpoint()["applied_cursor"] == 1
+        assert redis.xpending(stream_key, consumer.group_name)["pending"] == 1
+
+        # Cursor 2 is available, but cursor 1 must be retried first even though
+        # the pending idle threshold has not elapsed.
+        append_and_publish(source, redis, stream_key, 1)
+        retry = consumer.consume_once()
+        assert retry["reclaimed"] == 1
+        assert retry["duplicate"] == 1
+        assert retry["acknowledged"] == 1
+        assert replica.checkpoint()["applied_cursor"] == 1
+        assert callback_calls == [1, 1]
+        assert redis.xpending(stream_key, consumer.group_name)["pending"] == 0
+
+        next_event = consumer.consume_once()
+        assert next_event["applied"] == 1
+        assert next_event["acknowledged"] == 1
+        assert replica.checkpoint()["applied_cursor"] == 2
+        assert callback_calls == [1, 1, 2]
+    finally:
+        redis.delete(stream_key)
+        redis.close()

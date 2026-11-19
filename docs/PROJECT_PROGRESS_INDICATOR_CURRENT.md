@@ -2857,3 +2857,12 @@ See `docs/INDICATOR_PROGRESS_LEDGER.md` for formula definitions, first-valid ind
 - Temporary ACL users and stream keys are deleted in finally cleanup. No production secrets or ACLs are touched.
 - Batch 62J-8 exact-head CI: Automated Tests, CodeQL and Full Git History Secret Audit all SUCCESS (runs 44556645983, 44556646066, 44556645952).
 - Gate 25 remains OPEN pending production stream-key config, separate owner credentials, TLS, target Redis multi-instance and outage/recovery evidence.
+
+
+## Batch 62J-10 — same-consumer pending ordering
+
+- Found and fixed a sequencing risk: after callback failure, an entry pending under the same consumer name could wait for XAUTOCLAIM min_idle_ms while later new entries were read first.
+- Consumer now checks its own pending list via XREADGROUP ID 0 before XAUTOCLAIM or XREADGROUP ID >.
+- Real Redis 7 regression test keeps pending_idle_ms at 30 seconds, publishes a later cursor, and proves the pending earlier cursor is retried/ACKed first; callback order is [1, 1, 2].
+- No extra ACL permission is needed; XREADGROUP was already in the gateway's least-privilege command set.
+- Batch 62J-9 exact-head CI is the current verification target; no production ACL, deployment or secret change.
