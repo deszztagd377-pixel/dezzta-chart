@@ -1180,3 +1180,31 @@ def test_replica_incremental_apply_enforces_source_bar_retention_policy(tmp_path
     assert len(source.load_bars()) == len(replica.load_bars()) == 5
     assert replica.load_bars() == source.load_bars()
     assert replica.load_bars()[0].ts_start_ns == 60 * NS
+
+
+def test_replica_event_apply_requires_current_checkpoint_protocol(tmp_path):
+    import sqlite3
+
+    source = SQLiteOhlcvStore(str(tmp_path / "protocol-source.sqlite3"))
+    assert source.apply(make_bar()) == "inserted"
+    snapshot = tmp_path / "protocol.snapshot.jsonl"
+    source.export_global_snapshot(str(snapshot))
+    replica_path = str(tmp_path / "protocol-replica.sqlite3")
+    replica = SQLiteOhlcvReplicaStore(replica_path)
+    replica.install_global_snapshot(str(snapshot))
+
+    next_bar = make_bar(
+        start=60 * NS, event=101, sequence=2, close="102",
+        instrument_id=456, raw_symbol="NQZ6",
+    )
+    assert source.apply(next_bar) == "inserted"
+    event = source.read_outbox_batch(after_cursor=1, limit=10)["events"][0]
+    with sqlite3.connect(replica_path) as db:
+        db.execute(
+            "UPDATE ohlcv_replica_checkpoint SET protocol_version=2"
+        )
+
+    with pytest.raises(RuntimeError, match="checkpoint version mismatch"):
+        replica.apply_replica_event(event, source_id=source.source_id())
+    assert replica.checkpoint()["applied_cursor"] == 1
+    assert replica.load_bars() == [make_bar()]
