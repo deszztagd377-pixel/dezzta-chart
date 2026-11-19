@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import os
 import uuid
 
@@ -9,6 +10,10 @@ from app.ohlcv import OhlcvBar
 from app.ohlcv_store import SQLiteOhlcvReplicaStore, SQLiteOhlcvStore
 from app.ohlcv_redis_publisher import RedisOhlcvStreamAppender
 from app.ohlcv_redis_replay import read_redis_replay_page, RedisReplayResnapshotRequired
+from app.ohlcv_event_loop import EventLoopCallbackDispatcher
+from app.ohlcv_replica_bridge import forward_replica_event, hydrate_replica_pipeline
+from app.ohlcv import OhlcvPipeline
+from app.ohlcv_stream import OhlcvStreamHub
 from app.ohlcv_redis_consumer import (
     RedisOhlcvReplicaConsumer,
     ReplicaResnapshotRequired,
@@ -504,6 +509,52 @@ def test_real_redis_replay_pages_global_cursor_and_filters_exact_series(tmp_path
                 after_cursor=0, through_cursor=3,
                 series_identity=identity, scan_limit=10,
             )
+    finally:
+        redis.delete(stream_key)
+        redis.close()
+
+
+def test_real_redis_consumer_dispatches_hub_callback_on_owner_event_loop(tmp_path):
+    redis, stream_key = real_redis()
+    source = SQLiteOhlcvStore(str(tmp_path / "event-loop-source.sqlite3"))
+    snapshot_path = tmp_path / "event-loop-snapshot.jsonl"
+    make_snapshot(source, snapshot_path)
+    replica = make_replica(
+        source, snapshot_path, tmp_path / "event-loop-replica.sqlite3",
+    )
+    pipeline = OhlcvPipeline()
+    hydration = hydrate_replica_pipeline(replica, pipeline)
+    hub = OhlcvStreamHub()
+    subscription, snapshot_bars, _ = hub.subscribe_snapshot(
+        pipeline,
+        dataset="GLBX.MDP3", publisher_id=1, instrument_id=123,
+        raw_symbol="ESZ6", timeframe="1m", limit=10,
+        durable_cursor=hydration["applied_cursor"],
+    )
+    assert snapshot_bars == []
+
+    append_and_publish(source, redis, stream_key, 0)
+
+    async def scenario():
+        loop = asyncio.get_running_loop()
+        dispatcher = EventLoopCallbackDispatcher(
+            loop, lambda event: forward_replica_event(event, pipeline, hub),
+        )
+        consumer = make_consumer(
+            redis, replica, stream_key, "gateway-event-loop-worker",
+            on_event_applied=dispatcher.dispatch,
+        )
+        return await asyncio.to_thread(consumer.consume_once)
+
+    try:
+        result = asyncio.run(scenario())
+        assert result["applied"] == 1
+        assert result["acknowledged"] == 1
+        assert replica.checkpoint()["applied_cursor"] == 1
+        assert subscription.queue.qsize() == 1
+        message = subscription.queue.get_nowait()
+        assert message["cursor"] == "1"
+        assert message["eventId"]
     finally:
         redis.delete(stream_key)
         redis.close()
