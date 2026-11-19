@@ -1343,6 +1343,23 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                         data = record.get("data")
                         if not isinstance(data, dict) or set(data) != _SNAPSHOT_BAR_FIELDS:
                             raise ValueError("Snapshot bar schema does not match the canonical contract.")
+                        string_fields = (
+                            "provider", "dataset", "series_type", "timeframe",
+                            "raw_symbol", "sequence_origin", "origin",
+                            "completeness", "bucket_policy", "calendar_id",
+                            "calendar_version", "open", "high", "low", "close",
+                            "volume",
+                        )
+                        integer_fields = (
+                            "publisher_id", "instrument_id", "ts_start_ns",
+                            "ts_event_ns", "ts_received_ns", "sequence",
+                        )
+                        if any(not isinstance(data[field], str) for field in string_fields):
+                            raise ValueError("Snapshot string and exact-decimal fields must be strings.")
+                        if any(type(data[field]) is not int for field in integer_fields):
+                            raise ValueError("Snapshot integer and nanosecond fields must be integers.")
+                        if data["ts_provider_out_ns"] is not None and type(data["ts_provider_out_ns"]) is not int:
+                            raise ValueError("Snapshot provider timestamp must be an integer or null.")
                         try:
                             bar = OhlcvBar(**data)
                         except (TypeError, ValueError) as exc:
