@@ -1,3 +1,65 @@
+# CURRENT VERIFIED PROJECT STATUS — BATCH 62D (CI VERIFIED)
+
+**Date:** 19 November 2026 • **Branch:** phase-2/market-data-foundation • **Verified source HEAD:** c2008868538cbf57fcff8f806e7c9b775785ef6e  
+**Cost:** ZERO COST • no deployment • no Termux • main untouched.
+
+## Batch 62D exact-head CI — 3/3 SUCCESS
+
+| Workflow | Run | Result |
+|---|---:|---|
+| Automated Tests + Build | [44495306834](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44495306834) | SUCCESS |
+| CodeQL Python + JS/TS | [44495306746](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44495306746) | SUCCESS |
+| Full Git History Secret Audit | [44495306805](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44495306805) | SUCCESS |
+
+- Backend pytest: **1,048 passed in 32.45 seconds**.
+- Frontend Vitest: **236 passed across 28 files**.
+- Frontend npm audit: **0 vulnerabilities**.
+- Backend dependency audit: **no known vulnerabilities**.
+- Backend container build and smoke test: SUCCESS; shared Redis guard and persistent-volume checks completed.
+- Trivy scanned 69 image/package targets: **0 vulnerabilities reported** in the table; report artifact uploaded.
+- Batch 62D includes deterministic concurrent SQLite snapshot/watermark test and both Batch 62C snapshot tests.
+- These remain CI/source results, not owner production acceptance.
+
+## Gate 10 — 0/10 formally closed; all OPEN
+
+| Gate | Remaining owner acceptance |
+|---:|---|
+| 8 | Owner-host secret injection, protected mounts and runtime readback |
+| 20 | Real Firebase valid/expired/revoked/wrong-project E2E |
+| 25 | Owner Redis, independent deployed app instances, outage/recovery and operator evidence |
+| 30 | Actual owner target-database restore |
+| 31 | Zero-cost off-host copy, separate key custody, retention and restore |
+| 34 | Owner-host volume/restart/disk-pressure evidence |
+| 35 | Public HTTPS/WSS ingress, certificate renewal and external scan |
+| 36 | Snapshot-consistent cross-instance fan-out, browser/WebView and 330-second attribution |
+| 38 | Durable cross-instance collector, retention and protected access |
+| 39 | Named operator, escalation channel and acknowledgement drill |
+
+## Complete indicator progress ledger
+
+| Indicator | Formula / first valid index | Verified foundation | Remaining visible work | State |
+|---|---|---|---|---|
+| SMA20 | Rolling close mean / 19 | Fixture-tested calculation | Overlay, toggle, legend/value, stale clear, render tests | 🟨 |
+| EMA20 | SMA seed, alpha 2/21 / 19 | Fixture-tested calculation | Overlay, toggle, legend/value, stale clear, render tests | 🟨 |
+| RSI14 Wilder | Wilder smoothing / 14 | Fixture-tested calculation | 0–100 pane, 30/70 guides, toggle, lifecycle/render | 🟨 |
+| MACD12/26/9 | EMA12−EMA26 / 25; signal/histogram / 33 | Fixture-tested calculation | Pane, signal, histogram, zero guide, render tests | 🟨 |
+| Bollinger20,2 | Population stddev ×2 / 19 | Fixture-tested calculation | Three-line overlay, toggle, legend/value, render | 🟨 |
+| useMarketIndicators() | Backend snapshot, aligned warm-up nulls | No demo fallback | Visible binding, loading/error, stale identity/timeframe clear | 🟨 |
+| Footprint | Deterministic SIMULATED | Simulation only | Owner reference + reviewed blueprint + ON-only spaced cluster renderer | 🟨 gated |
+| Heatmap | Not implemented | None | Reference, blueprint, source, calculation, renderer, tests | 🟥 |
+| Liquidation Maps | Not implemented | None | Reference, blueprint, source, calculation, renderer, tests | 🟥 |
+
+**Invariants:** warm-up nulls align to original candle indexes; 18-timeframe formula fixtures do not prove provider data quality or visible integration. Footprint OFF preserves ordinary candles; explicit ON alone enables spaced clusters. Footprint/Heatmap/Liquidation visual work waits for owner references and reviewed blueprint. Stage 1 active; Stage 4 visible UI parked.
+
+## Progress accounting
+- Stage 1: **75% provisional** — 30/40 criteria, 300/400 ticks.
+- Gate 10: **0/10 closed**.
+- Stages 2–6: NOT SCORED.
+- Overall project percentage: NOT ESTABLISHED.
+- ZERO COST; no deploy; no Termux; main untouched.
+
+---
+
 # CURRENT VERIFIED PROJECT STATUS — BATCH 62D
 
 **Date:** 19 November 2026 • **Branch:** phase-2/market-data-foundation • **Pre-cycle HEAD:** b213824e8cee4402ab0b846feb05a45de98fe415  
