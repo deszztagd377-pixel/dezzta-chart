@@ -1138,3 +1138,270 @@ class SQLiteOhlcvStore:
             return {"bars": int(row["bars"]), "series": int(row["series"])}
         finally:
             db.close()
+
+_REPLICA_PROTOCOL_VERSION = 1
+_REPLICA_SCHEMA_VERSION = 1
+_SNAPSHOT_BAR_FIELDS = frozenset((
+    "provider", "dataset", "publisher_id", "instrument_id", "series_type",
+    "timeframe", "ts_start_ns", "raw_symbol", "open", "high", "low", "close",
+    "volume", "ts_event_ns", "ts_received_ns", "sequence", "sequence_origin",
+    "origin", "completeness", "ts_provider_out_ns", "bucket_policy",
+    "calendar_id", "calendar_version",
+))
+_REPLICA_INSERT_SQL = """INSERT INTO ohlcv_bars (
+    provider,dataset,publisher_id,instrument_id,series_type,timeframe,
+    ts_start_ns,raw_symbol,open,high,low,close,volume,ts_event_ns,
+    ts_received_ns,sequence,sequence_origin,origin,completeness,
+    ts_provider_out_ns,bucket_policy,calendar_id,calendar_version
+) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"""
+
+
+class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
+    """Independent local OHLCV read model with atomic snapshot installation.
+
+    This store deliberately rejects source-writer apply() calls. Snapshot
+    installation writes bars directly and records the source checkpoint in the
+    same transaction, so it cannot echo imported bars into the source outbox.
+    """
+
+    def __init__(
+        self,
+        database_path: str,
+        *,
+        retention: Mapping[str, int] | None = None,
+        busy_timeout_ms: int = 10_000,
+    ) -> None:
+        super().__init__(
+            database_path, retention=retention, busy_timeout_ms=busy_timeout_ms,
+        )
+        self._initialize_replica_metadata()
+
+    def _initialize_replica_metadata(self) -> None:
+        db = self._connect()
+        try:
+            db.execute("BEGIN IMMEDIATE")
+            db.execute(
+                """CREATE TABLE IF NOT EXISTS ohlcv_replica_identity (
+                    identity_key TEXT PRIMARY KEY NOT NULL,
+                    identity_value TEXT NOT NULL
+                )"""
+            )
+            db.execute(
+                """INSERT INTO ohlcv_replica_identity(identity_key,identity_value)
+                VALUES ('replica_id',?)
+                ON CONFLICT(identity_key) DO NOTHING""",
+                (uuid.uuid4().hex,),
+            )
+            db.execute(
+                """CREATE TABLE IF NOT EXISTS ohlcv_replica_checkpoint (
+                    source_id TEXT PRIMARY KEY NOT NULL,
+                    replica_id TEXT NOT NULL,
+                    applied_cursor INTEGER NOT NULL CHECK(applied_cursor >= 0),
+                    snapshot_generation TEXT NOT NULL,
+                    retention_floor INTEGER NOT NULL CHECK(retention_floor >= 0),
+                    schema_version INTEGER NOT NULL,
+                    protocol_version INTEGER NOT NULL
+                )"""
+            )
+            db.execute("COMMIT")
+        except Exception:
+            if db.in_transaction:
+                db.execute("ROLLBACK")
+            raise
+        finally:
+            db.close()
+
+    def replica_id(self) -> str:
+        db = self._connect()
+        try:
+            row = db.execute(
+                "SELECT identity_value FROM ohlcv_replica_identity "
+                "WHERE identity_key='replica_id'"
+            ).fetchone()
+            if row is None:
+                raise RuntimeError("OHLCV replica identity is missing.")
+            return str(row["identity_value"])
+        finally:
+            db.close()
+
+    def checkpoint(self) -> dict[str, object] | None:
+        db = self._connect()
+        try:
+            row = db.execute(
+                """SELECT source_id,replica_id,applied_cursor,snapshot_generation,
+                    retention_floor,schema_version,protocol_version
+                FROM ohlcv_replica_checkpoint LIMIT 1"""
+            ).fetchone()
+            if row is None:
+                return None
+            return {
+                "source_id": str(row["source_id"]),
+                "replica_id": str(row["replica_id"]),
+                "applied_cursor": int(row["applied_cursor"]),
+                "snapshot_generation": str(row["snapshot_generation"]),
+                "retention_floor": int(row["retention_floor"]),
+                "schema_version": int(row["schema_version"]),
+                "protocol_version": int(row["protocol_version"]),
+            }
+        finally:
+            db.close()
+
+    def apply(self, bar: OhlcvBar) -> str:
+        raise RuntimeError(
+            "Replica stores cannot use source-writer apply(); "
+            "use the replica event-apply protocol."
+        )
+
+    def install_global_snapshot(
+        self,
+        snapshot_path: str,
+        *,
+        expected_source_id: str | None = None,
+        batch_size: int = 500,
+    ) -> dict[str, object]:
+        """Validate and atomically replace this replica's complete read model.
+
+        Validation is performed once before taking the writer lock and again
+        while rows are inserted. The second pass closes the verify/use race:
+        checkpoint advancement, full bar replacement and final manifest
+        validation all commit or roll back together.
+        """
+        if not isinstance(snapshot_path, str) or not snapshot_path.strip():
+            raise ValueError("snapshot_path is required.")
+        if (
+            not isinstance(batch_size, int) or isinstance(batch_size, bool)
+            or not 1 <= batch_size <= 5_000
+        ):
+            raise ValueError("batch_size must be between 1 and 5000.")
+        if expected_source_id is not None and (
+            not isinstance(expected_source_id, str) or not expected_source_id.strip()
+        ):
+            raise ValueError("expected_source_id must be a non-empty string.")
+
+        metadata = SQLiteOhlcvStore.verify_global_snapshot(snapshot_path)
+        source_id = str(metadata["source_id"])
+        if expected_source_id is not None and source_id != expected_source_id:
+            raise ValueError("Snapshot source identity does not match the configured source.")
+
+        replica_id = self.replica_id()
+        db = self._connect()
+        inserted = 0
+        digest = hashlib.sha256()
+        batch: list[tuple[object, ...]] = []
+        manifest: dict[str, object] | None = None
+
+        try:
+            db.execute("BEGIN IMMEDIATE")
+            existing = db.execute(
+                """SELECT source_id,applied_cursor FROM ohlcv_replica_checkpoint
+                LIMIT 1"""
+            ).fetchone()
+            if existing is not None:
+                if str(existing["source_id"]) != source_id:
+                    raise ValueError(
+                        "Replica is already bound to a different authoritative source."
+                    )
+                if int(existing["applied_cursor"]) > int(metadata["high_water"]):
+                    raise ValueError("Snapshot cursor is older than the replica checkpoint.")
+
+            with Path(snapshot_path).expanduser().open("rb") as snapshot:
+                first = snapshot.readline()
+                try:
+                    header = json.loads(first)
+                except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                    raise ValueError("Snapshot header is invalid.") from exc
+                if (
+                    not isinstance(header, dict)
+                    or header.get("record") != "header"
+                    or header.get("source_id") != source_id
+                    or header.get("generation_id") != metadata["generation_id"]
+                    or type(header.get("high_water")) is not int
+                    or header["high_water"] != metadata["high_water"]
+                    or type(header.get("retention_floor")) is not int
+                    or header["retention_floor"] != metadata["retention_floor"]
+                ):
+                    raise ValueError("Snapshot header changed after preflight verification.")
+
+                digest.update(first)
+                db.execute("DELETE FROM ohlcv_bars")
+
+                for line in snapshot:
+                    try:
+                        record = json.loads(line)
+                    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                        raise ValueError("Snapshot record is invalid.") from exc
+                    if not isinstance(record, dict):
+                        raise ValueError("Snapshot record must be an object.")
+
+                    if record.get("record") == "bar" and manifest is None:
+                        data = record.get("data")
+                        if not isinstance(data, dict) or set(data) != _SNAPSHOT_BAR_FIELDS:
+                            raise ValueError("Snapshot bar schema does not match the canonical contract.")
+                        try:
+                            bar = OhlcvBar(**data)
+                        except (TypeError, ValueError) as exc:
+                            raise ValueError("Snapshot contains an invalid canonical OHLCV bar.") from exc
+
+                        encoded = json.dumps(
+                            record, sort_keys=True, separators=(",", ":")
+                        ).encode("utf-8")
+                        digest.update(encoded + b"\\n")
+                        batch.append(self._values(bar))
+                        inserted += 1
+                        if len(batch) >= batch_size:
+                            db.executemany(_REPLICA_INSERT_SQL, batch)
+                            batch.clear()
+                    elif record.get("record") == "manifest" and manifest is None:
+                        manifest = record
+                        if snapshot.readline():
+                            raise ValueError("Snapshot contains data after its manifest.")
+                        break
+                    else:
+                        raise ValueError("Snapshot record order is invalid.")
+
+            if batch:
+                db.executemany(_REPLICA_INSERT_SQL, batch)
+                batch.clear()
+
+            if (
+                manifest is None
+                or type(manifest.get("row_count")) is not int
+                or manifest["row_count"] != inserted
+                or not isinstance(manifest.get("sha256"), str)
+                or manifest["sha256"] != digest.hexdigest()
+                or inserted != metadata["row_count"]
+            ):
+                raise ValueError("Snapshot manifest changed or does not match installed rows.")
+
+            db.execute(
+                """INSERT INTO ohlcv_replica_checkpoint(
+                    source_id,replica_id,applied_cursor,snapshot_generation,
+                    retention_floor,schema_version,protocol_version
+                ) VALUES (?,?,?,?,?,?,?)
+                ON CONFLICT(source_id) DO UPDATE SET
+                    replica_id=excluded.replica_id,
+                    applied_cursor=excluded.applied_cursor,
+                    snapshot_generation=excluded.snapshot_generation,
+                    retention_floor=excluded.retention_floor,
+                    schema_version=excluded.schema_version,
+                    protocol_version=excluded.protocol_version""",
+                (
+                    source_id, replica_id, int(metadata["high_water"]),
+                    str(metadata["generation_id"]), int(metadata["retention_floor"]),
+                    _REPLICA_SCHEMA_VERSION, _REPLICA_PROTOCOL_VERSION,
+                ),
+            )
+            db.execute("COMMIT")
+        except Exception:
+            if db.in_transaction:
+                db.execute("ROLLBACK")
+            raise
+        finally:
+            db.close()
+
+        return {
+            **metadata,
+            "replica_id": replica_id,
+            "installed_rows": inserted,
+            "status": "installed",
+        }
