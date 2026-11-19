@@ -299,3 +299,170 @@ def test_redis_publisher_does_not_publish_when_another_owner_holds_lease(tmp_pat
     assert result == {"status": "lease_busy", "published": 0}
     assert redis.streams == {}
     assert checkpoint.state()["published_cursor"] == 0
+
+
+# Real Redis contract tests. CI supplies an isolated Redis 7 service through
+# REDIS_TEST_URL; local runs without that opt-in service skip these cases.
+def _real_redis_context(tmp_path):
+    import os
+    import uuid
+
+    redis_url = os.environ.get("REDIS_TEST_URL")
+    if not redis_url:
+        pytest.skip("REDIS_TEST_URL is not configured.")
+    redis_module = pytest.importorskip("redis")
+    client = redis_module.Redis.from_url(redis_url, decode_responses=True)
+    client.ping()
+    stream_key = f"dezzta:test:ohlcv:{uuid.uuid4().hex}"
+    store = SQLiteOhlcvStore(str(tmp_path / "real-redis-source.sqlite3"))
+    checkpoint = SQLiteOhlcvPublisherCheckpoint(store, stream_key=stream_key)
+    checkpoint.initialize_from_snapshot(0, now_ms=1_000)
+    return redis_module, client, stream_key, store, checkpoint
+
+
+class _LostReplyRedis:
+    def __init__(self, client, *, fail_readback=False):
+        self.client = client
+        self.fail_readback = fail_readback
+        self.lost_reply = False
+
+    def xadd(self, name, fields, *, id):
+        result = self.client.xadd(name, fields, id=id)
+        if not self.lost_reply:
+            self.lost_reply = True
+            raise ConnectionError("simulated client reply loss after committed XADD")
+        return result
+
+    def xrange(self, name, *, min, max, count):
+        if self.fail_readback:
+            raise ConnectionError("simulated Redis read-back outage")
+        return self.client.xrange(name, min=min, max=max, count=count)
+
+
+def test_real_redis_publisher_writes_deterministic_ids_and_canonical_payload(tmp_path):
+    _, redis, stream_key, store, checkpoint = _real_redis_context(tmp_path)
+    try:
+        assert append_bar(store, index=0) == "inserted"
+        assert append_bar(store, index=1) == "inserted"
+        publisher = RedisOhlcvPublisher(
+            store, checkpoint, redis, owner="real-redis-publisher",
+            clock_ms=lambda: 10_000, batch_size=10,
+        )
+
+        result = publisher.publish_available()
+        rows = redis.xrange(stream_key, min="-", max="+")
+        assert result["published_cursor"] == 2
+        assert [entry_id for entry_id, _ in rows] == ["1-0", "2-0"]
+        assert [fields["source_id"] for _, fields in rows] == [store.source_id()] * 2
+        assert [fields["event_id"] for _, fields in rows] == [
+            event["eventId"]
+            for event in store.read_outbox_batch(after_cursor=0, limit=10)["events"]
+        ]
+        for (_, fields), event in zip(
+            rows, store.read_outbox_batch(after_cursor=0, limit=10)["events"]
+        ):
+            assert fields["payload"] == RedisOhlcvStreamAppender._canonical_payload(event)
+        assert checkpoint.state()["published_cursor"] == 2
+    finally:
+        redis.delete(stream_key)
+        redis.close()
+
+
+def test_real_redis_recovers_committed_xadd_when_client_reply_is_lost(tmp_path):
+    _, redis, stream_key, store, checkpoint = _real_redis_context(tmp_path)
+    try:
+        assert append_bar(store) == "inserted"
+        wrapped = _LostReplyRedis(redis)
+        publisher = RedisOhlcvPublisher(
+            store, checkpoint, wrapped, owner="real-redis-lost-reply",
+            clock_ms=lambda: 20_000,
+        )
+
+        result = publisher.publish_available()
+        assert result["published"] == 1
+        assert result["verified_existing"] == 1
+        assert redis.xlen(stream_key) == 1
+        assert checkpoint.state()["published_cursor"] == 1
+    finally:
+        redis.delete(stream_key)
+        redis.close()
+
+
+def test_real_redis_conflicting_existing_id_fails_closed(tmp_path):
+    _, redis, stream_key, store, checkpoint = _real_redis_context(tmp_path)
+    try:
+        assert append_bar(store) == "inserted"
+        redis.xadd(
+            stream_key,
+            {"source_id": store.source_id(), "event_id": "wrong-event", "payload": "{}"},
+            id="1-0",
+        )
+        publisher = RedisOhlcvPublisher(
+            store, checkpoint, redis, owner="real-redis-conflict",
+            clock_ms=lambda: 30_000,
+        )
+
+        with pytest.raises(RedisStreamConflict, match="different source/event/payload"):
+            publisher.publish_available()
+        assert checkpoint.state()["published_cursor"] == 0
+        assert redis.xlen(stream_key) == 1
+    finally:
+        redis.delete(stream_key)
+        redis.close()
+
+
+def test_real_redis_uncertain_readback_preserves_checkpoint_then_recovers(tmp_path):
+    _, redis, stream_key, store, checkpoint = _real_redis_context(tmp_path)
+    try:
+        assert append_bar(store) == "inserted"
+        uncertain_client = _LostReplyRedis(redis, fail_readback=True)
+        publisher = RedisOhlcvPublisher(
+            store, checkpoint, uncertain_client, owner="real-redis-uncertain",
+            clock_ms=lambda: 40_000,
+        )
+
+        with pytest.raises(RedisAppendUnconfirmed, match="checkpoint remains unchanged"):
+            publisher.publish_available()
+        assert checkpoint.state()["published_cursor"] == 0
+        assert redis.xlen(stream_key) == 1
+
+        recovered = RedisOhlcvPublisher(
+            store, checkpoint, redis, owner="real-redis-recovery",
+            clock_ms=lambda: 50_000,
+        ).publish_available()
+        assert recovered["verified_existing"] == 1
+        assert recovered["published_cursor"] == 1
+        assert redis.xlen(stream_key) == 1
+    finally:
+        redis.delete(stream_key)
+        redis.close()
+
+
+def test_real_redis_new_client_verifies_committed_stream_entry(tmp_path):
+    redis_module, redis, stream_key, store, checkpoint = _real_redis_context(tmp_path)
+    try:
+        assert append_bar(store) == "inserted"
+        event = store.read_outbox_batch(after_cursor=0, limit=1)["events"][0]
+        appender = RedisOhlcvStreamAppender(
+            redis, stream_key=stream_key, source_id=store.source_id(),
+        )
+        assert appender.append_confirmed(event) == "appended"
+        redis.close()
+
+        reconnected = redis_module.Redis.from_url(
+            os.environ["REDIS_TEST_URL"], decode_responses=True,
+        )
+        try:
+            verifier = RedisOhlcvStreamAppender(
+                reconnected, stream_key=stream_key, source_id=store.source_id(),
+            )
+            assert verifier.append_confirmed(event) == "verified_existing"
+            assert reconnected.xlen(stream_key) == 1
+        finally:
+            reconnected.delete(stream_key)
+            reconnected.close()
+    finally:
+        try:
+            redis.delete(stream_key)
+        finally:
+            redis.close()
