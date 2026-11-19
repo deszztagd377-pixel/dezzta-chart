@@ -1137,7 +1137,7 @@ class SQLiteOhlcvStore:
             "bar_retention": header["bar_retention"],
             "row_count": row_count,
             "sha256": digest.hexdigest(),
-            "format_version": 1,
+            "format_version": 2,
         }
 
     def stats(self) -> dict[str, int]:
