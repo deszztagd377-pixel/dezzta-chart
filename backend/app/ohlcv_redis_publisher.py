@@ -108,12 +108,12 @@ class SQLiteOhlcvPublisherCheckpoint:
         source_window = self.source_store.read_outbox_batch(
             after_cursor=snapshot_cursor, limit=1,
         )
+        if snapshot_cursor > int(source_window["high_water"]):
+            raise ValueError("Snapshot cursor is ahead of the authoritative outbox.")
         if source_window.get("status") != "ok":
             raise RuntimeError(
                 "Snapshot watermark is outside the retained source outbox; install a fresh snapshot."
             )
-        if snapshot_cursor > int(source_window["high_water"]):
-            raise ValueError("Snapshot cursor is ahead of the authoritative outbox.")
 
         db = self._connect()
         try:
@@ -207,6 +207,18 @@ class SQLiteOhlcvPublisherCheckpoint:
             raise ValueError("now_ms must be a non-negative integer.")
         if type(ttl_ms) is not int or not 1 <= ttl_ms <= _MAX_LEASE_TTL_MS:
             raise ValueError(f"ttl_ms must be between 1 and {_MAX_LEASE_TTL_MS}.")
+        source_page = self.source_store.read_outbox_batch(
+            after_cursor=expected_cursor, limit=1,
+        )
+        if (
+            source_page.get("status") != "ok"
+            or not source_page.get("events")
+            or source_page["events"][0] != event
+        ):
+            raise RuntimeError(
+                "Confirmed event does not match the next retained authoritative outbox record."
+            )
+
         source_id = self.source_store.source_id()
         db = self._connect()
         try:
