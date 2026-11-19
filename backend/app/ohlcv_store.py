@@ -1151,8 +1151,8 @@ class SQLiteOhlcvStore:
         finally:
             db.close()
 
-_REPLICA_PROTOCOL_VERSION = 1
-_REPLICA_SCHEMA_VERSION = 1
+_REPLICA_PROTOCOL_VERSION = 2
+_REPLICA_SCHEMA_VERSION = 2
 _SNAPSHOT_BAR_FIELDS = frozenset((
     "provider", "dataset", "publisher_id", "instrument_id", "series_type",
     "timeframe", "ts_start_ns", "raw_symbol", "open", "high", "low", "close",
