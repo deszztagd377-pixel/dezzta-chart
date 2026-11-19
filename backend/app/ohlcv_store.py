@@ -985,11 +985,15 @@ class SQLiteOhlcvStore:
             header = {
                 "record": "header",
                 "format": "dezzta.ohlcv.global-snapshot",
-                "format_version": 1,
+                "format_version": 2,
                 "generation_id": generation_id,
                 "source_id": str(identity["identity_value"]),
                 "high_water": high_water,
                 "retention_floor": retention_floor,
+                "bar_retention": {
+                    timeframe: self.retention[timeframe]
+                    for timeframe in sorted(self.retention)
+                },
             }
             digest = hashlib.sha256()
             row_count = 0
@@ -1073,7 +1077,7 @@ class SQLiteOhlcvStore:
                 not isinstance(header, dict)
                 or header.get("record") != "header"
                 or header.get("format") != "dezzta.ohlcv.global-snapshot"
-                or header.get("format_version") != 1
+                or header.get("format_version") != 2
                 or not isinstance(header.get("source_id"), str)
                 or not header.get("source_id")
                 or not isinstance(header.get("generation_id"), str)
@@ -1082,6 +1086,12 @@ class SQLiteOhlcvStore:
                 or header["high_water"] < 0
                 or type(header.get("retention_floor")) is not int
                 or not 0 <= header["retention_floor"] <= header["high_water"]
+                or not isinstance(header.get("bar_retention"), dict)
+                or set(header["bar_retention"]) != set(SUPPORTED_TIMEFRAMES)
+                or any(
+                    type(cap) is not int or cap < MIN_RETENTION[timeframe]
+                    for timeframe, cap in header["bar_retention"].items()
+                )
             ):
                 raise ValueError("Snapshot header contract is invalid.")
             digest.update(first)
@@ -1124,6 +1134,7 @@ class SQLiteOhlcvStore:
             "cursor": header["high_water"],
             "high_water": header["high_water"],
             "retention_floor": header["retention_floor"],
+            "bar_retention": header["bar_retention"],
             "row_count": row_count,
             "sha256": digest.hexdigest(),
             "format_version": 1,
@@ -1199,10 +1210,21 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                     applied_cursor INTEGER NOT NULL CHECK(applied_cursor >= 0),
                     snapshot_generation TEXT NOT NULL,
                     retention_floor INTEGER NOT NULL CHECK(retention_floor >= 0),
+                    bar_retention_json TEXT NOT NULL DEFAULT '{}',
                     schema_version INTEGER NOT NULL,
                     protocol_version INTEGER NOT NULL
                 )"""
             )
+            checkpoint_columns = {
+                row["name"] for row in db.execute(
+                    "PRAGMA table_info(ohlcv_replica_checkpoint)"
+                )
+            }
+            if "bar_retention_json" not in checkpoint_columns:
+                db.execute(
+                    "ALTER TABLE ohlcv_replica_checkpoint "
+                    "ADD COLUMN bar_retention_json TEXT NOT NULL DEFAULT '{}'"
+                )
             db.execute("COMMIT")
         except Exception:
             if db.in_transaction:
@@ -1235,7 +1257,7 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
         try:
             row = db.execute(
                 """SELECT source_id,replica_id,applied_cursor,snapshot_generation,
-                    retention_floor,schema_version,protocol_version
+                    retention_floor,bar_retention_json,schema_version,protocol_version
                 FROM ohlcv_replica_checkpoint LIMIT 1"""
             ).fetchone()
             if row is None:
@@ -1246,6 +1268,7 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                 "applied_cursor": int(row["applied_cursor"]),
                 "snapshot_generation": str(row["snapshot_generation"]),
                 "retention_floor": int(row["retention_floor"]),
+                "bar_retention": json.loads(row["bar_retention_json"]),
                 "schema_version": int(row["schema_version"]),
                 "protocol_version": int(row["protocol_version"]),
             }
@@ -1399,18 +1422,20 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
             db.execute(
                 """INSERT INTO ohlcv_replica_checkpoint(
                     source_id,replica_id,applied_cursor,snapshot_generation,
-                    retention_floor,schema_version,protocol_version
-                ) VALUES (?,?,?,?,?,?,?)
+                    retention_floor,bar_retention_json,schema_version,protocol_version
+                ) VALUES (?,?,?,?,?,?,?,?)
                 ON CONFLICT(source_id) DO UPDATE SET
                     replica_id=excluded.replica_id,
                     applied_cursor=excluded.applied_cursor,
                     snapshot_generation=excluded.snapshot_generation,
                     retention_floor=excluded.retention_floor,
+                    bar_retention_json=excluded.bar_retention_json,
                     schema_version=excluded.schema_version,
                     protocol_version=excluded.protocol_version""",
                 (
                     source_id, replica_id, int(metadata["high_water"]),
                     str(metadata["generation_id"]), int(metadata["retention_floor"]),
+                    json.dumps(metadata["bar_retention"], sort_keys=True, separators=(",", ":")),
                     _REPLICA_SCHEMA_VERSION, _REPLICA_PROTOCOL_VERSION,
                 ),
             )
