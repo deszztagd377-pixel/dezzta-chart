@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="940" viewBox="0 0 1280 940" role="img" aria-labelledby="title desc">
 <title id="title">DEZZTA CHART project progress — Batch 50 socket already CLOSED fallback</title>
-<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 50 adds an idempotent terminal notification when fail() observes the socket already CLOSED before the native close event. Exact-head CI SUCCESS: frontend 234/234, backend 1,032/1,032; build, audit, Redis, Trivy, APK, CodeQL and secret audit all passed. Gate 10 remains 0/10.</desc>
+<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 50 adds an idempotent terminal notification when fail() observes the socket already CLOSED before the native close event; Batch 49 preserves a 1006 fallback when explicit close() throws. Exact-head CI SUCCESS: frontend 234/234, backend 1,032/1,032; build, audit, Redis, Trivy, APK, CodeQL and secret audit all passed. Gate 10 remains 0/10.</desc>
 <rect width="1280" height="940" rx="28" fill="#0b1220"/>
 <g font-family="Arial,sans-serif">
 <text x="48" y="58" fill="#f8fafc" font-size="32" font-weight="700">DEZZTA CHART — PROJECT PROGRESS</text>
@@ -44,9 +44,9 @@
 <text x="66" y="836" fill="#a7f3d0" font-size="15">npm audit • Redis • Trivy • APK PASS</text>
 <rect x="452" y="704" width="376" height="176" rx="14" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
 <text x="474" y="744" fill="#d1fae5" font-size="18" font-weight="700">WEBSOCKET — EXPLICIT CLOSE FIX</text>
-<text x="474" y="778" fill="#a7f3d0" font-size="15">Explicit close failure reported</text>
-<text x="474" y="807" fill="#a7f3d0" font-size="15">Close observer receives 1006 once</text>
-<text x="474" y="836" fill="#fcd34d" font-size="15">Exact-head CI SUCCESS • ZERO COST</text>
+<text x="474" y="778" fill="#a7f3d0" font-size="15">Already-CLOSED fail() -> 1011 once</text>
+<text x="474" y="807" fill="#a7f3d0" font-size="15">Explicit close() failure -> 1006 once</text>
+<text x="474" y="836" fill="#fcd34d" font-size="15">Late close deduplicated • CI SUCCESS</text>
 <rect x="860" y="704" width="376" height="176" rx="14" fill="#78350f" stroke="#fbbf24" stroke-width="2"/>
 <text x="882" y="744" fill="#fef3c7" font-size="18" font-weight="700">GATE 10 — OPEN</text>
 <text x="882" y="778" fill="#fde68a" font-size="15">8, 20, 25, 30, 31</text>
