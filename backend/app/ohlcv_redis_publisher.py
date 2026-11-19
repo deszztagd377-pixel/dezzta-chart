@@ -160,6 +160,93 @@ class SQLiteOhlcvPublisherCheckpoint:
         finally:
             db.close()
 
+    def rebase_from_snapshot(
+        self,
+        snapshot_cursor: int,
+        *,
+        expected_cursor: int,
+        now_ms: int,
+    ) -> dict[str, Any]:
+        """Rebase only after a fresh global snapshot was installed successfully.
+
+        This is an explicit recovery operation, not a normal publisher action.
+        It may move the publisher cursor forward to the snapshot watermark, but
+        never backward. A live publisher lease blocks the rebase; an expired
+        lease is cleared and its epoch is fenced. The caller must install the
+        matching snapshot into every affected replica before invoking this.
+        """
+        if type(snapshot_cursor) is not int or snapshot_cursor < 0:
+            raise ValueError("snapshot_cursor must be a non-negative integer.")
+        if type(expected_cursor) is not int or expected_cursor < 0:
+            raise ValueError("expected_cursor must be a non-negative integer.")
+        if type(now_ms) is not int or now_ms < 0:
+            raise ValueError("now_ms must be a non-negative integer.")
+
+        source_id = self.source_store.source_id()
+        db = self._connect()
+        try:
+            db.execute("BEGIN IMMEDIATE")
+            source_state = {
+                row["state_key"]: int(row["int_value"])
+                for row in db.execute(
+                    "SELECT state_key,int_value FROM ohlcv_outbox_state"
+                ).fetchall()
+            }
+            retention_floor = source_state.get("retention_floor", 0)
+            high_water = source_state.get("high_water", 0)
+            if snapshot_cursor < retention_floor or snapshot_cursor > high_water:
+                raise RuntimeError(
+                    "Snapshot cursor is outside the currently retained authoritative source window."
+                )
+
+            row = db.execute(
+                "SELECT * FROM ohlcv_relay_publisher_checkpoint WHERE source_id=?",
+                (source_id,),
+            ).fetchone()
+            if row is None:
+                raise RuntimeError("Publisher checkpoint must be initialized before snapshot rebase.")
+            if (
+                int(row["schema_version"]) != _PUBLISHER_SCHEMA_VERSION
+                or str(row["stream_key"]) != self.stream_key
+            ):
+                raise RuntimeError("Publisher checkpoint schema or stream key mismatch.")
+            current_cursor = int(row["published_cursor"])
+            if current_cursor != expected_cursor:
+                raise RuntimeError("Publisher snapshot rebase compare-and-swap failed.")
+            if snapshot_cursor < current_cursor:
+                raise ValueError("A recovery snapshot cannot move the publisher cursor backwards.")
+            if (
+                row["lease_owner"] is not None
+                and int(row["lease_expires_ms"]) > now_ms
+            ):
+                raise RuntimeError("Cannot rebase while a publisher lease is still active.")
+
+            next_epoch = int(row["lease_epoch"]) + 1
+            updated = db.execute(
+                """UPDATE ohlcv_relay_publisher_checkpoint
+                SET published_cursor=?,last_event_id=NULL,last_stream_id=?,
+                    lease_owner=NULL,lease_epoch=?,lease_expires_ms=0,updated_at_ms=?
+                WHERE source_id=? AND published_cursor=?""",
+                (
+                    snapshot_cursor, f"{snapshot_cursor}-0", next_epoch,
+                    now_ms, source_id, expected_cursor,
+                ),
+            )
+            if updated.rowcount != 1:
+                raise RuntimeError("Publisher snapshot rebase compare-and-swap failed.")
+            result = db.execute(
+                "SELECT * FROM ohlcv_relay_publisher_checkpoint WHERE source_id=?",
+                (source_id,),
+            ).fetchone()
+            db.execute("COMMIT")
+            return self._row_dict(result)
+        except Exception:
+            if db.in_transaction:
+                db.execute("ROLLBACK")
+            raise
+        finally:
+            db.close()
+
     @staticmethod
     def _row_dict(row: sqlite3.Row) -> dict[str, Any]:
         return {

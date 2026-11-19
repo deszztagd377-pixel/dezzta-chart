@@ -468,3 +468,69 @@ def test_real_redis_new_client_verifies_committed_stream_entry(tmp_path):
             redis.delete(stream_key)
         finally:
             redis.close()
+
+
+def test_publisher_checkpoint_rebases_forward_after_retention_snapshot_and_fences_old_lease(tmp_path):
+    store, checkpoint, _ = setup_checkpoint(tmp_path)
+    for index in range(3):
+        assert append_bar(store, index=index) == "inserted"
+    old_lease = checkpoint.acquire_lease(
+        "publisher-before-snapshot", now_ms=10_000, ttl_ms=100,
+    )
+    assert old_lease["lease_epoch"] == 1
+    with store._connect() as db:
+        db.execute(
+            "UPDATE ohlcv_outbox_state SET int_value=2 WHERE state_key='retention_floor'"
+        )
+
+    rebased = checkpoint.rebase_from_snapshot(
+        3, expected_cursor=0, now_ms=10_101,
+    )
+    assert rebased["published_cursor"] == 3
+    assert rebased["last_event_id"] is None
+    assert rebased["last_stream_id"] == "3-0"
+    assert rebased["lease_owner"] is None
+    assert rebased["lease_epoch"] == 2
+    assert checkpoint.release_lease(
+        "publisher-before-snapshot", epoch=old_lease["lease_epoch"], now_ms=10_102,
+    ) is False
+    new_lease = checkpoint.acquire_lease(
+        "publisher-after-snapshot", now_ms=10_103, ttl_ms=1_000,
+    )
+    assert new_lease["lease_epoch"] == 3
+
+
+def test_publisher_checkpoint_rebase_rejects_live_lease_and_stale_cas(tmp_path):
+    _, checkpoint, _ = setup_checkpoint(tmp_path)
+    lease = checkpoint.acquire_lease("active-publisher", now_ms=20_000, ttl_ms=1_000)
+
+    with pytest.raises(RuntimeError, match="lease is still active"):
+        checkpoint.rebase_from_snapshot(
+            0, expected_cursor=0, now_ms=20_500,
+        )
+    with pytest.raises(RuntimeError, match="compare-and-swap"):
+        checkpoint.rebase_from_snapshot(
+            0, expected_cursor=1, now_ms=21_001,
+        )
+    assert checkpoint.state()["published_cursor"] == 0
+    assert checkpoint.state()["lease_epoch"] == lease["lease_epoch"]
+
+
+def test_publisher_checkpoint_rebase_rejects_snapshot_outside_retained_window(tmp_path):
+    store, checkpoint, _ = setup_checkpoint(tmp_path)
+    for index in range(3):
+        assert append_bar(store, index=index) == "inserted"
+    with store._connect() as db:
+        db.execute(
+            "UPDATE ohlcv_outbox_state SET int_value=2 WHERE state_key='retention_floor'"
+        )
+
+    with pytest.raises(RuntimeError, match="outside the currently retained"):
+        checkpoint.rebase_from_snapshot(
+            1, expected_cursor=0, now_ms=30_000,
+        )
+    with pytest.raises(RuntimeError, match="outside the currently retained"):
+        checkpoint.rebase_from_snapshot(
+            4, expected_cursor=0, now_ms=30_000,
+        )
+    assert checkpoint.state()["published_cursor"] == 0
