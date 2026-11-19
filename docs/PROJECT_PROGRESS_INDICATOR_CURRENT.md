@@ -1,3 +1,62 @@
+# LATEST CHECKPOINT — BATCH 62G-2 REPLICA SNAPSHOT INSTALL IMPLEMENTED
+
+**Date:** 19 November 2026 • **Branch:** `phase-2/market-data-foundation`  
+**Baseline:** `35098bf07adb6a4b856dd8ce4c2034539e3e443f`  
+**Code/test commits:** `fe1d05f214932268d25e2292079fe6752a32880f`, `307e6838fa3b2604f166cabff26bcc9affc1ac8a`, `ad8583a53cf68a89c368d01a8a9d51e959e83440`, `8e73cbc9c2e57bbf517dce024045dc59cac7749f`, `9c7217c3e9cf32ca7d53e1e07ec5a2b6607bc75c`, `608ccddc249a7f7183feb41ff05f15bc75601d35`  
+**Cost:** ZERO COST • no Vercel/Cloudflare deployment • no paid service • no Termux • `main` untouched.
+
+## Batch 62G-2 — replica snapshot installation
+
+Implemented `SQLiteOhlcvReplicaStore` in `backend/app/ohlcv_store.py` as a separate local read-model store.
+
+- Stable `replica_id` is created once per gateway database and survives restart.
+- Durable checkpoint records upstream `source_id`, replica ID, applied cursor, snapshot generation, retention floor, schema version and protocol version.
+- `install_global_snapshot()` first preflights the snapshot, then re-reads and validates it while holding one target SQLite write transaction. This closes the file verify/use race.
+- The target's existing bars are replaced inside that transaction. The global checkpoint is written only after every row and the final manifest validate; bars and checkpoint commit together or both roll back.
+- Snapshot records must match the exact 23-field OHLCV schema. Decimal fields must be strings, integer/nanosecond fields must be actual integers (booleans rejected), and optional provider timestamp must be integer or null.
+- Every row is reconstructed through `OhlcvBar` validation before insertion. Calendar identity, including CME session ID/version, is retained.
+- Batch inserts are bounded to 1–5,000 records (default 500); no full-snapshot Python list is materialized.
+- Replica `apply()` is explicitly disabled so callers cannot accidentally use the authoritative writer path and create source outbox echo.
+- Replica `source_id()` is disabled; the authoritative identity is read from its upstream checkpoint, not confused with the replica database's local metadata.
+
+### Atomicity and recovery boundary
+
+The target transaction starts before replacing bars. It streams rows in bounded batches, recomputes the complete header-plus-row SHA-256, validates the manifest, and writes the checkpoint before COMMIT. Any malformed row, duplicate primary key, changed file, I/O error or checkpoint failure rolls back the delete, inserted rows and checkpoint update together.
+
+A replica already bound to another source is rejected. A snapshot whose high-water is below the current applied cursor is rejected. The source ID can also be pinned through `expected_source_id`.
+
+### Regression coverage added
+
+Four replica test groups now cover:
+1. Successful full snapshot install across UTC and CME series; exact decimal and timestamp preservation; checkpoint contents; stable replica identity after restart; no outbox echo; source-writer apply blocked.
+2. Wrong-source rejection and stale snapshot cursor rejection without mutation.
+3. A semantically invalid but correctly checksummed snapshot fails after a prior batch is inserted; transaction rollback preserves the previous bars and checkpoint.
+4. Numeric JSON decimal values are rejected even when the envelope checksum is valid, preventing lossy float-to-Decimal conversion.
+
+**Validation:** code and tests are committed, but exact-HEAD CI is not yet confirmed. No green test claim is made. The earlier 62F/62G-1 CI evidence applies only to its own exact commit SHA.
+
+## Remaining integrated WebSocket cycle
+
+1. **62G-3:** transactional event apply with source binding, event-ID/cursor validation, idempotency, duplicate/stale/gap handling and no outbox echo.
+2. **62H:** deterministic Redis Streams publisher and independent consumer group per gateway.
+3. **62I:** apply-before-ACK, pending reclaim, crash/restart and Redis outage recovery.
+4. **62J:** two independent backend processes/read models, cursor parity and full failure matrix.
+5. **62K:** owner-side Gate 25/36 evidence. No deployment is authorized just to manufacture evidence.
+
+Redis relay is still not activated in application startup. No SQLite WAL is shared across hosts.
+
+## Project accounting — unchanged
+
+- Stage 1: **75% provisional** — 30/40 criteria; 300/400 ticks.
+- Gate 10: **0/10 formally closed** — all ten remain OPEN.
+- Stages 2–6: **NOT SCORED**.
+- Overall project percentage: **NOT ESTABLISHED** — M1–M8 weights are unapproved.
+- This replica-install slice earns no Stage ticks and closes no Gate until exact-head CI and owner acceptance requirements are satisfied.
+
+**Complete indicator ledger:** all formula definitions, first valid indexes, fixture coverage, visual integration gaps, and Footprint/Heatmap/Liquidation reference-image gates are preserved in the sections below. Indicator implementation was not modified by this WebSocket batch.
+
+---
+
 # LATEST CHECKPOINT — BATCH 62G-1 GLOBAL SNAPSHOT EXPORT IMPLEMENTED
 
 **Date:** 19 November 2026 • **Branch:** `phase-2/market-data-foundation`  
