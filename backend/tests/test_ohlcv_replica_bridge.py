@@ -67,8 +67,9 @@ def test_live_replica_event_fans_out_and_duplicate_cursor_is_suppressed(tmp_path
     replica = install_replica(source, tmp_path)
     bar = make_bar(0)
     assert source.apply(bar) == "inserted"
-    event = source.outbox_event_for_bar(bar)
-    assert event is not None
+    event_page = source.read_outbox_batch(after_cursor=0, limit=10)
+    assert event_page["status"] == "ok"
+    event = event_page["events"][0]
     assert replica.apply_replica_event(
         event, source_id=source.source_id(),
     )["status"] == "applied"
@@ -97,8 +98,9 @@ def test_hydrated_snapshot_watermark_suppresses_replayed_old_event(tmp_path):
     source = SQLiteOhlcvStore(str(tmp_path / "source.sqlite3"))
     first = make_bar(0)
     assert source.apply(first) == "inserted"
-    first_event = source.outbox_event_for_bar(first)
-    assert first_event is not None
+    first_event_page = source.read_outbox_batch(after_cursor=0, limit=1)
+    assert first_event_page["status"] == "ok"
+    first_event = first_event_page["events"][0]
     assert source.apply(make_bar(1)) == "inserted"
     replica = install_replica(source, tmp_path)
     pipeline = OhlcvPipeline()
@@ -121,8 +123,9 @@ def test_forward_rejects_pipeline_divergence_instead_of_silent_drop(tmp_path):
     source = SQLiteOhlcvStore(str(tmp_path / "source.sqlite3"))
     bar = make_bar(0)
     assert source.apply(bar) == "inserted"
-    event = source.outbox_event_for_bar(bar)
-    assert event is not None
+    event_page = source.read_outbox_batch(after_cursor=0, limit=1)
+    assert event_page["status"] == "ok"
+    event = event_page["events"][0]
     pipeline = OhlcvPipeline()
     # Seed a conflicting raw symbol at the same bar identity.
     conflicting = OhlcvBar(
