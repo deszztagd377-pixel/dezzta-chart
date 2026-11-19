@@ -109,3 +109,14 @@ Two-instance test profile: 2 instances × 10 subscribers × 3 timeframes = 60 lo
 ## Boundaries
 
 Do not share a WAL SQLite file across arbitrary hosts; do not use Redis Pub/Sub as durable delivery; do not use one shared consumer group for all app instances; do not claim production Gate 36 closure from CI; do not deploy merely to manufacture acceptance evidence.
+
+
+## Batch 62E — exact-head audit and topology gate
+
+Current branch HEAD e36240032aec2539e8bb0fec3c037248133648f9 has all three exact-head workflows successful: Automated Tests run 44496224508, CodeQL run 44496224516 and Full Git History Secret Audit run 44496224538. This is CI/source evidence only.
+
+The backend application factory still creates one OhlcvPipeline, one process-local OhlcvStreamHub and one file-backed SQLiteOhlcvStore per app process. This confirms the architecture blocker: a Redis relay without an authoritative writer and idempotent per-instance read-model replication cannot guarantee consistent initial snapshots.
+
+**Implementation gate:** do not wire Redis Streams into application startup until writer ownership, source identity, replica apply without outbox re-emission, cursor/watermark consistency, catalog/entitlement synchronization and retention-triggered resnapshot are implemented and tested together. The next safe work is 62F–62J CI-only implementation/testing, followed by owner acceptance 62K. No deployment or paid infrastructure is authorized.
+
+The current indicator ledger and progress values are unchanged: Stage 1 75% provisional; Gate 10 0/10 closed; Stages 2–6 not scored; overall project percentage not established. No ticks are awarded for this audit.

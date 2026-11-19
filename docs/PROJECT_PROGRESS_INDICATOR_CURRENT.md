@@ -1,3 +1,22 @@
+# LATEST VERIFIED CHECKPOINT — BATCH 62E RECONCILIATION
+
+**Current branch HEAD:** e36240032aec2539e8bb0fec3c037248133648f9
+**Exact-head CI:** Automated Tests [44496224508](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44496224508) SUCCESS • CodeQL [44496224516](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44496224516) SUCCESS • Full Git History Secret Audit [44496224538](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44496224538) SUCCESS.
+**Scope:** Batch 62E is documentation/audit only; no application source behavior changed.
+**Cost:** ZERO COST • no deployment • no Termux • main untouched.
+
+**Important correction:** older sections below record their own historical tested HEADs. They must not be interpreted as the current branch SHA. The current branch was independently read at e36240032aec2539e8bb0fec3c037248133648f9, and all three workflows above completed successfully on that exact SHA.
+
+**Current progress:** Stage 1 remains 75% provisional (30/40 criteria; 300/400 ticks); Gate 10 remains 0/10 formally closed; Stages 2–6 are NOT SCORED; overall project percentage remains NOT ESTABLISHED. Documentation and CI success do not earn project ticks or close owner-acceptance gates.
+
+**WebSocket disposition:** local snapshot/watermark concurrency is CI-verified, but the live app still constructs a process-local pipeline/hub and local SQLite store per application process. Redis fan-out alone is insufficient. Next safe sequence is authoritative writer ownership → idempotent local replica apply → per-instance Redis Streams groups → crash/recovery tests → owner public WSS acceptance. Do not share WAL SQLite across hosts or wire partial fan-out into startup.
+
+**Indicator disposition:** SMA20, EMA20, RSI14 Wilder, MACD12/26/9 and Bollinger20,2 are calculation foundations, not visible chart features. Shared hook is groundwork. Footprint remains SIMULATED and reference/blueprint-gated; Heatmap and Liquidation Maps remain unimplemented. Stage 4 UI remains parked.
+
+**Detailed work-cycle report:** [WORK_CYCLE_2026-11-19_BATCH62E_EXACT_HEAD_RECONCILIATION_AND_RELAY_READINESS.md](WORK_CYCLE_2026-11-19_BATCH62E_EXACT_HEAD_RECONCILIATION_AND_RELAY_READINESS.md)
+
+---
+
 # CURRENT VERIFIED PROJECT STATUS — BATCH 62D (CI VERIFIED)
 
 **Date:** 19 November 2026 • **Branch:** phase-2/market-data-foundation • **Verified source HEAD:** c2008868538cbf57fcff8f806e7c9b775785ef6e  
