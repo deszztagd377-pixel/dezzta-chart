@@ -1,3 +1,63 @@
+# LATEST CHECKPOINT — BATCH 62G-1 GLOBAL SNAPSHOT EXPORT IMPLEMENTED
+
+**Date:** 19 November 2026 • **Branch:** `phase-2/market-data-foundation`  
+**Previous approved blueprint:** `189ed4ba514dcf725ec38a9a0dc95f389017b304`  
+**Code/test commits:** `a4ef6eca4ffe5dd15cb829f10090d54934216cf7`, `708532eb6b2edd4029176b2b95be822995305059`, `0cbc8b53afde575362050fbb88fdfe3dba8dedbf`  
+**Cost:** ZERO COST • no deployment • no paid service • no Termux • `main` untouched.
+
+## Batch 62G-1 — first executable slice of the approved eight-point cycle
+
+Implemented in `backend/app/ohlcv_store.py`:
+- Added a stable per-database `source_id` in an additive OHLCV-owned metadata table. It does not alter shared `PRAGMA user_version` or bump the OHLCV table schema version.
+- Added `export_global_snapshot(destination_path, batch_size=500)`.
+- Export pins one SQLite read transaction by reading outbox state first, then streams **all retained rows** from `ohlcv_bars` in deterministic primary-key order using `fetchmany()`.
+- The export includes every bucket/calendar identity, including CME session rows; it does not reuse the chart query's default calendar filters.
+- Header records source identity, generation ID, global high-water and retention floor. Footer records row count and SHA-256 over canonical bar records.
+- Output is written to a temporary file, flushed/fsynced, then atomically renamed only after successful export and source read-transaction completion.
+- Added streaming `verify_global_snapshot()` to validate header, record order, row count and content digest without loading the whole file into memory.
+- Added explicit destination protection and bounded batch-size validation.
+
+### Consistency and resource notes
+
+- The watermark and every exported bar come from the same pinned SQLite read view.
+- Memory use is bounded by `batch_size`; default 500, maximum 5,000 rows per fetch.
+- A long-lived WAL reader can delay WAL checkpoint/truncation and increase WAL disk usage while concurrent writes continue. Export duration and WAL growth must be benchmarked before production rollout.
+- This is the **source export/verification half** of the snapshot protocol. Replica-side atomic installation, source/replica checkpoint, incremental replay and Redis Streams are not yet implemented or activated.
+- The export file is an internal transfer artifact, not a public endpoint. No data is sent to a third party.
+
+### Regression coverage added
+
+Three tests added:
+1. All retained bucket/calendar series exported, including CME identity, exact decimal strings, stable source ID, row count and manifest verification; tampering is rejected.
+2. Concurrent source write after the snapshot watermark is pinned does not leak into the export; snapshot cursor and rows remain at the same committed view.
+3. Invalid/boolean batch size, empty destination and source-database overwrite are rejected.
+
+**Validation:** exact-head CI for the implementation commits is pending; do not mark tests green or award Stage/Gate progress until the exact final head passes. The prior Batch 62F CI 3/3 result remains evidence only for its own exact SHA.
+
+## Next implementation work inside the same integrated cycle
+
+1. Snapshot replica install contract: validate source identity, header/footer, all row identities and digest; stage rows into a separate local read model and swap atomically.
+2. Replica identity/checkpoint schema and source binding.
+3. Transactional idempotent event apply without outbox echo.
+4. Duplicate/stale/gap/conflict/restart and exact-decimal tests.
+5. Redis Streams append + independent consumer groups only after local replica correctness.
+6. Two independent backend process parity and full recovery matrix.
+7. Gate 25/36 owner acceptance only with real owner infrastructure and external evidence.
+
+No partial relay is enabled at startup.
+
+## Current project accounting
+
+- Stage 1: **75% provisional** — 30/40 criteria; 300/400 ticks (unchanged).
+- Gate 10: **0/10 formally closed** (unchanged).
+- Stages 2–6: **NOT SCORED**.
+- Overall project percentage: **NOT ESTABLISHED** — M1–M8 weights are unapproved.
+- This source-export slice earns no Stage ticks and closes no Gate.
+
+**Complete indicator ledger:** retained in this document below, unchanged. SMA20, EMA20, RSI14, MACD12/26/9, Bollinger20, shared indicator hook, Footprint, Heatmap and Liquidation Maps retain their exact formulas, warm-up indexes, implementation boundaries and remaining work. Visual gates for Footprint/Heatmap/Liquidation remain in force.
+
+---
+
 # LATEST CHECKPOINT — BATCH 62G INTEGRATED WEBSOCKET BLUEPRINT APPROVED
 
 **Date:** 19 November 2026 • **Branch:** `phase-2/market-data-foundation`  
