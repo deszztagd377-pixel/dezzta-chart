@@ -144,3 +144,18 @@ Integrated eight-point delivery order:
 Cursor rules: only `E=C+1` is eligible for apply; `E<=C` is duplicate/stale and must not mutate or regress; `E>C+1` is a gap requiring resnapshot. Bar mutation and checkpoint update are one SQLite transaction. Redis ACK follows commit. Replica apply must never emit a new source outbox event.
 
 No Redis Streams publisher/consumer is activated at application startup until all eight points have implementation and test evidence. No SQLite WAL is shared between hosts. CI/local Redis remains supporting evidence, not Gate 25/36 owner acceptance.
+
+
+## Batch 62G-2 — replica snapshot installation boundary
+
+The first two executable parts of the approved snapshot protocol now exist:
+
+- The authoritative store exports every retained OHLCV row and a global outbox high-water from one pinned SQLite read view, using bounded JSONL streaming and a manifest digest over the header plus every bar record.
+- `SQLiteOhlcvReplicaStore` maintains an independent local read model, stable per-gateway replica identity and durable upstream checkpoint.
+- Replica installation preflights the file, then validates it again while replacing the target bars in one SQLite transaction. The checkpoint is written in that same transaction only after the complete manifest and every canonical bar validate.
+- Decimal fields are required to remain JSON strings; nanosecond and other integer fields must be actual integers. CME calendar identity is preserved.
+- Replica source-writer `apply()` is blocked to prevent accidental source-outbox echo.
+
+This is still a local storage primitive, not an activated distributed relay. Incremental replica event apply, event-ID idempotency, cursor gap handling, Redis Streams, consumer groups, pending reclaim and app-factory wiring remain pending. Do not activate Redis or change the WebSocket runtime until those pieces and their failure tests are complete.
+
+The target-side snapshot swap uses a single write transaction and bounded batches. It is atomic to SQLite readers, but a large install can hold the target writer lock for the duration and increase WAL pressure. Measure snapshot size, install duration, writer wait and WAL growth before owner-host rollout. No production deployment or paid service is authorized.
