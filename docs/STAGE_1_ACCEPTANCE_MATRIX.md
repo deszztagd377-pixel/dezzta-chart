@@ -1057,3 +1057,12 @@ The root lockfile contains `picomatch@4.0.7` as `dev: true`, with transitive par
 - Overall current project percentage: **NOT ESTABLISHED** because M1–M8 weights and criterion mapping are not approved/scored. Historical 20.9% is retained only as a historical checkpoint, not presented as current.
 
 No Gate 10 closure or Stage 1 tick increase is awarded from adding tests alone. No Termux required. Zero-cost constraints maintained. `main` untouched.
+
+
+## Batch 62J-14 — 2026-11-19 exact-head WebSocket handoff update
+
+- Exact source HEAD before this batch: 1246ec19585faabb6754f83e59d14fc8a4361a56. Automated Tests, CodeQL and Full Git History Secret Audit all SUCCESS (runs 44562762820, 44562762581, 44562762579).
+- Main source-SQLite WebSocket reconnect route now delegates queue merge/resequence to the separately tested OhlcvStreamHub.merge_replay_boundary() helper.
+- The route sends replay_complete only after successful handoff; failure emits sanitized resnapshot_required and closes with 1013.
+- This is a source-route correctness improvement, not replica-backed Redis startup integration or public WSS acceptance.
+- Gate 10 remains 0/10 formally closed; Stage 1 remains 75% provisional (30/40 criteria; 300/400 ticks). No score increase.

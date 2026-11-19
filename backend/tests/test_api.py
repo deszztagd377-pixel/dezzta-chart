@@ -2169,3 +2169,38 @@ def test_websocket_releases_global_lease_when_auth_frame_times_out():
     assert disconnected.value.code == 4401
     assert guard.acquired is not None
     assert guard.released == [(guard.acquired[0], None)]
+
+
+def test_websocket_closes_and_requires_resnapshot_when_replay_live_handoff_fails(monkeypatch) -> None:
+    from app.ohlcv_stream import OhlcvStreamHub, OhlcvStreamResnapshotRequired
+
+    def fail_handoff(self, subscription, replay_events, replay_end_cursor):
+        raise OhlcvStreamResnapshotRequired("internal detail must not be sent")
+
+    monkeypatch.setattr(OhlcvStreamHub, "merge_replay_boundary", fail_handoff)
+    application = _app_with_bars()
+    client = TestClient(application)
+
+    with client.websocket_connect("/ws/market-data") as websocket:
+        websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+        assert websocket.receive_json()["type"] == "market_data.status"
+        websocket.send_json({
+            "type": "market_data.subscribe",
+            "version": 1,
+            "cursor": "0",
+            "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+            "series": {
+                "dataset": "GLBX.MDP3", "publisherId": 1,
+                "instrumentId": 101, "rawSymbol": "ESZ6", "timeframe": "1s",
+            },
+        })
+        started = websocket.receive_json()
+        assert started["type"] == "market_data.ohlcv.replay_started"
+        for _ in range(started["count"]):
+            assert websocket.receive_json()["replayed"] is True
+        required = websocket.receive_json()
+        assert required["type"] == "market_data.ohlcv.resnapshot_required"
+        assert required["reason"] == "live_queue_handoff_failed"
+        with pytest.raises(WebSocketDisconnect) as disconnected:
+            websocket.receive_json()
+        assert disconnected.value.code == 1013

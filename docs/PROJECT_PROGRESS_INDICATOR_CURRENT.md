@@ -2899,3 +2899,15 @@ See `docs/INDICATOR_PROGRESS_LEDGER.md` for formula definitions, first-valid ind
 - This is still a reusable integration primitive, not main.py startup wiring. Gate 25 remains open pending owner TLS/ACL and target multi-instance evidence.
 - Prior batch 62J-12 commit c470772b99f076882a56eb5dd809660ecb66d6e0: Automated Tests, CodeQL and Full Git History Secret Audit all SUCCESS (runs 44561381811, 44561381638, 44561381577).
 - Stage 1 75% provisional; Gate 10 0/10 formally closed; overall weighted project percentage unestablished.
+
+
+## Batch 62J-14 — main WebSocket route handoff integration
+
+- Main source-SQLite WebSocket reconnect path now calls the tested hub merge_replay_boundary() helper instead of maintaining duplicate inline queue-drain/resequence logic.
+- Replay events are copied before adding wire-only fields, preserving integer cursor values for strict boundary validation.
+- replay_complete is emitted only after handoff merge succeeds.
+- Handoff failure sends a sanitized resnapshot_required and closes with code 1013; no false replay_complete is sent.
+- Existing live-after-replay endpoint regression remains, and a new fail-closed endpoint test covers handoff failure.
+- Replica-backed Redis snapshot/replay helpers remain separate from main.py until production snapshot transport, dedicated Redis config/ACL and single-worker ownership are established.
+- Previous exact-head batch 62J-13 commit 1246ec19585faabb6754f83e59d14fc8a4361a56: Automated Tests, CodeQL and Full Git History Secret Audit all SUCCESS (runs 44562762820, 44562762581, 44562762579).
+- No deployment, paid service or Termux. Stage 1 75% provisional; Gate 10 0/10 closed; overall weighted project percentage not established.

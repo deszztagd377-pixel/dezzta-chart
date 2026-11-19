@@ -213,3 +213,8 @@ The separate OHLCV relay configuration contract is added with distinct publisher
 ## Batch 62J-13 — 19 November 2026: snapshot/replay/live evidence boundary
 
 A tested replay/live merge helper now drops events already covered by replay, resequences only newer live events, and fails closed on overflow or identity/cursor mismatch. Real Redis 7 integration covers the snapshot cursor-1, replay cursor-1, live cursor-2 handoff. This is transport correctness only; indicator statuses and warm-up indices remain unchanged.
+
+
+## Batch 62J-14 — 19 November 2026: main route handoff boundary
+
+The source-SQLite WebSocket reconnect path now uses the tested replay/live merge helper and closes with a resnapshot-required signal if handoff validation or queue capacity fails. This does not alter indicator calculations or rendering; all indicator statuses and warm-up indices remain unchanged.

@@ -51,7 +51,7 @@ from app.ohlcv import (
 )
 from app.provider import ProviderManager
 from app.databento_definition_sync import DatabentoDefinitionSynchronizer
-from app.ohlcv_stream import OhlcvStreamHub
+from app.ohlcv_stream import OhlcvStreamHub, OhlcvStreamResnapshotRequired
 from app.ohlcv_store import SQLiteOhlcvStore
 from app.symbology import InstrumentResolver
 from app.shared_guard import RedisSharedGuard
@@ -1124,42 +1124,34 @@ def create_app(
                     })
                     for replay_sequence, event in enumerate(replay_events, start=1):
                         replay_bar = event.get("bar", {})
-                        event["streamId"] = subscription.stream_id
-                        event["sequence"] = replay_sequence
-                        event["emittedAtNs"] = str(time.time_ns())
-                        event["isFinal"] = isinstance(replay_bar, dict) and replay_bar.get("completeness") == "complete"
-                        event["cursor"] = str(event["cursor"])
-                        event["replayed"] = True
-                        await websocket.send_json(event)
+                        replay_payload = dict(event)
+                        replay_payload["streamId"] = subscription.stream_id
+                        replay_payload["sequence"] = replay_sequence
+                        replay_payload["emittedAtNs"] = str(time.time_ns())
+                        replay_payload["isFinal"] = isinstance(replay_bar, dict) and replay_bar.get("completeness") == "complete"
+                        replay_payload["cursor"] = str(event["cursor"])
+                        replay_payload["replayed"] = True
+                        await websocket.send_json(replay_payload)
+                    try:
+                        stream_hub.merge_replay_boundary(
+                            subscription, replay_events, replay_end_cursor,
+                        )
+                    except (OhlcvStreamResnapshotRequired, ValueError):
+                        await websocket.send_json({
+                            "type": "market_data.ohlcv.resnapshot_required",
+                            "version": 1,
+                            "reason": "live_queue_handoff_failed",
+                            "requestedCursor": str(request_cursor),
+                            "snapshotCursor": str(snapshot_cursor),
+                        })
+                        await websocket.close(code=1013, reason="Resnapshot required")
+                        return
                     await websocket.send_json({
                         "type": "market_data.ohlcv.replay_complete",
                         "version": 1,
                         "cursor": str(replay_end_cursor),
                         "count": len(replay_events),
                     })
-                    # Any notification at or below the replay boundary is
-                    # already represented by replay. Keep only newer live events.
-                    pending_live: list[dict[str, object]] = []
-                    while not subscription.queue.empty():
-                        queued = subscription.queue.get_nowait()
-                        queued_cursor = queued.get("cursor")
-                        if _is_after_replay_boundary(queued_cursor, replay_end_cursor):
-                            pending_live.append(queued)
-                    # Re-sequence retained live notifications after the replay
-                    # batch. This also handles a notification queued before the
-                    # replay boundary was finalized without creating a sequence gap.
-                    next_live_sequence = len(replay_events)
-                    for queued in pending_live:
-                        next_live_sequence += 1
-                        queued["streamId"] = subscription.stream_id
-                        queued["sequence"] = next_live_sequence
-                        subscription.queue.put_nowait(queued)
-                    subscription.watermark = next_live_sequence
-                    subscription.durable_cursor = max(
-                        subscription.durable_cursor,
-                        replay_end_cursor,
-                        *(int(item["cursor"]) for item in pending_live if isinstance(item.get("cursor"), str) and item["cursor"].isdigit()),
-                    )
                 else:
                     if request_cursor is not None:
                         await websocket.send_json({
