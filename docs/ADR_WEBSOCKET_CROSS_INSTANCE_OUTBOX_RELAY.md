@@ -215,3 +215,20 @@ Tests use temporary local SQLite and cover snapshot watermark/retention, lease c
 ### 62H-1 regression test repair
 
 The first exact-head backend run had one failing CAS test fixture (1,067 passed / 1 failed). It supplied cursor 2 with expected cursor 0, so the contiguous cursor guard correctly rejected the input before CAS. The fixture now replays the already-confirmed cursor-1 event using stale expected cursor 0 and Stream ID `1-0`, thereby exercising the intended CAS rejection. Production publisher code remains unchanged. Exact-head CI for the repair is pending.
+
+
+## Batch 62H-2 — deterministic Redis Streams publisher
+
+Implemented in \`backend/app/ohlcv_redis_publisher.py\` and covered by \`backend/tests/test_ohlcv_redis_publisher.py\`.
+
+- The source SQLite checkpoint remains the authoritative publisher cursor.
+- Redis Stream ID is deterministic \`<cursor>-0\`.
+- Each entry stores \`source_id\`, \`event_id\` and the canonical complete JSON payload.
+- On XADD error, the publisher reads back only that exact ID. It accepts an existing record only when all three fields match exactly. Conflicts fail closed; unavailable read-back leaves the SQLite checkpoint unchanged.
+- The bounded publisher loop renews and checks its SQLite fencing lease before each event, then advances the checkpoint only after append confirmation and authoritative outbox equality validation.
+- Source retention expiry stops publication and requires a new global snapshot.
+- No MAXLEN, startup wiring, consumer group, ACK, ACL change or deployment.
+
+Exact-head CI at \`f1f998a8659d206c797bdfac14b110a3849d4d68\`: 1,075 backend tests passed; 236 frontend tests across 28 files passed; frontend build/secret scans, backend container build/smoke, CodeQL and full-history secret audit passed. The container vulnerability report was uploaded as an artifact.
+
+The publisher is an injectable synchronous adapter; the caller owns scheduling and Redis client lifecycle. It is intentionally not started by \`main.py\`. 62H-3 real Redis restart/integration tests and 62I consumer recovery remain mandatory before any startup integration.

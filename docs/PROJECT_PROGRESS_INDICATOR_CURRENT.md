@@ -1,18 +1,72 @@
-# LATEST CHECKPOINT — BATCH 62H-1 DURABLE PUBLISHER CHECKPOINT IMPLEMENTED
+# LATEST CHECKPOINT — BATCH 62H-2 DETERMINISTIC REDIS STREAMS PUBLISHER IMPLEMENTED
 
-**Date:** 19 November 2026 • **Branch:** `phase-2/market-data-foundation`  
-**Parent:** `26c72f51c20faa3f00a636735778e876ef16eb21`  
-**Implementation:** `backend/app/ohlcv_redis_publisher.py` and `backend/tests/test_ohlcv_redis_publisher.py`  
-**Detailed report:** `docs/WORK_CYCLE_2026-11-19_BATCH62H1_PUBLISHER_CHECKPOINT.md`  
-**Cost:** ZERO COST • no deployment • no paid service • no Termux • `main` untouched.
+**Date:** 19 November 2026 • **Branch:** \`phase-2/market-data-foundation\`  
+**Exact validated HEAD:** \`f1f998a8659d206c797bdfac14b110a3849d4d68\`  
+**Implementation:** \`backend/app/ohlcv_redis_publisher.py\`  
+**Tests:** \`backend/tests/test_ohlcv_redis_publisher.py\`  
+**Work report:** \`docs/WORK_CYCLE_2026-11-19_BATCH62H2_REDIS_PUBLISHER.md\`  
+**Complete indicator ledger:** \`docs/INDICATOR_PROGRESS_LEDGER.md\`  
+**Cost:** ZERO COST • no paid service • no deployment • no Termux • \`main\` untouched.
 
-## Batch 62H-1 summary
+## Batch 62H-2 implementation
 
-Added a source-SQLite publisher checkpoint bound to stable source identity and one Redis stream key. Snapshot initialization checks the authoritative outbox retention floor/high-water. A transactional lease with fencing epochs excludes concurrent publishers; cursor advancement is a one-event compare-and-swap and requires deterministic `<cursor>-0` stream IDs. The API is explicitly `record_confirmed_append`; the Redis append/read-back itself is deferred to 62H-2. No startup wiring, Redis ACL change, stream trimming, or deployment is included.
+Added deterministic Redis Streams append/read-back and a bounded publisher loop on top of the 62H-1 source-SQLite checkpoint.
 
-Regression coverage includes snapshot watermark validation, lease contention/renewal/expiry/fencing, deterministic cursor advancement, gap/ID/expiry rejection, and compare-and-swap protection. Exact-head CI must complete before this batch is considered validated.
+- Redis ID is exactly \`<cursor>-0\`.
+- Event payload is canonical JSON with sorted keys and compact separators.
+- Stream entry stores source ID, stable event ID and complete canonical payload.
+- If XADD fails, publisher reads back only the exact deterministic ID.
+- An existing entry is accepted only when source ID, event ID and canonical payload match byte-for-byte after UTF-8 decoding.
+- A conflicting entry hard-fails; an unavailable read-back produces an uncertain outcome and does not advance the checkpoint.
+- Lease is renewed before each event and the fencing epoch is checked.
+- Checkpoint advances only after confirmed append/read-back and the source outbox event is revalidated.
+- Bounded pages use global \`read_outbox_batch()\`.
+- Source retention expiry requires a fresh global snapshot; no cursor skipping.
+- No MAXLEN trimming, startup wiring, consumer group, ACL change or deployment.
 
-## Complete indicator ledger — status unchanged
+### Exact-head CI — passed
+
+At HEAD \`f1f998a8659d206c797bdfac14b110a3849d4d68\`:
+
+- Backend: **1,075 passed**.
+- Frontend: **236 passed / 28 test files**.
+- Frontend build and secret scans: passed.
+- Backend container build and Redis/persistent-volume smoke: passed.
+- CodeQL Python + JavaScript/TypeScript: passed.
+- Full Git History Secret Audit: passed.
+- Container vulnerability report: generated and uploaded.
+
+Runs: Automated Tests \`44538993402\`, CodeQL \`44538993277\`, Secret Audit \`44538993352\`.
+
+The first 62H-2 CI attempt exposed one missing standard-library import. It was corrected in the validated HEAD; no production validation was weakened.
+
+## Current WebSocket sequence
+
+- 62G-1: global bounded snapshot export — implemented.
+- 62G-2: isolated replica snapshot install — implemented.
+- 62G-3: transactional incremental replica apply — implemented.
+- 62H-1: durable source publisher checkpoint + fenced lease — implemented and CI-validated.
+- 62H-2: deterministic Redis append, exact retry read-back and publisher loop — implemented and CI-validated.
+- 62H-3: real Redis integration/restart tests — next.
+- 62I: independent consumer groups, pending reclaim, apply-before-ACK — pending.
+- 62J: two independent backend processes/read models and full failure matrix — pending.
+- 62K: owner-side Gate 25/36 acceptance — pending real infrastructure evidence.
+
+**Important:** publisher is deliberately not wired into \`main.py\`. No consumer exists yet, and no production cross-instance fan-out is claimed.
+
+## Project accounting unchanged
+
+- Stage 1: **75% provisional** — 30/40 criteria.
+- Gate 10: **0/10 formally closed**.
+- Stages 2–6: **NOT SCORED**.
+- Overall project percentage: **NOT ESTABLISHED**; M1–M8 weights are unapproved.
+- Batch 62H-2 awards no Stage ticks, indicator completion or Gate closure.
+
+# HISTORICAL CHECKPOINT — BATCH 62H-1 DURABLE PUBLISHER CHECKPOINT IMPLEMENTED
+
+62H-1 implementation and test fixture repair are superseded by the latest 62H-2 checkpoint above. The exact-head 62H-1 repair commit `2b8e9012c2689977813d4a71e10366a674bd0f35` passed all three workflows: 1,068 backend tests, 236 frontend tests across 28 files, CodeQL and full-history secret audit. See the 62H-1 work report for details.
+
+## Historical indicator summary — see complete ledger
 
 | Indicator | Calculation foundation / first valid output | Remaining visible work | Status |
 |---|---|---|---|
@@ -2336,3 +2390,8 @@ The test fixture in `backend/tests/test_ohlcv_store.py` was corrected to hash an
 ## 62H-1 CI repair note
 
 Run `44537009483` exposed one test-fixture error: the CAS test supplied cursor 2 while its expected cursor remained 0, triggering the correct contiguous-cursor guard before CAS. Fixed the test to replay the already-confirmed cursor-1 event with stale expected cursor 0, which directly exercises the intended compare-and-swap rejection. No production logic was changed for this repair. Repair commit `e37f7ecda67b80e1c9d6aff593c8cb342304ead8` is awaiting exact-head CI.
+
+
+## Complete indicator ledger
+
+See `docs/INDICATOR_PROGRESS_LEDGER.md` for formula definitions, first-valid indexes, current implementation state, remaining chart UI/lifecycle acceptance, Footprint/Heatmap/Liquidation gates, and project accounting. The table above is a concise snapshot; the separate ledger is the canonical detailed record.
