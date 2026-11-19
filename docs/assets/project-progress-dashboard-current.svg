@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1280" viewBox="0 0 1280 1280" role="img" aria-labelledby="title desc">
 <title id="title">DEZZTA CHART project progress — Batch 61 Redis integration and Gate 10 status</title>
-<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 50 adds idempotent terminal notification for an already-CLOSED socket; Batch 49 preserves the 1006 fallback when explicit close() throws. Batch 51 deployed the verified source to an SSO-protected preview. Batch 52 audited the 10-test WSS POC suite, Gate 38 metrics and Gate 39 local alert reporter; host/browser acceptance remains pending. Batch 60 exact HEAD CI 3/3 PASS. Batch 61 adds cross-client Redis atomicity coverage; exact-head CI pending. Never conflate tested source HEADs. Gate 10 remains 0/10 formally closed; external acceptance remains open. Gate 10 0/10.</desc>
+<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 50 adds idempotent terminal notification for an already-CLOSED socket; Batch 49 preserves the 1006 fallback when explicit close() throws. Batch 51 deployed the verified source to an SSO-protected preview. Batch 52 audited the 10-test WSS POC suite, Gate 38 metrics and Gate 39 local alert reporter; host/browser acceptance remains pending. Batch 60 exact HEAD CI 3/3 PASS. Batch 62 adds global outbox relay reader + regression coverage; exact-head CI pending. Never conflate tested source HEADs. Gate 10 remains 0/10 formally closed; external acceptance remains open. Gate 10 0/10.</desc>
 <rect width="1280" height="1160" rx="28" fill="#0b1220"/>
 <g font-family="Arial,sans-serif">
 <text x="48" y="58" fill="#f8fafc" font-size="32" font-weight="700">DEZZTA CHART — PROJECT PROGRESS</text>
-<text x="48" y="91" fill="#94a3b8" font-size="16">BATCH 61 • 19 NOV 2026 • phase-2/market-data-foundation • ZERO COST</text>
+<text x="48" y="91" fill="#94a3b8" font-size="16">BATCH 62 • 19 NOV 2026 • phase-2/market-data-foundation • ZERO COST</text>
 <rect x="44" y="122" width="370" height="220" rx="18" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
 <text x="70" y="164" fill="#d1fae5" font-size="21" font-weight="700">STAGE 1 — ACTIVE</text>
 <text x="70" y="235" fill="#fff" font-size="60" font-weight="700">75%</text>
@@ -52,7 +52,7 @@
 <text x="882" y="778" fill="#fde68a" font-size="15">8, 20, 25, 30, 31</text>
 <text x="882" y="807" fill="#fde68a" font-size="15">34, 35, 36, 38, 39</text>
 <text x="882" y="836" fill="#fde68a" font-size="15">0 / 10 formally closed</text>
-<text x="48" y="918" fill="#94a3b8" font-size="14">Batch 61 Redis cross-client test • no deployment • ZERO COST • no Termux • main untouched</text>
+<text x="48" y="918" fill="#94a3b8" font-size="14">Batch 62 global outbox relay reader • no deployment • ZERO COST • no Termux • main untouched</text>
 </g><text x="474" y="865" fill="#a7f3d0" font-size="14">APK • CodeQL • secret audit PASS • ZERO COST</text>
 <rect x="44" y="910" width="1192" height="210" rx="16" fill="#111827" stroke="#64748b" stroke-width="2"/>
 <text x="70" y="950" fill="#f8fafc" font-size="20" font-weight="700">TECHNICAL INDICATOR PROGRESS — FOUNDATION ONLY</text>

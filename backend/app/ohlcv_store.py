@@ -651,6 +651,63 @@ class SQLiteOhlcvStore:
         finally:
             db.close()
 
+    def read_outbox_batch(self, *, after_cursor: int, limit: int = 500) -> dict[str, object]:
+        """Read the global durable outbox in cursor order for a relay worker.
+
+        Unlike replay_outbox(), this method is not scoped to one series. It
+        returns a consistent high-water/retention view and bounded event page.
+        A cursor outside the retained range requires recovery/resnapshot; a
+        relay must never silently skip expired events.
+        """
+        if not isinstance(after_cursor, int) or isinstance(after_cursor, bool) or after_cursor < 0:
+            raise ValueError("after_cursor must be a non-negative integer.")
+        if not isinstance(limit, int) or isinstance(limit, bool) or not 1 <= limit <= OUTBOX_MAX_REPLAY_BATCH:
+            raise ValueError("limit must be between 1 and OUTBOX_MAX_REPLAY_BATCH.")
+        db = self._connect()
+        try:
+            db.execute("BEGIN")
+            state = {
+                row["state_key"]: int(row["int_value"])
+                for row in db.execute(
+                    "SELECT state_key,int_value FROM ohlcv_outbox_state"
+                ).fetchall()
+            }
+            floor = state.get("retention_floor", 0)
+            high_water = state.get("high_water", 0)
+            if after_cursor < floor or after_cursor > high_water:
+                return {
+                    "status": "resnapshot_required",
+                    "reason": "cursor_expired" if after_cursor < floor else "cursor_ahead",
+                    "events": [],
+                    "next_cursor": high_water,
+                    "high_water": high_water,
+                    "retention_floor": floor,
+                }
+            rows = db.execute(
+                """SELECT cursor,event_id,event_json FROM ohlcv_outbox
+                WHERE cursor>? ORDER BY cursor ASC LIMIT ?""",
+                (after_cursor, limit + 1),
+            ).fetchall()
+            has_more = len(rows) > limit
+            selected = rows[:limit]
+            events: list[dict[str, object]] = []
+            for row in selected:
+                payload = json.loads(row["event_json"])
+                payload["cursor"] = int(row["cursor"])
+                payload["eventId"] = str(row["event_id"])
+                events.append(payload)
+            next_cursor = int(selected[-1]["cursor"]) if has_more else high_water
+            return {
+                "status": "ok",
+                "events": events,
+                "next_cursor": next_cursor,
+                "high_water": high_water,
+                "retention_floor": floor,
+                "has_more": has_more,
+            }
+        finally:
+            db.close()
+
     def replay_outbox(
         self, *, after_cursor: int, provider: str, dataset: str,
         publisher_id: int, instrument_id: int, series_type: str,

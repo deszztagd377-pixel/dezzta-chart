@@ -1631,3 +1631,58 @@ Calculation contract remains: SMA20 rolling mean; EMA20 SMA-seeded (`alpha = 2/2
 - Overall project: **NOT ESTABLISHED**; no invented weighted percentage.
 - CI baseline entering Batch 61: Batch 60 exact HEAD had Automated Tests, CodeQL, and Full Git History Secret Audit all SUCCESS (3/3). Batch 61's own commit must receive its own exact-HEAD CI result before it can be called green.
 - ZERO COST; no Vercel/Cloudflare deployment; Termux not required; `main` untouched.
+
+
+# BATCH 62 — Global outbox relay foundation and indicator ledger reconciliation
+
+**Date:** 19 November 2026 • **Parent:** `45a887ae65e556d4457602467c4963f8d195d270` • **Branch:** `phase-2/market-data-foundation`  
+**Scope:** global outbox scan API + regression tests + architecture decision; no distributed relay or production acceptance claimed.
+
+## Confirmed architecture facts
+
+- `SQLiteOhlcvStore.apply()` commits accepted candle revisions and outbox events atomically.
+- The durable outbox contains stable event IDs, monotonic global cursors, exact series identity, and a bounded 100,000-event retention window.
+- `replay_outbox()` is exact-series scoped for authenticated client replay; it is not suitable as a global relay scan.
+- `OhlcvStreamHub` is process-local. Local fan-out is implemented, but it does not broadcast to another app process.
+- The SQLite database uses a local filesystem path and WAL; it must not be treated as a safe multi-host shared network database.
+
+## Batch 62A implementation
+
+Added `SQLiteOhlcvStore.read_outbox_batch()` for a future relay worker. It returns bounded global pages in cursor order, with high-water and retention floor from the same SQLite read snapshot. Expired/ahead cursors return explicit `resnapshot_required`.
+
+Added tests for mixed-series ordering, pagination, cursor/high-water progression, retention expiry, ahead cursors, and argument validation. This is source/test groundwork only; no Redis relay or cross-instance delivery is claimed.
+
+## Durable relay decision
+
+Preserve SQLite as source of truth. Future relay delivery is at-least-once. Use deterministic cursor identity, verify duplicate append on retry, and deduplicate before local hub publication. Every app instance needs its own consumer group; one shared group distributes events instead of broadcasting. Pending entries must be reclaimable. Retention exhaustion must trigger explicit resnapshot, never silent skip. See `docs/ADR_WEBSOCKET_CROSS_INSTANCE_OUTBOX_RELAY.md`.
+
+## Gate 10 status
+
+Gate 25 and Gate 36 remain OPEN. The global outbox reader enables a safe relay implementation path, but owner-managed Redis, deployed app instances, outage/recovery and Android WebView/330-second evidence are not present. Gates 8,20,30,31,34,35,38,39 remain OPEN pending their acceptance packs. No Gate closure or Stage 1 ticks are awarded.
+
+## Complete indicator ledger — capability state unchanged
+
+| Indicator | Calculation/data foundation | Formula / first valid index | Visible integration still required | State |
+|---|---|---|---|---|
+| SMA 20 | Implemented + fixture-tested | Rolling close mean; index 19 | Overlay, toggle, legend/current value, identity/timeframe clearing and render tests | 🟨 Foundation |
+| EMA 20 | Implemented + fixture-tested | SMA seed; alpha = 2/21; index 19 | Overlay, toggle, legend/current value, lifecycle/render tests | 🟨 Foundation |
+| RSI 14 | Implemented + fixture-tested | Wilder smoothing; index 14 | 0–100 pane, 30/70 guides, toggle and lifecycle/render tests | 🟨 Foundation |
+| MACD 12/26/9 | Implemented + fixture-tested | EMA12−EMA26; MACD index 25; signal/histogram index 33 | Dedicated pane, signal line, histogram, zero guide and render tests | 🟨 Foundation |
+| Bollinger 20,2 | Implemented + fixture-tested | Population standard deviation; index 19 | Upper/middle/lower overlay, toggle, legend and render tests | 🟨 Foundation |
+| Shared `useMarketIndicators()` | Validated backend snapshot only | No DEMO/loading/unavailable/error fallback | Visible binding and stale-series clearing on identity/timeframe changes | 🟨 Foundation |
+| Footprint | Bounded deterministic simulation only | Explicit `SIMULATED`; not real exchange bid/ask | Owner reference image, reviewed blueprint, explicit-ON spaced cluster renderer | 🟨 Gated |
+| Heatmap | No implementation verified | Not available | Reference, blueprint, source contract, calculations, renderer and tests | 🟥 Not implemented |
+| Liquidation Maps | No implementation verified | Not available | Reference, blueprint, source contract, calculations, renderer and tests | 🟥 Not implemented |
+
+**Calculation contract:** warm-up outputs remain null and aligned to original candle indexes. Fixture coverage across 18 timeframe labels is not provider data-quality proof or visible integration. No per-indicator completion percentage is invented.
+
+**Visual invariants:** Footprint OFF preserves ordinary candle layout/spacing; only explicit ON enables spaced cluster layout. Footprint/Heatmap/Liquidation Maps visuals require the owner's relevant reference images and reviewed scoped blueprint. Stage 1 is active; visible Stage 4 work remains parked.
+
+## Current project accounting
+
+- Stage 1: **75% provisional** — 30/40 criteria; 300/400 ticks.
+- Gate 10: **0/10 formally closed**; all ten remain OPEN.
+- Stages 2–6: NOT SCORED.
+- Overall project percentage: NOT ESTABLISHED.
+- Batch 62 exact-head CI: pending until this commit's workflows finish.
+- ZERO COST; no Vercel/Cloudflare deployment; no Termux; `main` untouched.

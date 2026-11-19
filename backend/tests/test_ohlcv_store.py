@@ -370,6 +370,55 @@ def test_outbox_commits_atomically_with_bar_and_replays_exact_decimal_payload(tm
     assert event["bar"]["tsEventNs"] == "1790000000123456789"
 
 
+def test_global_outbox_batch_pages_all_series_in_cursor_order(tmp_path):
+    store = SQLiteOhlcvStore(str(tmp_path / "outbox-global.sqlite3"))
+    first = make_bar(start=0, event=100, sequence=1)
+    second = make_bar(start=60 * NS, event=101, sequence=2, instrument_id=456, raw_symbol="NQZ6")
+    third = make_bar(start=120 * NS, event=102, sequence=3)
+    assert store.apply(first) == "inserted"
+    assert store.apply(second) == "inserted"
+    assert store.apply(third) == "inserted"
+
+    page_one = store.read_outbox_batch(after_cursor=0, limit=2)
+    assert page_one["status"] == "ok"
+    assert [event["cursor"] for event in page_one["events"]] == [1, 2]
+    assert [event["bar"]["rawSymbol"] for event in page_one["events"]] == ["ESZ6", "NQZ6"]
+    assert page_one["has_more"] is True
+    assert page_one["next_cursor"] == 2
+
+    page_two = store.read_outbox_batch(after_cursor=page_one["next_cursor"], limit=2)
+    assert page_two["status"] == "ok"
+    assert [event["cursor"] for event in page_two["events"]] == [3]
+    assert page_two["events"][0]["eventId"]
+    assert page_two["has_more"] is False
+    assert page_two["next_cursor"] == page_two["high_water"] == 3
+
+
+def test_global_outbox_batch_rejects_expired_and_ahead_cursors(tmp_path, monkeypatch):
+    import app.ohlcv_store as store_module
+
+    monkeypatch.setattr(store_module, "OUTBOX_MAX_EVENTS", 2)
+    store = SQLiteOhlcvStore(str(tmp_path / "outbox-global-retention.sqlite3"))
+    for index in range(3):
+        assert store.apply(make_bar(start=index * 60 * NS, event=100 + index, sequence=index + 1)) == "inserted"
+
+    expired = store.read_outbox_batch(after_cursor=0)
+    assert expired["status"] == "resnapshot_required"
+    assert expired["reason"] == "cursor_expired"
+    assert expired["retention_floor"] == 1
+    ahead = store.read_outbox_batch(after_cursor=4)
+    assert ahead["status"] == "resnapshot_required"
+    assert ahead["reason"] == "cursor_ahead"
+
+
+def test_global_outbox_batch_validates_cursor_and_page_size(tmp_path):
+    store = SQLiteOhlcvStore(str(tmp_path / "outbox-global-validation.sqlite3"))
+    with pytest.raises(ValueError, match="after_cursor"):
+        store.read_outbox_batch(after_cursor=True)
+    with pytest.raises(ValueError, match="limit"):
+        store.read_outbox_batch(after_cursor=0, limit=0)
+
+
 def test_duplicate_stale_and_rejected_revisions_do_not_add_outbox_events(tmp_path):
     store = SQLiteOhlcvStore(str(tmp_path / "outbox-dedupe.sqlite3"))
     first = make_bar(event=100, sequence=1)
