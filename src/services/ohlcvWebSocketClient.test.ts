@@ -219,6 +219,8 @@ describe('connectOhlcvStream', () => {
       canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
       ticket: 'ws-ticket-abcdefghijklmnopqrstuvwxyz1234567890',
       getRenewalTicket,
+      heartbeatIntervalMs: 60_000,
+      heartbeatTimeoutMs: 10_000,
       webSocketFactory: () => socket as unknown as WebSocket,
       onSnapshot: vi.fn(),
       onUpdate: vi.fn(),
