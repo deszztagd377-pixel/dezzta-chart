@@ -2889,3 +2889,13 @@ See `docs/INDICATOR_PROGRESS_LEDGER.md` for formula definitions, first-valid ind
 - Config is not wired into main.py or any startup path. No production secrets or Redis connection were used.
 - Gate 25 remains open pending owner-provisioned credentials, TLS and target environment tests.
 - No deployment, paid service or Termux.
+
+
+## Batch 62J-13 — snapshot/replay/live handoff
+
+- Added merge_replay_boundary() to the WebSocket hub: validates exact series/cursor boundary, drops queued live events already covered by replay, and resequences only newer live events.
+- Fail-closed on queue overflow, malformed cursor, out-of-order live cursor or wrong-series replay.
+- Added real Redis 7 end-to-end test covering source event → global snapshot at cursor 1 → replica snapshot subscription → fixed-watermark replay of cursor 1 → concurrent live delivery of cursor 2 → sequence 2 handoff → ACK and no pending entries.
+- This is still a reusable integration primitive, not main.py startup wiring. Gate 25 remains open pending owner TLS/ACL and target multi-instance evidence.
+- Prior batch 62J-12 commit c470772b99f076882a56eb5dd809660ecb66d6e0: Automated Tests, CodeQL and Full Git History Secret Audit all SUCCESS (runs 44561381811, 44561381638, 44561381577).
+- Stage 1 75% provisional; Gate 10 0/10 formally closed; overall weighted project percentage unestablished.

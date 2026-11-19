@@ -208,3 +208,8 @@ A managed Redis gateway worker now provides bounded thread lifecycle, event-loop
 ## Batch 62J-12 — 19 November 2026: dedicated Redis config boundary
 
 The separate OHLCV relay configuration contract is added with distinct publisher/gateway ACL credentials, exact key scope, DB0-only and production TLS validation. It is not startup-wired and does not change indicator calculations or visuals. Indicator statuses and formula warm-up indices remain unchanged.
+
+
+## Batch 62J-13 — 19 November 2026: snapshot/replay/live evidence boundary
+
+A tested replay/live merge helper now drops events already covered by replay, resequences only newer live events, and fails closed on overflow or identity/cursor mismatch. Real Redis 7 integration covers the snapshot cursor-1, replay cursor-1, live cursor-2 handoff. This is transport correctness only; indicator statuses and warm-up indices remain unchanged.

@@ -240,3 +240,87 @@ def test_stream_hub_routes_same_series_by_provider_without_cross_talk() -> None:
         hub.unsubscribe(primary.stream_id)
         hub.unsubscribe(secondary.stream_id)
     asyncio.run(scenario())
+
+
+def test_replay_boundary_discards_covered_events_and_resequences_live_queue():
+    async def scenario():
+        pipeline = OhlcvPipeline()
+        first = make_bar(0)
+        assert pipeline.apply(first) == "inserted"
+        hub = OhlcvStreamHub()
+        subscription, _, _ = hub.subscribe_snapshot(
+            pipeline, dataset="GLBX.MDP3", publisher_id=1, instrument_id=101,
+            raw_symbol="ESZ6", timeframe="1s", limit=100, durable_cursor=41,
+        )
+        second = make_bar(1)
+        third = make_bar(2)
+        assert pipeline.apply(second) == "inserted"
+        assert pipeline.apply(third) == "inserted"
+        hub.publish(second, durable_cursor=42, durable_event_id="event-42")
+        hub.publish(third, durable_cursor=43, durable_event_id="event-43")
+
+        replay_series = {
+            "provider": "databento", "dataset": "GLBX.MDP3",
+            "publisherId": 1, "instrumentId": 101,
+            "seriesType": "contract", "rawSymbol": "ESZ6",
+            "timeframe": "1s", "bucketPolicy": "UTC_LEGACY",
+            "calendarId": "", "calendarVersion": "",
+        }
+        merged = hub.merge_replay_boundary(
+            subscription,
+            [{"cursor": 42, "series": replay_series}],
+            replay_end_cursor=42,
+        )
+        assert merged == 1
+        assert subscription.queue.qsize() == 1
+        live = subscription.queue.get_nowait()
+        assert live["cursor"] == "43"
+        assert live["eventId"] == "event-43"
+        assert live["sequence"] == 2
+        assert subscription.watermark == 2
+        assert subscription.durable_cursor == 43
+
+    asyncio.run(scenario())
+
+
+def test_replay_boundary_fails_closed_on_overflow_or_wrong_series():
+    async def scenario():
+        pipeline = OhlcvPipeline()
+        assert pipeline.apply(make_bar(0)) == "inserted"
+        hub = OhlcvStreamHub(queue_capacity=1)
+        subscription, _, _ = hub.subscribe_snapshot(
+            pipeline, dataset="GLBX.MDP3", publisher_id=1, instrument_id=101,
+            raw_symbol="ESZ6", timeframe="1s", limit=100, durable_cursor=41,
+        )
+        hub.publish(make_bar(1), durable_cursor=42)
+        hub.publish(make_bar(2), durable_cursor=43)
+        from app.ohlcv_stream import OhlcvStreamResnapshotRequired
+        try:
+            hub.merge_replay_boundary(subscription, [], 41)
+        except OhlcvStreamResnapshotRequired:
+            pass
+        else:
+            raise AssertionError("overflow must require a fresh snapshot")
+
+        other_hub = OhlcvStreamHub()
+        other_sub, _, _ = other_hub.subscribe_snapshot(
+            pipeline, dataset="GLBX.MDP3", publisher_id=1, instrument_id=101,
+            raw_symbol="ESZ6", timeframe="1s", limit=100, durable_cursor=41,
+        )
+        wrong_series = {
+            "provider": "databento", "dataset": "GLBX.MDP3",
+            "publisherId": 1, "instrumentId": 999,
+            "seriesType": "contract", "rawSymbol": "NQZ6",
+            "timeframe": "1s", "bucketPolicy": "UTC_LEGACY",
+            "calendarId": "", "calendarVersion": "",
+        }
+        try:
+            other_hub.merge_replay_boundary(
+                other_sub, [{"cursor": 42, "series": wrong_series}], 42,
+            )
+        except ValueError as exc:
+            assert "subscription series" in str(exc)
+        else:
+            raise AssertionError("wrong-series replay must be rejected")
+
+    asyncio.run(scenario())

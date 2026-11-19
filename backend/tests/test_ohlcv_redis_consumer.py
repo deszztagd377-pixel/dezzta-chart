@@ -758,3 +758,92 @@ def test_real_redis_gateway_worker_dispatches_and_shuts_down_cleanly(tmp_path):
     finally:
         redis.delete(stream_key)
         redis.close()
+
+
+def test_real_redis_snapshot_replay_live_handoff_preserves_boundary_sequence(tmp_path):
+    redis, stream_key = real_redis()
+    source = SQLiteOhlcvStore(str(tmp_path / "handoff-source.sqlite3"))
+    first = make_bar(0)
+    assert source.apply(first) == "inserted"
+    first_event = source.read_outbox_batch(after_cursor=0, limit=1)["events"][0]
+    appender = RedisOhlcvStreamAppender(
+        redis, stream_key=stream_key, source_id=source.source_id(),
+    )
+    assert appender.append_confirmed(first_event) == "appended"
+
+    snapshot_path = tmp_path / "handoff-snapshot.jsonl"
+    make_snapshot(source, snapshot_path)
+    replica = make_replica(
+        source, snapshot_path, tmp_path / "handoff-replica.sqlite3",
+    )
+    pipeline = OhlcvPipeline()
+    hydrate_replica_pipeline(replica, pipeline)
+    hub = OhlcvStreamHub()
+    subscription, snapshot_bars, total, snapshot_meta = subscribe_replica_snapshot(
+        replica, hub,
+        dataset="GLBX.MDP3", publisher_id=1, instrument_id=123,
+        raw_symbol="ESZ6", timeframe="1m", bucket_policy="UTC_LEGACY",
+        limit=10,
+    )
+    assert [bar.close for bar in snapshot_bars] == [Decimal("101")]
+    assert total == 1
+    assert snapshot_meta["cursor"] == 1
+    replay_checkpoint = replica.checkpoint()
+
+    second = make_bar(1)
+    assert source.apply(second) == "inserted"
+    second_event = source.read_outbox_batch(after_cursor=1, limit=1)["events"][0]
+    assert appender.append_confirmed(second_event) == "appended"
+
+    async def scenario():
+        loop = asyncio.get_running_loop()
+        dispatcher = EventLoopCallbackDispatcher(
+            loop, lambda event: forward_replica_event(event, pipeline, hub),
+        )
+        consumer = make_consumer(
+            redis, replica, stream_key, "snapshot-replay-live-worker", idle_ms=0,
+        )
+        worker = RedisOhlcvGatewayWorker(
+            consumer, dispatcher, poll_interval_seconds=0.01,
+        )
+        worker.start()
+        try:
+            replay = await asyncio.to_thread(
+                replay_replica_history,
+                redis,
+                stream_key=stream_key,
+                checkpoint=replay_checkpoint,
+                after_cursor=0,
+                series_identity={
+                    "provider": "databento", "dataset": "GLBX.MDP3",
+                    "publisherId": 1, "instrumentId": 123,
+                    "seriesType": "contract", "rawSymbol": "ESZ6",
+                    "timeframe": "1m", "bucketPolicy": "UTC_LEGACY",
+                    "calendarId": "", "calendarVersion": "",
+                },
+            )
+            assert replay["status"] == "ok"
+            assert [event["cursor"] for event in replay["events"]] == [1]
+            deadline = asyncio.get_running_loop().time() + 3
+            while subscription.queue.empty() and asyncio.get_running_loop().time() < deadline:
+                await asyncio.sleep(0.01)
+            assert not subscription.queue.empty()
+            merged = hub.merge_replay_boundary(
+                subscription, replay["events"], replay["next_cursor"],
+            )
+            assert merged == 1
+            live = subscription.queue.get_nowait()
+            assert live["cursor"] == "2"
+            assert live["sequence"] == 2
+            assert live["eventId"] == second_event["eventId"]
+            assert subscription.durable_cursor == 2
+        finally:
+            assert await worker.stop_async(timeout_seconds=3)
+        assert replica.checkpoint()["applied_cursor"] == 2
+        assert redis.xpending(stream_key, consumer.group_name)["pending"] == 0
+
+    try:
+        asyncio.run(scenario())
+    finally:
+        redis.delete(stream_key)
+        redis.close()

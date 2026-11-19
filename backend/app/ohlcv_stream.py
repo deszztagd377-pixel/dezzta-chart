@@ -32,6 +32,10 @@ class OhlcvStreamSubscription:
     closed: bool = False
 
 
+class OhlcvStreamResnapshotRequired(RuntimeError):
+    """The replay/live handoff cannot be completed without a fresh snapshot."""
+
+
 class OhlcvStreamHub:
     """Fan out validated bars; disconnect slow consumers instead of dropping data."""
 
@@ -244,6 +248,95 @@ class OhlcvStreamHub:
             subscription.watermark = next_sequence
             if durable_cursor is not None:
                 subscription.durable_cursor = max(subscription.durable_cursor, durable_cursor)
+
+
+    def merge_replay_boundary(
+        self,
+        subscription: OhlcvStreamSubscription,
+        replay_events: list[dict[str, Any]],
+        replay_end_cursor: int,
+    ) -> int:
+        """Discard queued events covered by replay and resequence newer live events.
+
+        Call synchronously on the owning event loop after replay has been sent.
+        The replay page must end at the fixed replica checkpoint. Any malformed
+        event, queue overflow, or out-of-order live cursor requires resnapshot.
+        """
+        if self._subscriptions.get(subscription.stream_id) is not subscription:
+            raise ValueError("subscription is not active in this hub")
+        if subscription.closed:
+            raise OhlcvStreamResnapshotRequired("subscription is closed")
+        if subscription.overflowed:
+            raise OhlcvStreamResnapshotRequired("live queue overflowed during replay")
+        if not isinstance(replay_events, list):
+            raise TypeError("replay_events must be a list")
+        if type(replay_end_cursor) is not int or replay_end_cursor < 0:
+            raise ValueError("replay_end_cursor must be a non-negative integer")
+
+        expected_series = {
+            "provider": subscription.identity[0],
+            "dataset": subscription.identity[1],
+            "publisherId": subscription.identity[2],
+            "instrumentId": subscription.identity[3],
+            "seriesType": subscription.identity[4],
+            "rawSymbol": subscription.identity[5],
+            "timeframe": subscription.identity[6],
+            "bucketPolicy": subscription.identity[7],
+            "calendarId": subscription.identity[8],
+            "calendarVersion": subscription.identity[9],
+        }
+        previous_replay_cursor = 0
+        for event in replay_events:
+            if not isinstance(event, dict):
+                raise ValueError("replay event must be an object")
+            cursor = event.get("cursor")
+            if type(cursor) is not int or cursor < 1 or cursor > replay_end_cursor:
+                raise ValueError("replay event cursor is outside the replay boundary")
+            if cursor <= previous_replay_cursor:
+                raise ValueError("replay event cursors must be strictly increasing")
+            if event.get("series") != expected_series:
+                raise ValueError("replay event does not match the subscription series")
+            previous_replay_cursor = cursor
+
+        pending_live: list[tuple[int, dict[str, Any]]] = []
+        previous_live_cursor = replay_end_cursor
+        while not subscription.queue.empty():
+            message = subscription.queue.get_nowait()
+            cursor_value = message.get("cursor") if isinstance(message, dict) else None
+            if (
+                not isinstance(cursor_value, str)
+                or not cursor_value.isascii()
+                or not cursor_value.isdigit()
+            ):
+                subscription.overflowed = True
+                raise OhlcvStreamResnapshotRequired("queued live event has no valid durable cursor")
+            cursor = int(cursor_value)
+            if cursor <= replay_end_cursor:
+                continue
+            if cursor <= previous_live_cursor:
+                subscription.overflowed = True
+                raise OhlcvStreamResnapshotRequired("queued live cursors are not strictly increasing")
+            previous_live_cursor = cursor
+            pending_live.append((cursor, message))
+
+        next_sequence = len(replay_events)
+        for _cursor, message in pending_live:
+            next_sequence += 1
+            message["streamId"] = subscription.stream_id
+            message["sequence"] = next_sequence
+            try:
+                subscription.queue.put_nowait(message)
+            except asyncio.QueueFull as exc:
+                subscription.overflowed = True
+                raise OhlcvStreamResnapshotRequired("live queue overflowed while merging replay") from exc
+
+        subscription.watermark = next_sequence
+        subscription.durable_cursor = max(
+            subscription.durable_cursor,
+            replay_end_cursor,
+            previous_live_cursor,
+        )
+        return len(pending_live)
 
     def unsubscribe(self, stream_id: str) -> None:
         subscription = self._subscriptions.pop(stream_id, None)
