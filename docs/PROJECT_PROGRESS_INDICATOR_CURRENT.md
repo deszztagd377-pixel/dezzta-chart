@@ -2877,3 +2877,15 @@ See `docs/INDICATOR_PROGRESS_LEDGER.md` for formula definitions, first-valid ind
 - Worker remains a standalone lifecycle component; no main.py/FastAPI startup wiring until snapshot provisioning, dedicated Redis ACL/config, shutdown supervision and multi-ASGI E2E are proven.
 - Prior exact-head batch 62J-10 commit dea336d0ecf6727b33c8a534bb8e260112b5ba11: Automated Tests, CodeQL and Full Git History Secret Audit all SUCCESS (runs 44558962426, 44558964005, 44558962350).
 - No deployment, paid service or Termux. Stage 1 75% provisional; Gate 10 0/10 closed; overall weighted project percentage not established.
+
+
+## Batch 62J-12 — dedicated relay configuration contract
+
+- Added OhlcvRedisRelayConfig, separate from Settings.redis_url used by shared HTTP/WebSocket guards.
+- Optional relay activation uses OHLCV_REDIS_ENABLED; dedicated publisher and gateway URLs are OHLCV_REDIS_PUBLISH_URL and OHLCV_REDIS_GATEWAY_URL.
+- Enforces separate ACL usernames and passwords, exact non-glob stream key, Redis database 0, and rediss:// for production.
+- Encodes the least-privilege command allowlists: publisher XADD/XRANGE; gateway XGROUP CREATE, XAUTOCLAIM, XREADGROUP, XACK and XRANGE.
+- URLs are repr-hidden to avoid accidental credential exposure.
+- Config is not wired into main.py or any startup path. No production secrets or Redis connection were used.
+- Gate 25 remains open pending owner-provisioned credentials, TLS and target environment tests.
+- No deployment, paid service or Termux.
