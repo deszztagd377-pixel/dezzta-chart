@@ -2801,3 +2801,14 @@ See `docs/INDICATOR_PROGRESS_LEDGER.md` for formula definitions, first-valid ind
 - Tests added for checkpoint-aligned snapshot result, bounded filtering, and fail-closed behavior before snapshot installation. Code commit: `3b19a483d3a3d93dea34181dd343595f265b2e82`; tests finalized at `146ab7861266e9b32b548059fa1a4391f530855c`.
 - This closes one read-model prerequisite only. Redis replay pagination/retention semantics, snapshot-to-live handoff on replica, event-loop-safe callback dispatch, dedicated relay ACL, ASGI lifecycle and multi-process WebSocket E2E remain open. No `main.py` startup wiring.
 - No new Vercel/Cloudflare deployment, paid service, or Termux requirement. `main` remains untouched.
+
+
+## Batch 62J-5 — 19 November 2026
+
+- Added `backend/app/ohlcv_redis_replay.py`: bounded `XRANGE` replay through a fixed watermark, global cursor pagination across unrelated series, exact series filtering, canonical envelope/source/stream-ID validation, series-vs-bar identity validation, and fail-closed resnapshot on missing/trimmed cursor history.
+- Added `backend/tests/test_ohlcv_redis_replay.py` for bounded pages, unrelated-series cursor advancement, missing cursor, truncated history, malformed series identity and empty interval.
+- Added a real Redis 7 integration test in `backend/tests/test_ohlcv_redis_consumer.py` for multi-page replay, exact-series filtering and deleted-entry gap detection.
+- Documentation: `docs/WORK_CYCLE_2026-11-19_BATCH62J5_REDIS_REPLAY_READ_MODEL.md`.
+- Latest code/test commits: `cdfbe6c4adea61da0f8c95a495d28845b98a3c7e`, `d76a8241d23336bae679923fc4d5be632abf07cf`, `fe9f93cb8938bf46eee404bcd6c9117067d8e06b`, `31a7bd7da63d26aff77d65c50d4624baccb6740e`, `2c983704ce1846716aed224bc16967a90ec53ee4`. Documentation commit: `2ed424b2139b96f06892697f1cfaa228c3af17d3`.
+- CI for the final batch head is not yet verified. No WebSocket endpoint wiring, worker startup, Vercel/Cloudflare deployment, paid service, or Termux requirement.
+- Indicator statuses are unchanged. Stage 1 remains 75% provisional (30/40 criteria; 300/400 ticks); Gate 10 remains 0/10 closed; Stages 2–6 unscored; overall weighted project percentage not established.
