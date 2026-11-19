@@ -1043,7 +1043,7 @@ class SQLiteOhlcvStore:
                 "retention_floor": retention_floor,
                 "row_count": row_count,
                 "sha256": digest.hexdigest(),
-                "format_version": 1,
+                "format_version": 2,
             }
         except Exception:
             if source.in_transaction:
@@ -1332,6 +1332,24 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                     )
                 if int(existing["applied_cursor"]) > int(metadata["high_water"]):
                     raise ValueError("Snapshot cursor is older than the replica checkpoint.")
+            else:
+                local_high_water = db.execute(
+                    "SELECT int_value FROM ohlcv_outbox_state WHERE state_key='high_water'"
+                ).fetchone()
+                local_bar_count = int(
+                    db.execute("SELECT COUNT(*) FROM ohlcv_bars").fetchone()[0]
+                )
+                local_outbox_count = int(
+                    db.execute("SELECT COUNT(*) FROM ohlcv_outbox").fetchone()[0]
+                )
+                if (
+                    (local_high_water is not None and int(local_high_water["int_value"]) > 0)
+                    or local_bar_count > 0
+                    or local_outbox_count > 0
+                ):
+                    raise RuntimeError(
+                        "Replica installation requires a dedicated empty OHLCV read-model database."
+                    )
 
             with Path(snapshot_path).expanduser().open("rb") as snapshot:
                 first = snapshot.readline()
