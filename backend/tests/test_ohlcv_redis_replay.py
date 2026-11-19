@@ -84,14 +84,6 @@ def test_replay_advances_global_cursor_across_unrelated_series():
         after_cursor=0, through_cursor=4,
         series_identity=IDENTITY, scan_limit=2,
     )
-    assert first == {
-        "status": "ok",
-        "events": [pytest.approx(make_entry(2)[1])],  # replaced below by cursor assertion
-        "next_cursor": 2,
-        "through_cursor": 4,
-        "has_more": True,
-        "scanned": 2,
-    } if False else first
     assert [event["cursor"] for event in first["events"]] == [2]
     assert first["next_cursor"] == 2
     assert first["has_more"] is True
