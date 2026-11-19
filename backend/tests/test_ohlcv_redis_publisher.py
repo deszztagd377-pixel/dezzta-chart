@@ -439,6 +439,8 @@ def test_real_redis_uncertain_readback_preserves_checkpoint_then_recovers(tmp_pa
 
 
 def test_real_redis_new_client_verifies_committed_stream_entry(tmp_path):
+    import os
+
     redis_module, redis, stream_key, store, checkpoint = _real_redis_context(tmp_path)
     try:
         assert append_bar(store) == "inserted"
