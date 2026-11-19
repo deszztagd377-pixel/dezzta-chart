@@ -151,6 +151,10 @@ class OhlcvStreamHub:
         for subscription in tuple(self._subscriptions.values()):
             if subscription.closed or subscription.overflowed or subscription.identity != identity:
                 continue
+            # Durable cursors are global and monotonic. A replay after Redis ACK
+            # reply loss must not enqueue the same event twice for this subscriber.
+            if durable_cursor is not None and durable_cursor <= subscription.durable_cursor:
+                continue
             next_sequence = subscription.watermark + 1
             message = {
                 "type": "market_data.ohlcv.update",

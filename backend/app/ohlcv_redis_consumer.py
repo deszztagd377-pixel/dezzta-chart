@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import hashlib
-from typing import Any
+from typing import Any, Callable
 
 from app.ohlcv_store import SQLiteOhlcvReplicaStore
 from app.ohlcv_redis_publisher import (
@@ -40,6 +40,7 @@ class RedisOhlcvReplicaConsumer:
         pending_idle_ms: int = 30_000,
         batch_size: int = 100,
         block_ms: int | None = None,
+        on_event_applied: Callable[[dict[str, Any]], None] | None = None,
     ) -> None:
         if redis_client is None:
             raise ValueError("redis_client is required.")
@@ -71,7 +72,10 @@ class RedisOhlcvReplicaConsumer:
         self.consumer_name = consumer_name
         self.pending_idle_ms = pending_idle_ms
         self.batch_size = batch_size
+        if on_event_applied is not None and not callable(on_event_applied):
+            raise TypeError("on_event_applied must be callable when provided.")
         self.block_ms = block_ms
+        self.on_event_applied = on_event_applied
         self._pending_scan_id = "0-0"
 
     def ensure_group(self) -> bool:
@@ -155,8 +159,13 @@ class RedisOhlcvReplicaConsumer:
                 )
             if status not in {"applied", "duplicate", "stale"}:
                 raise RuntimeError(f"Replica returned an unsupported apply status: {status!r}.")
-            # Durable local transaction has committed before Redis ACK. If ACK
-            # reply is lost, redelivery is safe because apply_replica_event is idempotent.
+            # The durable SQLite apply precedes this callback; fan-out must also
+            # succeed before ACK. Invoke for duplicates too: a previous callback
+            # may have failed between pipeline mutation and hub notification.
+            # The hub's durable-cursor fence makes this retry idempotent.
+            if status in {"applied", "duplicate"} and self.on_event_applied is not None:
+                self.on_event_applied(event)
+            # Durable local transaction and local fan-out precede Redis ACK.
             acknowledged += int(
                 self.redis.xack(self.stream_key, self.group_name, stream_id) or 0
             )

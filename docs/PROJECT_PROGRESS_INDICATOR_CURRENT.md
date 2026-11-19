@@ -1,3 +1,35 @@
+# LATEST CHECKPOINT — BATCH 62J-2 DURABLE REPLICA TO WEBSOCKET BRIDGE IMPLEMENTED
+
+**Date:** 19 November 2026 • **Branch:** \`phase-2/market-data-foundation\`  
+**Parent code HEAD:** \`a3b43b0c8dbf8cecbaef8a17d508defbf287d1ec\`  
+**Batch 62J-2:** \`backend/app/ohlcv_replica_bridge.py\` + consumer callback + hub cursor fence  
+**Indicator ledger:** \`docs/INDICATOR_PROGRESS_LEDGER.md\`  
+**Work report:** \`docs/WORK_CYCLE_2026-11-19_BATCH62J2_REPLICA_TO_WEBSOCKET_BRIDGE.md\`  
+**Cost:** ZERO COST • CI only • no deploy • no paid services • no Termux • \`main\` untouched.
+
+## Batch 62J-2 implementation
+
+- Replica snapshot hydration into \`OhlcvPipeline\` from durable SQLite.
+- Canonical Redis event reconstruction into \`OhlcvBar\`.
+- Pipeline apply and local \`OhlcvStreamHub\` fan-out with source global cursor/event ID.
+- Optional consumer callback executes after replica SQLite commit and before Redis ACK.
+- Hub per-subscription global-cursor fence suppresses duplicate notification after ACK reply loss.
+- Pipeline divergence raises an explicit error; it is never silently dropped.
+- New bridge tests cover hydration, cursor restoration, event fan-out, duplicate suppression, snapshot replay and divergence.
+
+**Important:** consumer/publisher startup remains unwired from \`main.py\`. This is a tested library bridge, not yet a running multi-instance backend deployment.
+
+## Validation state
+
+Exact-head CI has not yet completed for the new code. Do not claim this batch is verified until all three workflows pass.
+
+## Project accounting unchanged
+
+- Stage 1: **75% provisional** — 30/40 criteria; 300/400 ticks.
+- Gate 10: **0/10 formally closed** — all ten remain OPEN pending owner evidence.
+- Stages 2–6: NOT SCORED.
+- Overall project percentage: NOT ESTABLISHED; M1–M8 weights are unapproved.
+- Indicator progress is unchanged by WebSocket work; see the full colored indicator ledger.
 # LATEST CHECKPOINT — BATCH 62J PROCESS-LEVEL REDIS PARITY TESTS PASSED
 
 **Date:** 19 November 2026 • **Branch:** `phase-2/market-data-foundation`  
