@@ -37,6 +37,7 @@ Let the durable replica cursor be (C), and incoming event cursor be (E):
 | Reused cursor/event ID with different identity or payload | Hard conflict error | Rollback / none |
 
 The deduplication ledger stores cursor, unique event ID and SHA-256 of the canonical event. It is bounded to the latest 100,000 cursors, matching the source outbox retention window.
+Replica checkpoint schema and event protocol are version 3. A stale checkpoint version fails closed; a current global snapshot must be installed before event replay resumes.
 
 ### Atomic apply transaction
 
@@ -58,12 +59,13 @@ Callers may ACK a durable transport message only after `applied`, `duplicate` or
 
 ## Regression coverage
 
-Four event test groups:
+Five event test groups:
 
 1. Contiguous event apply, exact data, checkpoint advance, duplicate replay and no outbox echo.
 2. Cursor gap, wrong source, malformed Decimal, event-ID conflict, stale event after dedupe-history pruning and non-regressing checkpoint.
 3. A forced checkpoint-update failure after the bar and dedupe record have been staged; rollback preserves the old bar/checkpoint and leaves the event ledger empty.
 4. Source/replica per-series retention parity after an additional event exceeds the five-bar timeframe cap.
+5. An outdated checkpoint protocol is rejected without cursor advance or bar mutation.
 
 ## Current boundaries
 
@@ -90,6 +92,9 @@ Four event test groups:
 - `92922b5c11cf640a0fb2c9512d2d09e0b56f5084` — cursor, idempotency, conflict and rollback tests.
 - `4dc6e8d397ae3c62850cae38c83ccb0f783d08ab` — conflict precedence and safe ACK boundary.
 - `8c5d43d9487b3fd6e85a0a6bc1233933d1491b9a` — per-series retention parity test.
+- `a687a08293a29a31ea5190379e40ee4f5ab4455f` — version the replica checkpoint schema/event protocol and fail closed on outdated versions.
+- `a59bfac3f3c6238a99439025d49f0ee1157ad624` — assert replica schema/protocol version 3.
+- `0c2a6292728e819b2af062281817b71dbe100e70` — regression test for outdated checkpoint protocol rejection.
 
 ## Project / Gate 10 accounting
 
