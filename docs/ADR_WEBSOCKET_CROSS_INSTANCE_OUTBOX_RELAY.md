@@ -210,3 +210,8 @@ The source-local publisher checkpoint is implemented in `backend/app/ohlcv_redis
 Publisher ownership uses a transactional SQLite lease. A live lease excludes another owner; expiry takeover increments a fencing epoch. Cursor advancement is a one-event compare-and-swap and requires the deterministic `<cursor>-0` Stream ID. The API name `record_confirmed_append` is intentional: it may only be called after a successful Redis append or exact deterministic-ID read-back. Redis append and duplicate verification are not part of 62H-1; they are the next 62H-2 slice. No startup wiring, Redis ACL change, MAXLEN trimming, or deployment is included.
 
 Tests use temporary local SQLite and cover snapshot watermark/retention, lease contention and fencing, deterministic cursor advancement, invalid gaps/IDs/expired leases, and compare-and-swap. Exact-head CI is required before declaring this batch validated.
+
+
+### 62H-1 regression test repair
+
+The first exact-head backend run had one failing CAS test fixture (1,067 passed / 1 failed). It supplied cursor 2 with expected cursor 0, so the contiguous cursor guard correctly rejected the input before CAS. The fixture now replays the already-confirmed cursor-1 event using stale expected cursor 0 and Stream ID `1-0`, thereby exercising the intended CAS rejection. Production publisher code remains unchanged. Exact-head CI for the repair is pending.

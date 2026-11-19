@@ -61,3 +61,10 @@ The tests use local temporary SQLite only. No paid Redis service or credentials 
 - 62H-1 earns no Stage ticks and closes no owner gate. CI evidence is not owner acceptance.
 - Gate 25/36 still need independent owner Redis topology, public WSS, WebView foreground/background and 330-second attribution evidence. Gates 8,20,30,31,34,35,38,39 retain their existing evidence packs.
 
+
+
+## CI fixture correction — exact-head run 44537009483
+
+The first 62H-1 backend regression run reported **1,067 passed / 1 failed**. The failure was isolated to the compare-and-swap test fixture, not a production-code defect: it attempted to submit cursor 2 while declaring expected cursor 0. The production method correctly rejected this earlier at its contiguous-cursor invariant, so the test never reached the CAS branch it intended to exercise.
+
+Corrected the fixture to replay the already-confirmed authoritative cursor 1 with stale expected cursor 0 and deterministic Stream ID `1-0`. The event now satisfies source-outbox validation and contiguous cursor validation, allowing the test to specifically assert that the persisted checkpoint at cursor 1 rejects a second advance from stale expected cursor 0. Production implementation is unchanged by this test-only repair. Exact-head CI for the repair is required before the batch is declared green.

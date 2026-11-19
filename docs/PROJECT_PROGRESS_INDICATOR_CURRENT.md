@@ -2331,3 +2331,8 @@ The test fixture in `backend/tests/test_ohlcv_store.py` was corrected to hash an
 **Indicator status unchanged:** SMA20, EMA20, RSI14, MACD12/26/9 and Bollinger20,2 have calculation/fixture foundations but visible integration remains pending; shared hook needs chart binding/loading/error/stale clearing; Footprint remains SIMULATED and reference/blueprint-gated; Heatmap and Liquidation Maps remain unimplemented. Footprint OFF retains normal candle spacing; explicit ON alone enables spaced clusters. The complete formula, warm-up, tests and remaining-work ledger above remains canonical.
 
 **Accounting unchanged:** Stage 1 75% provisional (30/40; 300/400); Gate 10 0/10 closed; Stages 2–6 NOT SCORED; overall project percentage NOT ESTABLISHED. No ticks or gates are awarded by this repair. ZERO COST; no deploy; no Termux; `main` untouched.
+
+
+## 62H-1 CI repair note
+
+Run `44537009483` exposed one test-fixture error: the CAS test supplied cursor 2 while its expected cursor remained 0, triggering the correct contiguous-cursor guard before CAS. Fixed the test to replay the already-confirmed cursor-1 event with stale expected cursor 0, which directly exercises the intended compare-and-swap rejection. No production logic was changed for this repair. Repair commit `e37f7ecda67b80e1c9d6aff593c8cb342304ead8` is awaiting exact-head CI.
