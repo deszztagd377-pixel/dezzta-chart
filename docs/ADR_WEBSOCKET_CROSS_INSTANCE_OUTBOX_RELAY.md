@@ -161,3 +161,21 @@ This is still a local storage primitive, not an activated distributed relay. Inc
 The snapshot envelope is format version 2 and includes the full configured per-timeframe bar-retention policy alongside the global outbox retention floor. The replica checkpoint persists both, so the cursor boundary and source retention configuration remain observable after restart. A replica may only initialize against a dedicated empty OHLCV read-model database; it refuses to overwrite existing bars or source outbox state. Replica source-writer apply and snapshot export are both blocked.
 
 The target-side snapshot swap uses a single write transaction and bounded batches. It is atomic to SQLite readers, but a large install can hold the target writer lock for the duration and increase WAL pressure. Measure snapshot size, install duration, writer wait and WAL growth before owner-host rollout. No production deployment or paid service is authorized.
+
+
+## Batch 62G-3 — atomic incremental replica event apply
+
+`SQLiteOhlcvReplicaStore.apply_replica_event()` now applies the authoritative outbox event envelope to the local read model.
+
+- It binds every event to the source ID already stored in the replica checkpoint.
+- It validates event type/version/operation, event ID, cursor, exact series identity, bar field set, Decimal strings and integer nanosecond timestamps.
+- Only the next cursor `E=C+1` may be applied.
+- Exact cursor + event ID + payload digest matches return `duplicate`; older events whose bounded dedupe record has aged out return `stale` without mutation.
+- Cursor gaps and observed retention expiry require resnapshot. Conflicting event IDs/cursors are hard errors.
+- Bar upsert, source-configured per-series retention pruning, applied-event ledger and checkpoint advance commit in one local SQLite transaction.
+- Replica writes never append to its own outbox. Applied-event history is bounded to the source's 100,000-event retention horizon.
+- Callers may ACK only after durable `applied`, `duplicate` or `stale` outcomes. A gap/retention result requires resnapshot; errors must not be ACKed.
+
+Regression coverage now includes event apply, duplicate replay, conflicting IDs, stale history, cursor gaps, source mismatch, malformed decimals, source/replica retention parity and a forced checkpoint-write failure proving bar + ledger + checkpoint rollback together.
+
+This is still a storage primitive. It is not wired to the process-local hub, Redis Streams, consumer ACK or app startup. Those steps remain blocked until the publisher/consumer recovery protocol and two-process parity tests are complete. No production deployment or paid service is authorized.
