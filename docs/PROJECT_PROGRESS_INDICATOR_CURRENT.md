@@ -1,19 +1,56 @@
-# LATEST VERIFIED CHECKPOINT — BATCH 62E RECONCILIATION
+# LATEST VERIFIED CHECKPOINT — BATCH 62E EXACT-HEAD CI COMPLETE
 
-**Current branch HEAD:** e36240032aec2539e8bb0fec3c037248133648f9
-**Exact-head CI:** Automated Tests [44496224508](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44496224508) SUCCESS • CodeQL [44496224516](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44496224516) SUCCESS • Full Git History Secret Audit [44496224538](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44496224538) SUCCESS.
-**Scope:** Batch 62E is documentation/audit only; no application source behavior changed.
-**Cost:** ZERO COST • no deployment • no Termux • main untouched.
+**Date:** 19 November 2026 • **Branch:** `phase-2/market-data-foundation`  
+**Current branch HEAD:** `f79779acd970d3b04ef5a8f516664ea96bd06b1f`  
+**Scope:** Documentation/audit only; no application source behavior changed.  
+**Cost:** ZERO COST • no Vercel/Cloudflare deployment • no paid service • no Termux • `main` untouched.
 
-**Important correction:** older sections below record their own historical tested HEADs. They must not be interpreted as the current branch SHA. The current branch was independently read at e36240032aec2539e8bb0fec3c037248133648f9, and all three workflows above completed successfully on that exact SHA.
+## Exact-head CI — 3/3 SUCCESS
 
-**Current progress:** Stage 1 remains 75% provisional (30/40 criteria; 300/400 ticks); Gate 10 remains 0/10 formally closed; Stages 2–6 are NOT SCORED; overall project percentage remains NOT ESTABLISHED. Documentation and CI success do not earn project ticks or close owner-acceptance gates.
+All workflows completed successfully on exact HEAD `f79779acd970d3b04ef5a8f516664ea96bd06b1f`:
 
-**WebSocket disposition:** local snapshot/watermark concurrency is CI-verified, but the live app still constructs a process-local pipeline/hub and local SQLite store per application process. Redis fan-out alone is insufficient. Next safe sequence is authoritative writer ownership → idempotent local replica apply → per-instance Redis Streams groups → crash/recovery tests → owner public WSS acceptance. Do not share WAL SQLite across hosts or wire partial fan-out into startup.
+| Workflow | Run | Result |
+|---|---:|---|
+| Automated Tests | [44498420330](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44498420330) | SUCCESS |
+| CodeQL Security Analysis | [44498420382](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44498420382) | SUCCESS |
+| Full Git History Secret Audit | [44498420399](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44498420399) | SUCCESS |
 
-**Indicator disposition:** SMA20, EMA20, RSI14 Wilder, MACD12/26/9 and Bollinger20,2 are calculation foundations, not visible chart features. Shared hook is groundwork. Footprint remains SIMULATED and reference/blueprint-gated; Heatmap and Liquidation Maps remain unimplemented. Stage 4 UI remains parked.
+Automated Tests completed frontend tests/build, backend tests, bounded SQLite outbox benchmark, dependency audits, backend container build, Redis/persistent-volume smoke test, image scan/report and cleanup. No additional test counts or vulnerability conclusions are inferred beyond the workflow result.
 
-**Detailed work-cycle report:** [WORK_CYCLE_2026-11-19_BATCH62E_EXACT_HEAD_RECONCILIATION_AND_RELAY_READINESS.md](WORK_CYCLE_2026-11-19_BATCH62E_EXACT_HEAD_RECONCILIATION_AND_RELAY_READINESS.md)
+## WebSocket disposition
+
+Local SQLite outbox and atomic snapshot/watermark foundations are tested. The application still constructs a process-local pipeline/hub and local SQLite store per process. Cross-instance delivery is **not complete**. Safe sequence: authoritative writer ownership → idempotent replica apply without outbox re-emission → per-instance Redis Streams consumer groups → pending reclaim/retry → two-process snapshot-watermark parity → outage/retention/resnapshot tests → owner WSS acceptance.
+
+Do not share SQLite WAL across hosts or wire partial Redis relay into startup. Redis outage must not roll back committed source bars/outbox events.
+
+## Indicator progress — source and test audit
+
+| Indicator/component | Verified calculation contract | First valid output | Status |
+|---|---|---:|---|
+| SMA 20 | Rolling arithmetic mean of close values | Index 19 | 🟨 Calculation foundation |
+| EMA 20 | SMA-seeded EMA; alpha = 2/21 | Index 19 | 🟨 Calculation foundation |
+| RSI 14 Wilder | Wilder-smoothed close-to-close gains/losses | Index 14 | 🟨 Calculation foundation |
+| MACD 12/26/9 | EMA12 − EMA26; EMA9 signal | MACD 25; signal/histogram 33 | 🟨 Calculation foundation |
+| Bollinger 20,2 | 20-close mean ± 2 population standard deviations | Index 19 | 🟨 Calculation foundation |
+| `useMarketIndicators()` | Only non-empty validated backend snapshots in ready/degraded state; no DEMO fallback | Snapshot-dependent | 🟨 Shared hook groundwork |
+| Footprint | Deterministic bounded educational data, explicitly SIMULATED | Not production order flow | 🟨 Gated on owner reference + reviewed blueprint |
+| Heatmap | No implementation verified | — | 🟥 Not implemented |
+| Liquidation Maps | No implementation verified | — | 🟥 Not implemented |
+
+The calculation test file contains seven cases covering alignment/warm-up, RSI edge cases, MACD signal warm-up, Bollinger population deviation, shared entry point, 18 timeframe labels and invalid inputs. These are calculation-fixture tests, not visible chart integration or live-provider acceptance.
+
+**Stage 4 UI remains parked while Stage 1 is active.** Visible toggles, overlays/panes, legends/current values, identity/timeframe stale clearing, and render/lifecycle tests are not complete. Footprint OFF must preserve normal candle spacing; only explicit ON may enable spaced cluster layout. Footprint, Heatmap and Liquidation Maps visuals remain gated on owner reference images and reviewed scoped blueprints.
+
+## Gate 10 and overall accounting
+
+- Gate 10: **0/10 formally closed**; gates 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain OPEN pending owner-side evidence.
+- Stage 1: **75% provisional** — 30/40 criteria; 300/400 ticks.
+- Stages 2–6: **NOT SCORED**.
+- Overall project percentage: **NOT ESTABLISHED**; M1–M8 weights remain unapproved.
+- Documentation and CI success do not award stage ticks or close owner-acceptance gates.
+
+**Detailed work-cycle report:** [Batch 62E relay readiness](WORK_CYCLE_2026-11-19_BATCH62E_EXACT_HEAD_RECONCILIATION_AND_RELAY_READINESS.md).
+
 
 ---
 
