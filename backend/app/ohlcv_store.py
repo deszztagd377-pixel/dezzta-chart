@@ -1041,6 +1041,7 @@ class SQLiteOhlcvStore:
                 "cursor": high_water,
                 "high_water": high_water,
                 "retention_floor": retention_floor,
+                "bar_retention": header["bar_retention"],
                 "row_count": row_count,
                 "sha256": digest.hexdigest(),
                 "format_version": 2,
