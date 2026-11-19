@@ -703,6 +703,8 @@ def test_global_snapshot_exports_every_retained_series_with_verified_manifest(tm
     assert exported["cursor"] == exported["high_water"] == 3
     assert exported["row_count"] == verified["row_count"] == 3
     assert verified["source_id"] == store.source_id()
+    assert verified["format_version"] == 2
+    assert verified["bar_retention"] == store.retention
     assert SQLiteOhlcvStore(str(tmp_path / "global-source.sqlite3")).source_id() == store.source_id()
     assert {bar["bucket_policy"] for bar in bars} == {
         "UTC_LEGACY", "UTC_FIXED_V1", "CME_SESSION_V1",
@@ -844,6 +846,7 @@ def test_replica_installs_global_snapshot_atomically_without_outbox_echo(tmp_pat
         "applied_cursor": 2,
         "snapshot_generation": exported["generation_id"],
         "retention_floor": exported["retention_floor"],
+        "bar_retention": source.retention,
         "schema_version": 1,
         "protocol_version": 1,
     }
@@ -985,3 +988,22 @@ def test_replica_snapshot_rejects_numeric_decimal_fields_even_with_valid_digest(
         replica.install_global_snapshot(str(invalid))
     assert replica.checkpoint() is None
     assert replica.load_bars() == []
+
+
+def test_replica_install_refuses_to_replace_an_authoritative_database(tmp_path):
+    authoritative_path = str(tmp_path / "must-not-be-replaced.sqlite3")
+    authoritative = SQLiteOhlcvStore(authoritative_path)
+    original = make_bar()
+    assert authoritative.apply(original) == "inserted"
+
+    replica_view = SQLiteOhlcvReplicaStore(authoritative_path)
+    other_source = SQLiteOhlcvStore(str(tmp_path / "other-authority.sqlite3"))
+    assert other_source.apply(make_bar(instrument_id=456, raw_symbol="NQZ6")) == "inserted"
+    snapshot = tmp_path / "other-source.snapshot.jsonl"
+    other_source.export_global_snapshot(str(snapshot))
+
+    with pytest.raises(RuntimeError, match="dedicated empty OHLCV read-model"):
+        replica_view.install_global_snapshot(str(snapshot))
+
+    assert authoritative.load_bars() == [original]
+    assert authoritative.outbox_high_water() == 1
