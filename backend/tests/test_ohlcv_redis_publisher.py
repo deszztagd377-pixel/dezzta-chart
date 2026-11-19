@@ -4,7 +4,13 @@ import pytest
 
 from app.ohlcv import OhlcvBar
 from app.ohlcv_store import SQLiteOhlcvStore
-from app.ohlcv_redis_publisher import SQLiteOhlcvPublisherCheckpoint
+from app.ohlcv_redis_publisher import (
+    RedisAppendUnconfirmed,
+    RedisOhlcvPublisher,
+    RedisOhlcvStreamAppender,
+    RedisStreamConflict,
+    SQLiteOhlcvPublisherCheckpoint,
+)
 
 
 NS = 1_000_000_000
@@ -145,3 +151,151 @@ def test_checkpoint_compare_and_swap_prevents_double_advance(tmp_path):
             event=events[0], stream_id="1-0", now_ms=40_020,
         )
     assert checkpoint.state()["published_cursor"] == 1
+
+
+
+class FakeRedisStream:
+    def __init__(self):
+        self.streams = {}
+        self.fail_after_append_once = False
+        self.unavailable = False
+
+    def xadd(self, name, fields, *, id):
+        if self.unavailable:
+            raise ConnectionError("redis unavailable")
+        stream = self.streams.setdefault(name, {})
+        if id in stream or (stream and id <= max(stream)):
+            raise RuntimeError("stream ID is not greater than the top item")
+        stream[id] = dict(fields)
+        if self.fail_after_append_once:
+            self.fail_after_append_once = False
+            raise ConnectionError("reply lost after Redis committed XADD")
+        return id
+
+    def xrange(self, name, *, min, max, count):
+        if self.unavailable:
+            raise ConnectionError("redis unavailable")
+        stream = self.streams.get(name, {})
+        return [
+            (entry_id, dict(fields))
+            for entry_id, fields in sorted(stream.items())
+            if min <= entry_id <= max
+        ][:count]
+
+
+def setup_publisher(tmp_path, *, clock=None, batch_size=100):
+    store, checkpoint, _ = setup_checkpoint(tmp_path)
+    redis = FakeRedisStream()
+    publisher = RedisOhlcvPublisher(
+        store,
+        checkpoint,
+        redis,
+        owner="publisher-A",
+        lease_ttl_ms=5_000,
+        batch_size=batch_size,
+        clock_ms=clock or (lambda: 10_000),
+    )
+    return store, checkpoint, redis, publisher
+
+
+def test_redis_publisher_appends_ordered_events_and_advances_checkpoint(tmp_path):
+    store, checkpoint, redis, publisher = setup_publisher(tmp_path)
+    assert append_bar(store, index=0) == "inserted"
+    assert append_bar(store, index=1) == "inserted"
+
+    result = publisher.publish_available()
+    assert result == {
+        "status": "published",
+        "published": 2,
+        "verified_existing": 0,
+        "published_cursor": 2,
+        "high_water": 2,
+        "has_more": False,
+    }
+    stream = redis.streams["dezzta:market-data:ohlcv:v1"]
+    assert list(stream) == ["1-0", "2-0"]
+    assert checkpoint.state()["published_cursor"] == 2
+
+
+def test_redis_publisher_recovers_xadd_commit_with_lost_reply(tmp_path):
+    store, checkpoint, redis, publisher = setup_publisher(tmp_path)
+    assert append_bar(store) == "inserted"
+    redis.fail_after_append_once = True
+
+    result = publisher.publish_available()
+    assert result["published"] == 1
+    assert result["verified_existing"] == 1
+    assert result["published_cursor"] == 1
+    assert checkpoint.state()["published_cursor"] == 1
+    assert list(redis.streams["dezzta:market-data:ohlcv:v1"]) == ["1-0"]
+
+
+def test_redis_publisher_recovers_crash_after_append_before_checkpoint(tmp_path):
+    store, checkpoint, redis, publisher = setup_publisher(tmp_path)
+    assert append_bar(store) == "inserted"
+    event = store.read_outbox_batch(after_cursor=0, limit=1)["events"][0]
+    appender = RedisOhlcvStreamAppender(
+        redis,
+        stream_key="dezzta:market-data:ohlcv:v1",
+        source_id=store.source_id(),
+    )
+    assert appender.append_confirmed(event) == "appended"
+    assert checkpoint.state()["published_cursor"] == 0
+
+    result = publisher.publish_available()
+    assert result["verified_existing"] == 1
+    assert result["published_cursor"] == 1
+    assert len(redis.streams["dezzta:market-data:ohlcv:v1"]) == 1
+
+
+def test_redis_publisher_rejects_existing_deterministic_id_with_conflicting_payload(tmp_path):
+    store, checkpoint, redis, publisher = setup_publisher(tmp_path)
+    assert append_bar(store) == "inserted"
+    redis.streams["dezzta:market-data:ohlcv:v1"] = {
+        "1-0": {
+            "source_id": store.source_id(),
+            "event_id": "different-event",
+            "payload": '{"cursor":1}',
+        }
+    }
+
+    with pytest.raises(RedisStreamConflict, match="different source/event/payload"):
+        publisher.publish_available()
+    assert checkpoint.state()["published_cursor"] == 0
+
+
+def test_redis_outage_does_not_advance_publisher_checkpoint(tmp_path):
+    store, checkpoint, redis, publisher = setup_publisher(tmp_path)
+    assert append_bar(store) == "inserted"
+    redis.unavailable = True
+
+    with pytest.raises(RedisAppendUnconfirmed, match="outcome is uncertain"):
+        publisher.publish_available()
+    assert checkpoint.state()["published_cursor"] == 0
+
+
+def test_redis_publisher_requires_snapshot_when_source_retention_overtakes_cursor(tmp_path):
+    store, checkpoint, redis, publisher = setup_publisher(tmp_path)
+    assert append_bar(store, index=0) == "inserted"
+    assert append_bar(store, index=1) == "inserted"
+    with store._connect() as db:
+        db.execute(
+            "UPDATE ohlcv_outbox_state SET int_value=1 WHERE state_key='retention_floor'"
+        )
+
+    with pytest.raises(RuntimeError, match="fresh global snapshot"):
+        publisher.publish_available()
+    assert checkpoint.state()["published_cursor"] == 0
+    assert redis.streams == {}
+
+
+def test_redis_publisher_does_not_publish_when_another_owner_holds_lease(tmp_path):
+    store, checkpoint, redis, publisher = setup_publisher(tmp_path)
+    assert append_bar(store) == "inserted"
+    other = checkpoint.acquire_lease("publisher-B", now_ms=9_999, ttl_ms=5_000)
+    assert other is not None
+
+    result = publisher.publish_available()
+    assert result == {"status": "lease_busy", "published": 0}
+    assert redis.streams == {}
+    assert checkpoint.state()["published_cursor"] == 0
