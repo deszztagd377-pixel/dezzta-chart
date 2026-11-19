@@ -1,3 +1,59 @@
+# CURRENT INDICATOR AND PROJECT PROGRESS — 19 NOVEMBER 2026 (BATCH 54)
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Audited HEAD:** `fba43a12017e314baeb9e2719a50b441274126c6`  
+**CI:** Automated Tests [44470207284](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44470207284) SUCCESS • CodeQL [44470207308](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44470207308) SUCCESS • Secret Audit [44470207366](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44470207366) SUCCESS  
+**Test totals:** Frontend 234/234 (28 files) • Backend 1,032/1,032 • npm audit 0 vulnerabilities • backend dependency audit clean • Trivy report 0 vulnerabilities  
+**Stage 1:** 30/40 criteria • 300/400 ticks • **75% provisional**  
+**Gate 10:** 0/10 formally closed • open 8, 20, 25, 30, 31, 34, 35, 36, 38, 39  
+**Overall project:** NOT ESTABLISHED; historical 20.9% remains unweighted.
+
+## Technical indicator implementation tracker — Batch 54 (no implementation status change)
+
+| Indicator / layer | Verified implementation | Visible chart status | Roadmap |
+|---|---|---|---|
+| SMA 20 | Calculation + tests; warm-up alignment | Not integrated | Stage 4 parked |
+| EMA 20 | Calculation + tests; seeded SMA warm-up | Not integrated | Stage 4 parked |
+| RSI 14 (Wilder) | Calculation + tests; index 14 warm-up | Not integrated | Stage 4 parked |
+| MACD 12/26/9 | Calculation + tests; line index 25, signal index 33 | Not integrated | Stage 4 parked |
+| Bollinger Bands 20,2 | Calculation + tests; population deviation | Not integrated | Stage 4 parked |
+| Shared `useMarketIndicators()` | Exact validated shared backend snapshot; suppresses DEMO/loading/unavailable/error | Hook only; no controls/panes | Stage 4 parked |
+| Footprint | Deterministic offline simulated aggregation + fixtures | Visual implementation waits for owner reference; OFF keeps standard candle spacing | Separately gated |
+| Heatmap | No implementation verified | Not implemented | Wait for owner reference |
+| Liquidation Maps | No implementation verified | Not implemented | Wait for owner reference |
+
+**Coverage:** 7 indicator calculation tests pass inside the 234 frontend tests; they cover all 18 configured timeframes, warm-up alignment, Wilder RSI, MACD signal warm-up, Bollinger population deviation and invalid-input rejection. Calculations are not visible-feature completion credit.
+
+## Batch 54 — Gate 8/20/25/35 artifact and source audit
+
+- Exact-head CI completed successfully on `fba43a12017e314baeb9e2719a50b441274126c6`.
+- Trivy JSON artifact parsed directly: **0 vulnerabilities** in the exact CI backend image.
+- Synthetic SQLite/outbox microbenchmark: 1,000 events persisted/replayed; persist p95 10.20 ms, concurrent replay page p95 1.62 ms. Single-process synthetic runner only; not production SLO/capacity.
+- Gate 8: code/bundle/history scan passes; production secret injection remains external.
+- Gate 20: Firebase auth source tests and server verification boundary pass; real Firebase signed-token E2E and scoped WSS ticket exchange remain outstanding.
+- Gate 25: Redis Lua/TLS/ACL/fail-closed CI proof passes; independent production Redis and multi-instance test remain outstanding.
+- Gate 35: exact HTTPS CORS config is enforced; public owner-host TLS and certificate evidence remain outstanding.
+- Detailed report: [WORK_CYCLE_2026-11-19_BATCH54_CI_ARTIFACT_FORENSICS_GATE8_20_25_35.md](WORK_CYCLE_2026-11-19_BATCH54_CI_ARTIFACT_FORENSICS_GATE8_20_25_35.md).
+
+## Gate 10 acceptance ledger
+
+| Gate | Current evidence | Formal status |
+|---:|---|---|
+| 8 | secret scans + settings redaction | OPEN — production injection absent |
+| 20 | Firebase client/server code tests | OPEN — real project E2E and ticket policy absent |
+| 25 | Redis TLS/ACL/Lua + CI smoke | OPEN — independent production Redis absent |
+| 30 | encrypted backup/restore CI drill | OPEN — owner target-host restore absent |
+| 31 | authenticated encryption + tamper tests | OPEN — off-host artifact/key custody absent |
+| 34 | mounted-volume CI smoke | OPEN — owner-host volume absent |
+| 35 | exact HTTPS CORS validation | OPEN — public backend TLS absent |
+| 36 | isolated SSO WSS preview | OPEN — browser/Android/330s/effective Fluid proof absent |
+| 38 | bounded process-local metrics tests | OPEN — host collector/retention absent |
+| 39 | sanitized alert reporter tests | OPEN — operator/escalation drill absent |
+
+No gate closed and no progress ticks awarded by this audit.
+
+---
+
 # CURRENT INDICATOR AND PROJECT PROGRESS — 19 NOVEMBER 2026 (BATCH 53)
 
 **Active branch:** `phase-2/market-data-foundation`  
