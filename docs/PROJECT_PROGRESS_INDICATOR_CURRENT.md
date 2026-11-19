@@ -1,3 +1,110 @@
+# BATCH 55 — WebSocket authentication audit, ticket-exchange design, and final-head CI
+
+**Date:** 19 November 2026 (WIB)  
+**Active branch:** `phase-2/market-data-foundation`  
+**Source baseline audited:** `baac62e150a8cd886b584095e825a43cdc839eee`  
+**Final-head CI:** Automated Tests & Build [44471059444](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44471059444) — **SUCCESS, all 32 steps** • CodeQL [44471059411](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44471059411) — **SUCCESS, JavaScript/TypeScript + Python** • Full-history Secret Audit [44471059343](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44471059343) — **SUCCESS**  
+**Cost:** ZERO COST • **Deployments:** none • **Termux:** not required • **main:** untouched
+
+## 1. Final-head CI closure
+
+The two previously pending workflows have now completed successfully. The Automated Tests & Build job reports every step completed with SUCCESS, including frontend dependency audit, frontend tests/build, source and bundle credential scans, Android preflight/publisher tests, backend tests, synthetic outbox benchmark, backend dependency audit, container build, Redis/persistent-volume smoke, Trivy scan and artifact export. CodeQL completed both language jobs. The separate full-history secret audit also succeeded.
+
+This confirms the final documentation baseline's automated checks. It does not convert CI fixtures into owner-host or production acceptance evidence.
+
+## 2. WebSocket authentication — verified current behavior
+
+Audited:
+- `backend/app/main.py`
+- `backend/app/identity.py`
+- `backend/app/shared_guard.py`
+- `backend/tests/test_shared_guard.py`
+- `poc/vercel_ws/index.py`
+- `backend/tests/test_vercel_ws_poc.py`
+- `poc/vercel_ws/vercel.json`
+
+Production market-data WSS currently:
+1. Accepts the socket after the origin and global-capacity checks.
+2. Requires an initial `{"type":"auth","token":"<Firebase ID token>"}` frame within five seconds.
+3. Verifies the Firebase ID token server-side with revocation checking and issuer/audience/subject/auth-time validation.
+4. Reserves the account-scoped Redis WebSocket lease using the verified principal subject.
+5. Rechecks Firebase identity/revocation every 60 seconds and renews the Redis lease every one-third of its configured lease duration (default 45 seconds → 15 seconds).
+6. Fails closed on identity-provider or shared-guard failures.
+
+The isolated Vercel POC is a separate synthetic-only endpoint. Its 10-test suite covers health, browser probe headers, ping/pong, fresh sessions, message bounds, invalid frames, rate limiting and idle close. It does not authenticate production accounts or carry market data. Its deployment remains SSO-protected and project `live=false`.
+
+## 3. Root cause boundary and WebSocket ticket-exchange design
+
+**Confirmed design gap:** the production socket currently receives the Firebase ID token in its first WebSocket application frame. WSS encrypts transport, so this is not a plaintext-network leak; however, a short-lived, single-use, narrowly scoped ticket is a better boundary for the WebSocket handshake and avoids placing the long-lived Firebase bearer token in the socket protocol.
+
+**Safe target protocol (design only; not yet implemented):**
+
+1. Client obtains a current Firebase ID token using the existing Firebase Auth SDK.
+2. Client calls a same-origin HTTPS ticket endpoint with that ID token in the HTTP Authorization header.
+3. Backend verifies the Firebase token using the existing `FirebaseIdentityVerifier` with revocation checking. The account subject is always derived from verified claims.
+4. Backend creates a cryptographically random opaque ticket (at least 256 bits). Redis stores only a digest-keyed, short-lived record containing the verified subject and narrowly defined purpose/audience metadata; the raw ticket is returned once to the client and never logged.
+5. Client opens WSS and sends only the opaque ticket in the initial auth frame.
+6. Backend atomically consumes the ticket with a Redis Lua operation (single-use, race-safe, TTL-enforced). Missing, expired, replayed, wrong-purpose, or malformed tickets fail closed. Ticket consumption and connection-lease acquisition must be ordered so failed capacity reservation cannot leave an authenticated unleased socket.
+7. Preserve periodic revocation checks without storing the raw Firebase ID token in Redis: the client obtains a fresh ticket over HTTPS before the authorization deadline and sends a bounded re-auth frame; the server atomically consumes it, verifies that the subject is unchanged, and refreshes the authenticated session. If renewal is absent, invalid, replayed, or identity changes, close the socket. This preserves the current 60-second revocation/authorization boundary without persisting a Firebase bearer token in Redis.
+8. Apply shared HTTP rate limits to ticket issuance and strict size/time limits to WSS auth/renewal frames. Ticket values, Firebase tokens, and raw subjects must never appear in logs, metrics labels, URLs, or Redis key names.
+
+**Acceptance tests required before merge:** ticket expiry; single-use replay rejection; concurrent double-consume race; wrong purpose; malformed/oversized ticket; subject binding; account/global connection cap interaction; Redis unavailable fail-closed; ticket endpoint rate limit; token revoked between ticket issue and renewal; renewal timeout; reconnect obtains a fresh ticket; and no credential leakage in logs. Redis integration tests must exercise the actual Lua consume operation, not only a fake client.
+
+**Why no speculative code patch was made:** this change spans the HTTP identity boundary, Redis atomic storage, WebSocket state machine, frontend token lifecycle and revocation semantics. A process-local ticket cache would fail across server instances; storing raw Firebase tokens in Redis would weaken credential custody; simply removing the 60-second revalidation would regress revocation handling. The design above resolves those hazards before implementation. The existing production authentication path remains unchanged and fail-closed.
+
+## 4. Gate 10 — multi-gate evidence reconciliation
+
+| Gate | Repository evidence / progress | Remaining acceptance blocker | Status |
+|---:|---|---|---|
+| 8 | Settings redaction, frontend source/bundle scans, reachable Git-history secret scan | Actual owner-host secret injection, protected file mounts and runtime log/readback proof | OPEN |
+| 20 | Firebase client/server auth boundary; revocation/issuer/audience checks | Real owner Firebase valid/expired/revoked/wrong-project E2E; implement and test scoped WSS tickets | OPEN |
+| 25 | Atomic Redis Lua HTTP limits and WS leases; TLS CA/hostname checks; ACL; fail-closed CI smoke | Independent owner-controlled Redis, network/TLS and multi-instance contention/outage drill | OPEN |
+| 30 | Encrypted backup/decrypt/restore CI drill; committed fresh-connection readback | Restore the actual owner-controlled application database and verify recovery evidence | OPEN |
+| 31 | Authenticated encryption and tamper/wrong-key tests | Zero-incremental-cost off-host copy, separate recovery-key custody, retention and restore drill | OPEN |
+| 34 | CI mounted-volume ownership, SQLite integrity and restart persistence | Owner-host mounted volume, restart and disk-pressure evidence | OPEN |
+| 35 | Exact HTTPS CORS validation and internal ASGI port boundary | Owner-controlled public HTTPS/WSS ingress, certificate renewal, HSTS/redirect and external TLS/WebView checks | OPEN |
+| 36 | Isolated SSO-protected synthetic WSS POC; 10 local protocol tests | Authenticated owner-browser round-trip, Android WebView, 330-second close attribution, effective Fluid readback and cross-instance fanout | OPEN |
+| 38 | Bounded 127-series process-local metrics, sanitization, locking and concurrency tests | Host collector, durable/cross-instance aggregation, retention and protected access | OPEN |
+| 39 | Sanitized local transition/recovery reporter and deduplication tests | Host log collection, named operator, verified escalation channel and acknowledgement/recovery drill | OPEN |
+
+No gate is closed by this source audit or CI alone. No external evidence was fabricated.
+
+## 5. Technical indicator inventory — complete current state
+
+| Indicator / layer | Calculation or data foundation | Visible chart integration | Current disposition |
+|---|---|---|---|
+| SMA 20 | Calculation + warm-up tests | Not integrated | Stage 4 parked |
+| EMA 20 | Calculation + seeded-SMA warm-up tests | Not integrated | Stage 4 parked |
+| RSI 14 (Wilder) | Calculation + index-14 warm-up tests | Not integrated | Stage 4 parked |
+| MACD 12/26/9 | Calculation + line/signal warm-up tests (indices 25/33) | Not integrated | Stage 4 parked |
+| Bollinger 20,2 | Calculation + population-deviation tests | Not integrated | Stage 4 parked |
+| `useMarketIndicators()` | Shared hook consumes validated selected backend snapshot; DEMO/loading/unavailable/error suppression | No controls or panes | Stage 4 parked |
+| Footprint | Deterministic offline simulated aggregation + fixtures | Visual not implemented; OFF must preserve ordinary candle spacing | Await owner visual reference |
+| Heatmap | No implementation verified | Not implemented | Await owner visual reference |
+| Liquidation Maps | No implementation verified | Not implemented | Await owner visual reference |
+
+Seven calculation tests pass within the 234-test frontend suite and cover all 18 configured timeframes, warm-up alignment and invalid inputs. These calculations are groundwork, not finished visible features. Do not begin Footprint or Heatmap visual work before receiving the owner's corresponding reference images.
+
+## 6. Colored progress accounting — unchanged, evidence-based
+
+- **Stage 1:** 🟩 **75% provisional** — 30/40 criteria, 300/400 ticks.
+- **Gate 10:** 🟥 **0/10 formally closed** — all ten criteria listed above remain open.
+- **Stage 2:** 🟦 NOT SCORED.
+- **Stage 3:** 🟪 NOT SCORED.
+- **Stage 4:** 🟨 NOT SCORED (indicator calculation foundations only; visible UI parked).
+- **Stage 5:** 🩷 NOT SCORED.
+- **Stage 6:** ⬜ NOT SCORED.
+- **Overall project:** **NOT ESTABLISHED**. Historical 20.9% is not a newly weighted project score; M1–M8 weights/criterion mapping remain unapproved.
+- No stage ticks, gate closures, or overall percentage points are awarded for documentation, CI, or source-level evidence alone.
+
+## 7. ZERO COST and operations
+
+No deployment, Vercel/Cloudflare repeated push, billing activation, paid provider, paid Redis, paid monitoring, production promotion, or Termux operation was performed. No Termux action is currently required. The branch deployment guard remains the existing control; do not trigger a throwaway deployment to test WSS behavior.
+
+**Next engineering sequence:** implement the Redis-backed single-use ticket primitives and HTTP issuance endpoint with focused backend tests; then integrate the WSS initial-ticket and re-auth renewal state machine; then update the frontend token/ticket lifecycle; finally run exact-head CI. Owner browser/Android and external host proofs remain separate acceptance steps. Major implementation stays behind the documented protocol review boundary.
+
+---
+
 # DEZZTA CHART — Project Progress Indicator (Current Snapshot)
 
 **Audit:** 19 November 2026 — Batch 54  
