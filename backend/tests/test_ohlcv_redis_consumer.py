@@ -70,7 +70,9 @@ def append_and_publish(source, redis, stream_key, index):
     return appender.append_confirmed(event)
 
 
-def make_consumer(redis, replica, stream_key, consumer_name, *, idle_ms=0):
+def make_consumer(
+    redis, replica, stream_key, consumer_name, *, idle_ms=0, on_event_applied=None,
+):
     return RedisOhlcvReplicaConsumer(
         redis,
         replica,
@@ -78,6 +80,7 @@ def make_consumer(redis, replica, stream_key, consumer_name, *, idle_ms=0):
         consumer_name=consumer_name,
         pending_idle_ms=idle_ms,
         batch_size=10,
+        on_event_applied=on_event_applied,
     )
 
 
@@ -365,5 +368,86 @@ def test_two_independent_publisher_processes_share_one_fenced_source_lease(tmp_p
             if process.is_alive():
                 process.terminate()
                 process.join(timeout=5)
+        redis.delete(stream_key)
+        redis.close()
+
+
+def test_real_redis_callback_failure_keeps_durable_event_pending_until_retry(tmp_path):
+    redis, stream_key = real_redis()
+    source = SQLiteOhlcvStore(str(tmp_path / "source.sqlite3"))
+    snapshot_path = tmp_path / "snapshot.jsonl"
+    make_snapshot(source, snapshot_path)
+    replica = make_replica(source, snapshot_path, tmp_path / "replica.sqlite3")
+    callback_calls = []
+
+    def fail_once(event):
+        callback_calls.append(event["cursor"])
+        if len(callback_calls) == 1:
+            raise RuntimeError("simulated local hub callback failure")
+
+    first = make_consumer(
+        redis, replica, stream_key, "gateway-callback-old",
+        on_event_applied=fail_once,
+    )
+    recovered_events = []
+    restarted = make_consumer(
+        redis, replica, stream_key, "gateway-callback-new",
+        on_event_applied=lambda event: recovered_events.append(event["cursor"]),
+    )
+    try:
+        append_and_publish(source, redis, stream_key, 0)
+        with pytest.raises(RuntimeError, match="local hub callback failure"):
+            first.consume_once()
+
+        # Replica durability is committed before callback, but Redis ACK is not.
+        assert replica.checkpoint()["applied_cursor"] == 1
+        assert redis.xpending(stream_key, first.group_name)["pending"] == 1
+        assert callback_calls == [1]
+
+        recovered = restarted.consume_once()
+        assert recovered["reclaimed"] == 1
+        assert recovered["duplicate"] == 1
+        assert recovered["acknowledged"] == 1
+        assert recovered_events == [1]
+        assert redis.xpending(stream_key, first.group_name)["pending"] == 0
+        assert replica.checkpoint()["applied_cursor"] == 1
+    finally:
+        redis.delete(stream_key)
+        redis.close()
+
+
+def test_real_redis_callback_is_retried_after_ack_reply_loss(tmp_path):
+    redis, stream_key = real_redis()
+    source = SQLiteOhlcvStore(str(tmp_path / "source.sqlite3"))
+    snapshot_path = tmp_path / "snapshot.jsonl"
+    make_snapshot(source, snapshot_path)
+    replica = make_replica(source, snapshot_path, tmp_path / "replica.sqlite3")
+    first_notifications = []
+    retry_notifications = []
+    first = make_consumer(
+        _AckReplyLostRedis(redis), replica, stream_key, "gateway-ack-loss-old",
+        on_event_applied=lambda event: first_notifications.append(event["cursor"]),
+    )
+    restarted = make_consumer(
+        redis, replica, stream_key, "gateway-ack-loss-new",
+        on_event_applied=lambda event: retry_notifications.append(event["cursor"]),
+    )
+    try:
+        append_and_publish(source, redis, stream_key, 0)
+        with pytest.raises(ConnectionError, match="ACK reply loss"):
+            first.consume_once()
+
+        assert first_notifications == [1]
+        assert replica.checkpoint()["applied_cursor"] == 1
+        assert redis.xpending(stream_key, first.group_name)["pending"] == 1
+
+        recovered = restarted.consume_once()
+        assert recovered["reclaimed"] == 1
+        assert recovered["duplicate"] == 1
+        assert recovered["acknowledged"] == 1
+        assert retry_notifications == [1]
+        assert redis.xpending(stream_key, first.group_name)["pending"] == 0
+        assert replica.checkpoint()["applied_cursor"] == 1
+    finally:
         redis.delete(stream_key)
         redis.close()
