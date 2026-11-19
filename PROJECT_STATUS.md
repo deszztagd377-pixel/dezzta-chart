@@ -1,3 +1,39 @@
+# CURRENT AUDITED CHECKPOINT — 19 NOVEMBER 2026 (BATCH 51)
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Current documentation checkpoint before this reconciliation:** `c51b62c49539ff3bebcb28f77955c549afd78cfd`  
+**Latest application source/test commit:** `b30ce94ca278e527731d86e40ddf06c6dbd16b5b`  
+**Deployed preview source:** `9961471f1d72e3d35b4bf3f4314171d7b5fe2b1a`
+
+## Batch 51 — meaningful WSS preview deployment
+
+- Isolated FastAPI WebSocket POC deployment `dpl_5VXGuNtmkxzWTDQkcGZgBrrL7WrK` is **READY** at https://dezzta-chart-ws-n3mvfjv0n-deszztagd377-pixel.vercel.app.
+- Exact source SHA: `9961471f1d72e3d35b4bf3f4314171d7b5fe2b1a`, containing the verified Batch 50 transport fix.
+- Build selected Python 3.12 and installed `poc/vercel_ws/requirements.txt`; build completed in approximately 4 seconds.
+- SSO remains enabled for all deployment targets; project remains `live=false`. No production promotion.
+- No matching warning/error/fatal runtime logs were returned for the new deployment in the 30-minute query window. This is not proof of an HTTP health invocation or a live WSS round-trip.
+- Only the WSS POC was deployed. The frontend was not redeployed.
+
+## Vercel ignored-build filter correction
+
+The deployment log exposed a missing previous Git object (`fatal: bad object 9873a5f...`) in the old ignored-build command. The deployment still completed, but the filter could not safely distinguish a docs-only change.
+
+The WSS POC project's ignored-build command was updated to check for the previous commit, fetch that exact commit shallowly if absent, then compare only `poc/vercel_ws/**`. If fetch/comparison fails, it safely requests a build rather than skipping. Command length is 254/256 characters. This settings update has not yet been exercised by a subsequent natural deployment; do not trigger a throwaway build to test it.
+
+Detailed record: [docs/WORK_CYCLE_2026-11-19_BATCH51_WEBSOCKET_PREVIEW_DEPLOYMENT_AND_FILTER_FIX.md](docs/WORK_CYCLE_2026-11-19_BATCH51_WEBSOCKET_PREVIEW_DEPLOYMENT_AND_FILTER_FIX.md).
+
+## Progress — unchanged, no speculative credit
+
+- **Stage 1:** 30/40 criteria; 300/400 ticks; **75% provisional**. No ticks awarded for Batch 51.
+- **Gate 10:** **0/10 formally closed**. Open external criteria: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- **Gate 36:** remains OPEN. Deployment READY does not prove owner-device WSS, 330-second platform close, Android WebView, effective Fluid Compute read-back, or production cross-instance fan-out.
+- **Stages 2–6:** NOT SCORED.
+- **Overall project percentage:** NOT ESTABLISHED; 20.9% is historical only pending approved M1–M8 scoring.
+- **ZERO COST:** no paid plan, billing activation, paid provider, production credential, or Termux operation.
+- **Protected `main`:** untouched.
+
+---
+
 # CURRENT AUDITED CHECKPOINT — 19 NOVEMBER 2026
 
 **Active branch:** `phase-2/market-data-foundation`  
