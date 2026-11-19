@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1160" viewBox="0 0 1280 1160" role="img" aria-labelledby="title desc">
-<title id="title">DEZZTA CHART project progress — Batch 54 CI artifact and Gate 10 audit</title>
-<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 50 adds idempotent terminal notification for an already-CLOSED socket; Batch 49 preserves the 1006 fallback when explicit close() throws. Batch 51 deployed the verified source to an SSO-protected preview. Batch 52 audited the 10-test WSS POC suite, Gate 38 metrics and Gate 39 local alert reporter; host/browser acceptance remains pending. Batch 54 exact-head CI SUCCESS: frontend 234/234, backend 1,032/1,032; npm audit 0 and Trivy JSON 0 vulnerabilities. Synthetic outbox p95 10.20 ms. Gates 8/20/25/35 source audit completed; external acceptance remains open. Gate 10 0/10.</desc>
+<title id="title">DEZZTA CHART project progress — Batch 55 WebSocket ticket architecture and final-head CI</title>
+<desc id="desc">Stage 1 is 75 percent provisional, Gate 10 zero of ten formally closed, overall project progress not established. Batch 50 adds idempotent terminal notification for an already-CLOSED socket; Batch 49 preserves the 1006 fallback when explicit close() throws. Batch 51 deployed the verified source to an SSO-protected preview. Batch 52 audited the 10-test WSS POC suite, Gate 38 metrics and Gate 39 local alert reporter; host/browser acceptance remains pending. Batch 55 final documentation HEAD CI SUCCESS: all 32 automated build/test steps, both CodeQL languages, and full-history secret audit. WebSocket bearer-token-in-frame design audited; one-time Redis ticket protocol scoped. External owner-host/browser acceptance remains open. Gate 10 0/10.</desc>
 <rect width="1280" height="1160" rx="28" fill="#0b1220"/>
 <g font-family="Arial,sans-serif">
 <text x="48" y="58" fill="#f8fafc" font-size="32" font-weight="700">DEZZTA CHART — PROJECT PROGRESS</text>
-<text x="48" y="91" fill="#94a3b8" font-size="16">BATCH 54 • 19 NOV 2026 • phase-2/market-data-foundation • ZERO COST</text>
+<text x="48" y="91" fill="#94a3b8" font-size="16">BATCH 55 • 19 NOV 2026 • phase-2/market-data-foundation • ZERO COST</text>
 <rect x="44" y="122" width="370" height="220" rx="18" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
 <text x="70" y="164" fill="#d1fae5" font-size="21" font-weight="700">STAGE 1 — ACTIVE</text>
 <text x="70" y="235" fill="#fff" font-size="60" font-weight="700">75%</text>
@@ -39,20 +39,20 @@
 <text x="882" y="628" fill="#94a3b8" font-size="20" font-weight="700">NOT SCORED</text>
 <rect x="44" y="704" width="376" height="176" rx="14" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
 <text x="66" y="744" fill="#d1fae5" font-size="18" font-weight="700">CI — ALL CHECKS PASS</text>
-<text x="66" y="778" fill="#a7f3d0" font-size="15">Batch 52 exact-head CI SUCCESS</text>
-<text x="66" y="807" fill="#a7f3d0" font-size="15">234 frontend + 1,032 backend PASS</text>
-<text x="66" y="836" fill="#a7f3d0" font-size="15">npm audit • Redis • Trivy • APK PASS</text>
+<text x="66" y="778" fill="#a7f3d0" font-size="15">Batch 55 exact-head CI SUCCESS</text>
+<text x="66" y="807" fill="#a7f3d0" font-size="15">32/32 workflow steps • tests/build PASS</text>
+<text x="66" y="836" fill="#a7f3d0" font-size="15">CodeQL • secrets • Redis • Trivy PASS</text>
 <rect x="452" y="704" width="376" height="176" rx="14" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
 <text x="474" y="744" fill="#d1fae5" font-size="18" font-weight="700">WEBSOCKET — POC EVIDENCE</text>
-<text x="474" y="778" fill="#a7f3d0" font-size="15">POC regression suite: 10 tests</text>
-<text x="474" y="807" fill="#a7f3d0" font-size="15">Health • ping/pong • reconnect</text>
-<text x="474" y="836" fill="#fcd34d" font-size="15">READY • SSO all targets • live=false</text>
+<text x="474" y="778" fill="#a7f3d0" font-size="15">POC suite: 10 synthetic tests</text>
+<text x="474" y="807" fill="#a7f3d0" font-size="15">Health • ping/pong • bounded probe</text>
+<text x="474" y="836" fill="#fcd34d" font-size="15">READY • SSO • synthetic-only</text>
 <rect x="860" y="704" width="376" height="176" rx="14" fill="#78350f" stroke="#fbbf24" stroke-width="2"/>
 <text x="882" y="744" fill="#fef3c7" font-size="18" font-weight="700">GATE 10 — OPEN</text>
 <text x="882" y="778" fill="#fde68a" font-size="15">8, 20, 25, 30, 31</text>
 <text x="882" y="807" fill="#fde68a" font-size="15">34, 35, 36, 38, 39</text>
 <text x="882" y="836" fill="#fde68a" font-size="15">0 / 10 formally closed</text>
-<text x="48" y="918" fill="#94a3b8" font-size="14">CI PASS does not close external gates • ZERO COST • no deployment • no Termux • main untouched</text>
+<text x="48" y="918" fill="#94a3b8" font-size="14">Batch 55 docs-only • no deployment • ZERO COST • no Termux • main untouched</text>
 </g><text x="474" y="865" fill="#a7f3d0" font-size="14">APK • CodeQL • secret audit PASS • ZERO COST</text>
 <rect x="44" y="910" width="1192" height="210" rx="16" fill="#111827" stroke="#64748b" stroke-width="2"/>
 <text x="70" y="950" fill="#f8fafc" font-size="20" font-weight="700">TECHNICAL INDICATOR PROGRESS — FOUNDATION ONLY</text>
