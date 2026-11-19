@@ -362,3 +362,247 @@ class SQLiteOhlcvPublisherCheckpoint:
             raise
         finally:
             db.close()
+
+
+class RedisStreamConflict(RuntimeError):
+    """A deterministic Redis Stream ID exists with a different source event."""
+
+
+class RedisAppendUnconfirmed(RuntimeError):
+    """Redis append outcome is unknown; the durable checkpoint was not advanced."""
+
+
+def _redis_text(value: Any) -> str:
+    if isinstance(value, bytes):
+        return value.decode("utf-8", errors="strict")
+    if isinstance(value, str):
+        return value
+    raise TypeError("Redis Stream values must be UTF-8 strings or bytes.")
+
+
+class RedisOhlcvStreamAppender:
+    """Append canonical outbox events using deterministic, verifiable Stream IDs.
+
+    This adapter is synchronous by design. A worker may call it from a thread;
+    it is not wired into FastAPI startup in this batch.
+    """
+
+    def __init__(
+        self,
+        redis_client: Any,
+        *,
+        stream_key: str,
+        source_id: str,
+    ) -> None:
+        if redis_client is None:
+            raise ValueError("redis_client is required.")
+        if not isinstance(stream_key, str) or not stream_key.strip() or len(stream_key) > 256:
+            raise ValueError("stream_key must be a non-empty string of at most 256 characters.")
+        if not isinstance(source_id, str) or not source_id.strip():
+            raise ValueError("source_id must be a non-empty string.")
+        self.redis = redis_client
+        self.stream_key = stream_key
+        self.source_id = source_id
+
+    @staticmethod
+    def _canonical_payload(event: dict[str, Any]) -> str:
+        try:
+            return json.dumps(
+                event,
+                ensure_ascii=False,
+                allow_nan=False,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Outbox event is not canonical JSON data.") from exc
+
+    def _read_exact(self, stream_id: str) -> dict[str, str] | None:
+        rows = self.redis.xrange(
+            self.stream_key,
+            min=stream_id,
+            max=stream_id,
+            count=2,
+        )
+        if not rows:
+            return None
+        if len(rows) != 1:
+            raise RedisStreamConflict("Deterministic Redis Stream ID returned multiple entries.")
+        returned_id, raw_fields = rows[0]
+        if _redis_text(returned_id) != stream_id or not isinstance(raw_fields, dict):
+            raise RedisStreamConflict("Redis exact-ID read-back returned an invalid entry.")
+        fields = {
+            _redis_text(key): _redis_text(value)
+            for key, value in raw_fields.items()
+        }
+        return fields
+
+    def append_confirmed(self, event: dict[str, Any]) -> str:
+        """Return 'appended' or 'verified_existing'; never accept a mismatch."""
+        if not isinstance(event, dict):
+            raise TypeError("event must be a canonical outbox event object.")
+        cursor = event.get("cursor")
+        event_id = event.get("eventId")
+        if type(cursor) is not int or cursor < 1:
+            raise ValueError("event cursor must be a positive integer.")
+        if not isinstance(event_id, str) or not event_id.strip():
+            raise ValueError("event must contain a stable eventId.")
+        stream_id = f"{cursor}-0"
+        expected_fields = {
+            "source_id": self.source_id,
+            "event_id": event_id,
+            "payload": self._canonical_payload(event),
+        }
+
+        try:
+            appended_id = self.redis.xadd(
+                self.stream_key,
+                expected_fields,
+                id=stream_id,
+            )
+        except Exception as append_error:
+            # A timeout can occur after Redis committed XADD but before the
+            # client received its reply. Verify the exact deterministic ID.
+            try:
+                existing = self._read_exact(stream_id)
+            except Exception as verify_error:
+                raise RedisAppendUnconfirmed(
+                    "Redis append outcome is uncertain; checkpoint remains unchanged."
+                ) from verify_error
+            if existing is None:
+                raise append_error
+            if existing != expected_fields:
+                raise RedisStreamConflict(
+                    "Existing deterministic Stream ID has a different source/event/payload."
+                ) from append_error
+            return "verified_existing"
+
+        if _redis_text(appended_id) != stream_id:
+            raise RedisStreamConflict(
+                "Redis returned a Stream ID different from the deterministic cursor ID."
+            )
+        return "appended"
+
+
+class RedisOhlcvPublisher:
+    """Fenced, at-least-once SQLite-outbox to Redis-Streams publisher.
+
+    The caller owns scheduling and Redis client lifecycle. This class is not
+    connected to application startup; source commits remain independent of
+    Redis availability.
+    """
+
+    def __init__(
+        self,
+        source_store: SQLiteOhlcvStore,
+        checkpoint: SQLiteOhlcvPublisherCheckpoint,
+        redis_client: Any,
+        *,
+        owner: str,
+        lease_ttl_ms: int = 30_000,
+        batch_size: int = 100,
+        clock_ms=None,
+    ) -> None:
+        if not isinstance(source_store, SQLiteOhlcvStore):
+            raise TypeError("source_store must be a SQLiteOhlcvStore.")
+        if not isinstance(checkpoint, SQLiteOhlcvPublisherCheckpoint):
+            raise TypeError("checkpoint must be a SQLiteOhlcvPublisherCheckpoint.")
+        if checkpoint.source_store.database_path != source_store.database_path:
+            raise ValueError("Publisher checkpoint must belong to the supplied source store.")
+        if not isinstance(owner, str) or not owner.strip() or len(owner) > 128:
+            raise ValueError("owner must be a non-empty string of at most 128 characters.")
+        if type(lease_ttl_ms) is not int or not 1 <= lease_ttl_ms <= _MAX_LEASE_TTL_MS:
+            raise ValueError(f"lease_ttl_ms must be between 1 and {_MAX_LEASE_TTL_MS}.")
+        if type(batch_size) is not int or not 1 <= batch_size <= 1_000:
+            raise ValueError("batch_size must be between 1 and 1000.")
+        import time
+
+        self.source_store = source_store
+        self.checkpoint = checkpoint
+        self.owner = owner
+        self.lease_ttl_ms = lease_ttl_ms
+        self.batch_size = batch_size
+        self.clock_ms = clock_ms or (lambda: time.time_ns() // 1_000_000)
+        state = checkpoint.state()
+        if state is None:
+            raise RuntimeError("Initialize the publisher checkpoint from a verified snapshot first.")
+        self.appender = RedisOhlcvStreamAppender(
+            redis_client,
+            stream_key=state["stream_key"],
+            source_id=state["source_id"],
+        )
+
+    def publish_available(self, *, max_events: int | None = None) -> dict[str, Any]:
+        """Publish one bounded page; return only after every cursor is checkpointed."""
+        limit = self.batch_size if max_events is None else max_events
+        if type(limit) is not int or not 1 <= limit <= self.batch_size:
+            raise ValueError(f"max_events must be between 1 and {self.batch_size}.")
+
+        lease = self.checkpoint.acquire_lease(
+            self.owner,
+            now_ms=self.clock_ms(),
+            ttl_ms=self.lease_ttl_ms,
+        )
+        if lease is None:
+            return {"status": "lease_busy", "published": 0}
+
+        published = 0
+        verified_existing = 0
+        cursor = -1
+        try:
+            state = self.checkpoint.state()
+            if state is None:
+                raise RuntimeError("Publisher checkpoint disappeared.")
+            cursor = state["published_cursor"]
+            page = self.source_store.read_outbox_batch(after_cursor=cursor, limit=limit)
+            if page.get("status") != "ok":
+                reason = page.get("reason", "unknown")
+                floor = page.get("retention_floor")
+                high_water = page.get("high_water")
+                raise RuntimeError(
+                    "Publisher requires a fresh global snapshot: "
+                    f"reason={reason}, retention_floor={floor}, high_water={high_water}."
+                )
+
+            for event in page["events"]:
+                renewed = self.checkpoint.acquire_lease(
+                    self.owner,
+                    now_ms=self.clock_ms(),
+                    ttl_ms=self.lease_ttl_ms,
+                )
+                if renewed is None or renewed["lease_epoch"] != lease["lease_epoch"]:
+                    raise RuntimeError("Publisher lease was lost or fenced before append.")
+                expected_cursor = cursor
+                append_result = self.appender.append_confirmed(event)
+                if append_result == "verified_existing":
+                    verified_existing += 1
+                updated = self.checkpoint.record_confirmed_append(
+                    self.owner,
+                    epoch=lease["lease_epoch"],
+                    expected_cursor=expected_cursor,
+                    event=event,
+                    stream_id=f"{event['cursor']}-0",
+                    now_ms=self.clock_ms(),
+                )
+                cursor = updated["published_cursor"]
+                published += 1
+
+            return {
+                "status": "published" if published else "idle",
+                "published": published,
+                "verified_existing": verified_existing,
+                "published_cursor": cursor,
+                "high_water": page["high_water"],
+                "has_more": bool(page.get("has_more")),
+            }
+        finally:
+            # A failed release is safe: the bounded lease expires, and the
+            # next owner must acquire a higher fencing epoch before publishing.
+            try:
+                self.checkpoint.release_lease(
+                    self.owner,
+                    epoch=lease["lease_epoch"],
+                    now_ms=self.clock_ms(),
+                )
+            except Exception:
+                pass
