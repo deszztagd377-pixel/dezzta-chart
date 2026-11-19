@@ -6,6 +6,7 @@ The authoritative OHLCV outbox remains the source of truth.
 """
 from __future__ import annotations
 
+import json
 import sqlite3
 from pathlib import Path
 from typing import Any
