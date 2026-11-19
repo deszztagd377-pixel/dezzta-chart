@@ -1011,3 +1011,140 @@ def test_replica_install_refuses_to_replace_an_authoritative_database(tmp_path):
 
     assert authoritative.load_bars() == [original]
     assert authoritative.outbox_high_water() == 1
+
+
+def test_replica_applies_contiguous_outbox_events_idempotently_without_echo(tmp_path):
+    source = SQLiteOhlcvStore(str(tmp_path / "event-source.sqlite3"))
+    initial = make_bar()
+    assert source.apply(initial) == "inserted"
+    snapshot = tmp_path / "event-initial.snapshot.jsonl"
+    source.export_global_snapshot(str(snapshot))
+
+    replica = SQLiteOhlcvReplicaStore(str(tmp_path / "event-replica.sqlite3"))
+    replica.install_global_snapshot(str(snapshot))
+    next_bar = make_bar(
+        start=60 * NS, event=101, sequence=2, close="102",
+        instrument_id=456, raw_symbol="NQZ6",
+    )
+    assert source.apply(next_bar) == "inserted"
+    page = source.read_outbox_batch(after_cursor=1, limit=10)
+    assert page["status"] == "ok"
+    event = page["events"][0]
+    assert event["cursor"] == 2
+
+    applied = replica.apply_replica_event(
+        event, source_id=source.source_id(), retention_floor=page["retention_floor"],
+    )
+    assert applied["status"] == "applied"
+    assert applied["applied_cursor"] == 2
+    assert replica.load_bars() == [initial, next_bar]
+    assert replica.checkpoint()["applied_cursor"] == 2
+    assert replica.outbox_high_water() == 0
+
+    duplicate = replica.apply_replica_event(
+        event, source_id=source.source_id(), retention_floor=page["retention_floor"],
+    )
+    assert duplicate["status"] == "duplicate"
+    assert replica.checkpoint()["applied_cursor"] == 2
+    assert replica.load_bars() == [initial, next_bar]
+
+
+def test_replica_event_gap_conflict_stale_and_source_validation(tmp_path):
+    import copy
+    import sqlite3
+
+    source = SQLiteOhlcvStore(str(tmp_path / "event-order-source.sqlite3"))
+    assert source.apply(make_bar()) == "inserted"
+    snapshot = tmp_path / "event-order.snapshot.jsonl"
+    source.export_global_snapshot(str(snapshot))
+    replica_path = str(tmp_path / "event-order-replica.sqlite3")
+    replica = SQLiteOhlcvReplicaStore(replica_path)
+    replica.install_global_snapshot(str(snapshot))
+
+    second = make_bar(
+        start=60 * NS, event=101, sequence=2, close="102",
+        instrument_id=456, raw_symbol="NQZ6",
+    )
+    third = make_bar(
+        start=120 * NS, event=102, sequence=3, close="103",
+        instrument_id=789, raw_symbol="YMZ6",
+    )
+    assert source.apply(second) == "inserted"
+    assert source.apply(third) == "inserted"
+    page = source.read_outbox_batch(after_cursor=1, limit=10)
+    event2, event3 = page["events"]
+
+    gap = replica.apply_replica_event(event3, source_id=source.source_id())
+    assert gap == {
+        "status": "resnapshot_required",
+        "reason": "cursor_gap",
+        "expected_cursor": 2,
+        "received_cursor": 3,
+        "applied_cursor": 1,
+    }
+    assert replica.checkpoint()["applied_cursor"] == 1
+    assert replica.load_bars() == [make_bar()]
+
+    with pytest.raises(ValueError, match="source identity"):
+        replica.apply_replica_event(event2, source_id="different-source")
+    malformed = copy.deepcopy(event2)
+    malformed["bar"]["close"] = 101.5
+    with pytest.raises(ValueError, match="decimal and string fields"):
+        replica.apply_replica_event(malformed, source_id=source.source_id())
+
+    assert replica.apply_replica_event(event2, source_id=source.source_id())["status"] == "applied"
+    assert replica.apply_replica_event(event3, source_id=source.source_id())["status"] == "applied"
+    assert replica.checkpoint()["applied_cursor"] == 3
+    assert replica.load_bars() == [make_bar(), second, third]
+
+    duplicate = replica.apply_replica_event(event2, source_id=source.source_id())
+    assert duplicate["status"] == "duplicate"
+    conflicting = copy.deepcopy(event2)
+    conflicting["eventId"] = "different-event-id"
+    with pytest.raises(ValueError, match="conflicts with an already applied event"):
+        replica.apply_replica_event(conflicting, source_id=source.source_id())
+
+    with sqlite3.connect(replica_path) as db:
+        db.execute("DELETE FROM ohlcv_replica_applied_events WHERE cursor=2")
+    stale = replica.apply_replica_event(event2, source_id=source.source_id())
+    assert stale["status"] == "stale"
+    assert replica.checkpoint()["applied_cursor"] == 3
+    assert replica.outbox_high_water() == 0
+
+
+def test_replica_event_bar_and_checkpoint_rollback_together_on_checkpoint_failure(tmp_path):
+    import sqlite3
+
+    source = SQLiteOhlcvStore(str(tmp_path / "event-rollback-source.sqlite3"))
+    original = make_bar()
+    assert source.apply(original) == "inserted"
+    snapshot = tmp_path / "event-rollback.snapshot.jsonl"
+    source.export_global_snapshot(str(snapshot))
+    replica_path = str(tmp_path / "event-rollback-replica.sqlite3")
+    replica = SQLiteOhlcvReplicaStore(replica_path)
+    replica.install_global_snapshot(str(snapshot))
+
+    next_bar = make_bar(
+        start=60 * NS, event=101, sequence=2, close="102",
+        instrument_id=456, raw_symbol="NQZ6",
+    )
+    assert source.apply(next_bar) == "inserted"
+    event = source.read_outbox_batch(after_cursor=1, limit=10)["events"][0]
+
+    with sqlite3.connect(replica_path) as db:
+        db.execute(
+            """CREATE TRIGGER reject_replica_checkpoint
+            BEFORE UPDATE ON ohlcv_replica_checkpoint
+            BEGIN SELECT RAISE(ABORT, 'forced checkpoint failure'); END"""
+        )
+
+    with pytest.raises(sqlite3.IntegrityError, match="forced checkpoint failure"):
+        replica.apply_replica_event(event, source_id=source.source_id())
+
+    assert replica.checkpoint()["applied_cursor"] == 1
+    assert replica.load_bars() == [original]
+    assert replica.outbox_high_water() == 0
+    with sqlite3.connect(replica_path) as db:
+        assert db.execute(
+            "SELECT COUNT(*) FROM ohlcv_replica_applied_events"
+        ).fetchone()[0] == 0
