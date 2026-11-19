@@ -86,8 +86,10 @@ The snapshot exporter does not publish a WebSocket event, append to outbox, or a
 - `498e644e1cc6037c02ea5c25935babc2e886a224` — include header metadata in SHA-256 and strictly validate watermarks.
 - `6463c968e25c86b6c07099dcc99c4415cd3c4b8d` — reject forged header watermark as well as payload tampering.
 - `089fa6d5557d8ee1981fa9660b605d4a86ed56d0` — project progress and indicator ledger checkpoint.
+- `c8b731959b97dff80dfbec9e5e38dc4c170baa2f` — align progress ledger with full-envelope checksum.
+- `75299be8e16b769b264d2910ec740cd382b7d0af` — align work-cycle report with final integrity contract.
 
-The code was inspected after the newline correction. Exact-head CI remains the authority for runtime validation; no CI success is claimed in this report until run statuses are checked.
+The code was inspected after the newline correction and the follow-up header-integrity audit. The manifest digest covers the canonical header plus every bar row; tests tamper with both watermark metadata and bar payload. Exact-head CI remains the authority for runtime validation; no CI success is claimed in this report until run statuses are checked.
 
 ## Project / Gate 10 status
 
