@@ -1368,12 +1368,15 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                 if (
                     not isinstance(header, dict)
                     or header.get("record") != "header"
+                    or header.get("format") != "dezzta.ohlcv.global-snapshot"
+                    or header.get("format_version") != metadata["format_version"]
                     or header.get("source_id") != source_id
                     or header.get("generation_id") != metadata["generation_id"]
                     or type(header.get("high_water")) is not int
                     or header["high_water"] != metadata["high_water"]
                     or type(header.get("retention_floor")) is not int
                     or header["retention_floor"] != metadata["retention_floor"]
+                    or header.get("bar_retention") != metadata["bar_retention"]
                 ):
                     raise ValueError("Snapshot header changed after preflight verification.")
 
@@ -1441,6 +1444,7 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                 or manifest["row_count"] != inserted
                 or not isinstance(manifest.get("sha256"), str)
                 or manifest["sha256"] != digest.hexdigest()
+                or digest.hexdigest() != metadata["sha256"]
                 or inserted != metadata["row_count"]
             ):
                 raise ValueError("Snapshot manifest changed or does not match installed rows.")
