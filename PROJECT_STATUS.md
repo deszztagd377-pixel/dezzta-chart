@@ -1,3 +1,31 @@
+# CURRENT AUDITED CHECKPOINT — 19 NOVEMBER 2026 (BATCH 52)
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Current audit commit before this status update:** `81079dda40e61e01cccc6993ef30ef6703cf666f`  
+**Latest verified application-source CI checkpoint:** `b30ce94ca278e527731d86e40ddf06c6dbd16b5b` (Batch 50 exact-head CI).  
+**Latest WSS preview:** `dpl_5VXGuNtmkxzWTDQkcGZgBrrL7WrK` — READY, SSO protected, synthetic-only.
+
+## Batch 52 — audit results
+
+- Audited the isolated WebSocket POC source/config and its existing 10-test suite. The suite already covers Fluid Compute config, synthetic health, browser probe headers, ordered ping/pong, fresh sessions, automatic browser ping, oversize rejection, invalid payload rejection, rate limit and idle close. No duplicate test or application change was needed.
+- Audited Gate 38 metrics: 127-series cap including overflow, sanitized labels, finite bounded duration, lock-protected updates, detached snapshot and concurrent test. Scope remains process-local; durable/cross-instance collection, retention, host access control and disk-pressure evidence are still missing.
+- Audited Gate 39 local alert reporter: transition deduplication, validated counters, sanitized worker exception class, recovery signal and no secret/payload logging. Host log collection, named responsible adult operator, verified escalation channel and isolated acknowledgement/recovery drill remain missing.
+- Audited Gate 36 preview boundary: READY + SSO protected + project `live=false`; checked-in `fluid:true` is asserted by the POC test, but effective runtime behavior and authenticated owner-browser WSS/Android WebView/330-second lifetime/cross-instance acceptance are not independently established.
+- A duplicate-path test-file attempt was immediately restored from the parent checkpoint. Final file is byte-for-byte identical to the parent file (blob `f3e1c874bb65122e878efa1ccd56d1ae86b9741a`). No application source was changed. Restoration commit: `98b2ac468dd5f616af091ed400f234e3ca46b513`; matching CI result is not yet confirmed.
+- Detailed report: [docs/WORK_CYCLE_2026-11-19_BATCH52_WEBSOCKET_GATE10_EVIDENCE_AUDIT.md](docs/WORK_CYCLE_2026-11-19_BATCH52_WEBSOCKET_GATE10_EVIDENCE_AUDIT.md).
+
+## Progress — unchanged, no speculative credit
+
+- **Stage 1:** 30/40 criteria; 300/400 ticks; **75% provisional**.
+- **Gate 10:** **0/10 formally closed**. Open external criteria: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- **Stages 2–6:** NOT SCORED.
+- **Overall project percentage:** NOT ESTABLISHED. 20.9% remains a historical owner-confirmed checkpoint pending approved, criterion-level M1–M8 scoring.
+- **Indicators:** SMA 20, EMA 20, RSI 14 (Wilder), MACD and Bollinger calculations/tests exist; shared hook exists but visible chart controls/panes remain unintegrated. Footprint is simulated/offline only and visual implementation awaits owner reference. Heatmap and Liquidation Maps are unimplemented/unverified and await their references.
+- **ZERO COST:** no deployment, paid plan, billing activation, provider, production credential, Termux package/repository/keyring change.
+- **Protected `main`:** untouched.
+
+---
+
 # CURRENT AUDITED CHECKPOINT — 19 NOVEMBER 2026 (BATCH 51)
 
 **Active branch:** `phase-2/market-data-foundation`  
