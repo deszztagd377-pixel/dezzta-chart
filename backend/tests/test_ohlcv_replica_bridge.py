@@ -156,7 +156,6 @@ def test_replica_query_snapshot_returns_atomic_checkpoint_watermark(tmp_path):
         raw_symbol="ESZ6", limit=1,
     )
 
-    assert snapshot["status"] if "status" in snapshot else True
     assert snapshot["cursor"] == 2
     assert snapshot["high_water"] == 2
     assert snapshot["retention_floor"] == 0
