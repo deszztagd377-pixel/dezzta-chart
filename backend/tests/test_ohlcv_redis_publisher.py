@@ -136,9 +136,12 @@ def test_checkpoint_compare_and_swap_prevents_double_advance(tmp_path):
         "publisher-A", epoch=lease["lease_epoch"], expected_cursor=0,
         event=events[0], stream_id="1-0", now_ms=40_010,
     )
+    # Replay the already-confirmed cursor with the stale expected watermark.
+    # The event itself remains authoritative and valid; only the checkpoint CAS
+    # must reject the second advancement.
     with pytest.raises(RuntimeError, match="compare-and-swap"):
         checkpoint.record_confirmed_append(
             "publisher-A", epoch=lease["lease_epoch"], expected_cursor=0,
-            event=events[1], stream_id="2-0", now_ms=40_020,
+            event=events[0], stream_id="1-0", now_ms=40_020,
         )
     assert checkpoint.state()["published_cursor"] == 1
