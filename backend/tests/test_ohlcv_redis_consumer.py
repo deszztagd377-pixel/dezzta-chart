@@ -219,13 +219,23 @@ def test_real_redis_group_reset_starts_after_installed_snapshot_watermark(tmp_pa
             {stream_key: ">"},
             count=1,
         )
+        old_group_name = consumer.group_name
         snapshot_one = tmp_path / "snapshot-one.jsonl"
         make_snapshot(source, snapshot_one)
         replica.install_global_snapshot(
             str(snapshot_one),
             expected_source_id=source.source_id(),
         )
+        class NoGroupDestroyRedis:
+            def __getattr__(self, name):
+                if name == "xgroup_destroy":
+                    raise AssertionError("runtime consumer must not destroy Redis groups")
+                return getattr(redis, name)
+
+        consumer.redis = NoGroupDestroyRedis()
         consumer.reset_group_after_snapshot()
+        assert consumer.group_name != old_group_name
+        assert redis.xpending(stream_key, old_group_name)["pending"] == 1
         assert redis.xpending(stream_key, consumer.group_name)["pending"] == 0
 
         append_and_publish(source, redis, stream_key, 2)

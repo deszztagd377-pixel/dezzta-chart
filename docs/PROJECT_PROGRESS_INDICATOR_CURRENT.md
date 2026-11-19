@@ -2837,3 +2837,12 @@ See `docs/INDICATOR_PROGRESS_LEDGER.md` for formula definitions, first-valid ind
 - Gate 25 ACL command matrix drafted from actual code. No Redis ACL or production secret was changed; stream key/config contract and safe group-reset strategy remain blockers.
 - No main.py startup wiring, Vercel/Cloudflare deployment, paid service or Termux.
 - Stage 1 remains 75% provisional (30/40 criteria; 300/400 ticks). Gate 10 remains 0/10 closed. Stages 2–6 remain unscored; overall weighted project percentage remains unestablished.
+
+
+## Batch 62J-8 — Gate 25 ACL hardening
+
+- Consumer groups are now snapshot-generation-scoped. Snapshot replacement switches to a new group at the new replica checkpoint rather than destroying the old group.
+- Runtime consumer no longer invokes XGROUP DESTROY. Its required command set is XGROUP CREATE, XAUTOCLAIM, XREADGROUP, XACK and XRANGE; publisher requires XADD and XRANGE.
+- Previous-generation groups and pending entries are retained for separate owner-authorized cleanup. The real Redis test checks old pending state remains isolated and new group starts cleanly.
+- CI for prior snapshot/replay head aac7a9d is being superseded by this ACL refinement batch; this batch requires its own exact-head verification.
+- Gate 25 remains OPEN: no production ACL user, stream-key config contract, TLS endpoint or owner environment has been changed/verified.

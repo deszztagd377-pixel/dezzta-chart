@@ -63,9 +63,12 @@ class RedisOhlcvReplicaConsumer:
         if checkpoint is None:
             raise RuntimeError("Install a verified global snapshot before creating a replica consumer.")
         self.source_id = str(checkpoint["source_id"])
-        replica_id = replica_store.replica_id()
-        source_suffix = hashlib.sha256(self.source_id.encode("utf-8")).hexdigest()[:12]
-        self.group_name = f"dezzta:ohlcv:gateway:{replica_id}:{source_suffix}"
+        self._replica_id = replica_store.replica_id()
+        self._source_suffix = hashlib.sha256(self.source_id.encode("utf-8")).hexdigest()[:12]
+        self._snapshot_generation = str(checkpoint["snapshot_generation"])
+        if not self._snapshot_generation:
+            raise RuntimeError("Replica snapshot generation is missing.")
+        self.group_name = self._group_name_for_generation(self._snapshot_generation)
         self.redis = redis_client
         self.replica_store = replica_store
         self.stream_key = stream_key
@@ -78,11 +81,32 @@ class RedisOhlcvReplicaConsumer:
         self.on_event_applied = on_event_applied
         self._pending_scan_id = "0-0"
 
+    def _group_name_for_generation(self, generation: str) -> str:
+        if not isinstance(generation, str) or not generation:
+            raise RuntimeError("Replica snapshot generation is missing.")
+        generation_suffix = hashlib.sha256(generation.encode("utf-8")).hexdigest()[:12]
+        return (
+            f"dezzta:ohlcv:gateway:{self._replica_id}:"
+            f"{self._source_suffix}:{generation_suffix}"
+        )
+
+    def _refresh_group_generation(self, checkpoint: dict[str, Any]) -> None:
+        if str(checkpoint.get("source_id")) != self.source_id:
+            raise RuntimeError("Replica source checkpoint is missing or changed.")
+        generation = checkpoint.get("snapshot_generation")
+        if not isinstance(generation, str) or not generation:
+            raise RuntimeError("Replica snapshot generation is missing.")
+        if generation != self._snapshot_generation:
+            self._snapshot_generation = generation
+            self.group_name = self._group_name_for_generation(generation)
+            self._pending_scan_id = "0-0"
+
     def ensure_group(self) -> bool:
         """Create a fresh group at the installed snapshot cursor; preserve existing groups."""
         checkpoint = self.replica_store.checkpoint()
-        if checkpoint is None or str(checkpoint["source_id"]) != self.source_id:
+        if checkpoint is None:
             raise RuntimeError("Replica source checkpoint is missing or changed.")
+        self._refresh_group_generation(checkpoint)
         start_id = f"{int(checkpoint['applied_cursor'])}-0"
         try:
             self.redis.xgroup_create(
@@ -98,23 +122,19 @@ class RedisOhlcvReplicaConsumer:
             raise
 
     def reset_group_after_snapshot(self) -> None:
-        """Destroy/recreate this gateway group after every local snapshot is installed.
+        """Switch to a generation-scoped group after installing a new snapshot.
 
-        The caller must quiesce this consumer before invoking the reset. This
-        deliberately discards old pending deliveries because the newly
-        installed snapshot already contains every event through its watermark.
+        The caller must quiesce this consumer before invoking the reset. A new
+        group starts at the installed snapshot cursor, so obsolete pending
+        deliveries remain isolated in the previous generation's group. No
+        destructive XGROUP DESTROY permission is required by the runtime user.
+        Old groups are intentionally retained for separately authorized cleanup.
         """
         checkpoint = self.replica_store.checkpoint()
-        if checkpoint is None or str(checkpoint["source_id"]) != self.source_id:
+        if checkpoint is None:
             raise RuntimeError("Installed snapshot does not match this consumer's source.")
-        self.redis.xgroup_destroy(self.stream_key, self.group_name)
-        self.redis.xgroup_create(
-            self.stream_key,
-            self.group_name,
-            id=f"{int(checkpoint['applied_cursor'])}-0",
-            mkstream=True,
-        )
-        self._pending_scan_id = "0-0"
+        self._refresh_group_generation(checkpoint)
+        self.ensure_group()
 
     def _decode_entry(self, stream_id: Any, raw_fields: Any) -> dict[str, Any]:
         entry_id = _redis_text(stream_id)

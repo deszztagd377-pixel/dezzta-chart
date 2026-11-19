@@ -58,14 +58,15 @@ Derived from current relay code; this is a policy draft only, not a live ACL mut
 | Principal | Required Redis commands | Purpose |
 |---|---|---|
 | Publisher | XADD, XRANGE | Append deterministic cursor ID and exact-ID read-back |
-| Gateway consumer/replay | XGROUP CREATE, XAUTOCLAIM, XREADGROUP, XACK, XRANGE | Per-gateway delivery, pending recovery, ACK and reconnect replay |
-| Snapshot maintenance | XGROUP DESTROY, XGROUP CREATE | Current consumer's explicit group reset after snapshot installation |
+| Gateway consumer/replay | XGROUP CREATE, XAUTOCLAIM, XREADGROUP, XACK, XRANGE | Generation-scoped per-gateway delivery, pending recovery, ACK and reconnect replay |
+| Snapshot maintenance | No runtime group-reset command required | Old generation groups are retired from use and cleaned separately under owner-controlled maintenance |
 
 Important restrictions:
 - Publisher and gateway credentials should be separate; scope each identity to the exact configured OHLCV stream key, not all keys.
 - The stream key is injected into publisher/consumer constructors and is not yet a production configuration contract. Do not invent a key pattern or issue ACL commands until that contract is established.
 - Do not grant all-command access, CONFIG, ACL, FLUSHALL, XDEL or XTRIM to runtime identities.
-- XGROUP DESTROY is destructive and should not be in the steady-state gateway role. Before production startup wiring, replace it with generation-scoped consumer groups or isolate reset under a short-lived maintenance identity.
+- Consumer groups now include a hash of the installed snapshot generation. After a snapshot replacement, the consumer switches to a new group at the new applied cursor; it does not destroy the previous group or its pending list. Runtime ACL therefore needs XGROUP CREATE but not XGROUP DESTROY.
+- Previous generation groups remain in Redis until a separately authorized cleanup procedure verifies that no worker uses them. Do not grant runtime credentials XGROUP DESTROY merely to avoid this bounded maintenance task.
 - Production transport must use TLS (rediss://) and owner-controlled credentials. Existing REDIS_URL belongs to shared HTTP/WebSocket guards and must not be broadened to serve the OHLCV relay.
 - No ACL users, passwords, key names or remote Redis configuration were created or changed in this batch.
 
@@ -74,3 +75,10 @@ Gate 25 remains OPEN until owner-controlled Redis ACL/TLS, independent instances
 ## Cost and project accounting
 
 No paid services, Vercel/Cloudflare deployment, production secret changes or Termux work. No change to main. Indicator calculations and visual acceptance are unchanged; WebSocket infrastructure does not earn indicator progress or Gate closure.
+
+
+## Batch 62J-8 — snapshot-generation consumer groups
+
+The consumer group name now includes a stable hash of the replica snapshot generation. Reinstalling a snapshot moves the gateway to a new group starting at that snapshot's applied cursor. The old group's pending entries remain isolated and are not acknowledged or destroyed by the runtime consumer. The real-Redis test proves the new group has zero pending entries, the old group's pending entry remains intact, and the consumer continues from the next global cursor without invoking XGROUP DESTROY.
+
+This reduces the steady-state gateway ACL surface by one destructive command. Stale group cleanup remains a separately authorized maintenance operation and must be bounded/observed before production rollout.
