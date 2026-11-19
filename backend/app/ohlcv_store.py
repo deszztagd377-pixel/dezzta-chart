@@ -998,10 +998,10 @@ class SQLiteOhlcvStore:
                 ORDER BY provider,dataset,publisher_id,instrument_id,series_type,
                     timeframe,ts_start_ns,bucket_policy,calendar_id,calendar_version"""
             )
-            with temporary.open("w", encoding="utf-8", newline="\\n") as output:
+            with temporary.open("w", encoding="utf-8", newline="\n") as output:
                 output.write(json.dumps(
                     header, sort_keys=True, separators=(",", ":")
-                ) + "\\n")
+                ) + "\n")
                 while True:
                     rows = query.fetchmany(batch_size)
                     if not rows:
@@ -1012,8 +1012,8 @@ class SQLiteOhlcvStore:
                             sort_keys=True,
                             separators=(",", ":"),
                         ).encode("utf-8")
-                        output.write(encoded.decode("utf-8") + "\\n")
-                        digest.update(encoded + b"\\n")
+                        output.write(encoded.decode("utf-8") + "\n")
+                        digest.update(encoded + b"\n")
                         row_count += 1
                 manifest = {
                     "record": "manifest",
@@ -1022,7 +1022,7 @@ class SQLiteOhlcvStore:
                 }
                 output.write(json.dumps(
                     manifest, sort_keys=True, separators=(",", ":")
-                ) + "\\n")
+                ) + "\n")
                 output.flush()
                 os.fsync(output.fileno())
 
@@ -1093,7 +1093,7 @@ class SQLiteOhlcvStore:
                     encoded = json.dumps(
                         record, sort_keys=True, separators=(",", ":")
                     ).encode("utf-8")
-                    digest.update(encoded + b"\\n")
+                    digest.update(encoded + b"\n")
                     row_count += 1
                 elif record.get("record") == "manifest" and manifest is None:
                     manifest = record
