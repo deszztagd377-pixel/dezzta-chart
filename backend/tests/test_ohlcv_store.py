@@ -401,6 +401,76 @@ def test_query_snapshot_returns_bars_and_outbox_watermark_from_same_committed_st
     ]
 
 
+
+
+def test_query_snapshot_keeps_bars_and_watermark_consistent_during_concurrent_write(
+    tmp_path, monkeypatch,
+):
+    import sqlite3
+    import threading
+
+    path = str(tmp_path / "snapshot-concurrent.sqlite3")
+    store = SQLiteOhlcvStore(path)
+    first = make_bar(start=0, event=100, sequence=1)
+    second = make_bar(start=60 * NS, event=101, sequence=2, close="102")
+    assert store.apply(first) == "inserted"
+
+    state_read = threading.Event()
+    continue_snapshot = threading.Event()
+    original_connect = sqlite3.connect
+    outcome = {}
+
+    class PausingConnection(sqlite3.Connection):
+        def execute(self, sql, parameters=()):
+            result = super().execute(sql, parameters)
+            if (
+                threading.current_thread().name == "snapshot-reader"
+                and sql.startswith("SELECT state_key,int_value FROM ohlcv_outbox_state")
+            ):
+                state_read.set()
+                if not continue_snapshot.wait(timeout=5):
+                    raise TimeoutError("snapshot test read barrier timed out")
+            return result
+
+    def connect_with_pausing_factory(*args, **kwargs):
+        kwargs["factory"] = PausingConnection
+        return original_connect(*args, **kwargs)
+
+    monkeypatch.setattr(sqlite3, "connect", connect_with_pausing_factory)
+
+    def read_snapshot():
+        try:
+            outcome["snapshot"] = store.query_snapshot(
+                dataset="GLBX.MDP3", publisher_id=1, instrument_id=123,
+                provider="databento", raw_symbol="ESZ6", timeframe="1m",
+                series_type="contract", bucket_policy="UTC_LEGACY",
+            )
+        except Exception as exc:
+            outcome["error"] = exc
+
+    reader = threading.Thread(target=read_snapshot, name="snapshot-reader")
+    reader.start()
+    try:
+        assert state_read.wait(timeout=5), "snapshot reader did not establish its read view"
+        assert store.apply(second) == "inserted"
+    finally:
+        continue_snapshot.set()
+        reader.join(timeout=5)
+
+    assert not reader.is_alive()
+    assert "error" not in outcome
+    snapshot = outcome["snapshot"]
+    assert snapshot["cursor"] == snapshot["high_water"] == 1
+    assert snapshot["total"] == 1
+    assert [bar.close for bar in snapshot["bars"]] == [Decimal("101")]
+    latest = store.query_snapshot(
+        dataset="GLBX.MDP3", publisher_id=1, instrument_id=123,
+        provider="databento", raw_symbol="ESZ6", timeframe="1m",
+        series_type="contract", bucket_policy="UTC_LEGACY",
+    )
+    assert latest["cursor"] == latest["high_water"] == 2
+    assert latest["total"] == 2
+
 def test_query_snapshot_validates_limit_before_reading(tmp_path):
     store = SQLiteOhlcvStore(str(tmp_path / "snapshot-limit.sqlite3"))
     with pytest.raises(ValueError, match="limit"):

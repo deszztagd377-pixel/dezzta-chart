@@ -44,6 +44,12 @@ The method intentionally does **not** switch the live WebSocket route from its c
 The Redis process test was also tightened: a process that fails to consume the single-use ticket no longer attempts an authenticated account lease. Exactly one process must consume the ticket and that same process must be the sole lease winner.
 
 
+
+### Snapshot transaction concurrency proof
+
+Batch 62D adds a deterministic concurrency regression: a snapshot reader establishes its SQLite read view after reading outbox state, a separate writer commits a new bar/outbox event while the reader is paused, and the reader must return the earlier bars **and** earlier cursor. A subsequent snapshot must return both revisions and the newer cursor. This specifically verifies that the watermark and bar rows do not come from different database moments.
+
+
 ## Delivery contract
 
 1. Relay reads globally ordered outbox pages after a durable cursor.
