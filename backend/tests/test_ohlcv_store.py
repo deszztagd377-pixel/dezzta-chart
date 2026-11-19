@@ -950,3 +950,38 @@ def test_replica_snapshot_semantic_failure_rolls_back_bars_and_checkpoint(tmp_pa
     assert replica.checkpoint() == before_checkpoint
     assert replica.load_bars() == before_bars
     assert replica.outbox_high_water() == 0
+
+
+def test_replica_snapshot_rejects_numeric_decimal_fields_even_with_valid_digest(tmp_path):
+    import hashlib
+    import json
+
+    source = SQLiteOhlcvStore(str(tmp_path / "replica-types-source.sqlite3"))
+    assert source.apply(make_bar()) == "inserted"
+    snapshot = tmp_path / "typed.snapshot.jsonl"
+    source.export_global_snapshot(str(snapshot))
+    lines = snapshot.read_text().splitlines()
+    header = json.loads(lines[0])
+    record = json.loads(lines[1])
+    record["data"]["close"] = 101.25
+
+    digest = hashlib.sha256()
+    header_line = json.dumps(header, sort_keys=True, separators=(",", ":")).encode()
+    digest.update(header_line + b"\\n")
+    record_line = json.dumps(record, sort_keys=True, separators=(",", ":")).encode()
+    digest.update(record_line + b"\\n")
+    manifest = {
+        "record": "manifest", "row_count": 1, "sha256": digest.hexdigest(),
+    }
+    invalid = tmp_path / "numeric-decimal.snapshot.jsonl"
+    invalid.write_text(
+        header_line.decode() + "\\n" + record_line.decode() + "\\n"
+        + json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\\n"
+    )
+
+    assert SQLiteOhlcvStore.verify_global_snapshot(str(invalid))["row_count"] == 1
+    replica = SQLiteOhlcvReplicaStore(str(tmp_path / "replica-types-target.sqlite3"))
+    with pytest.raises(ValueError, match="exact-decimal fields must be strings"):
+        replica.install_global_snapshot(str(invalid))
+    assert replica.checkpoint() is None
+    assert replica.load_bars() == []
