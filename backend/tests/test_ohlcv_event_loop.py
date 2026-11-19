@@ -68,3 +68,29 @@ def test_dispatcher_rejects_closed_loop():
     loop.close()
     with pytest.raises(RuntimeError, match="closed event loop"):
         EventLoopCallbackDispatcher(loop, lambda _event: None)
+
+
+def test_dispatch_preserves_timeout_raised_by_callback():
+    async def scenario():
+        loop = asyncio.get_running_loop()
+
+        def callback(_event):
+            raise TimeoutError("callback's own timeout")
+
+        dispatcher = EventLoopCallbackDispatcher(loop, callback)
+        with pytest.raises(TimeoutError, match="callback's own timeout"):
+            await asyncio.to_thread(dispatcher.dispatch, {"cursor": 41})
+
+    asyncio.run(scenario())
+
+
+@pytest.mark.parametrize("timeout", [float("nan"), float("inf"), float("-inf"), 0, -1])
+def test_dispatcher_rejects_non_finite_or_non_positive_timeout(timeout):
+    loop = asyncio.new_event_loop()
+    try:
+        with pytest.raises(ValueError, match="positive number"):
+            EventLoopCallbackDispatcher(
+                loop, lambda _event: None, timeout_seconds=timeout,
+            )
+    finally:
+        loop.close()
