@@ -7,7 +7,9 @@ all event/receive timestamps remain integer nanoseconds.
 from __future__ import annotations
 
 from decimal import Decimal
+import hashlib
 import json
+import os
 from pathlib import Path
 import sqlite3
 import uuid
@@ -186,6 +188,18 @@ class SQLiteOhlcvStore:
                     state_key TEXT PRIMARY KEY NOT NULL,
                     int_value INTEGER NOT NULL
                 )"""
+            )
+            db.execute(
+                """CREATE TABLE IF NOT EXISTS ohlcv_store_identity (
+                    identity_key TEXT PRIMARY KEY NOT NULL,
+                    identity_value TEXT NOT NULL
+                )"""
+            )
+            db.execute(
+                """INSERT INTO ohlcv_store_identity(identity_key,identity_value)
+                VALUES ('source_id',?)
+                ON CONFLICT(identity_key) DO NOTHING""",
+                (uuid.uuid4().hex,),
             )
             db.execute(
                 """CREATE TABLE IF NOT EXISTS ohlcv_outbox (
@@ -908,6 +922,203 @@ class SQLiteOhlcvStore:
             }
         finally:
             db.close()
+
+    def source_id(self) -> str:
+        """Return the stable identity of this authoritative SQLite store."""
+        db = self._connect()
+        try:
+            row = db.execute(
+                "SELECT identity_value FROM ohlcv_store_identity WHERE identity_key='source_id'"
+            ).fetchone()
+            if row is None:
+                raise RuntimeError("OHLCV source identity is missing.")
+            return str(row["identity_value"])
+        finally:
+            db.close()
+
+    def export_global_snapshot(
+        self, destination_path: str, *, batch_size: int = 500,
+    ) -> dict[str, object]:
+        """Export every retained series from one read view to an atomic JSONL file.
+
+        The source read transaction pins one SQLite snapshot while rows are
+        streamed with fetchmany() into a temporary file on the destination
+        filesystem. Writers may continue under WAL; WAL growth during a long
+        export must be monitored operationally. The final file appears only
+        after its footer manifest is flushed and the source read transaction
+        completes successfully.
+        """
+        if not isinstance(destination_path, str) or not destination_path.strip():
+            raise ValueError("destination_path is required.")
+        if (
+            not isinstance(batch_size, int) or isinstance(batch_size, bool)
+            or not 1 <= batch_size <= 5_000
+        ):
+            raise ValueError("batch_size must be between 1 and 5000.")
+
+        destination = Path(destination_path).expanduser()
+        source_path = Path(self.database_path).resolve()
+        if destination.resolve() == source_path:
+            raise ValueError("Snapshot destination cannot overwrite the source database.")
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        temporary = destination.with_name(
+            f".{destination.name}.{uuid.uuid4().hex}.tmp"
+        )
+        generation_id = uuid.uuid4().hex
+        source = self._connect()
+        try:
+            source.execute("BEGIN")
+            state = {
+                row["state_key"]: int(row["int_value"])
+                for row in source.execute(
+                    "SELECT state_key,int_value FROM ohlcv_outbox_state"
+                ).fetchall()
+            }
+            identity = source.execute(
+                "SELECT identity_value FROM ohlcv_store_identity "
+                "WHERE identity_key='source_id'"
+            ).fetchone()
+            if identity is None:
+                raise RuntimeError("OHLCV source identity is missing.")
+            high_water = state.get("high_water", 0)
+            retention_floor = state.get("retention_floor", 0)
+            header = {
+                "record": "header",
+                "format": "dezzta.ohlcv.global-snapshot",
+                "format_version": 1,
+                "generation_id": generation_id,
+                "source_id": str(identity["identity_value"]),
+                "high_water": high_water,
+                "retention_floor": retention_floor,
+            }
+            digest = hashlib.sha256()
+            row_count = 0
+            query = source.execute(
+                """SELECT * FROM ohlcv_bars
+                ORDER BY provider,dataset,publisher_id,instrument_id,series_type,
+                    timeframe,ts_start_ns,bucket_policy,calendar_id,calendar_version"""
+            )
+            with temporary.open("w", encoding="utf-8", newline="\\n") as output:
+                output.write(json.dumps(
+                    header, sort_keys=True, separators=(",", ":")
+                ) + "\\n")
+                while True:
+                    rows = query.fetchmany(batch_size)
+                    if not rows:
+                        break
+                    for row in rows:
+                        encoded = json.dumps(
+                            {"record": "bar", "data": dict(row)},
+                            sort_keys=True,
+                            separators=(",", ":"),
+                        ).encode("utf-8")
+                        output.write(encoded.decode("utf-8") + "\\n")
+                        digest.update(encoded + b"\\n")
+                        row_count += 1
+                manifest = {
+                    "record": "manifest",
+                    "row_count": row_count,
+                    "sha256": digest.hexdigest(),
+                }
+                output.write(json.dumps(
+                    manifest, sort_keys=True, separators=(",", ":")
+                ) + "\\n")
+                output.flush()
+                os.fsync(output.fileno())
+
+            source.execute("COMMIT")
+            os.replace(temporary, destination)
+            return {
+                "path": str(destination),
+                "generation_id": generation_id,
+                "source_id": str(identity["identity_value"]),
+                "cursor": high_water,
+                "high_water": high_water,
+                "retention_floor": retention_floor,
+                "row_count": row_count,
+                "sha256": digest.hexdigest(),
+                "format_version": 1,
+            }
+        except Exception:
+            if source.in_transaction:
+                source.execute("ROLLBACK")
+            try:
+                temporary.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise
+        finally:
+            source.close()
+
+    @staticmethod
+    def verify_global_snapshot(snapshot_path: str) -> dict[str, object]:
+        """Stream-verify a global snapshot's envelope, row count and SHA-256."""
+        if not isinstance(snapshot_path, str) or not snapshot_path.strip():
+            raise ValueError("snapshot_path is required.")
+        digest = hashlib.sha256()
+        row_count = 0
+        header: dict[str, object] | None = None
+        manifest: dict[str, object] | None = None
+        with Path(snapshot_path).expanduser().open("rb") as snapshot:
+            first = snapshot.readline()
+            if not first:
+                raise ValueError("Snapshot is empty.")
+            try:
+                header = json.loads(first)
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                raise ValueError("Snapshot header is invalid.") from exc
+            if (
+                not isinstance(header, dict)
+                or header.get("record") != "header"
+                or header.get("format") != "dezzta.ohlcv.global-snapshot"
+                or header.get("format_version") != 1
+                or not isinstance(header.get("source_id"), str)
+                or not isinstance(header.get("generation_id"), str)
+                or not isinstance(header.get("high_water"), int)
+                or not isinstance(header.get("retention_floor"), int)
+            ):
+                raise ValueError("Snapshot header contract is invalid.")
+
+            for line in snapshot:
+                try:
+                    record = json.loads(line)
+                except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                    raise ValueError("Snapshot record is invalid.") from exc
+                if not isinstance(record, dict):
+                    raise ValueError("Snapshot record must be an object.")
+                if record.get("record") == "bar" and manifest is None:
+                    data = record.get("data")
+                    if not isinstance(data, dict):
+                        raise ValueError("Snapshot bar record is invalid.")
+                    encoded = json.dumps(
+                        record, sort_keys=True, separators=(",", ":")
+                    ).encode("utf-8")
+                    digest.update(encoded + b"\\n")
+                    row_count += 1
+                elif record.get("record") == "manifest" and manifest is None:
+                    manifest = record
+                    if snapshot.readline():
+                        raise ValueError("Snapshot contains data after its manifest.")
+                    break
+                else:
+                    raise ValueError("Snapshot record order is invalid.")
+
+        if (
+            manifest is None
+            or manifest.get("row_count") != row_count
+            or manifest.get("sha256") != digest.hexdigest()
+        ):
+            raise ValueError("Snapshot manifest does not match its contents.")
+        return {
+            "source_id": header["source_id"],
+            "generation_id": header["generation_id"],
+            "cursor": header["high_water"],
+            "high_water": header["high_water"],
+            "retention_floor": header["retention_floor"],
+            "row_count": row_count,
+            "sha256": digest.hexdigest(),
+            "format_version": 1,
+        }
 
     def stats(self) -> dict[str, int]:
         db = self._connect()
