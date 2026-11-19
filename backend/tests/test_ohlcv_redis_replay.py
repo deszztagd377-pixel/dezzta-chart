@@ -7,6 +7,7 @@ import pytest
 from app.ohlcv_redis_replay import (
     RedisReplayResnapshotRequired,
     read_redis_replay_page,
+    replay_replica_history,
 )
 
 
@@ -149,3 +150,92 @@ def test_replay_empty_interval_does_not_touch_redis():
     assert result["events"] == []
     assert result["next_cursor"] == 5
     assert result["has_more"] is False
+
+
+def test_replica_replay_uses_fixed_checkpoint_watermark_and_global_scan():
+    other = dict(IDENTITY, instrumentId=999, rawSymbol="NQZ6")
+    redis = FakeRedis([
+        make_entry(1),
+        make_entry(2, identity=other),
+        make_entry(3),
+        make_entry(4, identity=other),
+    ])
+    result = replay_replica_history(
+        redis, stream_key="ohlcv",
+        checkpoint={"source_id": SOURCE, "applied_cursor": 4, "retention_floor": 0},
+        after_cursor=0, series_identity=IDENTITY, scan_limit=2,
+    )
+    assert result["status"] == "ok"
+    assert [event["cursor"] for event in result["events"]] == [1, 3]
+    assert result["next_cursor"] == result["through_cursor"] == 4
+    assert result["scanned"] == 4
+
+
+@pytest.mark.parametrize(
+    ("after_cursor", "checkpoint", "reason"),
+    [
+        (2, {"source_id": SOURCE, "applied_cursor": 5, "retention_floor": 3}, "cursor_expired"),
+        (6, {"source_id": SOURCE, "applied_cursor": 5, "retention_floor": 0}, "cursor_ahead"),
+    ],
+)
+def test_replica_replay_requires_snapshot_for_invalid_client_cursor(
+    after_cursor, checkpoint, reason,
+):
+    class NoCallRedis:
+        def xrange(self, *args, **kwargs):
+            raise AssertionError("Redis must not be queried for an invalid cursor")
+
+    result = replay_replica_history(
+        NoCallRedis(), stream_key="ohlcv", checkpoint=checkpoint,
+        after_cursor=after_cursor, series_identity=IDENTITY,
+    )
+    assert result["status"] == "resnapshot_required"
+    assert result["reason"] == reason
+    assert result["events"] == []
+
+
+def test_replica_replay_returns_no_partial_events_when_event_cap_is_exceeded():
+    redis = FakeRedis([make_entry(1), make_entry(2), make_entry(3)])
+    result = replay_replica_history(
+        redis, stream_key="ohlcv",
+        checkpoint={"source_id": SOURCE, "applied_cursor": 3, "retention_floor": 0},
+        after_cursor=0, series_identity=IDENTITY,
+        max_events=2, scan_limit=3,
+    )
+    assert result["status"] == "resnapshot_required"
+    assert result["reason"] == "replay_event_limit_exceeded"
+    assert result["events"] == []
+
+
+def test_replica_replay_bounds_global_scan_even_when_series_is_sparse():
+    other = dict(IDENTITY, instrumentId=999, rawSymbol="NQZ6")
+    redis = FakeRedis([
+        make_entry(1, identity=other),
+        make_entry(2, identity=other),
+        make_entry(3, identity=other),
+        make_entry(4, identity=other),
+    ])
+    result = replay_replica_history(
+        redis, stream_key="ohlcv",
+        checkpoint={"source_id": SOURCE, "applied_cursor": 4, "retention_floor": 0},
+        after_cursor=0, series_identity=IDENTITY,
+        max_scanned=3, scan_limit=2,
+    )
+    assert result["status"] == "resnapshot_required"
+    assert result["reason"] == "replay_scan_limit_exceeded"
+    assert result["events"] == []
+
+
+def test_replica_replay_empty_cursor_interval_does_not_query_redis():
+    class NoCallRedis:
+        def xrange(self, *args, **kwargs):
+            raise AssertionError("Redis must not be queried at the replica watermark")
+
+    result = replay_replica_history(
+        NoCallRedis(), stream_key="ohlcv",
+        checkpoint={"source_id": SOURCE, "applied_cursor": 5, "retention_floor": 0},
+        after_cursor=5, series_identity=IDENTITY,
+    )
+    assert result["status"] == "ok"
+    assert result["events"] == []
+    assert result["next_cursor"] == 5

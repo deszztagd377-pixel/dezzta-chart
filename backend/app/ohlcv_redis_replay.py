@@ -148,3 +148,110 @@ def read_redis_replay_page(
         "has_more": has_more,
         "scanned": len(entries),
     }
+
+
+def replay_replica_history(
+    redis_client: Any,
+    *,
+    stream_key: str,
+    checkpoint: dict[str, Any],
+    after_cursor: int,
+    series_identity: dict[str, Any],
+    max_events: int = 10_000,
+    max_scanned: int = 50_000,
+    scan_limit: int = 500,
+) -> dict[str, Any]:
+    """Replay one exact series from a client cursor through a replica watermark.
+
+    The replica checkpoint fixes the upper watermark. Cursor expiry, a client
+    cursor ahead of the replica, Redis trimming/corruption, a non-advancing
+    page, or either work cap causes an all-or-resnapshot result; partial replay
+    events are never returned as a successful replay.
+    """
+    if not isinstance(checkpoint, dict):
+        raise ValueError("checkpoint must be an object.")
+    source_id = checkpoint.get("source_id")
+    through_cursor = checkpoint.get("applied_cursor")
+    retention_floor = checkpoint.get("retention_floor")
+    if not isinstance(source_id, str) or not source_id:
+        raise ValueError("checkpoint source_id is required.")
+    if type(through_cursor) is not int or through_cursor < 0:
+        raise ValueError("checkpoint applied_cursor must be a non-negative integer.")
+    if type(retention_floor) is not int or not 0 <= retention_floor <= through_cursor:
+        raise ValueError("checkpoint retention_floor must be within the applied cursor.")
+    if type(after_cursor) is not int or after_cursor < 0:
+        raise ValueError("after_cursor must be a non-negative integer.")
+    if type(max_events) is not int or not 1 <= max_events <= 10_000:
+        raise ValueError("max_events must be between 1 and 10000.")
+    if type(max_scanned) is not int or not 1 <= max_scanned <= 100_000:
+        raise ValueError("max_scanned must be between 1 and 100000.")
+    if type(scan_limit) is not int or not 1 <= scan_limit <= 5_000:
+        raise ValueError("scan_limit must be between 1 and 5000.")
+
+    def resnapshot(reason: str, *, scanned: int = 0) -> dict[str, Any]:
+        return {
+            "status": "resnapshot_required",
+            "reason": reason,
+            "events": [],
+            "next_cursor": through_cursor,
+            "through_cursor": through_cursor,
+            "scanned": scanned,
+            "source_id": source_id,
+        }
+
+    if after_cursor < retention_floor:
+        return resnapshot("cursor_expired")
+    if after_cursor > through_cursor:
+        return resnapshot("cursor_ahead")
+    if after_cursor == through_cursor:
+        return {
+            "status": "ok", "reason": None, "events": [],
+            "next_cursor": through_cursor, "through_cursor": through_cursor,
+            "scanned": 0, "source_id": source_id,
+        }
+
+    cursor = after_cursor
+    scanned = 0
+    events: list[dict[str, Any]] = []
+    while cursor < through_cursor:
+        try:
+            page = read_redis_replay_page(
+                redis_client,
+                stream_key=stream_key,
+                source_id=source_id,
+                after_cursor=cursor,
+                through_cursor=through_cursor,
+                series_identity=series_identity,
+                scan_limit=scan_limit,
+            )
+        except RedisReplayResnapshotRequired:
+            return resnapshot("redis_history_gap_or_trimmed", scanned=scanned)
+        except ValueError:
+            return resnapshot("invalid_redis_replay_entry", scanned=scanned)
+
+        page_events = page["events"]
+        page_scanned = page["scanned"]
+        if scanned + page_scanned > max_scanned:
+            return resnapshot("replay_scan_limit_exceeded", scanned=scanned)
+        if len(events) + len(page_events) > max_events:
+            return resnapshot("replay_event_limit_exceeded", scanned=scanned)
+        next_cursor = page["next_cursor"]
+        if type(next_cursor) is not int or next_cursor <= cursor:
+            return resnapshot("replay_cursor_did_not_advance", scanned=scanned)
+        scanned += page_scanned
+        events.extend(page_events)
+        cursor = next_cursor
+        if not page["has_more"] and cursor < through_cursor:
+            return resnapshot("replay_ended_before_replica_watermark", scanned=scanned)
+
+    if cursor != through_cursor:
+        return resnapshot("replay_watermark_mismatch", scanned=scanned)
+    return {
+        "status": "ok",
+        "reason": None,
+        "events": events,
+        "next_cursor": cursor,
+        "through_cursor": through_cursor,
+        "scanned": scanned,
+        "source_id": source_id,
+    }
