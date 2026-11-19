@@ -113,3 +113,10 @@ No indicator implementation changed in these batches. The complete colored ledge
 - Overall project percentage: NOT ESTABLISHED; M1–M8 weights remain unapproved.
 
 CI is repository evidence, not owner-side Gate 8/20/25/30/31/34/35/36/38/39 acceptance.
+
+
+## Batch 62J-1 process-level validation
+
+At `ad1b2815e5cbd2034851b57e735ac89124d29e75`, two additional multiprocessing tests pass: separate gateway consumer processes with independent replica databases each receive the same Redis event, and two publisher processes share one fenced SQLite source lease without duplicate XADD/checkpoint advancement.
+
+Exact-head CI: 1,090 backend tests passed; 236 frontend tests across 28 files passed; CodeQL, secret audit, dependency audit, container build and Redis/persistent-volume smoke passed. See `docs/WORK_CYCLE_2026-11-19_BATCH62J_PROCESS_INTEGRATION.md`.

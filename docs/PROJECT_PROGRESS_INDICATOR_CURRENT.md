@@ -1,4 +1,140 @@
-# LATEST CHECKPOINT — BATCH 62I PER-GATEWAY REDIS CONSUMER IMPLEMENTED
+# LATEST CHECKPOINT — BATCH 62J PROCESS-LEVEL REDIS PARITY TESTS PASSED
+
+**Date:** 19 November 2026 • **Branch:** `phase-2/market-data-foundation`  
+**Latest code HEAD:** `ad1b2815e5cbd2034851b57e735ac89124d29e75`  
+**Publisher:** `backend/app/ohlcv_redis_publisher.py`  
+**Consumer:** `backend/app/ohlcv_redis_consumer.py`  
+**Integration tests:** `backend/tests/test_ohlcv_redis_publisher.py`, `backend/tests/test_ohlcv_redis_consumer.py`  
+**Complete indicator ledger:** `docs/INDICATOR_PROGRESS_LEDGER.md`  
+**Work report:** `docs/WORK_CYCLE_2026-11-19_BATCH62J_PROCESS_INTEGRATION.md`  
+**Cost:** ZERO COST • GitHub Actions Redis 7 service only • no deployment • no Vercel/Cloudflare push • no paid service • no Termux • `main` untouched.
+
+## Exact-head CI — all passed
+
+At code HEAD `ad1b2815e5cbd2034851b57e735ac89124d29e75`:
+
+- Backend: **1,090 passed in 38.01s**.
+- Frontend: **236 passed / 28 test files**.
+- Frontend production build and source/bundle secret scans: passed.
+- Backend dependency audit: no known vulnerabilities reported.
+- Backend container build and Redis/persistent-volume smoke: passed.
+- CodeQL Python and JavaScript/TypeScript: passed.
+- Full Git History Secret Audit: passed.
+- Container vulnerability report: generated and uploaded.
+
+Runs: Automated Tests `44545057500`, CodeQL `44545057428`, Secret Audit `44545057657`.
+
+## Batch 62J-1 — separate worker processes
+
+Added two real-Redis multiprocessing tests:
+1. Two spawned gateway-consumer processes open two independent SQLite replica databases and consume the same stream event through independent Redis consumer groups. Both must apply cursor 1.
+2. Two spawned publisher processes open the same authoritative SQLite source/checkpoint and race for the fenced lease. Exactly one publishes cursor 1; Redis contains one deterministic stream entry and the source checkpoint advances once.
+
+This verifies cross-process worker coordination and independent-group broadcast semantics under the CI Redis 7 service.
+
+**Scope limit:** these are separate Python worker processes, not two independently started ASGI backend servers, containers, machines, or production instances. The test does not prove public WSS, process supervision, startup lifecycle, or end-to-end browser fan-out.
+
+## WebSocket relay status
+
+- 62G-1 global snapshot export — implemented.
+- 62G-2 isolated replica snapshot install — implemented.
+- 62G-3 atomic incremental replica apply — implemented.
+- 62H-1 durable publisher checkpoint and fenced lease — implemented.
+- 62H-2 deterministic Redis append and publisher loop — implemented.
+- 62H-3 real Redis append/retry tests — implemented.
+- 62H-4 fenced retention snapshot rebase — implemented.
+- 62I per-gateway consumer groups, XAUTOCLAIM and apply-before-ACK — implemented.
+- 62J-1 separate publisher/consumer worker process tests — implemented and CI-validated.
+- **62J-2:** wire durable replica apply into local in-memory pipeline and `OhlcvStreamHub`, with restart-safe hydration, cursor-aware dedupe and queue-overflow resnapshot tests.
+- **62J-3:** separate backend process/container lifecycle, Redis outage/recovery, publisher/consumer restart and end-to-end cursor parity.
+- 62K owner Gate 25/36 acceptance — still requires owner-controlled infrastructure evidence.
+
+## Boundaries retained
+
+- Publisher/consumer are not started by `main.py`.
+- No `OhlcvStreamHub` forwarding is connected yet.
+- No production Redis credentials, ACL changes, hosted service or stream trimming.
+- No MAXLEN.
+- No independent backend server, two-host, public WSS or browser/Android test.
+- Redis Server 6.2+ is required for `XAUTOCLAIM`; CI uses Redis 7.
+
+## Project accounting unchanged
+
+- Stage 1: **75% provisional** — 30/40 criteria; 300/400 ticks.
+- Gate 10: **0/10 formally closed** — all ten remain OPEN pending owner evidence.
+- Stages 2–6: **NOT SCORED**.
+- Overall project percentage: **NOT ESTABLISHED**; M1–M8 weights are unapproved.
+- WebSocket work does not award indicator progress, Stage ticks or Gate closure.
+
+# LATEST CHECKPOINT — BATCH 62J PROCESS-LEVEL REDIS PARITY TESTS PASSED
+
+**Date:** 19 November 2026 • **Branch:** `phase-2/market-data-foundation`  
+**Latest code HEAD:** `ad1b2815e5cbd2034851b57e735ac89124d29e75`  
+**Publisher:** `backend/app/ohlcv_redis_publisher.py`  
+**Consumer:** `backend/app/ohlcv_redis_consumer.py`  
+**Integration tests:** `backend/tests/test_ohlcv_redis_publisher.py`, `backend/tests/test_ohlcv_redis_consumer.py`  
+**Complete indicator ledger:** `docs/INDICATOR_PROGRESS_LEDGER.md`  
+**Work report:** `docs/WORK_CYCLE_2026-11-19_BATCH62J_PROCESS_INTEGRATION.md`  
+**Cost:** ZERO COST • GitHub Actions Redis 7 service only • no deployment • no Vercel/Cloudflare push • no paid service • no Termux • `main` untouched.
+
+## Exact-head CI — all passed
+
+At code HEAD `ad1b2815e5cbd2034851b57e735ac89124d29e75`:
+
+- Backend: **1,090 passed in 38.01s**.
+- Frontend: **236 passed / 28 test files**.
+- Frontend production build and source/bundle secret scans: passed.
+- Backend dependency audit: no known vulnerabilities reported.
+- Backend container build and Redis/persistent-volume smoke: passed.
+- CodeQL Python and JavaScript/TypeScript: passed.
+- Full Git History Secret Audit: passed.
+- Container vulnerability report: generated and uploaded.
+
+Runs: Automated Tests `44545057500`, CodeQL `44545057428`, Secret Audit `44545057657`.
+
+## Batch 62J-1 — separate worker processes
+
+Added two real-Redis multiprocessing tests:
+1. Two spawned gateway-consumer processes open two independent SQLite replica databases and consume the same stream event through independent Redis consumer groups. Both must apply cursor 1.
+2. Two spawned publisher processes open the same authoritative SQLite source/checkpoint and race for the fenced lease. Exactly one publishes cursor 1; Redis contains one deterministic stream entry and the source checkpoint advances once.
+
+This verifies cross-process worker coordination and independent-group broadcast semantics under the CI Redis 7 service.
+
+**Scope limit:** these are separate Python worker processes, not two independently started ASGI backend servers, containers, machines, or production instances. The test does not prove public WSS, process supervision, startup lifecycle, or end-to-end browser fan-out.
+
+## WebSocket relay status
+
+- 62G-1 global snapshot export — implemented.
+- 62G-2 isolated replica snapshot install — implemented.
+- 62G-3 atomic incremental replica apply — implemented.
+- 62H-1 durable publisher checkpoint and fenced lease — implemented.
+- 62H-2 deterministic Redis append and publisher loop — implemented.
+- 62H-3 real Redis append/retry tests — implemented.
+- 62H-4 fenced retention snapshot rebase — implemented.
+- 62I per-gateway consumer groups, XAUTOCLAIM and apply-before-ACK — implemented.
+- 62J-1 separate publisher/consumer worker process tests — implemented and CI-validated.
+- **62J-2:** wire durable replica apply into local in-memory pipeline and `OhlcvStreamHub`, with restart-safe hydration, cursor-aware dedupe and queue-overflow resnapshot tests.
+- **62J-3:** separate backend process/container lifecycle, Redis outage/recovery, publisher/consumer restart and end-to-end cursor parity.
+- 62K owner Gate 25/36 acceptance — still requires owner-controlled infrastructure evidence.
+
+## Boundaries retained
+
+- Publisher/consumer are not started by `main.py`.
+- No `OhlcvStreamHub` forwarding is connected yet.
+- No production Redis credentials, ACL changes, hosted service or stream trimming.
+- No MAXLEN.
+- No independent backend server, two-host, public WSS or browser/Android test.
+- Redis Server 6.2+ is required for `XAUTOCLAIM`; CI uses Redis 7.
+
+## Project accounting unchanged
+
+- Stage 1: **75% provisional** — 30/40 criteria; 300/400 ticks.
+- Gate 10: **0/10 formally closed** — all ten remain OPEN pending owner evidence.
+- Stages 2–6: **NOT SCORED**.
+- Overall project percentage: **NOT ESTABLISHED**; M1–M8 weights are unapproved.
+- WebSocket work does not award indicator progress, Stage ticks or Gate closure.
+
+# HISTORICAL CHECKPOINT — BATCH 62I PER-GATEWAY REDIS CONSUMER IMPLEMENTED
 
 **Date:** 19 November 2026 • **Branch:** `phase-2/market-data-foundation`  
 **Latest code HEAD:** `bb7ec0ebdd2565ca50d4020d3e99eec42292b062`  

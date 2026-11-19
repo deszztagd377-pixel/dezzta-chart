@@ -262,3 +262,14 @@ At `bb7ec0ebdd2565ca50d4020d3e99eec42292b062`: 1,088 backend tests passed; 236 f
 ### Integration boundary
 
 Neither publisher nor consumer is wired into `main.py`. No WebSocket hub forwarding, worker supervisor, production Redis credentials, stream trimming, or deployment is included. A real two-process/two-host parity and outage matrix remains 62J; owner Gate 25/36 acceptance remains separate.
+
+
+## Batch 62J-1 — cross-process worker tests
+
+At `ad1b2815e5cbd2034851b57e735ac89124d29e75`, the CI suite now includes:
+- Two spawned consumer processes, each with its own replica SQLite database and independent replica-derived Redis consumer group, both applying the same stream event.
+- Two spawned publisher processes racing against one source SQLite checkpoint and fenced lease; only one deterministic Stream entry and one checkpoint advance are permitted.
+
+Exact-head CI: 1,090 backend tests passed in 38.01s; 236 frontend tests across 28 files passed; container build/smoke, CodeQL, dependency audit and full-history secret audit passed. Runs: Automated Tests `44545057500`, CodeQL `44545057428`, Secret Audit `44545057657`.
+
+These are independent Python worker processes, not two separately started ASGI servers or production hosts. The publisher/consumer remain unwired from `main.py`; local `OhlcvStreamHub` forwarding and backend lifecycle integration are 62J-2/62J-3.
