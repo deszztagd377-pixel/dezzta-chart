@@ -742,12 +742,12 @@ class SQLiteOhlcvStore:
             db.close()
 
     def read_outbox_batch(self, *, after_cursor: int, limit: int = 500) -> dict[str, object]:
-        """Read the global durable outbox in cursor order for a relay worker.
+        """Read a contiguous global outbox page or require a safe resnapshot.
 
         Unlike replay_outbox(), this method is not scoped to one series. It
         returns a consistent high-water/retention view and bounded event page.
-        A cursor outside the retained range requires recovery/resnapshot; a
-        relay must never silently skip expired events.
+        Cursor continuity is checked before a relay may advance its checkpoint;
+        a missing retained cursor is an integrity failure, not an empty page.
         """
         if not isinstance(after_cursor, int) or isinstance(after_cursor, bool) or after_cursor < 0:
             raise ValueError("after_cursor must be a non-negative integer.")
@@ -778,8 +778,38 @@ class SQLiteOhlcvStore:
                 WHERE cursor>? ORDER BY cursor ASC LIMIT ?""",
                 (after_cursor, limit + 1),
             ).fetchall()
+
+            # The outbox cursor is globally monotonic and contiguous between
+            # retention_floor and high_water. Check the look-ahead row too, so
+            # a gap at a page boundary is detected before a relay checkpoints.
+            expected_cursor = after_cursor + 1
+            for row in rows:
+                actual_cursor = int(row["cursor"])
+                if actual_cursor != expected_cursor:
+                    return {
+                        "status": "resnapshot_required",
+                        "reason": "cursor_gap",
+                        "events": [],
+                        "next_cursor": high_water,
+                        "high_water": high_water,
+                        "retention_floor": floor,
+                    }
+                expected_cursor += 1
+
             has_more = len(rows) > limit
             selected = rows[:limit]
+            if not has_more:
+                last_cursor = int(selected[-1]["cursor"]) if selected else after_cursor
+                if last_cursor != high_water:
+                    return {
+                        "status": "resnapshot_required",
+                        "reason": "cursor_gap",
+                        "events": [],
+                        "next_cursor": high_water,
+                        "high_water": high_water,
+                        "retention_floor": floor,
+                    }
+
             events: list[dict[str, object]] = []
             for row in selected:
                 payload = json.loads(row["event_json"])

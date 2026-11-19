@@ -519,6 +519,33 @@ def test_global_outbox_batch_rejects_expired_and_ahead_cursors(tmp_path, monkeyp
     assert ahead["reason"] == "cursor_ahead"
 
 
+def test_global_outbox_batch_requires_resnapshot_on_missing_cursor(tmp_path):
+    import sqlite3
+
+    cases = (
+        ("middle-page", 2, 3),
+        ("page-lookahead", 2, 1),
+        ("tail", 4, 3),
+    )
+    for name, missing_cursor, page_size in cases:
+        path = str(tmp_path / f"outbox-gap-{name}.sqlite3")
+        store = SQLiteOhlcvStore(path)
+        for index in range(4):
+            assert store.apply(make_bar(
+                start=index * 60 * NS, event=100 + index, sequence=index + 1,
+            )) == "inserted"
+
+        # Simulate an integrity defect without changing the durable high-water.
+        with sqlite3.connect(path) as db:
+            db.execute("DELETE FROM ohlcv_outbox WHERE cursor=?", (missing_cursor,))
+
+        result = store.read_outbox_batch(after_cursor=0, limit=page_size)
+        assert result["status"] == "resnapshot_required"
+        assert result["reason"] == "cursor_gap"
+        assert result["events"] == []
+        assert result["next_cursor"] == result["high_water"] == 4
+
+
 def test_global_outbox_batch_validates_cursor_and_page_size(tmp_path):
     store = SQLiteOhlcvStore(str(tmp_path / "outbox-global-validation.sqlite3"))
     with pytest.raises(ValueError, match="after_cursor"):

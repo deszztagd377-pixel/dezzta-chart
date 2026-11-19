@@ -1,56 +1,84 @@
-# LATEST VERIFIED CHECKPOINT — BATCH 62E EXACT-HEAD CI COMPLETE
+# LATEST VERIFIED CHECKPOINT — BATCH 62F OUTBOX CURSOR-INTEGRITY GUARD
 
 **Date:** 19 November 2026 • **Branch:** `phase-2/market-data-foundation`  
-**Current branch HEAD:** `f79779acd970d3b04ef5a8f516664ea96bd06b1f`  
-**Scope:** Documentation/audit only; no application source behavior changed.  
+**Baseline before this batch:** `bc1aff114f7dd040e6be4b5df949f7f4750eb63a`  
+**Scope:** global outbox cursor-gap detection + regression tests + progress ledger.  
 **Cost:** ZERO COST • no Vercel/Cloudflare deployment • no paid service • no Termux • `main` untouched.
 
-## Exact-head CI — 3/3 SUCCESS
+## Batch 62F — implementation scope
 
-All workflows completed successfully on exact HEAD `f79779acd970d3b04ef5a8f516664ea96bd06b1f`:
+- `SQLiteOhlcvStore.read_outbox_batch()` now validates contiguous cursor progression from the caller's checkpoint.
+- It validates the look-ahead row, so a missing cursor immediately after a page boundary is detected before a relay can checkpoint past it.
+- It validates the terminal cursor against the durable high-water mark, detecting a missing tail event or an unexpectedly empty page.
+- Integrity gaps return `status=resnapshot_required`, `reason=cursor_gap`, and no partial events. The caller must not advance by treating a damaged page as healthy.
+- Existing retention-expired and cursor-ahead behavior is preserved.
+- Three regression scenarios cover a middle-page gap, a page-lookahead gap, and a missing tail cursor.
 
-| Workflow | Run | Result |
-|---|---:|---|
-| Automated Tests | [44498420330](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44498420330) | SUCCESS |
-| CodeQL Security Analysis | [44498420382](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44498420382) | SUCCESS |
-| Full Git History Secret Audit | [44498420399](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44498420399) | SUCCESS |
+**Validation status:** source and test changes are committed only after static patch checks; exact-head CI is the authority for test/build validation. Do not claim this batch validated until all three exact-head workflows complete.
 
-Automated Tests completed frontend tests/build, backend tests, bounded SQLite outbox benchmark, dependency audits, backend container build, Redis/persistent-volume smoke test, image scan/report and cleanup. No additional test counts or vulnerability conclusions are inferred beyond the workflow result.
+## WebSocket status
 
-## WebSocket disposition
+The local durable foundations remain: atomic bar+outbox writes, exact-decimal payloads, global cursor, retention floor, global outbox pagination, exact-revision lookup, and bars+watermark snapshot transactions. The new cursor-gap guard hardens relay input but does **not** implement replica apply, Redis Streams relay, cross-instance fan-out, or deployed WSS.
 
-Local SQLite outbox and atomic snapshot/watermark foundations are tested. The application still constructs a process-local pipeline/hub and local SQLite store per process. Cross-instance delivery is **not complete**. Safe sequence: authoritative writer ownership → idempotent replica apply without outbox re-emission → per-instance Redis Streams consumer groups → pending reclaim/retry → two-process snapshot-watermark parity → outage/retention/resnapshot tests → owner WSS acceptance.
+Next implementation sequence:
+1. Replica identity/checkpoint schema and atomic apply without source-outbox re-emission.
+2. Duplicate, stale, out-of-order, gap, exact-decimal, restart and watermark tests.
+3. Redis Streams publisher/checkpoint and independent consumer groups per gateway.
+4. Retry, crash, pending reclaim, Redis outage and retention-resnapshot tests.
+5. Two independent backend processes with separate local read models.
+6. Owner-side Gate 25/36 acceptance only after infrastructure and external evidence exist.
 
-Do not share SQLite WAL across hosts or wire partial Redis relay into startup. Redis outage must not roll back committed source bars/outbox events.
+Do not share SQLite WAL across hosts. Do not activate partial relay at app startup.
 
-## Indicator progress — source and test audit
+## Gate 10 — all OPEN (0/10 formally closed)
 
-| Indicator/component | Verified calculation contract | First valid output | Status |
-|---|---|---:|---|
-| SMA 20 | Rolling arithmetic mean of close values | Index 19 | 🟨 Calculation foundation |
-| EMA 20 | SMA-seeded EMA; alpha = 2/21 | Index 19 | 🟨 Calculation foundation |
-| RSI 14 Wilder | Wilder-smoothed close-to-close gains/losses | Index 14 | 🟨 Calculation foundation |
-| MACD 12/26/9 | EMA12 − EMA26; EMA9 signal | MACD 25; signal/histogram 33 | 🟨 Calculation foundation |
-| Bollinger 20,2 | 20-close mean ± 2 population standard deviations | Index 19 | 🟨 Calculation foundation |
-| `useMarketIndicators()` | Only non-empty validated backend snapshots in ready/degraded state; no DEMO fallback | Snapshot-dependent | 🟨 Shared hook groundwork |
-| Footprint | Deterministic bounded educational data, explicitly SIMULATED | Not production order flow | 🟨 Gated on owner reference + reviewed blueprint |
-| Heatmap | No implementation verified | — | 🟥 Not implemented |
-| Liquidation Maps | No implementation verified | — | 🟥 Not implemented |
+| Gate | Required evidence | State |
+|---:|---|---|
+| 8 | Owner-host protected secret injection/mounts and runtime readback | 🟥 OPEN |
+| 20 | Real Firebase valid/expired/revoked/wrong-project E2E | 🟥 OPEN |
+| 25 | Owner Redis, independent instances, outage/recovery and operator evidence | 🟥 OPEN |
+| 30 | Actual owner target-database restore | 🟥 OPEN |
+| 31 | Zero-cost off-host backup, separate key custody, retention and restore | 🟥 OPEN |
+| 34 | Persistent volume, restart and disk-pressure drill | 🟥 OPEN |
+| 35 | Public HTTPS/WSS, certificate renewal and external scan | 🟥 OPEN |
+| 36 | Snapshot-consistent fan-out, browser/WebView and 330-second attribution | 🟥 OPEN |
+| 38 | Durable collector, retention and protected access | 🟥 OPEN |
+| 39 | Named operator, escalation and acknowledgement/recovery drill | 🟥 OPEN |
 
-The calculation test file contains seven cases covering alignment/warm-up, RSI edge cases, MACD signal warm-up, Bollinger population deviation, shared entry point, 18 timeframe labels and invalid inputs. These are calculation-fixture tests, not visible chart integration or live-provider acceptance.
+CI is supporting evidence only; it cannot close owner-controlled gates.
 
-**Stage 4 UI remains parked while Stage 1 is active.** Visible toggles, overlays/panes, legends/current values, identity/timeframe stale clearing, and render/lifecycle tests are not complete. Footprint OFF must preserve normal candle spacing; only explicit ON may enable spaced cluster layout. Footprint, Heatmap and Liquidation Maps visuals remain gated on owner reference images and reviewed scoped blueprints.
+## Complete indicator progress ledger
 
-## Gate 10 and overall accounting
+| Indicator | Exact calculation contract | First valid index | Current foundation | Remaining work | State |
+|---|---|---:|---|---|---|
+| SMA20 | Rolling arithmetic mean of close | 19 | Calculation + fixture tests | Visible overlay, toggle, legend/latest value, stale clearing, render tests | 🟨 |
+| EMA20 | SMA-seeded EMA, alpha (2/21) | 19 | Calculation + fixture tests | Visible overlay, toggle, legend/latest value, stale clearing, render tests | 🟨 |
+| RSI14 | Wilder-smoothed close-to-close gain/loss | 14 | Calculation + edge fixtures | Dedicated 0–100 pane, 30/70 guides, toggle, lifecycle/render tests | 🟨 |
+| MACD12/26/9 | EMA12−EMA26; EMA9 signal | MACD 25; signal/histogram 33 | Calculation + warm-up fixtures | Pane, signal line, histogram, zero guide, render tests | 🟨 |
+| Bollinger20,2 | 20-close mean ± 2 population standard deviations | 19 | Calculation + population-deviation fixture | Three-line overlay, toggle, legend/latest values, render tests | 🟨 |
+| Shared indicator hook | Validated backend snapshot only; no DEMO fallback | Snapshot-dependent | Hook reads shared market-data store | Visible chart binding, loading/error handling, identity/timeframe stale clear | 🟨 |
+| Footprint | Deterministic educational accumulator, explicitly SIMULATED | Not production order flow | Simulation only | Owner reference + reviewed blueprint + ON-only spaced cluster renderer | 🟨 GATED |
+| Heatmap | Not implemented | — | None | Owner reference, blueprint, source data, calculation, renderer and tests | 🟥 |
+| Liquidation Maps | Not implemented | — | None | Owner reference, blueprint, source data, calculation, renderer and tests | 🟥 |
 
-- Gate 10: **0/10 formally closed**; gates 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain OPEN pending owner-side evidence.
+**Indicator acceptance boundary:** the seven calculation test cases cover alignment/warm-up, RSI edge cases, MACD warm-up, Bollinger population deviation, shared calculation entry point, 18 timeframe labels and invalid inputs. They do not prove visible chart integration or live-provider correctness. Footprint OFF must preserve ordinary candle spacing; only explicit ON may enable spaced clusters. Footprint, Heatmap and Liquidation Maps visuals remain gated on owner reference images and reviewed blueprints. Stage 4 visible UI remains parked while Stage 1 is active.
+
+## Project progress accounting
+
 - Stage 1: **75% provisional** — 30/40 criteria; 300/400 ticks.
+- Gate 10: **0/10 formally closed** — all ten remain OPEN.
 - Stages 2–6: **NOT SCORED**.
-- Overall project percentage: **NOT ESTABLISHED**; M1–M8 weights remain unapproved.
-- Documentation and CI success do not award stage ticks or close owner-acceptance gates.
+- Overall project percentage: **NOT ESTABLISHED** — M1–M8 weights remain unapproved.
+- No stage ticks or Gate 10 closures are awarded for this batch before exact-head CI and owner evidence.
 
-**Detailed work-cycle report:** [Batch 62E relay readiness](WORK_CYCLE_2026-11-19_BATCH62E_EXACT_HEAD_RECONCILIATION_AND_RELAY_READINESS.md).
+## Cost, branch and device controls
 
+- ZERO COST. No paid Redis, hosting, data provider or subscription is introduced.
+- No Vercel/Cloudflare deploy or promotion.
+- No Termux required for this repository-side patch.
+- Only `phase-2/market-data-foundation` is modified; `main` remains untouched.
+
+**Detailed report:** [Batch 62F outbox cursor-integrity guard](WORK_CYCLE_2026-11-19_BATCH62F_OUTBOX_CURSOR_GAP_GUARD.md)
 
 ---
 
