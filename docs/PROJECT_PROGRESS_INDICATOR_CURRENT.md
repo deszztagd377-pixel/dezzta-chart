@@ -2792,3 +2792,12 @@ See `docs/INDICATOR_PROGRESS_LEDGER.md` for formula definitions, first-valid ind
 - Stages 2–6: NOT SCORED.
 - Overall weighted project percentage: NOT ESTABLISHED; M1–M8 weights remain unapproved.
 - ZERO COST maintained; no Vercel/Cloudflare deployment, no paid service, no Termux, and `main` untouched.
+
+
+## 62J-3 / 62J-4 engineering checkpoint — 19 November 2026
+
+- Callback recovery test additions were committed at `4b7cd9771a9997330c01f8e42a1331ae27e2fb0e`: callback exception leaves the Redis delivery pending; ACK-reply-loss recovery reclaims and re-invokes the callback on duplicate apply. **CI result for this commit is not yet available from the connected workflow-run/status endpoints; do not mark it passed.**
+- Replica snapshot read-model implementation: `SQLiteOhlcvReplicaStore.query_snapshot()` now reads retained bars and replica checkpoint (`source_id`, `applied_cursor`, `retention_floor`) within one SQLite read transaction. It overrides the inherited source-store implementation, which depended on source outbox state and was not valid for replica watermark semantics.
+- Tests added for checkpoint-aligned snapshot result, bounded filtering, and fail-closed behavior before snapshot installation. Code commit: `3b19a483d3a3d93dea34181dd343595f265b2e82`; tests finalized at `146ab7861266e9b32b548059fa1a4391f530855c`.
+- This closes one read-model prerequisite only. Redis replay pagination/retention semantics, snapshot-to-live handoff on replica, event-loop-safe callback dispatch, dedicated relay ACL, ASGI lifecycle and multi-process WebSocket E2E remain open. No `main.py` startup wiring.
+- No new Vercel/Cloudflare deployment, paid service, or Termux requirement. `main` remains untouched.
