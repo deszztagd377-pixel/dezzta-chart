@@ -974,16 +974,16 @@ def test_replica_snapshot_rejects_numeric_decimal_fields_even_with_valid_digest(
 
     digest = hashlib.sha256()
     header_line = json.dumps(header, sort_keys=True, separators=(",", ":")).encode()
-    digest.update(header_line + b"\\n")
+    digest.update(header_line + b"\n")
     record_line = json.dumps(record, sort_keys=True, separators=(",", ":")).encode()
-    digest.update(record_line + b"\\n")
+    digest.update(record_line + b"\n")
     manifest = {
         "record": "manifest", "row_count": 1, "sha256": digest.hexdigest(),
     }
     invalid = tmp_path / "numeric-decimal.snapshot.jsonl"
     invalid.write_text(
-        header_line.decode() + "\\n" + record_line.decode() + "\\n"
-        + json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\\n"
+        header_line.decode() + "\n" + record_line.decode() + "\n"
+        + json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\n"
     )
 
     assert SQLiteOhlcvStore.verify_global_snapshot(str(invalid))["row_count"] == 1
