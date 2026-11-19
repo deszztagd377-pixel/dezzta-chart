@@ -1766,7 +1766,9 @@ def test_alert_device_routes_enable_only_required_cors_methods(tmp_path):
             "Access-Control-Request-Method": "POST",
         },
     )
-    assert disabled_preflight.status_code == 400
+    assert disabled_preflight.status_code == 200
+    assert "POST" in disabled_preflight.headers["access-control-allow-methods"]
+    assert "DELETE" not in disabled_preflight.headers["access-control-allow-methods"]
 
     settings = replace(
         make_settings(),
