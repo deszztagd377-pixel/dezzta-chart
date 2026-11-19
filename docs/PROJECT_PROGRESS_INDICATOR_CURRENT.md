@@ -2846,3 +2846,14 @@ See `docs/INDICATOR_PROGRESS_LEDGER.md` for formula definitions, first-valid ind
 - Previous-generation groups and pending entries are retained for separate owner-authorized cleanup. The real Redis test checks old pending state remains isolated and new group starts cleanly.
 - CI for prior snapshot/replay head aac7a9d is being superseded by this ACL refinement batch; this batch requires its own exact-head verification.
 - Gate 25 remains OPEN: no production ACL user, stream-key config contract, TLS endpoint or owner environment has been changed/verified.
+
+
+## Batch 62J-9 — Redis 7 ACL integration test
+
+- Added a real Redis 7 integration test with separate ephemeral publisher and gateway ACL users.
+- Publisher is limited to XADD/XRANGE on the exact stream key. Gateway is limited to XGROUP CREATE, XAUTOCLAIM, XREADGROUP, XACK and XRANGE on that same key.
+- Test verifies successful source publish, durable replica apply, ACK, and checkpoint-bounded replay using the restricted gateway identity.
+- Negative tests verify denied publisher group creation, denied gateway append, denied gateway XGROUP DESTROY, and denied access to an unrelated key.
+- Temporary ACL users and stream keys are deleted in finally cleanup. No production secrets or ACLs are touched.
+- Batch 62J-8 exact-head CI: Automated Tests, CodeQL and Full Git History Secret Audit all SUCCESS (runs 44556645983, 44556646066, 44556645952).
+- Gate 25 remains OPEN pending production stream-key config, separate owner credentials, TLS, target Redis multi-instance and outage/recovery evidence.

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+import secrets
 import uuid
 
 import pytest
@@ -9,7 +10,9 @@ import pytest
 from app.ohlcv import OhlcvBar
 from app.ohlcv_store import SQLiteOhlcvReplicaStore, SQLiteOhlcvStore
 from app.ohlcv_redis_publisher import RedisOhlcvStreamAppender
-from app.ohlcv_redis_replay import read_redis_replay_page, RedisReplayResnapshotRequired
+from app.ohlcv_redis_replay import (
+    read_redis_replay_page, replay_replica_history, RedisReplayResnapshotRequired,
+)
 from app.ohlcv_event_loop import EventLoopCallbackDispatcher
 from app.ohlcv_replica_bridge import forward_replica_event, hydrate_replica_pipeline
 from app.ohlcv import OhlcvPipeline
@@ -568,3 +571,92 @@ def test_real_redis_consumer_dispatches_hub_callback_on_owner_event_loop(tmp_pat
     finally:
         redis.delete(stream_key)
         redis.close()
+
+
+def test_real_redis_relay_acl_separates_publisher_and_gateway_permissions(tmp_path):
+    admin, stream_key = real_redis()
+    redis_module = pytest.importorskip("redis")
+    publisher_user = "dezzta-publisher-" + uuid.uuid4().hex[:12]
+    gateway_user = "dezzta-gateway-" + uuid.uuid4().hex[:12]
+    publisher_password = secrets.token_urlsafe(24)
+    gateway_password = secrets.token_urlsafe(24)
+    other_key = stream_key + ":outside"
+    publisher = gateway = None
+    try:
+        admin.execute_command(
+            "ACL", "SETUSER", publisher_user, "reset", "on",
+            ">" + publisher_password, "~" + stream_key,
+            "+xadd", "+xrange",
+        )
+        admin.execute_command(
+            "ACL", "SETUSER", gateway_user, "reset", "on",
+            ">" + gateway_password, "~" + stream_key,
+            "+xgroup|create", "+xautoclaim", "+xreadgroup",
+            "+xack", "+xrange",
+        )
+        redis_url = os.environ["REDIS_TEST_URL"]
+        publisher = redis_module.Redis.from_url(
+            redis_url, username=publisher_user, password=publisher_password,
+            decode_responses=True,
+        )
+        gateway = redis_module.Redis.from_url(
+            redis_url, username=gateway_user, password=gateway_password,
+            decode_responses=True,
+        )
+
+        source = SQLiteOhlcvStore(str(tmp_path / "acl-source.sqlite3"))
+        snapshot_path = tmp_path / "acl-snapshot.jsonl"
+        make_snapshot(source, snapshot_path)
+        replica = make_replica(
+            source, snapshot_path, tmp_path / "acl-replica.sqlite3",
+        )
+        assert source.apply(make_bar(0)) == "inserted"
+        event = source.read_outbox_batch(after_cursor=0, limit=1)["events"][0]
+
+        appender = RedisOhlcvStreamAppender(
+            publisher, stream_key=stream_key, source_id=source.source_id(),
+        )
+        assert appender.append_confirmed(event) == "appended"
+
+        consumer = make_consumer(
+            gateway, replica, stream_key, "acl-gateway-worker",
+        )
+        result = consumer.consume_once()
+        assert result["applied"] == 1
+        assert result["acknowledged"] == 1
+        assert replica.checkpoint()["applied_cursor"] == 1
+
+        identity = {
+            "provider": "databento", "dataset": "GLBX.MDP3",
+            "publisherId": 1, "instrumentId": 123,
+            "seriesType": "contract", "rawSymbol": "ESZ6",
+            "timeframe": "1m", "bucketPolicy": "UTC_LEGACY",
+            "calendarId": "", "calendarVersion": "",
+        }
+        replay = replay_replica_history(
+            gateway, stream_key=stream_key,
+            checkpoint=replica.checkpoint(), after_cursor=0,
+            series_identity=identity,
+        )
+        assert replay["status"] == "ok"
+        assert [item["cursor"] for item in replay["events"]] == [1]
+
+        no_permission = redis_module.exceptions.NoPermissionError
+        with pytest.raises(no_permission):
+            publisher.xgroup_create(stream_key, "unauthorized-publisher", id="0-0")
+        with pytest.raises(no_permission):
+            gateway.xadd(stream_key, {"unauthorized": "publisher-command"})
+        with pytest.raises(no_permission):
+            gateway.xgroup_destroy(stream_key, consumer.group_name)
+        with pytest.raises(no_permission):
+            publisher.xadd(other_key, {"outside": "publisher-key"})
+        with pytest.raises(no_permission):
+            gateway.xrange(other_key)
+    finally:
+        if publisher is not None:
+            publisher.close()
+        if gateway is not None:
+            gateway.close()
+        admin.execute_command("ACL", "DELUSER", publisher_user, gateway_user)
+        admin.delete(stream_key, other_key)
+        admin.close()
