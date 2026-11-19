@@ -862,6 +862,8 @@ def test_replica_installs_global_snapshot_atomically_without_outbox_echo(tmp_pat
 
 
 def test_replica_snapshot_rejects_wrong_source_and_stale_cursor(tmp_path):
+    import json
+
     source = SQLiteOhlcvStore(str(tmp_path / "replica-source.sqlite3"))
     assert source.apply(make_bar()) == "inserted"
     snapshot = tmp_path / "source.snapshot.jsonl"
