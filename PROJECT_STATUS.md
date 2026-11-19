@@ -1,3 +1,38 @@
+# CURRENT AUDITED CHECKPOINT — 19 NOVEMBER 2026
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Current branch HEAD (documentation reconciliation):** `90097fbf05375e7bb9381b2f6a9e5871dc581b2c`  
+**Latest verified application source/test commit:** `b30ce94ca278e527731d86e40ddf06c6dbd16b5b`  
+**Latest exact-head Automated Tests run:** [44422985332](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44422985332) — SUCCESS, every listed step completed successfully.
+
+## Latest verified work — WebSocket Batch 50
+
+- Fixed the transport failure path when the socket is already `CLOSED` before its native `close` event is delivered.
+- Preserved normal `CLOSING` event ordering and idempotent close notification; a late native event cannot notify the supervisor twice.
+- Corrected the fake socket lifecycle in regression tests and repaired the test syntax.
+- Frontend Vitest: **234 passed / 234** across 28 files.
+- Backend pytest: **1,032 passed / 1,032** in 30.94 seconds.
+- Frontend npm audit: **0 vulnerabilities**; frontend production build and 77-file source/bundle credential scans passed.
+- Backend dependency audit, container build, Redis ACL + persistent-volume smoke, Trivy image scan/report, and Android preflight/publisher tests passed.
+- Android debug APK workflow [44422985353](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44422985353): SUCCESS; artifact generated, **not published**.
+- CodeQL [44422985334](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44422985334): Python and JavaScript/TypeScript jobs SUCCESS.
+- Full Git History Secret Audit [44422985415](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44422985415): SUCCESS.
+- The initial Batch 50 attempt failed due to a test-fixture/syntax issue; the correction is included in the verified source commit. The corrected exact-head run has no failed steps.
+
+## Project progress — no speculative credit
+
+- **Stage 1:** 30/40 criteria; 300/400 ticks; **75% provisional**, not production accepted.
+- **Gate 10:** **0/10 formally closed**. Open external criteria: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- **Overall project percentage:** **NOT ESTABLISHED**. The remembered 20.9% is historical only; do not publish a new weighted total until the M1–M8 ledger is approved and scored.
+- **Stages 2–6:** NOT SCORED.
+- **Gate 36:** Browser reconnect/fresh-session evidence is a verified sub-check; overall gate remains OPEN pending external/public WSS and Android WebView acceptance, measured 330-second foreground lifecycle/close attribution, independent effective Fluid Compute read-back, and production cross-instance fan-out.
+- **ZERO COST:** No deployment triggered in this batch; no paid plan, billing activation, paid provider, production credential, or Termux package/repository/keyring change.
+- **Protected `main`:** untouched.
+
+The current colored dashboard is [docs/assets/project-progress-dashboard-current.svg](docs/assets/project-progress-dashboard-current.svg). The detailed Batch 50 record is [docs/WORK_CYCLE_2026-11-19_BATCH50_WEBSOCKET_ALREADY_CLOSED_FALLBACK.md](docs/WORK_CYCLE_2026-11-19_BATCH50_WEBSOCKET_ALREADY_CLOSED_FALLBACK.md).
+
+---
+
 # DEZZTA CHART — Current Project Status
 
 **Current checkpoint:** 2026-11-17  
