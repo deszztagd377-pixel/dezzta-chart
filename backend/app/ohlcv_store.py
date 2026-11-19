@@ -1305,8 +1305,8 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
 
         A successful return means the local bars, deduplication record and
         global checkpoint have committed together. Callers may ACK a durable
-        transport message only after this method returns status="applied" or
-        status="duplicate".
+        transport message after "applied", "duplicate" or "stale"; a gap or
+        retention-expired result requires resnapshot before ACK.
         """
         if not isinstance(source_id, str) or not source_id.strip():
             raise ValueError("source_id must be a non-empty string.")
@@ -1483,16 +1483,6 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                     }
                 raise ValueError("Replica event ID/cursor conflicts with an already applied event.")
 
-            if cursor > current_cursor + 1:
-                db.execute("ROLLBACK")
-                return {
-                    "status": "resnapshot_required",
-                    "reason": "cursor_gap",
-                    "expected_cursor": current_cursor + 1,
-                    "received_cursor": cursor,
-                    "applied_cursor": current_cursor,
-                }
-
             duplicate_cursor = db.execute(
                 "SELECT event_id FROM ohlcv_replica_applied_events WHERE cursor=?",
                 (cursor,),
@@ -1503,6 +1493,16 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
             ).fetchone()
             if duplicate_cursor is not None or duplicate_event is not None:
                 raise ValueError("Replica event ID or cursor is already assigned to another event.")
+
+            if cursor > current_cursor + 1:
+                db.execute("ROLLBACK")
+                return {
+                    "status": "resnapshot_required",
+                    "reason": "cursor_gap",
+                    "expected_cursor": current_cursor + 1,
+                    "received_cursor": cursor,
+                    "applied_cursor": current_cursor,
+                }
 
             existing_bar = db.execute(
                 """SELECT raw_symbol FROM ohlcv_bars WHERE provider=? AND dataset=?
