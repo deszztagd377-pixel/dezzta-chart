@@ -2911,3 +2911,16 @@ See `docs/INDICATOR_PROGRESS_LEDGER.md` for formula definitions, first-valid ind
 - Replica-backed Redis snapshot/replay helpers remain separate from main.py until production snapshot transport, dedicated Redis config/ACL and single-worker ownership are established.
 - Previous exact-head batch 62J-13 commit 1246ec19585faabb6754f83e59d14fc8a4361a56: Automated Tests, CodeQL and Full Git History Secret Audit all SUCCESS (runs 44562762820, 44562762581, 44562762579).
 - No deployment, paid service or Termux. Stage 1 75% provisional; Gate 10 0/10 closed; overall weighted project percentage not established.
+
+
+## Verified repository checkpoint — 20 November 2026 — Batch 62J-14
+
+- Exact branch HEAD: `407d2b38882e92cdf6db5b7df6c44350b6cd746d`.
+- Automated Tests [44564212673](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44564212673): **SUCCESS**. Backend pytest **1,153 passed in 27.93s**; frontend **236 passed across 28 test files**; frontend production build and source/bundle secret scans passed; Android preflight/publisher tests passed; backend dependency audit, synthetic SQLite outbox benchmark, backend container build, Redis/persistent-volume smoke test, Trivy scan/report and frontend dependency-audit enforcement all passed.
+- CodeQL [44564212707](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44564212707): **SUCCESS** for Python and JavaScript/TypeScript.
+- Full Git History Secret Audit [44564212714](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44564212714): **SUCCESS**.
+- Batch 62J-14 now routes the source-SQLite WebSocket reconnect handoff through the tested replay/live boundary helper. It sends `replay_complete` only after successful merge; failed handoff sends sanitized `resnapshot_required` and closes with 1013.
+- Redis replica snapshot/replay helpers, dedicated relay configuration and managed worker remain deliberately outside FastAPI startup. Production wiring still requires owner-controlled TLS/ACL credentials, snapshot provisioning/recovery lifecycle, one-worker-per-replica ownership and target multi-instance evidence.
+- This exact-head CI success verifies code/test/build workflow, not public WSS deployment, provider feed delivery, native Android WebView, multi-host fan-out, or owner-operated Gate 10 acceptance.
+- No Vercel/Cloudflare deployment, no paid service, no production secret/ACL mutation, and no Termux operation.
+- Stage 1 remains **75% provisional (30/40 criteria; 300/400 ticks)**. Gate 10 remains **0/10 formally closed**; open gates: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**. Stages 2–6 remain unscored; overall weighted project percentage is not established because M1–M8 weights are not approved.

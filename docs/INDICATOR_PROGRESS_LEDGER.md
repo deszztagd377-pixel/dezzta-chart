@@ -1,6 +1,6 @@
 # DEZZTA CHART — Complete Indicator Progress Ledger
 
-**Checkpoint:** 19 November 2026 — refreshed after WebSocket 62H-3 / 62H-4 / 62I / 62J-1 / 62J-2  
+**Checkpoint:** 20 November 2026 — refreshed after WebSocket 62J-14 exact-head verification  
 **Branch:** `phase-2/market-data-foundation`  
 **Indicator implementation status:** unchanged by WebSocket Batches 62H-3, 62H-4, 62I, 62J-1 and 62J-2. The WebSocket reliability work does not award indicator progress.  
 **Interpretation:** statuses describe verified implementation boundaries, not a guessed completion percentage. No indicator weights or acceptance percentages have been approved, so per-indicator or total-indicator percentages are intentionally not fabricated.
@@ -218,3 +218,8 @@ A tested replay/live merge helper now drops events already covered by replay, re
 ## Batch 62J-14 — 19 November 2026: main route handoff boundary
 
 The source-SQLite WebSocket reconnect path now uses the tested replay/live merge helper and closes with a resnapshot-required signal if handoff validation or queue capacity fails. This does not alter indicator calculations or rendering; all indicator statuses and warm-up indices remain unchanged.
+
+
+## Batch 62J-14 — 20 November 2026: exact-head CI and indicator boundary
+
+Exact branch head `407d2b38882e92cdf6db5b7df6c44350b6cd746d` passed Automated Tests (backend 1,153 passed; frontend 236 passed across 28 files), CodeQL (Python and JavaScript/TypeScript), and Full Git History Secret Audit. The WebSocket route handoff change is transport-only. No indicator formulas, warm-up positions, chart overlays/panes, controls or lifecycle acceptance changed. Keep the dashboard statuses unchanged: SMA20 🟨 (first index 19), EMA20 🟨 (19), RSI14 🟨 (14), MACD12/26/9 🟨 (MACD 25; signal/histogram 33), Bollinger20,2 🟨 (19), Shared Indicator Hook 🟨, Footprint 🟧 (SIMULATED; owner reference/blueprint required), Heatmap 🟥, Liquidation Maps 🟥. No indicator progress percentage is awarded for WebSocket infrastructure.

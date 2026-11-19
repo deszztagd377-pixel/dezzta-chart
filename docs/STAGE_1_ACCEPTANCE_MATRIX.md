@@ -1066,3 +1066,15 @@ No Gate 10 closure or Stage 1 tick increase is awarded from adding tests alone. 
 - The route sends replay_complete only after successful handoff; failure emits sanitized resnapshot_required and closes with 1013.
 - This is a source-route correctness improvement, not replica-backed Redis startup integration or public WSS acceptance.
 - Gate 10 remains 0/10 formally closed; Stage 1 remains 75% provisional (30/40 criteria; 300/400 ticks). No score increase.
+
+
+## Verified repository checkpoint — 2026-11-20 — Batch 62J-14
+
+- Exact branch HEAD: `407d2b38882e92cdf6db5b7df6c44350b6cd746d`.
+- Automated Tests [44564212673](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44564212673): **SUCCESS**; backend **1,153 passed in 27.93s**, frontend **236 passed / 28 test files**, build, frontend secret scans, Android preflight/publisher tests, backend dependency audit, synthetic outbox benchmark, backend container build, Redis/persistent-volume smoke, Trivy report and frontend dependency-audit enforcement all passed.
+- CodeQL [44564212707](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44564212707): **SUCCESS** for Python and JavaScript/TypeScript.
+- Full Git History Secret Audit [44564212714](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44564212714): **SUCCESS**.
+- Batch 62J-14 source-SQLite WebSocket reconnect path uses the tested `merge_replay_boundary()`; replay completion is emitted only after merge success, and handoff failure fails closed with `resnapshot_required` / close 1013.
+- Redis replica runtime remains intentionally not startup-wired. Gate 25 still requires owner-controlled credentials, TLS, target multi-instance behavior and operational recovery proof. CI is not a substitute for those external checks.
+- No deployment, paid service, production secret/ACL mutation or Termux operation.
+- Accounting: Stage 1 **300/400 = 75% provisional** (30/40 criteria); Gate 10 **0/10 formally closed**; open **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**. Stages 2–6 unscored; overall weighted project percentage unestablished.
