@@ -355,3 +355,63 @@ def test_redis_websocket_ticket_lua_consume_is_single_use():
             await guard.close()
 
     asyncio.run(exercise())
+
+
+@pytest.mark.skipif(
+    not os.getenv("REDIS_TEST_URL"),
+    reason="CI Redis integration service is not configured",
+)
+def test_redis_ticket_and_lease_guards_share_atomic_state_across_clients():
+    """Prove atomic ticket consumption and connection caps across Redis clients."""
+    from redis.asyncio import Redis
+
+    async def exercise():
+        redis_url = os.environ["REDIS_TEST_URL"]
+        redis_a = Redis.from_url(redis_url, decode_responses=True)
+        redis_b = Redis.from_url(redis_url, decode_responses=True)
+        limits = {
+            "websocket_global_limit": 2,
+            "websocket_per_account_limit": 1,
+            "websocket_lease_seconds": 30,
+        }
+        guard_a = RedisSharedGuard(redis_url, redis_client=redis_a, **limits)
+        guard_b = RedisSharedGuard(redis_url, redis_client=redis_b, **limits)
+        suffix = uuid4().hex
+        account = f"cross-client-account-{suffix}"
+        first = f"cross-client-ws-{suffix}-1"
+        second = f"cross-client-ws-{suffix}-2"
+        third = f"cross-client-ws-{suffix}-3"
+        leased = []
+        try:
+            await guard_a.start()
+            await guard_b.start()
+
+            ticket = await guard_a.issue_websocket_ticket(account)
+            consumed = await asyncio.gather(
+                guard_a.consume_websocket_ticket(ticket),
+                guard_b.consume_websocket_ticket(ticket),
+            )
+            assert consumed.count(account) == 1
+            assert consumed.count(None) == 1
+
+            assert await guard_a.acquire_websocket(first, account)
+            leased.append((first, account))
+            assert not await guard_b.acquire_websocket(second, account)
+            other_account = f"other-account-{suffix}"
+            assert await guard_b.acquire_websocket(second, other_account)
+            leased.append((second, other_account))
+            assert not await guard_a.acquire_websocket(third, f"third-account-{suffix}")
+
+            # A different Redis client can renew and release the same lease.
+            assert await guard_b.renew_websocket(first, account)
+            await guard_b.release_websocket(first, account)
+            leased.remove((first, account))
+            assert await guard_a.acquire_websocket(third, account)
+            leased.append((third, account))
+        finally:
+            for connection_id, subject in leased:
+                await guard_a.release_websocket(connection_id, subject)
+            await guard_a.close()
+            await guard_b.close()
+
+    asyncio.run(exercise())

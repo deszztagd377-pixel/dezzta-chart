@@ -1572,3 +1572,62 @@ Visual invariants remain mandatory: Footprint OFF keeps ordinary candlestick lay
 - Documentation-only evidence planning awards no stage/gate completion ticks.
 
 **Batch 60 disposition:** the work packages, evidence schema, dependency order and indicator ledger are documented. External acceptance blockers are explicitly isolated rather than hidden by CI or mock results.
+
+
+# BATCH 61 — Cross-client Redis atomicity regression and scan-report review
+
+**Date:** 19 November 2026 (WIB)  
+**Branch:** `phase-2/market-data-foundation`  
+**Parent baseline:** `1253d592a490247c081d326118a331da8e156592`  
+**Scope:** Gate 25 local integration coverage + exact-head evidence reconciliation. No production deployment, no paid service, no Termux, and no `main` modification.
+
+## 1. Newly added Redis integration regression
+
+The existing real-Redis ticket test exercised single-use consumption sequentially through one guard/client. Batch 61 adds a separate integration case using **two independent Redis client connections** to the same CI Redis service:
+
+- Issue one single-use ticket through client A; concurrently consume through A and B; exactly one consumer must receive the verified subject and the other must receive `None`.
+- Acquire an account-scoped WebSocket lease through A; B must be denied a second lease for that same account.
+- B can acquire a lease for a different account while global capacity remains; a third connection must be rejected at the global cap.
+- B must be able to renew and release A's lease; A can then acquire the freed capacity.
+
+This is real Redis Lua/Redis state integration in CI, not a FakeRedis-only test. It proves atomic shared-state behavior across independent client connections. It does **not** prove two separately deployed owner application instances, independent owner Redis, production ACL configuration, or an outage drill; Gate 25 remains OPEN until owner acceptance.
+
+## 2. Container vulnerability report review
+
+Batch 60's uploaded Trivy JSON report for image `dezzta-chart-backend:ci` was downloaded and inspected. The report contains two scan result groups (Alpine OS packages and Python packages) and **zero HIGH/CRITICAL vulnerability entries** under the workflow's configured severity filter. This is scoped to that exact CI image digest and scan timestamp; it is not a guarantee of zero vulnerabilities at other severities or in later images.
+
+## 3. Gate 10 status and dependency disposition
+
+- Gate 20: OPEN — real Firebase project valid/expired/revoked/wrong-project E2E still needs owner project credentials and controlled execution.
+- Gate 25: OPEN — Batch 61 adds cross-client Redis atomicity regression; owner-managed independent Redis + separately deployed instances + outage/recovery evidence still missing.
+- Gate 36: OPEN — public authenticated WSS, Android WebView foreground/background, 330-second close attribution and deployed cross-instance fan-out remain external acceptance.
+- Gates 8/30/31/34/35/38/39: OPEN — owner-host secrets/ingress, actual restore/off-host key custody/persistence, durable telemetry and operator acknowledgement remain unproven.
+
+No gate closure or Stage 1 ticks are awarded from this local test addition.
+
+## 4. Indicator progress ledger — unchanged, explicitly complete as a status record
+
+| Indicator / component | Verified foundation | Remaining work | State |
+|---|---|---|---|
+| SMA 20 | Rolling close mean; first valid index 19; tested | Visible overlay, toggle, legend/value, stale-series lifecycle and render tests | 🟨 Foundation |
+| EMA 20 | SMA-seeded EMA; first valid index 19; tested | Visible overlay, toggle, legend/value, stale-series lifecycle and render tests | 🟨 Foundation |
+| RSI 14 Wilder | Wilder smoothing; first valid index 14; tested | Dedicated 0–100 pane, 30/70 guides, toggle and render/lifecycle tests | 🟨 Foundation |
+| MACD 12/26/9 | MACD first index 25; signal/histogram first index 33; tested | Dedicated pane, signal line, histogram, zero guide and render tests | 🟨 Foundation |
+| Bollinger 20,2 | Population standard deviation; first valid index 19; tested | Upper/middle/lower overlay, toggle, legend/value and render tests | 🟨 Foundation |
+| Shared indicator hook | Validated backend snapshot only; null in demo/loading/unavailable/error states | Visible binding and immediate clearing on identity/timeframe changes | 🟨 Foundation |
+| Footprint | Bounded deterministic `SIMULATED` data | Owner reference image, reviewed blueprint, explicit-ON spaced cluster renderer | 🟨 Gated |
+| Heatmap | No implementation verified | Owner reference, blueprint, source/data contract, calculation, renderer and tests | 🟥 Not implemented |
+| Liquidation Maps | No implementation verified | Owner reference, blueprint, source/data contract, calculation, renderer and tests | 🟥 Not implemented |
+
+Calculation contract remains: SMA20 rolling mean; EMA20 SMA-seeded (`alpha = 2/21`); RSI14 Wilder; MACD EMA12−EMA26 with EMA9 signal; Bollinger20,2 population standard deviation. Warm-up values are null and outputs remain aligned to source candle indexes. Existing tests across 18 timeframe labels are fixture formula evidence, not provider data-quality or visible chart acceptance.
+
+**Visual invariants:** Footprint OFF must retain ordinary candle layout/spacing; only explicit Footprint ON may enable spaced cluster layout. Footprint/Heatmap/Liquidation Maps visuals require the owner's reference image(s) and a reviewed scoped blueprint. Stage 1 is active, so Stage 4 visible UI remains parked.
+
+## 5. Current progress accounting
+
+- Stage 1: **75% provisional** — 30/40 criteria, 300/400 ticks; unchanged.
+- Gate 10: **0/10 formally closed**, all ten OPEN.
+- Stages 2–6: **NOT SCORED**.
+- Overall project: **NOT ESTABLISHED**; no invented weighted percentage.
+- CI baseline entering Batch 61: Batch 60 exact HEAD had Automated Tests, CodeQL, and Full Git History Secret Audit all SUCCESS (3/3). Batch 61's own commit must receive its own exact-HEAD CI result before it can be called green.
+- ZERO COST; no Vercel/Cloudflare deployment; Termux not required; `main` untouched.
