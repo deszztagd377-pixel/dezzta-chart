@@ -110,6 +110,12 @@ The implementation and tests are committed. Exact-head CI must still pass before
 
 The complete indicator ledger remains in `docs/PROJECT_PROGRESS_INDICATOR_CURRENT.md`, including SMA20, EMA20, RSI14, MACD12/26/9, Bollinger20, shared indicator hook, simulated Footprint, Heatmap and Liquidation Maps. This WebSocket work does not change indicator calculations or their visual completion status. Footprint/Heatmap/Liquidation visual work remains gated on owner reference images and reviewed blueprints.
 
-## Next dependency
+## Follow-up completion — Batch 62G-3
 
-Implement transactional incremental replica event apply: validate source identity, event ID, cursor and schema; apply only `E=C+1`; treat `E<=C` as duplicate/stale without regression; require resnapshot for `E>C+1`; update bar and checkpoint in one transaction; never emit source outbox events. Redis Streams follows only after this layer passes its failure matrix.
+The next dependency is now implemented as `SQLiteOhlcvReplicaStore.apply_replica_event()`. It validates the source binding and event schema, applies only the next contiguous cursor, deduplicates by cursor + event ID + canonical payload digest, detects gaps/conflicts, preserves exact decimals/nanoseconds, mirrors per-series retention, and atomically commits bar + dedupe ledger + checkpoint without outbox echo.
+
+The regression suite covers duplicate replay, stale history, gap, source mismatch, malformed decimal, conflicting event ID, retention parity and forced checkpoint-write rollback. Exact-head CI remains pending confirmation.
+
+Detailed report: `docs/WORK_CYCLE_2026-11-19_BATCH62G3_REPLICA_EVENT_APPLY.md`.
+
+Redis Streams follows only after publisher/consumer retry, pending reclaim, ACK ordering and two-process recovery tests are complete.
