@@ -882,11 +882,11 @@ def test_replica_snapshot_rejects_wrong_source_and_stale_cursor(tmp_path):
         import hashlib
         digest = hashlib.sha256()
         header_line = json.dumps(header, sort_keys=True, separators=(",", ":")).encode()
-        digest.update(header_line + b"\\n")
+        digest.update(header_line + b"\n")
         manifest = {"record": "manifest", "row_count": 0, "sha256": digest.hexdigest()}
         stale_path.write_text(
-            header_line.decode() + "\\n"
-            + json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\\n"
+            header_line.decode() + "\n"
+            + json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\n"
         )
         replica.install_global_snapshot(str(stale_path))
 
@@ -923,11 +923,11 @@ def test_replica_snapshot_semantic_failure_rolls_back_bars_and_checkpoint(tmp_pa
 
     digest = hashlib.sha256()
     header_line = json.dumps(header, sort_keys=True, separators=(",", ":")).encode()
-    digest.update(header_line + b"\\n")
+    digest.update(header_line + b"\n")
     encoded_records = []
     for record in records:
         encoded = json.dumps(record, sort_keys=True, separators=(",", ":")).encode()
-        digest.update(encoded + b"\\n")
+        digest.update(encoded + b"\n")
         encoded_records.append(encoded.decode())
     manifest = {
         "record": "manifest",
@@ -936,9 +936,9 @@ def test_replica_snapshot_semantic_failure_rolls_back_bars_and_checkpoint(tmp_pa
     }
     forged_but_checksummed = tmp_path / "semantic-invalid.snapshot.jsonl"
     forged_but_checksummed.write_text(
-        header_line.decode() + "\\n"
-        + "\\n".join(encoded_records) + "\\n"
-        + json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\\n"
+        header_line.decode() + "\n"
+        + "\n".join(encoded_records) + "\n"
+        + json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\n"
     )
 
     # The envelope/checksum is valid; canonical OHLCV validation fails after
