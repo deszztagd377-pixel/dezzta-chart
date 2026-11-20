@@ -1,10 +1,10 @@
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 20 November 2026 — Batch 62J-29 exact-head CI + Gate 10 + indicator reconciliation  
+**Checkpoint:** 20 November 2026 — Batch 62J-31 dual-gateway TCP outage recovery + snapshot generation acceptance  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest source/test checkpoint:** `ea3626cd9e174d0f9a06af2b0fe2550c830e0559`  
+**Latest source/test checkpoint:** `cf6219a1f0fbea5a0daf8378ef47af386f8446fa`  
 **Dashboard revision:** Batch 62J-29 documentation-only evidence reconciliation; no runtime behavior changed.  
-**Current audit batch:** 62J-29 — exact-head CI complete; WebSocket E remains partial; Gate 10 evidence reconciled  
+**Current audit batch:** 62J-31 — dual-ASGI TCP outage recovery and dual-replica snapshot-generation acceptance passed exact-head CI  
 **Cost policy:** ZERO COST. Existing Redis 7 CI service and temporary SQLite fixtures only; no paid providers, hosting, deployment, Vercel/Cloudflare action, or Termux requirement.
 
 > This document is the current concise dashboard. Historical work-cycle reports remain the evidence trail. Do not infer that a docs-only commit has rerun or revalidated code CI.
@@ -422,3 +422,37 @@ Do not label the current client-boundary fault injection as a Redis server outag
 - Overall project percentage: not established; M1–M8 weights are not approved.
 - ZERO COST: no paid service, deployment, production activation or main-branch modification.
 - Termux: not required for this CI/documentation cycle. Native Termux backend acceptance remains incomplete in the existing device-readiness record; no installation command is being issued.
+
+
+## 0I. Batch 62J-31 — dual-gateway TCP outage + snapshot-generation acceptance (20 November 2026)
+
+**Exact source/test HEAD:** `cf6219a1f0fbea5a0daf8378ef47af386f8446fa`
+
+| Workflow | Run | Result |
+|---|---:|---|
+| Automated Tests | [44708222353](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44708222353) | SUCCESS |
+| CodeQL | [44708222403](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44708222403) | SUCCESS — Python + JavaScript/TypeScript |
+| Full Git History Secret Audit | [44708222417](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44708222417) | SUCCESS |
+
+**Test totals:** backend **1,166 passed** (6 warnings); frontend **236 passed across 28 files**. Backend container build, smoke test, image scan and report export also completed successfully.
+
+### New WebSocket failure-matrix evidence
+
+1. **Real TCP path interruption across two ASGI gateways:** each gateway has its own local TCP proxy to Redis. The test waits for established gateway-to-Redis sockets, severs both connections, rejects reconnect attempts during the controlled outage, restores both paths, then publishes cursor 1. Both original ASGI processes remain alive, both WebSocket clients receive cursor 1, and both durable replica checkpoints advance to 1. This is a controlled TCP network-path interruption, not a Redis server shutdown.
+2. **Snapshot-generation replacement across two independent gateway replicas:** both replicas apply cursor 1; cursor 2 is left pending in each old generation group; the same verified snapshot at watermark 2 is installed in both durable replica databases; two separately spawned gateway consumer processes start with the new generation, apply cursor 3, and converge at checkpoint 3. Old pending entries remain isolated and are not destroyed.
+
+**Failure-matrix disposition:** the two previously missing automated acceptance scenarios—dual-gateway TCP interruption/recovery and cross-process two-replica generation replacement with post-install cursor parity—are now covered and passed in CI. The automated repository/CI failure matrix E is **COMPLETE FOR THE DEFINED TEST SCOPE**.
+
+**Production WebSocket readiness is still NOT accepted.** Snapshot distribution/rotation, production TLS/ACL/credential rotation, external browser/Android WSS acceptance, stream retention/cleanup governance and owner-operated recovery drills remain independent operational requirements. Do not claim production readiness or close Gate 25/34/36 from CI alone.
+
+### Gate 10 follow-through
+
+The new tests strengthen repository evidence relevant to Gate 25 (Redis connection interruption/recovery, per-gateway consumer groups and cursor parity). Gate 25 remains 🟧 OPEN until the owner-controlled Redis host, TLS, ACL, persistence and recovery environment is independently verified. Gate 36 remains 🟧 OPEN until authenticated public WSS, browser/Android client behavior and platform/runtime lifetime are accepted.
+
+All ten gates remain 🟧 ORANGE / OPEN: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39. No external gate is closed by CI.
+
+### Indicator and project accounting
+
+Indicator implementation status remains unchanged: SMA20 🟨 (first index 19), EMA20 🟨 (19), RSI14 🟨 (14), MACD12/26/9 🟨 (MACD 25; signal/histogram 33), Bollinger20,2 🟨 (19), Shared Indicator Hook 🟨, Footprint 🟧 (SIMULATED; owner reference/blueprint required), Heatmap 🟥, Liquidation Maps 🟥. No indicator UI work or percentage credit is awarded for WebSocket tests.
+
+Stage 1 remains 30/40 = 300/400 = **75% provisional**. Stages 2–6 remain unscored. Overall project percentage remains unestablished. ZERO COST maintained; no deploy, paid service, Termux action or main-branch change.

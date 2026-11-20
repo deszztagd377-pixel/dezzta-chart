@@ -380,3 +380,14 @@ WebSocket E remains PARTIALLY VERIFIED: dual-ASGI transient client-boundary read
 
 Gate 10 remains **10/10 🟧 ORANGE / 0/10 formally closed**: 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. CI cannot substitute for owner-host, provider, device or operator acceptance. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 are unscored; overall project percentage remains unestablished. ZERO COST is unchanged. No Termux work was required for this cycle.
 
+
+
+## Batch 62J-31 — 20 November 2026: dual-gateway TCP outage and snapshot-generation acceptance
+
+Exact source/test HEAD `cf6219a1f0fbea5a0daf8378ef47af386f8446fa` passed Automated Tests [44708222353], CodeQL [44708222403] and Full Git History Secret Audit [44708222417]. Backend pytest: **1,166 passed** (6 warnings); frontend: **236 passed across 28 files**.
+
+New WebSocket tests verify (1) a controlled TCP path interruption that severs and rejects Redis connections independently for two live ASGI gateways, followed by recovery without restarting either gateway and cursor-1 parity, and (2) coordinated installation of the same cursor-2 snapshot into two durable replicas, independent new-generation consumer processes applying cursor 3, parity at cursor 3, and isolation of old pending entries. This completes the automated E failure-matrix scenarios defined for dual-gateway network recovery and cross-replica snapshot generation. It is not a Redis server shutdown test and does not establish production WSS readiness.
+
+Indicator statuses remain unchanged: SMA20 🟨 (first valid index 19), EMA20 🟨 (19), RSI14 🟨 (14), MACD12/26/9 🟨 (25; signal/histogram 33), Bollinger20,2 🟨 (19), Shared Indicator Hook 🟨, Footprint 🟧 (SIMULATED; owner reference and reviewed blueprint required), Heatmap 🟥, Liquidation Maps 🟥. WebSocket work does not award indicator progress.
+
+Gate 10 remains 10/10 🟧 ORANGE / 0/10 closed. The TCP and snapshot tests strengthen Gate 25 repository evidence, but owner-host Redis TLS/ACL/persistence/recovery are still required. Gate 36 still needs public authenticated WSS and browser/Android acceptance. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 unscored; overall project percentage not established. ZERO COST maintained. No deployment, paid service, Termux action or main-branch modification.
