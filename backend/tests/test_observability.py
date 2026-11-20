@@ -108,3 +108,33 @@ def test_request_metrics_concurrent_recording_preserves_all_samples():
         left["count"] <= right["count"]
         for left, right in zip(histogram["buckets"], histogram["buckets"][1:])
     )
+
+
+def test_request_metrics_saturates_counters_without_integer_or_float_overflow():
+    from app.observability import _MAX_ACCUMULATED_MS, _MAX_COUNTER, _LATENCY_BUCKETS_MS
+
+    metrics = RequestMetrics()
+    key = ("GET", "/health")
+    metrics._series.add(key)
+    metrics._requests[("GET", "/health", "2xx")] = _MAX_COUNTER
+    metrics._latency[key] = {
+        "count": _MAX_COUNTER,
+        "sum_ms": _MAX_ACCUMULATED_MS,
+        "buckets": [_MAX_COUNTER for _ in _LATENCY_BUCKETS_MS],
+    }
+
+    metrics.record("GET", "/health", 200, 86_400_000.0)
+    snapshot = metrics.snapshot()
+
+    assert snapshot["requests"] == [{
+        "method": "GET", "route": "/health", "status_class": "2xx",
+        "count": _MAX_COUNTER,
+    }]
+    histogram = snapshot["latency_ms"][0]
+    assert histogram["count"] == _MAX_COUNTER
+    assert histogram["sum_ms"] == _MAX_ACCUMULATED_MS
+    assert all(bucket["count"] == _MAX_COUNTER for bucket in histogram["buckets"])
+    assert all(
+        isinstance(bucket["count"], int) and bucket["count"] <= _MAX_COUNTER
+        for bucket in histogram["buckets"]
+    )
