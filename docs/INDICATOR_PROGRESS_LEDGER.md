@@ -1,6 +1,6 @@
 # DEZZTA CHART — Complete Indicator Progress Ledger
 
-**Checkpoint:** 20 November 2026 — Batch 62J-39 WebSocket ticket-endpoint retry regression; indicator scope unchanged  
+**Checkpoint:** 20 November 2026 — Batch 62J-44 Gate 38 bounded metrics hardening; indicator scope unchanged  
 **Branch:** `phase-2/market-data-foundation`  
 **Indicator implementation status:** unchanged by WebSocket Batches 62H-3, 62H-4, 62I, 62J-1, 62J-2 and 62J-16. The WebSocket reliability work does not award indicator progress.  
 **Interpretation:** statuses describe verified implementation boundaries, not a guessed completion percentage. No indicator weights or acceptance percentages have been approved, so per-indicator or total-indicator percentages are intentionally not fabricated.
@@ -638,3 +638,17 @@ Exact-head CI for `b576bbaa6e8b22af2f11e1e3f06565250ac193a1`:
 Lease arithmetic correction: 120 - 60 - 4 - 10 = **46 seconds** default reserve; at the 90-second minimum, reserve = **16 seconds**. The dashboard and ledger now use the corrected values.
 
 Gate 39 remains 🟧 OPEN because CI does not prove owner-host route isolation, operator-token injection/rotation, journal survival on the actual host restart, or a real induced-failure → escalation → acknowledgement → recovery drill. No live Firebase delivery or external notification channel is claimed. No indicator formula or visual implementation changed.
+
+
+## Batch 62J-44 — Gate 38 bounded metrics hardening (20 November 2026)
+
+No indicator source, calculation, chart UI, or formula changed in this batch. Indicator status and warm-up contracts remain exactly as listed above. This is deliberate: Stage 1 remains active, and indicator overlays/panes are Stage 4 scope.
+
+- The observability metrics implementation now saturates request, histogram and bucket counters at 2^53 - 1, preserving exact JSON integer representation.
+- Accumulated duration is capped at 86,400,000 × (2^53 - 1) milliseconds, a finite bound derived from the existing one-day per-sample cap.
+- Added a regression test that seeds each accumulator at its ceiling, records another sample, and verifies no counter, bucket or duration exceeds its ceiling.
+- Existing controls remain: 127 total metric series including overflow, allowlisted methods, finite status classes, normalized route labels, process-local metrics, token-gated endpoint, constant-time Bearer comparison, no-store responses and omission of raw URL/query/path parameters/headers/client address from request logs.
+- Latest source commit: 040c479bb01fd3d6d8f293aab7831164343ecac8. Latest regression-test commit: a6acf605a44fe356602f92e8bc8e31d1f8e547b6. Exact-head CI is pending and must be checked before calling the batch verified.
+- Gate 38 remains 🟧 OPEN for host firewall/reverse-proxy restriction, real operator-token injection/rotation, bounded host-log/collector retention, disk-pressure behavior, real credential-redaction review and dashboard access acceptance.
+- Stage 1 remains 30/40 = 75% provisional; no tick is added without explicit mapping to an approved criterion. Gate 10 remains 10/10 🟧 / 0 closed. No overall project or aggregate indicator percentage is invented.
+- ZERO COST; no deployment, paid service, main-branch change, Termux or device operation.
