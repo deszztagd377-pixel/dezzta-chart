@@ -1,13 +1,51 @@
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 20 November 2026  
+**Checkpoint:** 20 November 2026 — Batch 62J-20 exact-head reconciliation  
 **Active branch:** `phase-2/market-data-foundation`  
 **Latest fully CI-verified code HEAD:** `468d0aa4a348d997dc7affb71374bc8712cfc39d`  
-**Latest documentation checkpoint before this refresh:** `ce4a88f24a4372a0e44c9797ef9a462d9fd81365`  
-**Current audit batch:** 62J-18 gate-state reconciliation + multi-instance acceptance planning  
+**Latest documentation checkpoint before this refresh:** `a91a104db0acc6391d1511f65e881642b766d81e`  
+**Current audit batch:** 62J-20 source audit — WebSocket ASGI integration boundary + indicator implementation reconciliation  
 **Cost policy:** ZERO COST. No paid providers, hosting, deployments, Vercel/Cloudflare actions, or Termux requirement.
 
 > This document is the current concise dashboard. Historical work-cycle reports remain the evidence trail. Do not infer that a docs-only commit has rerun or revalidated code CI.
+
+
+## 0. Batch 62J-20 — exact-head reconciliation (20 November 2026)
+
+**Audited branch HEAD before this documentation update:** `a91a104db0acc6391d1511f65e881642b766d81e`  
+**Runtime code checkpoint:** `468d0aa4a348d997dc7affb71374bc8712cfc39d`  
+**CI on exact branch HEAD `a91a104db0acc6391d1511f65e881642b766d81e`:** Automated Tests run `44644831052` SUCCESS • CodeQL run `44644831073` SUCCESS • Full Git History Secret Audit run `44644831088` SUCCESS.
+
+This is a documentation/evidence refresh. No runtime source or test code changed in this cycle. The latest code checkpoint remains `468d0aa...`; the current branch head is a docs-only descendant. The successful workflows above validate the exact documentation HEAD and its included code.
+
+### WebSocket source audit — concrete integration boundary
+
+- `backend/app/main.py` still creates `SQLiteOhlcvStore`, `OhlcvPipeline` and `OhlcvStreamHub` as its live WebSocket read path.
+- `/ws/market-data` obtains its snapshot cursor from the source SQLite outbox and subscribes to the in-memory source pipeline/hub.
+- The Redis publisher, per-gateway consumer, replica SQLite, replica bridge and worker lifecycle are implemented/tested as separate foundations, but are not wired into FastAPI lifespan or the production route.
+- Existing two-process tests prove independent Redis consumers and durable replica files. They do not start two independent ASGI servers.
+- Snapshot installation still requires a local verified artifact. No production snapshot distribution transport is selected.
+- Therefore do not combine source-SQLite snapshot reads with Redis-replica live events. That would mix cursor domains and risk missing/duplicate updates.
+
+**Next safe technical sequence:** (1) settle owner-approved snapshot transport/topology, (2) implement a replica-backed read adapter while preserving source mode as default, (3) add opt-in fail-closed lifespan ownership, (4) start two real ASGI processes in existing Redis 7 CI with distinct replica SQLite files, (5) add restart/outage/re-snapshot/cursor-parity acceptance, and only then (6) consider production enablement after owner-provisioned TLS/ACL proof. No new Redis service or paid infrastructure is needed for the CI harness.
+
+### Indicator source audit
+
+- `indicatorCalculations.ts` contains SMA20, SMA-seeded EMA20, Wilder RSI14, MACD12/26/9 and Bollinger20,2 calculations.
+- `useMarketIndicators.ts` consumes the shared validated backend snapshot and suppresses DEMO/loading/unavailable/error values.
+- `CandlestickChart.tsx` currently creates only the candlestick series; it does not import/use the indicator hook or render indicator overlays/panes.
+- `docs/INDICATOR_UI_BLUEPRINT.md` remains PARKED for Stage 4 and explicitly does not authorize visible indicator implementation during Stage 1.
+- No indicator status or percentage is increased by this audit or by WebSocket CI.
+
+### Current control totals
+
+- Stage 1: 30/40 criteria = 300/400 ticks = **75% provisional**.
+- Gate 10: **10/10 ORANGE, 0/10 formally closed** — IDs 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.
+- Stages 2–6: not scored.
+- Overall project percentage: not established; M1–M8 weights are not approved.
+- Indicator aggregate percentage: not established; no approved weighted acceptance denominator.
+- Cost: ZERO COST. No Vercel/Cloudflare deployment, no paid service, no `main` changes, no Termux requirement.
+
 
 ## 1. Project-level progress
 
