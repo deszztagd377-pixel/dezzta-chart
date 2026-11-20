@@ -1,9 +1,9 @@
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 20 November 2026 — Batch 62J-39 WebSocket ticket-endpoint retry regression; Gate 39/30/38 follow-up audit  
+**Checkpoint:** 20 November 2026 — Batch 62J-39 WebSocket ticket-endpoint retry regression; exact-head CI fully green  
 **Active branch:** `phase-2/market-data-foundation`  
-**Source/test HEAD:** `734cd20d7525e9d67f6a045dc13a98410e26cdd0`  
-**Exact source/test HEAD CI:** Automated Tests [44717816608](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44717816608) SUCCESS • CodeQL [44717816621](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44717816621) SUCCESS • Full Git History Secret Audit [44717816577](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44717816577) SUCCESS • Android debug APK build [44717816593](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44717816593) SUCCESS.  
+**Source/test HEAD:** `13d0b48adf8fbd040b22689e83160b2945f07a5c`  
+**Exact source/test HEAD CI:** Automated Tests [44719780403](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44719780403) SUCCESS • CodeQL [44719780163](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44719780163) SUCCESS • Full Git History Secret Audit [44719780242](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44719780242) SUCCESS • Android debug APK build [44719780305](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44719780305) SUCCESS.  
 **WebSocket E:** COMPLETE FOR DEFINED AUTOMATED FAILURE-MATRIX SCOPE at Batch 62J-31; public WSS and production operations remain separate.  
 **Current Gate 10 work:** WebSocket automated E matrix is complete for defined CI scope; Gate 36 still requires owner-host public WSS/browser/Android acceptance. Gate 39 remains open pending bounded FCM worker design approval and real operator incident-response acceptance. Android update signing/readiness is documented separately.  
 **Cost policy:** ZERO COST. Existing repository CI and temporary SQLite fixtures only; no paid provider, hosting, deployment, Vercel/Cloudflare action, or Termux requirement.
@@ -573,3 +573,14 @@ ZERO COST: no paid service, deployment, Vercel/Cloudflare action, Termux operati
 ### Batch 62J-39 CI correction note
 
 The first exact-head Automated Tests run caught an incorrect regression-test timing assumption. The supervisor's full-jitter formula produces a 50 ms first retry when `minReconnectDelayMs=100` and `random()=0`; the test incorrectly assumed 100 ms. The test is corrected to assert no retry at 49 ms and retry at 50 ms. This does not change production backoff behavior. The corrected exact-head CI is pending and remains the acceptance authority.
+
+
+### Batch 62J-39 exact-head CI closure
+
+Source/test HEAD `13d0b48adf8fbd040b22689e83160b2945f07a5c` passed all four exact-head workflows:
+- Automated Tests & Build: run 44719780403 SUCCESS.
+- CodeQL JavaScript/TypeScript + Python: run 44719780163 SUCCESS.
+- Full Git History Secret Audit: run 44719780242 SUCCESS.
+- Android debug APK build: run 44719780305 SUCCESS; preview publication skipped.
+
+Frontend: 243 tests across 29 files. Backend: 1,172 passed, 6 warnings in 43.42 seconds. Frontend build and secret scans, backend dependency audit, backend container build, shared Redis guard/persistent-volume smoke, container image scan and vulnerability-report export all passed. This validates repository/CI scope only; it does not close owner-host Gate 25/30/31/34/35/36/38/39 acceptance.

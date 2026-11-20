@@ -34,9 +34,26 @@ No production WebSocket code, auth protocol, reconnect policy, dependencies, or 
 
 The first exact-head run exposed an incorrect test expectation, not a runtime defect. The supervisor uses bounded jitter: `delay = floor(exponential × (0.5 + random × 0.5))`. With `minReconnectDelayMs = 100` and deterministic `random() = 0`, the first delay is `100 × 0.5 = 50 ms`, not 100 ms. The regression test initially advanced 99 ms and correctly observed that the retry had already occurred. The assertion was corrected to check at 49 ms and then at 50 ms. This preserves the production backoff policy and tests its exact deterministic lower-bound behavior.
 
-## 4. Validation boundary
+## 4. Exact-head validation
 
-The exact resulting commit triggers Automated Tests/Build, CodeQL, and Full Git History Secret Audit. These workflows must all conclude SUCCESS before the batch is declared CI-green. Existing passing evidence from Batch 62J-38 is not substituted for exact-head validation.
+The first run on the initial test commit exposed the test-only jitter timing assumption described above. After correcting the test to 49 ms / 50 ms, exact source/test HEAD `13d0b48adf8fbd040b22689e83160b2945f07a5c` passed all workflows:
+
+| Workflow | Run | Result |
+|---|---:|---|
+| Automated Tests & Build | [44719780403](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44719780403) | SUCCESS |
+| CodeQL JavaScript/TypeScript + Python | [44719780163](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44719780163) | SUCCESS |
+| Full Git History Secret Audit | [44719780242](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44719780242) | SUCCESS |
+| Android debug APK build | [44719780305](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44719780305) | SUCCESS; preview publication skipped |
+
+- Frontend: **243 tests passed across 29 files**.
+- Backend: **1,172 passed, 6 warnings in 43.42 seconds**.
+- Frontend production build, frontend secret scans, backend dependency audit: SUCCESS.
+- Backend container image build: SUCCESS.
+- Shared Redis guard + persistent-volume smoke test: SUCCESS.
+- Container image scan and vulnerability-report export: SUCCESS.
+- Android debug APK assembled, SHA-256 calculated and uploaded as a short-lived CI artifact; no preview release was published.
+
+The successful exact-head result verifies the retry regression and the unchanged repository suite. It does not prove public WSS, real Firebase project behavior, or owner-device acceptance.
 
 ## 5. Gate 10 reconciliation
 
