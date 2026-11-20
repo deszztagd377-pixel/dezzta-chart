@@ -603,3 +603,8 @@ Source/test HEAD `54ff8d29db51c87c3b5e3d0a2105e780a9287087` passed:
 - Full Git History Secret Audit: [44722148046](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44722148046) SUCCESS.
 
 Backend: **1,180 passed, 6 warnings in 36.91 seconds**. Frontend tests/build/secret scans, backend dependency audit, backend image build, shared Redis/persistent-volume smoke test, container image scan and vulnerability report export all passed. This is repository CI evidence only; Gate 39 still requires owner-host incident response and recovery acceptance. No indicator code changed.
+
+
+## Batch 62J-41 — Gate 39 deadline accounting correction
+
+A source audit identified that synchronous `Process.start()` latency was not deducted from the 60-second event deadline. The implementation now establishes the monotonic deadline before process startup and gives IPC polling only the remaining budget; a regression test covers startup exceeding the deadline and verifies child termination. The Python wrapper cannot preempt a `Process.start()` call that itself blocks inside the host/OS, and the report explicitly preserves this limitation. Gate 39 remains 🟧 OPEN pending exact-head CI plus owner-host induced-failure alert, operator acknowledgement/escalation and incident-recovery acceptance. No indicator implementation changed or completion credit was awarded.

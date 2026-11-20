@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import multiprocessing
 import re
+import time
 from types import SimpleNamespace
 from typing import Any, Callable
 
@@ -100,11 +101,16 @@ def _run_bounded_process(
     )
     started = False
     cleanup_attempted = False
+    # Charge process creation/startup against the same wall-clock event budget.
+    # multiprocessing.Process.start() is synchronous and cannot itself be
+    # preempted here; if it returns late, the child is stopped immediately.
+    deadline = time.monotonic() + timeout_seconds
     try:
         process.start()
         started = True
         send_connection.close()
-        if not receive_connection.poll(timeout_seconds):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0 or not receive_connection.poll(remaining):
             cleanup_attempted = True
             _stop_process(process)
             raise TimeoutError("FCM event delivery exceeded its deadline.")

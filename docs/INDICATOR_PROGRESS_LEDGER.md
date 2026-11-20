@@ -581,3 +581,8 @@ No indicator percentage is awarded. Stage 1 remains 30/40 = 75% provisional; Sta
 ## Batch 62J-40 exact-head CI evidence
 
 The FCM child-process isolation source/test HEAD `54ff8d29db51c87c3b5e3d0a2105e780a9287087` passed Automated Tests & Build (44722147998), CodeQL JS/TS + Python (44722148055), and Full Git History Secret Audit (44722148046). Backend tests: 1,180 passed, 6 warnings in 36.91 seconds. Backend image build, shared Redis/persistent-volume smoke, image scan and vulnerability-report export passed. This does not establish real Firebase delivery or owner-host Gate 39 incident-response acceptance.
+
+
+### Batch 62J-41 — 20 November 2026
+
+Gate 39 FCM deadline accounting was hardened: the monotonic 60-second budget now starts before synchronous process startup, so spawn time is deducted from the remaining IPC wait. A regression test simulates startup exceeding the budget and checks that the child is terminated. Limitation: the synchronous `Process.start()` call itself cannot be preempted if the host/OS blocks inside process creation. This is source/test hardening only; exact-head CI must pass before verification, and Gate 39 remains open for external operator alert/acknowledgement/escalation and recovery acceptance. Indicator statuses remain unchanged; no indicator credit. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 unscored; overall project and indicator aggregate percentages remain unestablished.

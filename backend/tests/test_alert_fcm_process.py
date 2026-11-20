@@ -134,3 +134,60 @@ def test_isolated_sender_rejects_incomplete_event_before_starting_child():
     with pytest.raises(ValueError, match="incomplete"):
         sender(_event(event_id=None))
     assert started is False
+
+
+def test_spawn_startup_time_consumes_event_deadline(monkeypatch):
+    import app.alert_fcm_process as isolated
+
+    clock = {"now": 10.0}
+    observed = {"terminated": False, "closed": False}
+
+    class FakeConnection:
+        def poll(self, timeout):
+            observed["poll_timeout"] = timeout
+            return False
+
+        def close(self):
+            observed["connection_closed"] = True
+
+    class FakeProcess:
+        exitcode = -15
+
+        def start(self):
+            # Simulate spawn startup consuming more than the 100 ms budget.
+            clock["now"] += 0.2
+            self.alive = True
+
+        def is_alive(self):
+            return self.alive
+
+        def terminate(self):
+            observed["terminated"] = True
+            self.alive = False
+
+        def join(self, timeout=0):
+            observed.setdefault("join_timeouts", []).append(timeout)
+
+        def close(self):
+            observed["closed"] = True
+
+    class FakeContext:
+        def Pipe(self, duplex=False):
+            return FakeConnection(), FakeConnection()
+
+        def Process(self, **kwargs):
+            return FakeProcess()
+
+    monkeypatch.setattr(isolated.multiprocessing, "get_context", lambda method: FakeContext())
+    monkeypatch.setattr(isolated.time, "monotonic", lambda: clock["now"])
+
+    with pytest.raises(TimeoutError, match="exceeded its deadline"):
+        isolated._run_bounded_process(
+            _child_send_value,
+            ({"ok": True},),
+            timeout_seconds=0.1,
+        )
+
+    assert observed["terminated"] is True
+    assert observed["closed"] is True
+    assert observed["poll_timeout"] if "poll_timeout" in observed else True

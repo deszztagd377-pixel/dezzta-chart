@@ -81,3 +81,14 @@ Existing fan-out tests continue to cover owner-scoped delivery, invalid-token re
 - `docs/PROJECT_PROGRESS_INDICATOR_CURRENT.md`
 - `docs/INDICATOR_PROGRESS_LEDGER.md`
 - `docs/WORK_CYCLE_2026-11-20_BATCH62J40_FCM_PROCESS_ISOLATION_DEADLINE.md` (new)
+
+
+## Batch 62J-41 — FCM startup-inclusive event deadline audit
+
+A source audit found that the 60-second deadline was previously started only after synchronous `multiprocessing.Process.start()` returned. This meant process-spawn startup latency was not deducted from the event budget, despite the documented deadline covering startup.
+
+The implementation now records an absolute `time.monotonic()` deadline before `process.start()`. After startup, the parent computes only the remaining budget for IPC result polling; if startup has consumed the deadline, the child is terminated immediately and the event is returned as retryable timeout. A regression test simulates spawn startup exceeding the configured budget and asserts termination.
+
+**Hard boundary:** Python's synchronous `Process.start()` call cannot itself be preempted by this wrapper. If the host/OS blocks inside process creation, application code cannot guarantee a 60-second wall-clock return. The event budget now correctly includes elapsed startup whenever `start()` returns, but this does not claim protection from an uninterruptible OS-level spawn stall. The existing child execution timeout, terminate/kill grace and lease arithmetic remain 60 + 4 + 10 = 74 seconds, with 16 seconds reserve at the 90-second minimum lease and 46 seconds at the 120-second default.
+
+This is a Gate 39 source/test hardening, not formal Gate 39 closure. Exact-head CI is required before the change is marked verified. No live Firebase send, owner-host incident drill, operator acknowledgement/escalation, Termux action, deployment, paid service, or `main` change occurred.
