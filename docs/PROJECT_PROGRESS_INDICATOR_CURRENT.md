@@ -1,16 +1,30 @@
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 20 November 2026 — Batch 62J-46 Firebase ID-token deadline hardening; exact-head CI verified
+**Checkpoint:** 20 November 2026 — Batch 62J-47 cross-account WebSocket ticket-renewal regression; exact-head CI verified
 **Active branch:** `phase-2/market-data-foundation`
-**Latest source/test HEAD:** `4af91275f4830006934bc765671c92a80e51733a` (Batch 62J-46 Firebase ID-token deadline hardening; exact-head CI passed). **Latest documentation HEAD:** `33d56d16755baf442b38f4b5cc8a9df2aa334e05` (dashboard reconciliation only; no runtime/test changes).
-**Last fully verified parent checkpoint `eea2a49`:** Automated Tests [44745105194](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44745105194) SUCCESS • CodeQL [44745104834](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44745104834) SUCCESS (JavaScript/TypeScript + Python) • Full Git History Secret Audit [44745105161](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44745105161) SUCCESS. The new remote-access documentation commit is docs-only; its own CI must be checked separately. No Android APK workflow was triggered.
+**Latest source/test HEAD:** `826bae749f48e844f5fddb82dfec396bb3f9baa7` (test-only cross-account renewal regression; exact-head CI passed). Runtime source is unchanged from the preceding verified source checkpoint.
+**Exact-head Automated Tests & Build:** [44751619536](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44751619536) SUCCESS • Frontend 245/245 across 29 files • Backend 1,198 passed, 6 warnings.
+**Exact-head CodeQL:** [44751619516](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44751619516) SUCCESS • **Full Git History Secret Audit:** [44751619621](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44751619621) SUCCESS.
 **WebSocket E:** COMPLETE FOR DEFINED AUTOMATED FAILURE-MATRIX SCOPE at Batch 62J-31; public WSS and production operations remain separate.
-**Current Gate 10 work:** Gate 39 now includes bounded FCM child-process isolation, persistent local SQLite incident journal, separate operator-token protection, acknowledgement/resolution endpoints, and three-step log escalation. Owner-host network restriction, secret injection/rotation, restart persistence, and live incident/recovery drill remain open. Gate 36 still requires public WSS/browser/Android acceptance.
+**Gate 20 repository evidence:** WebSocket ticket renewal now has explicit cross-account rejection coverage; real Firebase project signed-token, expiry/revocation and browser/Android reconnect acceptance remain open.
+**Current Gate 10 work:** Gate 39 includes bounded FCM child-process isolation, persistent local SQLite incident journal, separate operator-token protection, acknowledgement/resolution endpoints and three-step log escalation. Owner-host network restriction, secret injection/rotation, restart persistence and live incident/recovery drill remain open. Gate 36 still requires public WSS/browser/Android acceptance.
 **Cost policy:** ZERO COST. No paid provider, hosting, deployment, Vercel or Cloudflare deployment action. Termux/device operation has not been executed; owner-host runtime access is still required.
 **Cross-device target:** Android/iOS/tablet/PC/laptop over Wi-Fi or mobile data is a required product goal. APK sideloading does not remove the backend requirement. The approved near-term work is local/LAN validation on owner hardware; a reliable public internet endpoint remains BLOCKED until a zero-cost, owner-controlled always-on host and reachable network path are demonstrated. Do not treat temporary tunnels or private mesh VPNs as public production hosting.
 
 > This document is the current concise dashboard. Historical work-cycle reports remain the evidence trail. Do not infer that a docs-only commit has rerun or revalidated code CI.
 
+
+## Batch 62J-47 — cross-account WebSocket ticket renewal regression (20 November 2026)
+
+**Exact source/test HEAD:** `826bae749f48e844f5fddb82dfec396bb3f9baa7`
+
+- Added `test_websocket_ticket_renewal_rejects_ticket_for_different_subject` in `backend/tests/test_api.py`.
+- The test authenticates a socket as account A, then attempts renewal using a valid single-use ticket issued to account B. It verifies the server rejects the mismatched subject and closes with code `4401`.
+- This is regression coverage for an existing server-side subject comparison; no production runtime code or protocol changed.
+- Exact-head Automated Tests & Build [44751619536](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44751619536): **SUCCESS** — frontend 245/245 across 29 files; backend 1,198 passed with 6 warnings. Frontend dependency audit reported 0 vulnerabilities; backend dependency audit reported no known vulnerabilities. Container build, Redis ACL/AOF + mounted-volume smoke test, Trivy HIGH/CRITICAL scan and report export passed.
+- Exact-head CodeQL [44751619516](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44751619516): **SUCCESS**. Full Git History Secret Audit [44751619621](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44751619621): **SUCCESS**.
+- Detailed evidence: [WORK_CYCLE_2026-11-20_BATCH62J47_CROSS_ACCOUNT_WEBSOCKET_RENEWAL.md](WORK_CYCLE_2026-11-20_BATCH62J47_CROSS_ACCOUNT_WEBSOCKET_RENEWAL.md).
+- Gate 20 remains 🟧 OPEN pending real Firebase project and client acceptance. Gate 10 remains 0/10 closed. Stage 1 remains 30/40 criteria = 300/400 ticks = 75% provisional; no tick awarded. No Termux operation, deployment, paid service, or `main` modification.
 
 ## Batch 62J-46 — bounded Firebase ID-token acquisition (20 November 2026)
 
