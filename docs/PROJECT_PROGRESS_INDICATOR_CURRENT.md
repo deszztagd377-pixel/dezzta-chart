@@ -2,9 +2,9 @@
 
 **Checkpoint:** 20 November 2026  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest code HEAD (62J-16; CI pending):** `3131284cae1971740d1845b196ec3d972dc4479b`  
-**Latest documentation checkpoint previously recorded:** `ef2bfe439879b92cf73f74f0d6abdbf96db6dfe9`  
-**Current audit batch:** 62J-16 — Worker lifecycle and callback deadline regression coverage  
+**Latest code HEAD verified by CI:** `468d0aa4a348d997dc7affb71374bc8712cfc39d`  
+**Latest documentation checkpoint before this refresh:** `468d0aa4a348d997dc7affb71374bc8712cfc39d`  
+**Current audit batch:** 62J-16 CI verification + WebSocket reliability acceptance planning  
 **Cost policy:** ZERO COST. No paid providers, hosting, deployments, Vercel/Cloudflare actions, or Termux requirement.
 
 > This document is the current concise dashboard. Historical work-cycle reports remain the evidence trail. Do not infer that a docs-only commit has rerun or revalidated code CI.
@@ -103,7 +103,7 @@ Extended `backend/tests/test_ohlcv_event_loop.py`:
 - The pending async callback is cancelled before dispatcher return is accepted as complete.
 - Existing tests continue to cover owner-loop execution, callback completion, callback exceptions, closed loops and callback-raised timeout distinction.
 
-**Verification boundary:** these tests were committed but no exact-head CI result has yet been recorded in this work cycle. Do not mark them green until GitHub Actions reports success for the exact code head. No source runtime change, deployment, paid service or Termux use.
+**Verification boundary (corrected 20 Nov 2026):** the subsequent documentation HEAD `468d0aa4a348d997dc7affb71374bc8712cfc39d` ran the complete CI successfully. The 62J-16 code commit `3131284cae1971740d1845b196ec3d972dc4479b` is an ancestor of that tested HEAD; the docs-only commit changed no runtime or test source. No source runtime change, deployment, paid service or Termux use.
 
 ## 4. Complete indicator progress ledger
 
@@ -165,3 +165,18 @@ Extended `backend/tests/test_ohlcv_event_loop.py`:
 - `main` must remain untouched; all work stays on `phase-2/market-data-foundation`.
 
 **Accounting rule:** Only verified code/tests change implementation status. Only owner-controlled evidence closes external gates. Documentation updates never manufacture implementation progress.
+
+
+## CI verification correction — 20 November 2026
+
+The exact current branch HEAD before this documentation refresh was `468d0aa4a348d997dc7affb71374bc8712cfc39d`. GitHub Actions reported all three workflows completed successfully for that exact SHA:
+
+- Automated Tests — run `44642566787`: SUCCESS. Backend tests, frontend tests/build, dependency audits, synthetic SQLite outbox benchmark, backend container build, Redis/persistent-volume smoke test and Trivy scan all completed successfully.
+- CodeQL Security Analysis — run `44642566989`: SUCCESS.
+- Full Git History Secret Audit — run `44642566911`: SUCCESS.
+
+This verifies the repository code and tests at that SHA. It does **not** prove multi-ASGI deployment, production Redis TLS/ACL provisioning, public WSS, Android/browser end-to-end acceptance, or any owner-controlled Gate closure. The earlier 62J-16 exact-code workflow attempts were cancelled by subsequent pushes; the full successful workflow ran on descendant SHA `468d0aa...`, which includes the 62J-16 code unchanged. Do not describe cancelled runs as failures or as successful runs.
+
+## Next WebSocket engineering batch
+
+Prioritize a reproducible two-ASGI-instance test harness over another isolated worker unit test. It must start two independently bound ASGI processes, share only the test Redis service, use distinct replica SQLite files, prove each gateway receives the same ordered event stream, and exercise restart/outage/re-snapshot paths. Inspect existing CI service orchestration before adding infrastructure. Do not wire workers into FastAPI startup until lifecycle ownership, snapshot provisioning, and TLS/ACL prerequisites are accepted.
