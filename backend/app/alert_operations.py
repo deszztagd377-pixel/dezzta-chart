@@ -87,7 +87,7 @@ class LocalAlertReporter:
         if signature == self._last_state:
             return
         self._record_incident(
-            fingerprint=f"alert_delivery_worker:{error_code}", category="alert_delivery",
+            fingerprint=f"alert_delivery_worker:{error_code.lower()}", category="alert_delivery",
             severity="critical", summary_code="worker_error",
         )
         self._logger.error(json.dumps({

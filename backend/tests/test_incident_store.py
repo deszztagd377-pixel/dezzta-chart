@@ -106,7 +106,7 @@ def test_worker_error_is_journaled_and_recovery_resolves_it(tmp_path):
     reporter.report_error(RuntimeError("sensitive provider response must not be stored"))
     rows=store.list_incidents()
     assert len(rows)==1
-    assert rows[0]["fingerprint"]=="alert_delivery_worker:RuntimeError"
+    assert rows[0]["fingerprint"]=="alert_delivery_worker:runtimeerror"
     assert rows[0]["summary_code"]=="worker_error"
     assert "sensitive provider response" not in str(rows)
     reporter.report_batch(claimed=0,delivered=0,retry_scheduled=0,terminal_failed=0,lease_lost=0)
