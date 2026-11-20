@@ -614,3 +614,8 @@ The source commit `417276d2838a9a93f1306d05efe5a1cdc8df66a9` completed all three
 - Full Git History Secret Audit: run `44726505520` — SUCCESS.
 
 This closes the source/CI verification portion of Batch 62J-42 only. Gate 39 remains 🟧 OPEN for owner-host validation: restrict internal routes at the network boundary, inject and rotate the separate operator token, verify journal persistence across the actual host restart, and perform a controlled incident → escalation → acknowledgement → recovery drill. No live host access or real operator acceptance is inferred from CI.
+
+
+## Gate 39 lease-budget arithmetic correction — 20 November 2026
+
+The Batch 62J-40 default lease reserve is **46 seconds**, not 48: 120 s lease − 60 s event deadline − 4 s maximum process cleanup − 10 s acknowledgement allowance = 46 s. The enabled-worker minimum lease remains 90 s, leaving 16 s at the minimum configuration. This correction is documentation-only and does not change indicator status.

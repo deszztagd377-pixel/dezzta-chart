@@ -71,3 +71,43 @@ def test_journal_list_limit_is_bounded(tmp_path):
     store=SQLiteIncidentStore(str(tmp_path/"incidents.sqlite3"))
     with pytest.raises(ValueError):
         store.list_incidents(limit=1000)
+
+
+def test_journal_capacity_fails_closed_without_dropping_open_incidents(tmp_path, monkeypatch):
+    import app.incident_store as incident_module
+    monkeypatch.setattr(incident_module, "_MAX_ROWS", 1)
+    store=SQLiteIncidentStore(str(tmp_path/"incidents.sqlite3"))
+    first=store.record_incident(fingerprint="alert_delivery_degraded",category="alert_delivery",
+        severity="warning",summary_code="delivery_attention",now_utc=_at())
+    with pytest.raises(IncidentCapacityError):
+        store.record_incident(fingerprint="alert_delivery_worker:error",category="alert_delivery",
+            severity="critical",summary_code="worker_error",now_utc=_at(1))
+    rows=store.list_incidents()
+    assert len(rows)==1 and rows[0]["incident_id"]==first["incident_id"]
+    assert rows[0]["status"]=="open"
+
+
+def test_journal_prunes_only_resolved_incidents_older_than_retention(tmp_path):
+    store=SQLiteIncidentStore(str(tmp_path/"incidents.sqlite3"))
+    old=store.record_incident(fingerprint="alert_delivery_degraded",category="alert_delivery",
+        severity="warning",summary_code="delivery_attention",now_utc=_at(-60*24*60))
+    store.resolve(old["incident_id"],now_utc=_at(-60*24*60+1))
+    active=store.record_incident(fingerprint="alert_delivery_worker:error",category="alert_delivery",
+        severity="critical",summary_code="worker_error",now_utc=_at())
+    rows=store.list_incidents()
+    assert [row["incident_id"] for row in rows]==[active["incident_id"]]
+
+
+def test_worker_error_is_journaled_and_recovery_resolves_it(tmp_path):
+    import logging
+    from app.alert_operations import LocalAlertReporter
+    store=SQLiteIncidentStore(str(tmp_path/"incidents.sqlite3"))
+    reporter=LocalAlertReporter(logging.getLogger("test.incident.worker-error"),incident_store=store)
+    reporter.report_error(RuntimeError("sensitive provider response must not be stored"))
+    rows=store.list_incidents()
+    assert len(rows)==1
+    assert rows[0]["fingerprint"]=="alert_delivery_worker:RuntimeError"
+    assert rows[0]["summary_code"]=="worker_error"
+    assert "sensitive provider response" not in str(rows)
+    reporter.report_batch(claimed=0,delivered=0,retry_scheduled=0,terminal_failed=0,lease_lost=0)
+    assert store.list_incidents()[0]["status"]=="resolved"
