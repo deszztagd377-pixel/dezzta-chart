@@ -20,6 +20,11 @@ GATEWAY_ACL_COMMANDS = (
     "+xreadgroup",
     "+xack",
     "+xrange",
+    "+set",
+    "+eval",
+    "+get",
+    "+pexpire",
+    "+del",
 )
 
 

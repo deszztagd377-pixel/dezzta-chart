@@ -29,6 +29,7 @@ def test_enabled_relay_requires_two_distinct_acl_identities():
     assert PUBLISHER_ACL_COMMANDS == ("+xadd", "+xrange")
     assert GATEWAY_ACL_COMMANDS == (
         "+xgroup|create", "+xautoclaim", "+xreadgroup", "+xack", "+xrange",
+        "+set", "+eval", "+get", "+pexpire", "+del",
     )
     assert "publish-secret" not in repr(config)
     assert "gateway-secret" not in repr(config)

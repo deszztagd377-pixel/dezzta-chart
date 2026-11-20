@@ -298,6 +298,7 @@ def create_app(
         incident_task = None
         provider_started = False
         replica_redis_client = None
+        ownership_lease = None
         try:
             if shared_guard is not None:
                 await shared_guard.start()
@@ -330,6 +331,17 @@ def create_app(
                 ):
                     raise RuntimeError("Replica consumer does not match its runtime store/client/stream.")
                 hydration = hydrate_replica_pipeline(replica_store, ohlcv_pipeline)
+                # One generation-scoped owner per local replica identity. The
+                # Redis lease is acquired before group access or consumption.
+                from app.ohlcv_redis_lease import RedisOhlcvConsumerLease
+                group_name = getattr(consumer, "group_name", None)
+                if not isinstance(group_name, str) or not group_name:
+                    raise RuntimeError("Replica consumer requires a generation-scoped group name.")
+                ownership_lease = RedisOhlcvConsumerLease(
+                    replica_redis_client, group_name=group_name,
+                )
+                await asyncio.to_thread(ownership_lease.acquire)
+                consumer.ownership_guard = ownership_lease
                 # Prove Redis connectivity and group readiness before the app
                 # accepts traffic; the worker must not hide a failed bootstrap.
                 await asyncio.to_thread(consumer.ensure_group)
@@ -337,7 +349,9 @@ def create_app(
                     asyncio.get_running_loop(),
                     lambda event: forward_replica_event(event, ohlcv_pipeline, stream_hub),
                 )
-                replica_worker = RedisOhlcvGatewayWorker(consumer, dispatcher)
+                replica_worker = RedisOhlcvGatewayWorker(
+                    consumer, dispatcher, ownership_lease=ownership_lease,
+                )
                 replica_worker.start()
                 application.state.ohlcv_replica_store = replica_store
                 application.state.ohlcv_replica_redis_client = replica_redis_client
@@ -437,6 +451,8 @@ def create_app(
             if replica_worker is not None:
                 stopped = await replica_worker.stop_async(timeout_seconds=3.0)
                 if stopped:
+                    if ownership_lease is not None:
+                        await asyncio.to_thread(ownership_lease.release)
                     close_client = getattr(replica_redis_client, "close", None)
                     if callable(close_client):
                         try:
@@ -455,6 +471,8 @@ def create_app(
                 replica_worker = None
                 application.state.ohlcv_replica_worker = None
             elif replica_redis_client is not None:
+                if ownership_lease is not None:
+                    await asyncio.to_thread(ownership_lease.release)
                 close_client = getattr(replica_redis_client, "close", None)
                 if callable(close_client):
                     if inspect.iscoroutinefunction(close_client):

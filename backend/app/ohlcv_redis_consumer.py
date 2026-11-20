@@ -80,6 +80,7 @@ class RedisOhlcvReplicaConsumer:
         self.block_ms = block_ms
         self.on_event_applied = on_event_applied
         self._pending_scan_id = "0-0"
+        self.ownership_guard: Any | None = None
 
     def _group_name_for_generation(self, generation: str) -> str:
         if not isinstance(generation, str) or not generation:
@@ -166,6 +167,8 @@ class RedisOhlcvReplicaConsumer:
     def _apply_and_ack(self, entries: list[tuple[Any, Any]], *, reclaimed: bool) -> dict[str, Any]:
         applied = duplicate = stale = acknowledged = 0
         for stream_id, fields in entries:
+            if self.ownership_guard is not None:
+                self.ownership_guard.assert_owned()
             event = self._decode_entry(stream_id, fields)
             result = self.replica_store.apply_replica_event(
                 event,
@@ -186,6 +189,8 @@ class RedisOhlcvReplicaConsumer:
             if status in {"applied", "duplicate"} and self.on_event_applied is not None:
                 self.on_event_applied(event)
             # Durable local transaction and local fan-out precede Redis ACK.
+            if self.ownership_guard is not None:
+                self.ownership_guard.assert_owned()
             acknowledged += int(
                 self.redis.xack(self.stream_key, self.group_name, stream_id) or 0
             )

@@ -30,6 +30,7 @@ class RedisOhlcvGatewayWorker:
         poll_interval_seconds: float = 0.05,
         initial_backoff_seconds: float = 0.25,
         max_backoff_seconds: float = 5.0,
+        ownership_lease: Any | None = None,
     ) -> None:
         if not callable(getattr(consumer, "consume_once", None)):
             raise TypeError("consumer must provide consume_once().")
@@ -60,6 +61,7 @@ class RedisOhlcvGatewayWorker:
 
         self.consumer = consumer
         self.dispatcher = dispatcher
+        self.ownership_lease = ownership_lease
         self.consumer.on_event_applied = dispatcher.dispatch
         self.poll_interval_seconds = float(poll_interval_seconds)
         self.initial_backoff_seconds = float(initial_backoff_seconds)
@@ -104,6 +106,8 @@ class RedisOhlcvGatewayWorker:
             self._state = "starting"
             self._last_error_type = None
             self._last_result_status = None
+            if self.ownership_lease is not None:
+                self.ownership_lease.start_heartbeat()
             self._thread = threading.Thread(
                 target=self._run,
                 name="dezzta-ohlcv-redis-consumer",
@@ -113,12 +117,15 @@ class RedisOhlcvGatewayWorker:
 
     def _run(self) -> None:
         from app.ohlcv_redis_consumer import ReplicaResnapshotRequired
+        from app.ohlcv_redis_lease import RedisOhlcvConsumerLeaseLost
 
         backoff = self.initial_backoff_seconds
         try:
             self._set_state("running")
             while not self._stop_event.is_set():
                 try:
+                    if self.ownership_lease is not None:
+                        self.ownership_lease.assert_owned()
                     result = self.consumer.consume_once()
                     status = result.get("status") if isinstance(result, dict) else None
                     self._set_state(
@@ -129,6 +136,9 @@ class RedisOhlcvGatewayWorker:
                     backoff = self.initial_backoff_seconds
                     if status == "idle":
                         self._stop_event.wait(self.poll_interval_seconds)
+                except RedisOhlcvConsumerLeaseLost as exc:
+                    self._set_state("ownership_lost", error_type=type(exc).__name__)
+                    return
                 except ReplicaResnapshotRequired as exc:
                     self._set_state(
                         "resnapshot_required",
@@ -170,8 +180,10 @@ class RedisOhlcvGatewayWorker:
         if thread.is_alive():
             self._set_state("stopping")
             return False
+        if self.ownership_lease is not None:
+            self.ownership_lease.stop_heartbeat()
         with self._lock:
-            if self._state != "resnapshot_required":
+            if self._state not in {"resnapshot_required", "ownership_lost"}:
                 self._state = "stopped"
         return True
 
