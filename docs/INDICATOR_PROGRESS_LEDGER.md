@@ -336,3 +336,5 @@ This validates the opt-in FastAPI lifecycle, replica snapshot, live Redis consum
 Indicator calculations and chart UI remain unchanged. No indicator progress is awarded for transport acceptance.
 
 62J-25 test-fixture note: the process acceptance uses the existing make_bar() helper, which emits UTC_LEGACY for backward compatibility. Its WebSocket series identity now explicitly requests UTC_LEGACY so the test validates exact matching rather than mixing it with the default UTC_FIXED_V1 selector.
+
+62J-25 harness note: the initial child process failed before server startup because the test harness used incorrect module ownership for CanonicalInstrument and ProviderInstrumentMapping. The imports now use app.instrument_identity and app.instrument_registry, matching the repository's actual structure.

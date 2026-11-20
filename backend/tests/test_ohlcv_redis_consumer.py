@@ -863,7 +863,8 @@ def _run_asgi_replica_gateway_process(
     from app.identity import IdentityVerificationError, VerifiedPrincipal
     from app.main import create_app
     from app.ohlcv_redis_consumer import RedisOhlcvReplicaConsumer
-    from app.symbology import CanonicalInstrument, ProviderInstrumentMapping
+    from app.instrument_identity import CanonicalInstrument
+    from app.instrument_registry import ProviderInstrumentMapping
 
     replica = SQLiteOhlcvReplicaStore(replica_path)
     redis_client = redis_module.Redis.from_url(

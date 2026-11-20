@@ -33,3 +33,7 @@ CI must pass on the exact resulting commit before this acceptance is marked veri
 ## Series identity fixture correction
 
 The process-level test uses make_bar(), whose legacy-compatible constructor explicitly defaults to UTC_LEGACY. The WebSocket subscription now requests that same bucket policy explicitly instead of relying on the 1-minute default selector (UTC_FIXED_V1). Exact series matching remains strict; the production path is not weakened.
+
+## Child-process import correction
+
+The first process-test run failed before ASGI startup because the child harness imported instrument registry types from app.symbology; the repository defines them in app.instrument_identity and app.instrument_registry. The child harness imports now match the actual module ownership. No application runtime source change was required.
