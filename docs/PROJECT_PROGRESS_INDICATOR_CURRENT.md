@@ -1,9 +1,9 @@
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 20 November 2026 — Batch 62J-43 Gate 39 incident-journal edge-case hardening; source/test CI fully green
+**Checkpoint:** 20 November 2026 — Batch 62J-44 Gate 38 bounded metrics hardening; latest source/test CI pending
 **Active branch:** `phase-2/market-data-foundation`
-**Source/test HEAD:** `b576bbaa6e8b22af2f11e1e3f06565250ac193a1`
-**Exact source/test HEAD CI:** Automated Tests [44739362168](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44739362168) SUCCESS • CodeQL [44739362102](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44739362102) SUCCESS • Full Git History Secret Audit [44739362274](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44739362274) SUCCESS. Backend tests: **1,196 passed, 6 warnings in 43.97 seconds**. Frontend tests/build, dependency audits, backend container build, shared Redis + persistent-volume smoke test, container scan and vulnerability report export all SUCCESS. No Android APK workflow was triggered.
+**Latest source/test HEAD:** `a6acf605a44fe356602f92e8bc8e31d1f8e547b6` (Gate 38 accumulator saturation; exact-head CI pending). **Last fully CI-verified source/test HEAD:** `b576bbaa6e8b22af2f11e1e3f06565250ac193a1`.
+**Last fully verified CI:** Automated Tests [44739362168](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44739362168) SUCCESS • CodeQL [44739362102](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44739362102) SUCCESS • Full Git History Secret Audit [44739362274](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44739362274) SUCCESS; 1,196 backend tests passed, 6 warnings in 43.97 seconds. The new Batch 62J-44 source/test commits have no verified exact-head CI result yet. No Android APK workflow was triggered.
 **WebSocket E:** COMPLETE FOR DEFINED AUTOMATED FAILURE-MATRIX SCOPE at Batch 62J-31; public WSS and production operations remain separate.
 **Current Gate 10 work:** Gate 39 now includes bounded FCM child-process isolation, persistent local SQLite incident journal, separate operator-token protection, acknowledgement/resolution endpoints, and three-step log escalation. Owner-host network restriction, secret injection/rotation, restart persistence, and live incident/recovery drill remain open. Gate 36 still requires public WSS/browser/Android acceptance.
 **Cost policy:** ZERO COST. Existing GitHub Actions and SQLite only; no paid provider, hosting, deployment, Vercel/Cloudflare action, or Termux operation.
@@ -655,3 +655,16 @@ Exact-head CI for `b576bbaa6e8b22af2f11e1e3f06565250ac193a1`:
 Lease arithmetic correction: 120 - 60 - 4 - 10 = **46 seconds** default reserve; at the 90-second minimum, reserve = **16 seconds**. The dashboard and ledger now use the corrected values.
 
 Gate 39 remains 🟧 OPEN because CI does not prove owner-host route isolation, operator-token injection/rotation, journal survival on the actual host restart, or a real induced-failure → escalation → acknowledgement → recovery drill. No live Firebase delivery or external notification channel is claimed. No indicator formula or visual implementation changed.
+
+
+## Batch 62J-44 — Gate 38 bounded metrics hardening (20 November 2026)
+
+**Source commit:** `040c479bb01fd3d6d8f293aab7831164343ecac8`  
+**Regression-test commit / latest source-test HEAD:** `a6acf605a44fe356602f92e8bc8e31d1f8e547b6`  
+**Exact-head CI:** PENDING / not verified at this documentation checkpoint. The previous verified code checkpoint is `b576bbaa6e8b22af2f11e1e3f06565250ac193a1` with 1,196 backend tests passed and all three recorded workflows SUCCESS.
+
+The Gate 38 source audit found that metric series cardinality was bounded but scalar accumulators had no explicit saturation ceilings. Request counters, histogram counts and bucket counts now saturate at `2^53 - 1`; accumulated duration saturates at `86,400,000 × (2^53 - 1)` ms. A regression test seeds the accumulators at their limits and verifies that a further observation cannot exceed them. Existing 127-series limit, overflow series, route/method normalization, process-local scope, token-gated endpoint, constant-time Bearer comparison, no-store headers and omission of raw request data remain intact.
+
+**Gate 38 remains 🟧 OPEN.** Host firewall/reverse-proxy restriction, operator-token injection/rotation, bounded host-log/collector retention, disk-pressure recovery, real credential-redaction review and dashboard access acceptance still require owner-host evidence. The application metrics are process-local and are not a durable host-log retention mechanism.
+
+**Project accounting:** Stage 1 remains 30/40 = 75% provisional; no tick is credited without approved criterion mapping. Gate 10 remains 10/10 🟧 ORANGE / 0 closed. Stages 2–6 and overall project percentage remain unscored. No indicator calculation or UI work changed; indicator statuses and warm-up boundaries remain unchanged. WebSocket E remains complete for the defined automated CI matrix only; production WSS and host operations remain open. ZERO COST; no deployment, paid service, main change, Termux or device operation.
