@@ -1,6 +1,6 @@
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 20 November 2026 — Batch 62J-45 Gate 30 runbook; remote-access architecture decision documented; documentation-head CI pending
+**Checkpoint:** 20 November 2026 — Batch 62J-46 Firebase ID-token deadline hardening; exact-head CI verified
 **Active branch:** `phase-2/market-data-foundation`
 **Latest source/test HEAD:** `a6acf605a44fe356602f92e8bc8e31d1f8e547b6` (Gate 38 accumulator saturation). **Verified code + Gate 30 runbook checkpoint:** `f26a0717098a008037144e38d28e5b4eafd35564`; subsequent commits in this documentation repair cycle change documentation only; runtime and test source remain unchanged.
 **Last fully verified parent checkpoint `eea2a49`:** Automated Tests [44745105194](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44745105194) SUCCESS • CodeQL [44745104834](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44745104834) SUCCESS (JavaScript/TypeScript + Python) • Full Git History Secret Audit [44745105161](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44745105161) SUCCESS. The new remote-access documentation commit is docs-only; its own CI must be checked separately. No Android APK workflow was triggered.
@@ -10,6 +10,23 @@
 **Cross-device target:** Android/iOS/tablet/PC/laptop over Wi-Fi or mobile data is a required product goal. APK sideloading does not remove the backend requirement. The approved near-term work is local/LAN validation on owner hardware; a reliable public internet endpoint remains BLOCKED until a zero-cost, owner-controlled always-on host and reachable network path are demonstrated. Do not treat temporary tunnels or private mesh VPNs as public production hosting.
 
 > This document is the current concise dashboard. Historical work-cycle reports remain the evidence trail. Do not infer that a docs-only commit has rerun or revalidated code CI.
+
+
+## Batch 62J-46 — bounded Firebase ID-token acquisition (20 November 2026)
+
+**Exact source/test HEAD:** `4af91275f4830006934bc765671c92a80e51733a`
+
+- The frontend OHLCV stream supervisor now bounds Firebase ID-token acquisition to 10 seconds by default (configurable, maximum 60 seconds) for both initial connection and WebSocket ticket renewal.
+- Pending token acquisition is cancelled when the supervisor is explicitly stopped. Existing terminal authentication and entitlement behavior is unchanged.
+- Added two regression tests: a token provider promise that never settles during initial connection, and one that never settles during ticket renewal.
+- Exact-head Automated Tests & Build [44748261197](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44748261197): **SUCCESS**. Frontend: **245 tests across 29 files passed**. Backend: **1,197 passed, 6 warnings in 55.67 seconds**. Frontend dependency audit, source/bundle secret scans, Android preflight/publisher tests, synthetic outbox benchmark, backend dependency audit, backend container build, Redis/persistent-volume smoke test, container scan and vulnerability-report export all completed successfully.
+- Exact-head CodeQL [44748261632](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44748261632): **SUCCESS** for JavaScript/TypeScript and Python.
+- Exact-head Full Git History Secret Audit [44748261135](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44748261135): **SUCCESS**.
+- Android debug APK build [44748261425](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44748261425): **SUCCESS**. Short-lived artifact `dezzta-chart-android-debug-apk` (artifact ID `14633533477`, 3,877,408 bytes) expires 27 November 2026. This is a CI artifact only; no preview release was published.
+- Two intermediate test runs exposed and then isolated test-timing defects; the final exact-head run above passed all checks. No failed intermediate result is represented as current acceptance.
+- Stage 1 remains **30/40 = 75% provisional**; no tick is awarded for this transport hardening. Gate 10 remains **0/10 formally closed**. The ten external criteria remain 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39.
+- No Termux/device command, live Firebase credential, provider feed, production host, public WSS, DNS, tunnel, paid service, deployment or `main` modification was used.
+
 
 ## Remote access architecture decision — 20 November 2026
 
