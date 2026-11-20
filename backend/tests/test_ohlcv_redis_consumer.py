@@ -1076,6 +1076,7 @@ def test_two_independent_asgi_processes_broadcast_replica_live_event(tmp_path):
     outage_markers = [
         f"{stream_key}:transient-read-failure:{index}" for index in range(2)
     ]
+    recovery_markers = [f"{marker}:recovered" for marker in outage_markers]
     try:
         for process in processes:
             process.start()
@@ -1084,7 +1085,6 @@ def test_two_independent_asgi_processes_broadcast_replica_live_event(tmp_path):
 
         # Both independent gateway processes must encounter the injected Redis
         # read failure before the source publishes the next durable cursor.
-        recovery_markers = [f"{marker}:recovered" for marker in outage_markers]
         marker_deadline = time.monotonic() + 10
         while time.monotonic() < marker_deadline:
             if all(redis.exists(marker) for marker in outage_markers) and all(
