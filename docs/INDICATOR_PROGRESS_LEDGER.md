@@ -562,7 +562,7 @@ Source/test HEAD `13d0b48adf8fbd040b22689e83160b2945f07a5c` passed Automated Tes
 
 ## Batch 62J-40 — FCM deadline / indicator boundary
 
-The Gate 39 worker now uses a disposable spawned child for each event fan-out, bounded to 60 seconds, with process termination and a 90-second minimum lease when enabled (60 s event + 2 s cleanup + 10 s acknowledgement = 72 s calculated; 18 s reserve at the minimum). This changes notification-worker reliability only.
+The Gate 39 worker now uses a disposable spawned child for each event fan-out, bounded to 60 seconds, with process termination and a 90-second minimum lease when enabled (60 s event + 4 s maximum cleanup + 10 s acknowledgement = 74 s calculated; 16 s reserve at the minimum). This changes notification-worker reliability only.
 
 **No indicator implementation changed.** Preserve all statuses and formula contracts:
 - SMA20 🟨 — rolling arithmetic mean; first valid index 19; chart overlay/toggle/legend/stale clearing/render tests remain.

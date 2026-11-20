@@ -27,21 +27,23 @@ The Firebase Admin Python sender is synchronous. Running it via `asyncio.to_thre
 | Component | Bound |
 |---|---:|
 | Child event deadline, including ADC startup, SQLite token reads, up to 10 sequential sends | 60 s |
-| Process exit grace before kill escalation | 2 s |
+| Terminate grace before kill escalation | 2 s |
+| Kill/reap grace | 2 s |
+| Maximum process cleanup | 4 s |
 | Parent outbox acknowledgement / SQLite contention allowance | 10 s |
-| Calculated minimum | 72 s |
+| Calculated minimum | 74 s |
 | Configured minimum lease when worker enabled | **90 s** |
 | Default configured lease | **120 s** |
 
 At the configured default, nominal reserve after the 60-second event deadline, 2-second process cleanup and 10-second acknowledgement allowance is:
 
-`120 - 60 - 2 - 10 = 48 seconds`
+`120 - 60 - 4 - 10 = 46 seconds`
 
 At the minimum permitted lease:
 
-`90 - 60 - 2 - 10 = 18 seconds`
+`90 - 60 - 4 - 10 = 16 seconds`
 
-The lease is validated only when the FCM worker is enabled; disabled installations retain existing settings compatibility. The worker's batch size remains 1, so there is no multiplication by multiple claimed events.
+The lease is validated only when the FCM worker is enabled; disabled installations retain existing settings compatibility. The cleanup implementation avoids repeating termination after the first bounded terminate/kill sequence. The worker's batch size remains 1, so there is no multiplication by multiple claimed events.
 
 ## Shutdown behavior
 

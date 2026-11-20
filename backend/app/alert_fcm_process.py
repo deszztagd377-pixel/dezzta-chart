@@ -99,11 +99,13 @@ def _run_bounded_process(
         daemon=True,
     )
     started = False
+    cleanup_attempted = False
     try:
         process.start()
         started = True
         send_connection.close()
         if not receive_connection.poll(timeout_seconds):
+            cleanup_attempted = True
             _stop_process(process)
             raise TimeoutError("FCM event delivery exceeded its deadline.")
         try:
@@ -112,6 +114,7 @@ def _run_bounded_process(
             raise RuntimeError("FCM child exited without a result.") from exc
         process.join(timeout=ALERT_FCM_PROCESS_EXIT_GRACE_SECONDS)
         if process.is_alive():
+            cleanup_attempted = True
             _stop_process(process)
             raise RuntimeError("FCM child did not exit after returning its result.")
         if process.exitcode != 0:
@@ -120,7 +123,8 @@ def _run_bounded_process(
             raise RuntimeError("FCM child returned an invalid result.")
         return result
     except Exception:
-        if started and process.is_alive():
+        if started and process.is_alive() and not cleanup_attempted:
+            cleanup_attempted = True
             _stop_process(process)
         raise
     finally:
