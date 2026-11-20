@@ -1,11 +1,10 @@
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 20 November 2026 — Batch 62J-23 opt-in replica runtime integration  
+**Checkpoint:** 20 November 2026 — Batch 62J-27 WebSocket integration reconciliation  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest fully CI-verified code HEAD:** `468d0aa4a348d997dc7affb71374bc8712cfc39d`  
-**Latest documentation checkpoint before this refresh:** `99bc549e95341310945b987ab4ae11a86c962ea9`  
-**Current audit batch:** 62J-21 documentation integrity repair + exact-head CI reconciliation  
-**Cost policy:** ZERO COST. No paid providers, hosting, deployments, Vercel/Cloudflare actions, or Termux requirement.
+**Latest branch HEAD / exact CI-verified commit:** `5c5205ebc5d6b58b8e177854edb79f93ba9ea118`  
+**Current audit batch:** 62J-27 — A–D integration verified; E failure matrix partially complete  
+**Cost policy:** ZERO COST. Existing Redis 7 CI service and temporary SQLite fixtures only; no paid providers, hosting, deployment, Vercel/Cloudflare action, or Termux requirement.
 
 > This document is the current concise dashboard. Historical work-cycle reports remain the evidence trail. Do not infer that a docs-only commit has rerun or revalidated code CI.
 
@@ -22,16 +21,17 @@ This is a documentation/evidence refresh and integrity repair. No runtime source
 
 The previous documentation update accidentally replaced the opening contents of `docs/INDICATOR_PROGRESS_LEDGER.md` with an object-string placeholder. This batch restores the complete ledger from its verified parent revision and appends the exact-head CI reconciliation. No indicator status or percentage is increased by this repair.
 
-### WebSocket source audit — concrete integration boundary
+### WebSocket integration audit — supersedes the 62J-21 snapshot
 
-- `backend/app/main.py` still creates `SQLiteOhlcvStore`, `OhlcvPipeline` and `OhlcvStreamHub` as its live WebSocket read path.
-- `/ws/market-data` obtains its snapshot cursor from the source SQLite outbox and subscribes to the in-memory source pipeline/hub.
-- The Redis publisher, per-gateway consumer, replica SQLite, replica bridge and worker lifecycle are implemented/tested as separate foundations, but are not wired into FastAPI lifespan or the production route.
-- Existing two-process tests prove independent Redis consumers and durable replica files. They do not start two independent ASGI servers.
-- Snapshot installation still requires a local verified artifact. No production snapshot distribution transport is selected.
-- Therefore do not combine source-SQLite snapshot reads with Redis-replica live events. That would mix cursor domains and risk missing/duplicate updates.
+The older 62J-21 statement that the replica worker and WebSocket route were not wired into FastAPI is historical and is superseded by batches 62J-22 through 62J-26. Current branch evidence at `5c5205ebc5d6b58b8e177854edb79f93ba9ea118` confirms:
 
-**Next safe technical sequence:** (1) settle owner-approved snapshot transport/topology, (2) implement a replica-backed read adapter while preserving source mode as default, (3) add opt-in fail-closed lifespan ownership, (4) start two real ASGI processes in existing Redis 7 CI with distinct replica SQLite files, (5) add restart/outage/re-snapshot/cursor-parity acceptance, and only then (6) consider production enablement after owner-provisioned TLS/ACL proof. No new Redis service or paid infrastructure is needed for the CI harness.
+- **A — Replica read model:** atomic replica bars/checkpoint snapshot, verified snapshot hydration, durable cursor checkpoint and bounded Redis replay are implemented.
+- **B — FastAPI lifecycle:** explicit injected `replica_runtime_factory`, runtime identity validation, Redis consumer-group readiness, pipeline hydration before worker start, one managed sequential worker per app instance, provider suppression in replica mode, and bounded worker shutdown are implemented.
+- **C — WebSocket route:** source SQLite remains the default; opt-in replica mode uses replica snapshot/checkpoint and Redis replay. The route does not combine source and replica cursor domains. Existing authentication, exact-series entitlement checks, lease refresh and queue handling remain in the shared route.
+- **D — Independent ASGI acceptance:** Redis 7 CI launches two independent Uvicorn/FastAPI processes with separate replica SQLite files and consumer identities. Both clients receive the same live event/cursor and both durable checkpoints advance.
+- **E — Failure/recovery matrix:** unit/integration coverage exists for pending reclaim, callback failure and retry, ACK-reply loss, consumer-group generation reset, cursor gaps/trim requiring resnapshot, worker retry/backoff and bounded shutdown, exact-series replay, and live/replay handoff. The two-ASGI test additionally reconnects with cursor 0 and verifies replay of cursor 1 through the actual route.
+
+**Important boundary:** this is opt-in repository/CI integration, not production activation. Snapshot distribution remains owner-provisioned/local-artifact responsibility; production TLS/ACL credentials and public WSS/browser/Android acceptance are not supplied by CI. Do not enable replica mode in production or mark external gates closed from these tests alone.
 
 ### Indicator source audit
 
@@ -106,18 +106,17 @@ Reviewed the Redis consumer, managed worker, event-loop dispatcher, replica brid
 - Dispatcher marshals work to the owning event loop and waits up to its configured deadline; callback errors/timeouts prevent ACK.
 - Managed worker has bounded exponential retry, terminal resnapshot-required state and bounded synchronous/asynchronous shutdown.
 - Snapshot/replay/live merge validates exact series identity, monotonic replay cursors, queued live cursor ordering and queue capacity; covered live events are discarded and newer events are resequenced.
-- The consumer worker is deliberately not wired into FastAPI startup. That is a safety boundary, not a completed production integration.
+- FastAPI now has an explicit opt-in replica runtime path with verified-snapshot hydration and managed worker lifecycle. Source-backed mode remains the default; production activation remains separately gated.
 
-### Remaining WebSocket acceptance blockers
+### Remaining WebSocket acceptance blockers — current position
 
-1. Separate independently started ASGI backend instances/containers with real shared Redis and independent replica SQLite files.
-2. End-to-end publisher restart, consumer restart, Redis outage/recovery, snapshot reinstallation and cursor parity under process/container failure.
-3. Owner-provisioned Redis TLS and least-privilege ACL credentials, including credential rotation and target-environment verification.
-4. Startup/shutdown orchestration and ownership proving exactly one sequential consumer worker per gateway replica group.
-5. Public WSS/browser/Android end-to-end verification.
-6. Retention/stream trimming policy and operational cleanup authorization. Runtime gateway ACL must not receive destructive group-destroy permissions.
+1. **Production snapshot transport and lifecycle:** the runtime factory expects an owner-provisioned verified local replica snapshot. No production artifact distribution/rotation contract is selected.
+2. **Failure matrix completion:** add real process-level restart/recovery scenarios for ASGI gateway restart, Redis outage/recovery, snapshot-generation replacement and post-recovery cursor parity. Existing lower-level tests cover several component failures, but not every scenario across two live ASGI processes.
+3. **Production Redis security:** owner-provisioned TLS, least-privilege per-instance ACL credentials, credential rotation and target-environment verification.
+4. **External acceptance:** public WSS endpoint, browser client and Android device end-to-end tests.
+5. **Operational governance:** retention/stream trimming policy, authorized cleanup procedure, runbook and owner-side recovery drill.
 
-Do not wire publisher/consumer into `main.py` until these prerequisites and lifecycle tests pass. No production secrets or ACL changes have been performed.
+The opt-in route/lifecycle and two-process ASGI proof are implemented. Do not repeat those as unstarted tasks. Do not mix cursor domains, enable production mode without verified snapshot/TLS/ACL prerequisites, or close Gate 25/34/36 based on CI-only evidence.
 
 ### CI evidence boundary
 
@@ -307,3 +306,19 @@ A new Redis 7 CI integration test launches two independent Uvicorn/FastAPI proce
 ## 0E. Batch 62J-26 — replica reconnect replay
 
 The two-ASGI integration test now also reconnects a client with durable cursor 0 after both replicas have applied cursor 1. The route must replay the Redis event with cursor 1, mark it replayed, and report replay completion at cursor 1. This adds end-to-end repository evidence for the replica-backed reconnect/replay handoff; it does not close the external WSS Gate 36.
+
+
+## 0F. Batch 62J-27 — exact-head integration and indicator reconciliation (20 November 2026)
+
+**Audited branch HEAD:** `5c5205ebc5d6b58b8e177854edb79f93ba9ea118`  
+**Exact-head CI:** Automated Tests run `44686658866` SUCCESS • CodeQL run `44686658770` SUCCESS • Full Git History Secret Audit run `44686658757` SUCCESS.
+
+The latest commit adds the reconnect replay assertion to the real two-ASGI-process test. The test now verifies both independent gateway replicas receive live cursor 1, then a reconnecting WebSocket client supplies cursor 0 and receives replay_started (0→1), the replayed event at cursor 1, and replay_complete at cursor 1. This is an actual FastAPI/WebSocket route test, not only a helper-level simulation.
+
+**A–D status:** implemented and CI-verified for the opt-in repository path. **E status:** partially complete; cross-process restart, Redis outage/recovery, snapshot-generation replacement and full recovery parity still need dedicated acceptance scenarios. Production snapshot transport, TLS/ACL provisioning and public WSS/browser/Android acceptance remain external prerequisites.
+
+**Indicator progress — unchanged by transport work:** SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, Shared Indicator Hook 🟨; Footprint 🟧 SIMULATED/gated; Heatmap 🟥; Liquidation Maps 🟥. Formula and warm-up contracts remain unchanged. Do not award indicator completion for WebSocket CI.
+
+**Project control:** Stage 1 remains 30/40 criteria = 300/400 ticks = 75% provisional. Gate 10 remains 10/10 🟧 ORANGE and 0/10 formally closed. Overall project percentage and aggregate indicator percentage remain unscored because their approved weights/denominators are absent.
+
+No runtime source code was changed in this reconciliation. No deployment, paid infrastructure, Vercel/Cloudflare action, `main` modification or Termux work was performed.
