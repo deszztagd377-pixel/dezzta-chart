@@ -764,6 +764,72 @@ def test_real_redis_gateway_worker_dispatches_and_shuts_down_cleanly(tmp_path):
         redis.close()
 
 
+class _TransientRedisReadOutage:
+    """Inject one temporary Redis read outage while preserving the real Redis client."""
+
+    def __init__(self, client):
+        self.client = client
+        self.failed_once = False
+
+    def __getattr__(self, name):
+        return getattr(self.client, name)
+
+    def xreadgroup(self, *args, **kwargs):
+        if not self.failed_once:
+            self.failed_once = True
+            raise ConnectionError("simulated transient Redis outage")
+        return self.client.xreadgroup(*args, **kwargs)
+
+
+def test_real_redis_worker_recovers_after_transient_connection_outage(tmp_path):
+    redis, stream_key = real_redis()
+    source = SQLiteOhlcvStore(str(tmp_path / "outage-source.sqlite3"))
+    snapshot_path = tmp_path / "outage-snapshot.jsonl"
+    make_snapshot(source, snapshot_path)
+    replica = make_replica(source, snapshot_path, tmp_path / "outage-replica.sqlite3")
+    pipeline = OhlcvPipeline()
+    hub = OhlcvStreamHub()
+    subscription, _, _, _ = subscribe_replica_snapshot(
+        replica, hub,
+        dataset="GLBX.MDP3", publisher_id=1, instrument_id=123,
+        raw_symbol="ESZ6", timeframe="1m", bucket_policy="UTC_LEGACY",
+        limit=10,
+    )
+    append_and_publish(source, redis, stream_key, 0)
+
+    async def scenario():
+        loop = asyncio.get_running_loop()
+        dispatcher = EventLoopCallbackDispatcher(
+            loop, lambda event: forward_replica_event(event, pipeline, hub),
+        )
+        consumer = make_consumer(
+            _TransientRedisReadOutage(redis), replica, stream_key,
+            "gateway-transient-outage", idle_ms=0,
+        )
+        worker = RedisOhlcvGatewayWorker(
+            consumer, dispatcher,
+            poll_interval_seconds=0.01,
+            initial_backoff_seconds=0.01,
+            max_backoff_seconds=0.05,
+        )
+        worker.start()
+        try:
+            message = await asyncio.wait_for(subscription.queue.get(), timeout=5)
+            assert message["cursor"] == "1"
+            assert replica.checkpoint()["applied_cursor"] == 1
+            assert consumer.redis.failed_once is True
+        finally:
+            assert await worker.stop_async(timeout_seconds=3)
+        assert worker.state["state"] == "stopped"
+        assert redis.xpending(stream_key, consumer.group_name)["pending"] == 0
+
+    try:
+        asyncio.run(scenario())
+    finally:
+        redis.delete(stream_key)
+        redis.close()
+
+
 def test_real_redis_snapshot_replay_live_handoff_preserves_boundary_sequence(tmp_path):
     redis, stream_key = real_redis()
     source = SQLiteOhlcvStore(str(tmp_path / "handoff-source.sqlite3"))
@@ -1054,6 +1120,58 @@ def test_two_independent_asgi_processes_broadcast_replica_live_event(tmp_path):
         assert replay_event["replayed"] is True
         assert replay_complete["type"] == "market_data.ohlcv.replay_complete"
         assert replay_complete["cursor"] == "1"
+
+        # Restart one real ASGI gateway without replacing its durable replica DB.
+        # The restarted process must bootstrap from cursor 1 and continue at 2.
+        processes[0].terminate()
+        processes[0].join(timeout=10)
+        assert not processes[0].is_alive()
+        processes[0] = context.Process(
+            target=_run_asgi_replica_gateway_process,
+            args=(
+                redis_url, stream_key, replica_paths[0], registry_paths[0],
+                "asgi-gateway-0-restarted", ports[0],
+            ),
+        )
+        processes[0].start()
+        _wait_for_asgi_health(processes[0], ports[0])
+
+        restarted_ws = connect(
+            f"ws://127.0.0.1:{ports[0]}/ws/market-data",
+            open_timeout=10, close_timeout=3, ping_interval=None,
+        )
+        sockets.append(restarted_ws)
+        restarted_ws.send(json.dumps({
+            "type": "auth", "token": "multi-asgi-process-token",
+        }))
+        restarted_status = json.loads(restarted_ws.recv(timeout=10))
+        assert restarted_status["type"] == "market_data.status"
+        restarted_ws.send(json.dumps({
+            "type": "market_data.subscribe",
+            "version": 1,
+            "canonicalInstrumentId": canonical_id,
+            "cursor": "1",
+            "series": {
+                "dataset": "GLBX.MDP3", "publisherId": 1,
+                "instrumentId": 123, "rawSymbol": "ESZ6",
+                "timeframe": "1m", "bucketPolicy": "UTC_LEGACY",
+            },
+        }))
+        restarted_snapshot = json.loads(restarted_ws.recv(timeout=10))
+        assert restarted_snapshot["type"] == "market_data.ohlcv.snapshot"
+        assert restarted_snapshot["cursor"] == "1"
+
+        assert append_and_publish(source, redis, stream_key, 1) == "appended"
+        continued_updates = [
+            json.loads(restarted_ws.recv(timeout=15)),
+            json.loads(sockets[1].recv(timeout=15)),
+        ]
+        assert all(item["type"] == "market_data.ohlcv.update" for item in continued_updates)
+        assert [item["cursor"] for item in continued_updates] == ["2", "2"]
+        assert all(
+            SQLiteOhlcvReplicaStore(path).checkpoint()["applied_cursor"] == 2
+            for path in replica_paths
+        )
     finally:
         for websocket in sockets:
             try:
