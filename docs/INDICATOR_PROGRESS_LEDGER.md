@@ -558,3 +558,21 @@ Batch 62J-39 test-harness correction: the first CI attempt showed that the deter
 ### Batch 62J-39 exact-head CI result
 
 Source/test HEAD `13d0b48adf8fbd040b22689e83160b2945f07a5c` passed Automated Tests & Build (run 44719780403), CodeQL JavaScript/TypeScript + Python (44719780163), Full Git History Secret Audit (44719780242), and Android debug APK build (44719780305). Frontend: 243 tests across 29 files. Backend: 1,172 passed, 6 warnings in 43.42 seconds. Backend container build, shared Redis/persistent-volume smoke, container image scan and vulnerability report export passed. Android preview release was skipped. This does not close owner-host acceptance gates or award indicator completion.
+
+
+## Batch 62J-40 — FCM deadline / indicator boundary
+
+The Gate 39 worker now uses a disposable spawned child for each event fan-out, bounded to 60 seconds, with process termination and a 90-second minimum lease when enabled (60 s event + 2 s cleanup + 10 s acknowledgement = 72 s calculated; 18 s reserve at the minimum). This changes notification-worker reliability only.
+
+**No indicator implementation changed.** Preserve all statuses and formula contracts:
+- SMA20 🟨 — rolling arithmetic mean; first valid index 19; chart overlay/toggle/legend/stale clearing/render tests remain.
+- EMA20 🟨 — SMA-seeded, alpha 2/21; first valid index 19; visual integration remains.
+- RSI14 🟨 — Wilder smoothing; first valid index 14; dedicated pane, 0–100 scale, 30/70 guides and lifecycle tests remain.
+- MACD12/26/9 🟨 — MACD first index 25; signal/histogram first index 33; pane/lines/histogram/zero guide remain.
+- Bollinger20,2 🟨 — population standard deviation; first valid index 19; band overlay and lifecycle tests remain.
+- Shared Indicator Hook 🟨 — validated backend snapshot foundation; active chart binding, loading/error, stale invalidation and series isolation remain.
+- Footprint 🟧 — SIMULATED only; wait for owner reference image and reviewed blueprint; OFF retains normal candles, explicit ON alone enables spaced cluster layout.
+- Heatmap 🟥 — not implemented; wait for owner reference, reviewed blueprint and validated data contract.
+- Liquidation Maps 🟥 — no validated data/calculation contract.
+
+No indicator percentage is awarded. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 unscored; overall M1–M8 and indicator aggregate percentages remain unestablished. Gate 10 closure remains 0/10 until external acceptance evidence is recorded.

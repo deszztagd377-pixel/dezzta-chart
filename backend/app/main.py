@@ -32,8 +32,7 @@ from app.alert_store import SQLitePriceAlertStore
 from app.alert_delivery import run_alert_delivery_batch
 from app.alert_operations import LocalAlertReporter
 from app.alert_device_store import AlertDeviceQuotaExceeded, SQLiteAlertDeviceStore
-from app.alert_fcm_delivery import build_alert_event_sender
-from app.fcm_sender import FirebaseCloudMessagingSender
+from app.alert_fcm_process import build_isolated_alert_event_sender
 from app.entitlements import SQLiteInstrumentEntitlementStore
 from app.identity import (
     FirebaseIdentityVerifier,
@@ -345,10 +344,11 @@ def create_app(
             if config.alert_delivery_worker_enabled:
                 if alert_device_store is None:
                     raise RuntimeError("Alert delivery worker requires the encrypted device store.")
-                fcm_sender = FirebaseCloudMessagingSender.from_application_credentials(
-                    config.firebase_project_id
+                event_sender = build_isolated_alert_event_sender(
+                    database_path=alert_device_store.database_path,
+                    encryption_key=config.alert_device_encryption_key,
+                    project_id=config.firebase_project_id,
                 )
-                event_sender = build_alert_event_sender(alert_device_store, fcm_sender)
 
                 async def alert_delivery_loop() -> None:
                     alert_delivery_status["state"] = "running"

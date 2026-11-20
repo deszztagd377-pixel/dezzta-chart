@@ -231,6 +231,7 @@ def test_alert_delivery_worker_requires_firebase_project_id():
         ("alert_delivery_batch_size", 0),
         ("alert_delivery_batch_size", 2),
         ("alert_delivery_lease_seconds", 29),
+        ("alert_delivery_lease_seconds", 89),
         ("alert_delivery_max_attempts", 33),
     ],
 )
@@ -256,3 +257,14 @@ def test_observability_metrics_token_is_redacted_and_requires_strong_value():
 def test_observability_metrics_token_rejects_weak_values(token):
     with pytest.raises(ValueError, match="32-256 non-whitespace"):
         make_settings(observability_metrics_token=token)
+
+
+def test_enabled_alert_delivery_accepts_lease_with_deadline_margin():
+    settings = make_settings(
+        alert_device_store_enabled=True,
+        alert_device_encryption_key=b"K" * 32,
+        alert_delivery_worker_enabled=True,
+        firebase_project_id="test-project",
+        alert_delivery_lease_seconds=90,
+    )
+    assert settings.alert_delivery_lease_seconds == 90

@@ -584,3 +584,12 @@ Source/test HEAD `13d0b48adf8fbd040b22689e83160b2945f07a5c` passed all four exac
 - Android debug APK build: run 44719780305 SUCCESS; preview publication skipped.
 
 Frontend: 243 tests across 29 files. Backend: 1,172 passed, 6 warnings in 43.42 seconds. Frontend build and secret scans, backend dependency audit, backend container build, shared Redis guard/persistent-volume smoke, container image scan and vulnerability-report export all passed. This validates repository/CI scope only; it does not close owner-host Gate 25/30/31/34/35/36/38/39 acceptance.
+
+
+## Batch 62J-40 — FCM bounded child-process isolation
+
+Source implementation adds a disposable `spawn` child for one alert event's maximum-10-device fan-out, with a 60-second total deadline and terminate/kill cleanup. Firebase ADC initialization and token decryption remain inside the child; decrypted FCM tokens do not cross IPC. Timeouts return a sanitized retryable outbox error. Existing stable `event_id` semantics remain at-least-once, not exactly-once.
+
+Lease calculation: 60 s event deadline + 2 s process-exit grace + 10 s acknowledgement allowance = 72 s; configured minimum is rounded up to 90 s when the worker is enabled. The default 120 s lease leaves 48 s nominal reserve. Batch size remains 1. Tests cover spawned-child result, timeout termination, IPC data boundary, sanitized timeout classification, invalid-token classification and incomplete-event rejection.
+
+This is source-level Gate 39 progress only. Exact-head CI must pass before acceptance. Owner-host induced-failure alert, operator acknowledgement/escalation and incident recovery remain open. No indicator code changed; all indicator statuses remain unchanged.

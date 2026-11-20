@@ -217,6 +217,14 @@ class Settings:
             )
         if self.alert_delivery_lease_seconds < 30:
             raise ValueError("alert_delivery_lease_seconds must be at least 30.")
+        if (
+            self.alert_delivery_worker_enabled
+            and self.alert_delivery_lease_seconds < 90
+        ):
+            raise ValueError(
+                "Enabled alert delivery requires a lease of at least 90 seconds "
+                "for the 60-second isolated event deadline and acknowledgement margin."
+            )
         if self.alert_delivery_max_attempts > 32:
             raise ValueError("alert_delivery_max_attempts must not exceed 32.")
         if self.app_env.strip().lower() == "production" and not self.redis_url:
