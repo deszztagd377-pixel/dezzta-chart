@@ -29,15 +29,23 @@ def hydrate_replica_pipeline(
         raise TypeError("replica_store must be a SQLiteOhlcvReplicaStore.")
     if not isinstance(pipeline, OhlcvPipeline):
         raise TypeError("pipeline must be an OhlcvPipeline.")
-    checkpoint = replica_store.checkpoint()
-    if checkpoint is None:
-        raise RuntimeError("A verified replica snapshot is required before hydration.")
-    bars = replica_store.load_bars()
+    snapshot = replica_store.load_snapshot()
+    checkpoint = snapshot.get("checkpoint")
+    bars = snapshot.get("bars")
+    if not isinstance(checkpoint, dict) or not isinstance(bars, list):
+        raise RuntimeError("Replica hydration returned an invalid atomic snapshot.")
+    applied_cursor = checkpoint.get("applied_cursor")
+    retention_floor = checkpoint.get("retention_floor")
+    if (
+        type(applied_cursor) is not int or applied_cursor < 0
+        or type(retention_floor) is not int or retention_floor < 0
+    ):
+        raise RuntimeError("Replica hydration returned an invalid checkpoint.")
     pipeline.replace_snapshot(bars)
     return {
         "bar_count": len(bars),
-        "applied_cursor": int(checkpoint["applied_cursor"]),
-        "retention_floor": int(checkpoint["retention_floor"]),
+        "applied_cursor": applied_cursor,
+        "retention_floor": retention_floor,
     }
 
 

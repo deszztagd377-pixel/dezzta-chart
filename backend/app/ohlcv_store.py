@@ -1374,6 +1374,53 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
         finally:
             db.close()
 
+    def load_snapshot(self) -> dict[str, object]:
+        """Load every retained bar and its checkpoint from one SQLite read view.
+
+        A consumer may commit a new event while the ASGI process is hydrating.
+        Reading checkpoint() and load_bars() separately can pair an older
+        cursor with newer bars. The explicit read transaction pins both reads
+        to the same WAL snapshot, so the in-memory pipeline watermark and bars
+        cannot describe different replica generations.
+        """
+        db = self._connect()
+        try:
+            db.execute("BEGIN")
+            row = db.execute(
+                """SELECT source_id,replica_id,applied_cursor,snapshot_generation,
+                    retention_floor,bar_retention_json,schema_version,protocol_version
+                FROM ohlcv_replica_checkpoint LIMIT 1"""
+            ).fetchone()
+            if row is None:
+                raise RuntimeError("A verified replica snapshot is required before hydration.")
+            bars = db.execute(
+                """SELECT * FROM ohlcv_bars
+                ORDER BY ts_start_ns,
+                CASE bucket_policy WHEN 'UTC_LEGACY' THEN 0 ELSE 1 END,
+                provider, dataset, publisher_id, instrument_id, series_type, timeframe"""
+            ).fetchall()
+            checkpoint = {
+                "source_id": str(row["source_id"]),
+                "replica_id": str(row["replica_id"]),
+                "applied_cursor": int(row["applied_cursor"]),
+                "snapshot_generation": str(row["snapshot_generation"]),
+                "retention_floor": int(row["retention_floor"]),
+                "bar_retention": json.loads(row["bar_retention_json"]),
+                "schema_version": int(row["schema_version"]),
+                "protocol_version": int(row["protocol_version"]),
+            }
+            result = {
+                "checkpoint": checkpoint,
+                "bars": [self._from_row(item) for item in bars],
+            }
+            db.execute("COMMIT")
+            return result
+        except Exception:
+            if db.in_transaction:
+                db.execute("ROLLBACK")
+            raise
+        finally:
+            db.close()
     def apply_replica_event(
         self,
         event: dict[str, object],

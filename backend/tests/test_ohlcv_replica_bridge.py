@@ -274,3 +274,36 @@ def test_forward_rejects_event_series_that_disagrees_with_bar_payload():
     }
     with pytest.raises(ValueError, match="series identity does not match"):
         _bar_from_event(event)
+
+
+def test_hydration_reads_bars_and_checkpoint_from_one_atomic_snapshot(tmp_path):
+    source = SQLiteOhlcvStore(str(tmp_path / "source.sqlite3"))
+    assert source.apply(make_bar(0)) == "inserted"
+    assert source.apply(make_bar(1)) == "inserted"
+    replica = install_replica(source, tmp_path)
+    pipeline = OhlcvPipeline()
+
+    # A consumer commit between separate reads could create cursor/bar skew.
+    replica.checkpoint = lambda: pytest.fail("non-atomic checkpoint read used")
+    replica.load_bars = lambda: pytest.fail("non-atomic bar read used")
+
+    result = hydrate_replica_pipeline(replica, pipeline)
+
+    assert result == {
+        "bar_count": 2,
+        "applied_cursor": 2,
+        "retention_floor": 0,
+    }
+    bars, total = pipeline.query(
+        provider="databento", dataset="GLBX.MDP3",
+        publisher_id=1, instrument_id=123, timeframe="1m",
+        raw_symbol="ESZ6", limit=10,
+    )
+    assert total == 2
+    assert [bar.close for bar in bars] == [Decimal("101"), Decimal("102")]
+
+
+def test_replica_load_snapshot_fails_closed_without_checkpoint(tmp_path):
+    replica = SQLiteOhlcvReplicaStore(str(tmp_path / "empty-replica.sqlite3"))
+    with pytest.raises(RuntimeError, match="verified replica snapshot"):
+        replica.load_snapshot()

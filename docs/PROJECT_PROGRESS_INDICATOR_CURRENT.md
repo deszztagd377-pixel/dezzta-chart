@@ -1,6 +1,6 @@
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 20 November 2026 — Batch 62J-20 exact-head reconciliation  
+**Checkpoint:** 20 November 2026 — Batch 62J-22 replica hydration consistency fix  
 **Active branch:** `phase-2/market-data-foundation`  
 **Latest fully CI-verified code HEAD:** `468d0aa4a348d997dc7affb71374bc8712cfc39d`  
 **Latest documentation checkpoint before this refresh:** `99bc549e95341310945b987ab4ae11a86c962ea9`  
@@ -272,3 +272,14 @@ E. Add restart/outage/re-snapshot/cursor-parity scenarios.
 F. Enable production mode only after TLS/ACL and owner-side evidence are available.
 
 No runtime code was changed in 62J-19. The missing snapshot distribution contract is an architectural decision; choosing paid object storage, a Redis blob convention, or shared filesystem without owner approval would violate ZERO COST or multi-host assumptions. No production wiring is safe until this is decided. See docs/WEBSOCKET_MULTI_ASGI_INTEGRATION_BLUEPRINT.md.
+
+## 0A. Batch 62J-22 — replica hydration consistency fix
+
+**Audited branch base:** 3d93cbcd9a73a9d901b0407094e8bed462401b16  
+**Scope:** replica SQLite snapshot consistency; source-backed WebSocket remains default; no production Redis startup wiring or deployment.
+
+A race was found in hydrate_replica_pipeline(): checkpoint and bars were read through separate SQLite transactions. If the consumer committed between reads, the pipeline could hydrate bars newer than its recorded cursor. The fix adds SQLiteOhlcvReplicaStore.load_snapshot(), which reads checkpoint plus all retained bars in one explicit SQLite read transaction, then makes the bridge hydrate only from that atomic result.
+
+Regression tests prove hydration does not use the old split-read methods and that missing verified snapshots fail closed. Exact-head CI is required before this change is considered verified.
+
+**No production route switch was made in this batch.** The source SQLite route remains the default because the replica runtime still requires an explicit snapshot bootstrap contract and owner-provisioned dedicated Redis ACL/TLS credentials. Mixing source and replica cursor domains remains prohibited.
