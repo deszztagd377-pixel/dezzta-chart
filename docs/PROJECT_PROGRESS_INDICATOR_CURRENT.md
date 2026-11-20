@@ -3,7 +3,7 @@
 **Checkpoint:** 20 November 2026 — Batch 62J-31 dual-gateway TCP outage recovery + snapshot generation acceptance  
 **Active branch:** `phase-2/market-data-foundation`  
 **Latest source/test checkpoint:** `cf6219a1f0fbea5a0daf8378ef47af386f8446fa`  
-**Dashboard revision:** Batch 62J-29 documentation-only evidence reconciliation; no runtime behavior changed.  
+**Dashboard revision:** Batch 62J-32 documentation-only Gate 25/36 evidence audit; no runtime behavior changed.  
 **Current audit batch:** 62J-31 — dual-ASGI TCP outage recovery and dual-replica snapshot-generation acceptance passed exact-head CI  
 **Cost policy:** ZERO COST. Existing Redis 7 CI service and temporary SQLite fixtures only; no paid providers, hosting, deployment, Vercel/Cloudflare action, or Termux requirement.
 
@@ -456,3 +456,34 @@ All ten gates remain 🟧 ORANGE / OPEN: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39. 
 Indicator implementation status remains unchanged: SMA20 🟨 (first index 19), EMA20 🟨 (19), RSI14 🟨 (14), MACD12/26/9 🟨 (MACD 25; signal/histogram 33), Bollinger20,2 🟨 (19), Shared Indicator Hook 🟨, Footprint 🟧 (SIMULATED; owner reference/blueprint required), Heatmap 🟥, Liquidation Maps 🟥. No indicator UI work or percentage credit is awarded for WebSocket tests.
 
 Stage 1 remains 30/40 = 300/400 = **75% provisional**. Stages 2–6 remain unscored. Overall project percentage remains unestablished. ZERO COST maintained; no deploy, paid service, Termux action or main-branch change.
+
+
+## 0J. Batch 62J-32 — Gate 25/36 source and CI evidence audit
+
+### Gate 25 — Redis
+
+<badge color="warning">OPEN — owner-host acceptance pending</badge>
+
+**Verified in source/CI**
+- Production configuration requires an authenticated `rediss://` URL.
+- Redis TLS client requires CA-chain validation and hostname verification.
+- Disposable Redis 7 CI test: default user disabled; ephemeral ACL; exact key scope; restricted commands; AOF enabled; ACL file persisted on temporary volume.
+- Negative tests deny anonymous access, wrong password and unrelated key writes.
+- Redis stop produces fail-closed HTTP 503; Redis restart preserves AOF canary and ACL; backend restart recovers.
+- Separate publisher/gateway relay ACL permissions are covered by Redis 7 integration tests.
+
+**Not yet evidenced**
+- Live TLS handshake/certificate identity against the owner host.
+- Owner-host ACL and network/firewall provisioning.
+- Publisher/gateway secret injection and rotation on target host.
+- Production relay activation; its config is deliberately not wired until snapshot transport and owner credentials are approved.
+
+### Gate 36 — public WSS
+
+<badge color="warning">OPEN — public endpoint and client acceptance pending</badge>
+
+Backend WebSocket authentication and entitlement rechecks exist in source. Public reverse-proxy handshake, browser, Android WebView and deployed cross-instance acceptance remain unverified. A scoped ticket exchange is not implemented. No deployment was triggered.
+
+### Status controls
+
+Gate 10 remains **10/10 🟧 ORANGE / 0/10 closed**. Stage 1 remains **75% provisional**; Stages 2–6 unscored; overall project percentage not established. Indicator dashboard is unchanged; no WebSocket or Gate 25 evidence is credited as indicator progress. ZERO COST maintained.

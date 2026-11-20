@@ -1,6 +1,6 @@
 # DEZZTA CHART — Complete Indicator Progress Ledger
 
-**Checkpoint:** 20 November 2026 — indicator ledger reconciled with 62J-28 WebSocket evidence; indicator scope unchanged  
+**Checkpoint:** 20 November 2026 — Batch 62J-32 Gate 25/36 evidence audit; indicator scope unchanged  
 **Branch:** `phase-2/market-data-foundation`  
 **Indicator implementation status:** unchanged by WebSocket Batches 62H-3, 62H-4, 62I, 62J-1, 62J-2 and 62J-16. The WebSocket reliability work does not award indicator progress.  
 **Interpretation:** statuses describe verified implementation boundaries, not a guessed completion percentage. No indicator weights or acceptance percentages have been approved, so per-indicator or total-indicator percentages are intentionally not fabricated.
@@ -376,7 +376,7 @@ The current branch HEAD `ea3626cd9e174d0f9a06af2b0fe2550c830e0559` passed all th
 
 This is WebSocket/repository infrastructure evidence, not indicator rendering acceptance. Indicator statuses remain unchanged: SMA20 🟨 (first valid index 19), EMA20 🟨 (19), RSI14 🟨 (14), MACD12/26/9 🟨 (MACD 25; signal/histogram 33), Bollinger20,2 🟨 (19), Shared Indicator Hook 🟨, Footprint 🟧 (SIMULATED; owner reference and reviewed blueprint required), Heatmap 🟥, Liquidation Maps 🟥. No aggregate indicator percentage is claimed.
 
-WebSocket E remains PARTIALLY VERIFIED: dual-ASGI transient client-boundary read failure/recovery, replay and restart parity are covered. A real TCP/network interruption and coordinated snapshot-generation replacement across both gateway replicas remain untested, alongside production snapshot distribution, TLS/ACL rotation and external WSS/device acceptance.
+Historical status at the Batch 62J-29 checkpoint: WebSocket E was PARTIALLY VERIFIED. This statement is superseded by Batch 62J-31 below, which completed the defined automated E failure matrix. Production snapshot distribution, production Redis TLS/ACL/credential rotation and external WSS/device acceptance remain separate open operational requirements.
 
 Gate 10 remains **10/10 🟧 ORANGE / 0/10 formally closed**: 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. CI cannot substitute for owner-host, provider, device or operator acceptance. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 are unscored; overall project percentage remains unestablished. ZERO COST is unchanged. No Termux work was required for this cycle.
 
@@ -391,3 +391,51 @@ New WebSocket tests verify (1) a controlled TCP path interruption that severs an
 Indicator statuses remain unchanged: SMA20 🟨 (first valid index 19), EMA20 🟨 (19), RSI14 🟨 (14), MACD12/26/9 🟨 (25; signal/histogram 33), Bollinger20,2 🟨 (19), Shared Indicator Hook 🟨, Footprint 🟧 (SIMULATED; owner reference and reviewed blueprint required), Heatmap 🟥, Liquidation Maps 🟥. WebSocket work does not award indicator progress.
 
 Gate 10 remains 10/10 🟧 ORANGE / 0/10 closed. The TCP and snapshot tests strengthen Gate 25 repository evidence, but owner-host Redis TLS/ACL/persistence/recovery are still required. Gate 36 still needs public authenticated WSS and browser/Android acceptance. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 unscored; overall project percentage not established. ZERO COST maintained. No deployment, paid service, Termux action or main-branch modification.
+
+
+## Batch 62J-32 — 20 November 2026: Gate 25/36 source and CI evidence audit
+
+This is a source/documentation audit only. No runtime code or deployment configuration changed.
+
+### Gate 25 — Redis shared guard and OHLCV relay
+
+**Verified repository/CI evidence**
+- Production `Settings` requires `REDIS_URL`, rejects plaintext `redis://`, and requires an ACL username/password.
+- `RedisSharedGuard` configures Redis TLS with `ssl_cert_reqs="required"` and `ssl_check_hostname=True` for `rediss://`.
+- `backend/tests/test_shared_guard_tls.py` asserts both certificate-chain and hostname verification options, and confirms plaintext Redis does not silently receive TLS options.
+- CI creates a disposable Redis 7 instance with the default user disabled, an ephemeral ACL password, exact HTTP/WebSocket guard key patterns, a restricted command list, AOF `appendonly yes` / `appendfsync always`, and a persisted ACL file on a temporary volume.
+- CI verifies unauthenticated access, an incorrect password and an unrelated `SET` are denied; stops Redis and verifies the API fails closed with HTTP 503; restarts Redis and verifies the AOF canary and ACL policy persist; then restarts the backend and verifies recovery.
+- Redis 7 publisher/gateway ACL integration tests verify separate least-privilege command/key permissions and prohibit destructive group operations.
+
+**Important implementation boundary**
+- The separate `OhlcvRedisRelayConfig` validates production `rediss://`, distinct publisher/gateway ACL usernames and passwords, and exact stream key scope.
+- That relay config is intentionally not wired into application startup yet. Its module docstring explicitly defers activation until snapshot transport and owner-controlled ACL credentials are ready.
+- The CI Docker smoke test for the shared security guard uses an isolated plaintext Redis endpoint in a private test-only Docker network. The TLS unit test verifies client options but does not establish a live TLS handshake against an owner-controlled Redis host.
+
+**Gate 25 disposition:** repository configuration and disposable Redis 7 ACL/AOF/outage/recovery evidence are materially improved and verified. Gate 25 remains 🟧 OPEN because the owner-host TLS endpoint/certificate, host ACL provisioning, publisher/gateway credential injection/rotation, target-host network restrictions, and live OHLCV relay activation/acceptance are not evidenced. No production relay was enabled.
+
+### Gate 36 — public WSS and clients
+
+- The backend route exists and authenticates a Firebase ID token in the first WebSocket JSON auth message, with periodic identity and exact-series entitlement revalidation.
+- `docs/BACKEND_DEPLOYMENT.md` explicitly states that source route existence is not proof of deployed WSS or client compatibility.
+- No public owner-host reverse-proxy handshake, authenticated WSS test, browser acceptance, Android WebView acceptance, or cross-instance test through the public endpoint is available in the repository evidence.
+- A separate short-lived scoped WebSocket-ticket exchange is not implemented; do not assume it is part of the deployed protocol.
+
+**Gate 36 disposition:** 🟧 OPEN. No public WSS endpoint was deployed or tested, and no browser/Android result is fabricated.
+
+### Gate 10 and project accounting
+
+All ten external gates remain 🟧 ORANGE / OPEN: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**. Formal closure remains **0/10**.
+
+Indicator progress is unchanged:
+- SMA20 🟨 — rolling mean; first valid index 19.
+- EMA20 🟨 — SMA-seeded, alpha 2/21; first valid index 19.
+- RSI14 🟨 — Wilder smoothing; first valid index 14.
+- MACD12/26/9 🟨 — MACD first index 25; signal/histogram first index 33.
+- Bollinger20,2 🟨 — population standard deviation; first valid index 19.
+- Shared Indicator Hook 🟨 — validated backend snapshot only; chart binding/lifecycle remains.
+- Footprint 🟧 — SIMULATED only; user reference and reviewed blueprint required before visual implementation.
+- Heatmap 🟥 — not implemented.
+- Liquidation Maps 🟥 — no validated data/calculation contract.
+
+Stage 1 remains 30/40 criteria = 300/400 ticks = **75% provisional**. Stages 2–6 remain unscored. Overall project percentage remains unestablished. ZERO COST maintained. No Termux requirement, deployment, paid service, production activation, or `main` modification.
