@@ -6,6 +6,9 @@ _LATENCY_BUCKETS_MS = (5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000)
 _MAX_DURATION_MS = 86_400_000.0  # One day; keep pathological samples finite and bounded.
 _ALLOWED_METHODS = frozenset(("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"))
 _MAX_ROUTE_SERIES = 127
+# Keep every exported integer exactly representable by common JSON consumers.
+_MAX_COUNTER = (1 << 53) - 1
+_MAX_ACCUMULATED_MS = _MAX_DURATION_MS * _MAX_COUNTER
 
 
 class RequestMetrics:
@@ -49,16 +52,22 @@ class RequestMetrics:
                     key = ("OTHER", "__overflow__")
                 self._series.add(key)
             request_key = (key[0], key[1], status)
-            self._requests[request_key] = self._requests.get(request_key, 0) + 1
+            self._requests[request_key] = min(
+                self._requests.get(request_key, 0) + 1, _MAX_COUNTER
+            )
             metric = self._latency.get(key)
             if metric is None:
                 metric = {"count": 0, "sum_ms": 0.0, "buckets": [0 for _ in _LATENCY_BUCKETS_MS]}
                 self._latency[key] = metric
-            metric["count"] = int(metric["count"]) + 1
-            metric["sum_ms"] = float(metric["sum_ms"]) + duration
+            metric["count"] = min(int(metric["count"]) + 1, _MAX_COUNTER)
+            metric["sum_ms"] = min(
+                float(metric["sum_ms"]) + duration, _MAX_ACCUMULATED_MS
+            )
             for index, bound in enumerate(_LATENCY_BUCKETS_MS):
                 if duration <= bound:
-                    metric["buckets"][index] += 1
+                    metric["buckets"][index] = min(
+                        metric["buckets"][index] + 1, _MAX_COUNTER
+                    )
 
     def snapshot(self) -> dict[str, object]:
         """Return a detached JSON-safe snapshot with no caller-controlled labels."""
