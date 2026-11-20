@@ -2,8 +2,8 @@
 
 **Checkpoint:** 20 November 2026 — Batch 62J-27 WebSocket integration reconciliation  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest branch HEAD (docs reconciliation):** `b348b300ab628c80d63b30a6228d84c8e7eb3000`  
 **Latest code/test commit with exact-head CI:** `5c5205ebc5d6b58b8e177854edb79f93ba9ea118`  
+**Dashboard revision:** documentation-only follow-up; runtime/test evidence remains anchored to the code/test commit above.  
 **Current audit batch:** 62J-27 — A–D integration verified; E failure matrix partially complete  
 **Cost policy:** ZERO COST. Existing Redis 7 CI service and temporary SQLite fixtures only; no paid providers, hosting, deployment, Vercel/Cloudflare action, or Termux requirement.
 
