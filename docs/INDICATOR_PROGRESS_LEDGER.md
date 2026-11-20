@@ -506,3 +506,9 @@ Alert outbox regression coverage now checks capped exponential backoff with exac
 Indicator status remains unchanged: SMA20 🟨 (first index 19), EMA20 🟨 (19), RSI14 🟨 (14), MACD12/26/9 🟨 (MACD index 25; signal/histogram index 33), Bollinger20,2 🟨 (19), Shared Indicator Hook 🟨, Footprint 🟧 (SIMULATED; owner reference and reviewed blueprint required), Heatmap 🟥, Liquidation Maps 🟥. No indicator code changed and no indicator percentage is awarded.
 
 Gate 10 remains 10/10 ORANGE and 0 CLOSED. Repository tests cannot satisfy owner-host secret injection, external dashboard/retention controls, actual operator acknowledgement/escalation, or device/host restore acceptance. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 remain unscored; overall project percentage remains unestablished because M1–M8 weights are not approved.
+
+## 20 November 2026 — Batch 62J-35 Gate 39 partial fan-out retry contract
+
+Added a regression test for the multi-device delivery boundary: when recipient A accepts an alert and recipient B returns a retryable provider failure, the durable event remains retryable and the next attempt may send to A again. Every attempt carries the same immutable event_id, which is the client-side deduplication key. This explicitly tests the documented at-least-once behavior rather than incorrectly claiming exactly-once provider delivery.
+
+This is adapter-level evidence with a deterministic fake sender. It does not prove Firebase production delivery, Android notification deduplication, bounded provider latency, operator acknowledgement/escalation, or an owner-host incident drill. Gate 39 remains 🟧 OPEN. No indicator implementation changed; indicator statuses and formula warm-up contracts remain unchanged. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 unscored; overall project percentage not established. Gate 10 remains 10/10 🟧 ORANGE / 0 closed. ZERO COST; no deployment, paid service, Termux action or main-branch change.

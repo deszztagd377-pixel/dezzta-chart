@@ -102,3 +102,35 @@ def test_fanout_does_not_revoke_device_for_non_token_permanent_error(device_stor
         sender(event())
     assert raised.value.token_invalid is False
     assert device_store.token_for_delivery(owner_id="account-a", installation_id="phone") == "token"
+
+def test_partial_fanout_retry_reuses_event_id_for_recipient_deduplication(device_store):
+    device_store.register(owner_id="account-a", installation_id="phone-a", fcm_token="token-a")
+    device_store.register(owner_id="account-a", installation_id="phone-b", fcm_token="token-b")
+    attempts = {"token-b": 0}
+    accepted = []
+
+    def send(message, *, app):
+        data, token = message
+        if token == "token-b":
+            attempts[token] += 1
+            if attempts[token] == 1:
+                raise FCMDeliveryError("unavailable", retryable=True)
+        accepted.append((token, data["event_id"]))
+        return f"message-{len(accepted)}"
+
+    sender = build_alert_event_sender(device_store, make_fcm(send))
+    with pytest.raises(FCMDeliveryError):
+        sender(event(event_id="stable-event-id"))
+
+    # The first recipient may receive the event before the second recipient
+    # fails. At-least-once retry can therefore repeat the first send; the
+    # stable event_id is the client-side idempotency key.
+    assert accepted == [("token-a", "stable-event-id")]
+
+    assert sender(event(event_id="stable-event-id")) is None
+    assert accepted == [
+        ("token-a", "stable-event-id"),
+        ("token-a", "stable-event-id"),
+        ("token-b", "stable-event-id"),
+    ]
+

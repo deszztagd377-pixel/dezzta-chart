@@ -524,3 +524,9 @@ No indicator implementation changed in this batch; no indicator completion credi
 
 ### Validation plan
 Run the exact-head Automated Tests, CodeQL (JavaScript/TypeScript and Python), and Full Git History Secret Audit workflows. A workflow failure blocks this batch from being reported as verified. No Vercel/Cloudflare deployment is needed.
+
+## 20 November 2026 — Batch 62J-35 Gate 39 partial fan-out retry contract
+
+Added a regression test for the multi-device delivery boundary: when recipient A accepts an alert and recipient B returns a retryable provider failure, the durable event remains retryable and the next attempt may send to A again. Every attempt carries the same immutable event_id, which is the client-side deduplication key. This explicitly tests the documented at-least-once behavior rather than incorrectly claiming exactly-once provider delivery.
+
+This is adapter-level evidence with a deterministic fake sender. It does not prove Firebase production delivery, Android notification deduplication, bounded provider latency, operator acknowledgement/escalation, or an owner-host incident drill. Gate 39 remains 🟧 OPEN. No indicator implementation changed; indicator statuses and formula warm-up contracts remain unchanged. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 unscored; overall project percentage not established. Gate 10 remains 10/10 🟧 ORANGE / 0 closed. ZERO COST; no deployment, paid service, Termux action or main-branch change.
