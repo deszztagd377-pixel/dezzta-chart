@@ -1795,21 +1795,16 @@ def test_alert_device_routes_enable_only_required_cors_methods(tmp_path):
 def test_opt_in_alert_worker_starts_and_stops_with_application_lifespan(monkeypatch):
     from app import main as main_module
 
-    class FakeFcmSender:
-        @classmethod
-        def from_application_credentials(cls, project_id):
-            assert project_id == "test-alert-project"
-            return object()
+    captured = {}
+
+    def fake_build_isolated_sender(**kwargs):
+        captured.update(kwargs)
+        return lambda event: None
 
     monkeypatch.setattr(
-        main_module.FirebaseCloudMessagingSender,
-        "from_application_credentials",
-        FakeFcmSender.from_application_credentials,
-    )
-    monkeypatch.setattr(
         main_module,
-        "build_alert_event_sender",
-        lambda device_store, fcm_sender: (lambda event: None),
+        "build_isolated_alert_event_sender",
+        fake_build_isolated_sender,
     )
 
     settings = replace(
@@ -1829,6 +1824,9 @@ def test_opt_in_alert_worker_starts_and_stops_with_application_lifespan(monkeypa
             time.sleep(0.01)
         assert application.state.alert_delivery_status["enabled"] is True
         assert application.state.alert_delivery_status["state"] == "running"
+        assert captured["database_path"] == application.state.alert_device_store.database_path
+        assert captured["encryption_key"] == b"K" * 32
+        assert captured["project_id"] == "test-alert-project"
 
     assert application.state.alert_delivery_status["state"] == "stopped"
 

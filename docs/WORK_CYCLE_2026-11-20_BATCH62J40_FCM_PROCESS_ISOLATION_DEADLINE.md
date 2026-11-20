@@ -35,7 +35,7 @@ The Firebase Admin Python sender is synchronous. Running it via `asyncio.to_thre
 | Configured minimum lease when worker enabled | **90 s** |
 | Default configured lease | **120 s** |
 
-At the configured default, nominal reserve after the 60-second event deadline, 2-second process cleanup and 10-second acknowledgement allowance is:
+At the configured default, nominal reserve after the 60-second event deadline, 4-second maximum process cleanup and 10-second acknowledgement allowance is:
 
 `120 - 60 - 4 - 10 = 46 seconds`
 
