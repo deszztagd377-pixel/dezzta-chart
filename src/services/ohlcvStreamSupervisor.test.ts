@@ -530,7 +530,10 @@ describe('OHLCV stream supervisor', () => {
       random: () => 0,
     });
 
-    await vi.waitFor(() => expect(sockets).toHaveLength(1));
+    // Flush the resolved token + ticket HTTP promises without allowing the
+    // short timeout used by this test to advance before the socket is created.
+    for (let index = 0; index < 8; index += 1) await Promise.resolve();
+    expect(sockets).toHaveLength(1);
     sockets[0].readyState = 1;
     sockets[0].emit('open', new Event('open'));
     sockets[0].message({ type: 'market_data.status', version: 1 });
@@ -538,6 +541,7 @@ describe('OHLCV stream supervisor', () => {
     expect(supervisor.status).toBe('subscribed');
 
     await vi.advanceTimersByTimeAsync(5_030);
+    for (let index = 0; index < 8; index += 1) await Promise.resolve();
 
     expect(getIdToken).toHaveBeenCalledTimes(3);
     expect(sockets).toHaveLength(2);
