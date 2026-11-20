@@ -29,3 +29,7 @@
 Uses the existing CI Redis 7 service and temporary local SQLite files only. No Vercel/Cloudflare deployment, paid service, public WSS, main branch change or Termux operation.
 
 CI must pass on the exact resulting commit before this acceptance is marked verified. Indicator progress is unchanged.
+
+## Series identity fixture correction
+
+The process-level test uses make_bar(), whose legacy-compatible constructor explicitly defaults to UTC_LEGACY. The WebSocket subscription now requests that same bucket policy explicitly instead of relying on the 1-minute default selector (UTC_FIXED_V1). Exact series matching remains strict; the production path is not weakened.

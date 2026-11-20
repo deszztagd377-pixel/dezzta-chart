@@ -1002,7 +1002,7 @@ def test_two_independent_asgi_processes_broadcast_replica_live_event(tmp_path):
                 "series": {
                     "dataset": "GLBX.MDP3", "publisherId": 1,
                     "instrumentId": 123, "rawSymbol": "ESZ6",
-                    "timeframe": "1m",
+                    "timeframe": "1m", "bucketPolicy": "UTC_LEGACY",
                 },
             }))
             snapshot = json.loads(websocket.recv(timeout=10))
