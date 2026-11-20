@@ -2531,3 +2531,42 @@ def test_websocket_ticket_renewal_rejects_ticket_for_different_subject():
             websocket.receive_json()
 
     assert disconnected.value.code == 4401
+
+
+def test_websocket_ticket_renewal_rechecks_revoked_instrument_entitlement():
+    application = _app_with_bars()
+    client = TestClient(application)
+    headers = {"Authorization": "Bearer valid-firebase-token"}
+    initial_ticket = client.post(
+        "/v1/auth/websocket-ticket", headers=headers,
+    ).json()["ticket"]
+    renewal_ticket = client.post(
+        "/v1/auth/websocket-ticket", headers=headers,
+    ).json()["ticket"]
+
+    with client.websocket_connect("/ws/market-data") as websocket:
+        websocket.send_json({"type": "auth", "ticket": initial_ticket})
+        assert websocket.receive_json()["type"] == "market_data.status"
+        websocket.send_json({
+            "type": "market_data.subscribe",
+            "version": 1,
+            "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+            "series": {
+                "dataset": "GLBX.MDP3",
+                "publisherId": 1,
+                "instrumentId": 101,
+                "rawSymbol": "ESZ6",
+                "timeframe": "1s",
+            },
+        })
+        assert websocket.receive_json()["type"] == "market_data.ohlcv.snapshot"
+
+        application.state.instrument_entitlements.revoke(
+            subject="firebase-user-123",
+            canonical_instrument_id="0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+        )
+        websocket.send_json({"type": "auth.renew", "ticket": renewal_ticket})
+        with pytest.raises(WebSocketDisconnect) as disconnected:
+            websocket.receive_json()
+
+    assert disconnected.value.code == 4403
