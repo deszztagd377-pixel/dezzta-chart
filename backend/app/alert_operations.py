@@ -14,10 +14,11 @@ from typing import Any
 class LocalAlertReporter:
     """Emit bounded local operational alerts without external services."""
 
-    def __init__(self, logger: logging.Logger) -> None:
+    def __init__(self, logger: logging.Logger, incident_store=None) -> None:
         if not isinstance(logger, logging.Logger):
             raise TypeError("logger must be a logging.Logger.")
         self._logger = logger
+        self._incident_store = incident_store
         self._last_state: tuple[Any, ...] | None = None
 
     @staticmethod
@@ -53,6 +54,11 @@ class LocalAlertReporter:
         if any(degraded_flags):
             signature = ("degraded", *degraded_flags)
             if signature != self._last_state:
+                self._record_incident(
+                    fingerprint="alert_delivery_degraded", category="alert_delivery",
+                    severity="critical" if terminal_failed > 0 or lease_lost > 0 else "warning",
+                    summary_code="delivery_attention",
+                )
                 self._logger.warning(json.dumps({
                     "event": "alert_delivery_attention",
                     "state": "degraded",
@@ -62,6 +68,7 @@ class LocalAlertReporter:
             return
 
         if self._last_state is not None:
+            self._resolve_incidents("alert_delivery")
             self._logger.info(json.dumps({
                 "event": "alert_delivery_recovered",
                 "state": "healthy",
@@ -79,9 +86,35 @@ class LocalAlertReporter:
         signature = ("worker_error", error_code)
         if signature == self._last_state:
             return
+        self._record_incident(
+            fingerprint=f"alert_delivery_worker:{error_code}", category="alert_delivery",
+            severity="critical", summary_code="worker_error",
+        )
         self._logger.error(json.dumps({
             "event": "alert_delivery_worker_error",
             "state": "error",
             "error_code": error_code,
         }, separators=(",", ":"), sort_keys=True))
         self._last_state = signature
+
+    def _record_incident(self, **fields: str) -> None:
+        if self._incident_store is None:
+            return
+        try:
+            self._incident_store.record_incident(**fields)
+        except Exception as exc:
+            self._logger.error(json.dumps({
+                "event": "incident_journal_write_failed",
+                "error_code": type(exc).__name__[:64],
+            }, separators=(",", ":"), sort_keys=True))
+
+    def _resolve_incidents(self, category: str) -> None:
+        if self._incident_store is None:
+            return
+        try:
+            self._incident_store.resolve_category(category)
+        except Exception as exc:
+            self._logger.error(json.dumps({
+                "event": "incident_journal_recovery_update_failed",
+                "error_code": type(exc).__name__[:64],
+            }, separators=(",", ":"), sort_keys=True))

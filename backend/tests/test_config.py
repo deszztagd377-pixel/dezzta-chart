@@ -268,3 +268,16 @@ def test_enabled_alert_delivery_accepts_lease_with_deadline_margin():
         alert_delivery_lease_seconds=90,
     )
     assert settings.alert_delivery_lease_seconds == 90
+
+
+def test_operator_incident_token_is_redacted_and_requires_strong_value():
+    token = "operator-incident-token-for-tests-only-32"
+    settings = make_settings(operator_incident_token=token)
+    assert token not in repr(settings)
+    assert token not in str(settings)
+
+
+@pytest.mark.parametrize("token", ["short", "contains whitespace "])
+def test_operator_incident_token_rejects_weak_values(token):
+    with pytest.raises(ValueError, match="32-256 non-whitespace"):
+        make_settings(operator_incident_token=token)

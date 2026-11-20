@@ -41,14 +41,16 @@ def _test_calendar_configuration() -> dict[str, str]:
     }
 
 
-def make_settings(token: str = "test-secret") -> Settings:
-    return Settings(
-        app_env="test",
-        market_data_ws_token=token,
-        cors_allowed_origins=("http://localhost:5173",),
-        instrument_registry_db_path=_test_database_path(),
+def make_settings(token: str = "test-secret", **overrides) -> Settings:
+    values = {
+        "app_env": "test",
+        "market_data_ws_token": token,
+        "cors_allowed_origins": ("http://localhost:5173",),
+        "instrument_registry_db_path": _test_database_path(),
         **_test_calendar_configuration(),
-    )
+    }
+    values.update(overrides)
+    return Settings(**values)
 
 
 def test_websocket_ping_rate_limit_allows_twenty_messages_in_window() -> None:
@@ -2423,3 +2425,51 @@ def test_internal_operations_endpoints_require_operator_token_and_exclude_scrape
         assert payload["latency_ms"][0]["route"] == "/health"
         assert "METRICS_QUERY_SENTINEL" not in metrics.text
         assert operator_token not in metrics.text
+
+
+def test_operator_incident_routes_require_separate_token_and_persist_state(tmp_path):
+    operator_token = "operator-incident-token-for-tests-only-32"
+    settings = make_settings(
+        operator_incident_token=operator_token,
+        instrument_registry_db_path=str(tmp_path / "operator-incidents.sqlite3"),
+    )
+    application = create_app(settings)
+    incident = application.state.incident_store.record_incident(
+        fingerprint="alert_delivery_degraded", category="alert_delivery",
+        severity="warning", summary_code="delivery_attention",
+    )
+    incident_id = incident["incident_id"]
+    with TestClient(application) as client:
+        assert client.get("/internal/incidents").status_code == 401
+        assert client.get("/internal/incidents", headers={
+            "Authorization": "Bearer " + settings.observability_metrics_token
+        }).status_code == 401
+        listed = client.get("/internal/incidents", headers={"Authorization": f"Bearer {operator_token}"})
+        assert listed.status_code == 200
+        assert listed.json()["scope"] == "persistent_local_sqlite"
+        assert listed.json()["incidents"][0]["incident_id"] == incident_id
+        ack = client.post(f"/internal/incidents/{incident_id}/acknowledge",
+                          headers={"Authorization": f"Bearer {operator_token}"})
+        assert ack.status_code == 200 and ack.json()["status"] == "acknowledged"
+        assert ack.json()["next_escalation_utc"] is None
+        resolved = client.post(f"/internal/incidents/{incident_id}/resolve",
+                               headers={"Authorization": f"Bearer {operator_token}"})
+        assert resolved.status_code == 200 and resolved.json()["status"] == "resolved"
+
+
+def test_operator_incident_routes_are_disabled_without_operator_token():
+    with TestClient(create_app(make_settings())) as client:
+        assert client.get("/internal/incidents").status_code == 404
+
+
+def test_alert_reporter_persists_incident_and_resolves_on_recovery(tmp_path):
+    import logging
+    from app.alert_operations import LocalAlertReporter
+    from app.incident_store import SQLiteIncidentStore
+    store = SQLiteIncidentStore(str(tmp_path / "journal.sqlite3"))
+    reporter = LocalAlertReporter(logging.getLogger("test.incident.reporter"), incident_store=store)
+    reporter.report_batch(claimed=1, delivered=0, retry_scheduled=1, terminal_failed=0, lease_lost=0)
+    rows = store.list_incidents()
+    assert len(rows) == 1 and rows[0]["status"] == "open"
+    reporter.report_batch(claimed=1, delivered=1, retry_scheduled=0, terminal_failed=0, lease_lost=0)
+    assert store.list_incidents()[0]["status"] == "resolved"

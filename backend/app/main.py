@@ -31,6 +31,7 @@ from app.instrument_registry import SQLiteInstrumentRegistry
 from app.alert_store import SQLitePriceAlertStore
 from app.alert_delivery import run_alert_delivery_batch
 from app.alert_operations import LocalAlertReporter
+from app.incident_store import SQLiteIncidentStore
 from app.alert_device_store import AlertDeviceQuotaExceeded, SQLiteAlertDeviceStore
 from app.alert_fcm_process import build_isolated_alert_event_sender
 from app.entitlements import SQLiteInstrumentEntitlementStore
@@ -184,6 +185,7 @@ def create_app(
     # Durable alert storage is initialized, but no public alert routes are
     # enabled until Firebase identity and instrument entitlements are verified.
     price_alert_store = SQLitePriceAlertStore(config.instrument_registry_db_path)
+    incident_store = SQLiteIncidentStore(config.instrument_registry_db_path)
     # Device-token persistence is opt-in and requires an owner-injected key.
     # Delivery worker is separately opt-in and is started only in lifespan.
     alert_device_store = (
@@ -284,14 +286,16 @@ def create_app(
     # Local operator alerts are emitted to the application logger only. No
     # external notification provider is required for this operational signal.
     alert_reporter = LocalAlertReporter(
-        logging.getLogger("dezzta.alert_operations")
+        logging.getLogger("dezzta.alert_operations"), incident_store=incident_store
     )
+    incident_logger = logging.getLogger("dezzta.incidents")
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
         nonlocal replica_worker
         worker_stop = asyncio.Event()
         worker_task = None
+        incident_task = None
         provider_started = False
         replica_redis_client = None
         try:
@@ -340,6 +344,28 @@ def create_app(
                 application.state.ohlcv_replica_stream_key = stream_key
                 application.state.ohlcv_replica_worker = replica_worker
                 application.state.ohlcv_replica_hydration = hydration
+
+            async def incident_escalation_loop() -> None:
+                while not worker_stop.is_set():
+                    try:
+                        due = await asyncio.to_thread(incident_store.escalate_due)
+                        for item in due:
+                            incident_logger.error(json.dumps({
+                                "event": "operator_incident_escalated", **item,
+                            }, separators=(",", ":"), sort_keys=True))
+                    except Exception as exc:
+                        incident_logger.error(json.dumps({
+                            "event": "operator_incident_escalation_failed",
+                            "error_code": type(exc).__name__[:64],
+                        }, separators=(",", ":"), sort_keys=True))
+                    try:
+                        await asyncio.wait_for(worker_stop.wait(), timeout=15.0)
+                    except asyncio.TimeoutError:
+                        pass
+
+            incident_task = asyncio.create_task(
+                incident_escalation_loop(), name="dezzta-incident-escalation"
+            )
 
             if config.alert_delivery_worker_enabled:
                 if alert_device_store is None:
@@ -404,6 +430,8 @@ def create_app(
             yield
         finally:
             worker_stop.set()
+            if incident_task is not None:
+                await incident_task
             if worker_task is not None:
                 await worker_task
             if replica_worker is not None:
@@ -466,6 +494,7 @@ def create_app(
     application.state.price_alert_store = price_alert_store
     application.state.alert_device_store = alert_device_store
     application.state.alert_delivery_status = alert_delivery_status
+    application.state.incident_store = incident_store
     application.state.instrument_entitlements = instrument_entitlements
     application.state.identity_verifier = identity_verifier
     application.state.shared_guard = shared_guard
@@ -488,7 +517,7 @@ def create_app(
         matched_route = request.scope.get("route")
         route = route_override or getattr(matched_route, "path", "unmatched")
         request_id = uuid4().hex
-        if request.url.path not in {"/internal/metrics", "/internal/alert-delivery"}:
+        if request.url.path not in {"/internal/metrics", "/internal/alert-delivery"} and not request.url.path.startswith("/internal/incidents"):
             request_metrics.record(request.method, route, status_code, duration_ms)
             # Deliberately omit raw URL, query, path parameters, headers and client address.
             http_logger.info(json.dumps({
@@ -703,6 +732,49 @@ def create_app(
                     "X-Content-Type-Options": "nosniff",
                 },
             )
+
+    if config.operator_incident_token:
+        def require_operator_incident_token(authorization: str | None) -> None:
+            expected = f"Bearer {config.operator_incident_token}"
+            if not isinstance(authorization, str) or not hmac.compare_digest(authorization, expected):
+                raise HTTPException(status_code=401, detail="Operator incident authentication is required.",
+                                    headers={"WWW-Authenticate": "Bearer"})
+
+        @application.get("/internal/incidents", tags=["operations"], include_in_schema=False)
+        async def list_operator_incidents(
+            limit: int = Query(default=50, ge=1, le=100),
+            authorization: str | None = Header(default=None),
+        ) -> JSONResponse:
+            require_operator_incident_token(authorization)
+            incidents = await asyncio.to_thread(incident_store.list_incidents, limit=limit)
+            return JSONResponse(content={"schema_version": 1, "scope": "persistent_local_sqlite",
+                                         "incidents": incidents},
+                                headers={"Cache-Control": "private, no-store, max-age=0",
+                                         "Pragma": "no-cache", "X-Content-Type-Options": "nosniff"})
+
+        @application.post("/internal/incidents/{incident_id}/acknowledge", tags=["operations"], include_in_schema=False)
+        async def acknowledge_operator_incident(
+            incident_id: str = ApiPath(min_length=36, max_length=36),
+            authorization: str | None = Header(default=None),
+        ) -> JSONResponse:
+            require_operator_incident_token(authorization)
+            incident = await asyncio.to_thread(incident_store.acknowledge, incident_id)
+            if incident is None:
+                raise HTTPException(status_code=404, detail="Incident not found.")
+            return JSONResponse(content=incident, headers={"Cache-Control": "private, no-store, max-age=0",
+                                 "Pragma": "no-cache", "X-Content-Type-Options": "nosniff"})
+
+        @application.post("/internal/incidents/{incident_id}/resolve", tags=["operations"], include_in_schema=False)
+        async def resolve_operator_incident(
+            incident_id: str = ApiPath(min_length=36, max_length=36),
+            authorization: str | None = Header(default=None),
+        ) -> JSONResponse:
+            require_operator_incident_token(authorization)
+            incident = await asyncio.to_thread(incident_store.resolve, incident_id)
+            if incident is None:
+                raise HTTPException(status_code=404, detail="Incident not found.")
+            return JSONResponse(content=incident, headers={"Cache-Control": "private, no-store, max-age=0",
+                                 "Pragma": "no-cache", "X-Content-Type-Options": "nosniff"})
 
     @application.get("/v1/market-data/status", tags=["market-data"])
     async def market_data_status() -> dict[str, object]:
