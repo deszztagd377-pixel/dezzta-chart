@@ -919,8 +919,28 @@ def test_real_redis_snapshot_replay_live_handoff_preserves_boundary_sequence(tmp
         redis.close()
 
 
+class _FailOnceXReadGroupRedis:
+    """Inject one transient read failure for one independent gateway process."""
+
+    def __init__(self, client, marker_key):
+        self.client = client
+        self.marker_key = marker_key
+        self.failed = False
+
+    def __getattr__(self, name):
+        return getattr(self.client, name)
+
+    def xreadgroup(self, *args, **kwargs):
+        if not self.failed:
+            self.failed = True
+            self.client.set(self.marker_key, "triggered", ex=120)
+            raise ConnectionError("simulated transient Redis read outage")
+        return self.client.xreadgroup(*args, **kwargs)
+
+
 def _run_asgi_replica_gateway_process(
     redis_url, stream_key, replica_path, registry_path, consumer_name, port,
+    transient_read_failure_marker=None,
 ):
     import redis as redis_module
     import uvicorn
@@ -936,8 +956,13 @@ def _run_asgi_replica_gateway_process(
     redis_client = redis_module.Redis.from_url(
         redis_url, decode_responses=True, socket_connect_timeout=3, socket_timeout=3,
     )
+    runtime_redis_client = (
+        _FailOnceXReadGroupRedis(redis_client, transient_read_failure_marker)
+        if transient_read_failure_marker is not None
+        else redis_client
+    )
     consumer = RedisOhlcvReplicaConsumer(
-        redis_client, replica, stream_key=stream_key,
+        runtime_redis_client, replica, stream_key=stream_key,
         consumer_name=consumer_name, pending_idle_ms=0, batch_size=10,
     )
     settings = Settings(
@@ -952,7 +977,7 @@ def _run_asgi_replica_gateway_process(
         replica_runtime_factory=lambda: {
             "replica_store": replica,
             "consumer": consumer,
-            "redis_client": redis_client,
+            "redis_client": runtime_redis_client,
             "stream_key": stream_key,
         },
     )
@@ -1038,6 +1063,7 @@ def test_two_independent_asgi_processes_broadcast_replica_live_event(tmp_path):
             args=(
                 redis_url, stream_key, replica_paths[index], registry_paths[index],
                 f"asgi-gateway-{index}", ports[index],
+                f"{stream_key}:transient-read-failure:{index}",
             ),
         )
         for index in range(2)
@@ -1048,6 +1074,18 @@ def test_two_independent_asgi_processes_broadcast_replica_live_event(tmp_path):
             process.start()
         for process, port in zip(processes, ports):
             _wait_for_asgi_health(process, port)
+
+        # Both independent gateway processes must encounter the injected Redis
+        # read failure before the source publishes the next durable cursor.
+        outage_markers = [
+            f"{stream_key}:transient-read-failure:{index}" for index in range(2)
+        ]
+        marker_deadline = time.monotonic() + 10
+        while time.monotonic() < marker_deadline:
+            if all(redis.exists(marker) for marker in outage_markers):
+                break
+            time.sleep(0.02)
+        assert all(redis.exists(marker) for marker in outage_markers)
 
         canonical_id = "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11"
         for port in ports:
@@ -1189,5 +1227,5 @@ def test_two_independent_asgi_processes_broadcast_replica_live_event(tmp_path):
             if process.is_alive():
                 process.kill()
                 process.join(timeout=5)
-        redis.delete(stream_key)
+        redis.delete(stream_key, *outage_markers)
         redis.close()
