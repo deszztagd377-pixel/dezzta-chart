@@ -419,7 +419,7 @@ describe('OHLCV stream supervisor', () => {
     expect(requestWebSocketTicket).toHaveBeenCalledOnce();
     expect(sockets).toHaveLength(0);
 
-    await vi.advanceTimersByTimeAsync(99);
+    await vi.advanceTimersByTimeAsync(49);
     expect(requestWebSocketTicket).toHaveBeenCalledOnce();
     expect(sockets).toHaveLength(0);
 

@@ -21,7 +21,7 @@ Added one regression test to `src/services/ohlcvStreamSupervisor.test.ts`:
 1. First `requestWebSocketTicket` invocation rejects with a simulated ticket-request timeout.
 2. No WebSocket is constructed for the failed attempt.
 3. Supervisor transitions to `reconnecting`.
-4. The test advances to one millisecond before the configured 100 ms minimum reconnect delay and confirms no second attempt has started.
+4. The test advances to one millisecond before the deterministic 50 ms initial reconnect delay (100 ms minimum × 0.5 jitter because random() returns 0) and confirms no second attempt has started.
 5. At exactly 100 ms, the supervisor retries, obtains a fresh ID token, and calls the HTTPS ticket endpoint again.
 6. The second ticket request succeeds and only then is the WebSocket constructed.
 7. The test stops the supervisor and cleans up timers.
@@ -30,11 +30,15 @@ The test verifies the endpoint receives the expected base URL and fresh token on
 
 No production WebSocket code, auth protocol, reconnect policy, dependencies, or provider settings changed.
 
-## 3. Validation boundary
+## 3. First CI finding and correction
+
+The first exact-head run exposed an incorrect test expectation, not a runtime defect. The supervisor uses bounded jitter: `delay = floor(exponential × (0.5 + random × 0.5))`. With `minReconnectDelayMs = 100` and deterministic `random() = 0`, the first delay is `100 × 0.5 = 50 ms`, not 100 ms. The regression test initially advanced 99 ms and correctly observed that the retry had already occurred. The assertion was corrected to check at 49 ms and then at 50 ms. This preserves the production backoff policy and tests its exact deterministic lower-bound behavior.
+
+## 4. Validation boundary
 
 The exact resulting commit triggers Automated Tests/Build, CodeQL, and Full Git History Secret Audit. These workflows must all conclude SUCCESS before the batch is declared CI-green. Existing passing evidence from Batch 62J-38 is not substituted for exact-head validation.
 
-## 4. Gate 10 reconciliation
+## 5. Gate 10 reconciliation
 
 - Gate 25/36: automated WebSocket E matrix is complete for its defined CI scope; owner-host Redis TLS/ACL and public WSS/browser/Android acceptance remain open.
 - Gate 30: repository-side SQLite restore-drill coverage is strong; actual owner Android database path and fresh-path restore acceptance remain external.
@@ -43,7 +47,7 @@ The exact resulting commit triggers Automated Tests/Build, CodeQL, and Full Git 
 
 Gate 10 remains **10/10 🟧 ORANGE / 0 CLOSED**. No external host/device acceptance is inferred from CI.
 
-## 5. Complete indicator dashboard
+## 6. Complete indicator dashboard
 
 | Indicator | State | Verified calculation/data foundation | First valid output | Remaining |
 |---|---|---|---:|---|
@@ -59,7 +63,7 @@ Gate 10 remains **10/10 🟧 ORANGE / 0 CLOSED**. No external host/device accept
 
 No indicator formula or UI changed. No indicator percentage is invented.
 
-## 6. Project progress accounting
+## 7. Project progress accounting
 
 - Stage 1: **30/40 = 75% provisional**.
 - Stages 2–6: unscored.
@@ -67,12 +71,12 @@ No indicator formula or UI changed. No indicator percentage is invented.
 - Indicator aggregate: unestablished pending approved weights/denominator.
 - Gate 10: **10/10 ORANGE / 0 closed**.
 
-## 7. Change boundary
+## 8. Change boundary
 
-Expected changed files:
+Changed files:
 - `src/services/ohlcvStreamSupervisor.test.ts`
 - `docs/PROJECT_PROGRESS_INDICATOR_CURRENT.md`
 - `docs/INDICATOR_PROGRESS_LEDGER.md`
-- `docs/WORK_CYCLE_2026-11-20_BATCH62J39_WEBSOCKET_TICKET_ENDPOINT_RETRY_REGRESSION.md`
+- `docs/WORK_CYCLE_2026-11-20_BATCH62J39_WEBSOCKET_TICKET_ENDPOINT_RETRY_REGRESSION.md` (this report)
 
 No deployment, preview publication, paid service, dependency change, Termux operation, or main branch modification.

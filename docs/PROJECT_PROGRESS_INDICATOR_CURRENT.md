@@ -568,3 +568,8 @@ Gate 39 bounded FCM child-process isolation remains a reviewed design proposal, 
 Indicator dashboard remains unchanged: SMA20 🟨 (first valid index 19); EMA20 🟨 (alpha 2/21, first index 19); RSI14 Wilder 🟨 (first index 14); MACD12/26/9 🟨 (MACD index 25, signal/histogram 33); Bollinger20,2 🟨 (population standard deviation, first index 19); Shared Indicator Hook 🟨; Footprint 🟧 SIMULATED and gated on owner reference plus reviewed blueprint; Heatmap 🟥; Liquidation Maps 🟥. No indicator code changed and no indicator completion credit is awarded. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 unscored; overall project and indicator aggregate percentages remain unestablished.
 
 ZERO COST: no paid service, deployment, Vercel/Cloudflare action, Termux operation, dependency change, or main branch modification.
+
+
+### Batch 62J-39 CI correction note
+
+The first exact-head Automated Tests run caught an incorrect regression-test timing assumption. The supervisor's full-jitter formula produces a 50 ms first retry when `minReconnectDelayMs=100` and `random()=0`; the test incorrectly assumed 100 ms. The test is corrected to assert no retry at 49 ms and retry at 50 ms. This does not change production backoff behavior. The corrected exact-head CI is pending and remains the acceptance authority.

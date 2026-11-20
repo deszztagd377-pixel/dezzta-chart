@@ -550,3 +550,6 @@ Added a supervisor-level regression test for transient HTTPS WebSocket-ticket en
 Exact resulting-head CI must finish Automated Tests/Build, CodeQL and full-history secret audit successfully before this test is marked verified. Gate 39 FCM worker architecture remains a proposal pending owner review; Gate 30 live Android DB restore and Gate 38 host observability remain external acceptance items. Gate 10 remains 10/10 ORANGE / 0 closed.
 
 Indicator status and calculation contracts remain unchanged: SMA20 🟨 (first index 19), EMA20 🟨 (alpha 2/21; first index 19), RSI14 Wilder 🟨 (index 14), MACD12/26/9 🟨 (MACD index 25; signal/histogram 33), Bollinger20,2 🟨 (population standard deviation; index 19), Shared Indicator Hook 🟨, Footprint 🟧 SIMULATED and gated, Heatmap 🟥, Liquidation Maps 🟥. No indicator implementation credit. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 unscored; overall/indicator aggregate percentages unestablished.
+
+
+Batch 62J-39 test-harness correction: the first CI attempt showed that the deterministic reconnect delay is 50 ms, not 100 ms, because the existing supervisor uses `floor(exponential * (0.5 + random * 0.5))`. The regression test now asserts the exact lower-bound delay (49 ms: no retry; 50 ms: retry). No production reconnect logic was changed. Corrected exact-head CI is pending.
