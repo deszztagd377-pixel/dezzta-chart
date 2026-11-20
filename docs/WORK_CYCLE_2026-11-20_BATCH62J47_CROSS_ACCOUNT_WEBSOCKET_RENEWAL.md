@@ -44,7 +44,7 @@ Verified test/audit results:
 
 - The test confirms account-subject binding at the renewal boundary and verifies rejection code `4401`.
 - The test does not establish real Firebase project behavior, production Redis deployment, public WSS, browser/Android end-to-end operation, or owner-host acceptance.
-- Gate 20 remains **OPEN** pending real Firebase signed-token, expiry/revocation and client reconnect acceptance.
+- Gate 20 remains **OPEN** pending real Firebase identity verification, session expiry/revocation and client reconnect acceptance.
 - Gate 25/36 and the remaining owner-host gates are unchanged.
 - Gate 10 remains **10/10 ORANGE / 0 formally closed**.
 - Stage 1 remains **30/40 criteria = 300/400 ticks = 75% provisional**. No progress tick is awarded for this regression test alone.
