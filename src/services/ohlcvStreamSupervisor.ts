@@ -100,12 +100,20 @@ export function startOhlcvStreamSupervisor(
       () => finish(() => reject(new Error('Firebase ID-token request timed out.'))),
       identityTokenTimeoutMs,
     );
-    void Promise.resolve()
-      .then(() => options.getIdToken())
-      .then(
-        (token) => finish(() => resolve(token)),
-        (error) => finish(() => reject(error)),
-      );
+    let tokenRequest: Promise<string>;
+    try {
+      // Preserve the existing eager request behavior while still bounding its
+      // completion time. The promise handlers remain attached after timeout
+      // so a late rejection cannot become an unhandled rejection.
+      tokenRequest = options.getIdToken();
+    } catch (error) {
+      finish(() => reject(error));
+      return;
+    }
+    void Promise.resolve(tokenRequest).then(
+      (token) => finish(() => resolve(token)),
+      (error) => finish(() => reject(error)),
+    );
   });
 
   const setStatus = (next: OhlcvSupervisorStatus) => {
