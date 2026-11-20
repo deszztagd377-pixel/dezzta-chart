@@ -1019,6 +1019,41 @@ def test_two_independent_asgi_processes_broadcast_replica_live_event(tmp_path):
             SQLiteOhlcvReplicaStore(path).checkpoint()["applied_cursor"] == 1
             for path in replica_paths
         )
+
+        # Reconnect with an older durable cursor and exercise the replica Redis
+        # replay path through the second, real WebSocket subscription.
+        replay_ws = connect(
+            f"ws://127.0.0.1:{ports[0]}/ws/market-data",
+            open_timeout=10, close_timeout=3, ping_interval=None,
+        )
+        sockets.append(replay_ws)
+        replay_ws.send(json.dumps({
+            "type": "auth", "token": "multi-asgi-process-token",
+        }))
+        replay_status = json.loads(replay_ws.recv(timeout=10))
+        assert replay_status["type"] == "market_data.status"
+        replay_ws.send(json.dumps({
+            "type": "market_data.subscribe",
+            "version": 1,
+            "canonicalInstrumentId": canonical_id,
+            "cursor": "0",
+            "series": {
+                "dataset": "GLBX.MDP3", "publisherId": 1,
+                "instrumentId": 123, "rawSymbol": "ESZ6",
+                "timeframe": "1m", "bucketPolicy": "UTC_LEGACY",
+            },
+        }))
+        replay_started = json.loads(replay_ws.recv(timeout=10))
+        replay_event = json.loads(replay_ws.recv(timeout=10))
+        replay_complete = json.loads(replay_ws.recv(timeout=10))
+        assert replay_started["type"] == "market_data.ohlcv.replay_started"
+        assert replay_started["fromCursor"] == "0"
+        assert replay_started["throughCursor"] == "1"
+        assert replay_event["type"] == "market_data.ohlcv.update"
+        assert replay_event["cursor"] == "1"
+        assert replay_event["replayed"] is True
+        assert replay_complete["type"] == "market_data.ohlcv.replay_complete"
+        assert replay_complete["cursor"] == "1"
     finally:
         for websocket in sockets:
             try:

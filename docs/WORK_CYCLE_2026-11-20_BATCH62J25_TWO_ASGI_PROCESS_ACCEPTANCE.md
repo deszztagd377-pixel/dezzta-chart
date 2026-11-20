@@ -37,3 +37,7 @@ The process-level test uses make_bar(), whose legacy-compatible constructor expl
 ## Child-process import correction
 
 The first process-test run failed before ASGI startup because the child harness imported instrument registry types from app.symbology; the repository defines them in app.instrument_identity and app.instrument_registry. The child harness imports now match the actual module ownership. No application runtime source change was required.
+
+## Reconnect replay extension
+
+The same two-ASGI test now reconnects a client with cursor 0 after both gateway replicas have committed cursor 1. It asserts replay_started (0→1), the replayed OHLCV update at cursor 1, replayed=true, and replay_complete at cursor 1. This validates the actual route's replica Redis replay boundary and not merely the helper function.
