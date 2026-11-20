@@ -576,3 +576,8 @@ The Gate 39 worker now uses a disposable spawned child for each event fan-out, b
 - Liquidation Maps 🟥 — no validated data/calculation contract.
 
 No indicator percentage is awarded. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 unscored; overall M1–M8 and indicator aggregate percentages remain unestablished. Gate 10 closure remains 0/10 until external acceptance evidence is recorded.
+
+
+## Batch 62J-40 exact-head CI evidence
+
+The FCM child-process isolation source/test HEAD `54ff8d29db51c87c3b5e3d0a2105e780a9287087` passed Automated Tests & Build (44722147998), CodeQL JS/TS + Python (44722148055), and Full Git History Secret Audit (44722148046). Backend tests: 1,180 passed, 6 warnings in 36.91 seconds. Backend image build, shared Redis/persistent-volume smoke, image scan and vulnerability-report export passed. This does not establish real Firebase delivery or owner-host Gate 39 incident-response acceptance.

@@ -1,11 +1,11 @@
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 20 November 2026 — Batch 62J-39 WebSocket ticket-endpoint retry regression; exact-head CI fully green  
+**Checkpoint:** 20 November 2026 — Batch 62J-40 FCM bounded child-process delivery; exact source/test HEAD CI fully green  
 **Active branch:** `phase-2/market-data-foundation`  
-**Source/test HEAD:** `13d0b48adf8fbd040b22689e83160b2945f07a5c`  
-**Exact source/test HEAD CI:** Automated Tests [44719780403](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44719780403) SUCCESS • CodeQL [44719780163](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44719780163) SUCCESS • Full Git History Secret Audit [44719780242](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44719780242) SUCCESS • Android debug APK build [44719780305](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44719780305) SUCCESS.  
+**Source/test HEAD:** `54ff8d29db51c87c3b5e3d0a2105e780a9287087`  
+**Exact source/test HEAD CI:** Automated Tests [44722147998](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44722147998) SUCCESS • CodeQL [44722148055](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44722148055) SUCCESS • Full Git History Secret Audit [44722148046](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44722148046) SUCCESS. Backend tests: 1,180 passed, 6 warnings in 36.91 seconds. Backend image build, shared Redis/persistent-volume smoke test, container scan and vulnerability report export all SUCCESS. No Android APK workflow was triggered by this backend-only batch.  
 **WebSocket E:** COMPLETE FOR DEFINED AUTOMATED FAILURE-MATRIX SCOPE at Batch 62J-31; public WSS and production operations remain separate.  
-**Current Gate 10 work:** WebSocket automated E matrix is complete for defined CI scope; Gate 36 still requires owner-host public WSS/browser/Android acceptance. Gate 39 remains open pending bounded FCM worker design approval and real operator incident-response acceptance. Android update signing/readiness is documented separately.  
+**Current Gate 10 work:** WebSocket automated E matrix is complete for defined CI scope; Gate 36 still requires owner-host public WSS/browser/Android acceptance. Gate 39 now has source-level bounded FCM event isolation (60 s deadline, terminate/kill cleanup, 90 s minimum lease when enabled) with exact-head CI green; owner-host induced-failure alert, operator acknowledgement/escalation and incident-recovery acceptance remain open. Android update signing/readiness is documented separately.  
 **Cost policy:** ZERO COST. Existing repository CI and temporary SQLite fixtures only; no paid provider, hosting, deployment, Vercel/Cloudflare action, or Termux requirement.
 
 > This document is the current concise dashboard. Historical work-cycle reports remain the evidence trail. Do not infer that a docs-only commit has rerun or revalidated code CI.
@@ -593,3 +593,13 @@ Source implementation adds a disposable `spawn` child for one alert event's maxi
 Lease calculation: 60 s event deadline + 4 s maximum process cleanup (2 s terminate grace + 2 s kill/reap) + 10 s acknowledgement allowance = 74 s; configured minimum is rounded up to 90 s when the worker is enabled. The default 120 s lease leaves 48 s nominal reserve. Batch size remains 1. Tests cover spawned-child result, timeout termination, IPC data boundary, sanitized timeout classification, invalid-token classification and incomplete-event rejection.
 
 This is source-level Gate 39 progress only. Exact-head CI must pass before acceptance. Owner-host induced-failure alert, operator acknowledgement/escalation and incident recovery remain open. No indicator code changed; all indicator statuses remain unchanged.
+
+
+## Batch 62J-40 exact-head CI reconciliation
+
+Source/test HEAD `54ff8d29db51c87c3b5e3d0a2105e780a9287087` passed:
+- Automated Tests & Build: [44722147998](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44722147998) SUCCESS.
+- CodeQL JavaScript/TypeScript + Python: [44722148055](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44722148055) SUCCESS.
+- Full Git History Secret Audit: [44722148046](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44722148046) SUCCESS.
+
+Backend: **1,180 passed, 6 warnings in 36.91 seconds**. Frontend tests/build/secret scans, backend dependency audit, backend image build, shared Redis/persistent-volume smoke test, container image scan and vulnerability report export all passed. This is repository CI evidence only; Gate 39 still requires owner-host incident response and recovery acceptance. No indicator code changed.
