@@ -81,7 +81,7 @@ However, its module documentation explicitly says the config is not wired into a
 - No owner-host reverse proxy, public WSS handshake, browser end-to-end, Android WebView, deployed cross-instance fan-out or platform connection-lifetime evidence was found.
 - A separate short-lived scoped WebSocket ticket exchange is not implemented.
 
-**Disposition: Gate 36 remains 🟧 OPEN.** No public endpoint was deployed and no client acceptance was fabricated.
+**Disposition: Gate 36 remains 🟧 OPEN.** Ticket exchange/renewal are code-level implemented and tested, but no public endpoint was deployed and no browser/Android acceptance was fabricated.
 
 ## 4. Indicator and project progress
 

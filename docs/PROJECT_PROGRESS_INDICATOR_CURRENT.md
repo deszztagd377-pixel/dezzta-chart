@@ -482,7 +482,7 @@ Stage 1 remains 30/40 = 300/400 = **75% provisional**. Stages 2–6 remain unsco
 
 <badge color="warning">OPEN — public endpoint and client acceptance pending</badge>
 
-Backend WebSocket authentication and entitlement rechecks exist in source. Public reverse-proxy handshake, browser, Android WebView and deployed cross-instance acceptance remain unverified. A scoped ticket exchange is not implemented. No deployment was triggered.
+Backend WebSocket authentication and entitlement rechecks exist in source. Public reverse-proxy handshake, browser, Android WebView and deployed cross-instance acceptance remain unverified. The scoped ticket exchange is implemented: Firebase Bearer over HTTPS obtains a 90-second single-use ticket; the WebSocket client renews it over HTTPS and uses an acknowledged same-subject renewal frame. No deployment was triggered.
 
 ### Status controls
 

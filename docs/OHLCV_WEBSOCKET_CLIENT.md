@@ -2,17 +2,28 @@
 
 ## Current scope
 
-`src/services/ohlcvWebSocketClient.ts` implements the authenticated client-side transport for the backend `/ws/market-data` endpoint. It is wired into the chart lifecycle through `src/services/ohlcvStreamSupervisor.ts` and `CandlestickChart.tsx`. The supervisor obtains a Firebase ID token through the authenticated app session for each connection attempt. This is code-level integration only; deployed end-to-end operation and external provider delivery are not verified.
+`src/services/ohlcvWebSocketClient.ts` implements the authenticated client-side transport for the backend `/ws/market-data` endpoint. It is wired into the chart lifecycle through `src/services/ohlcvStreamSupervisor.ts` and `CandlestickChart.tsx`. The supervisor obtains a fresh Firebase ID token through the authenticated app session, exchanges it for a short-lived ticket over HTTPS, and uses the ticket for the WebSocket handshake. This is code-level integration only; deployed end-to-end operation and external provider delivery are not verified.
 
 ## Handshake
 
-1. Connect to the backend origin at `/ws/market-data` using WS/WSS derived from the configured HTTP(S) backend URL.
-2. Send `{ type: "auth", token }` with a verified Firebase ID token.
-3. Wait for `market_data.status` and send `market_data.subscribe` version 1 with the exact dataset, publisher ID, instrument ID, raw symbol, timeframe, and canonical instrument ID.
-4. Validate the returned `market_data.ohlcv.snapshot` envelope and every bar using the same strict snapshot adapter used by HTTP.
-5. Initialize the sequence guard from the server-provided `streamId` and `watermark`.
-6. Validate each update and accept only the next sequence number for the exact stream and series.
-7. After snapshot or replay completion, send the server's literal text-frame `ping` every 20 seconds and require `market_data.pong` within 10 seconds. Stop heartbeat timers on failure, remote close, or explicit stop.
+1. Obtain a fresh Firebase ID token from the authenticated app session.
+2. Exchange it over HTTPS using `POST /v1/auth/websocket-ticket` with the Bearer Authorization header. The response must contain a `market-data` ticket with `expiresIn: 90`.
+3. Connect to the backend origin at `/ws/market-data` using WS/WSS derived from the configured HTTP(S) backend URL.
+4. Send `{ type: "auth", ticket }` as the first WebSocket JSON message. The Firebase ID token is never sent in the WebSocket URL or frame.
+5. Wait for `market_data.status` and send `market_data.subscribe` version 1 with the exact dataset, publisher ID, instrument ID, raw symbol, timeframe, and canonical instrument ID.
+6. Validate the returned `market_data.ohlcv.snapshot` envelope and every bar using the same strict snapshot adapter used by HTTP.
+7. Initialize the sequence guard from the server-provided `streamId` and `watermark`.
+8. Validate each update and accept only the next sequence number for the exact stream and series.
+9. After snapshot or replay completion, send the server's literal text-frame `ping` every 20 seconds and require `market_data.pong` within 10 seconds. Stop heartbeat timers on failure, remote close, or explicit stop.
+
+## Ticket renewal
+
+- The initial and renewal tickets are issued over HTTPS by `POST /v1/auth/websocket-ticket`, protected by Firebase Bearer verification.
+- Tickets are purpose-bound to `market-data`, single-use, and expire after 90 seconds.
+- The client requests a replacement ticket every 45 seconds by default, sends `{ type: "auth.renew", ticket }`, and requires `market_data.auth.renewed` within 10 seconds.
+- The backend consumes the renewal ticket once, verifies it belongs to the same account subject, and rechecks the exact instrument entitlement before acknowledging it.
+- Production requires the shared Redis-backed ticket store. The in-memory ticket store is only a non-production fallback.
+- The Firebase ID token is sent only over HTTPS, never in a WebSocket URL or frame.
 
 ## Recovery and safety
 

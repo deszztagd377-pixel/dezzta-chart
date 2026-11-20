@@ -119,12 +119,9 @@ Do not use managed Redis, paid hosting, paid domains, a CDN, or any trial that
 can convert into a charge. Add preview origins only when needed, as
 comma-separated exact origins. Never put backend secrets in Vite variables.
 
-The `/ws/market-data` route currently authenticates with a Firebase ID token
-sent in the first JSON `auth` message. The backend verifies the token
-(including revocation checks) and periodically re-verifies both identity and
-instrument entitlement during the connection. This route does not read
-`MARKET_DATA_WS_TOKEN`; do not use that setting as evidence that this route
-is enabled or disabled.
+The `/ws/market-data` route uses a short-lived, single-use WebSocket ticket in production. The client first sends the Firebase ID token over HTTPS to `POST /v1/auth/websocket-ticket` using the Bearer Authorization header. The backend verifies the Firebase identity (including revocation checks) and returns a purpose-bound `market-data` ticket with a 90-second lifetime. The client sends that ticket—not the Firebase ID token—in the first WebSocket JSON `auth` message. Production rejects the raw-token WebSocket authentication fallback.
+
+The client requests a fresh ticket over HTTPS every 45 seconds by default, then sends it in an `auth.renew` WebSocket control message. The backend consumes the ticket once, requires the same authenticated subject, rechecks exact-series entitlement and acknowledges renewal. Missing renewal reaches the server's bounded authentication-renewal deadline and closes the connection. The ticket is stored through the shared Redis guard when configured; production configuration requires Redis, while the in-memory ticket store is only the non-production fallback. The Firebase ID token is not placed in a WSS URL or frame. This route does not read `MARKET_DATA_WS_TOKEN`; do not use that setting as evidence that this route is enabled or disabled.
 
 A route present in source is not proof of deployed WSS availability or client
 end-to-end compatibility. Before production acceptance, verify the HTTPS/WSS
