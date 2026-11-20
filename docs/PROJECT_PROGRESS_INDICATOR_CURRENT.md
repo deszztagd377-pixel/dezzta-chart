@@ -1,12 +1,12 @@
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 20 November 2026 — Batch 62J-40 FCM bounded child-process delivery; exact source/test HEAD CI fully green  
-**Active branch:** `phase-2/market-data-foundation`  
-**Source/test HEAD:** `54ff8d29db51c87c3b5e3d0a2105e780a9287087`  
-**Exact source/test HEAD CI:** Automated Tests [44722147998](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44722147998) SUCCESS • CodeQL [44722148055](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44722148055) SUCCESS • Full Git History Secret Audit [44722148046](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44722148046) SUCCESS. Backend tests: 1,180 passed, 6 warnings in 36.91 seconds. Backend image build, shared Redis/persistent-volume smoke test, container scan and vulnerability report export all SUCCESS. No Android APK workflow was triggered by this backend-only batch.  
-**WebSocket E:** COMPLETE FOR DEFINED AUTOMATED FAILURE-MATRIX SCOPE at Batch 62J-31; public WSS and production operations remain separate.  
-**Current Gate 10 work:** WebSocket automated E matrix is complete for defined CI scope; Gate 36 still requires owner-host public WSS/browser/Android acceptance. Gate 39 now has source-level bounded FCM event isolation (60 s deadline, terminate/kill cleanup, 90 s minimum lease when enabled) with exact-head CI green; owner-host induced-failure alert, operator acknowledgement/escalation and incident-recovery acceptance remain open. Android update signing/readiness is documented separately.  
-**Cost policy:** ZERO COST. Existing repository CI and temporary SQLite fixtures only; no paid provider, hosting, deployment, Vercel/Cloudflare action, or Termux requirement.
+**Checkpoint:** 20 November 2026 — Batch 62J-43 Gate 39 incident-journal edge-case hardening; source/test CI fully green
+**Active branch:** `phase-2/market-data-foundation`
+**Source/test HEAD:** `b576bbaa6e8b22af2f11e1e3f06565250ac193a1`
+**Exact source/test HEAD CI:** Automated Tests [44739362168](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44739362168) SUCCESS • CodeQL [44739362102](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44739362102) SUCCESS • Full Git History Secret Audit [44739362274](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44739362274) SUCCESS. Backend tests: **1,196 passed, 6 warnings in 43.97 seconds**. Frontend tests/build, dependency audits, backend container build, shared Redis + persistent-volume smoke test, container scan and vulnerability report export all SUCCESS. No Android APK workflow was triggered.
+**WebSocket E:** COMPLETE FOR DEFINED AUTOMATED FAILURE-MATRIX SCOPE at Batch 62J-31; public WSS and production operations remain separate.
+**Current Gate 10 work:** Gate 39 now includes bounded FCM child-process isolation, persistent local SQLite incident journal, separate operator-token protection, acknowledgement/resolution endpoints, and three-step log escalation. Owner-host network restriction, secret injection/rotation, restart persistence, and live incident/recovery drill remain open. Gate 36 still requires public WSS/browser/Android acceptance.
+**Cost policy:** ZERO COST. Existing GitHub Actions and SQLite only; no paid provider, hosting, deployment, Vercel/Cloudflare action, or Termux operation.
 
 > This document is the current concise dashboard. Historical work-cycle reports remain the evidence trail. Do not infer that a docs-only commit has rerun or revalidated code CI.
 
@@ -636,3 +636,22 @@ The source commit `417276d2838a9a93f1306d05efe5a1cdc8df66a9` completed all three
 - Full Git History Secret Audit: run `44726505520` — SUCCESS.
 
 This closes the source/CI verification portion of Batch 62J-42 only. Gate 39 remains 🟧 OPEN for owner-host validation: restrict internal routes at the network boundary, inject and rotate the separate operator token, verify journal persistence across the actual host restart, and perform a controlled incident → escalation → acknowledgement → recovery drill. No live host access or real operator acceptance is inferred from CI.
+
+
+## Batch 62J-43 — Gate 39 incident journal edge-case hardening (20 November 2026)
+
+Source/test HEAD: `b576bbaa6e8b22af2f11e1e3f06565250ac193a1`.
+
+Three additional tests now cover: (1) journal capacity exhaustion fails closed without deleting an unresolved incident, (2) only resolved incidents older than the 30-day retention threshold are pruned, and (3) sanitized worker exceptions are journaled and resolved after recovery without persisting raw exception messages.
+
+A pre-fix CI run `44739073900` exposed one regression: Python exception class names contain uppercase letters while the journal fingerprint grammar is lowercase-only. The reporter now lowercases only the fingerprint component while preserving the sanitized error code in logs. The failed intermediate run had 1,195 passed and 1 failed; it is superseded by the exact-head passing run below.
+
+Exact-head CI for `b576bbaa6e8b22af2f11e1e3f06565250ac193a1`:
+- Automated Tests: run `44739362168` — SUCCESS; 1,196 backend tests passed, 6 warnings in 43.97 seconds.
+- CodeQL Security Analysis: run `44739362102` — SUCCESS.
+- Full Git History Secret Audit: run `44739362274` — SUCCESS.
+- Backend container build, shared Redis/persistent-volume smoke test, container scan and vulnerability report export: SUCCESS.
+
+Lease arithmetic correction: 120 - 60 - 4 - 10 = **46 seconds** default reserve; at the 90-second minimum, reserve = **16 seconds**. The dashboard and ledger now use the corrected values.
+
+Gate 39 remains 🟧 OPEN because CI does not prove owner-host route isolation, operator-token injection/rotation, journal survival on the actual host restart, or a real induced-failure → escalation → acknowledgement → recovery drill. No live Firebase delivery or external notification channel is claimed. No indicator formula or visual implementation changed.

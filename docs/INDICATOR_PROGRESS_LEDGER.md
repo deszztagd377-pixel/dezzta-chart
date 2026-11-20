@@ -619,3 +619,22 @@ This closes the source/CI verification portion of Batch 62J-42 only. Gate 39 rem
 ## Gate 39 lease-budget arithmetic correction — 20 November 2026
 
 The Batch 62J-40 default lease reserve is **46 seconds**, not 48: 120 s lease − 60 s event deadline − 4 s maximum process cleanup − 10 s acknowledgement allowance = 46 s. The enabled-worker minimum lease remains 90 s, leaving 16 s at the minimum configuration. This correction is documentation-only and does not change indicator status.
+
+
+## Batch 62J-43 — Gate 39 incident journal edge-case hardening (20 November 2026)
+
+Source/test HEAD: `b576bbaa6e8b22af2f11e1e3f06565250ac193a1`.
+
+Three additional tests now cover: (1) journal capacity exhaustion fails closed without deleting an unresolved incident, (2) only resolved incidents older than the 30-day retention threshold are pruned, and (3) sanitized worker exceptions are journaled and resolved after recovery without persisting raw exception messages.
+
+A pre-fix CI run `44739073900` exposed one regression: Python exception class names contain uppercase letters while the journal fingerprint grammar is lowercase-only. The reporter now lowercases only the fingerprint component while preserving the sanitized error code in logs. The failed intermediate run had 1,195 passed and 1 failed; it is superseded by the exact-head passing run below.
+
+Exact-head CI for `b576bbaa6e8b22af2f11e1e3f06565250ac193a1`:
+- Automated Tests: run `44739362168` — SUCCESS; 1,196 backend tests passed, 6 warnings in 43.97 seconds.
+- CodeQL Security Analysis: run `44739362102` — SUCCESS.
+- Full Git History Secret Audit: run `44739362274` — SUCCESS.
+- Backend container build, shared Redis/persistent-volume smoke test, container scan and vulnerability report export: SUCCESS.
+
+Lease arithmetic correction: 120 - 60 - 4 - 10 = **46 seconds** default reserve; at the 90-second minimum, reserve = **16 seconds**. The dashboard and ledger now use the corrected values.
+
+Gate 39 remains 🟧 OPEN because CI does not prove owner-host route isolation, operator-token injection/rotation, journal survival on the actual host restart, or a real induced-failure → escalation → acknowledgement → recovery drill. No live Firebase delivery or external notification channel is claimed. No indicator formula or visual implementation changed.
