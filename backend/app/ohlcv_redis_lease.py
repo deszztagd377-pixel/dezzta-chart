@@ -12,14 +12,22 @@ from typing import Any
 
 
 _RENEW_SCRIPT = """
-if redis.call('GET', KEYS[1]) == ARGV[1] then
+local value = redis.call('GET', KEYS[1])
+if value == ARGV[1] then
     return redis.call('PEXPIRE', KEYS[1], ARGV[2])
+end
+if not value then
+    return -1
 end
 return 0
 """
 _CHECK_SCRIPT = """
-if redis.call('GET', KEYS[1]) == ARGV[1] then
+local value = redis.call('GET', KEYS[1])
+if value == ARGV[1] then
     return 1
+end
+if not value then
+    return -1
 end
 return 0
 """
@@ -100,13 +108,23 @@ class RedisOhlcvConsumerLease:
         if not self._acquired or self._lost.is_set():
             raise RedisOhlcvConsumerLeaseLost("Redis replica consumer ownership was lost.")
         try:
-            valid = self.redis.eval(_CHECK_SCRIPT, 1, self.key, self._token)
+            valid = int(self.redis.eval(_CHECK_SCRIPT, 1, self.key, self._token) or 0)
+            if valid == -1:
+                # Redis may have restarted and lost ephemeral lease state. Reacquire
+                # only if the key is still absent; SET NX prevents stealing a successor.
+                acquired = self.redis.set(
+                    self.key, self._token, nx=True, px=self.ttl_ms,
+                )
+                if acquired:
+                    return
+                valid = int(self.redis.eval(_CHECK_SCRIPT, 1, self.key, self._token) or 0)
         except Exception as exc:
-            self._lost.set()
-            raise RedisOhlcvConsumerLeaseLost(
-                "Redis replica consumer ownership could not be verified."
+            # Temporary transport failure is uncertainty, not proof of takeover.
+            # The worker retries without applying or ACKing while verification is down.
+            raise RedisOhlcvConsumerLeaseUnavailable(
+                "Redis replica consumer ownership is temporarily unverifiable."
             ) from exc
-        if int(valid or 0) != 1:
+        if valid != 1:
             self._lost.set()
             raise RedisOhlcvConsumerLeaseLost("Redis replica consumer ownership was lost.")
 
@@ -114,13 +132,22 @@ class RedisOhlcvConsumerLease:
         if not self._acquired or self._lost.is_set():
             return False
         try:
-            renewed = self.redis.eval(
+            renewed = int(self.redis.eval(
                 _RENEW_SCRIPT, 1, self.key, self._token, self.ttl_ms,
-            )
+            ) or 0)
+            if renewed == -1:
+                # Safe recovery after key loss: only acquire if nobody else did.
+                if self.redis.set(self.key, self._token, nx=True, px=self.ttl_ms):
+                    return True
+                renewed = int(self.redis.eval(
+                    _CHECK_SCRIPT, 1, self.key, self._token,
+                ) or 0)
+                if renewed == 1:
+                    return True
         except Exception:
-            self._lost.set()
+            # Keep retrying while the worker is fail-closed at each event boundary.
             return False
-        if int(renewed or 0) != 1:
+        if renewed != 1:
             self._lost.set()
             return False
         return True
@@ -134,8 +161,7 @@ class RedisOhlcvConsumerLease:
 
             def run() -> None:
                 while not self._stop.wait(self.renewal_interval_ms / 1000):
-                    if not self.renew():
-                        self._lost.set()
+                    if not self.renew() and self._lost.is_set():
                         return
 
             self._heartbeat_thread = threading.Thread(

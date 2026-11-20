@@ -2231,6 +2231,22 @@ def test_replica_runtime_hydrates_before_worker_and_serves_replica_snapshot(tmp_
 
     class FakeRedis:
         closed = False
+        def __init__(self):
+            self.values = {}
+        def set(self, key, value, nx=False, px=None):
+            if nx and key in self.values:
+                return False
+            self.values[key] = value
+            return True
+        def eval(self, script, numkeys, key, token, *args):
+            if self.values.get(key) != token:
+                return 0
+            if "PEXPIRE" in script:
+                return 1
+            if "DEL" in script:
+                self.values.pop(key, None)
+                return 1
+            return 1
         def close(self):
             self.closed = True
 
@@ -2242,6 +2258,7 @@ def test_replica_runtime_hydrates_before_worker_and_serves_replica_snapshot(tmp_
             self.block_ms = None
             self.on_event_applied = None
             self.group_ready = False
+            self.group_name = "test:replica:group:generation-1"
         def ensure_group(self):
             self.group_ready = True
             return True
@@ -2348,6 +2365,22 @@ def test_replica_runtime_fails_closed_when_redis_group_bootstrap_fails(tmp_path)
 
     class FakeRedis:
         closed = False
+        def __init__(self):
+            self.values = {}
+        def set(self, key, value, nx=False, px=None):
+            if nx and key in self.values:
+                return False
+            self.values[key] = value
+            return True
+        def eval(self, script, numkeys, key, token, *args):
+            if self.values.get(key) != token:
+                return 0
+            if "PEXPIRE" in script:
+                return 1
+            if "DEL" in script:
+                self.values.pop(key, None)
+                return 1
+            return 1
         def close(self):
             self.closed = True
 
@@ -2358,6 +2391,7 @@ def test_replica_runtime_fails_closed_when_redis_group_bootstrap_fails(tmp_path)
             self.stream_key = "test:ohlcv:stream"
             self.block_ms = None
             self.on_event_applied = None
+            self.group_name = "test:replica:group:generation-1"
         def ensure_group(self):
             raise ConnectionError("test-only Redis bootstrap outage")
         def consume_once(self):
