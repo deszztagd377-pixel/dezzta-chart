@@ -935,7 +935,11 @@ class _FailOnceXReadGroupRedis:
             self.failed = True
             self.client.set(self.marker_key, "triggered", ex=120)
             raise ConnectionError("simulated transient Redis read outage")
-        return self.client.xreadgroup(*args, **kwargs)
+        result = self.client.xreadgroup(*args, **kwargs)
+        if not getattr(self, "recovered", False):
+            self.recovered = True
+            self.client.set(f"{self.marker_key}:recovered", "1", ex=120)
+        return result
 
 
 def _run_asgi_replica_gateway_process(
@@ -1080,12 +1084,16 @@ def test_two_independent_asgi_processes_broadcast_replica_live_event(tmp_path):
 
         # Both independent gateway processes must encounter the injected Redis
         # read failure before the source publishes the next durable cursor.
+        recovery_markers = [f"{marker}:recovered" for marker in outage_markers]
         marker_deadline = time.monotonic() + 10
         while time.monotonic() < marker_deadline:
-            if all(redis.exists(marker) for marker in outage_markers):
+            if all(redis.exists(marker) for marker in outage_markers) and all(
+                redis.exists(marker) for marker in recovery_markers
+            ):
                 break
             time.sleep(0.02)
         assert all(redis.exists(marker) for marker in outage_markers)
+        assert all(redis.exists(marker) for marker in recovery_markers)
 
         canonical_id = "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11"
         for port in ports:
@@ -1227,5 +1235,5 @@ def test_two_independent_asgi_processes_broadcast_replica_live_event(tmp_path):
             if process.is_alive():
                 process.kill()
                 process.join(timeout=5)
-        redis.delete(stream_key, *outage_markers)
+        redis.delete(stream_key, *outage_markers, *recovery_markers)
         redis.close()
