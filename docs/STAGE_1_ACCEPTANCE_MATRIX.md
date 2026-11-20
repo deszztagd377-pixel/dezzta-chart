@@ -1,3 +1,16 @@
+# Latest exact-head reconciliation — 20 November 2026
+
+**Branch:** `phase-2/market-data-foundation`  
+**Exact source/test HEAD:** `0d548aa398cf3efb7952b65e2fb9723e330ddeb6`  
+**Automated Tests & Build:** [44755071944](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44755071944) **SUCCESS** — frontend 245/245 (29 files), backend 1,202 passed / 6 warnings.  
+**CodeQL:** [44755071870](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44755071870) **SUCCESS**.  
+**Full Git History Secret Audit:** [44755071865](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44755071865) **SUCCESS**.  
+**Gate 20 delta:** test evidence now includes in-memory ticket single-use/subject binding, exact TTL expiry, wrong-purpose consumption, cross-account renewal rejection (4401), and entitlement revocation during renewal (4403). This is repository-level regression coverage only. Real Firebase signed-token/session expiry/revocation and browser/Android reconnect remain external acceptance requirements.  
+**Accounting:** Stage 1 remains **30/40 = 300/400 = 75% provisional**; Gate 10 remains **10/10 ORANGE / 0 closed**; Stages 2–6 and overall project percentage remain unscored. No acceptance tick is awarded by this CI refresh.  
+**Boundary:** no runtime source change in the two latest commits, no deployment, no paid service, no Termux/device operation, and no `main` modification.
+
+---
+
 ## Batch 15 — upstream dependency remediation review — 2026-11-18
 
 Fresh upstream review confirms there is no safe patch/release to integrate yet:

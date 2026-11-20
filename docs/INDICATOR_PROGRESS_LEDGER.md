@@ -1,9 +1,23 @@
 # DEZZTA CHART — Complete Indicator Progress Ledger
 
-**Checkpoint:** 20 November 2026 — Batch 62J-45 Gate 30 restore-drill runbook prepared; indicator scope unchanged  
+**Checkpoint:** 20 November 2026 — Batch 62J-48 exact-head CI reconciliation; indicator implementation unchanged
 **Branch:** `phase-2/market-data-foundation`  
-**Indicator implementation status:** unchanged by WebSocket Batches 62H-3, 62H-4, 62I, 62J-1, 62J-2 and 62J-16. The WebSocket reliability work does not award indicator progress.  
+**Indicator implementation status:** unchanged at exact source/test HEAD `0d548aa398cf3efb7952b65e2fb9723e330ddeb6`; the two latest commits modify backend tests only and do not award indicator progress.
 **Interpretation:** statuses describe verified implementation boundaries, not a guessed completion percentage. No indicator weights or acceptance percentages have been approved, so per-indicator or total-indicator percentages are intentionally not fabricated.
+
+
+## Exact-head evidence refresh — Batch 62J-48 (20 November 2026)
+
+- Branch: `phase-2/market-data-foundation`; exact source/test HEAD: `0d548aa398cf3efb7952b65e2fb9723e330ddeb6`.
+- Automated Tests & Build [44755071944](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44755071944): **SUCCESS**.
+- Frontend: **245/245 tests across 29 files**.
+- Backend: **1,202 passed, 6 warnings in 44.40 seconds**.
+- Frontend dependency audit: **0 vulnerabilities**. Backend dependency audit: **no known vulnerabilities found**.
+- CodeQL [44755071870](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44755071870): **SUCCESS**.
+- Full Git History Secret Audit [44755071865](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44755071865): **SUCCESS**.
+- The two commits since the previous checkpoint add four backend regression tests for in-memory ticket single-use/subject binding, exact TTL expiry, wrong-purpose consumption, and entitlement revocation during renewal. Runtime indicator and chart files are unchanged.
+- **No indicator state changed.** Passing WebSocket/backend CI validates repository tests; it does not render an indicator in the chart or prove real market-data correctness.
+- Stage 1 remains 30/40 = 75% provisional; Gate 10 remains 0/10 closed; no indicator or overall-project percentage is inferred.
 
 ## Color legend
 

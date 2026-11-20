@@ -1,15 +1,18 @@
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 20 November 2026 — Batch 62J-47 cross-account WebSocket ticket-renewal regression; exact-head CI verified
+**Checkpoint:** 20 November 2026 — Batch 62J-48 exact-head WebSocket CI and indicator reconciliation
 **Active branch:** `phase-2/market-data-foundation`
-**Latest source/test HEAD:** `826bae749f48e844f5fddb82dfec396bb3f9baa7` (test-only cross-account renewal regression; exact-head CI passed). Runtime source is unchanged from the preceding verified source checkpoint.
-**Exact-head Automated Tests & Build:** [44751619536](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44751619536) SUCCESS • Frontend 245/245 across 29 files • Backend 1,198 passed, 6 warnings.
-**Exact-head CodeQL:** [44751619516](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44751619516) SUCCESS • **Full Git History Secret Audit:** [44751619621](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44751619621) SUCCESS.
-**WebSocket E:** COMPLETE FOR DEFINED AUTOMATED FAILURE-MATRIX SCOPE at Batch 62J-31; public WSS and production operations remain separate.
-**Gate 20 repository evidence:** WebSocket ticket renewal now has explicit cross-account rejection coverage; real Firebase identity verification, session expiry/revocation and browser/Android reconnect acceptance remain open.
-**Current Gate 10 work:** Gate 39 includes bounded FCM child-process isolation, persistent local SQLite incident journal, separate operator-token protection, acknowledgement/resolution endpoints and three-step log escalation. Owner-host network restriction, secret injection/rotation, restart persistence and live incident/recovery drill remain open. Gate 36 still requires public WSS/browser/Android acceptance.
-**Cost policy:** ZERO COST. No paid provider, hosting, deployment, Vercel or Cloudflare deployment action. Termux/device operation has not been executed; owner-host runtime access is still required.
-**Cross-device target:** Android/iOS/tablet/PC/laptop over Wi-Fi or mobile data is a required product goal. APK sideloading does not remove the backend requirement. The approved near-term work is local/LAN validation on owner hardware; a reliable public internet endpoint remains BLOCKED until a zero-cost, owner-controlled always-on host and reachable network path are demonstrated. Do not treat temporary tunnels or private mesh VPNs as public production hosting.
+**Latest source/test HEAD:** `0d548aa398cf3efb7952b65e2fb9723e330ddeb6` (two test-only commits after `826bae749f48e844f5fddb82dfec396bb3f9baa7`; no runtime source changes in those two commits).
+**Exact-head Automated Tests & Build:** [44755071944](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44755071944) **SUCCESS** — frontend 245/245 across 29 files; backend **1,202 passed, 6 warnings**.
+**Exact-head CodeQL:** [44755071870](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44755071870) **SUCCESS** • **Full Git History Secret Audit:** [44755071865](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44755071865) **SUCCESS**.
+**Audit evidence:** frontend dependency audit 0 vulnerabilities; backend dependency audit no known vulnerabilities; frontend source/bundle secret scan, backend container build, Redis ACL/AOF + mounted-volume smoke test, Trivy scan/report export all completed successfully.
+**WebSocket E:** COMPLETE FOR THE DEFINED AUTOMATED FAILURE-MATRIX SCOPE. This is distinct from Gate 20's real Firebase identity and browser/Android acceptance.
+**Gate 20:** repository regression coverage strengthened for single-use/expiry/purpose, cross-account renewal rejection, and entitlement revocation during renewal. Real Firebase project signed-token/session acceptance and browser/Android reconnect remain OPEN.
+**Gate 10:** **10/10 🟧 OPEN; 0/10 formally closed** — gates 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39.
+**Stage 1:** 30/40 criteria = 300/400 ticks = **75% provisional**; no new acceptance tick awarded by this cycle.
+**Stages 2–6:** not scored. **Overall project percentage:** not established; M1–M8 weighting/acceptance denominator remains unapproved.
+**Indicator aggregate:** not scored; no approved weights/denominator. Individual status remains in the complete indicator ledger below.
+**Cost/device boundary:** ZERO COST. No paid provider, hosting, subscription, deployment, Vercel or Cloudflare action. No Termux/device operation was run in this cycle. `main` remains untouched.
 
 > This document is the current concise dashboard. Historical work-cycle reports remain the evidence trail. Do not infer that a docs-only commit has rerun or revalidated code CI.
 
