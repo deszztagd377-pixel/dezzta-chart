@@ -273,8 +273,14 @@ def run_restore_drill(source_path: str | Path, backup_path: str | Path,
                       restore_path: str | Path) -> dict:
     started = perf_counter()
     source = Path(source_path).expanduser().resolve(strict=True)
-    backup = Path(backup_path).expanduser().resolve()
-    restored = Path(restore_path).expanduser().resolve()
+    backup_input = Path(backup_path).expanduser()
+    restore_input = Path(restore_path).expanduser()
+    if backup_input.is_symlink():
+        raise ValueError("backup destination must not be a symbolic link")
+    if restore_input.is_symlink():
+        raise ValueError("restore destination must not be a symbolic link")
+    backup = backup_input.resolve()
+    restored = restore_input.resolve()
     if not source.is_file():
         raise FileNotFoundError("source database is not a regular file")
     if len({source, backup, restored}) != 3:

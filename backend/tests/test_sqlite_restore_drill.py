@@ -231,6 +231,30 @@ def test_restore_drill_refuses_existing_output_paths_without_overwriting(tmp_pat
 
 
 
+@pytest.mark.parametrize("symlink_role", ["backup", "restore"])
+def test_restore_drill_refuses_dangling_symlink_output_paths(tmp_path, symlink_role):
+    source = tmp_path / "live.sqlite3"
+    backup = tmp_path / "backup.sqlite3"
+    restored = tmp_path / "restored.sqlite3"
+    target_dir = tmp_path / "outside"
+    target_dir.mkdir()
+    target = target_dir / "redirected.sqlite3"
+    _build_database(source)
+    source_before = source.read_bytes()
+
+    symlink = backup if symlink_role == "backup" else restored
+    symlink.symlink_to(target)
+
+    with pytest.raises(ValueError, match="destination must not be a symbolic link"):
+        run_restore_drill(source, backup, restored)
+
+    assert symlink.is_symlink()
+    assert not target.exists()
+    assert source.read_bytes() == source_before
+    assert not backup.is_file()
+    assert not restored.is_file()
+
+
 def test_restore_inventory_detects_same_count_row_content_changes(tmp_path):
     source = tmp_path / "source.sqlite3"
     altered = tmp_path / "altered.sqlite3"
