@@ -3,20 +3,24 @@
 **Checkpoint:** 20 November 2026 — Batch 62J-20 exact-head reconciliation  
 **Active branch:** `phase-2/market-data-foundation`  
 **Latest fully CI-verified code HEAD:** `468d0aa4a348d997dc7affb71374bc8712cfc39d`  
-**Latest documentation checkpoint before this refresh:** `a91a104db0acc6391d1511f65e881642b766d81e`  
-**Current audit batch:** 62J-20 source audit — WebSocket ASGI integration boundary + indicator implementation reconciliation  
+**Latest documentation checkpoint before this refresh:** `99bc549e95341310945b987ab4ae11a86c962ea9`  
+**Current audit batch:** 62J-21 documentation integrity repair + exact-head CI reconciliation  
 **Cost policy:** ZERO COST. No paid providers, hosting, deployments, Vercel/Cloudflare actions, or Termux requirement.
 
 > This document is the current concise dashboard. Historical work-cycle reports remain the evidence trail. Do not infer that a docs-only commit has rerun or revalidated code CI.
 
 
-## 0. Batch 62J-20 — exact-head reconciliation (20 November 2026)
+## 0. Batch 62J-21 — documentation integrity + exact-head CI reconciliation (20 November 2026)
 
-**Audited branch HEAD before this documentation update:** `a91a104db0acc6391d1511f65e881642b766d81e`  
+**Audited branch HEAD before this documentation update:** `99bc549e95341310945b987ab4ae11a86c962ea9`  
 **Runtime code checkpoint:** `468d0aa4a348d997dc7affb71374bc8712cfc39d`  
-**CI on exact branch HEAD `a91a104db0acc6391d1511f65e881642b766d81e`:** Automated Tests run `44644831052` SUCCESS • CodeQL run `44644831073` SUCCESS • Full Git History Secret Audit run `44644831088` SUCCESS.
+**CI on exact branch HEAD `99bc549e95341310945b987ab4ae11a86c962ea9`:** Automated Tests run `44680830387` SUCCESS • CodeQL run `44680830205` SUCCESS • Full Git History Secret Audit run `44680830208` SUCCESS.
 
-This is a documentation/evidence refresh. No runtime source or test code changed in this cycle. The latest code checkpoint remains `468d0aa...`; the current branch head is a docs-only descendant. The successful workflows above validate the exact documentation HEAD and its included code.
+This is a documentation/evidence refresh and integrity repair. No runtime source or test code changed in this cycle. The runtime code checkpoint remains `468d0aa4a348d997dc7affb71374bc8712cfc39d`; `99bc549...` is a docs-only descendant. All three workflows completed successfully on exact HEAD `99bc549...`.
+
+### Documentation integrity repair
+
+The previous documentation update accidentally replaced the opening contents of `docs/INDICATOR_PROGRESS_LEDGER.md` with an object-string placeholder. This batch restores the complete ledger from its verified parent revision and appends the exact-head CI reconciliation. No indicator status or percentage is increased by this repair.
 
 ### WebSocket source audit — concrete integration boundary
 
