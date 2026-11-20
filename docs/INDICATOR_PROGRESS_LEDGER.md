@@ -1,8 +1,8 @@
 # DEZZTA CHART — Complete Indicator Progress Ledger
 
-**Checkpoint:** 20 November 2026 — refreshed after WebSocket 62J-14 exact-head verification  
+**Checkpoint:** 20 November 2026 — indicator ledger reconciled with 62J-16 and exact-head CI verification  
 **Branch:** `phase-2/market-data-foundation`  
-**Indicator implementation status:** unchanged by WebSocket Batches 62H-3, 62H-4, 62I, 62J-1 and 62J-2. The WebSocket reliability work does not award indicator progress.  
+**Indicator implementation status:** unchanged by WebSocket Batches 62H-3, 62H-4, 62I, 62J-1, 62J-2 and 62J-16. The WebSocket reliability work does not award indicator progress.  
 **Interpretation:** statuses describe verified implementation boundaries, not a guessed completion percentage. No indicator weights or acceptance percentages have been approved, so per-indicator or total-indicator percentages are intentionally not fabricated.
 
 ## Color legend
@@ -242,3 +242,24 @@ The WebSocket worker lifecycle and callback deadline regression tests were expan
 | Liquidation Maps | 🟥 Not implemented | No validated liquidation dataset/calculation contract |
 
 No weighted indicator completion percentage is introduced. Formula/warm-up contracts and visual acceptance criteria above remain unchanged.
+
+
+## 20 November 2026 — 62J-16 verification reconciliation
+
+No indicator calculation, chart renderer, indicator hook, or indicator UI source was changed in 62J-16. Therefore every indicator row above retains its previous status and acceptance requirements. WebSocket CI success is infrastructure evidence only and must not be counted as indicator completion.
+
+The descendant code/documentation HEAD `468d0aa4a348d997dc7affb71374bc8712cfc39d` completed all three GitHub Actions workflows successfully: Automated Tests run `44642566787`, CodeQL run `44642566989`, and Full Git History Secret Audit run `44642566911`. This confirms the current indicator calculation/test code remains build- and CI-compatible at that repository HEAD; it does not demonstrate visible chart rendering, real-time synchronization, provider correctness, or completion of any indicator acceptance item.
+
+| Indicator / subsystem | Reconciled status | Explicit boundary |
+|---|---|---|
+| SMA 20 | 🟨 Foundation | Calculation foundation only; overlay/toggle/legend/stale clearing/render tests remain |
+| EMA 20 | 🟨 Foundation | SMA-seeded calculation only; visible integration remains |
+| RSI 14 | 🟨 Foundation | Wilder calculation only; dedicated pane and guides remain |
+| MACD 12/26/9 | 🟨 Foundation | Calculation/warm-up only; MACD/signal/histogram pane remains |
+| Bollinger 20,2 | 🟨 Foundation | Population-deviation calculation only; visible band remains |
+| Shared indicator hook | 🟨 Foundation | Validated snapshot foundation; chart identity/timeframe lifecycle remains |
+| Footprint | 🟧 Gated | Wait for user's reference image and reviewed blueprint; SIMULATED data only |
+| Heatmap | 🟥 Not implemented | Wait for reference image, approved data contract and blueprint |
+| Liquidation Maps | 🟥 Not implemented | No validated data/calculation contract |
+
+No indicator percentage is published because there is no approved per-indicator acceptance denominator or weighting. Stage 1 provisional 75% and Gate 10 0/10 closure remain separate project measures; neither is an indicator completion score.
