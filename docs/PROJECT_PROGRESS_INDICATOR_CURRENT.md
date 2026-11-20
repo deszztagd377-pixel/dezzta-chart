@@ -1,10 +1,10 @@
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 20 November 2026 — Batch 62J-28 dual-gateway Redis read-recovery acceptance  
+**Checkpoint:** 20 November 2026 — Batch 62J-29 exact-head CI + Gate 10 + indicator reconciliation  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest code/test commit with exact-head CI:** `ea19ce5ae6623ac09b23d36069960a5368dab3b0`  
-**Dashboard revision:** documentation-only follow-up; runtime/test evidence remains anchored to the code/test commit above.  
-**Current audit batch:** 62J-28 — dual-ASGI transient Redis read-failure recovery verified in CI; E remains partial  
+**Latest source/test checkpoint:** `ea3626cd9e174d0f9a06af2b0fe2550c830e0559`  
+**Dashboard revision:** Batch 62J-29 documentation-only evidence reconciliation; no runtime behavior changed.  
+**Current audit batch:** 62J-29 — exact-head CI complete; WebSocket E remains partial; Gate 10 evidence reconciled  
 **Cost policy:** ZERO COST. Existing Redis 7 CI service and temporary SQLite fixtures only; no paid providers, hosting, deployment, Vercel/Cloudflare action, or Termux requirement.
 
 > This document is the current concise dashboard. Historical work-cycle reports remain the evidence trail. Do not infer that a docs-only commit has rerun or revalidated code CI.
@@ -362,3 +362,63 @@ The latest commit adds the reconnect replay assertion to the real two-ASGI-proce
 **Project control:** Stage 1 remains 30/40 criteria = 300/400 ticks = 75% provisional. Gate 10 remains 10/10 🟧 ORANGE and 0/10 formally closed. Overall project percentage and aggregate indicator percentage remain unscored because their approved weights/denominators are absent.
 
 No runtime source code was changed in this reconciliation. No deployment, paid infrastructure, Vercel/Cloudflare action, `main` modification or Termux work was performed.
+
+
+## 0H. Batch 62J-29 — exact-head CI, Gate 10 and indicator reconciliation (20 November 2026)
+
+**Audited branch HEAD:** `ea3626cd9e174d0f9a06af2b0fe2550c830e0559`  
+**Automated Tests:** [44705774297](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44705774297) — SUCCESS; backend pytest passed (1,164 tests), frontend tests/build, dependency checks, container build and container smoke completed successfully.  
+**CodeQL:** [44705774202](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44705774202) — SUCCESS (JavaScript/TypeScript and Python).  
+**Full Git History Secret Audit:** [44705774189](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44705774189) — SUCCESS.
+
+This verifies the exact current branch HEAD. The immediately preceding runtime/test behavior checkpoint remains Batch 62J-28; the 62J-29 documentation reconciliation does not claim new WebSocket behavior.
+
+### WebSocket E — remaining acceptance work
+
+- 🟩 A–D: repository/CI evidence remains verified for the explicit opt-in replica path, FastAPI lifecycle, source/replica route handoff and independent ASGI gateways.
+- 🟨 E: partially verified. The dual-ASGI test injects a transient failure at the Redis client's `xreadgroup` boundary and proves recovery, replay, restart and cursor parity.
+- Outstanding: a real TCP/network interruption affecting both gateway processes; a coordinated two-replica snapshot-generation replacement test; post-recovery parity for that combined scenario; production snapshot distribution/rotation; production TLS/ACL/credential rotation; browser and Android WSS acceptance; retention/cleanup governance and recovery drill.
+
+Do not label the current client-boundary fault injection as a Redis server outage. Do not close Gates 25, 34 or 36 from CI alone.
+
+### Gate 10 — ten-gate control board
+
+| Gate | Status | Remaining independent acceptance |
+|---:|---|---|
+| 8 | 🟧 OPEN | Actual owner-host secret injection, permissions and runtime leakage review |
+| 20 | 🟧 OPEN | Real no-billing Firebase sign-in/revocation/entitlement plus browser and Android flow |
+| 25 | 🟧 OPEN | Owner-controlled Redis TLS/ACL, persistence, outage and recovery |
+| 30 | 🟧 OPEN | Restore drill on the intended owner-controlled target |
+| 31 | 🟧 OPEN | Off-host encrypted artifact and separately controlled recovery key |
+| 34 | 🟧 OPEN | Actual host volume, restart, disk-pressure and recovery evidence |
+| 35 | 🟧 OPEN | Owner-host HTTPS endpoint and certificate validation |
+| 36 | 🟧 OPEN | Browser/Android WSS, platform lifetime, effective runtime configuration and cross-instance acceptance |
+| 38 | 🟧 OPEN | Protected host collector/dashboard, bounded retention and disk-pressure evidence |
+| 39 | 🟧 OPEN | Responsible adult operator, verified escalation channel and observed acknowledgement/recovery drill |
+
+**Gate 10: 10/10 ORANGE, 0/10 formally closed.** ORANGE means active/open, not passed. Several items require an owner-controlled host, provider or operator that CI cannot manufacture. ZERO COST remains mandatory; if a safe no-cost path is unavailable, defer rather than enable billing or weaken controls.
+
+### Indicator progress — full status unchanged
+
+| Indicator / subsystem | Status | Verified foundation | Remaining work |
+|---|---|---|---|
+| SMA 20 | 🟨 | Rolling mean; first valid index 19 | Overlay, toggle, legend/value, stale clearing, render/lifecycle tests |
+| EMA 20 | 🟨 | SMA-seeded EMA; alpha 2/21; first valid index 19 | Overlay, toggle, legend/value, stale clearing, render/lifecycle tests |
+| RSI 14 | 🟨 | Wilder smoothing; first valid index 14 | Dedicated 0–100 pane, 30/70 guides, toggle, legend, stale clearing and render tests |
+| MACD 12/26/9 | 🟨 | MACD first valid index 25; signal/histogram index 33 | Dedicated pane, lines, histogram, zero guide, toggle, legend and render tests |
+| Bollinger 20,2 | 🟨 | SMA20 ± 2 population standard deviations; first valid index 19 | Three-line overlay, toggle, legend/value, stale clearing and render tests |
+| Shared indicator hook | 🟨 | Validated backend snapshot only; no DEMO fallback | Active chart identity/timeframe binding, loading/error states and cross-series isolation |
+| Footprint | 🟧 | Deterministic educational accumulator, explicitly SIMULATED | Owner reference image + reviewed blueprint; ON-only spaced cluster layout; OFF keeps standard candles |
+| Heatmap | 🟥 | No implementation verified | Owner reference, reviewed blueprint, source/calculation contract, renderer and tests |
+| Liquidation Maps | 🟥 | No validated source/calculation contract | Source feasibility, reference/blueprint, calculations, renderer and tests |
+
+**Indicator progress is not assigned a fabricated percentage.** WebSocket CI does not count as indicator UI progress. Visible indicator implementation remains Stage 4 work; current official stage remains Stage 1. No indicator rendering work was started.
+
+### Project accounting
+
+- Stage 1: **30/40 criteria = 300/400 ticks = 75% provisional**.
+- Gate 10: **10/10 🟧 ORANGE; 0/10 closed**.
+- Stages 2–6: not scored.
+- Overall project percentage: not established; M1–M8 weights are not approved.
+- ZERO COST: no paid service, deployment, production activation or main-branch modification.
+- Termux: not required for this CI/documentation cycle. Native Termux backend acceptance remains incomplete in the existing device-readiness record; no installation command is being issued.

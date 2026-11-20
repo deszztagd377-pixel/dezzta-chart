@@ -365,3 +365,18 @@ The indicator implementation and readiness states above are unchanged. The follo
 - Existing snapshot-generation replacement coverage remains green; the consumer switches to a new generation-scoped group at the installed snapshot watermark and does not destroy the old group.
 
 **Limit:** the injected read failure is at the Redis client boundary. It is not a real Redis server/network outage. Production snapshot distribution, cross-process snapshot replacement parity, Redis TLS/ACL/credential rotation, and public browser/Android WSS acceptance remain outstanding. WebSocket E is still partially verified. Gate 10 remains 10 ORANGE / 0 closed. Indicator status remains exactly as recorded above.
+
+
+## Batch 62J-29 — 20 November 2026: exact-head CI and project-control boundary
+
+The current branch HEAD `ea3626cd9e174d0f9a06af2b0fe2550c830e0559` passed all three exact-head workflows:
+- Automated Tests [44705774297](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44705774297) — SUCCESS; backend pytest 1,164 passed, frontend tests/build and container build/smoke passed.
+- CodeQL [44705774202](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44705774202) — SUCCESS for JavaScript/TypeScript and Python.
+- Full Git History Secret Audit [44705774189](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44705774189) — SUCCESS.
+
+This is WebSocket/repository infrastructure evidence, not indicator rendering acceptance. Indicator statuses remain unchanged: SMA20 🟨 (first valid index 19), EMA20 🟨 (19), RSI14 🟨 (14), MACD12/26/9 🟨 (MACD 25; signal/histogram 33), Bollinger20,2 🟨 (19), Shared Indicator Hook 🟨, Footprint 🟧 (SIMULATED; owner reference and reviewed blueprint required), Heatmap 🟥, Liquidation Maps 🟥. No aggregate indicator percentage is claimed.
+
+WebSocket E remains PARTIALLY VERIFIED: dual-ASGI transient client-boundary read failure/recovery, replay and restart parity are covered. A real TCP/network interruption and coordinated snapshot-generation replacement across both gateway replicas remain untested, alongside production snapshot distribution, TLS/ACL rotation and external WSS/device acceptance.
+
+Gate 10 remains **10/10 🟧 ORANGE / 0/10 formally closed**: 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. CI cannot substitute for owner-host, provider, device or operator acceptance. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 are unscored; overall project percentage remains unestablished. ZERO COST is unchanged. No Termux work was required for this cycle.
+
