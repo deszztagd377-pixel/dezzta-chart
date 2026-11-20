@@ -2,9 +2,10 @@
 
 **Checkpoint:** 20 November 2026 — Batch 62J-48 exact-head WebSocket CI and indicator reconciliation
 **Active branch:** `phase-2/market-data-foundation`
-**Latest source/test HEAD:** `0d548aa398cf3efb7952b65e2fb9723e330ddeb6` (two test-only commits after `826bae749f48e844f5fddb82dfec396bb3f9baa7`; no runtime source changes in those two commits).
-**Exact-head Automated Tests & Build:** [44755071944](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44755071944) **SUCCESS** — frontend 245/245 across 29 files; backend **1,202 passed, 6 warnings**.
-**Exact-head CodeQL:** [44755071870](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44755071870) **SUCCESS** • **Full Git History Secret Audit:** [44755071865](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44755071865) **SUCCESS**.
+**Latest branch HEAD:** `cf5ea982739cb570cc4bd2a3f9e1e2397b58e690` (documentation-only descendant; no runtime source/test changes).
+**Latest source/test HEAD:** `0d548aa398cf3efb7952b65e2fb9723e330ddeb6` (the two commits after `826bae749f48e844f5fddb82dfec396bb3f9baa7` add backend regression tests only; runtime source unchanged).
+**Source/test-head CI:** Automated Tests & Build [44755071944](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44755071944) **SUCCESS** — frontend 245/245 across 29 files; backend **1,202 passed, 6 warnings**. CodeQL [44755071870](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44755071870) **SUCCESS** • Full Git History Secret Audit [44755071865](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44755071865) **SUCCESS**.
+**Exact branch-head CI:** Automated Tests & Build [44756726270](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44756726270), CodeQL [44756726223](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44756726223), and Full Git History Secret Audit [44756726233](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44756726233) all **SUCCESS** on `cf5ea982739cb570cc4bd2a3f9e1e2397b58e690`.
 **Audit evidence:** frontend dependency audit 0 vulnerabilities; backend dependency audit no known vulnerabilities; frontend source/bundle secret scan, backend container build, Redis ACL/AOF + mounted-volume smoke test, Trivy scan/report export all completed successfully.
 **WebSocket E:** COMPLETE FOR THE DEFINED AUTOMATED FAILURE-MATRIX SCOPE. This is distinct from Gate 20's real Firebase identity and browser/Android acceptance.
 **Gate 20:** repository regression coverage strengthened for single-use/expiry/purpose, cross-account renewal rejection, and entitlement revocation during renewal. Real Firebase project signed-token/session acceptance and browser/Android reconnect remain OPEN.
@@ -14,7 +15,7 @@
 **Indicator aggregate:** not scored; no approved weights/denominator. Individual status remains in the complete indicator ledger below.
 **Cost/device boundary:** ZERO COST. No paid provider, hosting, subscription, deployment, Vercel or Cloudflare action. No Termux/device operation was run in this cycle. `main` remains untouched.
 
-> This document is the current concise dashboard. Historical work-cycle reports remain the evidence trail. Do not infer that a docs-only commit has rerun or revalidated code CI.
+> This document is the current concise dashboard. Historical work-cycle reports remain the evidence trail. Distinguish the latest source/test HEAD from a documentation-only branch HEAD, and cite CI only for the exact SHA shown by each run.
 
 
 ## Batch 62J-47 — cross-account WebSocket ticket renewal regression (20 November 2026)
