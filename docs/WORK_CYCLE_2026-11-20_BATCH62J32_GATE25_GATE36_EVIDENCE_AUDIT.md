@@ -75,13 +75,14 @@ However, its module documentation explicitly says the config is not wired into a
 
 ## 3. Gate 36 — WSS and client boundary
 
-- Backend `/ws/market-data` route exists and uses a scoped ticket in production.
+- Backend `/ws/market-data` route exists and uses a purpose-bound ticket in production.
 - `POST /v1/auth/websocket-ticket` verifies the Firebase Bearer token over HTTPS and issues a 90-second purpose-bound single-use ticket. The route consumes the ticket once; the client renews every 45 seconds by obtaining a fresh HTTPS ticket and sending `auth.renew`; the backend verifies the same subject and rechecks exact-series entitlement before acknowledging.
+- Current ticket binding is subject + purpose; it is not bound to a canonical series or Origin/client context. Exact-series authorization is independently enforced before snapshot delivery and at renewal.
 - Backend API tests cover ticket issuance, invalid Bearer rejection and same-subject renewal acknowledgement. Frontend transport tests cover ticket authentication and renewal.
 - Deployment documentation explicitly states source existence is not proof of deployed WSS availability.
 - No owner-host reverse proxy, public WSS handshake, browser end-to-end, Android WebView, deployed cross-instance fan-out or platform connection-lifetime evidence was found.
 
-**Disposition: Gate 36 remains 🟧 OPEN.** Ticket exchange/renewal are code-level implemented and tested, but no public endpoint was deployed and no browser/Android acceptance was fabricated.
+**Disposition: Gate 36 remains 🟧 OPEN.** Ticket exchange/renewal are code-level implemented and tested; ticket series/Origin binding still requires threat-model review. No public endpoint was deployed and no browser/Android acceptance was fabricated.
 
 ## 4. Indicator and project progress
 

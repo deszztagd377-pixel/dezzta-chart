@@ -1,11 +1,12 @@
 # DEZZTA CHART — WebSocket client authentication design gate
 
-## Current verified state — audited 2026-11-08
+## Current verified state — audited 2026-11-20
 
-- The backend route `/ws/market-data` authenticates the first JSON frame with a Firebase ID token through `FirebaseIdentityVerifier`; it no longer accepts the legacy `MARKET_DATA_WS_TOKEN` setting.
-- Firebase Admin verification requests revocation checking and validates the expected project issuer/audience and required identity claims. Unit tests use an injected verifier/fake Admin SDK; a real Firebase-project signed-token E2E has **not** been completed.
-- The React root is wrapped in `AuthProvider` from `src/main.tsx`. `src/components/SettingsPanel.tsx` renders `AuthPanel`, and `App.tsx` renders `SettingsPanel` when the Settings tab is active. The Firebase sign-in panel is therefore available in the visible Settings screen.
-- The frontend contains an authenticated WebSocket client and stream supervisor. The chart integration obtains Firebase ID tokens, requests a fresh token on reconnect, validates snapshot/watermark and sequence continuity, and publishes accepted data through the shared market-data store. This is code-level integration, not proof of a deployed backend/provider connection.
+- In production, `/ws/market-data` authenticates the first JSON frame with a short-lived ticket, not a Firebase ID token. The client obtains a Firebase ID token from `AuthProvider`, sends it over HTTPS to `POST /v1/auth/websocket-ticket`, and receives a purpose-bound `market-data` ticket with a 90-second TTL. Production rejects the raw-token WebSocket fallback.
+- `FirebaseIdentityVerifier` uses Firebase Admin revocation checking and validates expected issuer/audience/identity claims when issuing each ticket. Backend API tests cover issuance, invalid Bearer rejection and same-subject renewal acknowledgement. A real Firebase-project signed-token E2E has **not** been completed.
+- The ticket is cryptographically random, single-use and stored by digest in the Redis-backed shared guard with a TTL; an atomic Lua GET/DEL consumes it. The ticket is bound to verified subject and purpose, but is **not currently bound to an individual canonical series or origin**. Exact-series authorization is performed separately before snapshot delivery and rechecked during renewal.
+- The frontend stream supervisor exchanges a fresh Firebase ID token over HTTPS for initial and renewal tickets. The WebSocket client sends only the ticket in its `auth`/`auth.renew` frames, renews every 45 seconds by default, and requires the server acknowledgement within 10 seconds. The server enforces a bounded 60-second renewal/authorization deadline.
+- The React root is wrapped in `AuthProvider` from `src/main.tsx`. `src/components/SettingsPanel.tsx` renders `AuthPanel`, and `App.tsx` renders `SettingsPanel` when the Settings tab is active. This is code-level integration, not proof of a deployed backend/provider connection.
 - The legacy static token must never be placed in `VITE_*` variables, frontend source, local storage, a public config endpoint, or an Android package.
 - CORS/Origin validation is defense in depth, not authentication. Native clients may not send an Origin header, so the backend must still require valid credentials.
 
@@ -42,7 +43,7 @@ Build a backend-owned login/session system with secure cookies or refresh-token 
 
 ## Recommended implementation boundary
 
-Keep the future frontend stream client transport-neutral and inject an asynchronous `getAccessToken()` function. The client may send only the short-lived token returned by that provider in the first WebSocket auth frame. Do not implement a production token issuer until an authentication architecture is approved and its threat model is reviewed.
+Keep the frontend stream client transport-neutral and inject an asynchronous Firebase ID-token provider. Exchange that token over HTTPS for a short-lived server-issued ticket; send only the ticket in the WebSocket auth frame. The existing issuer is implemented, but its production threat-model review and any decision about per-series/origin binding remain open.
 
 The client must validate the server snapshot and its stream ID/watermark before accepting updates. It must apply only the next sequence for the exact selected series. On a gap, queue overflow, reconnect, or series change, it must stop applying updates and obtain a fresh snapshot before resuming. All accepted updates must flow through the shared `marketDataStore`; indicators must not open their own sockets.
 
@@ -50,16 +51,16 @@ The client must validate the server snapshot and its stream ID/watermark before 
 
 - A real Firebase project and authorized test accounts must be used to verify valid, expired, revoked, and wrong-project signed tokens end to end. Existing injected-verifier tests are not a substitute.
 - The `AuthPanel` is mounted through `SettingsPanel` and is covered by `AuthPanel.test.tsx`; `AuthProvider` observer lifecycle is covered by `AuthProvider.dom.test.tsx`. Deployed Firebase account/session behavior and real signed-token E2E remain unverified.
-- The client currently sends Firebase ID tokens directly in the initial WebSocket auth frame. A separate short-lived, narrowly scoped WebSocket ticket and signing-key lifecycle have not been implemented; decide whether this additional exchange is required by the production threat model before deployment.
-- A long-lived connection re-verifies the same Firebase ID token (including expiry and revocation) and rechecks instrument entitlement/mapping every 60 seconds. If the token expires, is revoked, the identity changes, or verification is unavailable, the server closes the connection; the client must obtain a fresh token and reconnect. This bounded revalidation is implemented in the WebSocket loop, but has not yet been verified against a real Firebase project.
+- The HTTPS ticket exchange and same-subject renewal are implemented. The current ticket binds subject and purpose, not an individual series or Origin; review whether the production threat model requires additional binding before deployment.
+- The client obtains a fresh Firebase ID token for each ticket issue/renewal. Firebase Admin revocation checking occurs at ticket issuance; the backend consumes the ticket once, verifies the same subject on renewal, and rechecks exact-series mapping/entitlement. Real Firebase signed-token and deployed WSS E2E remain unverified.
 - No public backend deployment, real provider feed, or end-to-end client connection against production infrastructure is verified.
 
 Do not enable production frontend streaming until the real-token E2E, visible auth flow, connection-lifetime policy, TLS deployment, and operational controls have been reviewed and tested.
 
 
-## 2026-11-04 implementation update — Firebase WebSocket authentication
+## Historical implementation update — 2026-11-04 (superseded by the 2026-11-20 ticket flow above)
 
-- The first `auth` frame now carries a Firebase ID token. The backend verifies it through the approved `FirebaseIdentityVerifier` (including Firebase Admin's revoked-token check) in a worker thread. Invalid tokens close with 4401; unavailable identity verification fails closed with 1013.
+- At that checkpoint, the first `auth` frame carried a Firebase ID token. The backend verifies it through the approved `FirebaseIdentityVerifier` (including Firebase Admin's revoked-token check) in a worker thread. Invalid tokens close with 4401; unavailable identity verification fails closed with 1013.
 - Each subscription must include `canonicalInstrumentId` as well as the exact provider series identity.
 - Before taking a snapshot, the server resolves the provider/dataset/publisher/instrument mapping at the current time, checks the mapped raw symbol and canonical ID, confirms that the canonical instrument is active, and checks the verified principal's explicit entitlement. Missing, expired, mismatched, inactive, or ungranted mappings are denied with 4403.
 - Mapping and entitlement are rechecked every 60 seconds during an active subscription. Revoked access or a mapping change closes the connection; the client must authenticate and subscribe again.
@@ -84,6 +85,6 @@ The following corrections supersede earlier statements in this document that des
 - `src/components/AuthPanel.test.tsx` covers the panel's configured/unconfigured, error, and signed-in presentation states.
 - `src/auth/AuthProvider.dom.test.tsx` covers observer mount, signed-in/signed-out transitions, error handling, cleanup, StrictMode behavior, initialization failure, and unconfigured Firebase.
 - The chart's stream supervisor obtains Firebase ID tokens through `AuthProvider`, requests a fresh token on reconnect, validates snapshots and sequence continuity, and publishes accepted data through the shared market-data store. This is code-level integration, not proof of a deployed backend or live provider connection.
-- Still open: real Firebase signed-token E2E (valid, expired, revoked, wrong-project); production credential discovery and session behavior; an approved scoped WebSocket-ticket/key-management design if required by the threat model; and deployed HTTPS/WSS validation. The source-level 60-second token re-verification and entitlement recheck are implemented, but remain unproven against a real Firebase project and deployed backend.
+- Still open: real Firebase signed-token E2E (valid, expired, revoked, wrong-project); production credential discovery and session behavior; threat-model review of the implemented subject/purpose-bound ticket (including whether series/Origin binding is required); and deployed HTTPS/WSS validation. The 2026-11-09 token-frame description is historical and superseded by the ticket flow above.
 
 Do not treat the presence of UI components or mocked/injected unit tests as production authentication evidence. No production credentials or Firebase project settings were changed by this documentation correction.

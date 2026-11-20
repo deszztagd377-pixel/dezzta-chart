@@ -1,6 +1,6 @@
 # Stage 1 — WebSocket Reliability and Market-Data Integrity Blueprint
 
-Status: owner-approved blueprint (2026-11-10); durable SQLite outbox/replay is implemented in the active branch. Production WSS acceptance and WebSocket-ticket security review remain open.
+Status: owner-approved blueprint (2026-11-10), updated 2026-11-20; durable SQLite outbox/replay and a subject/purpose-bound one-use WebSocket ticket flow are implemented in the active branch. Production WSS acceptance and ticket threat-model review remain open.
 
 Branch: `phase-2/market-data-foundation`
 Latest source baseline audited: commit `5aaab6ad54c005b767b78682f1adc0919b3d7701`
@@ -48,14 +48,18 @@ Latest source baseline audited: commit `5aaab6ad54c005b767b78682f1adc0919b3d7701
 - Indicator instances must be keyed independently from their source series and settings. Multiple indicators on the same chart/timeframe, and indicators across multiple timeframes, must coexist. Indicator calculations must not mutate canonical provider bars.
 - Derived timeframe bars must be reproducible from validated source bars and an explicit bucket/calendar policy. Do not fill missing intervals with invented OHLCV. Mark incomplete/gapped coverage and recompute affected derived bars when legitimate late provider corrections arrive.
 
-## 5. Short-lived scoped WebSocket ticket threat model
+## 5. Short-lived WebSocket ticket threat model and implemented boundary
 
-- Keep Firebase ID-token verification on an authenticated HTTPS ticket-issuance endpoint; do not put Firebase ID tokens in URL query strings.
-- Issue an opaque, cryptographically random, one-use ticket with a short configurable TTL. Bind it server-side to verified subject, allowed origin/client context, requested canonical series scope, and an audience/purpose of WebSocket connection establishment.
-- Store ticket state in shared Redis with TTL and consume it atomically (single-use) using a Redis transaction/Lua operation. Never trust a subject, entitlement, or scope supplied by the WebSocket client.
-- On consume, verify expiry, origin, audience, one-use state, and current entitlement. Fail closed on Redis/provider verification outage. Do not log ticket values; return generic errors.
-- Do not broaden a ticket's scope after issuance. Reconnect requires a new ticket. Revocation/entitlement changes must invalidate or deny the next handshake.
-- Keep Firebase ID-token first-message authentication as the current safe baseline until this design is reviewed and tests demonstrate that the ticket flow reduces exposure without weakening authorization. Ticket exchange is not required merely for appearance or convenience.
+**Implemented in source:**
+- Firebase ID-token verification occurs on the authenticated HTTPS endpoint `POST /v1/auth/websocket-ticket`; the Firebase ID token is not sent in a WebSocket URL or frame.
+- The issuer creates an opaque cryptographically random one-use ticket with a 90-second TTL and purpose `market-data`.
+- Ticket state is stored in shared Redis under a digest-derived key and consumed atomically through a Lua GET/DEL operation. The server does not accept a client-supplied subject or entitlement.
+- The initial WebSocket auth frame consumes the ticket once. Renewal obtains a new ticket over HTTPS; the WebSocket renewal frame must resolve to the same subject, and the server rechecks exact-series mapping and entitlement before acknowledging.
+- Redis/provider errors fail closed; ticket values are not intentionally logged.
+
+**Current scope limitation:** the stored ticket is bound to verified subject and purpose, but not to a canonical series or Origin/client context. Series entitlement is checked separately before snapshot delivery and again during renewal. Do not describe the current ticket as series-scoped.
+
+**Remaining threat-model decisions:** review whether production requires series/Origin binding, define credential and ticket telemetry redaction checks, and validate the behavior through the actual owner-host TLS/WSS reverse proxy. Reconnect and renewal require newly issued tickets. The 2026-11-20 source audit supersedes the earlier baseline sentence that described Firebase ID-token first-message authentication as current.
 
 ## 6. Cost and deployment guardrails
 
