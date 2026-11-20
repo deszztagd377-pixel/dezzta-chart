@@ -2473,3 +2473,61 @@ def test_alert_reporter_persists_incident_and_resolves_on_recovery(tmp_path):
     assert len(rows) == 1 and rows[0]["status"] == "open"
     reporter.report_batch(claimed=1, delivered=1, retry_scheduled=0, terminal_failed=0, lease_lost=0)
     assert store.list_incidents()[0]["status"] == "resolved"
+
+def test_websocket_ticket_renewal_rejects_ticket_for_different_subject():
+    application = _app_with_bars()
+
+    class MultiSubjectVerifier:
+        def verify(self, token):
+            subjects = {
+                "owner-token": "firebase-user-123",
+                "other-account-token": "different-firebase-user",
+            }
+            subject = subjects.get(token)
+            if subject is None:
+                raise IdentityVerificationError("invalid token")
+            return VerifiedPrincipal(
+                subject=subject,
+                issuer="https://securetoken.google.com/test-project",
+                audience="test-project",
+                auth_time=1_798_000_000,
+            )
+
+    application.state.identity_verifier = MultiSubjectVerifier()
+    client = TestClient(application)
+    owner_headers = {"Authorization": "Bearer owner-token"}
+    other_headers = {"Authorization": "Bearer other-account-token"}
+
+    owner_ticket_response = client.post(
+        "/v1/auth/websocket-ticket", headers=owner_headers,
+    )
+    other_ticket_response = client.post(
+        "/v1/auth/websocket-ticket", headers=other_headers,
+    )
+    assert owner_ticket_response.status_code == 200
+    assert other_ticket_response.status_code == 200
+    owner_ticket = owner_ticket_response.json()["ticket"]
+    other_ticket = other_ticket_response.json()["ticket"]
+
+    with client.websocket_connect("/ws/market-data") as websocket:
+        websocket.send_json({"type": "auth", "ticket": owner_ticket})
+        assert websocket.receive_json()["type"] == "market_data.status"
+        websocket.send_json({
+            "type": "market_data.subscribe",
+            "version": 1,
+            "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+            "series": {
+                "dataset": "GLBX.MDP3",
+                "publisherId": 1,
+                "instrumentId": 101,
+                "rawSymbol": "ESZ6",
+                "timeframe": "1s",
+            },
+        })
+        assert websocket.receive_json()["type"] == "market_data.ohlcv.snapshot"
+
+        websocket.send_json({"type": "auth.renew", "ticket": other_ticket})
+        with pytest.raises(WebSocketDisconnect) as disconnected:
+            websocket.receive_json()
+
+    assert disconnected.value.code == 4401
