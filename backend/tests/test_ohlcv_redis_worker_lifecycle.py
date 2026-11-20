@@ -82,8 +82,8 @@ def test_worker_retries_transient_consumer_failure_and_recovers():
     worker.start()
     try:
         assert recovered.wait(timeout=1)
+        assert wait_until(lambda: worker.state["state"] == "running")
         assert len(attempts) >= 2
-        assert worker.state["state"] == "running"
     finally:
         assert worker.stop(timeout_seconds=1) is True
 
