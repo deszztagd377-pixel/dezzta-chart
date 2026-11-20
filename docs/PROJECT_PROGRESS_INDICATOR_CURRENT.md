@@ -1,13 +1,52 @@
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 20 November 2026 — Batch 62J-27 WebSocket integration reconciliation  
+**Checkpoint:** 20 November 2026 — Batch 62J-28 dual-gateway Redis read-recovery acceptance  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest code/test commit with exact-head CI:** `5c5205ebc5d6b58b8e177854edb79f93ba9ea118`  
+**Latest code/test commit with exact-head CI:** `ea19ce5ae6623ac09b23d36069960a5368dab3b0`  
 **Dashboard revision:** documentation-only follow-up; runtime/test evidence remains anchored to the code/test commit above.  
-**Current audit batch:** 62J-27 — A–D integration verified; E failure matrix partially complete  
+**Current audit batch:** 62J-28 — dual-ASGI transient Redis read-failure recovery verified in CI; E remains partial  
 **Cost policy:** ZERO COST. Existing Redis 7 CI service and temporary SQLite fixtures only; no paid providers, hosting, deployment, Vercel/Cloudflare action, or Termux requirement.
 
 > This document is the current concise dashboard. Historical work-cycle reports remain the evidence trail. Do not infer that a docs-only commit has rerun or revalidated code CI.
+
+## 0G. Batch 62J-28 — dual-gateway transient Redis read recovery (20 November 2026)
+
+**Code/test HEAD:** ea19ce5ae6623ac09b23d36069960a5368dab3b0  
+**Exact-head CI:** Automated Tests run [44704944924](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44704944924) SUCCESS • CodeQL run [44704944956](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44704944956) SUCCESS • Full Git History Secret Audit run [44704944887](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44704944887) SUCCESS.  
+**Backend tests:** 1,164 passed in 40.74 seconds.
+
+### New cross-process evidence
+
+The real two-ASGI-process Redis 7 integration test now injects one transient xreadgroup connection failure independently into each gateway process. It records both fault triggers and waits for each gateway's subsequent successful Redis read before starting WebSocket status assertions. It then verifies:
+
+- Both independent gateways recover without restarting their processes.
+- Both WebSocket clients receive the same new durable event at cursor 1.
+- Both replica SQLite checkpoints advance to cursor 1.
+- Reconnect replay still returns cursor 1 with the replay handshake.
+- One ASGI gateway can restart while retaining its replica database, then continue at cursor 2.
+- Both surviving/restarted replica checkpoints converge at cursor 2.
+
+The existing real-Redis snapshot-generation test also remains in the same passing backend suite: a replacement snapshot switches the consumer to a generation-scoped group, leaves the old pending group non-destructively isolated, starts the new group at the installed snapshot watermark, and applies the next cursor without mixing generations.
+
+### Evidence boundary — E is not complete
+
+The new test is deterministic client-boundary fault injection, **not** a shutdown or network partition of the Redis server. It proves two independent ASGI workers retry a transient Redis read error and restore cursor parity. It does not yet prove:
+
+- A real Redis service/network outage and recovery while both gateways remain running.
+- Snapshot-generation replacement and parity across both gateway replicas in one cross-process scenario.
+- The production snapshot distribution/rotation contract.
+- Production Redis TLS, ACL, credential rotation and host-level recovery.
+- Public WSS acceptance from browser and Android WebView clients.
+
+Therefore WebSocket failure/recovery matrix E remains **PARTIALLY VERIFIED**, not complete. No production readiness or Gate 10 closure is inferred from this CI evidence.
+
+### Project controls
+
+- Stage 1 remains 30/40 criteria = 300/400 ticks = **75% provisional**.
+- Gate 10 remains **10/10 🟧 ORANGE; 0/10 formally closed**.
+- Stages 2–6 remain unscored; overall project percentage remains unestablished.
+- Indicator progress is unchanged. No visual indicator work was started.
+- ZERO COST maintained. No deployment, paid service, main-branch modification, or Termux requirement.
 
 
 ## 0. Batch 62J-21 — documentation integrity + exact-head CI reconciliation (20 November 2026)

@@ -1,6 +1,6 @@
 # DEZZTA CHART — Complete Indicator Progress Ledger
 
-**Checkpoint:** 20 November 2026 — indicator ledger reconciled with 62J-18 gate color clarification  
+**Checkpoint:** 20 November 2026 — indicator ledger reconciled with 62J-28 WebSocket evidence; indicator scope unchanged  
 **Branch:** `phase-2/market-data-foundation`  
 **Indicator implementation status:** unchanged by WebSocket Batches 62H-3, 62H-4, 62I, 62J-1, 62J-2 and 62J-16. The WebSocket reliability work does not award indicator progress.  
 **Interpretation:** statuses describe verified implementation boundaries, not a guessed completion percentage. No indicator weights or acceptance percentages have been approved, so per-indicator or total-indicator percentages are intentionally not fabricated.
@@ -351,3 +351,17 @@ Indicator calculation and visible chart status remain unchanged.
 The exact branch head `5c5205ebc5d6b58b8e177854edb79f93ba9ea118` passed Automated Tests (`44686658866`), CodeQL (`44686658770`) and Full Git History Secret Audit (`44686658757`). The new reconnect assertion extends the real two-ASGI-process test: after both replicas receive live cursor 1, a reconnecting client requests from cursor 0 and the actual replica-backed WebSocket route returns replay cursor 1 and replay completion at cursor 1.
 
 This is transport/reconnect evidence only. No indicator formulas, indicator hook, chart renderer, pane, overlay, control, or visual acceptance item changed. Keep SMA20, EMA20, RSI14, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook at 🟨 Foundation; Footprint at 🟧 Gated/SIMULATED; Heatmap and Liquidation Maps at 🟥 Not implemented. No indicator aggregate percentage is assigned without an approved denominator.
+
+
+## WebSocket transport evidence update — Batch 62J-28 (20 November 2026)
+
+The indicator implementation and readiness states above are unchanged. The following transport evidence is recorded separately and does not award indicator progress:
+
+- Code/test commit: ea19ce5ae6623ac09b23d36069960a5368dab3b0.
+- Exact-head Automated Tests [44704944924](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44704944924): SUCCESS; backend pytest **1,164 passed in 40.74 seconds**.
+- CodeQL [44704944956](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44704944956): SUCCESS.
+- Full Git History Secret Audit [44704944887](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44704944887): SUCCESS.
+- The real two-ASGI-process Redis 7 test injects one transient Redis read error independently in both gateway workers, waits for their successful retry, verifies both WebSocket clients receive cursor 1, then exercises replay reconnect and process restart with cursor parity at 2.
+- Existing snapshot-generation replacement coverage remains green; the consumer switches to a new generation-scoped group at the installed snapshot watermark and does not destroy the old group.
+
+**Limit:** the injected read failure is at the Redis client boundary. It is not a real Redis server/network outage. Production snapshot distribution, cross-process snapshot replacement parity, Redis TLS/ACL/credential rotation, and public browser/Android WSS acceptance remain outstanding. WebSocket E is still partially verified. Gate 10 remains 10 ORANGE / 0 closed. Indicator status remains exactly as recorded above.

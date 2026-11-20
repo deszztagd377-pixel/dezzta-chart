@@ -1,9 +1,9 @@
 """Managed background lifecycle for a synchronous Redis OHLCV replica consumer.
 
-The worker is intentionally not wired into FastAPI startup yet. A gateway may
-start it only after installing and verifying its replica snapshot, constructing
-an event-loop dispatcher on the owning loop, and provisioning the dedicated
-least-privilege Redis identity.
+The opt-in FastAPI replica lifespan starts this worker only after installing
+and verifying the replica snapshot, constructing an event-loop dispatcher on
+the owning loop, and injecting a dedicated Redis client whose ACLs are
+configured by the owner for least-privilege access.
 """
 from __future__ import annotations
 
