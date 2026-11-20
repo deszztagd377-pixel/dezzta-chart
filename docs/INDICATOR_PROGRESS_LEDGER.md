@@ -495,3 +495,14 @@ No indicator completion percentage is invented. Stage 1 remains 30/40 = 75% prov
 ### Next execution boundary
 
 Gate 30 remains the highest-value phone-only acceptance candidate, but its live source database path must be positively identified before any device operation. No Termux command is required for the repository/CI work in this batch. Gate 31 remains constrained by the documented Android package/keyring issue and the lack of a second device/off-host destination. Do not lower security or claim a live-device restore from CI.
+
+
+## 20 November 2026 — Batch 62J-34 Gate 8/38/39 evidence update
+
+The internal operator scrape routes are now explicitly excluded from request metrics and HTTP request logs: `/internal/metrics` and `/internal/alert-delivery`. This avoids self-observation noise while preserving their exact Bearer-token gate and no-store responses. New API regression coverage checks missing/wrong credentials, authenticated access, response cache policy, query/token non-disclosure, and that internal scrapes do not appear as application traffic.
+
+Alert outbox regression coverage now checks capped exponential backoff with exact nanosecond boundaries and the SQLite signed-int64 overflow path. Retry delays in the fixture are 100 ns on attempt one and capped at 150 ns on attempt two (uncapped exponential would be 200 ns); the event is not claimable one nanosecond before its due time and becomes claimable exactly at the due time. A retry timestamp beyond signed-int64 is converted to a terminal failure rather than reaching SQLite as an overflowing integer.
+
+Indicator status remains unchanged: SMA20 🟨 (first index 19), EMA20 🟨 (19), RSI14 🟨 (14), MACD12/26/9 🟨 (MACD index 25; signal/histogram index 33), Bollinger20,2 🟨 (19), Shared Indicator Hook 🟨, Footprint 🟧 (SIMULATED; owner reference and reviewed blueprint required), Heatmap 🟥, Liquidation Maps 🟥. No indicator code changed and no indicator percentage is awarded.
+
+Gate 10 remains 10/10 ORANGE and 0 CLOSED. Repository tests cannot satisfy owner-host secret injection, external dashboard/retention controls, actual operator acknowledgement/escalation, or device/host restore acceptance. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 remain unscored; overall project percentage remains unestablished because M1–M8 weights are not approved.

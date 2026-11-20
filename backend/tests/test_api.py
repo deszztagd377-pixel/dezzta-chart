@@ -2377,3 +2377,51 @@ def test_replica_runtime_fails_closed_when_redis_group_bootstrap_fails(tmp_path)
             pass
     assert redis_client.closed is True
     assert application.state.ohlcv_replica_worker is None
+
+
+def test_internal_operations_endpoints_require_operator_token_and_exclude_scrapes_from_metrics():
+    operator_token = "metrics-operator-token-" + ("x" * 32)
+    settings = replace(make_settings(), observability_metrics_token=operator_token)
+    application = create_app(settings)
+
+    with TestClient(application) as client:
+        assert client.get("/internal/metrics").status_code == 401
+        assert client.get("/internal/alert-delivery").status_code == 401
+        assert client.get(
+            "/internal/metrics",
+            headers={"Authorization": "Bearer wrong-operator-token"},
+        ).status_code == 401
+        assert client.get(
+            "/internal/alert-delivery",
+            headers={"Authorization": "Bearer wrong-operator-token"},
+        ).status_code == 401
+
+        health = client.get("/health?query_secret=METRICS_QUERY_SENTINEL")
+        assert health.status_code == 200
+
+        headers = {"Authorization": f"Bearer {operator_token}"}
+        alert_status = client.get("/internal/alert-delivery", headers=headers)
+        assert alert_status.status_code == 200
+        assert alert_status.headers["cache-control"] == "private, no-store, max-age=0"
+        alert_payload = alert_status.json()
+        assert alert_payload["scope"] == "process_local_since_start"
+        assert alert_payload["enabled"] is False
+        assert alert_payload["state"] == "disabled"
+        assert "last_error_code" in alert_payload
+        assert operator_token not in alert_status.text
+
+        metrics = client.get("/internal/metrics", headers=headers)
+        assert metrics.status_code == 200
+        assert metrics.headers["cache-control"] == "private, no-store, max-age=0"
+        payload = metrics.json()
+        assert payload["scope"] == "process_local_since_start"
+        assert payload["requests"] == [{
+            "method": "GET",
+            "route": "/health",
+            "status_class": "2xx",
+            "count": 1,
+        }]
+        assert len(payload["latency_ms"]) == 1
+        assert payload["latency_ms"][0]["route"] == "/health"
+        assert "METRICS_QUERY_SENTINEL" not in metrics.text
+        assert operator_token not in metrics.text

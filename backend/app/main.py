@@ -488,7 +488,7 @@ def create_app(
         matched_route = request.scope.get("route")
         route = route_override or getattr(matched_route, "path", "unmatched")
         request_id = uuid4().hex
-        if request.url.path != "/internal/metrics":
+        if request.url.path not in {"/internal/metrics", "/internal/alert-delivery"}:
             request_metrics.record(request.method, route, status_code, duration_ms)
             # Deliberately omit raw URL, query, path parameters, headers and client address.
             http_logger.info(json.dumps({

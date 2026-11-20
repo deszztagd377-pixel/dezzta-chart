@@ -485,3 +485,42 @@ Backend WebSocket authentication and entitlement rechecks exist in source. Publi
 ### Status controls
 
 Gate 10 remains **10/10 🟧 ORANGE / 0/10 closed**. Stage 1 remains **75% provisional**; Stages 2–6 unscored; overall project percentage not established. Indicator dashboard is unchanged; no WebSocket or Gate 25 evidence is credited as indicator progress. ZERO COST maintained.
+
+
+## 20 November 2026 — Batch 62J-34 Gate 8/38/39 operational hardening
+
+**Branch:** `phase-2/market-data-foundation`  
+**Parent:** `3d3f3c7a481e78bc9c09b966c1fbf1f70091517d`
+
+### Scope and changes
+- Gate 38: `/internal/metrics` and `/internal/alert-delivery` remain disabled unless an owner-injected operator token is configured, and both require an exact Bearer token validated with constant-time comparison.
+- Gate 38: both internal scrape endpoints now stay out of their own request counters and HTTP request logs. This prevents monitoring scrapes from contaminating application traffic metrics.
+- Gate 8: regression coverage verifies unauthenticated and wrong-token requests are denied, successful operator requests are no-store, and neither query sentinels nor the operator token appear in returned metrics/status payloads.
+- Gate 39: regression coverage verifies capped exponential retry timing, due-time boundaries, durable attempt counts, and safe terminal handling when a retry timestamp would exceed SQLite signed-int64.
+- No notification provider, hosted monitoring service, external alerting SaaS, paid service, or deployment was added.
+
+### Evidence boundary
+These are repository-level regression tests. They do not prove owner-host secret injection, process/log access controls, dashboard access policy, disk retention, operator acknowledgement/escalation, or an actual production incident drill. Gates 8, 38 and 39 remain ORANGE / OPEN pending their external acceptance criteria.
+
+### Indicator status (unchanged)
+- SMA 20 🟨 — rolling arithmetic mean; first valid candle index 19; chart overlay/lifecycle acceptance remains.
+- EMA 20 🟨 — SMA-seeded EMA, alpha 2/21; first valid index 19; chart overlay/lifecycle acceptance remains.
+- RSI 14 🟨 — Wilder smoothing; first valid index 14; oscillator pane/lifecycle acceptance remains.
+- MACD 12/26/9 🟨 — MACD first valid index 25; signal and histogram index 33; pane/render acceptance remains.
+- Bollinger 20,2 🟨 — population standard deviation; first valid index 19; overlay/render acceptance remains.
+- Shared Indicator Hook 🟨 — validated backend snapshot; chart identity/timeframe binding and stale-state lifecycle remain.
+- Footprint 🟧 — SIMULATED only; waits for owner reference image and reviewed blueprint; OFF preserves standard candle spacing.
+- Heatmap 🟥 — not implemented; waits for reference image, approved blueprint and validated data contract.
+- Liquidation Maps 🟥 — no validated data/calculation contract.
+
+No indicator implementation changed in this batch; no indicator completion credit is awarded.
+
+### Project accounting
+- Stage 1: 30/40 = 75% provisional (unchanged).
+- Stages 2–6: unscored.
+- Gate 10: 10/10 ORANGE, 0 formally CLOSED.
+- Overall project percentage: not established; M1–M8 weights remain unapproved.
+- Indicator aggregate percentage: not established; no approved weighted acceptance denominator.
+
+### Validation plan
+Run the exact-head Automated Tests, CodeQL (JavaScript/TypeScript and Python), and Full Git History Secret Audit workflows. A workflow failure blocks this batch from being reported as verified. No Vercel/Cloudflare deployment is needed.

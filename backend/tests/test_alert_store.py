@@ -587,3 +587,86 @@ def test_alert_delivery_worker_marks_permanent_sender_error_terminal(store):
 
     assert result.terminal_failed == 1
     assert result.retry_scheduled == 0
+
+
+def test_alert_delivery_retry_uses_capped_exponential_backoff(store):
+    event = _create_pending_trigger_event(store)
+
+    def fail_sender(_event):
+        raise RuntimeError("provider response must not be persisted")
+
+    first = run_alert_delivery_batch(
+        store,
+        fail_sender,
+        clock_ns=lambda: 10_000,
+        lease_duration_ns=1_000,
+        base_retry_delay_ns=100,
+        max_retry_delay_ns=150,
+        max_attempts=5,
+    )
+    assert first.retry_scheduled == 1
+    with sqlite3.connect(store.database_path) as db:
+        first_row = db.execute(
+            "SELECT next_attempt_ns, attempt_count, last_error_code "
+            "FROM price_alert_trigger_events WHERE event_id = ?",
+            (event.event_id,),
+        ).fetchone()
+    assert first_row == (10_100, 1, "delivery.error")
+    assert store.claim_pending_trigger_events(now_ns=10_099) == []
+
+    second = run_alert_delivery_batch(
+        store,
+        fail_sender,
+        clock_ns=lambda: 10_100,
+        lease_duration_ns=1_000,
+        base_retry_delay_ns=100,
+        max_retry_delay_ns=150,
+        max_attempts=5,
+    )
+    assert second.retry_scheduled == 1
+    with sqlite3.connect(store.database_path) as db:
+        second_row = db.execute(
+            "SELECT next_attempt_ns, attempt_count, last_error_code "
+            "FROM price_alert_trigger_events WHERE event_id = ?",
+            (event.event_id,),
+        ).fetchone()
+    # Attempt two doubles the delay to 200 ns, then the 150 ns cap applies.
+    assert second_row == (10_250, 2, "delivery.error")
+    assert store.claim_pending_trigger_events(now_ns=10_249) == []
+    due = store.claim_pending_trigger_events(now_ns=10_250, lease_duration_ns=100)
+    assert len(due) == 1
+    assert due[0].attempt_count == 3
+    assert due[0].event.event_id == event.event_id
+
+
+def test_alert_delivery_retry_timestamp_overflow_becomes_terminal_failure(store):
+    import sqlite3
+
+    event = _create_pending_trigger_event(store)
+    max_int64 = 9_223_372_036_854_775_807
+
+    def fail_sender(_event):
+        raise RuntimeError("overflowing retry must not escape as sqlite binding error")
+
+    result = run_alert_delivery_batch(
+        store,
+        fail_sender,
+        clock_ns=lambda: max_int64 - 1,
+        lease_duration_ns=1,
+        base_retry_delay_ns=5_000_000_000,
+        max_retry_delay_ns=300_000_000_000,
+        max_attempts=8,
+    )
+
+    assert result.claimed == 1
+    assert result.terminal_failed == 1
+    assert result.retry_scheduled == 0
+    assert result.lease_lost == 0
+    with sqlite3.connect(store.database_path) as db:
+        row = db.execute(
+            "SELECT delivery_status, next_attempt_ns, lease_token, "
+            "lease_expires_ns, last_error_code FROM price_alert_trigger_events "
+            "WHERE event_id = ?",
+            (event.event_id,),
+        ).fetchone()
+    assert row == ("failed", max_int64 - 1, None, None, "delivery.error")
