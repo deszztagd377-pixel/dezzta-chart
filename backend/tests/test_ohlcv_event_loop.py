@@ -94,3 +94,30 @@ def test_dispatcher_rejects_non_finite_or_non_positive_timeout(timeout):
             )
     finally:
         loop.close()
+
+
+def test_dispatcher_timeout_cancels_pending_async_callback_before_returning():
+    async def scenario():
+        loop = asyncio.get_running_loop()
+        started = threading.Event()
+        cancelled = threading.Event()
+
+        async def callback(_event):
+            started.set()
+            try:
+                await asyncio.sleep(10)
+            finally:
+                cancelled.set()
+
+        dispatcher = EventLoopCallbackDispatcher(
+            loop, callback, timeout_seconds=0.03,
+        )
+        with pytest.raises(TimeoutError, match="ACK deadline"):
+            await asyncio.to_thread(dispatcher.dispatch, {"cursor": 8})
+        assert started.is_set()
+        deadline = loop.time() + 1
+        while not cancelled.is_set() and loop.time() < deadline:
+            await asyncio.sleep(0.005)
+        assert cancelled.is_set()
+
+    asyncio.run(scenario())
