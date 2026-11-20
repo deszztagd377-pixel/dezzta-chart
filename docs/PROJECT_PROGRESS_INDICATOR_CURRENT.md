@@ -1,6 +1,6 @@
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 20 November 2026 — Batch 62J-22 replica hydration consistency fix  
+**Checkpoint:** 20 November 2026 — Batch 62J-23 opt-in replica runtime integration  
 **Active branch:** `phase-2/market-data-foundation`  
 **Latest fully CI-verified code HEAD:** `468d0aa4a348d997dc7affb71374bc8712cfc39d`  
 **Latest documentation checkpoint before this refresh:** `99bc549e95341310945b987ab4ae11a86c962ea9`  
@@ -283,3 +283,11 @@ A race was found in hydrate_replica_pipeline(): checkpoint and bars were read th
 Regression tests prove hydration does not use the old split-read methods and that missing verified snapshots fail closed. Exact-head CI is required before this change is considered verified.
 
 **No production route switch was made in this batch.** The source SQLite route remains the default because the replica runtime still requires an explicit snapshot bootstrap contract and owner-provisioned dedicated Redis ACL/TLS credentials. Mixing source and replica cursor domains remains prohibited.
+
+## 0B. Batch 62J-23 — opt-in FastAPI replica runtime
+
+FastAPI now supports an explicit injected replica runtime factory. On startup, the app validates the replica store and matching consumer/client/stream, hydrates from the atomic SQLite snapshot, and only then starts one sequential worker on the owning app instance. In replica mode, the provider is not started, preventing competing source ingestion.
+
+The WebSocket snapshot and replay paths now select a single cursor domain: source SQLite remains the default; explicitly injected replica mode reads snapshot/checkpoint and reconnect replay from the replica/Redis stream. No mixed cursor domain is permitted. Existing auth and entitlement checks remain in the shared route.
+
+Two startup/snapshot regression tests were added, including fail-closed behavior for an unverified replica. The factory is not environment-enabled. Production snapshot distribution, dedicated TLS/ACL credentials, and independent multi-ASGI acceptance remain outstanding; no production secrets or paid services were introduced.

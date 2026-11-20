@@ -1,6 +1,7 @@
 from collections import deque
 
 import hashlib
+from decimal import Decimal
 import pytest
 import tempfile
 from pathlib import Path
@@ -19,6 +20,8 @@ from app.main import (
     create_app,
 )
 from app.identity import IdentityProviderUnavailable, IdentityVerificationError, VerifiedPrincipal
+from app.ohlcv import OhlcvBar
+from app.ohlcv_store import SQLiteOhlcvReplicaStore, SQLiteOhlcvStore
 from app.instrument_identity import CanonicalInstrument
 from app.instrument_registry import ProviderInstrumentMapping
 
@@ -2204,3 +2207,111 @@ def test_websocket_closes_and_requires_resnapshot_when_replay_live_handoff_fails
         with pytest.raises(WebSocketDisconnect) as disconnected:
             websocket.receive_json()
         assert disconnected.value.code == 1013
+
+
+def test_replica_runtime_hydrates_before_worker_and_serves_replica_snapshot(tmp_path):
+    source = SQLiteOhlcvStore(str(tmp_path / "replica-source.sqlite3"))
+    bar = OhlcvBar(
+        provider="databento", dataset="GLBX.MDP3",
+        publisher_id=1, instrument_id=101, series_type="contract",
+        timeframe="1s", ts_start_ns=1_000_000_000, raw_symbol="ESZ6",
+        open=Decimal("100"), high=Decimal("101"), low=Decimal("99"),
+        close=Decimal("100.5"), volume=Decimal("2"),
+        ts_event_ns=1_000_000_001, ts_received_ns=1_000_000_002,
+        sequence=1, sequence_origin="local", origin="provider",
+        completeness="unknown", bucket_policy="UTC_LEGACY",
+    )
+    assert source.apply(bar) == "inserted"
+    snapshot_path = tmp_path / "replica-snapshot.jsonl"
+    source.export_global_snapshot(str(snapshot_path))
+    replica = SQLiteOhlcvReplicaStore(str(tmp_path / "gateway-replica.sqlite3"))
+    replica.install_global_snapshot(
+        str(snapshot_path), expected_source_id=source.source_id(),
+    )
+
+    class FakeRedis:
+        closed = False
+        def close(self):
+            self.closed = True
+
+    class IdleConsumer:
+        def __init__(self, redis_client, store, stream_key):
+            self.redis = redis_client
+            self.replica_store = store
+            self.stream_key = stream_key
+            self.block_ms = None
+            self.on_event_applied = None
+        def consume_once(self):
+            return {"status": "idle"}
+
+    redis_client = FakeRedis()
+    consumer = IdleConsumer(redis_client, replica, "test:ohlcv:stream")
+    application = create_app(
+        make_settings(),
+        replica_runtime_factory=lambda: {
+            "replica_store": replica,
+            "consumer": consumer,
+            "redis_client": redis_client,
+            "stream_key": "test:ohlcv:stream",
+        },
+    )
+    _install_test_identity(application)
+    canonical_id = _seed_stream_entitlement(application)
+
+    with TestClient(application) as client:
+        assert application.state.ohlcv_replica_hydration["applied_cursor"] == 1
+        assert application.state.provider.state == "disconnected"
+        with client.websocket_connect("/ws/market-data") as websocket:
+            websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+            status = websocket.receive_json()
+            assert status["type"] == "market_data.status"
+            assert status["quality"]["state"] == "connected"
+            websocket.send_json({
+                "type": "market_data.subscribe",
+                "version": 1,
+                "canonicalInstrumentId": canonical_id,
+                "series": {
+                    "dataset": "GLBX.MDP3", "publisherId": 1,
+                    "instrumentId": 101, "rawSymbol": "ESZ6",
+                    "timeframe": "1s",
+                },
+            })
+            snapshot = websocket.receive_json()
+            assert snapshot["type"] == "market_data.ohlcv.snapshot"
+            assert snapshot["count"] == 1
+            assert snapshot["cursor"] == "1"
+            assert snapshot["bars"][0]["close"] == "100.5"
+    assert redis_client.closed is True
+
+
+def test_replica_runtime_fails_closed_without_verified_snapshot(tmp_path):
+    replica = SQLiteOhlcvReplicaStore(str(tmp_path / "empty-replica.sqlite3"))
+
+    class FakeRedis:
+        closed = False
+        def close(self):
+            self.closed = True
+
+    class IdleConsumer:
+        def __init__(self, redis_client, store):
+            self.redis = redis_client
+            self.replica_store = store
+            self.stream_key = "test:ohlcv:stream"
+            self.block_ms = None
+            self.on_event_applied = None
+        def consume_once(self):
+            return {"status": "idle"}
+
+    redis_client = FakeRedis()
+    consumer = IdleConsumer(redis_client, replica)
+    application = create_app(
+        make_settings(),
+        replica_runtime_factory=lambda: {
+            "replica_store": replica, "consumer": consumer,
+            "redis_client": redis_client, "stream_key": "test:ohlcv:stream",
+        },
+    )
+    with pytest.raises(RuntimeError, match="verified replica snapshot"):
+        with TestClient(application):
+            pass
+    assert redis_client.closed is True

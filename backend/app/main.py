@@ -8,6 +8,7 @@ clients can subscribe to the in-memory OHLCV pipeline when validated bars exist.
 
 import asyncio
 import hmac
+import inspect
 import json
 import logging
 import time
@@ -52,7 +53,15 @@ from app.ohlcv import (
 from app.provider import ProviderManager
 from app.databento_definition_sync import DatabentoDefinitionSynchronizer
 from app.ohlcv_stream import OhlcvStreamHub, OhlcvStreamResnapshotRequired
-from app.ohlcv_store import SQLiteOhlcvStore
+from app.ohlcv_store import SQLiteOhlcvReplicaStore, SQLiteOhlcvStore
+from app.ohlcv_event_loop import EventLoopCallbackDispatcher
+from app.ohlcv_redis_worker import RedisOhlcvGatewayWorker
+from app.ohlcv_redis_replay import replay_replica_history
+from app.ohlcv_replica_bridge import (
+    forward_replica_event,
+    hydrate_replica_pipeline,
+    subscribe_replica_snapshot,
+)
 from app.symbology import InstrumentResolver
 from app.shared_guard import RedisSharedGuard
 from app.websocket_tickets import InMemoryWebSocketTicketStore, WEBSOCKET_TICKET_PURPOSE, WEBSOCKET_TICKET_TTL_SECONDS
@@ -151,7 +160,10 @@ def create_app(
     live_source_factory=None,
     historical_source_factory=None,
     shared_guard=None,
+    replica_runtime_factory=None,
 ) -> FastAPI:
+    if replica_runtime_factory is not None and not callable(replica_runtime_factory):
+        raise TypeError("replica_runtime_factory must be callable when provided.")
     config = settings or Settings.from_environment()
     request_metrics = RequestMetrics()
     if shared_guard is None and config.redis_url:
@@ -249,6 +261,20 @@ def create_app(
         definition_sync=definition_sync,
     )
 
+    # Replica mode is strictly opt-in through an owner-injected runtime factory.
+    # Without it, the existing source-SQLite/provider mode remains unchanged.
+    replica_worker = None
+
+    def current_websocket_feed_state() -> str:
+        if replica_worker is None:
+            return provider.state
+        worker_state = replica_worker.state.get("state")
+        if worker_state in {"starting", "running"}:
+            return "connected"
+        if worker_state in {"degraded", "resnapshot_required", "stopping"}:
+            return "degraded"
+        return "disconnected"
+
     alert_delivery_status = {
         "enabled": config.alert_delivery_worker_enabled,
         "state": "disabled" if not config.alert_delivery_worker_enabled else "not_started",
@@ -264,14 +290,53 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
+        nonlocal replica_worker
         worker_stop = asyncio.Event()
         worker_task = None
         provider_started = False
+        replica_redis_client = None
         try:
             if shared_guard is not None:
                 await shared_guard.start()
-            await provider.start()
-            provider_started = True
+            if replica_runtime_factory is None:
+                await provider.start()
+                provider_started = True
+            else:
+                runtime = replica_runtime_factory()
+                if inspect.isawaitable(runtime):
+                    runtime = await runtime
+                if not isinstance(runtime, dict):
+                    raise RuntimeError("Replica runtime factory must return a mapping.")
+                replica_store = runtime.get("replica_store")
+                consumer = runtime.get("consumer")
+                replica_redis_client = runtime.get("redis_client")
+                stream_key = runtime.get("stream_key")
+                if not isinstance(replica_store, SQLiteOhlcvReplicaStore):
+                    raise RuntimeError("Replica runtime requires a SQLiteOhlcvReplicaStore.")
+                if replica_redis_client is None:
+                    raise RuntimeError("Replica runtime requires its dedicated Redis client.")
+                if not isinstance(stream_key, str) or not stream_key.strip():
+                    raise RuntimeError("Replica runtime requires a non-empty stream key.")
+                if (
+                    not callable(getattr(consumer, "consume_once", None))
+                    or not hasattr(consumer, "on_event_applied")
+                    or getattr(consumer, "replica_store", replica_store) is not replica_store
+                    or getattr(consumer, "redis", replica_redis_client) is not replica_redis_client
+                    or getattr(consumer, "stream_key", stream_key) != stream_key
+                ):
+                    raise RuntimeError("Replica consumer does not match its runtime store/client/stream.")
+                hydration = hydrate_replica_pipeline(replica_store, ohlcv_pipeline)
+                dispatcher = EventLoopCallbackDispatcher(
+                    asyncio.get_running_loop(),
+                    lambda event: forward_replica_event(event, ohlcv_pipeline, stream_hub),
+                )
+                replica_worker = RedisOhlcvGatewayWorker(consumer, dispatcher)
+                replica_worker.start()
+                application.state.ohlcv_replica_store = replica_store
+                application.state.ohlcv_replica_redis_client = replica_redis_client
+                application.state.ohlcv_replica_stream_key = stream_key
+                application.state.ohlcv_replica_worker = replica_worker
+                application.state.ohlcv_replica_hydration = hydration
 
             if config.alert_delivery_worker_enabled:
                 if alert_device_store is None:
@@ -337,6 +402,33 @@ def create_app(
             worker_stop.set()
             if worker_task is not None:
                 await worker_task
+            if replica_worker is not None:
+                stopped = await replica_worker.stop_async(timeout_seconds=3.0)
+                if stopped:
+                    close_client = getattr(replica_redis_client, "close", None)
+                    if callable(close_client):
+                        try:
+                            if inspect.iscoroutinefunction(close_client):
+                                await close_client()
+                            else:
+                                await asyncio.to_thread(close_client)
+                        except Exception:
+                            logging.getLogger("dezzta.websocket_replica").exception(
+                                "Replica Redis client close failed."
+                            )
+                else:
+                    logging.getLogger("dezzta.websocket_replica").error(
+                        "Replica worker did not stop within the shutdown deadline; Redis client left open."
+                    )
+                replica_worker = None
+                application.state.ohlcv_replica_worker = None
+            elif replica_redis_client is not None:
+                close_client = getattr(replica_redis_client, "close", None)
+                if callable(close_client):
+                    if inspect.iscoroutinefunction(close_client):
+                        await close_client()
+                    else:
+                        await asyncio.to_thread(close_client)
             if provider_started:
                 await provider.stop()
             if shared_guard is not None:
@@ -351,6 +443,11 @@ def create_app(
     application.state.ohlcv_pipeline = ohlcv_pipeline
     application.state.ohlcv_stream_hub = stream_hub
     application.state.ohlcv_store = ohlcv_store
+    application.state.ohlcv_replica_store = None
+    application.state.ohlcv_replica_redis_client = None
+    application.state.ohlcv_replica_stream_key = None
+    application.state.ohlcv_replica_worker = None
+    application.state.ohlcv_replica_hydration = None
     application.state.coverage_tracker = coverage_tracker
     application.state.ingestion = ingestion
     application.state.session_calendar_registry = session_calendar_registry
@@ -899,7 +996,7 @@ def create_app(
                     "schema": "ohlcv",
                     "instruments": list(config.allowed_roots),
                     "quality": {
-                        "state": provider.state,
+                        "state": current_websocket_feed_state(),
                         "lastEventTsNs": None if ingestion.last_event_ns is None else str(ingestion.last_event_ns),
                         "lastReceiveTsNs": None if ingestion.last_receive_ns is None else str(ingestion.last_receive_ns),
                         "detail": "Authenticated OHLCV subscription is available; no order-book stream is provided.",
@@ -1039,71 +1136,134 @@ def create_app(
                 # query, and stream registration. Ingestion and fan-out share this
                 # event loop, so later accepted revisions enter the queue with a
                 # strictly newer durable outbox cursor.
-                snapshot_cursor = ohlcv_store.outbox_high_water()
-                subscription, snapshot_bars, total = stream_hub.subscribe_snapshot(
-                    ohlcv_pipeline,
-                    dataset=dataset,
-                    publisher_id=publisher_id,
-                    instrument_id=instrument_id,
-                    raw_symbol=raw_symbol,
-                    timeframe=timeframe,
-                    bucket_policy=bucket_policy,
-                    calendar_id=calendar_id,
-                    calendar_version=calendar_version,
-                    limit=max_ohlcv_response_bars,
-                    durable_cursor=snapshot_cursor,
-                    provider=provider_id,
-                    series_type=series_type,
-                )
+                replica_store = application.state.ohlcv_replica_store
+                replica_redis_client = application.state.ohlcv_replica_redis_client
+                if replica_store is not None:
+                    (
+                        subscription, snapshot_bars, total, replica_snapshot_meta,
+                    ) = subscribe_replica_snapshot(
+                        replica_store,
+                        stream_hub,
+                        dataset=dataset,
+                        publisher_id=publisher_id,
+                        instrument_id=instrument_id,
+                        raw_symbol=raw_symbol,
+                        timeframe=timeframe,
+                        limit=max_ohlcv_response_bars,
+                        bucket_policy=bucket_policy,
+                        calendar_id=calendar_id,
+                        calendar_version=calendar_version,
+                        provider=provider_id,
+                        series_type=series_type,
+                    )
+                    snapshot_cursor = replica_snapshot_meta["cursor"]
+                else:
+                    snapshot_cursor = ohlcv_store.outbox_high_water()
+                    subscription, snapshot_bars, total = stream_hub.subscribe_snapshot(
+                        ohlcv_pipeline,
+                        dataset=dataset,
+                        publisher_id=publisher_id,
+                        instrument_id=instrument_id,
+                        raw_symbol=raw_symbol,
+                        timeframe=timeframe,
+                        bucket_policy=bucket_policy,
+                        calendar_id=calendar_id,
+                        calendar_version=calendar_version,
+                        limit=max_ohlcv_response_bars,
+                        durable_cursor=snapshot_cursor,
+                        provider=provider_id,
+                        series_type=series_type,
+                    )
+                replay_events: list[dict[str, object]] = []
+                replay_fallback_reason: str | None = None
+                replay_end_cursor = snapshot_cursor
                 replay_events: list[dict[str, object]] = []
                 replay_fallback_reason: str | None = None
                 replay_end_cursor = snapshot_cursor
                 if request_cursor is not None:
-                    replay_after = request_cursor
-                    while True:
+                    if replica_store is not None:
                         try:
-                            replay_page = await asyncio.to_thread(
-                                ohlcv_store.replay_outbox,
-                                after_cursor=replay_after,
-                                provider=provider_id,
-                                dataset=dataset,
-                                publisher_id=publisher_id,
-                                instrument_id=instrument_id,
-                                series_type=series_type,
-                                raw_symbol=raw_symbol,
-                                timeframe=timeframe,
-                                bucket_policy=bucket_policy,
-                                calendar_id=calendar_id,
-                                calendar_version=calendar_version,
-                                limit=min(500, MAX_WEBSOCKET_REPLAY_EVENTS + 1 - len(replay_events)),
-                            )
+                            replica_checkpoint = await asyncio.to_thread(replica_store.checkpoint)
+                            if replica_checkpoint is None:
+                                replay_fallback_reason = "replica_checkpoint_unavailable"
+                            else:
+                                replay_result = await asyncio.to_thread(
+                                    replay_replica_history,
+                                    replica_redis_client,
+                                    stream_key=application.state.ohlcv_replica_stream_key,
+                                    checkpoint=replica_checkpoint,
+                                    after_cursor=request_cursor,
+                                    series_identity={
+                                        "provider": provider_id,
+                                        "dataset": dataset,
+                                        "publisherId": publisher_id,
+                                        "instrumentId": instrument_id,
+                                        "seriesType": series_type,
+                                        "rawSymbol": raw_symbol,
+                                        "timeframe": timeframe,
+                                        "bucketPolicy": bucket_policy,
+                                        "calendarId": calendar_id,
+                                        "calendarVersion": calendar_version,
+                                    },
+                                )
+                                if replay_result.get("status") != "ok":
+                                    replay_fallback_reason = str(
+                                        replay_result.get("reason", "replica_replay_unavailable")
+                                    )
+                                else:
+                                    replay_events = replay_result.get("events", [])
+                                    replay_end_cursor = replay_result.get("next_cursor", snapshot_cursor)
+                                    if not isinstance(replay_events, list) or type(replay_end_cursor) is not int:
+                                        replay_events = []
+                                        replay_fallback_reason = "invalid_replica_replay_result"
                         except Exception:
-                            replay_fallback_reason = "replay_storage_unavailable"
-                            break
-                        if replay_page.get("status") != "ok":
-                            replay_fallback_reason = str(replay_page.get("reason", "replay_unavailable"))
-                            break
-                        page_events = replay_page.get("events", [])
-                        if not isinstance(page_events, list):
-                            replay_fallback_reason = "invalid_replay_page"
-                            break
-                        if len(replay_events) + len(page_events) > MAX_WEBSOCKET_REPLAY_EVENTS:
-                            replay_fallback_reason = "replay_backlog_exceeds_limit"
-                            break
-                        replay_events.extend(page_events)
-                        next_cursor = replay_page.get("next_cursor")
-                        if not isinstance(next_cursor, int) or isinstance(next_cursor, bool):
-                            replay_fallback_reason = "invalid_replay_cursor"
-                            break
-                        replay_end_cursor = next_cursor
-                        if not replay_page.get("has_more"):
-                            break
-                        if next_cursor <= replay_after:
-                            replay_fallback_reason = "replay_cursor_did_not_advance"
-                            break
-                        replay_after = next_cursor
+                            replay_fallback_reason = "replica_replay_storage_unavailable"
+                    else:
+                        replay_after = request_cursor
+                        while True:
+                            try:
+                                replay_page = await asyncio.to_thread(
+                                    ohlcv_store.replay_outbox,
+                                    after_cursor=replay_after,
+                                    provider=provider_id,
+                                    dataset=dataset,
+                                    publisher_id=publisher_id,
+                                    instrument_id=instrument_id,
+                                    series_type=series_type,
+                                    raw_symbol=raw_symbol,
+                                    timeframe=timeframe,
+                                    bucket_policy=bucket_policy,
+                                    calendar_id=calendar_id,
+                                    calendar_version=calendar_version,
+                                    limit=min(500, MAX_WEBSOCKET_REPLAY_EVENTS + 1 - len(replay_events)),
+                                )
+                            except Exception:
+                                replay_fallback_reason = "replay_storage_unavailable"
+                                break
+                            if replay_page.get("status") != "ok":
+                                replay_fallback_reason = str(replay_page.get("reason", "replay_unavailable"))
+                                break
+                            page_events = replay_page.get("events", [])
+                            if not isinstance(page_events, list):
+                                replay_fallback_reason = "invalid_replay_page"
+                                break
+                            if len(replay_events) + len(page_events) > MAX_WEBSOCKET_REPLAY_EVENTS:
+                                replay_fallback_reason = "replay_backlog_exceeds_limit"
+                                break
+                            replay_events.extend(page_events)
+                            next_cursor = replay_page.get("next_cursor")
+                            if not isinstance(next_cursor, int) or isinstance(next_cursor, bool):
+                                replay_fallback_reason = "invalid_replay_cursor"
+                                break
+                            replay_end_cursor = next_cursor
+                            if not replay_page.get("has_more"):
+                                break
+                            if next_cursor <= replay_after:
+                                replay_fallback_reason = "replay_cursor_did_not_advance"
+                                break
+                            replay_after = next_cursor
 
-                feed_state = provider.state if provider_id == "databento" else "disconnected"
+                feed_state = current_websocket_feed_state() if provider_id == "databento" else "disconnected"
                 snapshot_state = (
                     "unavailable" if not snapshot_bars
                     else "degraded" if feed_state in ("degraded", "recovering")
