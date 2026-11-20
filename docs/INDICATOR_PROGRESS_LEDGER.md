@@ -223,3 +223,22 @@ The source-SQLite WebSocket reconnect path now uses the tested replay/live merge
 ## Batch 62J-14 — 20 November 2026: exact-head CI and indicator boundary
 
 Exact branch head `407d2b38882e92cdf6db5b7df6c44350b6cd746d` passed Automated Tests (backend 1,153 passed; frontend 236 passed across 28 files), CodeQL (Python and JavaScript/TypeScript), and Full Git History Secret Audit. The WebSocket route handoff change is transport-only. No indicator formulas, warm-up positions, chart overlays/panes, controls or lifecycle acceptance changed. Keep the dashboard statuses unchanged: SMA20 🟨 (first index 19), EMA20 🟨 (19), RSI14 🟨 (14), MACD12/26/9 🟨 (MACD 25; signal/histogram 33), Bollinger20,2 🟨 (19), Shared Indicator Hook 🟨, Footprint 🟧 (SIMULATED; owner reference/blueprint required), Heatmap 🟥, Liquidation Maps 🟥. No indicator progress percentage is awarded for WebSocket infrastructure.
+
+
+## 62J-16 status refresh — 20 November 2026
+
+The WebSocket worker lifecycle and callback deadline regression tests were expanded in code batch 62J-16. This is infrastructure reliability work only and **does not change any indicator implementation status or completion percentage**.
+
+| Indicator / subsystem | Status after 62J-16 | Reason |
+|---|---|---|
+| SMA 20 | 🟨 Foundation | No indicator code or chart overlay changed |
+| EMA 20 | 🟨 Foundation | No indicator code or chart overlay changed |
+| RSI 14 | 🟨 Foundation | No indicator pane or lifecycle change |
+| MACD 12/26/9 | 🟨 Foundation | No indicator pane or rendering change |
+| Bollinger 20,2 | 🟨 Foundation | No overlay or rendering change |
+| Shared indicator hook | 🟨 Foundation | No chart binding or stale-state lifecycle change |
+| Footprint | 🟧 Gated | User visual reference and reviewed blueprint still required |
+| Heatmap | 🟥 Not implemented | User visual reference, blueprint and validated data contract still required |
+| Liquidation Maps | 🟥 Not implemented | No validated liquidation dataset/calculation contract |
+
+No weighted indicator completion percentage is introduced. Formula/warm-up contracts and visual acceptance criteria above remain unchanged.
