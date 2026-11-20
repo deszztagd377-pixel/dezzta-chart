@@ -1,6 +1,6 @@
 # DEZZTA CHART — Complete Indicator Progress Ledger
 
-**Checkpoint:** 20 November 2026 — indicator ledger reconciled with 62J-16 and exact-head CI verification  
+**Checkpoint:** 20 November 2026 — indicator ledger reconciled with 62J-18 gate color clarification  
 **Branch:** `phase-2/market-data-foundation`  
 **Indicator implementation status:** unchanged by WebSocket Batches 62H-3, 62H-4, 62I, 62J-1, 62J-2 and 62J-16. The WebSocket reliability work does not award indicator progress.  
 **Interpretation:** statuses describe verified implementation boundaries, not a guessed completion percentage. No indicator weights or acceptance percentages have been approved, so per-indicator or total-indicator percentages are intentionally not fabricated.
@@ -126,7 +126,7 @@ The current calculation test suite covers alignment/warm-up, RSI edge cases, MAC
 | Project measure | Current evidence | Status |
 |---|---:|---|
 | Stage 1 | 30/40 criteria = 300/400 ticks | 🟨 75% provisional |
-| Gate 10 | 0/10 formally closed | 🟥 All ten remain OPEN |
+| Gate 10 | 0/10 formally closed | 🟧 All ten remain OPEN; active/in progress |
 | Stages 2–6 | Not scored | ⬜ |
 | Overall project percentage | M1–M8 weights unapproved | ⬜ Not established |
 | Indicator aggregate percentage | No approved weights/acceptance denominator | ⬜ Not established |
@@ -263,3 +263,14 @@ The descendant code/documentation HEAD `468d0aa4a348d997dc7affb71374bc8712cfc39d
 | Liquidation Maps | 🟥 Not implemented | No validated data/calculation contract |
 
 No indicator percentage is published because there is no approved per-indicator acceptance denominator or weighting. Stage 1 provisional 75% and Gate 10 0/10 closure remain separate project measures; neither is an indicator completion score.
+
+
+## 62J-18 — Gate status color clarification (20 November 2026)
+
+The project owner clarified that all ten gates are ORANGE, not RED. This ledger uses two independent attributes:
+- **Closure:** all ten gates remain OPEN (0/10 accepted/closed).
+- **Work state/color:** 🟧 ORANGE means active/in progress; it does not mean closed, and it does not mean the gate is blocked/abandoned.
+
+The ten orange/open gates are 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. No acceptance evidence is fabricated and no gate is marked green.
+
+Indicator statuses remain unchanged. SMA20, EMA20, RSI14, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain 🟨 Foundation. Footprint remains 🟧 Gated and SIMULATED pending user reference and approved blueprint. Heatmap and Liquidation Maps remain 🟥 Not implemented pending references/data contracts. WebSocket CI does not increase indicator completion.
