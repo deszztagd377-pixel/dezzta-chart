@@ -190,4 +190,4 @@ def test_spawn_startup_time_consumes_event_deadline(monkeypatch):
 
     assert observed["terminated"] is True
     assert observed["closed"] is True
-    assert observed["poll_timeout"] if "poll_timeout" in observed else True
+    assert "poll_timeout" not in observed
