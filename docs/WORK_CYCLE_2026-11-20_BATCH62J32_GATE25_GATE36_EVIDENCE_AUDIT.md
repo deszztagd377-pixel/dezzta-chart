@@ -75,11 +75,11 @@ However, its module documentation explicitly says the config is not wired into a
 
 ## 3. Gate 36 — WSS and client boundary
 
-- Backend `/ws/market-data` route exists.
-- It accepts Firebase ID-token authentication in the first JSON auth message and revalidates identity/series entitlement during the connection.
+- Backend `/ws/market-data` route exists and uses a scoped ticket in production.
+- `POST /v1/auth/websocket-ticket` verifies the Firebase Bearer token over HTTPS and issues a 90-second purpose-bound single-use ticket. The route consumes the ticket once; the client renews every 45 seconds by obtaining a fresh HTTPS ticket and sending `auth.renew`; the backend verifies the same subject and rechecks exact-series entitlement before acknowledging.
+- Backend API tests cover ticket issuance, invalid Bearer rejection and same-subject renewal acknowledgement. Frontend transport tests cover ticket authentication and renewal.
 - Deployment documentation explicitly states source existence is not proof of deployed WSS availability.
 - No owner-host reverse proxy, public WSS handshake, browser end-to-end, Android WebView, deployed cross-instance fan-out or platform connection-lifetime evidence was found.
-- A separate short-lived scoped WebSocket ticket exchange is not implemented.
 
 **Disposition: Gate 36 remains 🟧 OPEN.** Ticket exchange/renewal are code-level implemented and tested, but no public endpoint was deployed and no browser/Android acceptance was fabricated.
 
