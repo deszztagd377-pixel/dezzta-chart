@@ -797,6 +797,37 @@ def test_real_redis_relay_acl_separates_publisher_and_gateway_permissions(tmp_pa
         admin.close()
 
 
+def test_real_redis_lease_loss_after_apply_prevents_ack(tmp_path):
+    from app.ohlcv_redis_lease import RedisOhlcvConsumerLeaseLost
+
+    redis, stream_key = real_redis()
+    source = SQLiteOhlcvStore(str(tmp_path / "lease-loss-source.sqlite3"))
+    snapshot_path = tmp_path / "lease-loss-snapshot.jsonl"
+    make_snapshot(source, snapshot_path)
+    replica = make_replica(source, snapshot_path, tmp_path / "lease-loss-replica.sqlite3")
+
+    class LoseOwnershipBeforeAck:
+        def __init__(self):
+            self.checks = 0
+
+        def assert_owned(self):
+            self.checks += 1
+            if self.checks == 2:
+                raise RedisOhlcvConsumerLeaseLost("simulated lease loss")
+
+    consumer = make_consumer(redis, replica, stream_key, "lease-loss-worker")
+    consumer.ownership_guard = LoseOwnershipBeforeAck()
+    try:
+        append_and_publish(source, redis, stream_key, 0)
+        with pytest.raises(RedisOhlcvConsumerLeaseLost):
+            consumer.consume_once()
+        assert replica.checkpoint()["applied_cursor"] == 1
+        assert redis.xpending(stream_key, consumer.group_name)["pending"] == 1
+    finally:
+        redis.delete(stream_key)
+        redis.close()
+
+
 def test_real_redis_retries_same_consumers_pending_before_reading_new_cursor(tmp_path):
     redis, stream_key = real_redis()
     source = SQLiteOhlcvStore(str(tmp_path / "same-consumer-pending-source.sqlite3"))
