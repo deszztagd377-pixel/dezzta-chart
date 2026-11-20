@@ -102,6 +102,6 @@ def test_worker_resnapshot_required_is_terminal_until_rebuilt():
     worker.start()
     assert entered.wait(timeout=1)
     assert wait_until(lambda: worker.state["state"] == "resnapshot_required")
-    assert worker.state["thread_alive"] is False
+    assert wait_until(lambda: worker.state["thread_alive"] is False)
     with pytest.raises(RuntimeError, match="verified replica snapshot"):
         worker.start()
