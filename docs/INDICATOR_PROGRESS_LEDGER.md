@@ -1,6 +1,6 @@
 # DEZZTA CHART — Complete Indicator Progress Ledger
 
-**Checkpoint:** 20 November 2026 — Batch 62J-37 Gate 38 metrics audit and Gate 39 bounded-worker design proposal; indicator scope unchanged  
+**Checkpoint:** 20 November 2026 — Batch 62J-38 WebSocket ticket hard deadline and Android update-readiness audit; indicator scope unchanged  
 **Branch:** `phase-2/market-data-foundation`  
 **Indicator implementation status:** unchanged by WebSocket Batches 62H-3, 62H-4, 62I, 62J-1, 62J-2 and 62J-16. The WebSocket reliability work does not award indicator progress.  
 **Interpretation:** statuses describe verified implementation boundaries, not a guessed completion percentage. No indicator weights or acceptance percentages have been approved, so per-indicator or total-indicator percentages are intentionally not fabricated.
@@ -528,3 +528,16 @@ Gate 38 source audit confirms a 127-series process-local metrics cap (including 
 Gate 39 design proposal is documented in docs/WORK_CYCLE_2026-11-20_BATCH62J37_GATE38_METRICS_GATE39_BOUNDED_WORKER_DESIGN.md. It proposes a parent-supervised child process for synchronous FCM fan-out, a monotonic event deadline, parent-only acknowledgement/token revocation, and lease arithmetic lease >= event deadline + SQLite busy timeout + explicit margin. Candidate values are explicitly provisional. This is a major runtime design and **must not be implemented before owner review and approval**. Gate 39 stays 🟧.
 
 No indicator code or status changed. SMA20/EMA20 first valid index 19; RSI14 index 14; MACD index 25 and signal/histogram index 33; Bollinger20,2 index 19. Footprint remains SIMULATED and gated; Heatmap and Liquidation Maps remain unimplemented. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 unscored; overall project percentage and indicator aggregate remain unestablished. Gate 10 remains 10/10 ORANGE / 0 CLOSED. ZERO COST; no deployment, paid service, Termux or main branch modification.
+
+
+## 20 November 2026 — Batch 62J-38 WebSocket ticket deadline and Android update-readiness audit
+
+The WebSocket ticket HTTPS request now has a 10,000 ms AbortController deadline that remains active through response-body parsing. The request continues to send Firebase ID tokens only in the Authorization header, uses no-store/credentials-omit/redirect-error, and preserves 401 status for the reconnect supervisor. Six tests cover normalized endpoint/request policy, 401 propagation, no-response timeout, body-read timeout, invalid payload, and invalid credentials/URL.
+
+Exact source/test HEAD `734cd20d7525e9d67f6a045dc13a98410e26cdd0` passed Automated Tests & Build, CodeQL (JavaScript/TypeScript and Python), Full Git History Secret Audit, and Android debug APK build. Frontend: 242 tests across 29 files. Backend: 1,172 passed, 6 warnings in 62.95 seconds. Container image build, Redis/persistent-volume smoke, image scan and vulnerability report export passed. No preview release was published.
+
+Android readiness audit: current workflow builds a debug APK, stores a short-lived CI artifact with SHA-256, and supports only explicit opt-in preview publication. It is not a production update channel. A durable release requires an owner-controlled persistent signing key, protected CI secret injection, signed manifest/hash verification, version/schema policy, backup/key custody, and Android package-installer user confirmation. Silent sideload installation is not available to an ordinary app. Public GitHub Releases are the proposed zero-cost distribution path; Play Store publication remains deferred. A 100-year runtime guarantee is impossible; long-term maintainability controls are specified in the Batch 62J-38 work-cycle report. Termux was not used; owner notification/approval is required before any later phone-side signing-key operation.
+
+WebSocket E automated matrix remains complete for defined CI scope. Production WSS, owner-host Redis TLS/ACL and browser/Android acceptance remain open. Gate 10 stays 10/10 ORANGE / 0 CLOSED.
+
+Indicator states remain unchanged: SMA20 🟨 (index 19), EMA20 🟨 (index 19), RSI14 🟨 (index 14), MACD12/26/9 🟨 (MACD 25; signal/histogram 33), Bollinger20,2 🟨 (index 19), Shared Hook 🟨, Footprint 🟧 SIMULATED, Heatmap 🟥, Liquidation Maps 🟥. No indicator UI or formula implementation was added. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 unscored; overall and indicator aggregate percentages remain unestablished.

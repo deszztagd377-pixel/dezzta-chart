@@ -1,11 +1,11 @@
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 20 November 2026 — Batch 62J-37 Gate 38 metrics audit and Gate 39 bounded-worker design proposal  
+**Checkpoint:** 20 November 2026 — Batch 62J-38 WebSocket ticket hard deadline and Android update-readiness audit  
 **Active branch:** `phase-2/market-data-foundation`  
-**Starting HEAD:** `5bfa0d231469ef711fb4a7162e3a2d5a49715e8c`  
-**Starting exact-head CI:** Automated Tests `44710864296` SUCCESS • CodeQL `44710864281` SUCCESS • Full Git History Secret Audit `44710864297` SUCCESS.  
+**Source/test HEAD:** `734cd20d7525e9d67f6a045dc13a98410e26cdd0`  
+**Exact source/test HEAD CI:** Automated Tests [44717816608](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44717816608) SUCCESS • CodeQL [44717816621](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44717816621) SUCCESS • Full Git History Secret Audit [44717816577](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44717816577) SUCCESS • Android debug APK build [44717816593](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44717816593) SUCCESS.  
 **WebSocket E:** COMPLETE FOR DEFINED AUTOMATED FAILURE-MATRIX SCOPE at Batch 62J-31; public WSS and production operations remain separate.  
-**Current Gate 10 work:** Gate 30 — safe SQLite restore drill CLI/report verification; this batch adds CLI-level tests and reconciles the gate/indicator documentation.  
+**Current Gate 10 work:** WebSocket automated E matrix is complete for defined CI scope; Gate 36 still requires owner-host public WSS/browser/Android acceptance. Gate 39 remains open pending bounded FCM worker design approval and real operator incident-response acceptance. Android update signing/readiness is documented separately.  
 **Cost policy:** ZERO COST. Existing repository CI and temporary SQLite fixtures only; no paid provider, hosting, deployment, Vercel/Cloudflare action, or Termux requirement.
 
 > This document is the current concise dashboard. Historical work-cycle reports remain the evidence trail. Do not infer that a docs-only commit has rerun or revalidated code CI.
@@ -546,3 +546,12 @@ The source audit confirms that request metrics are bounded to 127 process-local 
 Gate 39 remains 🟧 OPEN. A design proposal has been recorded in docs/WORK_CYCLE_2026-11-20_BATCH62J37_GATE38_METRICS_GATE39_BOUNDED_WORKER_DESIGN.md. It recommends parent-supervised child-process isolation for one event's synchronous FCM fan-out, with a monotonic hard deadline, parent-owned token revocation/acknowledgement and explicit at-least-once semantics. Candidate timing arithmetic is documented but is not accepted production configuration. This is a major runtime architecture decision: **no implementation is authorized until the owner reviews and approves the proposal**.
 
 Exact starting HEAD: 04139cf0b43812c4afd09e8b5114d15df1aa2be9. This batch is documentation-only; exact-head CI for the starting revision was still running at the time of the audit. Gate 10 remains 10/10 ORANGE / 0 CLOSED. Indicator states unchanged. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 unscored; overall percentage not established. ZERO COST; no deployment, paid service, Termux or main branch change.
+
+
+## 20 November 2026 — Batch 62J-38 WebSocket ticket deadline and Android update-readiness
+
+The WebSocket ticket client now enforces a 10-second AbortController deadline across both fetch and JSON body parsing. Six focused tests cover the request policy, 401 preservation, header/body timeout, payload validation and invalid credentials. Exact source/test HEAD `734cd20d7525e9d67f6a045dc13a98410e26cdd0` passed Automated Tests & Build, CodeQL, full-history Secret Audit and Android debug APK build. Frontend: 242 tests / 29 files; backend: 1,172 passed / 6 warnings. Container build, shared Redis/persistent-volume smoke and image scan/report export passed.
+
+Android workflow remains a debug APK pipeline with short-lived artifact retention and opt-in preview release. It is not yet a production update system. Stable owner-controlled signing, protected CI secrets, signed update manifest, SHA-256 verification, version/schema migration, offline key backup and user-confirmed Android installer handoff are required. Public GitHub Releases are the proposed zero-cost distribution path. A normal Android app cannot silently install sideloaded updates. No 100-year guarantee is possible; maintainability is pursued through open data formats, migration tests, dependency/security maintenance, signed release artifacts and reproducible build records. Termux was not needed in this batch; any future phone-side signing operation will be announced and approved first.
+
+WebSocket E is complete for defined automated CI scope; public WSS/owner-host acceptance remains open. Gate 10 remains 10/10 ORANGE / 0 closed. Indicator statuses unchanged: SMA20/EMA20 🟨 index 19; RSI14 🟨 index 14; MACD12/26/9 🟨 index 25, signal/histogram 33; Bollinger20,2 🟨 index 19; Shared Hook 🟨; Footprint 🟧 SIMULATED; Heatmap 🟥; Liquidation Maps 🟥. No indicator credit. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 unscored; overall percentage unestablished.
