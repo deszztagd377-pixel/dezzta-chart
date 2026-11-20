@@ -26,3 +26,22 @@ description = "One historical public commit metadata false positive"
 condition = "AND"
 commits = ['''34cf606f4f3fdda4bd41c71b7ca29818487eb60b''']
 paths = ['''docs/PROJECT_PROGRESS_INDICATOR[.]md$''']
+
+# Two exact documentation sentences were misclassified by generic-api-key because
+# they describe Firebase signed-token/session acceptance. Keep exceptions limited
+# to the historical commit, exact path and exact line; do not suppress the rule.
+[[allowlists]]
+description = "Exact Gate 20 dashboard wording false positive"
+condition = "AND"
+regexTarget = "line"
+regexes = ['''^\*\*Gate 20 repository evidence:\*\* WebSocket ticket renewal now has explicit cross-account rejection coverage; real Firebase project signed-token, expiry/revocation and browser/Android reconnect acceptance remain open\.$''']
+commits = ['''67fd1204cedfd9f75fe4472c5a2a86e200893686''']
+paths = ['''docs/PROJECT_PROGRESS_INDICATOR_CURRENT[.]md$''']
+
+[[allowlists]]
+description = "Exact Gate 20 work-cycle wording false positive"
+condition = "AND"
+regexTarget = "line"
+regexes = ['''^- Gate 20 remains \*\*OPEN\*\* pending real Firebase signed-token, expiry/revocation and client reconnect acceptance\.$''']
+commits = ['''2c2dfb4d9c8db752221b6f6f3ea12bda05ae9265''']
+paths = ['''docs/WORK_CYCLE_2026-11-20_BATCH62J47_CROSS_ACCOUNT_WEBSOCKET_RENEWAL[.]md$''']
