@@ -289,3 +289,49 @@ def test_encryption_reports_directory_fsync_failure_after_publish(tmp_path, monk
     monkeypatch.undo()
     decrypt_backup_file(destination, restored, PASSPHRASE)
     assert restored.read_bytes() == b"valid backup payload"
+
+
+@pytest.mark.parametrize("target_exists", [False, True])
+def test_encryption_rejects_symlink_destination_without_touching_target(
+    tmp_path, target_exists
+):
+    source = tmp_path / "source.sqlite3"
+    destination = tmp_path / "backup.enc"
+    target = tmp_path / "redirected.enc"
+    source.write_bytes(b"backup payload")
+    if target_exists:
+        target.write_bytes(b"preserve-existing-target")
+    destination.symlink_to(target)
+
+    with pytest.raises(ValueError, match="destination_path must not be a symbolic link"):
+        encrypt_backup_file(source, destination, PASSPHRASE)
+
+    assert destination.is_symlink()
+    assert target.exists() is target_exists
+    if target_exists:
+        assert target.read_bytes() == b"preserve-existing-target"
+    assert list(tmp_path.glob(".backup.enc.*.encrypted-backup.tmp")) == []
+
+
+@pytest.mark.parametrize("target_exists", [False, True])
+def test_decryption_rejects_symlink_destination_without_touching_target(
+    tmp_path, target_exists
+):
+    source = tmp_path / "source.bin"
+    encrypted = tmp_path / "backup.enc"
+    destination = tmp_path / "restored.bin"
+    target = tmp_path / "redirected.bin"
+    source.write_bytes(b"authenticated backup payload")
+    encrypt_backup_file(source, encrypted, PASSPHRASE)
+    if target_exists:
+        target.write_bytes(b"preserve-existing-target")
+    destination.symlink_to(target)
+
+    with pytest.raises(ValueError, match="destination_path must not be a symbolic link"):
+        decrypt_backup_file(encrypted, destination, PASSPHRASE)
+
+    assert destination.is_symlink()
+    assert target.exists() is target_exists
+    if target_exists:
+        assert target.read_bytes() == b"preserve-existing-target"
+    assert list(tmp_path.glob(".restored.bin.*.encrypted-backup.tmp")) == []

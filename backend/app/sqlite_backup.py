@@ -13,6 +13,14 @@ import tempfile
 from typing import Callable
 
 
+def _resolve_output_path(path: str | Path) -> Path:
+    """Reject a final-component symlink before resolving an output path."""
+    candidate = Path(path).expanduser()
+    if candidate.is_symlink():
+        raise ValueError("destination_path must not be a symbolic link.")
+    return candidate.resolve()
+
+
 def _fsync_directory(directory: Path) -> None:
     """Persist directory-entry changes on POSIX filesystems."""
     descriptor = os.open(
@@ -55,7 +63,7 @@ def create_consistent_sqlite_backup(
         raise ValueError("_on_published must be callable.")
 
     source = Path(source_path).expanduser().resolve()
-    destination = Path(destination_path).expanduser().resolve()
+    destination = _resolve_output_path(destination_path)
 
     if source == destination:
         raise ValueError("source_path and destination_path must be different.")
@@ -149,7 +157,7 @@ def restore_consistent_sqlite_backup(
     of the directory entry is uncertain; the error is raised.
     """
     backup = Path(backup_path).expanduser().resolve()
-    destination = Path(destination_path).expanduser().resolve()
+    destination = _resolve_output_path(destination_path)
 
     if backup == destination:
         raise ValueError("backup_path and destination_path must be different.")

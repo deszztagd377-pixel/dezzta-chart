@@ -738,3 +738,60 @@ def test_backup_no_overwrite_is_atomic_against_concurrent_destination_creation(
 
     assert destination.read_bytes() == b"created-by-competing-process"
     assert list(tmp_path.glob(".backup.sqlite3.*.sqlite-backup.tmp")) == []
+
+
+@pytest.mark.parametrize("target_exists", [False, True])
+def test_sqlite_backup_rejects_symlink_destination_without_touching_target(
+    tmp_path, target_exists
+):
+    from app.sqlite_backup import create_consistent_sqlite_backup
+
+    source = tmp_path / "live.sqlite3"
+    destination = tmp_path / "backup.sqlite3"
+    target = tmp_path / "redirected.sqlite3"
+    with sqlite3.connect(source) as database:
+        database.execute("CREATE TABLE sample (value INTEGER)")
+        database.execute("INSERT INTO sample VALUES (17)")
+    if target_exists:
+        target.write_bytes(b"preserve-existing-target")
+    destination.symlink_to(target)
+
+    with pytest.raises(ValueError, match="destination_path must not be a symbolic link"):
+        create_consistent_sqlite_backup(source, destination)
+
+    assert destination.is_symlink()
+    assert target.exists() is target_exists
+    if target_exists:
+        assert target.read_bytes() == b"preserve-existing-target"
+    assert list(tmp_path.glob(".backup.sqlite3.*.sqlite-backup.tmp")) == []
+
+
+@pytest.mark.parametrize("target_exists", [False, True])
+def test_sqlite_restore_rejects_symlink_destination_without_touching_target(
+    tmp_path, target_exists
+):
+    from app.sqlite_backup import (
+        create_consistent_sqlite_backup,
+        restore_consistent_sqlite_backup,
+    )
+
+    source = tmp_path / "live.sqlite3"
+    backup = tmp_path / "backup.sqlite3"
+    destination = tmp_path / "restored.sqlite3"
+    target = tmp_path / "redirected.sqlite3"
+    with sqlite3.connect(source) as database:
+        database.execute("CREATE TABLE sample (value INTEGER)")
+        database.execute("INSERT INTO sample VALUES (23)")
+    create_consistent_sqlite_backup(source, backup)
+    if target_exists:
+        target.write_bytes(b"preserve-existing-target")
+    destination.symlink_to(target)
+
+    with pytest.raises(ValueError, match="destination_path must not be a symbolic link"):
+        restore_consistent_sqlite_backup(backup, destination)
+
+    assert destination.is_symlink()
+    assert target.exists() is target_exists
+    if target_exists:
+        assert target.read_bytes() == b"preserve-existing-target"
+    assert list(tmp_path.glob(".restored.sqlite3.*.sqlite-restore.tmp")) == []
