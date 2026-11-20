@@ -319,6 +319,7 @@ def create_app(
                     raise RuntimeError("Replica runtime requires a non-empty stream key.")
                 if (
                     not callable(getattr(consumer, "consume_once", None))
+                    or not callable(getattr(consumer, "ensure_group", None))
                     or not hasattr(consumer, "on_event_applied")
                     or getattr(consumer, "replica_store", replica_store) is not replica_store
                     or getattr(consumer, "redis", replica_redis_client) is not replica_redis_client
@@ -326,6 +327,9 @@ def create_app(
                 ):
                     raise RuntimeError("Replica consumer does not match its runtime store/client/stream.")
                 hydration = hydrate_replica_pipeline(replica_store, ohlcv_pipeline)
+                # Prove Redis connectivity and group readiness before the app
+                # accepts traffic; the worker must not hide a failed bootstrap.
+                await asyncio.to_thread(consumer.ensure_group)
                 dispatcher = EventLoopCallbackDispatcher(
                     asyncio.get_running_loop(),
                     lambda event: forward_replica_event(event, ohlcv_pipeline, stream_hub),
@@ -1174,9 +1178,6 @@ def create_app(
                         provider=provider_id,
                         series_type=series_type,
                     )
-                replay_events: list[dict[str, object]] = []
-                replay_fallback_reason: str | None = None
-                replay_end_cursor = snapshot_cursor
                 replay_events: list[dict[str, object]] = []
                 replay_fallback_reason: str | None = None
                 replay_end_cursor = snapshot_cursor

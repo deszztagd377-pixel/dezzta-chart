@@ -2219,7 +2219,7 @@ def test_replica_runtime_hydrates_before_worker_and_serves_replica_snapshot(tmp_
         close=Decimal("100.5"), volume=Decimal("2"),
         ts_event_ns=1_000_000_001, ts_received_ns=1_000_000_002,
         sequence=1, sequence_origin="local", origin="provider",
-        completeness="unknown", bucket_policy="UTC_LEGACY",
+        completeness="unknown", bucket_policy="UTC_FIXED_V1",
     )
     assert source.apply(bar) == "inserted"
     snapshot_path = tmp_path / "replica-snapshot.jsonl"
@@ -2241,6 +2241,10 @@ def test_replica_runtime_hydrates_before_worker_and_serves_replica_snapshot(tmp_
             self.stream_key = stream_key
             self.block_ms = None
             self.on_event_applied = None
+            self.group_ready = False
+        def ensure_group(self):
+            self.group_ready = True
+            return True
         def consume_once(self):
             return {"status": "idle"}
 
@@ -2261,6 +2265,7 @@ def test_replica_runtime_hydrates_before_worker_and_serves_replica_snapshot(tmp_
     with TestClient(application) as client:
         assert application.state.ohlcv_replica_hydration["applied_cursor"] == 1
         assert application.state.provider.state == "disconnected"
+        assert consumer.group_ready is True
         with client.websocket_connect("/ws/market-data") as websocket:
             websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
             status = websocket.receive_json()
@@ -2299,6 +2304,10 @@ def test_replica_runtime_fails_closed_without_verified_snapshot(tmp_path):
             self.stream_key = "test:ohlcv:stream"
             self.block_ms = None
             self.on_event_applied = None
+            self.group_ready = False
+        def ensure_group(self):
+            self.group_ready = True
+            return True
         def consume_once(self):
             return {"status": "idle"}
 
@@ -2315,3 +2324,56 @@ def test_replica_runtime_fails_closed_without_verified_snapshot(tmp_path):
         with TestClient(application):
             pass
     assert redis_client.closed is True
+
+
+def test_replica_runtime_fails_closed_when_redis_group_bootstrap_fails(tmp_path):
+    source = SQLiteOhlcvStore(str(tmp_path / "group-source.sqlite3"))
+    bar = OhlcvBar(
+        provider="databento", dataset="GLBX.MDP3",
+        publisher_id=1, instrument_id=101, series_type="contract",
+        timeframe="1s", ts_start_ns=1_000_000_000, raw_symbol="ESZ6",
+        open=Decimal("100"), high=Decimal("101"), low=Decimal("99"),
+        close=Decimal("100.5"), volume=Decimal("2"),
+        ts_event_ns=1_000_000_001, ts_received_ns=1_000_000_002,
+        sequence=1, sequence_origin="local", origin="provider",
+        completeness="unknown", bucket_policy="UTC_FIXED_V1",
+    )
+    assert source.apply(bar) == "inserted"
+    snapshot_path = tmp_path / "group-snapshot.jsonl"
+    source.export_global_snapshot(str(snapshot_path))
+    replica = SQLiteOhlcvReplicaStore(str(tmp_path / "group-replica.sqlite3"))
+    replica.install_global_snapshot(
+        str(snapshot_path), expected_source_id=source.source_id(),
+    )
+
+    class FakeRedis:
+        closed = False
+        def close(self):
+            self.closed = True
+
+    class UnavailableConsumer:
+        def __init__(self, redis_client, store):
+            self.redis = redis_client
+            self.replica_store = store
+            self.stream_key = "test:ohlcv:stream"
+            self.block_ms = None
+            self.on_event_applied = None
+        def ensure_group(self):
+            raise ConnectionError("test-only Redis bootstrap outage")
+        def consume_once(self):
+            return {"status": "idle"}
+
+    redis_client = FakeRedis()
+    consumer = UnavailableConsumer(redis_client, replica)
+    application = create_app(
+        make_settings(),
+        replica_runtime_factory=lambda: {
+            "replica_store": replica, "consumer": consumer,
+            "redis_client": redis_client, "stream_key": "test:ohlcv:stream",
+        },
+    )
+    with pytest.raises(ConnectionError, match="test-only Redis bootstrap outage"):
+        with TestClient(application):
+            pass
+    assert redis_client.closed is True
+    assert application.state.ohlcv_replica_worker is None
