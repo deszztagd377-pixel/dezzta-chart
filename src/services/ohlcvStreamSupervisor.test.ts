@@ -387,6 +387,56 @@ describe('OHLCV stream supervisor', () => {
     supervisor.stop();
   });
 
+  it('retries after the HTTPS WebSocket-ticket endpoint fails transiently', async () => {
+    vi.useFakeTimers();
+    const sockets: FakeSocket[] = [];
+    const requestWebSocketTicket = vi.fn()
+      .mockRejectedValueOnce(new Error('market-data ticket request timed out'))
+      .mockResolvedValue('ws-ticket-abcdefghijklmnopqrstuvwxyz1234567890');
+    const getIdToken = vi.fn().mockResolvedValue('fresh-token');
+
+    const supervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken,
+      requestWebSocketTicket,
+      webSocketFactory: () => {
+        const socket = new FakeSocket();
+        sockets.push(socket);
+        return socket as unknown as WebSocket;
+      },
+      minReconnectDelayMs: 100,
+      maxReconnectDelayMs: 400,
+      random: () => 0,
+    });
+
+    // The initial ticket request fails before a WebSocket is constructed.
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(supervisor.status).toBe('reconnecting');
+    expect(requestWebSocketTicket).toHaveBeenCalledOnce();
+    expect(sockets).toHaveLength(0);
+
+    await vi.advanceTimersByTimeAsync(99);
+    expect(requestWebSocketTicket).toHaveBeenCalledOnce();
+    expect(sockets).toHaveLength(0);
+
+    await vi.advanceTimersByTimeAsync(1);
+    await vi.waitFor(() => expect(sockets).toHaveLength(1));
+    expect(getIdToken).toHaveBeenCalledTimes(2);
+    expect(requestWebSocketTicket).toHaveBeenCalledTimes(2);
+    expect(requestWebSocketTicket).toHaveBeenNthCalledWith(
+      1, 'https://market.example.test', 'fresh-token',
+    );
+    expect(requestWebSocketTicket).toHaveBeenNthCalledWith(
+      2, 'https://market.example.test', 'fresh-token',
+    );
+    expect(supervisor.status).toBe('connecting');
+    supervisor.stop();
+  });
+
   it('retries after a transient identity-token acquisition failure', async () => {
     vi.useFakeTimers();
     const sockets: FakeSocket[] = [];

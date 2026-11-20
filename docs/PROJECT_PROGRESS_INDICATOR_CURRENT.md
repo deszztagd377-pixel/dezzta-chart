@@ -1,6 +1,6 @@
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 20 November 2026 — Batch 62J-38 WebSocket ticket hard deadline and Android update-readiness audit  
+**Checkpoint:** 20 November 2026 — Batch 62J-39 WebSocket ticket-endpoint retry regression; Gate 39/30/38 follow-up audit  
 **Active branch:** `phase-2/market-data-foundation`  
 **Source/test HEAD:** `734cd20d7525e9d67f6a045dc13a98410e26cdd0`  
 **Exact source/test HEAD CI:** Automated Tests [44717816608](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44717816608) SUCCESS • CodeQL [44717816621](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44717816621) SUCCESS • Full Git History Secret Audit [44717816577](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44717816577) SUCCESS • Android debug APK build [44717816593](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44717816593) SUCCESS.  
@@ -555,3 +555,16 @@ The WebSocket ticket client now enforces a 10-second AbortController deadline ac
 Android workflow remains a debug APK pipeline with short-lived artifact retention and opt-in preview release. It is not yet a production update system. Stable owner-controlled signing, protected CI secrets, signed update manifest, SHA-256 verification, version/schema migration, offline key backup and user-confirmed Android installer handoff are required. Public GitHub Releases are the proposed zero-cost distribution path. A normal Android app cannot silently install sideloaded updates. No 100-year guarantee is possible; maintainability is pursued through open data formats, migration tests, dependency/security maintenance, signed release artifacts and reproducible build records. Termux was not needed in this batch; any future phone-side signing operation will be announced and approved first.
 
 WebSocket E is complete for defined automated CI scope; public WSS/owner-host acceptance remains open. Gate 10 remains 10/10 ORANGE / 0 closed. Indicator statuses unchanged: SMA20/EMA20 🟨 index 19; RSI14 🟨 index 14; MACD12/26/9 🟨 index 25, signal/histogram 33; Bollinger20,2 🟨 index 19; Shared Hook 🟨; Footprint 🟧 SIMULATED; Heatmap 🟥; Liquidation Maps 🟥. No indicator credit. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 unscored; overall percentage unestablished.
+
+
+## 20 November 2026 — Batch 62J-39 WebSocket ticket-endpoint retry regression
+
+Added an end-to-end supervisor regression test for a transient HTTPS ticket-endpoint failure. The first ticket request now has an explicit test outcome: no WebSocket is constructed, supervisor enters reconnecting state, the bounded reconnect delay is observed, a fresh Firebase ID token is obtained, and the second ticket request succeeds before the WebSocket is constructed. This complements the existing transient identity-token acquisition test and the 10-second abortable ticket request tests from Batch 62J-38.
+
+This batch does not alter WebSocket production runtime code or the wire protocol. It adds regression coverage only. The exact resulting commit's CI is the acceptance authority; do not mark it green until Automated Tests/Build, CodeQL and full-history secret audit all finish successfully.
+
+Gate 39 bounded FCM child-process isolation remains a reviewed design proposal, not an implementation. No unsafe thread cancellation or guessed provider timeout/lease multiplication was introduced. Gate 30 repository-side SQLite restore drill remains extensively tested but owner Android database acceptance remains external. Gate 38 remains process-local bounded metrics with host retention/dashboard acceptance open. Gate 10 remains 10/10 🟧 ORANGE / 0 closed.
+
+Indicator dashboard remains unchanged: SMA20 🟨 (first valid index 19); EMA20 🟨 (alpha 2/21, first index 19); RSI14 Wilder 🟨 (first index 14); MACD12/26/9 🟨 (MACD index 25, signal/histogram 33); Bollinger20,2 🟨 (population standard deviation, first index 19); Shared Indicator Hook 🟨; Footprint 🟧 SIMULATED and gated on owner reference plus reviewed blueprint; Heatmap 🟥; Liquidation Maps 🟥. No indicator code changed and no indicator completion credit is awarded. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 unscored; overall project and indicator aggregate percentages remain unestablished.
+
+ZERO COST: no paid service, deployment, Vercel/Cloudflare action, Termux operation, dependency change, or main branch modification.

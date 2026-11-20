@@ -1,6 +1,6 @@
 # DEZZTA CHART — Complete Indicator Progress Ledger
 
-**Checkpoint:** 20 November 2026 — Batch 62J-38 WebSocket ticket hard deadline and Android update-readiness audit; indicator scope unchanged  
+**Checkpoint:** 20 November 2026 — Batch 62J-39 WebSocket ticket-endpoint retry regression; indicator scope unchanged  
 **Branch:** `phase-2/market-data-foundation`  
 **Indicator implementation status:** unchanged by WebSocket Batches 62H-3, 62H-4, 62I, 62J-1, 62J-2 and 62J-16. The WebSocket reliability work does not award indicator progress.  
 **Interpretation:** statuses describe verified implementation boundaries, not a guessed completion percentage. No indicator weights or acceptance percentages have been approved, so per-indicator or total-indicator percentages are intentionally not fabricated.
@@ -541,3 +541,12 @@ Android readiness audit: current workflow builds a debug APK, stores a short-liv
 WebSocket E automated matrix remains complete for defined CI scope. Production WSS, owner-host Redis TLS/ACL and browser/Android acceptance remain open. Gate 10 stays 10/10 ORANGE / 0 CLOSED.
 
 Indicator states remain unchanged: SMA20 🟨 (index 19), EMA20 🟨 (index 19), RSI14 🟨 (index 14), MACD12/26/9 🟨 (MACD 25; signal/histogram 33), Bollinger20,2 🟨 (index 19), Shared Hook 🟨, Footprint 🟧 SIMULATED, Heatmap 🟥, Liquidation Maps 🟥. No indicator UI or formula implementation was added. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 unscored; overall and indicator aggregate percentages remain unestablished.
+
+
+## 20 November 2026 — Batch 62J-39 WebSocket ticket-endpoint retry regression
+
+Added a supervisor-level regression test for transient HTTPS WebSocket-ticket endpoint failure. The first request fails before socket construction; the supervisor enters reconnecting state, observes its configured bounded backoff, obtains a fresh Firebase ID token, retries ticket acquisition, and only then constructs the next WebSocket. This explicitly complements the pre-existing transient ID-token-provider failure test and the Batch 62J-38 10-second abortable ticket request/header/body timeout tests. No WebSocket runtime code, protocol or production configuration changed.
+
+Exact resulting-head CI must finish Automated Tests/Build, CodeQL and full-history secret audit successfully before this test is marked verified. Gate 39 FCM worker architecture remains a proposal pending owner review; Gate 30 live Android DB restore and Gate 38 host observability remain external acceptance items. Gate 10 remains 10/10 ORANGE / 0 closed.
+
+Indicator status and calculation contracts remain unchanged: SMA20 🟨 (first index 19), EMA20 🟨 (alpha 2/21; first index 19), RSI14 Wilder 🟨 (index 14), MACD12/26/9 🟨 (MACD index 25; signal/histogram 33), Bollinger20,2 🟨 (population standard deviation; index 19), Shared Indicator Hook 🟨, Footprint 🟧 SIMULATED and gated, Heatmap 🟥, Liquidation Maps 🟥. No indicator implementation credit. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 unscored; overall/indicator aggregate percentages unestablished.
