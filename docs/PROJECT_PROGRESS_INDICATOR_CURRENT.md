@@ -1,6 +1,6 @@
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 20 November 2026 — Batch 62J-33 Gate 10 restore-drill CLI acceptance hardening  
+**Checkpoint:** 20 November 2026 — Batch 62J-37 Gate 38 metrics audit and Gate 39 bounded-worker design proposal  
 **Active branch:** `phase-2/market-data-foundation`  
 **Starting HEAD:** `5bfa0d231469ef711fb4a7162e3a2d5a49715e8c`  
 **Starting exact-head CI:** Automated Tests `44710864296` SUCCESS • CodeQL `44710864281` SUCCESS • Full Git History Secret Audit `44710864297` SUCCESS.  
@@ -537,3 +537,12 @@ This is adapter-level evidence with a deterministic fake sender. It does not pro
 The Batch 62J-35 exact-head CI suite passed all three workflows. A source audit then identified an unresolved delivery bound: Firebase Admin initialization does not set `httpTimeout`, so the SDK default is 120 seconds per HTTP request; the event sender fans out sequentially to as many as 10 active installations; and lifespan shutdown awaits the worker after setting its stop event, which is observed only after the current batch returns. This means neither total event time nor graceful shutdown has a strict application-level bound. The SDK's retry policy can extend elapsed time beyond one request timeout.
 
 No `asyncio.wait_for` cancellation patch was applied: cancelling the await on `asyncio.to_thread` does not terminate its running thread and could allow provider sends to continue after lease expiry, creating a reclaim/duplicate-delivery race. A safe follow-up must define and test provider request/retry bounds, calculate a lease budget for the maximum recipient fan-out plus acknowledgement margin, and specify shutdown semantics. Gate 39 remains 🟧 OPEN. Indicator statuses/formula warm-up indices unchanged; no indicator credit. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 unscored; overall percentage unestablished. Gate 10 remains 10/10 ORANGE / 0 closed. ZERO COST; no deployment, Termux, dependency change, or main-branch modification. See `WORK_CYCLE_2026-11-20_BATCH62J36_GATE39_FCM_TIMEOUT_SHUTDOWN_AUDIT.md` for full evidence and calculations.
+
+
+## Batch 62J-37 — Gate 38 metrics audit and Gate 39 bounded-worker proposal (20 November 2026)
+
+The source audit confirms that request metrics are bounded to 127 process-local route/method series including overflow, with fixed latency buckets, sanitized labels/status/durations, detached snapshots and lock-protected recording. Private scrape routes require constant-time Bearer authentication, no-store headers and are excluded from application request logs/counters. This does not provide cross-replica aggregation, a dashboard, host log retention/rotation or disk-pressure acceptance. Gate 38 remains 🟧 OPEN.
+
+Gate 39 remains 🟧 OPEN. A design proposal has been recorded in docs/WORK_CYCLE_2026-11-20_BATCH62J37_GATE38_METRICS_GATE39_BOUNDED_WORKER_DESIGN.md. It recommends parent-supervised child-process isolation for one event's synchronous FCM fan-out, with a monotonic hard deadline, parent-owned token revocation/acknowledgement and explicit at-least-once semantics. Candidate timing arithmetic is documented but is not accepted production configuration. This is a major runtime architecture decision: **no implementation is authorized until the owner reviews and approves the proposal**.
+
+Exact starting HEAD: 04139cf0b43812c4afd09e8b5114d15df1aa2be9. This batch is documentation-only; exact-head CI for the starting revision was still running at the time of the audit. Gate 10 remains 10/10 ORANGE / 0 CLOSED. Indicator states unchanged. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 unscored; overall percentage not established. ZERO COST; no deployment, paid service, Termux or main branch change.

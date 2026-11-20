@@ -1,6 +1,6 @@
 # DEZZTA CHART — Complete Indicator Progress Ledger
 
-**Checkpoint:** 20 November 2026 — Batch 62J-33 Gate 10 restore-drill CLI hardening; indicator scope unchanged  
+**Checkpoint:** 20 November 2026 — Batch 62J-37 Gate 38 metrics audit and Gate 39 bounded-worker design proposal; indicator scope unchanged  
 **Branch:** `phase-2/market-data-foundation`  
 **Indicator implementation status:** unchanged by WebSocket Batches 62H-3, 62H-4, 62I, 62J-1, 62J-2 and 62J-16. The WebSocket reliability work does not award indicator progress.  
 **Interpretation:** statuses describe verified implementation boundaries, not a guessed completion percentage. No indicator weights or acceptance percentages have been approved, so per-indicator or total-indicator percentages are intentionally not fabricated.
@@ -519,3 +519,12 @@ This is adapter-level evidence with a deterministic fake sender. It does not pro
 The Batch 62J-35 exact-head CI suite passed all three workflows. A source audit then identified an unresolved delivery bound: Firebase Admin initialization does not set `httpTimeout`, so the SDK default is 120 seconds per HTTP request; the event sender fans out sequentially to as many as 10 active installations; and lifespan shutdown awaits the worker after setting its stop event, which is observed only after the current batch returns. This means neither total event time nor graceful shutdown has a strict application-level bound. The SDK's retry policy can extend elapsed time beyond one request timeout.
 
 No `asyncio.wait_for` cancellation patch was applied: cancelling the await on `asyncio.to_thread` does not terminate its running thread and could allow provider sends to continue after lease expiry, creating a reclaim/duplicate-delivery race. A safe follow-up must define and test provider request/retry bounds, calculate a lease budget for the maximum recipient fan-out plus acknowledgement margin, and specify shutdown semantics. Gate 39 remains 🟧 OPEN. Indicator statuses/formula warm-up indices unchanged; no indicator credit. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 unscored; overall percentage unestablished. Gate 10 remains 10/10 ORANGE / 0 closed. ZERO COST; no deployment, Termux, dependency change, or main-branch modification. See `WORK_CYCLE_2026-11-20_BATCH62J36_GATE39_FCM_TIMEOUT_SHUTDOWN_AUDIT.md` for full evidence and calculations.
+
+
+## 20 November 2026 — Batch 62J-37 Gate 38 metrics audit and Gate 39 design proposal
+
+Gate 38 source audit confirms a 127-series process-local metrics cap (including overflow), fixed latency buckets, sanitized labels and durations, detached snapshots, lock-protected recording, authenticated no-store scrape endpoints, and exclusion of internal scrape requests from application logs/counters. Production dashboard/access control, cross-replica aggregation, log retention/rotation, disk-pressure handling and live host redaction remain open. Gate 38 stays 🟧.
+
+Gate 39 design proposal is documented in docs/WORK_CYCLE_2026-11-20_BATCH62J37_GATE38_METRICS_GATE39_BOUNDED_WORKER_DESIGN.md. It proposes a parent-supervised child process for synchronous FCM fan-out, a monotonic event deadline, parent-only acknowledgement/token revocation, and lease arithmetic lease >= event deadline + SQLite busy timeout + explicit margin. Candidate values are explicitly provisional. This is a major runtime design and **must not be implemented before owner review and approval**. Gate 39 stays 🟧.
+
+No indicator code or status changed. SMA20/EMA20 first valid index 19; RSI14 index 14; MACD index 25 and signal/histogram index 33; Bollinger20,2 index 19. Footprint remains SIMULATED and gated; Heatmap and Liquidation Maps remain unimplemented. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 unscored; overall project percentage and indicator aggregate remain unestablished. Gate 10 remains 10/10 ORANGE / 0 CLOSED. ZERO COST; no deployment, paid service, Termux or main branch modification.
