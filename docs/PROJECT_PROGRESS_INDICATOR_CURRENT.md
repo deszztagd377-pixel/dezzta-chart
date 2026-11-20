@@ -1,11 +1,12 @@
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 20 November 2026 — Batch 62J-31 dual-gateway TCP outage recovery + snapshot generation acceptance  
+**Checkpoint:** 20 November 2026 — Batch 62J-33 Gate 10 restore-drill CLI acceptance hardening  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest source/test checkpoint:** `cf6219a1f0fbea5a0daf8378ef47af386f8446fa`  
-**Dashboard revision:** Batch 62J-32 documentation-only Gate 25/36 evidence audit; no runtime behavior changed.  
-**Current audit batch:** 62J-31 — dual-ASGI TCP outage recovery and dual-replica snapshot-generation acceptance passed exact-head CI  
-**Cost policy:** ZERO COST. Existing Redis 7 CI service and temporary SQLite fixtures only; no paid providers, hosting, deployment, Vercel/Cloudflare action, or Termux requirement.
+**Starting HEAD:** `5bfa0d231469ef711fb4a7162e3a2d5a49715e8c`  
+**Starting exact-head CI:** Automated Tests `44710864296` SUCCESS • CodeQL `44710864281` SUCCESS • Full Git History Secret Audit `44710864297` SUCCESS.  
+**WebSocket E:** COMPLETE FOR DEFINED AUTOMATED FAILURE-MATRIX SCOPE at Batch 62J-31; public WSS and production operations remain separate.  
+**Current Gate 10 work:** Gate 30 — safe SQLite restore drill CLI/report verification; this batch adds CLI-level tests and reconciles the gate/indicator documentation.  
+**Cost policy:** ZERO COST. Existing repository CI and temporary SQLite fixtures only; no paid provider, hosting, deployment, Vercel/Cloudflare action, or Termux requirement.
 
 > This document is the current concise dashboard. Historical work-cycle reports remain the evidence trail. Do not infer that a docs-only commit has rerun or revalidated code CI.
 
@@ -28,17 +29,14 @@ The real two-ASGI-process Redis 7 integration test now injects one transient xre
 
 The existing real-Redis snapshot-generation test also remains in the same passing backend suite: a replacement snapshot switches the consumer to a generation-scoped group, leaves the old pending group non-destructively isolated, starts the new group at the installed snapshot watermark, and applies the next cursor without mixing generations.
 
-### Evidence boundary — E is not complete
+### Historical evidence boundary — superseded by Batch 62J-31
 
-The new test is deterministic client-boundary fault injection, **not** a shutdown or network partition of the Redis server. It proves two independent ASGI workers retry a transient Redis read error and restore cursor parity. It does not yet prove:
+At Batch 62J-28, the test covered only client-boundary transient read-failure injection. That limitation was resolved by Batch 62J-31, whose exact-head CI added two further acceptance scenarios:
 
-- A real Redis service/network outage and recovery while both gateways remain running.
-- Snapshot-generation replacement and parity across both gateway replicas in one cross-process scenario.
-- The production snapshot distribution/rotation contract.
-- Production Redis TLS, ACL, credential rotation and host-level recovery.
-- Public WSS acceptance from browser and Android WebView clients.
+- Two live ASGI gateways use separate local TCP proxies; both established Redis paths are severed, reconnects are rejected during the controlled outage, and both paths are restored without restarting either gateway. Both WebSocket clients then receive cursor 1 and both durable checkpoints converge at cursor 1. This is a controlled TCP-path interruption, not a Redis server shutdown.
+- Two independent gateway replicas install the same verified snapshot at watermark 2 after leaving cursor 2 pending in the old generation groups. New-generation consumers apply cursor 3 and both durable checkpoints converge at 3; old pending entries remain isolated.
 
-Therefore WebSocket failure/recovery matrix E remains **PARTIALLY VERIFIED**, not complete. No production readiness or Gate 10 closure is inferred from this CI evidence.
+**WebSocket E is COMPLETE FOR THE DEFINED AUTOMATED FAILURE-MATRIX SCOPE.** Production snapshot distribution/rotation, owner-host Redis TLS/ACL/credential rotation, retention/cleanup governance, public WSS, browser/Android acceptance and operator recovery remain separate open requirements. E completion does not close Gate 25 or Gate 36.
 
 ### Project controls
 
@@ -109,16 +107,16 @@ All ten tracked gates remain formally OPEN (0/10 closed). Their project-control 
 
 | Gate | Status | Closure evidence still required |
 |---|---|---|
-| 8 | 🟧 OPEN | Owner-controlled environment/operational acceptance evidence |
-| 20 | 🟧 OPEN | Target environment integration and acceptance evidence |
-| 25 | 🟧 OPEN | Redis TLS/ACL credentials, independent gateway instances, outage/recovery and parity evidence |
-| 30 | 🟧 OPEN | Owner-side infrastructure/security acceptance |
-| 31 | 🟧 OPEN | Operational recovery/restore evidence |
-| 34 | 🟧 OPEN | WSS/client integration and target-device acceptance |
-| 35 | 🟧 OPEN | Collector/provider operational evidence |
-| 36 | 🟧 OPEN | Multi-instance Redis relay and end-to-end gateway acceptance |
-| 38 | 🟧 OPEN | Operator runbook and operational drill evidence |
-| 39 | 🟧 OPEN | Final owner sign-off and evidence completeness |
+| 8 | 🟧 OPEN | Actual host secret injection, file ownership/mode, process exposure, log and crash-report redaction |
+| 20 | 🟧 OPEN | Real Firebase sign-in, expiry/revocation, entitlement denial, browser/Android reconnect against an accepted backend |
+| 25 | 🟧 OPEN | Owner-host Redis TLS certificate, ACL/network policy, credential rotation, persistence and recovery; relay snapshot contract |
+| 30 | 🟧 OPEN | Owner-device fresh-path SQLite backup/restore report, application-domain readback, integrity and recovery timing |
+| 31 | 🟧 OPEN | Encrypted off-host artifact, separate recovery-key custody, independent restore and retention/deletion evidence |
+| 34 | 🟧 OPEN | Actual persistent mount/path, UID/GID and permissions, process-restart persistence, disk-pressure and recovery |
+| 35 | 🟧 OPEN | Owner-controlled HTTPS backend, certificate/hostname verification, health/startup and secret-injection checks |
+| 36 | 🟧 OPEN | Authenticated public WSS reverse-proxy, browser and Android acceptance, reconnect/replay and proxy restart |
+| 38 | 🟧 OPEN | Bounded metrics/log retention, dashboard access control, disk-pressure behavior and credential redaction |
+| 39 | 🟧 OPEN | Induced-failure alert, operator acknowledgement/escalation and tested incident recovery |
 
 The ten tracked gate IDs above are the current open set: 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. Their display color is 🟧 ORANGE as requested; none is marked closed. No gate has been closed by documentation-only work.
 

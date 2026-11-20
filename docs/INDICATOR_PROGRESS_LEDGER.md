@@ -1,6 +1,6 @@
 # DEZZTA CHART — Complete Indicator Progress Ledger
 
-**Checkpoint:** 20 November 2026 — Batch 62J-32 Gate 25/36 evidence audit; indicator scope unchanged  
+**Checkpoint:** 20 November 2026 — Batch 62J-33 Gate 10 restore-drill CLI hardening; indicator scope unchanged  
 **Branch:** `phase-2/market-data-foundation`  
 **Indicator implementation status:** unchanged by WebSocket Batches 62H-3, 62H-4, 62I, 62J-1, 62J-2 and 62J-16. The WebSocket reliability work does not award indicator progress.  
 **Interpretation:** statuses describe verified implementation boundaries, not a guessed completion percentage. No indicator weights or acceptance percentages have been approved, so per-indicator or total-indicator percentages are intentionally not fabricated.
@@ -416,10 +416,10 @@ This is a source/documentation audit only. No runtime code or deployment configu
 
 ### Gate 36 — public WSS and clients
 
-- The backend route exists and authenticates a Firebase ID token in the first WebSocket JSON auth message, with periodic identity and exact-series entitlement revalidation.
-- `docs/BACKEND_DEPLOYMENT.md` explicitly states that source route existence is not proof of deployed WSS or client compatibility.
-- No public owner-host reverse-proxy handshake, authenticated WSS test, browser acceptance, Android WebView acceptance, or cross-instance test through the public endpoint is available in the repository evidence.
-- A separate short-lived scoped WebSocket-ticket exchange is not implemented; do not assume it is part of the deployed protocol.
+- The backend route uses a purpose-bound single-use ticket. `POST /v1/auth/websocket-ticket` verifies Firebase Bearer over HTTPS and issues a 90-second ticket; the client renews every 45 seconds by default and the backend requires the same subject plus an exact-series entitlement recheck.
+- Current ticket binding is subject + purpose, not canonical series or Origin/client context. Exact-series access is checked separately before snapshot delivery and on renewal.
+- Backend API and frontend transport tests cover issue, invalid Bearer, ticket authentication and same-subject renewal acknowledgement.
+- Public owner-host reverse-proxy handshake, browser acceptance, Android WebView acceptance and deployed cross-instance public endpoint tests remain unavailable.
 
 **Gate 36 disposition:** 🟧 OPEN. No public WSS endpoint was deployed or tested, and no browser/Android result is fabricated.
 
@@ -439,3 +439,59 @@ Indicator progress is unchanged:
 - Liquidation Maps 🟥 — no validated data/calculation contract.
 
 Stage 1 remains 30/40 criteria = 300/400 ticks = **75% provisional**. Stages 2–6 remain unscored. Overall project percentage remains unestablished. ZERO COST maintained. No Termux requirement, deployment, paid service, production activation, or `main` modification.
+
+## Batch 62J-33 — 20 November 2026: Gate 10 restore-drill CLI acceptance hardening
+
+**Starting source/test HEAD:** `5bfa0d231469ef711fb4a7162e3a2d5a49715e8c`.
+**Starting exact-head CI:** Automated Tests `44710864296` SUCCESS; CodeQL `44710864281` SUCCESS; Full Git History Secret Audit `44710864297` SUCCESS.
+
+### WebSocket sequence closure
+
+- Batch 62J-31 provides the two previously missing automated E scenarios: controlled dual-gateway TCP-path interruption/recovery and coordinated snapshot-generation replacement across two durable replicas with cursor parity.
+- E is complete for the defined automated failure-matrix scope. It is not a Redis server shutdown test and does not establish public WSS, production relay activation, production TLS/ACL rotation or external device acceptance.
+- Gate 25 and Gate 36 remain ORANGE because those are independent operational acceptance requirements.
+
+### Gate 30 — repository-side restore-drill evidence
+
+The existing `run_restore_drill` already opens the source database read-only and uses SQLite Online Backup API; refuses existing backup/restore destinations; checks integrity, foreign keys, required application tables, full row-content hashes and schema hashes; verifies application-domain readback for instruments, mappings, entitlements, alerts, coverage, OHLCV and outbox high-water; performs a committed post-restore write/read/cleanup; and returns a timestamped path-redacted report with a verifiable SHA-256 digest.
+
+**This batch adds two CLI-level tests:**
+1. Failure output is JSON, reports only the error class, and withholds absolute paths and low-level exception detail.
+2. Success output is valid JSON with a verifiable report digest, application-domain readback, no path/account leakage, and proof that source bytes remain unchanged.
+
+These tests strengthen the command-line interface intended for a later owner-device drill. They do not execute against the owner's live Android database and do not close Gate 30.
+
+### Gate 10 board — all still OPEN / ORANGE
+
+| Gate | Repository/CI evidence advanced | External acceptance still missing |
+|---|---|---|
+| 8 | Full-history secret scan and frontend bundle scans | Owner-host secret injection, permissions and runtime log inspection |
+| 20 | Firebase verifier/ticket source and API tests | Real no-billing Firebase project, revocation and browser/Android integration |
+| 25 | Redis 7 ACL/AOF/fail-closed recovery and dual-gateway TCP-path tests | Owner-host TLS certificate, ACL, rotation, network restrictions and relay snapshot contract |
+| 30 | SQLite backup/restore integration, application readback and CLI privacy tests | Actual live Android DB path, fresh-path restore report and recovery-time evidence |
+| 31 | Authenticated encryption/decryption and tamper/wrong-key tests | Off-host copy and separate key recovery; one-device constraint remains |
+| 34 | CI persistent-volume smoke | Owner-device/host persistent storage, permissions and disk-pressure drill |
+| 35 | Backend container and startup/security checks | Owner-controlled HTTPS endpoint and certificate/hostname acceptance |
+| 36 | Ticketed WebSocket auth/renewal and automated E matrix | Public WSS reverse-proxy plus browser/Android acceptance |
+| 38 | Bounded request metrics and cardinality/redaction foundations | Actual dashboard access control, retention and disk-pressure drill |
+| 39 | Durable alert/outbox and retry foundations | No-cost operator delivery, acknowledgement and incident-response exercise |
+
+### Indicator progress — unchanged and explicitly separated
+
+| Indicator | Status | Verified foundation / boundary |
+|---|---|---|
+| SMA 20 | 🟨 | Rolling arithmetic mean; first valid candle index 19; chart overlay not integrated |
+| EMA 20 | 🟨 | SMA-seeded EMA; alpha 2/21; first valid index 19; chart overlay not integrated |
+| RSI 14 | 🟨 | Wilder smoothing; first valid index 14; oscillator pane not integrated |
+| MACD 12/26/9 | 🟨 | MACD first index 25; signal/histogram first index 33; pane not integrated |
+| Bollinger 20,2 | 🟨 | Population standard deviation; first valid index 19; three-line overlay not integrated |
+| Shared Indicator Hook | 🟨 | Validated shared backend snapshot; chart binding/lifecycle acceptance remains |
+| Footprint | 🟧 | SIMULATED only; implementation awaits owner reference image and reviewed blueprint |
+| Heatmap | 🟥 | Not implemented; awaits owner reference image and reviewed blueprint |
+| Liquidation Maps | 🟥 | No validated data/calculation contract |
+
+No indicator completion percentage is invented. Stage 1 remains 30/40 = 75% provisional; Stages 2–6 remain unscored; overall project percentage remains unestablished. Gate 10 remains 10/10 ORANGE / 0 closed. ZERO COST maintained; no deployment, paid service, Termux action or `main` change.
+
+### Next execution boundary
+
+Gate 30 remains the highest-value phone-only acceptance candidate, but its live source database path must be positively identified before any device operation. No Termux command is required for the repository/CI work in this batch. Gate 31 remains constrained by the documented Android package/keyring issue and the lack of a second device/off-host destination. Do not lower security or claim a live-device restore from CI.

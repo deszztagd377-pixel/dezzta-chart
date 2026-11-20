@@ -352,3 +352,75 @@ def test_encrypted_application_backup_round_trip_feeds_full_restore_drill(tmp_pa
     assert list(tmp_path.rglob("*.encrypted-backup.tmp")) == []
     assert list(tmp_path.rglob("*.sqlite-backup.tmp")) == []
     assert list(tmp_path.rglob("*.sqlite-restore.tmp")) == []
+
+
+def test_restore_drill_cli_failure_redacts_paths_and_error_details(tmp_path, capsys):
+    from app.sqlite_restore_drill import main
+
+    source = tmp_path / "private" / "missing-live.sqlite3"
+    backup = tmp_path / "private" / "backup.sqlite3"
+    restored = tmp_path / "private" / "restored.sqlite3"
+
+    result = main([
+        "--source", str(source),
+        "--backup", str(backup),
+        "--restore", str(restored),
+    ])
+
+    captured = capsys.readouterr()
+    assert result == 1
+    assert captured.out == ""
+    error = json.loads(captured.err)
+    assert error == {
+        "status": "failed",
+        "error_type": "FileNotFoundError",
+        "privacy": "error details and absolute paths withheld",
+    }
+    assert str(tmp_path) not in captured.err
+    assert source.name not in captured.err
+    assert not backup.exists()
+    assert not restored.exists()
+
+
+def test_restore_drill_cli_success_emits_verifiable_redacted_report(tmp_path, capsys):
+    import hashlib
+
+    from app.sqlite_restore_drill import main
+
+    source = tmp_path / "private" / "live.sqlite3"
+    backup = tmp_path / "backup" / "verified-backup.sqlite3"
+    restored = tmp_path / "restore" / "restored-copy.sqlite3"
+    source.parent.mkdir()
+    _build_database(source)
+    source_before = source.read_bytes()
+
+    result = main([
+        "--source", str(source),
+        "--backup", str(backup),
+        "--restore", str(restored),
+    ])
+
+    captured = capsys.readouterr()
+    assert result == 0
+    assert captured.err == ""
+    report = json.loads(captured.out)
+    assert report["status"] == "passed"
+    assert report["integrity_check"] == "ok"
+    assert report["foreign_key_errors"] == 0
+    assert report["table_row_counts_match"] is True
+    assert report["table_content_match"] is True
+    assert report["schema_match"] is True
+    assert report["post_restore_write_read_cleanup"] == "passed"
+    assert report["application_domain_readback"]["outbox_high_water"] == 1
+    assert report["application_domain_readback"]["ohlcv_bars"] == 1
+    report_without_hash = dict(report)
+    report_hash = report_without_hash.pop("report_sha256")
+    canonical = json.dumps(report_without_hash, sort_keys=True, separators=(",", ":"))
+    assert report_hash == hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    assert str(tmp_path) not in captured.out
+    assert source.name not in captured.out
+    assert backup.name not in captured.out
+    assert restored.name not in captured.out
+    assert source.read_bytes() == source_before
+    assert backup.is_file()
+    assert restored.is_file()

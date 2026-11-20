@@ -396,3 +396,12 @@ Termux disposition: no action required in this batch. Keep the known-good Google
 ## Delivery scope clarification — installable APK without Play Store (2026-11-14)
 
 The owner confirmed that the immediate goal is a working APK installable directly on the target Infinix GT20. Google Play Store publication is deferred for a possible future decision and must not be treated as a current requirement, blocker, or cost. The existing Android CI workflow is a debug-APK packaging mechanism; its current frontend-only scope is not evidence of an integrated on-device Python/Redis backend.
+
+## Gate 10 execution update — Batch 62J-33 (2026-11-20)
+
+- WebSocket E is complete for the defined automated failure-matrix scope through Batch 62J-31. The remaining production WSS, snapshot distribution, Redis host TLS/ACL rotation and owner-operator acceptance belong to Gates 25/36, not to the completed automated E matrix.
+- Gate 30 remains the best phone-only next acceptance target. The existing CLI restore drill now has explicit success/failure output tests: JSON report digest validation, source preservation, application-domain readback, and failure redaction. This is repository/CI evidence only.
+- Before any owner-device drill, the effective live database path must be positively identified from the running app configuration. Never assume the repository default path or use the source database as a backup/restore destination.
+- Gate 31 remains constrained: the owner has one Android phone, no second device/off-host destination is evidenced, and the Termux Play Store package/keyring mismatch for the required cryptography dependency remains unresolved. No package downgrade, repository substitution or signature bypass is permitted.
+- Gate 8, 20, 25, 34, 35, 36, 38 and 39 may receive repository-side hardening in parallel, but external acceptance must not be inferred from CI.
+- All ten gates remain OPEN / ORANGE (0/10 closed). ZERO COST remains mandatory. No deploy, paid service, billing activation, `main` modification or Termux operation is authorized by this update.
