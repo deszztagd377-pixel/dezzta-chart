@@ -62,8 +62,9 @@ describe('requestOhlcvWebSocketTicket', () => {
       'https://market.example.test',
       'firebase-id-token',
     );
+    const rejection = expect(pending).rejects.toThrow(/request timed out/i);
     await vi.advanceTimersByTimeAsync(WEBSOCKET_TICKET_REQUEST_TIMEOUT_MS);
-    await expect(pending).rejects.toThrow(/request timed out/i);
+    await rejection;
     expect(vi.mocked(fetch).mock.calls[0][1]?.signal?.aborted).toBe(true);
   });
 
@@ -81,8 +82,9 @@ describe('requestOhlcvWebSocketTicket', () => {
       'https://market.example.test',
       'firebase-id-token',
     );
+    const rejection = expect(pending).rejects.toThrow(/request timed out/i);
     await vi.advanceTimersByTimeAsync(WEBSOCKET_TICKET_REQUEST_TIMEOUT_MS);
-    await expect(pending).rejects.toThrow(/request timed out/i);
+    await rejection;
   });
 
   it('rejects malformed ticket payloads and never returns an unvalidated ticket', async () => {
