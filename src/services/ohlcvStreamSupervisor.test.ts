@@ -474,6 +474,77 @@ describe('OHLCV stream supervisor', () => {
     supervisor.stop();
   });
 
+  it('retries when Firebase ID-token acquisition never settles', async () => {
+    vi.useFakeTimers();
+    const sockets: FakeSocket[] = [];
+    const getIdToken = vi.fn()
+      .mockImplementationOnce(() => new Promise<string>(() => {}))
+      .mockResolvedValue('fresh-token-after-timeout');
+    const supervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken,
+      identityTokenTimeoutMs: 25,
+      webSocketFactory: () => {
+        const socket = new FakeSocket();
+        sockets.push(socket);
+        return socket as unknown as WebSocket;
+      },
+      minReconnectDelayMs: 10,
+      maxReconnectDelayMs: 10,
+      random: () => 0,
+    });
+
+    expect(getIdToken).toHaveBeenCalledOnce();
+    await vi.advanceTimersByTimeAsync(30);
+
+    expect(getIdToken).toHaveBeenCalledTimes(2);
+    expect(sockets).toHaveLength(1);
+    expect(supervisor.status).toBe('connecting');
+    supervisor.stop();
+  });
+
+  it('bounds Firebase ID-token acquisition during ticket renewal', async () => {
+    vi.useFakeTimers();
+    const sockets: FakeSocket[] = [];
+    const neverSettles = new Promise<string>(() => {});
+    const getIdToken = vi.fn()
+      .mockResolvedValueOnce('initial-token')
+      .mockReturnValueOnce(neverSettles)
+      .mockResolvedValue('token-after-renewal-timeout');
+    const supervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken,
+      identityTokenTimeoutMs: 25,
+      ticketRenewalIntervalMs: 5_000,
+      webSocketFactory: () => {
+        const socket = new FakeSocket();
+        sockets.push(socket);
+        return socket as unknown as WebSocket;
+      },
+      minReconnectDelayMs: 10,
+      maxReconnectDelayMs: 10,
+      random: () => 0,
+    });
+
+    await vi.waitFor(() => expect(sockets).toHaveLength(1));
+    sockets[0].readyState = 1;
+    sockets[0].emit('open', new Event('open'));
+    sockets[0].message({ type: 'market_data.status', version: 1 });
+    sockets[0].message(snapshot);
+    expect(supervisor.status).toBe('subscribed');
+
+    await vi.advanceTimersByTimeAsync(5_030);
+
+    expect(getIdToken).toHaveBeenCalledTimes(3);
+    expect(sockets).toHaveLength(2);
+    expect(supervisor.status).toBe('connecting');
+    supervisor.stop();
+  });
+
   it('uses bounded exponential reconnect and requests a fresh token for the next attempt', async () => {
     vi.useFakeTimers();
     const sockets: FakeSocket[] = [];
