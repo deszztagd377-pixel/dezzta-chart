@@ -24,6 +24,8 @@ export interface OhlcvStreamSupervisorOptions
   extends Omit<OhlcvStreamOptions, 'ticket' | 'getRenewalTicket' | 'token' | 'onSnapshot' | 'onUpdate' | 'onStatus' | 'onError' | 'onClose' | 'onCursor'> {
   /** Must return a fresh Firebase ID token; called again for every reconnect. */
   getIdToken: () => Promise<string>;
+  /** Bounds Firebase token acquisition for initial connect and ticket renewal. */
+  identityTokenTimeoutMs?: number;
   requestWebSocketTicket?: (baseUrl: string, idToken: string) => Promise<string>;
   minReconnectDelayMs?: number;
   maxReconnectDelayMs?: number;
@@ -76,6 +78,35 @@ export function startOhlcvStreamSupervisor(
   let connection: OhlcvStreamConnection | null = null;
   let attempt = 0;
   let resumeCursor = options.resumeCursor;
+  const identityTokenTimeoutMs = options.identityTokenTimeoutMs ?? 10_000;
+  if (!Number.isFinite(identityTokenTimeoutMs) || identityTokenTimeoutMs <= 0 || identityTokenTimeoutMs > 60_000) {
+    throw new Error('Firebase ID-token timeout must be positive and no greater than 60 seconds.');
+  }
+  const pendingIdentityRequests = new Set<() => void>();
+  const getFreshIdToken = (): Promise<string> => new Promise((resolve, reject) => {
+    let settled = false;
+    let cancelRequest = () => {};
+    let timer: ReturnType<typeof setTimeout>;
+    const finish = (complete: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      pendingIdentityRequests.delete(cancelRequest);
+      complete();
+    };
+    cancelRequest = () => finish(() => reject(new Error('Firebase ID-token request was cancelled because the stream stopped.')));
+    pendingIdentityRequests.add(cancelRequest);
+    timer = setTimeout(
+      () => finish(() => reject(new Error('Firebase ID-token request timed out.'))),
+      identityTokenTimeoutMs,
+    );
+    void Promise.resolve()
+      .then(() => options.getIdToken())
+      .then(
+        (token) => finish(() => resolve(token)),
+        (error) => finish(() => reject(error)),
+      );
+  });
 
   const setStatus = (next: OhlcvSupervisorStatus) => {
     currentStatus = next;
@@ -116,7 +147,7 @@ export function startOhlcvStreamSupervisor(
     let reconnectAfterAttempt = false;
     setStatus('connecting');
     try {
-      const token = await options.getIdToken();
+      const token = await getFreshIdToken();
       if (stopped) return;
       if (typeof token !== 'string' || token.trim().length === 0) {
         // An empty credential is an authentication/session state, not a
@@ -134,7 +165,7 @@ export function startOhlcvStreamSupervisor(
       }
       const issueTicket = options.requestWebSocketTicket ?? requestOhlcvWebSocketTicket;
       const getTicket = async () => {
-        const freshIdToken = await options.getIdToken();
+        const freshIdToken = await getFreshIdToken();
         if (typeof freshIdToken !== 'string' || !freshIdToken.trim()) throw new Error('A fresh Firebase ID token is required for WebSocket ticket renewal.');
         return issueTicket(options.baseUrl, freshIdToken);
       };
@@ -270,6 +301,7 @@ export function startOhlcvStreamSupervisor(
     stop() {
       if (stopped) return;
       stopped = true;
+      for (const cancelRequest of [...pendingIdentityRequests]) cancelRequest();
       if (reconnectTimer !== null) clearTimeout(reconnectTimer);
       reconnectTimer = null;
       const active = connection;
