@@ -295,3 +295,7 @@ Two startup/snapshot regression tests were added, including fail-closed behavior
 ## 0C. Batch 62J-24 — Redis readiness and exact series fixture
 
 Replica startup now verifies Redis consumer-group creation before the ASGI app becomes ready. If Redis group bootstrap fails, startup aborts, the dedicated client is closed, and no worker starts. The replica snapshot test fixture was aligned with the canonical 1-second timeframe policy (UTC_FIXED_V1).
+
+## 0D. Batch 62J-25 — independent ASGI process acceptance
+
+A new Redis 7 CI integration test launches two independent Uvicorn/FastAPI processes with separate replica SQLite files and consumer identities. Both subscribe through the real WebSocket route; one published event must reach both clients at cursor 1 and advance both durable replica checkpoints. This is the first acceptance test spanning the complete opt-in app lifecycle, replica consumer, event-loop dispatch and WebSocket route across two OS processes.

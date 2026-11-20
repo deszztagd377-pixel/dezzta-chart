@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import secrets
+import socket
+import time
+import urllib.request
 import uuid
 
 import pytest
@@ -845,5 +849,187 @@ def test_real_redis_snapshot_replay_live_handoff_preserves_boundary_sequence(tmp
     try:
         asyncio.run(scenario())
     finally:
+        redis.delete(stream_key)
+        redis.close()
+
+
+def _run_asgi_replica_gateway_process(
+    redis_url, stream_key, replica_path, registry_path, consumer_name, port,
+):
+    import redis as redis_module
+    import uvicorn
+
+    from app.config import Settings
+    from app.identity import IdentityVerificationError, VerifiedPrincipal
+    from app.main import create_app
+    from app.ohlcv_redis_consumer import RedisOhlcvReplicaConsumer
+    from app.symbology import CanonicalInstrument, ProviderInstrumentMapping
+
+    replica = SQLiteOhlcvReplicaStore(replica_path)
+    redis_client = redis_module.Redis.from_url(
+        redis_url, decode_responses=True, socket_connect_timeout=3, socket_timeout=3,
+    )
+    consumer = RedisOhlcvReplicaConsumer(
+        redis_client, replica, stream_key=stream_key,
+        consumer_name=consumer_name, pending_idle_ms=0, batch_size=10,
+    )
+    settings = Settings(
+        app_env="development",
+        market_data_ws_token="multi-asgi-process-test-token",
+        cors_allowed_origins=("http://localhost",),
+        allowed_roots=("ES",),
+        instrument_registry_db_path=registry_path,
+    )
+    application = create_app(
+        settings,
+        replica_runtime_factory=lambda: {
+            "replica_store": replica,
+            "consumer": consumer,
+            "redis_client": redis_client,
+            "stream_key": stream_key,
+        },
+    )
+
+    class ProcessTestVerifier:
+        def verify(self, token):
+            if token != "multi-asgi-process-token":
+                raise IdentityVerificationError("invalid process test token")
+            return VerifiedPrincipal(
+                subject="multi-asgi-test-user",
+                issuer="https://securetoken.google.com/process-test",
+                audience="process-test",
+                auth_time=1_798_000_000,
+            )
+
+    application.state.identity_verifier = ProcessTestVerifier()
+    canonical_id = "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11"
+    instrument = CanonicalInstrument(
+        canonical_id=canonical_id, asset_class="future", instrument_type="future",
+        symbol="ESZ6", venue="XCME", expiration_date="2026-12-18",
+        settlement_currency="USD", contract_multiplier="50", tick_size="0.25",
+        session_calendar_id="CME_EQUITY_INDEX",
+    )
+    mapping = ProviderInstrumentMapping(
+        provider="databento", dataset="GLBX.MDP3", publisher_id=1, instrument_id=123,
+        raw_symbol="ESZ6", valid_from_ns=1, valid_to_ns=None, canonical_id=canonical_id,
+    )
+    application.state.instrument_registry.register_instrument_with_mapping(instrument, mapping)
+    application.state.instrument_entitlements.grant(
+        subject="multi-asgi-test-user", canonical_instrument_id=canonical_id,
+    )
+    uvicorn.run(
+        application, host="127.0.0.1", port=port, log_level="critical",
+        access_log=False, lifespan="on",
+    )
+
+
+def _free_loopback_port():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
+        listener.bind(("127.0.0.1", 0))
+        return int(listener.getsockname()[1])
+
+
+def _wait_for_asgi_health(process, port, timeout_seconds=20):
+    deadline = time.monotonic() + timeout_seconds
+    url = f"http://127.0.0.1:{port}/health"
+    while time.monotonic() < deadline:
+        if process.exitcode is not None:
+            raise RuntimeError(f"ASGI gateway process exited early: {process.exitcode}")
+        try:
+            with urllib.request.urlopen(url, timeout=1) as response:
+                if response.status == 200:
+                    return
+        except Exception:
+            time.sleep(0.1)
+    raise TimeoutError(f"ASGI gateway on port {port} did not become healthy.")
+
+
+def test_two_independent_asgi_processes_broadcast_replica_live_event(tmp_path):
+    import multiprocessing
+    from websockets.sync.client import connect
+
+    redis, stream_key = real_redis()
+    redis_url = os.environ["REDIS_TEST_URL"]
+    source = SQLiteOhlcvStore(str(tmp_path / "asgi-source.sqlite3"))
+    snapshot_path = tmp_path / "asgi-empty-snapshot.jsonl"
+    make_snapshot(source, snapshot_path)
+    replica_paths = [
+        str(tmp_path / "asgi-gateway-a.sqlite3"),
+        str(tmp_path / "asgi-gateway-b.sqlite3"),
+    ]
+    registry_paths = [
+        str(tmp_path / "asgi-gateway-a-registry.sqlite3"),
+        str(tmp_path / "asgi-gateway-b-registry.sqlite3"),
+    ]
+    for path in replica_paths:
+        make_replica(source, snapshot_path, path)
+    ports = [_free_loopback_port(), _free_loopback_port()]
+    context = multiprocessing.get_context("spawn")
+    processes = [
+        context.Process(
+            target=_run_asgi_replica_gateway_process,
+            args=(
+                redis_url, stream_key, replica_paths[index], registry_paths[index],
+                f"asgi-gateway-{index}", ports[index],
+            ),
+        )
+        for index in range(2)
+    ]
+    sockets = []
+    try:
+        for process in processes:
+            process.start()
+        for process, port in zip(processes, ports):
+            _wait_for_asgi_health(process, port)
+
+        canonical_id = "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11"
+        for port in ports:
+            websocket = connect(
+                f"ws://127.0.0.1:{port}/ws/market-data",
+                open_timeout=10, close_timeout=3, ping_interval=None,
+            )
+            sockets.append(websocket)
+            websocket.send(json.dumps({
+                "type": "auth", "token": "multi-asgi-process-token",
+            }))
+            status = json.loads(websocket.recv(timeout=10))
+            assert status["type"] == "market_data.status"
+            assert status["quality"]["state"] == "connected"
+            websocket.send(json.dumps({
+                "type": "market_data.subscribe",
+                "version": 1,
+                "canonicalInstrumentId": canonical_id,
+                "series": {
+                    "dataset": "GLBX.MDP3", "publisherId": 1,
+                    "instrumentId": 123, "rawSymbol": "ESZ6",
+                    "timeframe": "1m",
+                },
+            }))
+            snapshot = json.loads(websocket.recv(timeout=10))
+            assert snapshot["type"] == "market_data.ohlcv.snapshot"
+            assert snapshot["cursor"] == "0"
+
+        assert append_and_publish(source, redis, stream_key, 0) == "appended"
+        updates = [json.loads(websocket.recv(timeout=15)) for websocket in sockets]
+        assert all(update["type"] == "market_data.ohlcv.update" for update in updates)
+        assert [update["cursor"] for update in updates] == ["1", "1"]
+        assert all(update["series"]["rawSymbol"] == "ESZ6" for update in updates)
+        assert all(
+            SQLiteOhlcvReplicaStore(path).checkpoint()["applied_cursor"] == 1
+            for path in replica_paths
+        )
+    finally:
+        for websocket in sockets:
+            try:
+                websocket.close()
+            except Exception:
+                pass
+        for process in processes:
+            if process.is_alive():
+                process.terminate()
+                process.join(timeout=10)
+            if process.is_alive():
+                process.kill()
+                process.join(timeout=5)
         redis.delete(stream_key)
         redis.close()
