@@ -1157,9 +1157,13 @@ def test_two_independent_asgi_processes_broadcast_replica_live_event(tmp_path):
                 "timeframe": "1m", "bucketPolicy": "UTC_LEGACY",
             },
         }))
-        restarted_snapshot = json.loads(restarted_ws.recv(timeout=10))
-        assert restarted_snapshot["type"] == "market_data.ohlcv.snapshot"
-        assert restarted_snapshot["cursor"] == "1"
+        restarted_replay_started = json.loads(restarted_ws.recv(timeout=10))
+        restarted_replay_complete = json.loads(restarted_ws.recv(timeout=10))
+        assert restarted_replay_started["type"] == "market_data.ohlcv.replay_started"
+        assert restarted_replay_started["fromCursor"] == "1"
+        assert restarted_replay_started["throughCursor"] == "1"
+        assert restarted_replay_complete["type"] == "market_data.ohlcv.replay_complete"
+        assert restarted_replay_complete["cursor"] == "1"
 
         assert append_and_publish(source, redis, stream_key, 1) == "appended"
         continued_updates = [
