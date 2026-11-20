@@ -2,7 +2,7 @@
 
 **Checkpoint:** 20 November 2026  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest verified code HEAD:** `407d2b38882e92cdf6db5b7df6c44350b6cd746d`  
+**Latest code HEAD (62J-16; CI pending):** `3131284cae1971740d1845b196ec3d972dc4479b`  
 **Latest documentation checkpoint previously recorded:** `ef2bfe439879b92cf73f74f0d6abdbf96db6dfe9`  
 **Current audit batch:** 62J-16 — Worker lifecycle and callback deadline regression coverage  
 **Cost policy:** ZERO COST. No paid providers, hosting, deployments, Vercel/Cloudflare actions, or Termux requirement.
@@ -89,7 +89,7 @@ The later docs-only checkpoint does not change code and does not imply a new cod
 
 ## 62J-16 — Worker lifecycle and callback deadline regression coverage
 
-**Code checkpoint:** `d252e627da728a3b6e1df1a1013462ee41181134`  
+**Code checkpoint:** `3131284cae1971740d1845b196ec3d972dc4479b`  
 **Scope:** tests only; production runtime behavior unchanged.
 
 Added `backend/tests/test_ohlcv_redis_worker_lifecycle.py`:
