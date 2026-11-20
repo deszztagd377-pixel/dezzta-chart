@@ -4,7 +4,7 @@
 **Active branch:** `phase-2/market-data-foundation`  
 **Latest verified code HEAD:** `407d2b38882e92cdf6db5b7df6c44350b6cd746d`  
 **Latest documentation checkpoint previously recorded:** `ef2bfe439879b92cf73f74f0d6abdbf96db6dfe9`  
-**Current audit batch:** 62J-15 — WebSocket lifecycle and replay/live handoff review  
+**Current audit batch:** 62J-16 — Worker lifecycle and callback deadline regression coverage  
 **Cost policy:** ZERO COST. No paid providers, hosting, deployments, Vercel/Cloudflare actions, or Termux requirement.
 
 > This document is the current concise dashboard. Historical work-cycle reports remain the evidence trail. Do not infer that a docs-only commit has rerun or revalidated code CI.
@@ -85,6 +85,25 @@ At code HEAD `407d2b38882e92cdf6db5b7df6c44350b6cd746d`, the previously recorded
 - Full Git History Secret Audit: run `44564212714` — SUCCESS.
 
 The later docs-only checkpoint does not change code and does not imply a new code CI run.
+
+
+## 62J-16 — Worker lifecycle and callback deadline regression coverage
+
+**Code checkpoint:** `d252e627da728a3b6e1df1a1013462ee41181134`  
+**Scope:** tests only; production runtime behavior unchanged.
+
+Added `backend/tests/test_ohlcv_redis_worker_lifecycle.py`:
+- A blocked `consume_once()` must make bounded `stop()` return `False` and expose `stopping/thread_alive`, rather than falsely reporting a stopped worker.
+- After the blocked call is released, the worker must terminate cleanly.
+- A transient Redis-like connection failure must recover through retry/backoff.
+- `ReplicaResnapshotRequired` must be terminal; worker restart is rejected until a verified snapshot is rebuilt.
+
+Extended `backend/tests/test_ohlcv_event_loop.py`:
+- Async callback deadline expiry raises `TimeoutError`.
+- The pending async callback is cancelled before dispatcher return is accepted as complete.
+- Existing tests continue to cover owner-loop execution, callback completion, callback exceptions, closed loops and callback-raised timeout distinction.
+
+**Verification boundary:** these tests were committed but no exact-head CI result has yet been recorded in this work cycle. Do not mark them green until GitHub Actions reports success for the exact code head. No source runtime change, deployment, paid service or Termux use.
 
 ## 4. Complete indicator progress ledger
 
