@@ -189,3 +189,44 @@ The project owner clarified that all ten gates are ORANGE, not RED. The dashboar
 Latest branch HEAD at start of this batch: `ce4a88f24a4372a0e44c9797ef9a462d9fd81365`. Workflow runs on this SHA: Automated Tests `44643559339` was running backend tests; CodeQL `44643559332` had JavaScript/TypeScript successful and Python finishing; Full Git History Secret Audit `44643559363` succeeded. Do not report this SHA fully green until both running workflows finish successfully. The prior fully verified code HEAD remains `468d0aa4a348d997dc7affb71374bc8712cfc39d`.
 
 Next technical acceptance batch remains two independently started ASGI processes, shared ephemeral Redis 7, separate replica SQLite files, then restart/outage/re-snapshot/cursor parity. The existing CI already provisions Redis 7 and a Docker network/volumes for container smoke; inspect and reuse those facilities rather than adding paid services or redundant infrastructure. No production startup wiring before ownership and recovery evidence.
+
+
+## 62J-19 — Multi-ASGI integration boundary and CI reconciliation (20 November 2026)
+
+Exact tested HEAD before this batch: 585132150a59ce7b3f2847007c9c5259ec5b2ef6.
+- Automated Tests run 44643799617: SUCCESS.
+- CodeQL run 44643799293: SUCCESS (Python and JavaScript/TypeScript).
+- Full Git History Secret Audit run 44643799053: SUCCESS.
+
+### Runtime integration inspection
+
+Reviewed backend/app/main.py, ohlcv_redis_worker.py, ohlcv_redis_consumer.py, ohlcv_redis_publisher.py, ohlcv_replica_bridge.py, Settings validation and real-Redis process tests.
+
+Confirmed:
+- FastAPI lifespan starts the shared security guard and provider, but does not construct or own a Redis OHLCV replica worker.
+- Existing WebSocket handlers still read the local source SQLiteOhlcvStore, OhlcvPipeline and OhlcvStreamHub.
+- Redis consumer requires an already-installed verified replica snapshot before construction.
+- Consumer callback is synchronous from the worker thread; EventLoopCallbackDispatcher is required to marshal replica updates onto the owning ASGI event loop.
+- Existing process test proves two independent consumer processes and separate durable replica DBs, not two independently started ASGI servers.
+- Snapshot installer currently consumes a local snapshot artifact. A production multi-host snapshot distribution contract is not established.
+
+### Concrete blockers
+
+1. Snapshot bootstrap/distribution: define how each gateway obtains the exact source snapshot artifact, verifies source identity/generation/hash/high-water, and safely installs it before accepting WebSocket traffic.
+2. Runtime read path: add an explicit replica-backed WebSocket read adapter; do not silently mix local source-store snapshots with Redis-fed replica updates.
+3. Lifecycle ownership: FastAPI lifespan must own exactly one worker and its Redis client per gateway instance, start only after verified snapshot install, and stop dispatcher/worker/client in a bounded order.
+4. Multi-ASGI proof: run two actual ASGI processes on separate ports, same ephemeral Redis, different replica SQLite files; prove both clients observe identical ordered cursors and snapshot/replay/live boundary.
+5. Failure matrix: restart one ASGI process, restart consumer worker, stop/restart Redis, reinstall a new snapshot generation, and verify no missing/duplicate/out-of-order cursor after recovery.
+6. Production security: owner-provisioned Redis TLS, least-privilege per-instance ACL, credential rotation and target verification.
+7. External acceptance: public WSS and browser/Android client checks; not reproducible from repository CI alone.
+
+### Safe implementation order
+
+A. Approve snapshot transport and artifact lifecycle.
+B. Implement/test the replica-backed WebSocket adapter in isolation, preserving existing source-backed mode as default.
+C. Add opt-in lifespan ownership with fail-closed startup and bounded shutdown.
+D. Add two-process ASGI tests using the existing Redis 7 CI service and isolated SQLite files.
+E. Add restart/outage/re-snapshot/cursor-parity scenarios.
+F. Enable production mode only after TLS/ACL and owner-side evidence are available.
+
+No runtime code was changed in 62J-19. The missing snapshot distribution contract is an architectural decision; choosing paid object storage, a Redis blob convention, or shared filesystem without owner approval would violate ZERO COST or multi-host assumptions. No production wiring is safe until this is decided. See docs/WEBSOCKET_MULTI_ASGI_INTEGRATION_BLUEPRINT.md.
