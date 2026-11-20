@@ -1,14 +1,22 @@
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 20 November 2026 — Batch 62J-45 Gate 30 restore-drill runbook prepared; exact branch-head CI verified green
+**Checkpoint:** 20 November 2026 — Batch 62J-45 Gate 30 runbook; remote-access architecture decision documented; exact HEAD CI green
 **Active branch:** `phase-2/market-data-foundation`
 **Latest source/test HEAD:** `a6acf605a44fe356602f92e8bc8e31d1f8e547b6` (Gate 38 accumulator saturation). **Verified code + Gate 30 runbook checkpoint:** `f26a0717098a008037144e38d28e5b4eafd35564`; subsequent commits in this documentation repair cycle change documentation only; runtime and test source remain unchanged.
-**Verified CI for checkpoint `f26a071`:** Automated Tests [44744035644](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44744035644) SUCCESS • CodeQL [44744035708](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44744035708) SUCCESS • Full Git History Secret Audit [44744035692](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44744035692) SUCCESS. Automated Tests job, both CodeQL language jobs, and full reachable-history secret scan all completed successfully. The source/test commit's own initial workflows were cancelled by subsequent pushes; the later successful run on its exact tree plus docs-only descendants verifies the source/test contents. No Android APK workflow was triggered.
+**Verified CI for exact HEAD `eea2a49`:** Automated Tests [44745105194](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44745105194) SUCCESS • CodeQL [44745104834](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44745104834) SUCCESS (JavaScript/TypeScript + Python) • Full Git History Secret Audit [44745105161](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44745105161) SUCCESS. This HEAD is documentation-only relative to the previously validated code checkpoint; no Android APK workflow was triggered.
 **WebSocket E:** COMPLETE FOR DEFINED AUTOMATED FAILURE-MATRIX SCOPE at Batch 62J-31; public WSS and production operations remain separate.
 **Current Gate 10 work:** Gate 39 now includes bounded FCM child-process isolation, persistent local SQLite incident journal, separate operator-token protection, acknowledgement/resolution endpoints, and three-step log escalation. Owner-host network restriction, secret injection/rotation, restart persistence, and live incident/recovery drill remain open. Gate 36 still requires public WSS/browser/Android acceptance.
-**Cost policy:** ZERO COST. Existing GitHub Actions and SQLite only; no paid provider, hosting, deployment, or Vercel/Cloudflare action. Termux/device operation has not been executed; owner-host runtime access is still required.
+**Cost policy:** ZERO COST. No paid provider, hosting, deployment, Vercel or Cloudflare deployment action. Termux/device operation has not been executed; owner-host runtime access is still required.
+**Cross-device target:** Android/iOS/tablet/PC/laptop over Wi-Fi or mobile data is a required product goal. APK sideloading does not remove the backend requirement. The approved near-term work is local/LAN validation on owner hardware; a reliable public internet endpoint remains BLOCKED until a zero-cost, owner-controlled always-on host and reachable network path are demonstrated. Do not treat temporary tunnels or private mesh VPNs as public production hosting.
 
 > This document is the current concise dashboard. Historical work-cycle reports remain the evidence trail. Do not infer that a docs-only commit has rerun or revalidated code CI.
+
+## Remote access architecture decision — 20 November 2026
+
+- Added `docs/REMOTE_ACCESS_ARCHITECTURE.md` to record the target clients, network model, zero-cost boundary, and the difference between sideloading an APK and operating a reachable backend.
+- No server has been purchased or provisioned. No external tunnel, VPN, public DNS, paid domain, Vercel, Cloudflare, or deployment was configured.
+- Current practical baseline: Android local/LAN host for controlled tests; public cross-network service remains blocked by lack of an always-on owner-controlled host and verified inbound/reverse-tunnel path. A phone-hosted service is not 24/7 reliable because Android background limits, power, network changes and carrier NAT remain operational constraints.
+- Stage 1 and Gate 10 accounting unchanged. Architecture documentation earns no acceptance tick.
 
 ## Batch 62J-45 — Gate 30 restore-drill preparation (20 November 2026)
 
