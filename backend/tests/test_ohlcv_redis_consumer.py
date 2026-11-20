@@ -3,10 +3,13 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import select
 import secrets
 import socket
+import threading
 import time
 import urllib.request
+from urllib.parse import urlparse
 import uuid
 
 import pytest
@@ -1155,6 +1158,275 @@ def _wait_for_asgi_health(process, port, timeout_seconds=20):
         except Exception:
             time.sleep(0.1)
     raise TimeoutError(f"ASGI gateway on port {port} did not become healthy.")
+
+
+
+class _RedisTcpFaultProxy:
+    """A local TCP forwarder that can sever/reject one gateway's Redis path."""
+
+    def __init__(self, target_host, target_port):
+        self.target = (target_host, target_port)
+        self._listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self._listener.bind(("127.0.0.1", 0))
+        self._listener.listen(16)
+        self._listener.settimeout(0.1)
+        self.port = int(self._listener.getsockname()[1])
+        self._stop = threading.Event()
+        self._outage = threading.Event()
+        self._lock = threading.Lock()
+        self._active = set()
+        self._rejected = 0
+        self._severed = 0
+        self._accept_thread = threading.Thread(
+            target=self._accept_loop, name="redis-tcp-fault-proxy", daemon=True,
+        )
+
+    @property
+    def url(self):
+        return f"redis://127.0.0.1:{self.port}/0"
+
+    @property
+    def active_connections(self):
+        with self._lock:
+            return len(self._active)
+
+    @property
+    def rejected_connections(self):
+        with self._lock:
+            return self._rejected
+
+    @property
+    def severed_connections(self):
+        with self._lock:
+            return self._severed
+
+    def start(self):
+        self._accept_thread.start()
+
+    def _accept_loop(self):
+        while not self._stop.is_set():
+            try:
+                client, _ = self._listener.accept()
+            except socket.timeout:
+                continue
+            except OSError:
+                break
+            if self._outage.is_set():
+                with self._lock:
+                    self._rejected += 1
+                client.close()
+                continue
+            threading.Thread(
+                target=self._bridge, args=(client,), daemon=True,
+            ).start()
+
+    def _bridge(self, client):
+        upstream = None
+        pair = None
+        try:
+            if self._outage.is_set():
+                with self._lock:
+                    self._rejected += 1
+                return
+            upstream = socket.create_connection(self.target, timeout=3)
+            client.setblocking(False)
+            upstream.setblocking(False)
+            pair = (client, upstream)
+            with self._lock:
+                if self._outage.is_set():
+                    self._rejected += 1
+                    return
+                self._active.add(pair)
+
+            while not self._stop.is_set() and not self._outage.is_set():
+                readable, _, exceptional = select.select(
+                    [client, upstream], [], [client, upstream], 0.05,
+                )
+                if exceptional:
+                    break
+                for current in readable:
+                    data = current.recv(65536)
+                    if not data:
+                        return
+                    destination = upstream if current is client else client
+                    destination.sendall(data)
+        except (OSError, ConnectionError):
+            pass
+        finally:
+            if pair is not None:
+                with self._lock:
+                    self._active.discard(pair)
+            for connection in (client, upstream):
+                if connection is not None:
+                    try:
+                        connection.close()
+                    except OSError:
+                        pass
+
+    def set_outage(self, enabled):
+        if enabled:
+            self._outage.set()
+            with self._lock:
+                active = list(self._active)
+                self._severed += len(active)
+            for pair in active:
+                for connection in pair:
+                    try:
+                        connection.shutdown(socket.SHUT_RDWR)
+                    except OSError:
+                        pass
+                    try:
+                        connection.close()
+                    except OSError:
+                        pass
+        else:
+            self._outage.clear()
+
+    def close(self):
+        self._stop.set()
+        self.set_outage(True)
+        try:
+            self._listener.close()
+        except OSError:
+            pass
+        self._accept_thread.join(timeout=2)
+
+
+def test_two_asgi_gateways_recover_after_real_redis_tcp_path_interruption(tmp_path):
+    import multiprocessing
+    from websockets.sync.client import connect
+
+    redis, stream_key = real_redis()
+    redis_url = os.environ["REDIS_TEST_URL"]
+    parsed = urlparse(redis_url)
+    assert parsed.scheme == "redis"
+    assert parsed.hostname
+    assert parsed.username is None and parsed.password is None
+    assert parsed.path in {"", "/0"}
+
+    proxies = [
+        _RedisTcpFaultProxy(parsed.hostname, parsed.port or 6379)
+        for _ in range(2)
+    ]
+    for proxy in proxies:
+        proxy.start()
+
+    source = SQLiteOhlcvStore(str(tmp_path / "tcp-outage-source.sqlite3"))
+    snapshot_path = tmp_path / "tcp-outage-empty-snapshot.jsonl"
+    make_snapshot(source, snapshot_path)
+    replica_paths = [
+        str(tmp_path / "tcp-outage-gateway-a.sqlite3"),
+        str(tmp_path / "tcp-outage-gateway-b.sqlite3"),
+    ]
+    registry_paths = [
+        str(tmp_path / "tcp-outage-gateway-a-registry.sqlite3"),
+        str(tmp_path / "tcp-outage-gateway-b-registry.sqlite3"),
+    ]
+    for path in replica_paths:
+        make_replica(source, snapshot_path, path)
+
+    ports = [_free_loopback_port(), _free_loopback_port()]
+    context = multiprocessing.get_context("spawn")
+    processes = [
+        context.Process(
+            target=_run_asgi_replica_gateway_process,
+            args=(
+                proxies[index].url,
+                stream_key,
+                replica_paths[index],
+                registry_paths[index],
+                f"tcp-outage-gateway-{index}",
+                ports[index],
+            ),
+        )
+        for index in range(2)
+    ]
+    sockets = []
+    try:
+        for process in processes:
+            process.start()
+        for process, port in zip(processes, ports):
+            _wait_for_asgi_health(process, port)
+
+        canonical_id = "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11"
+        for port in ports:
+            websocket = connect(
+                f"ws://127.0.0.1:{port}/ws/market-data",
+                open_timeout=10, close_timeout=3, ping_interval=None,
+            )
+            sockets.append(websocket)
+            websocket.send(json.dumps({
+                "type": "auth", "token": "multi-asgi-process-token",
+            }))
+            status = json.loads(websocket.recv(timeout=10))
+            assert status["type"] == "market_data.status"
+            assert status["quality"]["state"] == "connected"
+            websocket.send(json.dumps({
+                "type": "market_data.subscribe",
+                "version": 1,
+                "canonicalInstrumentId": canonical_id,
+                "series": {
+                    "dataset": "GLBX.MDP3", "publisherId": 1,
+                    "instrumentId": 123, "rawSymbol": "ESZ6",
+                    "timeframe": "1m", "bucketPolicy": "UTC_LEGACY",
+                },
+            }))
+            snapshot = json.loads(websocket.recv(timeout=10))
+            assert snapshot["type"] == "market_data.ohlcv.snapshot"
+            assert snapshot["cursor"] == "0"
+
+        # Wait until each ASGI process has an established TCP connection through
+        # its own proxy before cutting both Redis paths at the network boundary.
+        active_deadline = time.monotonic() + 10
+        while time.monotonic() < active_deadline:
+            if all(proxy.active_connections > 0 for proxy in proxies):
+                break
+            time.sleep(0.02)
+        assert all(proxy.active_connections > 0 for proxy in proxies)
+
+        for proxy in proxies:
+            proxy.set_outage(True)
+
+        # The proxies sever existing sockets and reject reconnect attempts. This
+        # proves the gateway Redis clients observe a real TCP path interruption.
+        outage_deadline = time.monotonic() + 10
+        while time.monotonic() < outage_deadline:
+            if all(proxy.rejected_connections > 0 for proxy in proxies):
+                break
+            time.sleep(0.02)
+        assert all(proxy.severed_connections > 0 for proxy in proxies)
+        assert all(proxy.rejected_connections > 0 for proxy in proxies)
+
+        for proxy in proxies:
+            proxy.set_outage(False)
+
+        assert append_and_publish(source, redis, stream_key, 0) == "appended"
+        updates = [json.loads(websocket.recv(timeout=20)) for websocket in sockets]
+        assert all(update["type"] == "market_data.ohlcv.update" for update in updates)
+        assert [update["cursor"] for update in updates] == ["1", "1"]
+        assert all(
+            SQLiteOhlcvReplicaStore(path).checkpoint()["applied_cursor"] == 1
+            for path in replica_paths
+        )
+        assert all(process.is_alive() for process in processes)
+    finally:
+        for websocket in sockets:
+            try:
+                websocket.close()
+            except Exception:
+                pass
+        for process in processes:
+            if process.is_alive():
+                process.terminate()
+                process.join(timeout=10)
+            if process.is_alive():
+                process.kill()
+                process.join(timeout=5)
+        for proxy in proxies:
+            proxy.close()
+        redis.delete(stream_key)
+        redis.close()
 
 
 def test_two_independent_asgi_processes_broadcast_replica_live_event(tmp_path):
