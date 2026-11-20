@@ -718,8 +718,9 @@ def test_real_redis_relay_acl_separates_publisher_and_gateway_permissions(tmp_pa
         admin.execute_command(
             "ACL", "SETUSER", gateway_user, "reset", "on",
             ">" + gateway_password, "~" + stream_key,
+            "~dezzta:ohlcv:gateway-lease:*",
             "+xgroup|create", "+xautoclaim", "+xreadgroup",
-            "+xack", "+xrange",
+            "+xack", "+xrange", "+set", "+eval", "+get", "+pexpire", "+del",
         )
         redis_url = os.environ["REDIS_TEST_URL"]
         publisher = redis_module.Redis.from_url(
@@ -748,6 +749,11 @@ def test_real_redis_relay_acl_separates_publisher_and_gateway_permissions(tmp_pa
         consumer = make_consumer(
             gateway, replica, stream_key, "acl-gateway-worker",
         )
+        from app.ohlcv_redis_lease import RedisOhlcvConsumerLease
+        lease = RedisOhlcvConsumerLease(gateway, group_name=consumer.group_name)
+        lease.acquire()
+        consumer.ownership_guard = lease
+        consumer.ensure_group()
         result = consumer.consume_once()
         assert result["applied"] == 1
         assert result["acknowledged"] == 1
@@ -783,6 +789,8 @@ def test_real_redis_relay_acl_separates_publisher_and_gateway_permissions(tmp_pa
         if publisher is not None:
             publisher.close()
         if gateway is not None:
+            if "lease" in locals():
+                lease.release()
             gateway.close()
         admin.execute_command("ACL", "DELUSER", publisher_user, gateway_user)
         admin.delete(stream_key, other_key)

@@ -10,7 +10,7 @@ Prove the minimum command and key permissions for the OHLCV relay using temporar
 ## Test topology
 
 - Publisher ACL user: exact stream key only; XADD and XRANGE.
-- Gateway ACL user: exact stream key only; XGROUP CREATE, XAUTOCLAIM, XREADGROUP, XACK and XRANGE.
+- Gateway ACL user: exact stream key for stream operations plus the dedicated `dezzta:ohlcv:gateway-lease:*` namespace for token-fenced lease operations; XGROUP CREATE, XAUTOCLAIM, XREADGROUP, XACK, XRANGE, SET and EVAL (with GET, PEXPIRE and DEL used inside the ownership scripts).
 - The source publisher writes one canonical event to Redis.
 - The gateway consumer durably applies the event to its independent SQLite replica and ACKs it.
 - The gateway replay reader reads the same event through XRANGE using only the gateway ACL identity.
@@ -51,3 +51,8 @@ No production ACL users, secrets, Redis configuration or deployments were change
 ## Batch 62J-10 — pending-order guarantee
 
 The consumer now retries entries pending under its own consumer name with XREADGROUP ID 0 before attempting XAUTOCLAIM or reading new entries. This closes a callback-failure ordering gap without waiting for the pending idle threshold. XREADGROUP was already included in the restricted gateway ACL, so no permission expansion is needed. The real Redis 7 regression test proves callback order [1, 1, 2] with a 30-second pending idle threshold.
+
+
+## Batch 62J-53 lease ACL extension
+
+The gateway integration test now exercises the generation-scoped consumer lease using the same restricted ACL identity. In addition to the exact stream key, the gateway user must be allowed the lease key namespace `~dezzta:ohlcv:gateway-lease:*` and commands `+set +eval +get +pexpire +del`. These permissions are not granted to the publisher. The lease key is a SHA-256 digest of the generation-scoped group name, so the ACL does not need broad access to unrelated Redis keys.
