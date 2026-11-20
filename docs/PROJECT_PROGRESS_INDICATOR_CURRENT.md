@@ -21,14 +21,13 @@
 
 Do not publish a guessed overall percentage. Stage 1's provisional score is not the overall project score.
 
-## 2. Gate 10 control board
+## 2. Ten-gate control board
 
-All ten gates remain formally OPEN until owner-controlled acceptance evidence is recorded. Repository code and CI cannot substitute for credentials, target-environment operation, restore drills, or production access evidence.
+All ten tracked gates remain formally OPEN (0/10 closed) until owner-controlled acceptance evidence is recorded. Repository code and CI cannot substitute for credentials, target-environment operation, restore drills, or production access evidence.
 
 | Gate | Status | Closure evidence still required |
 |---|---|---|
 | 8 | 🟧 OPEN | Owner-controlled environment/operational acceptance evidence |
-| 10 | 🟥 OPEN | Formal gate acceptance and evidence bundle |
 | 20 | 🟧 OPEN | Target environment integration and acceptance evidence |
 | 25 | 🟧 OPEN | Redis TLS/ACL credentials, independent gateway instances, outage/recovery and parity evidence |
 | 30 | 🟧 OPEN | Owner-side infrastructure/security acceptance |
@@ -39,7 +38,7 @@ All ten gates remain formally OPEN until owner-controlled acceptance evidence is
 | 38 | 🟧 OPEN | Operator runbook and operational drill evidence |
 | 39 | 🟧 OPEN | Final owner sign-off and evidence completeness |
 
-The gate IDs above are the current tracked open set. No gate has been closed by documentation-only work.
+The ten tracked gate IDs above are the current open set: 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. No gate has been closed by documentation-only work.
 
 ## 3. WebSocket / Redis engineering status
 
