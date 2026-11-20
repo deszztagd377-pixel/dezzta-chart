@@ -1,6 +1,6 @@
 # DEZZTA CHART — Complete Indicator Progress Ledger
 
-**Checkpoint:** 20 November 2026 — Batch 62J-44 Gate 38 bounded metrics hardening; indicator scope unchanged  
+**Checkpoint:** 20 November 2026 — Batch 62J-45 Gate 30 restore-drill runbook prepared; indicator scope unchanged  
 **Branch:** `phase-2/market-data-foundation`  
 **Indicator implementation status:** unchanged by WebSocket Batches 62H-3, 62H-4, 62I, 62J-1, 62J-2 and 62J-16. The WebSocket reliability work does not award indicator progress.  
 **Interpretation:** statuses describe verified implementation boundaries, not a guessed completion percentage. No indicator weights or acceptance percentages have been approved, so per-indicator or total-indicator percentages are intentionally not fabricated.
@@ -653,3 +653,4 @@ No indicator source, calculation, chart UI, or formula changed in this batch. In
 - Gate 38 remains 🟧 OPEN for host firewall/reverse-proxy restriction, real operator-token injection/rotation, bounded host-log/collector retention, disk-pressure behavior, real credential-redaction review and dashboard access acceptance.
 - Stage 1 remains 30/40 = 75% provisional; no tick is added without explicit mapping to an approved criterion. Gate 10 remains 10/10 🟧 / 0 closed. No overall project or aggregate indicator percentage is invented.
 - ZERO COST; no deployment, paid service, main-branch change, Termux or device operation.
+\n\n## Batch 62J-45 — 20 November 2026: Gate 30 preparation boundary\n\nAdded `docs/GATE30_OWNER_HOST_RESTORE_DRILL_RUNBOOK.md` after source inspection of `backend/app/sqlite_restore_drill.py`, `backend/app/sqlite_backup.py`, `backend/app/config.py` and the restore-drill regression suite. The live database path is configured by `INSTRUMENT_REGISTRY_DB_PATH`, defaulting to `./data/instrument_registry.sqlite3` relative to the backend process working directory. The actual injected value, host, working directory and mounted volume are runtime-only facts not available from repository source. The runbook defines the source read-only boundary, distinct fresh output paths, conservative free-space calculation, conjunctive acceptance checks, privacy-safe evidence retention and stop conditions. No device/Termux operation occurred. Gate 30 remains 🟧 OPEN; no Stage 1 tick is awarded. Indicator implementation and all indicator statuses remain unchanged.\n
