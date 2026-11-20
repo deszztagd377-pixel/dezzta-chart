@@ -3,7 +3,7 @@
 **Branch:** phase-2/market-data-foundation  
 **Source commit:** 040c479bb01fd3d6d8f293aab7831164343ecac8  
 **Regression-test commit:** a6acf605a44fe356602f92e8bc8e31d1f8e547b6  
-**CI status at documentation time:** pending / not yet verified. The previous fully verified source/test checkpoint remains b576bbaa6e8b22af2f11e1e3f06565250ac193a1 (1,196 backend tests passed; six warnings; Automated Tests, CodeQL and Full Git History Secret Audit succeeded).
+**CI follow-up (verified 2026-11-20):** source/test HEAD `a6acf605a44fe356602f92e8bc8e31d1f8e547b6` is an ancestor of exact branch HEAD `3c06d9820d7f821677211c65770a3d80051416f1`. On that exact branch HEAD, Automated Tests [44742035520](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44742035520), CodeQL [44742035394](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44742035394), and Full Git History Secret Audit [44742035688](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44742035688) all completed SUCCESS. The documentation-only descendant changed no runtime or test source. The prior fully verified source/test checkpoint b576bbaa... had 1,196 backend tests passed; no new test-count claim is made here.
 
 ## Scope
 
@@ -40,7 +40,7 @@ A new test seeds a metric at each saturation boundary, records another sample, a
 
 - Source commit: 040c479bb01fd3d6d8f293aab7831164343ecac8.
 - Test commit: a6acf605a44fe356602f92e8bc8e31d1f8e547b6.
-- CI for the exact latest source/test commit has not yet been confirmed. Do not treat the new regression test as passed until the exact-head automated workflow and security workflows report success.
+- Exact branch-head Automated Tests, CodeQL and Full Git History Secret Audit have now passed on a documentation-only descendant of this source/test tree. This validates repository-level source/test CI; it does not establish host acceptance.
 - No live host collector, log rotation, disk-retention, firewall, operator access or disk-pressure test was performed.
 
 ## Gate 38 disposition
