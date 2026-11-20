@@ -354,6 +354,123 @@ def test_two_independent_processes_broadcast_to_two_durable_gateway_replicas(tmp
         redis.close()
 
 
+
+
+def test_two_gateway_processes_switch_snapshot_generation_and_converge_at_next_cursor(tmp_path):
+    import multiprocessing
+
+    redis, stream_key = real_redis()
+    redis_url = os.environ["REDIS_TEST_URL"]
+    source = SQLiteOhlcvStore(str(tmp_path / "generation-source.sqlite3"))
+    snapshot_zero = tmp_path / "generation-zero.jsonl"
+    make_snapshot(source, snapshot_zero)
+
+    replica_paths = [
+        str(tmp_path / "generation-gateway-a.sqlite3"),
+        str(tmp_path / "generation-gateway-b.sqlite3"),
+    ]
+    replicas = [
+        make_replica(source, snapshot_zero, path)
+        for path in replica_paths
+    ]
+    old_consumers = [
+        make_consumer(redis, replicas[index], stream_key, f"generation-old-{index}")
+        for index in range(2)
+    ]
+    old_groups = [consumer.group_name for consumer in old_consumers]
+
+    context = multiprocessing.get_context("spawn")
+    result_queue = context.Queue()
+    processes = []
+    try:
+        assert old_consumers[0].ensure_group() is True
+        assert old_consumers[1].ensure_group() is True
+        assert old_groups[0] != old_groups[1]
+
+        # Both old-generation replicas apply cursor 1.
+        assert append_and_publish(source, redis, stream_key, 0) == "appended"
+        assert old_consumers[0].consume_once()["applied"] == 1
+        assert old_consumers[1].consume_once()["applied"] == 1
+        assert [replica.checkpoint()["applied_cursor"] for replica in replicas] == [1, 1]
+
+        # Cursor 2 is delivered to, but deliberately left pending in, each old group.
+        assert append_and_publish(source, redis, stream_key, 1) == "appended"
+        for consumer in old_consumers:
+            pending = redis.xreadgroup(
+                consumer.group_name,
+                consumer.consumer_name,
+                {stream_key: ">"},
+                count=1,
+            )
+            assert pending
+            assert pending[0][1][0][0] == "2-0"
+            assert redis.xpending(stream_key, consumer.group_name)["pending"] == 1
+
+        # Install the same verified source snapshot/watermark (cursor 2) in both
+        # independent durable replicas before either new-generation worker starts.
+        snapshot_two = tmp_path / "generation-two.jsonl"
+        make_snapshot(source, snapshot_two)
+        for replica in replicas:
+            replica.install_global_snapshot(
+                str(snapshot_two),
+                expected_source_id=source.source_id(),
+            )
+        assert [replica.checkpoint()["applied_cursor"] for replica in replicas] == [2, 2]
+
+        new_consumers = [
+            make_consumer(
+                redis,
+                SQLiteOhlcvReplicaStore(path),
+                stream_key,
+                f"generation-new-{index}",
+            )
+            for index, path in enumerate(replica_paths)
+        ]
+        new_groups = [consumer.group_name for consumer in new_consumers]
+        assert all(new_groups[index] != old_groups[index] for index in range(2))
+        assert new_groups[0] != new_groups[1]
+        assert new_consumers[0].ensure_group() is True
+        assert new_consumers[1].ensure_group() is True
+        assert all(redis.xpending(stream_key, group)["pending"] == 0 for group in new_groups)
+
+        # The next source cursor must be consumed by both independently spawned
+        # processes from their new generation groups, while old pending stays isolated.
+        assert append_and_publish(source, redis, stream_key, 2) == "appended"
+        processes = [
+            context.Process(
+                target=_consume_gateway_process,
+                args=(
+                    redis_url,
+                    stream_key,
+                    replica_paths[index],
+                    f"generation-process-{index}",
+                    result_queue,
+                ),
+            )
+            for index in range(2)
+        ]
+        for process in processes:
+            process.start()
+
+        results = [result_queue.get(timeout=30) for _ in processes]
+        for process in processes:
+            process.join(timeout=30)
+            assert process.exitcode == 0
+
+        assert all("error" not in result for result in results)
+        assert all(result["result"]["applied"] == 1 for result in results)
+        assert all(result["applied_cursor"] == 3 for result in results)
+        assert [SQLiteOhlcvReplicaStore(path).checkpoint()["applied_cursor"] for path in replica_paths] == [3, 3]
+        assert all(redis.xpending(stream_key, group)["pending"] == 1 for group in old_groups)
+        assert all(redis.xpending(stream_key, group)["pending"] == 0 for group in new_groups)
+    finally:
+        for process in processes:
+            if process.is_alive():
+                process.terminate()
+                process.join(timeout=5)
+        redis.delete(stream_key)
+        redis.close()
+
 def test_two_independent_publisher_processes_share_one_fenced_source_lease(tmp_path):
     import multiprocessing
 
