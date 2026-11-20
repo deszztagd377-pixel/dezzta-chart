@@ -2,9 +2,9 @@
 
 **Checkpoint:** 20 November 2026  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest code HEAD verified by CI:** `468d0aa4a348d997dc7affb71374bc8712cfc39d`  
-**Latest documentation checkpoint before this refresh:** `468d0aa4a348d997dc7affb71374bc8712cfc39d`  
-**Current audit batch:** 62J-16 CI verification + WebSocket reliability acceptance planning  
+**Latest fully CI-verified code HEAD:** `468d0aa4a348d997dc7affb71374bc8712cfc39d`  
+**Latest documentation checkpoint before this refresh:** `ce4a88f24a4372a0e44c9797ef9a462d9fd81365`  
+**Current audit batch:** 62J-18 gate-state reconciliation + multi-instance acceptance planning  
 **Cost policy:** ZERO COST. No paid providers, hosting, deployments, Vercel/Cloudflare actions, or Termux requirement.
 
 > This document is the current concise dashboard. Historical work-cycle reports remain the evidence trail. Do not infer that a docs-only commit has rerun or revalidated code CI.
@@ -14,7 +14,7 @@
 | Measure | Verified position | Status |
 |---|---:|---|
 | Stage 1 | 30/40 criteria = 300/400 ticks | 🟨 75% provisional |
-| Gate 10 | 0/10 formally closed | 🟥 All ten remain OPEN |
+| Gate 10 | 0/10 formally closed | 🟧 All ten remain OPEN; acceptance in progress |
 | Stages 2–6 | No approved scored acceptance denominator | ⬜ Not scored |
 | Overall project | M1–M8 weighting not approved | ⬜ Not established |
 | Indicator aggregate | No approved weighted denominator | ⬜ Not established |
@@ -23,7 +23,7 @@ Do not publish a guessed overall percentage. Stage 1's provisional score is not 
 
 ## 2. Ten-gate control board
 
-All ten tracked gates remain formally OPEN (0/10 closed) until owner-controlled acceptance evidence is recorded. Repository code and CI cannot substitute for credentials, target-environment operation, restore drills, or production access evidence.
+All ten tracked gates remain formally OPEN (0/10 closed). Their project-control status is 🟧 ORANGE (active/in progress), not 🔴 RED (blocked/untouched). OPEN is the closure state; ORANGE is the work-state color. A gate becomes 🟩 only after its own acceptance evidence is recorded. Repository code and CI cannot substitute for credentials, target-environment operation, restore drills, or production access evidence.
 
 | Gate | Status | Closure evidence still required |
 |---|---|---|
@@ -38,7 +38,7 @@ All ten tracked gates remain formally OPEN (0/10 closed) until owner-controlled 
 | 38 | 🟧 OPEN | Operator runbook and operational drill evidence |
 | 39 | 🟧 OPEN | Final owner sign-off and evidence completeness |
 
-The ten tracked gate IDs above are the current open set: 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. No gate has been closed by documentation-only work.
+The ten tracked gate IDs above are the current open set: 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. Their display color is 🟧 ORANGE as requested; none is marked closed. No gate has been closed by documentation-only work.
 
 ## 3. WebSocket / Redis engineering status
 
@@ -180,3 +180,12 @@ This verifies the repository code and tests at that SHA. It does **not** prove m
 ## Next WebSocket engineering batch
 
 Prioritize a reproducible two-ASGI-instance test harness over another isolated worker unit test. It must start two independently bound ASGI processes, share only the test Redis service, use distinct replica SQLite files, prove each gateway receives the same ordered event stream, and exercise restart/outage/re-snapshot paths. Inspect existing CI service orchestration before adding infrastructure. Do not wire workers into FastAPI startup until lifecycle ownership, snapshot provisioning, and TLS/ACL prerequisites are accepted.
+
+
+## 62J-18 — Gate color and CI state reconciliation (20 November 2026)
+
+The project owner clarified that all ten gates are ORANGE, not RED. The dashboard now uses 🟧 ORANGE to mean active/in progress and OPEN to mean not yet accepted/closed. These are separate dimensions: all ten remain OPEN (0/10 closed), but are not represented as abandoned or untouched. Gate IDs: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.
+
+Latest branch HEAD at start of this batch: `ce4a88f24a4372a0e44c9797ef9a462d9fd81365`. Workflow runs on this SHA: Automated Tests `44643559339` was running backend tests; CodeQL `44643559332` had JavaScript/TypeScript successful and Python finishing; Full Git History Secret Audit `44643559363` succeeded. Do not report this SHA fully green until both running workflows finish successfully. The prior fully verified code HEAD remains `468d0aa4a348d997dc7affb71374bc8712cfc39d`.
+
+Next technical acceptance batch remains two independently started ASGI processes, shared ephemeral Redis 7, separate replica SQLite files, then restart/outage/re-snapshot/cursor parity. The existing CI already provisions Redis 7 and a Docker network/volumes for container smoke; inspect and reuse those facilities rather than adding paid services or redundant infrastructure. No production startup wiring before ownership and recovery evidence.
