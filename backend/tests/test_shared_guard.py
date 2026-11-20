@@ -508,3 +508,39 @@ def test_redis_ticket_and_lease_guards_share_atomic_state_across_clients():
             await guard_b.close()
 
     asyncio.run(exercise())
+
+
+def test_in_memory_websocket_ticket_is_single_use_and_subject_bound():
+    from app.websocket_tickets import InMemoryWebSocketTicketStore
+
+    store = InMemoryWebSocketTicketStore()
+    ticket = asyncio.run(store.issue_websocket_ticket("verified-account"))
+
+    assert ticket not in repr(store._tickets)
+    assert asyncio.run(store.consume_websocket_ticket(ticket)) == "verified-account"
+    assert asyncio.run(store.consume_websocket_ticket(ticket)) is None
+
+
+def test_in_memory_websocket_ticket_expires_at_exact_ttl_boundary(monkeypatch):
+    import app.websocket_tickets as ticket_module
+
+    now = [1_000.0]
+    monkeypatch.setattr(ticket_module.time, "monotonic", lambda: now[0])
+    store = ticket_module.InMemoryWebSocketTicketStore(ttl_seconds=30)
+    ticket = asyncio.run(store.issue_websocket_ticket("verified-account"))
+
+    now[0] = 1_030.0
+    assert asyncio.run(store.consume_websocket_ticket(ticket)) is None
+    assert store._tickets == {}
+
+
+def test_in_memory_websocket_ticket_with_wrong_purpose_is_consumed():
+    from app.websocket_tickets import InMemoryWebSocketTicketStore
+
+    store = InMemoryWebSocketTicketStore()
+    ticket = asyncio.run(store.issue_websocket_ticket("verified-account"))
+
+    assert asyncio.run(
+        store.consume_websocket_ticket(ticket, purpose="different-purpose")
+    ) is None
+    assert asyncio.run(store.consume_websocket_ticket(ticket)) is None
