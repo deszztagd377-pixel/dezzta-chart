@@ -1,3 +1,15 @@
+## Batch 62J-85 — full-cardinality benchmark update (21 November 2026)
+
+The former 12-series synthetic benchmark has been replaced with a full 899-logical-series benchmark matching the current collector dimensions: 762 request series + 127 latency histogram series + 10 WebSocket metric series. It measures 1/4/16 Python-thread cases and checks aggregate cardinality, expected request totals, worker totals, serialized snapshot size and SQLite integrity. A write-rejection transaction rollback/retry regression was added.
+
+**Capacity arithmetic:** 899 × 672 retained 15-minute buckets = 604,128 aggregate rows. Against the 650,000 aggregate-row ceiling, nominal headroom is 45,872 rows (7.06% of cap). This excludes worker/checkpoint rows, tombstones, indexes, SQLite page overhead, WAL and filesystem metadata. It is not a byte budget.
+
+**Still open:** exact-head CI; separate OS-process contention; actual read-only/disk-full behavior; app-level proof that collector failures cannot delay or fail HTTP/WebSocket traffic; owner-host volume permissions, restart persistence, backup/restore, retention and disk-pressure recovery; operator access and recovery acceptance. The trigger-based write failure is only a transactional rollback simulation. Gate 38 remains 🟧 OPEN.
+
+No WebSocket protocol/data-path behavior changed. No indicator progress credit. ZERO COST; no deploy, paid provider, Termux/device operation, production credential or `main` modification.
+
+---
+
 # Gate 38 — Zero-cost metrics collector and retention blueprint
 **Status:** REPOSITORY IMPLEMENTATION AND EXACT-HEAD CI VERIFIED — INITIAL LOW-CARDINALITY BENCHMARK MEASURED; FULL-CARDINALITY AND HOST ACCEPTANCE REQUIRED  
 **Prepared:** 21 November 2026  

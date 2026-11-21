@@ -1,3 +1,25 @@
+## Batch 62J-85 checkpoint — no indicator changes (21 November 2026)
+
+Gate 38 full-cardinality benchmark and storage-write-failure regression are backend observability work only. No indicator calculation, data contract, shared hook, renderer, chart UI or indicator test changed. **No indicator progress credit is awarded.**
+
+| Indicator/subsystem | Status | Calculation / first valid index | Remaining work |
+|---|---|---|---|
+| SMA20 | 🟨 FOUNDATION | Arithmetic mean of the current close and previous 19 closes; first valid index 19 | Standard chart overlay, toggle, legend/current value, stale-series clearing, renderer/lifecycle tests |
+| EMA20 | 🟨 FOUNDATION | SMA-seeded EMA; alpha = 2/(20+1) = 2/21; first valid index 19 | Overlay, toggle, legend/current value, stale-series clearing, renderer/lifecycle tests |
+| RSI14 | 🟨 FOUNDATION | Wilder-smoothed average gains/losses over 14 price changes; first valid index 14 | Dedicated 0–100 pane, 30/70 guides, toggle, legend/current value, stale clearing, renderer tests |
+| MACD 12/26/9 | 🟨 FOUNDATION | EMA12 − EMA26; first MACD index 25; 9-period signal seeded from MACD series, signal/histogram first valid index 33 | Dedicated pane, MACD/signal lines, histogram, zero guide, toggle, legend, stale clearing, renderer tests |
+| Bollinger20,2 | 🟨 FOUNDATION | 20-close mean ± 2 × population standard deviation; first valid index 19 | Upper/middle/lower overlay, toggle, displayed values, stale clearing, renderer tests |
+| Shared Indicator Hook | 🟨 FOUNDATION | Validated candle-index-aligned indicator snapshot | Full symbol/venue/dataset/chart/timeframe identity binding, loading/error lifecycle, stale clearing, cross-series isolation |
+| Footprint | 🟧 SIMULATED / GATED | Current accumulator is not exchange-native bid/ask truth | User-provided visual reference, reviewed blueprint, ON-only spaced candle/cluster layout, bid/ask cells, source/data contract and performance acceptance |
+| Heatmap | 🟥 NOT IMPLEMENTED | No validated zero-cost source/data contract | User reference, zero-cost source feasibility, data contract, reviewed blueprint, renderer and performance tests |
+| Liquidation Maps | 🟥 NOT IMPLEMENTED | No validated source/formula contract | Zero-cost source feasibility, validated calculation/data contract, user reference/blueprint, renderer and tests |
+
+**Shared invariants:** warm-up values are `null`, never synthetic zero; values align to candle indices; no future-candle repaint; changing symbol, venue, dataset, chart or timeframe clears stale series. Footprint OFF preserves ordinary candle spacing. Only explicit Footprint ON may activate the dedicated spaced cluster layout. Do not begin Footprint or Heatmap visual implementation before the user's reference image(s) and approved scoped blueprint.
+
+Aggregate indicator percentage remains unscored because approved per-indicator weights and completion denominators are not established.
+
+---
+
 ## Batch 62J-84 checkpoint — no indicator changes (21 November 2026)
 
 Gate 38 collector tests and its SQLite worker benchmark did not change indicator formulas, data contracts, shared hook, chart renderer, UI or indicator tests. No indicator progress credit is awarded.

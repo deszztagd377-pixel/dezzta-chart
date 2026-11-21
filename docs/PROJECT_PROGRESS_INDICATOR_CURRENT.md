@@ -1,3 +1,17 @@
+## Batch 62J-85 — full-cardinality Gate 38 benchmark (21 November 2026)
+
+- Source/test HEAD: `71d8f1ea6644fcad759bb45972002228b07e3817` on `phase-2/market-data-foundation`; exact-head CI is pending and is not claimed as passing.
+- Replaced the previous 12-logical-series fixture with 899: 127 routes × 6 HTTP status classes = 762 request series; 127 latency histograms; 10 WebSocket counters/classes.
+- Benchmark still covers 1/4/16 concurrent Python threads. It now verifies the full 899-series aggregate, exact worker/request totals, serialized payload size against 256 KiB, and SQLite integrity.
+- Added a SQLite write-rejection rollback/retry regression. This is a transaction failure simulation, not a physical disk-full or read-only-volume test.
+- Capacity arithmetic: 899 × 672 fifteen-minute buckets = 604,128 aggregate rows; 650,000-row cap leaves 45,872 rows (7.06% of cap). This excludes worker/checkpoint rows and SQLite/WAL/index/filesystem overhead; it is not a byte budget.
+- Separate-process contention, read-only/disk-full, app-level traffic-isolation and owner-host acceptance remain open. Gate 38 remains 🟧.
+- WebSocket wire protocol, authentication, replay, snapshot and Redis behavior unchanged. Production WSS host acceptance remains open.
+- Indicators unchanged; no progress credit. Gate 10 remains 0/10 formally closed; Stage 1 30/40 = 75% provisional; overall project remains unscored.
+- ZERO COST; no deployment, paid service, production credentials, Termux/device operation or `main` modification.
+
+---
+
 ## Batch 62J-84 — Gate 38 failure-path tests and SQLite worker benchmark (21 November 2026)
 
 - Source/test HEAD: `92119a8dc05690e6492aab160662c9e36c839cad` on `phase-2/market-data-foundation`; `main` untouched.

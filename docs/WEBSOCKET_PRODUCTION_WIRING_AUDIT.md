@@ -1,3 +1,11 @@
+## Batch 62J-85 — Gate 38 benchmark expansion; WebSocket scope unchanged (21 November 2026)
+
+The latest Gate 38 work expands the synthetic SQLite metrics benchmark from 12 to the full 899 declared logical series and adds a transaction write-rejection rollback/retry test. It does not modify WebSocket publisher, gateway consumer, replay, snapshot, authentication, cursor or payload code. Exact-head CI is pending; no pass is claimed yet.
+
+**WebSocket repository status:** the defined automated protocol/failure matrix remains implemented and previously CI-verified. **Production acceptance remains open** until the exact global snapshot bytes are SHA-256 verified and authenticated installation receipts are confirmed for every required gateway; owner-host dedicated Redis TLS/ACL, persistence/failover/retention and secret lifecycle are verified; public HTTPS/WSS proxy/certificate/renewal are operational; and real browser plus Android WebView acceptance is recorded. The default ASGI app remains opt-in for publisher/replica roles. No production host or endpoint is present in this checkpoint.
+
+---
+
 ## Batch 62J-84 — Gate 38 SQLite failure-path and worker-load evidence (21 November 2026)
 
 - Exact source/test HEAD `92119a8dc05690e6492aab160662c9e36c839cad`: Automated Tests [44900892637](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44900892637) SUCCESS (35/35 steps; 1,265 backend tests), CodeQL [44900892567](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44900892567) SUCCESS, Full Git History Secret Audit [44900892606](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44900892606) SUCCESS.

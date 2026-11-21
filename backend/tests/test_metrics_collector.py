@@ -199,6 +199,39 @@ def test_busy_database_does_not_advance_checkpoint_and_recovers(tmp_path):
     assert result["worker_count"] == 1
 
 
+def test_write_failure_rolls_back_aggregate_and_worker_checkpoint(tmp_path):
+    collector = SQLiteMetricsCollector(str(tmp_path / "metrics.sqlite3"))
+    worker = uuid.uuid4().hex
+    request, websocket = snapshots(1)
+    collector.flush(worker, request, websocket, now=900)
+
+    db = collector._connect()
+    try:
+        db.execute("""
+            CREATE TRIGGER reject_metrics_bucket_insert
+            BEFORE INSERT ON metrics_buckets
+            BEGIN
+                SELECT RAISE(ABORT, 'simulated_storage_write_failure');
+            END
+        """)
+    finally:
+        db.close()
+
+    next_request, next_websocket = snapshots(4)
+    with pytest.raises(sqlite3.IntegrityError, match="simulated_storage_write_failure"):
+        collector.flush(worker, next_request, next_websocket, now=901)
+
+    db = collector._connect()
+    try:
+        db.execute("DROP TRIGGER reject_metrics_bucket_insert")
+    finally:
+        db.close()
+
+    collector.flush(worker, next_request, next_websocket, now=902)
+    result = collector.snapshot(now=903)
+    assert result["series"]["http.requests|GET|/health|2xx"] == 4
+    assert result["series"]["websocket|connections_completed"] == 4
+
 def test_corrupt_metrics_database_fails_without_overwriting_file(tmp_path):
     database = tmp_path / "metrics.sqlite3"
     sentinel = b"not-a-valid-sqlite-database"
