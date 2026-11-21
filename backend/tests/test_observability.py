@@ -138,3 +138,64 @@ def test_request_metrics_saturates_counters_without_integer_or_float_overflow():
         isinstance(bucket["count"], int) and bucket["count"] <= _MAX_COUNTER
         for bucket in histogram["buckets"]
     )
+
+
+def test_websocket_metrics_middleware_records_only_lifecycle_metadata():
+    import asyncio
+    from app.observability import WebSocketMetrics, WebSocketMetricsMiddleware
+
+    metrics = WebSocketMetrics()
+    sent = []
+
+    async def app(scope, receive, send):
+        await receive()
+        await send({"type": "websocket.accept"})
+        await send({"type": "websocket.close", "code": 1013, "reason": "capacity"})
+
+    async def receive():
+        return {"type": "websocket.connect"}
+
+    async def send(message):
+        sent.append(message)
+
+    middleware = WebSocketMetricsMiddleware(app, metrics=metrics)
+    asyncio.run(middleware({"type": "websocket", "path": "/ws/market-data", "headers": []}, receive, send))
+    snapshot = metrics.snapshot()
+    assert sent[0]["type"] == "websocket.accept"
+    assert snapshot["connections_started"] == 1
+    assert snapshot["connections_active"] == 0
+    assert snapshot["connections_completed"] == 1
+    assert snapshot["connections_accepted"] == 1
+    assert snapshot["peer_disconnects"] == 0
+    assert snapshot["close_code_classes"]["1xxx"] == 1
+    assert sum(snapshot["close_code_classes"].values()) == 1
+
+
+def test_websocket_metrics_records_peer_disconnect_and_ignores_other_routes():
+    import asyncio
+    from app.observability import WebSocketMetrics, WebSocketMetricsMiddleware
+
+    metrics = WebSocketMetrics()
+
+    async def app(scope, receive, send):
+        await receive()
+
+    async def receive():
+        return {"type": "websocket.disconnect", "code": 1000}
+
+    async def send(message):
+        return None
+
+    middleware = WebSocketMetricsMiddleware(app, metrics=metrics)
+    asyncio.run(middleware({"type": "websocket", "path": "/ws/market-data", "headers": []}, receive, send))
+    before = metrics.snapshot()
+    assert before["peer_disconnects"] == 1
+    assert before["close_code_classes"]["other"] == 1
+
+    async def unrelated(scope, receive, send):
+        return None
+
+    asyncio.run(WebSocketMetricsMiddleware(unrelated, metrics=metrics)(
+        {"type": "websocket", "path": "/ws/other", "headers": []}, receive, send
+    ))
+    assert metrics.snapshot() == before

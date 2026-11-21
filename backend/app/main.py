@@ -22,7 +22,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import Settings
-from app.observability import RequestMetrics
+from app.observability import RequestMetrics, WebSocketMetrics, WebSocketMetricsMiddleware
 from app.coverage_store import SQLiteCoverageTracker
 from app.databento_sources import DatabentoHistoricalSource, DatabentoLiveSource
 from app.ingest import OhlcvIngestionService
@@ -172,6 +172,7 @@ def create_app(
         raise ValueError("Source publisher and gateway replica runtimes must use separate app roles.")
     config = settings or Settings.from_environment()
     request_metrics = RequestMetrics()
+    websocket_metrics = WebSocketMetrics()
     if shared_guard is None and config.redis_url:
         shared_guard = RedisSharedGuard(
             config.redis_url,
@@ -689,7 +690,9 @@ def create_app(
     application.state.websocket_ticket_store = websocket_ticket_store
     application.state.shared_guard_enabled = shared_guard is not None
     application.state.request_metrics = request_metrics
+    application.state.websocket_metrics = websocket_metrics
 
+    application.add_middleware(WebSocketMetricsMiddleware, metrics=websocket_metrics)
     application.add_middleware(
         CORSMiddleware,
         allow_origins=list(config.cors_allowed_origins),
@@ -888,7 +891,7 @@ def create_app(
             if not isinstance(authorization, str) or not hmac.compare_digest(authorization, expected):
                 raise HTTPException(status_code=401, detail="Metrics authentication is required.",
                                     headers={"WWW-Authenticate": "Bearer"})
-            return JSONResponse(content=request_metrics.snapshot(), headers={
+            return JSONResponse(content={**request_metrics.snapshot(), "websocket": websocket_metrics.snapshot()}, headers={
                 "Cache-Control": "private, no-store, max-age=0",
                 "Pragma": "no-cache", "X-Content-Type-Options": "nosniff",
             })
