@@ -119,4 +119,30 @@ describe('shared indicator calculation engine', () => {
     expect(calculateEma([3, 2, 4], 1)).toEqual([3, 2, 4]);
     expect(calculateRsi([3, 2, 4], 1)).toEqual([null, 0, 100]);
   });
+
+  it('fails closed instead of emitting infinite values from finite extreme inputs', () => {
+    const extreme = Number.MAX_VALUE;
+    expect(() => calculateSma([extreme, extreme], 2)).toThrow(/finite numeric range/);
+    expect(calculateEma([extreme, extreme], 2)).toEqual([null, extreme]);
+    expect(() => calculateRsi([-extreme, extreme], 1)).toThrow(/finite numeric range/);
+    expect(() => calculateBollingerBands([extreme, -extreme], 2, 2)).toThrow(/finite numeric range/);
+  });
+
+  it('keeps RSI numerically stable when gain/loss magnitudes are very large but finite', () => {
+    const extreme = Number.MAX_VALUE;
+    const result = calculateRsi([0, extreme, 0, extreme], 2);
+    expect(result[2]).toBe(50);
+    expect(result[3]).toBe(75);
+    expect(result.slice(2).every((value) => value !== null && Number.isFinite(value))).toBe(true);
+  });
+
+  it('keeps Bollinger population deviation finite for large same-sign prices', () => {
+    const extreme = Number.MAX_VALUE;
+    const expected = extreme * 0.9;
+    const result = calculateBollingerBands([expected, expected], 2, 2);
+    expect(result[1].middle).toBe(expected);
+    expect(result[1].upper).toBe(expected);
+    expect(result[1].lower).toBe(expected);
+  });
+
 });

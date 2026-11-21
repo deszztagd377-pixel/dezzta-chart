@@ -24,6 +24,21 @@ function validateValues(values: readonly number[]): void {
   });
 }
 
+function requireFiniteResult(value: number, label: string): number {
+  if (!Number.isFinite(value)) {
+    throw new Error(`${label} exceeded the finite numeric range.`);
+  }
+  return value;
+}
+
+function stableMean(values: readonly number[]): number {
+  let scale = 0;
+  for (const value of values) scale = Math.max(scale, Math.abs(value));
+  if (scale === 0) return 0;
+  const normalizedSum = values.reduce((sum, value) => sum + value / scale, 0);
+  return requireFiniteResult((normalizedSum / values.length) * scale, 'Indicator mean');
+}
+
 function closes(bars: readonly ChartData[]): number[] {
   return bars.map((bar, index) => {
     if (!Number.isFinite(bar.close)) {
@@ -35,13 +50,17 @@ function closes(bars: readonly ChartData[]): number[] {
 
 export function calculateSma(values: readonly number[], period: number): Array<number | null> {
   validatePeriod(period);
+  validateValues(values);
   const output: Array<number | null> = Array(values.length).fill(null);
   let sum = 0;
   for (let index = 0; index < values.length; index += 1) {
-    if (!Number.isFinite(values[index])) throw new Error(`Input ${index} is not finite.`);
-    sum += values[index];
-    if (index >= period) sum -= values[index - period];
-    if (index >= period - 1) output[index] = sum / period;
+    sum = requireFiniteResult(sum + values[index], 'SMA rolling sum');
+    if (index >= period) {
+      sum = requireFiniteResult(sum - values[index - period], 'SMA rolling sum');
+    }
+    if (index >= period - 1) {
+      output[index] = requireFiniteResult(sum / period, 'SMA output');
+    }
   }
   return output;
 }
@@ -55,13 +74,15 @@ export function calculateEma(values: readonly number[], period: number): Array<n
   if (seed.some((value) => !Number.isFinite(value))) {
     throw new Error('EMA input contains a non-finite value.');
   }
-  let previous = seed.reduce((sum, value) => sum + value, 0) / period;
+  let previous = stableMean(seed);
   output[period - 1] = previous;
   const multiplier = 2 / (period + 1);
   for (let index = period; index < values.length; index += 1) {
     const value = values[index];
-    if (!Number.isFinite(value)) throw new Error(`Input ${index} is not finite.`);
-    previous = (value - previous) * multiplier + previous;
+    previous = requireFiniteResult(
+      previous * (1 - multiplier) + value * multiplier,
+      'EMA output',
+    );
     output[index] = previous;
   }
   return output;
@@ -73,28 +94,36 @@ export function calculateRsi(values: readonly number[], period = 14): Array<numb
   const output: Array<number | null> = Array(values.length).fill(null);
   if (values.length <= period) return output;
 
-  let gains = 0;
-  let losses = 0;
+  let averageGain = 0;
+  let averageLoss = 0;
   for (let index = 1; index <= period; index += 1) {
-    const change = values[index] - values[index - 1];
-    if (!Number.isFinite(change)) throw new Error('RSI input contains a non-finite value.');
-    gains += Math.max(change, 0);
-    losses += Math.max(-change, 0);
+    const change = requireFiniteResult(
+      values[index] - values[index - 1],
+      'RSI price change',
+    );
+    const gain = Math.max(change, 0);
+    const loss = Math.max(-change, 0);
+    averageGain += (gain - averageGain) / index;
+    averageLoss += (loss - averageLoss) / index;
   }
 
-  let averageGain = gains / period;
-  let averageLoss = losses / period;
-  const toRsi = () => averageLoss === 0
-    ? (averageGain === 0 ? 50 : 100)
-    : 100 - (100 / (1 + averageGain / averageLoss));
+  const toRsi = () => {
+    if (averageLoss === 0) return averageGain === 0 ? 50 : 100;
+    const scale = Math.max(averageGain, averageLoss);
+    const normalizedGain = averageGain / scale;
+    const normalizedLoss = averageLoss / scale;
+    return 100 * normalizedGain / (normalizedGain + normalizedLoss);
+  };
   output[period] = toRsi();
 
   for (let index = period + 1; index < values.length; index += 1) {
-    const change = values[index] - values[index - 1];
-    if (!Number.isFinite(change)) throw new Error('RSI input contains a non-finite value.');
-    averageGain = (averageGain * (period - 1) + Math.max(change, 0)) / period;
-    averageLoss = (averageLoss * (period - 1) + Math.max(-change, 0)) / period;
-    output[index] = toRsi();
+    const change = requireFiniteResult(
+      values[index] - values[index - 1],
+      'RSI price change',
+    );
+    averageGain += (Math.max(change, 0) - averageGain) / period;
+    averageLoss += (Math.max(-change, 0) - averageLoss) / period;
+    output[index] = requireFiniteResult(toRsi(), 'RSI output');
   }
   return output;
 }
@@ -116,7 +145,7 @@ export function calculateMacd(
   const macdIndices: number[] = [];
   for (let index = 0; index < values.length; index += 1) {
     if (fast[index] !== null && slow[index] !== null) {
-      macdValues.push(fast[index]! - slow[index]!);
+      macdValues.push(requireFiniteResult(fast[index]! - slow[index]!, 'MACD output'));
       macdIndices.push(index);
     }
   }
@@ -130,7 +159,7 @@ export function calculateMacd(
     output[originalIndex] = {
       macd,
       signal,
-      histogram: signal === null ? null : macd - signal,
+      histogram: signal === null ? null : requireFiniteResult(macd - signal, 'MACD histogram'),
     };
   });
   return output;
@@ -154,13 +183,22 @@ export function calculateBollingerBands(
     if (window.some((value) => !Number.isFinite(value))) {
       throw new Error('Bollinger input contains a non-finite value.');
     }
-    const mean = window.reduce((sum, value) => sum + value, 0) / period;
-    const variance = window.reduce((sum, value) => sum + ((value - mean) ** 2), 0) / period;
-    const deviation = Math.sqrt(variance);
+    const scale = window.reduce((maximum, value) => Math.max(maximum, Math.abs(value)), 0);
+    const normalized = scale === 0 ? window.map(() => 0) : window.map((value) => value / scale);
+    const normalizedMean = normalized.reduce((sum, value) => sum + value, 0) / period;
+    const mean = requireFiniteResult(normalizedMean * scale, 'Bollinger middle band');
+    const normalizedVariance = normalized.reduce(
+      (sum, value) => sum + ((value - normalizedMean) ** 2),
+      0,
+    ) / period;
+    const deviation = requireFiniteResult(
+      Math.sqrt(normalizedVariance) * scale,
+      'Bollinger deviation',
+    );
     output[index] = {
       middle: mean,
-      upper: mean + standardDeviations * deviation,
-      lower: mean - standardDeviations * deviation,
+      upper: requireFiniteResult(mean + standardDeviations * deviation, 'Bollinger upper band'),
+      lower: requireFiniteResult(mean - standardDeviations * deviation, 'Bollinger lower band'),
     };
   }
   return output;
