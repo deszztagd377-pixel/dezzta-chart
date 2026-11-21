@@ -429,7 +429,7 @@ def test_restore_preflight_uses_wal_sidecar_in_capacity_estimate(tmp_path, monke
             "disk_usage",
             lambda _path: type("Usage", (), {"free": 10**12})(),
         )
-        capacity = sqlite3_restore_drill._preflight_capacity(source, backup, restored)
+        capacity = sqlite_restore_drill._preflight_capacity(source, backup, restored)
         assert capacity["source_wal_bytes"] == wal_path.stat().st_size
         assert capacity["estimated_snapshot_bytes"] >= (
             capacity["source_main_bytes"] + capacity["source_wal_bytes"]
@@ -462,7 +462,7 @@ def test_restore_preflight_uses_independent_bounds_for_separate_filesystems(
         source_db.close()
     snapshot_bytes = max(source.stat().st_size, logical_bytes)
 
-    real_stat = sqlite3_restore_drill.os.stat
+    real_stat = sqlite_restore_drill.os.stat
     backup_directory = backup.parent.resolve()
     restore_directory = restored.parent.resolve()
 
@@ -475,14 +475,14 @@ def test_restore_preflight_uses_independent_bounds_for_separate_filesystems(
         fields[2] = 101 if resolved == backup_directory else 202
         return os.stat_result(fields)
 
-    monkeypatch.setattr(sqlite3_restore_drill.os, "stat", fake_stat)
+    monkeypatch.setattr(sqlite_restore_drill.os, "stat", fake_stat)
     monkeypatch.setattr(
-        sqlite3_restore_drill.shutil,
+        sqlite_restore_drill.shutil,
         "disk_usage",
         lambda _path: SimpleNamespace(free=10**12),
     )
 
-    capacity = sqlite3_restore_drill._preflight_capacity(source, backup, restored)
+    capacity = sqlite_restore_drill._preflight_capacity(source, backup, restored)
     expected = snapshot_bytes + max(64 * 1024 * 1024, ceil(0.10 * snapshot_bytes))
     assert capacity["destination_filesystems_match"] is False
     assert capacity["backup_required_free_bytes"] == expected
@@ -501,13 +501,13 @@ def test_restore_preflight_rejects_nonempty_rollback_journal(tmp_path, monkeypat
     journal.write_bytes(b"unresolved-rollback-journal")
 
     monkeypatch.setattr(
-        sqlite3_restore_drill.shutil,
+        sqlite_restore_drill.shutil,
         "disk_usage",
         lambda _path: SimpleNamespace(free=10**12),
     )
 
     with pytest.raises(sqlite3.DatabaseError, match="rollback journal"):
-        sqlite3_restore_drill._preflight_capacity(source, backup, restored)
+        sqlite_restore_drill._preflight_capacity(source, backup, restored)
 
     assert journal.read_bytes() == b"unresolved-rollback-journal"
     assert not backup.exists()
