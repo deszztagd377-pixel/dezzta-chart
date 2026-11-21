@@ -1,3 +1,31 @@
+## Latest indicator status — Batch 62J-64 (21 November 2026)
+
+No indicator source, calculation, hook, renderer, chart UI, or indicator test changed in this batch. The Gate 38 HTTP error-correlation hardening is backend observability work and earns **zero indicator completion credit**.
+
+| Indicator / component | Status | Calculation / validity contract | Remaining implementation |
+|---|---|---|---|
+| SMA20 | 🟨 Foundation | Arithmetic mean of 20 closes; first valid candle index 19 | Candle overlay, toggle, legend/current value, stale-value clearing, render/lifecycle tests |
+| EMA20 | 🟨 Foundation | SMA-seeded EMA; alpha = 2/(20+1) = 2/21; first valid index 19 | Candle overlay, toggle, legend/current value, stale-value clearing, render/lifecycle tests |
+| RSI14 | 🟨 Foundation | Wilder smoothing over 14 close-to-close changes; first valid index 14 | Dedicated 0–100 pane, 30/70 guides, toggle, legend, renderer tests |
+| MACD 12/26/9 | 🟨 Foundation | EMA12 − EMA26; MACD first valid index 25; EMA9 signal and histogram first valid index 33 | Dedicated pane, MACD/signal lines, histogram, zero guide, toggle, legend, renderer tests |
+| Bollinger20,2 | 🟨 Foundation | 20-close mean ± 2 × population standard deviation; first valid index 19 | Three-line overlay, toggle, values, stale clearing, renderer tests |
+| Shared Indicator Hook | 🟨 Foundation | Validated backend snapshot only; no DEMO fallback; outputs candle-index aligned | Chart/symbol/timeframe identity binding, loading/error states, stale clearing, per-series isolation |
+| Footprint | 🟧 SIMULATED / gated | Educational simulated accumulator; not exchange-native bid/ask truth | Owner reference image, reviewed blueprint, explicit-ON spaced cluster renderer, bid/ask cells, performance tests |
+| Heatmap | 🟥 Not implemented | Data source and calculation contract not approved | Owner reference image, source feasibility, validated data contract, reviewed blueprint, renderer |
+| Liquidation Maps | 🟥 Not implemented | No validated liquidation dataset/calculation contract | Zero-cost source feasibility, validated calculation contract, reviewed blueprint/reference, renderer |
+
+**Correctness invariants**
+- Warm-up slots are `null`, never fabricated zero values; every output aligns to candle indexes.
+- Appending future candles must not alter prior indicator values (prefix causality).
+- Symbol, venue, dataset, chart identity or timeframe changes must invalidate stale values and isolate series.
+- Footprint OFF preserves ordinary candlestick spacing. Only explicit Footprint ON activates the dedicated spaced cluster layout.
+- Footprint and Heatmap visual work remains blocked until the user's own reference images are supplied and the scoped blueprint is reviewed.
+- No aggregate indicator percentage is assigned: there is no approved indicator weighting/acceptance denominator.
+
+**Exact-head backend verification for Batch 62J-64:** Automated Tests [44858630448](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44858630448) SUCCESS (1,225 backend tests; frontend 247/247); CodeQL [44858630295](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44858630295) SUCCESS; Secret Audit [44858630302](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44858630302) SUCCESS. These results do not change indicator status.
+
+---
+
 # DEZZTA CHART — Complete Indicator Progress Ledger
 
 ## Exact-head Gate 30 and indicator status — Batch 62J-62 (21 November 2026)
