@@ -2,7 +2,7 @@
 
 **Checkpoint:** 21 November 2026 — Batch 62J-55 WebSocket exact-head integration reconciliation
 **Active branch:** `phase-2/market-data-foundation`
-**Latest runtime/source-test HEAD:** `56317eff2b71886040acb998bf692814622feedf` (Redis consumer lease, worker/lifespan integration, ACL and regression tests). **Current documentation branch HEAD before this refresh:** `0251e5b7d2915bee723dc47895b950250c26e50c`.
+**Latest runtime/source-test HEAD:** `56317eff2b71886040acb998bf692814622feedf` (Redis consumer lease, worker/lifespan integration, ACL and regression tests).
 **Exact-head CI:** Automated Tests [44774049019](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774049019) **SUCCESS** — frontend **245/245 across 29 files**; backend **1,218 passed, 6 warnings in 35.76s**. CodeQL [44774050265](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774050265) **SUCCESS** • Full Git History Secret Audit [44774048914](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774048914) **SUCCESS**.
 **Audit evidence:** frontend dependency audit 0 vulnerabilities; backend dependency audit no known vulnerabilities; frontend source/bundle secret scan, backend container build, Redis ACL/AOF + mounted-volume smoke test, Trivy scan/report export all completed successfully.
 **WebSocket E:** COMPLETE FOR THE DEFINED AUTOMATED FAILURE-MATRIX SCOPE. This is distinct from Gate 20's real Firebase identity and browser/Android acceptance.
