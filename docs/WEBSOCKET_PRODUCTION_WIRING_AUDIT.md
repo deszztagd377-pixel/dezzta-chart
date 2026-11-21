@@ -189,3 +189,37 @@ Regression coverage now includes:
 - Matching source, stream, generation, cursor and digest can construct the dedicated TLS client with certificate and hostname verification.
 
 **Gate status:** Gate 25 🟧 OPEN (live Redis TLS/ACL, persistence, failover and credential lifecycle remain unverified). Gate 36 🟧 OPEN (public HTTPS/WSS reverse proxy and browser/Android runtime acceptance remain unverified). Source publisher activation remains 🟨🟩 host-verification pending.
+
+
+## Batch 62J-73 — zero-cost Redis ACL host simulation and database selection correction
+
+### Finding
+
+Both dedicated Redis clients are created from Redis URLs constrained to database 0. Redis client initialization selects the configured database when connecting. The prior publisher and gateway ACL command matrices omitted `+select`; consequently, a least-privilege ACL user could be rejected during connection initialization before its permitted PING / stream operations. This was a genuine startup integration gap, not a production-host failure.
+
+### Correction
+
+Added `+select` to `PUBLISHER_ACL_COMMANDS` and `GATEWAY_ACL_COMMANDS`. Database 0 remains the only permitted database. No broad command categories or extra key patterns were added.
+
+### Real Redis ACL integration test
+
+Added `backend/tests/test_ohlcv_redis_acl_integration.py`. It runs against the isolated Redis 7 service already supplied by the existing CI workflow through `REDIS_TEST_URL`. It generates disposable random user names and passwords at runtime and tests:
+- Both dedicated clients can connect through the database-0 URL and PING.
+- Publisher can XADD/XRANGE only on its exact stream key.
+- Publisher cannot XREADGROUP or modify gateway lease keys.
+- Gateway can XGROUP CREATE, XREADGROUP, XAUTOCLAIM, XACK and XRANGE.
+- Gateway cannot XADD and cannot access keys outside its exact stream/lease patterns.
+- Gateway can execute the lease SET/EVAL/GET/PEXPIRE/DEL sequence under its configured allow-list.
+- Temporary keys and ACL users are deleted in a `finally` cleanup path.
+
+The test uses no persistent credential, does not print generated secrets and is skipped in local test runs when `REDIS_TEST_URL` is absent. The existing CI backend test step supplies that variable, so no extra workflow job or new paid service is introduced.
+
+### What this proves — and what it does not
+
+This proves Redis command/key ACL behavior against an ephemeral Redis instance in CI. It does not prove public Redis TLS, a production Redis provider, real host secret rotation, persistence/failover of the dedicated OHLCV stream, cross-host gateway installation, or public WSS/browser/Android acceptance. Those remain host-only acceptance items.
+
+**CI disposition:** pending exact-head CI for the resulting source/test commit. No success is claimed until the actual final SHA has green checks.
+
+**Gate disposition:** Gate 25 🟧 OPEN; Gate 36 🟧 OPEN; source publisher remains 🟨🟩 HOST VERIFICATION PENDING. Gate 10 remains 0/10 closed.
+
+No indicator formula, hook or renderer changed. See `PROJECT_PROGRESS_INDICATOR_CURRENT.md` for the complete indicator ledger and current project accounting. ZERO COST; no deployment, production credentials, Termux, Vercel/Cloudflare operation or `main` modification.
