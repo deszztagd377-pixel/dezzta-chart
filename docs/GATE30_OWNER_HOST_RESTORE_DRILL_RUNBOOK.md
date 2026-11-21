@@ -93,7 +93,7 @@ If they are on separate filesystems, each destination filesystem must independen
 S + max(64 MiB, ceil(10% × S))
 ```
 
-A non-empty rollback-journal sidecar while the database is not in WAL mode, an unmeasurable database size, or insufficient free space causes a fail-closed stop before backup/restore artifacts are created. The success report records the size estimates, required capacity and observed free bytes without disclosing host paths. Keep the application database stable during the drill; this preflight does not replace the owner-host operational window or the actual restore acceptance checks.
+Any non-empty rollback-journal sidecar, an unmeasurable database size, or insufficient free space causes a fail-closed stop before backup/restore artifacts are created. The current CLI deliberately rejects a non-empty journal sidecar regardless of the reported journal mode; do not delete or manipulate the sidecar to bypass this check. The success report records the size estimates, required capacity and observed free bytes without disclosing host paths. Keep the application database stable during the drill; this preflight does not replace the owner-host operational window or the actual restore acceptance checks.
 
 ## 4. Execution contract
 
