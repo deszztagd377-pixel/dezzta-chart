@@ -31,12 +31,13 @@ function requireFiniteResult(value: number, label: string): number {
   return value;
 }
 
-function accurateSum(values: readonly number[]): number {
+function accurateSum(values: readonly number[], scale: number): number {
   // Maintain a non-overlapping floating-point expansion. Plain reduction can
   // lose a small residual between large cancelling values, even after scaling.
   const partials: number[] = [];
-  for (let value of values) {
-    let index = 0;
+  for (let index = 0; index < values.length; index += 1) {
+    let value = values[index] / scale;
+    let partialIndex = 0;
     for (const partial of partials) {
       let high = value;
       let low = partial;
@@ -47,21 +48,34 @@ function accurateSum(values: readonly number[]): number {
       }
       const sum = high + low;
       const error = low - (sum - high);
-      if (error !== 0) partials[index++] = error;
+      if (error !== 0) partials[partialIndex++] = error;
       value = sum;
     }
-    partials.length = index;
+    partials.length = partialIndex;
     if (value !== 0) partials.push(value);
   }
   return partials.reduce((sum, partial) => sum + partial, 0);
 }
 
-function stableMean(values: readonly number[]): number {
-  let scale = 0;
-  for (const value of values) scale = Math.max(scale, Math.abs(value));
+function stableMean(values: readonly number[], knownScale?: number): number {
+  let scale = knownScale ?? 0;
+  if (knownScale === undefined) {
+    for (const value of values) scale = Math.max(scale, Math.abs(value));
+  }
   if (scale === 0) return 0;
-  const normalized = values.map((value) => value / scale);
-  const normalizedSum = accurateSum(normalized);
+
+  let normalizedSum = 0;
+  let normalizedMagnitude = 0;
+  for (const value of values) {
+    const normalized = value / scale;
+    normalizedSum += normalized;
+    normalizedMagnitude += Math.abs(normalized);
+  }
+  // Ordinary summation is both faster and accurate enough when cancellation
+  // is mild. Use the expansion only when positive/negative terms nearly cancel.
+  if (Math.abs(normalizedSum) < normalizedMagnitude * 0.5) {
+    normalizedSum = accurateSum(values, scale);
+  }
   return requireFiniteResult((normalizedSum / values.length) * scale, 'Indicator mean');
 }
 
@@ -206,9 +220,8 @@ export function calculateBollingerBands(
       throw new Error('Bollinger input contains a non-finite value.');
     }
     const scale = window.reduce((maximum, value) => Math.max(maximum, Math.abs(value)), 0);
-    const normalized = scale === 0 ? window.map(() => 0) : window.map((value) => value / scale);
-    const normalizedMean = normalized.reduce((sum, value) => sum + value, 0) / period;
-    const mean = requireFiniteResult(normalizedMean * scale, 'Bollinger middle band');
+    const mean = stableMean(window, scale);
+    const normalizedMean = scale === 0 ? 0 : mean / scale;
     const normalizedVariance = normalized.reduce(
       (sum, value) => sum + ((value - normalizedMean) ** 2),
       0,

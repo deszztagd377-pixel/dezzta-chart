@@ -1,7 +1,7 @@
 ## Latest work cycle — Batch 62J-78 (21 November 2026)
 
 - SMA numeric audit found and corrected a second-order cancellation case after Batch 62J-77: a small representable residual between `MAX_VALUE` and `-MAX_VALUE` was lost by ordinary normalized reduction.
-- The feature branch now uses an error-free floating-point expansion for normalized SMA window summation and adds forward/reverse-order regression tests.
+- The feature branch now uses an error-free floating-point expansion only for materially cancelling normalized windows, preserving the fast path for ordinary price windows. SMA and Bollinger middle-band means share the stable helper; forward/reverse-order regression tests cover the residual case.
 - Exact-head CI is pending. Until all checks pass, this is a prepared source change—not a verified release.
 - No visual indicator credit is awarded: SMA20 stays 🟨 foundation; all other indicator statuses remain as shown in the full ledger below.
 - WebSocket repository-side failure-matrix scope remains complete; public WSS/production acceptance remains externally blocked.

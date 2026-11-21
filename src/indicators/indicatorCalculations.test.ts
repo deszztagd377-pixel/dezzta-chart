@@ -166,4 +166,12 @@ describe('shared indicator calculation engine', () => {
     expect(Number.isFinite(reverse)).toBe(true);
   });
 
+  it('preserves small residuals in the Bollinger middle band under cancellation', () => {
+    const extreme = Number.MAX_VALUE;
+    const result = calculateBollingerBands([extreme, 1, -extreme], 3, 0);
+    expect(result[2].middle).toBeCloseTo(1 / 3, 14);
+    expect(result[2].upper).toBeCloseTo(1 / 3, 14);
+    expect(result[2].lower).toBeCloseTo(1 / 3, 14);
+  });
+
 });

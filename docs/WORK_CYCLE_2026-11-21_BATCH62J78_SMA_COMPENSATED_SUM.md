@@ -13,9 +13,9 @@ Batch 62J-77 prevented avoidable intermediate overflow by normalizing each SMA w
 - Plain normalized reduction: loses the (1/Number.MAX_VALUE) residual and returns zero.
 
 ### Correction
-- Added an error-free floating-point expansion sum for normalized window terms.
+- Added an error-free floating-point expansion sum for normalized window terms. The expansion is invoked only when normalized terms substantially cancel; ordinary positive-price windows stay on a fast linear summation path. Bollinger middle-band means reuse the same stable mean helper.
 - Retained scale normalization, finite-result guard, warm-up nulls and source-index alignment.
-- Added regression tests for both `[MAX_VALUE, 1, -MAX_VALUE]` and `[MAX_VALUE, -MAX_VALUE, 1]`.
+- Added regression tests for both `[MAX_VALUE, 1, -MAX_VALUE]` and `[MAX_VALUE, -MAX_VALUE, 1]`, plus the Bollinger middle-band equivalent.
 
 ### Complexity and scope
 - Time complexity remains O(N × P); expansion storage is O(P) for each window.
@@ -34,3 +34,10 @@ Exact-head CI must pass before this batch is considered accepted. No test, build
 - Stages 2–6 and overall project percentage remain unscored.
 - ZERO COST; no deployment, paid infrastructure, production credential, Termux/device command or `main` modification.
 
+
+### Performance and shared-mean follow-up
+
+- A local Node.js microbenchmark over 99,981 SMA20 windows from 100,000 ordinary positive-price samples measured the initial always-expansion implementation at approximately 200 ms versus approximately 26 ms for the previous normalized reducer.
+- The implementation was optimized before acceptance: the normal path now uses a simple normalized sum, while the more expensive expansion is restricted to windows whose absolute normalized sum is less than half their total normalized magnitude.
+- The same stable mean helper now calculates the Bollinger middle band, preventing the identical cancellation-order defect there.
+- Re-running the same local microbenchmark measured approximately 25 ms for the optimized path. This is a local microbenchmark, not a CI performance guarantee; exact-head CI remains the acceptance gate.
