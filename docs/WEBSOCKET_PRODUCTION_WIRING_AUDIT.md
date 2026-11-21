@@ -1,3 +1,18 @@
+## Batch 62J-81 — Gate 38 zero-cost collector design (21 November 2026)
+
+- Exact-head baseline 3eadda21f795abe5af195eedf0c81727d31f6436 rechecked: Automated Tests run 44895224507 SUCCESS; CodeQL run 44895224465 SUCCESS for JS/TS and Python; full Git-history secret audit run 44895224498 SUCCESS.
+- Current source still has bounded process-local request and WebSocket metrics. The protected endpoint remains token-gated; the WebSocket middleware records lifecycle metadata only.
+- The existing Redis client is coupled to shared security guards. It is not reused for telemetry because doing so couples monitoring availability to auth/rate-limit operations and could exceed its ACL scope.
+- The existing SQLite incident journal is not a time-series collector. The market-data registry database is not used for high-frequency metrics writes.
+- Added GATE38_METRICS_COLLECTOR_BLUEPRINT.md: same-host multi-worker aggregation using a dedicated SQLite metrics DB on a supported local persistent volume; 15-second snapshots; transactional deltas; 15-minute buckets; 90-second worker-heartbeat expiry; 7-day bounded retention; hard worker/cardinality/payload/row/disk limits.
+- Load estimate at 100 requests/s: 8,640,000 request-level write opportunities/day/worker versus 5,760 periodic flushes/day/worker, a 1,500x operation-count reduction. This is an estimate, not a benchmark.
+- This is a documentation/design checkpoint only. Source implementation requires explicit blueprint review under the project's major-implementation rule.
+- Gate 38 remains 🟧 OPEN pending implementation, tests, exact-head CI, host volume/access/retention/disk-pressure evidence and independent operator notification/recovery acceptance.
+- No indicator code changed and no indicator progress is awarded. Complete formulas, warm-up indices, remaining renderer work, and Footprint/Heatmap visual gates remain in INDICATOR_PROGRESS_LEDGER.md.
+- ZERO COST; no deployment, production credentials, Redis ACL change, main modification, Termux or device operation.
+
+---
+
 ## Batch 62J-80 — send-confirmed WebSocket lifecycle metrics
 
 **Reviewed branch:** phase-2/market-data-foundation  

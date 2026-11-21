@@ -1,3 +1,34 @@
+## Batch 62J-81 checkpoint — 21 November 2026
+
+No indicator calculation, data contract, hook, chart renderer, UI, or indicator test file changed during the Gate 38 architecture work. No indicator progress credit is awarded.
+
+| Indicator/subsystem | State | Formula / first valid index | Remaining implementation |
+|---|---|---|---|
+| SMA20 | 🟨 FOUNDATION | Arithmetic mean of 20 closes; index 19 | Overlay, toggle, legend/current value, stale-series clearing, renderer/lifecycle tests |
+| EMA20 | 🟨 FOUNDATION | SMA-seeded EMA; alpha = 2/21; index 19 | Overlay, toggle, legend/current value, stale-series clearing, renderer/lifecycle tests |
+| RSI14 | 🟨 FOUNDATION | Wilder smoothing over 14 close changes; index 14 | Dedicated 0–100 pane, 30/70 guides, toggle, legend, renderer tests |
+| MACD 12/26/9 | 🟨 FOUNDATION | EMA12−EMA26; MACD index 25; signal/histogram index 33 | Pane, MACD/signal lines, histogram, zero guide, toggle, legend |
+| Bollinger20,2 | 🟨 FOUNDATION | Mean ± 2 × population standard deviation; index 19 | Three-line overlay, toggle, displayed values, stale clearing, renderer tests |
+| Shared Indicator Hook | 🟨 FOUNDATION | Validated backend snapshot, candle-index aligned; no DEMO fallback | Active chart identity/timeframe binding, loading/error lifecycle, stale clearing, series isolation |
+| Footprint | 🟧 SIMULATED / GATED | Educational simulated accumulator; not exchange-native bid/ask truth | User visual reference, approved blueprint, ON-only spaced cluster layout, bid/ask cells, performance acceptance |
+| Heatmap | 🟥 NOT IMPLEMENTED | No approved data source/calculation contract | User visual reference, zero-cost source feasibility, validated data contract, blueprint, renderer |
+| Liquidation Maps | 🟥 NOT IMPLEMENTED | No validated liquidation dataset/calculation contract | Zero-cost source feasibility, validated calculation, reference/blueprint, renderer |
+
+### Calculation and rendering invariants
+
+- Warm-up values remain null, never synthetic zeroes.
+- All outputs remain aligned to source candle indices.
+- No future-candle data may repaint prior indicator values.
+- Symbol, venue, dataset, chart, or timeframe identity changes must clear stale series.
+- Footprint OFF must preserve standard candlestick layout and ordinary spacing. Only explicit Footprint ON may activate the dedicated spaced cluster layout.
+- Footprint and Heatmap visual implementation remain blocked until the user supplies the relevant reference images and reviews the scoped blueprint.
+- Liquidation Maps remain blocked until a zero-cost source and validated calculation/data contract exist.
+- No aggregate indicator percentage is assigned because no approved weights/denominator exist.
+
+This checkpoint records no change to the complete historical indicator ledger or formula contracts.
+
+---
+
 ## Batch 62J-80 checkpoint — no indicator status change (21 November 2026)
 
 This batch corrects WebSocket lifecycle accounting only. No indicator formula, chart renderer, indicator hook, UI toggle or data contract changed. Therefore no indicator completion credit is awarded. The complete formula, warm-up, numerical-invariant and remaining-work ledger follows unchanged below. Current statuses remain: SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, Shared Indicator Hook 🟨, Footprint 🟧, Heatmap 🟥, Liquidation Maps 🟥.
