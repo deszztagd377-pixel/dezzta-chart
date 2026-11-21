@@ -166,11 +166,9 @@ Inspected runtime/source-test checkpoint: `56317eff2b71886040acb998bf692814622fe
 
 ### 9.1 Still-open acceptance
 
-A full test that launches two independent FastAPI/ASGI server processes, gives each a separate SQLite replica and consumer group, connects two WebSocket clients, and proves identical cursor/event delivery was not found in the inspected backend test inventory. Component tests are not a substitute for this end-to-end proof.
+Two-ASGI acceptance **is present and CI-verified** in the later work cycles. Batch 62J-25 launches two independent Uvicorn/FastAPI processes with separate SQLite replicas and consumer groups, authenticates two real WebSocket clients, verifies identical live cursor delivery and replica checkpoint convergence, then reconnects from cursor 0 and verifies the actual route's replay_started/replayed/replay_complete boundary. Batch 62J-28 adds transient Redis read-failure/recovery and process-restart continuity. Batch 62J-31 adds independent Redis TCP-path interruption/recovery without gateway restart and coordinated two-replica snapshot-generation replacement. See the linked work-cycle reports for exact acceptance details.
 
-Snapshot transport and installation are still not a complete owner-approved deployment contract. The runtime factory is opt-in and requires a verified snapshot/generation. Do not guess a production snapshot path, share a SQLite WAL database across hosts, or enable replica mode by default.
-
-Production Redis TLS/ACL/network/failover, actual host topology and supervision, public HTTPS/WSS, browser/Android reconnect tests, and real provider delivery remain owner-side acceptance items.
+The automated WebSocket E failure matrix is complete for its defined repository/CI scope. This does **not** establish production snapshot artifact distribution, rotation/rollback, production Redis TLS/ACL/network/failover, actual host topology and supervision, public HTTPS/WSS, browser/Android client acceptance, or real provider delivery. The runtime factory remains opt-in and requires a verified local snapshot/generation. Do not guess a production snapshot path, share a SQLite WAL database across hosts, or enable replica mode by default.
 
 ### 9.2 Required next batch
 
