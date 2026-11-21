@@ -1,7 +1,10 @@
 # Latest exact-head reconciliation — 21 November 2026
 
 **Working branch:** `phase-2/market-data-foundation`  
-**Current documentation HEAD:** `47cabfebe2ea6ea508db6c983e579099ac439b3b` — documentation-only checkpoint; exact-head Automated Tests [44850710705](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44850710705) **SUCCESS**.  
+**Documentation checkpoint before Batch 62J-57 reconciliation:** `47cabfebe2ea6ea508db6c983e579099ac439b3b` — this is a historical checkpoint, not the current branch HEAD.  
+
+**Latest exact branch HEAD:** `fd6b6f09b928150a7543df9f212bcdb4026c0b4b` on `phase-2/market-data-foundation`. Automated Tests [44851517437](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44851517437), CodeQL [44851517382](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44851517382), and Full Git History Secret Audit [44851517387](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44851517387) all completed **SUCCESS** on this exact HEAD. The Automated Tests job completed successfully; no deployment or device acceptance is implied.
+
 **Latest source/test HEAD:** `96bfea52d9920b7d5d49ed85c0536610a6afd037` — Automated Tests [44849892717](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44849892717) **SUCCESS**: frontend **245/245 across 29 files**; backend **1,218 passed in 48.17s**, no pytest warnings summary; all 31 job steps passed, including backend container, Redis ACL/AOF + persistent-volume smoke test and Trivy scan.  
 **CodeQL / full-history audit boundary:** latest separately recorded successful CodeQL [44774050265](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774050265) and full Git History Secret Audit [44774048914](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774048914) are associated with prior source/test checkpoint `56317eff2b71886040acb998bf692814622feedf`; they are not represented as exact-head runs for `96bfea5`.  
 **WebSocket automated acceptance:** COMPLETE for the defined dual-ASGI/Redis failure matrix (Batches 62J-25/28/31). Production snapshot distribution/rotation, production Redis TLS/ACL/credential lifecycle, public WSS and browser/Android acceptance remain external.  

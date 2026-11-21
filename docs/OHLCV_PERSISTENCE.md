@@ -2,6 +2,21 @@
 
 Status: implemented foundation; final branch-head CI and operational load validation are tracked separately.
 
+
+## Database decision — private APK distribution does not remove the database requirement
+
+Whether the Android APK is distributed privately, by direct installation, or through an app store does **not** determine whether the product needs a database. The requirement follows the data lifecycle and consistency guarantees:
+
+- **Backend durable application store:** the existing `SQLiteOhlcvStore` and related registry/coverage/alert stores share the configured SQLite database file. It holds canonical instrument definitions and mappings, user entitlements, alert state, normalized OHLCV bars, coverage/gap metadata, and the durable OHLCV outbox/state where enabled. The configured path is `INSTRUMENT_REGISTRY_DB_PATH`, defaulting to `./data/instrument_registry.sqlite3` relative to the backend process working directory. The actual runtime path and host mount are not inferable from repository source.
+- **Redis:** used for shared coordination and short-lived controls such as rate limits, leases, and cross-process signaling. It is not a substitute for the durable SQLite application database or the retained OHLCV history.
+- **Frontend chart store:** `marketDataStore` is currently an in-memory validated snapshot store. The repository evidence reviewed here does not establish a native Android local database for the APK. Indicator calculations consume this validated shared snapshot and do not independently persist market data.
+- **Private/offline use:** local preferences and a bounded local cache can be stored on-device if offline continuity is a required product behavior. A private APK can still connect to a backend; Play Store publication is irrelevant to that connection.
+- **Multi-device/account synchronization:** requires an authoritative backend and durable server-side storage. A local-only database cannot synchronize devices or safely serve as the shared source of truth.
+
+**Current engineering decision:** retain the existing backend SQLite architecture for durable application/market-data state; do not add a second server database or paid managed database. Do not add Android-side SQLite/Room solely because the APK is private. Introduce an on-device database only after an approved offline/cache requirement defines retention, encryption, migration, eviction, and recovery behavior. This avoids duplicate sources of truth and unnecessary storage complexity while preserving the zero-cost constraint.
+
+**Operational caveat:** SQLite durability depends on the actual backend host using a persistent writable path. An ephemeral container filesystem is not sufficient. Gate 30 and Gate 34 therefore remain open until the owner-host restore and persistent-volume drills are completed. No Termux path, live database path, or device runtime was assumed or accessed in this documentation update.
+
 ## Storage boundary
 
 `SQLiteOhlcvStore` stores normalized base and derived bars in the same file-backed SQLite database used by the canonical instrument registry. It creates additive `ohlcv_bars` and `ohlcv_store_state` tables and does not change the registry's `PRAGMA user_version`.
