@@ -2767,3 +2767,26 @@ def test_incident_escalation_lifespan_dispatches_sanitized_due_event(monkeypatch
         "escalation_level": 1,
     }]
     assert calls >= 1
+
+
+
+def test_websocket_metrics_middleware_is_wired_into_authenticated_application():
+    application = create_app(make_settings())
+    _install_test_identity(application)
+
+    with TestClient(application) as client:
+        with client.websocket_connect("/ws/market-data") as websocket:
+            websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+            assert websocket.receive_json()["type"] == "market_data.status"
+
+            active = application.state.websocket_metrics.snapshot()
+            assert active["connections_started"] == 1
+            assert active["connections_active"] == 1
+            assert active["connections_completed"] == 0
+            assert active["connections_accepted"] == 1
+
+        completed = application.state.websocket_metrics.snapshot()
+        assert completed["connections_started"] == 1
+        assert completed["connections_active"] == 0
+        assert completed["connections_completed"] == 1
+        assert completed["connections_accepted"] == 1
