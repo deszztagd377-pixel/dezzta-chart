@@ -241,3 +241,11 @@ Full 899-series results, prior exact-head comparison:
 | 4 OS processes | 243.724 → 114.703 ms | 278.107 → 280.654 ms | 415.647 → 378.409 ms | 4 → 2 |
 
 The 4-thread p99/max and the 16-thread p99 did not improve. The 16-thread p95/max/retries and four-process p95/retries did improve. The workload is synthetic and runner-dependent; no SLA or production disk/latency guarantee is inferred. All workloads verified 899/899 series and SQLite integrity `ok`. Gate 38 remains 🟧 OPEN for owner-host and operator acceptance.
+
+
+## Batch 62J-94–96 — measurement and retry experiment disposition (21 November 2026)
+
+The accepted collector exposes diagnostic writer-lock wait and transaction-body/commit durations in its internal flush result. The full-cardinality benchmark includes those distributions for 1/4/16 thread cases and four separate OS processes. The 62J-95 deterministic per-worker retry jitter experiment was tested and rejected after significant synthetic p95/p99/max regressions; Batch 62J-96 restored the pre-jitter retry schedule. Keep the bounded eight-attempt policy, 250 ms busy timeout and 0.81 s maximum explicit-backoff sum unchanged.
+
+Latest exact-head source/test HEAD `2eb3181b21b7f2aa3a53c8c293ab6d27ec959b75` passed Automated Tests [44913778296](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44913778296), CodeQL [44913778266](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44913778266) and Full Git History Secret Audit [44913778270](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44913778270). The benchmark remains synthetic CI stress evidence, not a production byte budget, host SLA or multi-host support claim.
+

@@ -1,3 +1,23 @@
+# Latest exact-head reconciliation — Batch 62J-96 (21 November 2026)
+
+**Branch:** `phase-2/market-data-foundation`  
+**Source/test HEAD:** `2eb3181b21b7f2aa3a53c8c293ab6d27ec959b75`
+
+- Automated Tests [44913778296](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44913778296): **SUCCESS**; frontend **255/255 tests across 29 files**; backend **1,271 passed in 46.68 seconds**.
+- CodeQL [44913778266](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44913778266): **SUCCESS** for Python and JavaScript/TypeScript.
+- Full Git History Secret Audit [44913778270](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44913778270): **SUCCESS**.
+- Backend dependency audit reported no known vulnerabilities. Container smoke verified Redis ACL/AOF persistence across restart, backend outage fail-closed/reconnect, non-root runtime, mounted-volume ownership, SQLite integrity/restart persistence and HTTP rate-limit rejection.
+- The 62J-94 diagnostic instrumentation remains in source: benchmark reports end-to-end flush, writer-lock wait and transaction-body/commit distributions for 1/4/16 threads and four OS processes.
+- The 62J-95 retry-jitter experiment was rejected after measured regressions and reverted in this HEAD. Do not claim jitter improved tail latency. The restored 62J-94 implementation and tests passed the exact-head workflows above.
+- Restored-source benchmark on the CI runner: 16-thread p95/p99 295.505/644.926 ms, writer-lock p99 613.413 ms, transaction p99 18.152 ms, 68 retries; four-process p95/p99 59.106/135.398 ms, writer-lock p99 128.640 ms, transaction p99 9.771 ms, 0 retries. These are synthetic stress results, not production-host measurements or an SLA. Phase percentiles are independently calculated and cannot be treated as the exact share of an individual flush.
+- WebSocket protocol/auth/replay/snapshot/cursor/Redis paths were not changed by Batches 62J-94–96. Production WSS remains host/client gated.
+- **Gate 10: 0/10 formally closed.** Gates **8, 30, 34, 35, 39** remain 🟨🟩 repository-ready / host-owner verification only. Gates **20, 25, 31, 36, 38** remain 🟧 externally open. Yellow-green is not closure; bright green requires complete acceptance evidence.
+- **Stage 1: 30/40 = 300/400 = 75% provisional.** Stages 2–6 remain unscored. Overall project percentage remains unscored without approved weights/denominators.
+- Indicators unchanged: SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, Shared Hook 🟨, Footprint 🟧, Heatmap 🟥, Liquidation Maps 🟥.
+- ZERO COST. No deployment, paid service, Vercel/Cloudflare operation, Termux/device action, production credentials or `main` modification.
+
+---
+
 # Latest exact-head reconciliation — Batch 62J-93 (21 November 2026)
 
 **Branch:** `phase-2/market-data-foundation`  

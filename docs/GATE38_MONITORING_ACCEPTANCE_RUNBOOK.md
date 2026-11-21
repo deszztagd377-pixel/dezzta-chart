@@ -60,3 +60,21 @@ Before changing Gate 38 to 🟨🟩, the owner-controlled runtime must demonstra
 Do not add paid vendors, public metrics endpoints, paid object storage, managed databases, or billing-enabled plans. If the existing owner-controlled hardware cannot safely satisfy this, keep Gate 38 🟧 OPEN and defer the external integration.
 
 **No Termux/device command is needed for this repository-side update.**
+
+
+## Batch 62J-94–96 — tail-latency diagnostics and rejected retry experiment (21 November 2026)
+
+**Accepted source/test HEAD:** `2eb3181b21b7f2aa3a53c8c293ab6d27ec959b75`  
+**Automated Tests:** [44913778296](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44913778296) SUCCESS — frontend 255/255; backend 1,271 passed.  
+**CodeQL:** [44913778266](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44913778266) SUCCESS.  
+**Secret audit:** [44913778270](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44913778270) SUCCESS.
+
+The accepted collector returns internal `lock_wait_ms` and `transaction_ms` diagnostics. The benchmark records p50/p95/p99/mean/max for these phases and end-to-end flush latency. In the restored-source 16-thread synthetic case, p99 end-to-end was 644.926 ms, p99 lock wait 613.413 ms, p99 transaction body/commit 18.152 ms, with 68 retries. Four-process case: p99 end-to-end 135.398 ms, p99 lock wait 128.640 ms, transaction p99 9.771 ms, 0 retries.
+
+**Important statistical caveat:** each percentile is calculated independently across its own sample array. Dividing phase p99 by end-to-end p99 does not yield the exact fraction of time spent waiting in the same p99 flush. Treat these as diagnostic distributions, not additive decomposition or an SLA.
+
+Batch 62J-95 tried stable per-worker retry jitter. It passed its source CI but failed the performance comparison: 16-thread p95/p99/max worsened by +53.6%/+79.9%/+132.4%, retries rose 72.4%; four-process p95 worsened 123.8%. Batch 62J-96 reverted that helper and test. The source/test files are restored to the accepted 62J-94 diagnostic version. No jitter change is retained.
+
+The next benchmark should model the production worker cadence (including the initial per-worker phase staggering in `backend/app/main.py`) separately from simultaneous worst-case contention. Do not change production lock policy based only on the synchronized stress case.
+
+Gate 38 remains 🟧 OPEN pending owner-host persistent volume, permissions, restart/retention/backup, disk pressure, private perimeter, operator-token lifecycle, dashboard visibility and a real no-cost operator incident/recovery drill. No Gate 10 tick is awarded by CI.

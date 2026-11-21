@@ -1,3 +1,13 @@
+## Batch 62J-94–96 — WebSocket data path unchanged (21 November 2026)
+
+Gate 38 SQLite tail-latency instrumentation, benchmark analysis and the rejected/reverted retry-jitter experiment did not modify WebSocket transport, authentication, ticket exchange, snapshot/replay, cursor ordering, publisher/replica lifecycle, Redis ACL behavior or market-data payloads.
+
+Exact source/test HEAD `2eb3181b21b7f2aa3a53c8c293ab6d27ec959b75` passed Automated Tests [44913778296](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44913778296), CodeQL [44913778266](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44913778266) and Full Git History Secret Audit [44913778270](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44913778270).
+
+WebSocket repository-side automated failure-matrix scope remains previously implemented and CI-verified. Production acceptance remains open pending verified global snapshot bytes and authenticated installation receipts for every required gateway; owner-host Redis TLS/ACL credentials, secret rotation, persistence/failover/retention; public HTTPS/WSS proxy and certificate renewal; and real browser plus Android WebView acceptance. No public production endpoint or production Redis host is available in this checkpoint.
+
+---
+
 ## Batch 62J-87 — Gate 38 writer-lock correction; WebSocket unchanged (21 November 2026)
 
 The 16-worker SQLite benchmark exposed lock contention at `BEGIN IMMEDIATE`. Gate 38 now retries bounded writer-lock acquisition and records retry counts. No WebSocket transport, authentication, snapshot/replay, cursor, gateway or Redis code changed. Production WSS acceptance remains pending real owner-host and client evidence.
