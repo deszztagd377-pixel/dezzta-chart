@@ -1072,3 +1072,20 @@ The first CI attempt for Batch 62J-88 exposed an unconditional leftover `Asserti
 ## Batch 62J-91 — indicator state unchanged
 
 The disk-full test timing correction changes only its observation timestamp: the failed write was rolled back, and the worker checkpoint remains at 900, so liveness is inspected at 901 rather than 1801. App-level HTTP/WebSocket failure isolation and read-only recovery tests passed. No indicator formula, hook, renderer, UI or data contract changed. SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, Shared Hook 🟨, Footprint 🟧, Heatmap 🟥, Liquidation Maps 🟥. Stage 1 75% provisional; Gate 10 0/10 closed; overall unscored.
+
+
+## Batch 62J-92 — exact-head CI acceptance; indicators unchanged
+
+Exact HEAD `427e5952d2f209ae1f40405223d8d0a4c7d8408c` passed Automated Tests (frontend 255/255 across 29 files; backend 1,271 passed in 39.80s), CodeQL (both languages) and Full Git History Secret Audit. Gate 38's full-cardinality thread/process benchmark, read-only recovery, SQLite page-limit `SQLITE_FULL` rollback/recovery and application-level HTTP/WebSocket failure isolation all passed. This is backend reliability evidence only; no indicator calculation or renderer changed.
+
+- SMA20 🟨 — arithmetic mean of last 20 closes; first valid candle index 19. Remaining: overlay, toggle, legend/current value, stale clearing and renderer/lifecycle tests.
+- EMA20 🟨 — SMA-seeded EMA, alpha 2/21; first valid index 19. Remaining: overlay, toggle, legend/current value, stale clearing and renderer/lifecycle tests.
+- RSI14 🟨 — Wilder smoothing; first valid index 14. Remaining: 0–100 pane, 30/70 guides, toggle, legend, stale clearing and renderer tests.
+- MACD12/26/9 🟨 — MACD first valid index 25; signal/histogram index 33. Remaining: pane, MACD/signal lines, histogram, zero guide, toggle and legend.
+- Bollinger20,2 🟨 — mean ±2 × population standard deviation; first valid index 19. Remaining: three-line overlay, toggle, displayed values, stale clearing and renderer tests.
+- Shared Indicator Hook 🟨 — validated candle-index-aligned snapshot. Remaining: identity/timeframe binding, loading/error lifecycle, stale clearing and series isolation.
+- Footprint 🟧 — simulated/gated; requires user's visual reference, reviewed blueprint, ON-only spaced clusters, bid/ask cells and performance acceptance. OFF preserves standard candle spacing.
+- Heatmap 🟥 — not implemented; requires user's visual reference, zero-cost source feasibility, validated data contract, reviewed blueprint and renderer.
+- Liquidation Maps 🟥 — not implemented; requires zero-cost source feasibility, validated formula/data contract, reference/blueprint and renderer.
+
+Warm-up values remain null (never zero), values candle-index aligned, no future-candle repaint, and identity/timeframe changes clear stale series. No aggregate indicator percentage is published without an approved denominator. Stage 1 remains 30/40 = 75% provisional; Gate 10 0/10 formally closed; overall project percentage unscored.

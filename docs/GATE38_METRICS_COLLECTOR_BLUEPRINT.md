@@ -214,3 +214,12 @@ These tests are pending exact-head CI. They do not prove actual owner-host files
 ## 17. Batch 62J-91 — disk-full test observation correction
 
 The SQLite page-limit test correctly reached `SQLITE_FULL` and verified aggregate rollback. Its worker-count assertion used snapshot time 1801 against an unchanged checkpoint at 900, so the worker was correctly stale under the 90-second threshold. The test now checks at 901 to verify the unchanged checkpoint while it remains live. App-level collector failure isolation and read-only recovery passed in the same run. Only the test timestamp changed; no collector implementation change. Exact-head CI pending.
+
+
+## 18. Batch 62J-92 — exact-head repository acceptance
+
+Exact HEAD `427e5952d2f209ae1f40405223d8d0a4c7d8408c` passed Automated Tests [44905839386](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905839386) (35/35 steps; frontend 255/255; backend 1,271 passed in 39.80s), CodeQL [44905839403](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905839403) and Full Git History Secret Audit [44905839442](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905839442).
+
+The repository-side Gate 38 matrix now includes full 899-series thread/process contention, read-only failure/recovery, genuine SQLite `SQLITE_FULL` rollback/recovery, and app-level isolation proving HTTP health, authenticated metrics scrape and authenticated WebSocket status remain responsive during collector failure. All passed on the exact HEAD above.
+
+Gate 38 remains 🟧 OPEN, not 🟨🟩: actual owner-host persistent volume/permissions/restart/backup/retention/disk-pressure, operator-token perimeter/rotation, operator dashboard visibility, independent notification/acknowledgement/escalation and recovery drill remain. SQLite aggregation remains same-host only; no multi-host claim.

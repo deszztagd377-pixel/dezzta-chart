@@ -1066,3 +1066,33 @@ Batch 62J-90 adds a genuine SQLite page-limit/disk-full rollback-and-recovery te
 ## Batch 62J-91 — disk-full test liveness assertion timing correction
 
 Automated Tests [44905465144](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905465144) reported 1,270 passed / 1 failed. The SQLite `SQLITE_FULL` exception and aggregate rollback assertions passed. The only failure was the test expecting one live worker at snapshot time 1801 although the last successful checkpoint was 900 and the stale threshold is 90 seconds; the collector correctly reported zero live workers. The test now checks at timestamp 901 (checkpoint age 1 second). The app-level HTTP/WebSocket failure-isolation test and read-only recovery test passed. CodeQL [44905465128](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905465128) and Full Git History Secret Audit [44905464959](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905464959) passed. Exact-head Automated Tests rerun pending. No collector code or indicator implementation changed.
+
+## Batch 62J-92 — exact-head acceptance: process, disk-full and traffic isolation (21 November 2026)
+
+**Accepted exact HEAD:** `427e5952d2f209ae1f40405223d8d0a4c7d8408c`
+
+- Automated Tests [44905839386](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905839386): **SUCCESS**, 35/35 workflow steps.
+- Frontend: **255/255 tests across 29 files**.
+- Backend: **1,271 passed in 39.80 seconds**.
+- CodeQL [44905839403](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905839403): **SUCCESS**, Python and JavaScript/TypeScript.
+- Full Git History Secret Audit [44905839442](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905839442): **SUCCESS**.
+- Backend container build, ephemeral Redis shared-guard/persistent-volume smoke, Trivy scan and report export: **SUCCESS**.
+
+### Gate 38 repository-side evidence
+- Full 899-series benchmark: 1/4/16 Python threads and 4 independent OS processes; exact series counts, worker counts, aggregation and SQLite integrity verified.
+- 4-process case: 128/128 flushes; 899/899 series; p95 243.724 ms; p99 278.107 ms; 4 internal retries; SQLite integrity `ok`.
+- 16-thread case: 512/512 flushes; 899/899 series; p95 654.798 ms; p99 921.534 ms; max 2,769.913 ms; 251 internal retries. The contention tail remains visible and is not concealed by benchmark-only retries.
+- Read-only storage failure/recovery test passed.
+- Real SQLite `SQLITE_FULL` page-limit test passed: second full-cardinality bucket rejected; transaction and checkpoint rolled back; later writable flush recovered without double counting.
+- App-level failure-isolation test passed: collector entered degraded state while HTTP health, authenticated metrics scrape and authenticated WebSocket status remained responsive.
+- These are repository/CI results, not owner-host persistence or production operator acceptance.
+
+### Remaining Gate 38 host/operator acceptance
+Actual owner-host persistent volume and permissions; restart persistence; measured disk pressure/retention; backup/restore; reverse-proxy/firewall isolation; operator-token injection/rotation; operator dashboard visibility/access review; independent notification, acknowledgement/escalation and recovery drill. Multi-host SQLite remains unsupported.
+
+### Indicator and project status
+No indicator calculation, hook, renderer or UI changed. SMA20 🟨 (first valid index 19); EMA20 🟨 (SMA-seeded, alpha 2/21, index 19); RSI14 🟨 (Wilder, index 14); MACD12/26/9 🟨 (MACD index 25, signal/histogram 33); Bollinger20,2 🟨 (population SD, index 19); Shared Indicator Hook 🟨; Footprint 🟧; Heatmap 🟥; Liquidation Maps 🟥. Warm-up null, candle-index aligned, no future-candle repaint and stale clearing remain invariants.
+
+Gate 10 remains **0/10 formally closed**. Gates 8, 30, 34, 35 and 39 remain 🟨🟩 host/owner-verification-only. Gates 20, 25, 31, 36 and 38 remain 🟧 OPEN; Gate 38 is not yellow-green because operator dashboard/notification/recovery and owner-host acceptance remain. Stage 1 remains **30/40 = 75% provisional**. Stages 2–6 and overall project percentage remain unscored without approved weights/denominators.
+
+ZERO COST. No deployment, paid service, Vercel/Cloudflare operation, Termux/device action, production credentials or `main` modification.

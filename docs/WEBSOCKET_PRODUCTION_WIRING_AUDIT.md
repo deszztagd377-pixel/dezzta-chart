@@ -374,3 +374,10 @@ Repository WebSocket automated scope remains complete. Production acceptance rem
 ## Batch 62J-88 — exact-head CI reconciliation (21 November 2026)
 
 Repository-side WebSocket failure-matrix scope remains complete. Exact-head Automated Tests at `8424e5eefeecbd06c6534bc34d166f4749ba4055` passed all 35 workflow steps, including 1,268 backend tests, backend container build, ephemeral Redis shared-guard/persistent-volume smoke and Trivy image scan/report export. CodeQL and Full Git History Secret Audit also passed. The process-level metrics and read-only collector additions do not alter WebSocket protocol, transport, auth, replay, cursor, gateway or Redis market-data path. Public WSS, production snapshot receipts, owner-host Redis TLS/ACL/persistence/failover and browser/Android WebView acceptance remain external host gates. Gate 36 remains 🟧 OPEN.
+
+
+## Batch 62J-92 — WebSocket acceptance reconciliation
+
+Exact HEAD `427e5952d2f209ae1f40405223d8d0a4c7d8408c` passed Automated Tests [44905839386](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905839386), CodeQL [44905839403](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905839403) and Full Git History Secret Audit [44905839442](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905839442). Backend container build, ephemeral Redis shared-guard/persistent-volume smoke and Trivy scan/report also passed. The Gate 38 app-level isolation test confirmed that a failing metrics collector does not block authenticated WebSocket status delivery. No WebSocket protocol, transport, auth, replay, cursor, gateway or Redis market-data data-path change was made.
+
+This does not close Gate 36: public HTTPS/WSS reverse proxy, certificates, owner-host Redis TLS/ACL/persistence/failover, snapshot distribution/installation receipts and real browser/Android WebView acceptance remain host-gated.

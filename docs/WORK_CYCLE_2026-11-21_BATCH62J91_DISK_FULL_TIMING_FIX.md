@@ -17,3 +17,8 @@ The failing assertion expected one live worker at `snapshot(now=1801)`, but the 
 - Corrected exact-head Automated Tests pending.
 
 Only a test observation timestamp changed. No production collector or WebSocket behavior changed. Gate 38 remains 🟧 OPEN. Gate 10 remains 0/10 formally closed; Stage 1 remains 75% provisional; overall project remains unscored. ZERO COST; no deployment, Termux/device action or `main` modification.
+
+
+## Batch 62J-92 — exact-head acceptance confirmed
+
+Corrected test timing is accepted on `427e5952d2f209ae1f40405223d8d0a4c7d8408c`. Automated Tests [44905839386](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905839386) SUCCESS (35/35 steps; frontend 255/255; backend 1,271 passed in 39.80s), CodeQL [44905839403](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905839403) SUCCESS and Full Git History Secret Audit [44905839442](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905839442) SUCCESS. The SQLite `SQLITE_FULL` rollback/recovery, app-level failure isolation and read-only recovery tests all passed. Gate 38 remains 🟧 pending owner-host/operator acceptance.
