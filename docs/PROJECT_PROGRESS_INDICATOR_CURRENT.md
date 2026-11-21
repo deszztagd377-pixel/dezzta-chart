@@ -1018,3 +1018,15 @@ The Gate 38 source audit found that metric series cardinality was bounded but sc
 Indicator invariants: warm-up values are `null`, never zero; all values align to candle indices; no future-candle repaint; symbol/venue/dataset/chart/timeframe changes clear stale series. Footprint OFF preserves ordinary candle spacing; only explicit ON enables spaced cluster layout. No indicator implementation credit is awarded by backend-only work.
 
 **Cost/device:** ZERO COST. No paid hosting, deployment, Vercel/Cloudflare operation, production credential request, Termux command, device action or `main` modification.
+
+
+## Batch 62J-88 — exact-head metrics and process contention hardening (21 November 2026)
+
+- Exact-head Automated Tests on `8424e5eefeecbd06c6534bc34d166f4749ba4055`: [44903581963](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44903581963) SUCCESS, 35/35 steps; frontend 255/255 across 29 files; backend 1,268 passed in 46.21 seconds. CodeQL [44903581995](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44903581995) SUCCESS; Full Git History Secret Audit [44903581971](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44903581971) SUCCESS.
+- Full-cardinality benchmark verified 899/899 series at 1, 4 and 16 threads. All integrity checks `ok`; 16-thread p95 562.43 ms, p99 982.13 ms and 196 retries. This indicates contention remains; Gate 38 stays OPEN.
+- Batch 62J-88 removes benchmark/test outer retries, adds four-process SQLite contention measurement and read-only failure/recovery coverage. These additions require exact-head CI before acceptance.
+- Gate 38 remains 🟧 OPEN pending process benchmark CI, disk-full test, app-level HTTP/WebSocket isolation, owner-host persistence/retention/backup and operator acceptance.
+- WebSocket repository-side automated matrix remains complete; production WSS acceptance remains host-gated. No WebSocket data-path change.
+- Indicator progress unchanged: SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, shared hook 🟨, Footprint 🟧, Heatmap 🟥, Liquidation Maps 🟥. No indicator credit from backend work.
+- Gate 10 remains 0/10 formally closed. Gates 8, 30, 34, 35, 39 🟨🟩; Gates 20, 25, 31, 36, 38 🟧. Stage 1 remains 30/40 = 75% provisional; overall project remains unscored.
+- ZERO COST; no deployment, Vercel/Cloudflare operation, Termux/device action, production credentials or `main` modification.

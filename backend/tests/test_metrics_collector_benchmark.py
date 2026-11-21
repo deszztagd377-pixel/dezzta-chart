@@ -35,3 +35,14 @@ def test_metrics_collector_benchmark_measures_full_cardinality_at_one_four_and_s
         assert case["flush_latency"]["samples"] == case["workers"] * 2
         assert case["peak_file_sizes_bytes"]["total"] > 0
         assert case["post_checkpoint_file_sizes_bytes"]["database"] > 0
+
+    process_case = report["process_case"]
+    assert process_case["worker_type"] == "separate_os_processes"
+    assert process_case["workers"] == 4
+    assert process_case["successful_flushes"] == 8
+    assert process_case["worker_count_verified"] == 4
+    assert process_case["logical_series_verified"] == 899
+    assert process_case["logical_series_expected"] == 899
+    assert process_case["aggregated_request_count_verified"] == 8
+    assert process_case["sqlite_integrity"] == "ok"
+    assert process_case["flush_latency"]["samples"] == 8

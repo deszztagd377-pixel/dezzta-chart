@@ -1035,3 +1035,20 @@ Added `docs/GATE30_OWNER_HOST_RESTORE_DRILL_RUNBOOK.md` after source inspection 
 - Stage 1 remains **30/40 criteria = 300/400 ticks = 75% provisional**. Ten criteria (8, 20, 25, 30, 31, 34, 35, 36, 38, 39) remain OPEN, 0/10 formally closed. No acceptance tick is awarded by this cycle.
 - No indicator aggregate percentage or overall-project percentage is published: neither has an approved weighting/acceptance denominator. Stages 2–6 remain unscored.
 - ZERO COST maintained: no deployment, paid service, Vercel/Cloudflare operation, Termux/device operation, production credentials, or `main` modification.
+
+
+## Batch 62J-88 — backend-only cycle; indicator state unchanged (21 November 2026)
+
+- Exact-head baseline `8424e5eefeecbd06c6534bc34d166f4749ba4055` passed Automated Tests (frontend 255/255 across 29 files; backend 1,268 passed), CodeQL (both languages) and full Git-history secret audit.
+- This cycle adds separate-process metrics contention coverage and read-only failure/recovery coverage; no indicator calculation, hook, renderer, chart UI or market-data contract changed.
+- SMA20 🟨: arithmetic mean of last 20 closes; first valid candle index 19. Remaining: overlay, toggle, legend/current value, stale clearing, renderer/lifecycle tests.
+- EMA20 🟨: SMA-seeded EMA; alpha 2/21; first valid index 19. Remaining: overlay, toggle, legend/current value, stale clearing, renderer/lifecycle tests.
+- RSI14 🟨: Wilder smoothing; first valid index 14. Remaining: 0–100 pane, 30/70 guides, toggle, legend, stale clearing and renderer tests.
+- MACD12/26/9 🟨: MACD index 25; signal/histogram index 33. Remaining: pane, MACD/signal lines, histogram, zero guide, toggle and legend.
+- Bollinger20,2 🟨: mean ±2 × population standard deviation; first valid index 19. Remaining: three-line overlay, toggle, displayed values, stale clearing and renderer tests.
+- Shared Indicator Hook 🟨: validated candle-index-aligned snapshot. Remaining: identity/timeframe binding, loading/error lifecycle, stale clearing and series isolation.
+- Footprint 🟧: simulated/gated. Requires user's visual reference, reviewed blueprint, ON-only spaced cluster layout, bid/ask cells and performance acceptance. OFF preserves standard candle spacing.
+- Heatmap 🟥: not implemented. Requires user's visual reference, zero-cost source feasibility, validated data contract, reviewed blueprint and renderer.
+- Liquidation Maps 🟥: not implemented. Requires zero-cost source feasibility, validated formula/data contract, reference/blueprint and renderer.
+- Warm-up null, candle-index aligned, no future-candle repaint, stale series cleared on identity/timeframe change. No aggregate indicator percentage without an approved denominator.
+- Stage 1 30/40 = 75% provisional; Gate 10 0/10 formally closed; overall project percentage remains unscored.

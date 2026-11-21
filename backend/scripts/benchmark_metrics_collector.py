@@ -1,8 +1,9 @@
 """Synthetic local-only benchmark for the same-host SQLite metrics collector.
 
 Exercises the full declared 899 logical-series envelope with 1, 4 and 16
-concurrent Python threads. This remains a CI/local baseline, not a production
-host, separate-process, multi-host, or market-data performance guarantee.
+concurrent Python threads, plus a separate-OS-process contention case. This
+remains a CI/local baseline, not a production-host, multi-host, or market-data
+performance guarantee.
 
 Run from the backend directory:
     python scripts/benchmark_metrics_collector.py --flushes-per-worker 32
@@ -11,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import multiprocessing
 import os
 import platform
 import sqlite3
@@ -147,18 +149,8 @@ def run_case(*, workers: int, flushes_per_worker: int) -> dict:
                 request, websocket = _snapshot(sequence)
                 stamp = _BASE_TIME + sequence * 15 + worker_index / 1000
                 started = time.perf_counter_ns()
-                for attempt in range(6):
-                    try:
-                        flush_result = collector.flush(worker_id, request, websocket, now=stamp)
-                        local_retries += flush_result.get("lock_retries", 0)
-                        break
-                    except sqlite3.OperationalError as exc:
-                        if "locked" not in str(exc).lower() or attempt == 5:
-                            raise
-                        local_retries += 1
-                        time.sleep(0.01 * (2 ** attempt))
-                else:
-                    raise RuntimeError("bounded retry loop exhausted")
+                flush_result = collector.flush(worker_id, request, websocket, now=stamp)
+                local_retries += flush_result.get("lock_retries", 0)
                 local_samples.append((time.perf_counter_ns() - started) / 1_000_000)
                 record_sizes()
             with retry_lock:
@@ -212,6 +204,88 @@ def run_case(*, workers: int, flushes_per_worker: int) -> dict:
         }
 
 
+
+def _process_worker(database_path: str, worker_index: int, flushes_per_worker: int, start_event, result_queue) -> None:
+    """Run a real OS-process writer; each process owns its SQLite connections."""
+    try:
+        collector = SQLiteMetricsCollector(database_path)
+        worker_id = f"{worker_index + 1:032x}"
+        if not start_event.wait(timeout=20):
+            raise TimeoutError("process benchmark start barrier timed out")
+        samples, retries = [], 0
+        for sequence in range(1, flushes_per_worker + 1):
+            request, websocket = _snapshot(sequence)
+            stamp = _BASE_TIME + sequence * 15 + worker_index / 1000
+            started = time.perf_counter_ns()
+            flush_result = collector.flush(worker_id, request, websocket, now=stamp)
+            samples.append((time.perf_counter_ns() - started) / 1_000_000)
+            retries += flush_result.get("lock_retries", 0)
+        result_queue.put({"worker_index": worker_index, "flushes": len(samples), "retries": retries, "latencies_ms": samples})
+    except BaseException as exc:
+        result_queue.put({"worker_index": worker_index, "error": f"{type(exc).__name__}: {exc}"})
+        raise
+
+
+def run_process_case(*, workers: int, flushes_per_worker: int) -> dict:
+    """Exercise SQLite locking between distinct OS processes, not threads."""
+    context = multiprocessing.get_context("spawn")
+    with tempfile.TemporaryDirectory(prefix="dezzta-metrics-processes-") as directory:
+        database_path = Path(directory) / "metrics.sqlite3"
+        start_event, result_queue = context.Event(), context.Queue()
+        processes = [
+            context.Process(target=_process_worker, args=(str(database_path), index, flushes_per_worker, start_event, result_queue))
+            for index in range(workers)
+        ]
+        for process in processes:
+            process.start()
+        start_event.set()
+        for process in processes:
+            process.join(timeout=120)
+            if process.is_alive():
+                process.terminate()
+                process.join(timeout=5)
+                raise TimeoutError("process benchmark worker exceeded 120 seconds")
+            if process.exitcode != 0:
+                raise RuntimeError(f"process benchmark worker exited with code {process.exitcode}")
+        worker_results = [result_queue.get(timeout=5) for _ in range(workers)]
+        result_queue.close()
+        result_queue.join_thread()
+        errors = [item for item in worker_results if "error" in item]
+        if errors:
+            raise RuntimeError(f"process benchmark worker failed: {errors}")
+        worker_results.sort(key=lambda item: item["worker_index"])
+        snapshot_time = _BASE_TIME + flushes_per_worker * 15 + 20
+        result = SQLiteMetricsCollector(str(database_path)).snapshot(now=snapshot_time)
+        expected_total = workers * flushes_per_worker
+        first_route_key = "http.requests|GET|/benchmark/series/000|2xx"
+        actual_total = result["series"].get(first_route_key, 0)
+        if result["worker_count"] != workers or actual_total != expected_total:
+            raise RuntimeError(f"process aggregation mismatch: workers={result['worker_count']}/{workers}, requests={actual_total}/{expected_total}")
+        if len(result["series"]) != 899:
+            raise RuntimeError(f"process cardinality mismatch: observed={len(result['series'])}/899")
+        with sqlite3.connect(str(database_path), timeout=1.0) as verify:
+            integrity = verify.execute("PRAGMA integrity_check").fetchone()
+            if integrity is None or integrity[0] != "ok":
+                raise RuntimeError(f"process SQLite integrity_check failed: {integrity}")
+            verify.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()
+        latencies = [value for worker in worker_results for value in worker["latencies_ms"]]
+        return {
+            "worker_type": "separate_os_processes",
+            "workers": workers,
+            "flushes_per_worker": flushes_per_worker,
+            "successful_flushes": expected_total,
+            "logical_series_verified": len(result["series"]),
+            "logical_series_expected": 899,
+            "worker_count_verified": result["worker_count"],
+            "aggregated_request_count_verified": actual_total,
+            "sqlite_integrity": "ok",
+            "retry_count": sum(worker["retries"] for worker in worker_results),
+            "flush_latency": _summary(latencies),
+            "post_checkpoint_file_sizes_bytes": _file_sizes(database_path),
+            "worker_results": [{key: value for key, value in worker.items() if key != "latencies_ms"} for worker in worker_results],
+        }
+
+
 def run_benchmark(*, flushes_per_worker: int) -> dict:
     if not 1 <= flushes_per_worker <= 1000:
         raise ValueError("flushes_per_worker must be between 1 and 1000")
@@ -224,6 +298,7 @@ def run_benchmark(*, flushes_per_worker: int) -> dict:
         run_case(workers=workers, flushes_per_worker=flushes_per_worker)
         for workers in (1, 4, 16)
     ]
+    process_case = run_process_case(workers=4, flushes_per_worker=flushes_per_worker)
     return {
         "benchmark": "sqlite_metrics_collector_full_cardinality_local_synthetic",
         "data_source": "synthetic_operational_counters_only_not_market_data",
@@ -238,11 +313,13 @@ def run_benchmark(*, flushes_per_worker: int) -> dict:
         "python": platform.python_version(),
         "platform": platform.platform(),
         "cases": cases,
+        "process_case": process_case,
         "notes": [
             "Full declared 899-series envelope: 762 request + 127 latency + 10 WebSocket series.",
-            "Single-host SQLite WAL benchmark using concurrent Python worker threads.",
-            "Measures synthetic flush latency, lock retries, local file and WAL sizes.",
-            "Does not simulate separate OS processes or a production persistent volume.",
+            "Thread cases use concurrent Python threads; process_case uses four independent OS processes.",
+            "Each process creates its own collector and SQLite connections against the same local database.",
+            "Measures synthetic flush latency, internal lock retries, local file and WAL sizes.",
+            "Does not simulate a production persistent volume or multi-host topology.",
             "Does not establish a production database byte cap or multi-host support.",
             "Results depend on the CI runner filesystem and must not be generalized to owner-host storage.",
         ],

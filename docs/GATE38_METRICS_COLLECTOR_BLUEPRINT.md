@@ -182,3 +182,14 @@ CI artifact: `synthetic-metrics-collector-benchmark`, from Automated Tests run [
 
 After `wal_checkpoint(TRUNCATE)`, WAL size was zero and combined database+SHM sizes were 81,920 / 81,920 / 90,112 bytes respectively. These values are runner-specific and cannot be extrapolated linearly to 899 series, separate processes, persistent host volumes or a production retention window. They do not justify a database byte cap.
 
+
+
+## 13. Full-cardinality benchmark and process-level follow-up — Batch 62J-88
+
+Exact-head baseline `8424e5eefeecbd06c6534bc34d166f4749ba4055`: Automated Tests [44903581963](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44903581963) SUCCESS (35/35 steps; frontend 255/255; backend 1,268 passed), CodeQL [44903581995](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44903581995) SUCCESS and Full Git History Secret Audit [44903581971](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44903581971) SUCCESS.
+
+The 899-series thread benchmark passed at 1/4/16 workers. The 16-thread case measured p50 56.776 ms, p95 562.426 ms, p99 982.128 ms, max 1,583.741 ms, 196 retries and 7,277,592 peak DB+WAL+SHM bytes. All cases verified exact aggregation and SQLite integrity. CI runner synthetic evidence only.
+
+Batch 62J-88 adds a four-independent-process benchmark and read-only failure/recovery test, and removes outer retries from benchmark/test code so only the collector's internal bounded retry is measured. Treat additions as pending until exact-head CI is green. Process benchmark does not imply multi-host support.
+
+Capacity: 7×24×4 = 672 fifteen-minute buckets; 899×672 = 604,128 aggregate rows; 650,000 limit leaves 45,872 rows (7.06%) nominal headroom. This is not a byte budget. Full disk and app-level isolation remain outstanding, as do owner-host volume/retention/backup and operator acceptance.

@@ -369,3 +369,8 @@ Repository WebSocket automated scope remains complete. Production acceptance rem
 - The new metrics are process-local and reset at process start. They are not central telemetry, durable retention or an operator dashboard. Gate 38 remains 🟧 OPEN.
 - Source/test HEAD: `2274f9adc5ac9907ea508800a2d962d9a7c14a84`. Frontend/backend tests and CodeQL analyses passed in the current run; remaining Automated Tests workflow steps were still running at documentation time. Full Git History Secret Audit passed. Exact links: [Automated Tests](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44894262277), [CodeQL](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44894262276), [Secret Audit](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44894262301).
 - No WebSocket protocol, auth, replay, snapshot or market-data payload contract was changed. No public WSS/production acceptance claim is made.
+
+
+## Batch 62J-88 — exact-head CI reconciliation (21 November 2026)
+
+Repository-side WebSocket failure-matrix scope remains complete. Exact-head Automated Tests at `8424e5eefeecbd06c6534bc34d166f4749ba4055` passed all 35 workflow steps, including 1,268 backend tests, backend container build, ephemeral Redis shared-guard/persistent-volume smoke and Trivy image scan/report export. CodeQL and Full Git History Secret Audit also passed. The process-level metrics and read-only collector additions do not alter WebSocket protocol, transport, auth, replay, cursor, gateway or Redis market-data path. Public WSS, production snapshot receipts, owner-host Redis TLS/ACL/persistence/failover and browser/Android WebView acceptance remain external host gates. Gate 36 remains 🟧 OPEN.
