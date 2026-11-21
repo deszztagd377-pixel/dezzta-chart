@@ -1392,7 +1392,7 @@ def test_two_asgi_gateways_recover_after_real_redis_tcp_path_interruption(tmp_pa
         for port in ports:
             websocket = connect(
                 f"ws://127.0.0.1:{port}/ws/market-data",
-                open_timeout=10, close_timeout=3, ping_interval=None,
+                open_timeout=10, close_timeout=3, ping_interval=None, legacy=True,
             )
             sockets.append(websocket)
             websocket.send(json.dumps({
@@ -1527,7 +1527,7 @@ def test_two_independent_asgi_processes_broadcast_replica_live_event(tmp_path):
         for port in ports:
             websocket = connect(
                 f"ws://127.0.0.1:{port}/ws/market-data",
-                open_timeout=10, close_timeout=3, ping_interval=None,
+                open_timeout=10, close_timeout=3, ping_interval=None, legacy=True,
             )
             sockets.append(websocket)
             websocket.send(json.dumps({
@@ -1564,7 +1564,7 @@ def test_two_independent_asgi_processes_broadcast_replica_live_event(tmp_path):
         # replay path through the second, real WebSocket subscription.
         replay_ws = connect(
             f"ws://127.0.0.1:{ports[0]}/ws/market-data",
-            open_timeout=10, close_timeout=3, ping_interval=None,
+            open_timeout=10, close_timeout=3, ping_interval=None, legacy=True,
         )
         sockets.append(replay_ws)
         replay_ws.send(json.dumps({
@@ -1612,7 +1612,7 @@ def test_two_independent_asgi_processes_broadcast_replica_live_event(tmp_path):
 
         restarted_ws = connect(
             f"ws://127.0.0.1:{ports[0]}/ws/market-data",
-            open_timeout=10, close_timeout=3, ping_interval=None,
+            open_timeout=10, close_timeout=3, ping_interval=None, legacy=True,
         )
         sockets.append(restarted_ws)
         restarted_ws.send(json.dumps({
