@@ -1,6 +1,6 @@
 ## Batch 62J-85 — full-cardinality Gate 38 benchmark (21 November 2026)
 
-- Source/test HEAD: `71d8f1ea6644fcad759bb45972002228b07e3817` on `phase-2/market-data-foundation`; exact-head CI is pending and is not claimed as passing.
+- Source/test HEAD: `89f172750fdb4d42dfbb6b65c679831256e6c8e3` on `phase-2/market-data-foundation`; exact-head CI is pending and is not claimed as passing.
 - Replaced the previous 12-logical-series fixture with 899: 127 routes × 6 HTTP status classes = 762 request series; 127 latency histograms; 10 WebSocket counters/classes.
 - Benchmark still covers 1/4/16 concurrent Python threads. It now verifies the full 899-series aggregate, exact worker/request totals, serialized payload size against 256 KiB, and SQLite integrity.
 - Added a SQLite write-rejection rollback/retry regression. This is a transaction failure simulation, not a physical disk-full or read-only-volume test.
