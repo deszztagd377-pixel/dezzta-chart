@@ -162,6 +162,11 @@ def test_shared_security_limits_reject_non_integer_and_invalid_values(
             "rediss://acl-user:redis-password-never-log@redis.example.invalid:6380/0",
             "redis-password-never-log",
         ),
+        (
+            "alert_device_encryption_key",
+            b"K" * 32,
+            "K" * 32,
+        ),
     ],
 )
 def test_sensitive_settings_are_excluded_from_repr_and_str(field, value, secret):
