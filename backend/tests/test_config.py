@@ -1,6 +1,7 @@
 """Additional edge-case tests for configuration security boundaries."""
 
 import base64
+import os
 from dataclasses import replace
 
 import pytest
@@ -349,3 +350,22 @@ def test_alert_device_encryption_key_loader_requires_absolute_existing_file(
     missing_file = tmp_path / "missing-alert-device.key"
     with pytest.raises(ValueError, match="regular file"):
         _load_alert_device_encryption_key(str(missing_file))
+
+
+def test_alert_device_encryption_key_loader_rejects_symbolic_link(tmp_path):
+    key = tmp_path / "real-alert-device.key"
+    key.write_text(base64.b64encode(b"K" * 32).decode("ascii"), encoding="ascii")
+    key.chmod(0o600)
+    link = tmp_path / "linked-alert-device.key"
+    link.symlink_to(key)
+
+    with pytest.raises(ValueError, match="unavailable or invalid"):
+        _load_alert_device_encryption_key(str(link))
+
+
+def test_alert_device_encryption_key_loader_rejects_non_regular_file(tmp_path):
+    directory = tmp_path / "not-a-key-file"
+    directory.mkdir(mode=0o700)
+
+    with pytest.raises(ValueError, match="regular file"):
+        _load_alert_device_encryption_key(str(directory))

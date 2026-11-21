@@ -99,19 +99,40 @@ def _load_alert_device_encryption_key(path: str) -> bytes:
     secret_path = Path(path.strip())
     if not secret_path.is_absolute():
         raise ValueError("ALERT_DEVICE_ENCRYPTION_KEY_FILE must be an absolute path.")
+    if not hasattr(os, "O_NOFOLLOW"):
+        raise ValueError("Secure no-follow secret-file opening is unavailable on this platform.")
+
+    # Validate and read the same opened inode. O_NOFOLLOW rejects a final-component
+    # symlink; O_NONBLOCK prevents a substituted FIFO from hanging startup.
+    flags = os.O_RDONLY | os.O_NOFOLLOW
+    flags |= getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NONBLOCK", 0)
+    descriptor = None
     try:
-        if not secret_path.is_file():
-            raise ValueError("ALERT_DEVICE_ENCRYPTION_KEY_FILE must reference a regular file.")
-        file_stat = secret_path.stat()
+        descriptor = os.open(secret_path, flags)
+        file_stat = os.fstat(descriptor)
+        if not stat.S_ISREG(file_stat.st_mode):
+            raise ValueError(
+                "ALERT_DEVICE_ENCRYPTION_KEY_FILE must reference a regular file."
+            )
         if stat.S_IMODE(file_stat.st_mode) & 0o077:
             raise ValueError(
                 "Alert-device encryption key file permissions must deny group and other access."
             )
         if file_stat.st_size < 1 or file_stat.st_size > 128:
             raise ValueError("Alert-device encryption key file has an invalid size.")
-        encoded = secret_path.read_bytes().decode("ascii").strip()
+        with os.fdopen(descriptor, "rb") as secret_file:
+            descriptor = None
+            raw = secret_file.read(129)
+        if len(raw) > 128:
+            raise ValueError("Alert-device encryption key file has an invalid size.")
+        encoded = raw.decode("ascii").strip()
+    except ValueError:
+        raise
     except (OSError, UnicodeDecodeError) as exc:
         raise ValueError("Alert-device encryption key file is unavailable or invalid.") from exc
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
     try:
         key = base64.b64decode(encoded, validate=True)
     except (binascii.Error, ValueError) as exc:
