@@ -3,7 +3,7 @@
 **Branch:** `phase-2/market-data-foundation`  
 **Source changes:** full-cardinality synthetic benchmark, benchmark contract test, transactional storage-write-failure regression.  
 **Base source checkpoint:** `c8fc6ac6ebbf9a27f69c2ea8a4852336bc575d0f`  
-**Latest source checkpoint:** `89f172750fdb4d42dfbb6b65c679831256e6c8e3`  
+**Latest source checkpoint:** `de104f388a4dd5c214567e911933d4c341bff570`  
 **CI status at documentation time:** pending exact-head run; no pass is claimed yet.
 
 ## Work completed
