@@ -2413,6 +2413,64 @@ def test_replica_runtime_fails_closed_when_redis_group_bootstrap_fails(tmp_path)
     assert application.state.ohlcv_replica_worker is None
 
 
+def test_unhandled_http_error_keeps_request_id_and_redacts_sensitive_context(caplog):
+    import logging
+
+    token = "metrics-token-for-tests-only-32chars"
+    application = create_app(replace(make_settings(), observability_metrics_token=token))
+
+    def fail_with_private_details():
+        raise RuntimeError("private-exception-sentinel")
+
+    application.add_api_route("/_test/metrics-error", fail_with_private_details, methods=["GET"])
+    client = TestClient(application, raise_server_exceptions=False)
+
+    with caplog.at_level(logging.INFO, logger="dezzta.http"):
+        response = client.get(
+            "/_test/metrics-error?query_secret=private-query-sentinel",
+            headers={
+                "Authorization": "Bearer private-header-sentinel",
+                "X-Private-Context": "private-header-value-sentinel",
+            },
+        )
+
+    assert response.status_code == 500
+    request_id = response.headers.get("x-request-id")
+    assert request_id and len(request_id) == 32
+    assert response.json() == {"detail": "Internal server error."}
+    assert "private-exception-sentinel" not in response.text
+
+    metrics = client.get(
+        "/internal/metrics",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert metrics.status_code == 200
+    matching = [
+        row for row in metrics.json()["requests"]
+        if row["route"] == "/_test/metrics-error" and row["status_class"] == "5xx"
+    ]
+    assert matching == [{
+        "method": "GET",
+        "route": "/_test/metrics-error",
+        "status_class": "5xx",
+        "count": 1,
+    }]
+
+    http_records = [
+        record.message for record in caplog.records
+        if record.name == "dezzta.http"
+    ]
+    serialized = " ".join(http_records)
+    assert request_id in serialized
+    for sentinel in (
+        "private-query-sentinel",
+        "private-header-sentinel",
+        "private-header-value-sentinel",
+        "private-exception-sentinel",
+    ):
+        assert sentinel not in serialized
+
+
 def test_internal_operations_endpoints_require_operator_token_and_exclude_scrapes_from_metrics():
     operator_token = "metrics-operator-token-" + ("x" * 32)
     settings = replace(make_settings(), observability_metrics_token=operator_token)
