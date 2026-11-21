@@ -154,4 +154,16 @@ describe('shared indicator calculation engine', () => {
     expect(result[1].lower).toBe(expected);
   });
 
+  it('preserves small residuals between large cancelling SMA inputs', () => {
+    const extreme = Number.MAX_VALUE;
+    const expected = 1 / 3;
+    const forward = calculateSma([extreme, 1, -extreme], 3)[2];
+    const reverse = calculateSma([extreme, -extreme, 1], 3)[2];
+
+    expect(forward).toBeCloseTo(expected, 14);
+    expect(reverse).toBeCloseTo(expected, 14);
+    expect(Number.isFinite(forward)).toBe(true);
+    expect(Number.isFinite(reverse)).toBe(true);
+  });
+
 });

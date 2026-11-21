@@ -1,3 +1,13 @@
+## Latest work cycle — Batch 62J-78 (21 November 2026)
+
+- SMA numeric audit found and corrected a second-order cancellation case after Batch 62J-77: a small representable residual between `MAX_VALUE` and `-MAX_VALUE` was lost by ordinary normalized reduction.
+- The feature branch now uses an error-free floating-point expansion for normalized SMA window summation and adds forward/reverse-order regression tests.
+- Exact-head CI is pending. Until all checks pass, this is a prepared source change—not a verified release.
+- No visual indicator credit is awarded: SMA20 stays 🟨 foundation; all other indicator statuses remain as shown in the full ledger below.
+- WebSocket repository-side failure-matrix scope remains complete; public WSS/production acceptance remains externally blocked.
+- Gate 10 remains 0/10 formally closed. 🟨🟩 host/owner verification only: 8, 30, 34, 35, 39. 🟧 additional integration: 20, 25, 31, 36, 38.
+- Stage 1 remains 30/40 = 75% provisional. Stages 2–6 and overall project remain unscored. ZERO COST; no deploy, no paid service, no Termux/device command, and `main` remains untouched.
+
 ## Latest engineering checkpoint — Batch 62J-77 (21 November 2026)
 
 **Branch:** phase-2/market-data-foundation  

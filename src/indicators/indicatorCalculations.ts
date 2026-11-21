@@ -31,11 +31,37 @@ function requireFiniteResult(value: number, label: string): number {
   return value;
 }
 
+function accurateSum(values: readonly number[]): number {
+  // Maintain a non-overlapping floating-point expansion. Plain reduction can
+  // lose a small residual between large cancelling values, even after scaling.
+  const partials: number[] = [];
+  for (let value of values) {
+    let index = 0;
+    for (const partial of partials) {
+      let high = value;
+      let low = partial;
+      if (Math.abs(high) < Math.abs(low)) {
+        const swap = high;
+        high = low;
+        low = swap;
+      }
+      const sum = high + low;
+      const error = low - (sum - high);
+      if (error !== 0) partials[index++] = error;
+      value = sum;
+    }
+    partials.length = index;
+    if (value !== 0) partials.push(value);
+  }
+  return partials.reduce((sum, partial) => sum + partial, 0);
+}
+
 function stableMean(values: readonly number[]): number {
   let scale = 0;
   for (const value of values) scale = Math.max(scale, Math.abs(value));
   if (scale === 0) return 0;
-  const normalizedSum = values.reduce((sum, value) => sum + value / scale, 0);
+  const normalized = values.map((value) => value / scale);
+  const normalizedSum = accurateSum(normalized);
   return requireFiniteResult((normalizedSum / values.length) * scale, 'Indicator mean');
 }
 

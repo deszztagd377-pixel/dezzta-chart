@@ -1,3 +1,34 @@
+## Batch 62J-78 — compensated SMA cancellation accuracy (21 November 2026)
+
+**Source/test base:** e6fd0dcb8d27be85b4fa32bc6b82a1495403e8e8  
+**Branch:** `phase-2/market-data-foundation`
+
+- Re-audit found a cancellation-order edge case in the normalized SMA from Batch 62J-77: `[Number.MAX_VALUE, 1, -Number.MAX_VALUE]` normalized to approximately `[1, 5.56e-309, -1]`; ordinary left-to-right reduction rounded away the small residual and returned zero instead of the representable mean (1/3).
+- Added an error-free floating-point expansion sum for normalized window values before dividing by the period and restoring scale. This preserves the low-order residual through large-value cancellation without reverting to an overflowing raw sum.
+- Added order-permutation regression coverage for both `[MAX_VALUE, 1, -MAX_VALUE]` and `[MAX_VALUE, -MAX_VALUE, 1]`; both must return a finite value close to (1/3).
+- Complexity remains O(N × P) with an O(P) temporary expansion per window. For the fixed SMA20 path this bounds each window to 20 normalized values; no arbitrary-period UI is introduced.
+- No EMA, RSI, MACD, Bollinger, WebSocket protocol, host configuration or chart renderer behavior is changed.
+- **Acceptance status:** source and test changes are prepared on the existing feature branch; exact-head CI is pending and no completion claim is made until it passes.
+- Indicator visual progress is unchanged: SMA20 remains 🟨 foundation, not a completed overlay. Warm-up index 19, candle-index alignment and prefix causality remain required.
+
+### Full indicator ledger (unchanged visual scope)
+
+| Indicator / component | Status | Calculation / first valid index | Remaining work |
+|---|---|---|---|
+| SMA20 | 🟨 Foundation | Compensated normalized mean of 20 closes; index 19 | Overlay, toggle, legend/current value, stale clearing, renderer/lifecycle tests |
+| EMA20 | 🟨 Foundation | SMA-seeded EMA; alpha 2/21; index 19 | Overlay, toggle, legend/current value, stale clearing, renderer/lifecycle tests |
+| RSI14 | 🟨 Foundation | Wilder smoothing; index 14 | 0–100 pane, 30/70 guides, toggle, legend, stale clearing, renderer tests |
+| MACD 12/26/9 | 🟨 Foundation | EMA12−EMA26; line index 25; signal/histogram index 33 | Pane, lines, histogram, zero guide, toggle, legend, renderer tests |
+| Bollinger20,2 | 🟨 Foundation | Mean ± 2 × population SD; index 19 | Three-line overlay, toggle, displayed values, stale clearing, renderer tests |
+| Shared Indicator Hook | 🟨 Foundation | Validated backend snapshot, candle-index aligned | Chart/symbol/timeframe identity, loading/error lifecycle, stale clearing, series isolation |
+| Footprint | 🟧 Simulated / gated | Simulated accumulator; not exchange-native bid/ask truth | User reference image, reviewed blueprint, ON-only spaced cluster layout, bid/ask cells, performance tests |
+| Heatmap | 🟥 Not implemented | Data source/calculation contract not approved | User reference image, zero-cost source feasibility, data contract, blueprint, renderer |
+| Liquidation Maps | 🟥 Not implemented | No validated dataset/calculation contract | Zero-cost source feasibility, calculation contract, blueprint/reference, renderer |
+
+**Invariants:** warm-up values stay null; no future-candle repaint; all outputs align to source candle indices; identity/timeframe changes clear stale series; Footprint OFF preserves standard candle spacing and only explicit ON enables spaced clusters. No indicator percentage is fabricated.
+
+---
+
 ## Latest indicator status — Batch 62J-77 (21 November 2026)
 
 **Source/test HEAD:** e6fd0dcb8d27be85b4fa32bc6b82a1495403e8e8 on phase-2/market-data-foundation.  
