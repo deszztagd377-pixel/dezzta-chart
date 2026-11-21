@@ -2,6 +2,7 @@ import json
 import shutil
 import sqlite3
 import pytest
+from pathlib import Path
 
 from app.sqlite_restore_drill import _inventory, run_restore_drill
 
@@ -424,7 +425,7 @@ def test_restore_preflight_uses_wal_sidecar_in_capacity_estimate(tmp_path, monke
         assert wal_path.is_file() and wal_path.stat().st_size > 0
 
         monkeypatch.setattr(
-            sqlite3_restore_drill.shutil,
+            sqlite_restore_drill.shutil,
             "disk_usage",
             lambda _path: type("Usage", (), {"free": 10**12})(),
         )
@@ -441,6 +442,7 @@ def test_restore_preflight_uses_independent_bounds_for_separate_filesystems(
     tmp_path, monkeypatch
 ):
     from math import ceil
+    import os
     from types import SimpleNamespace
     from app import sqlite_restore_drill
 
@@ -465,12 +467,13 @@ def test_restore_preflight_uses_independent_bounds_for_separate_filesystems(
     restore_directory = restored.parent.resolve()
 
     def fake_stat(path, *args, **kwargs):
-        resolved = Path(path).resolve()
-        if resolved == backup_directory:
-            return SimpleNamespace(st_dev=101)
-        if resolved == restore_directory:
-            return SimpleNamespace(st_dev=202)
-        return real_stat(path, *args, **kwargs)
+        resolved = Path(os.path.abspath(os.fspath(path)))
+        result = real_stat(path, *args, **kwargs)
+        if resolved not in (backup_directory, restore_directory):
+            return result
+        fields = list(result)
+        fields[2] = 101 if resolved == backup_directory else 202
+        return os.stat_result(fields)
 
     monkeypatch.setattr(sqlite3_restore_drill.os, "stat", fake_stat)
     monkeypatch.setattr(
