@@ -126,6 +126,23 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+      - name: Run same-host SQLite metrics collector benchmark
+        working-directory: backend
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          python scripts/benchmark_metrics_collector.py --flushes-per-worker 32 > metrics-collector-benchmark.json
+          python -c 'import json; from pathlib import Path; report=json.loads(Path("metrics-collector-benchmark.json").read_text()); assert report["data_source"] == "synthetic_operational_counters_only_not_market_data"; assert [case["workers"] for case in report["cases"]] == [1, 4, 16]; assert all(case["sqlite_integrity"] == "ok" for case in report["cases"]); assert all(case["aggregated_request_count_verified"] == case["workers"] * 32 for case in report["cases"]); print(json.dumps(report, indent=2, sort_keys=True))'
+
+      - name: Upload synthetic metrics collector benchmark report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: synthetic-metrics-collector-benchmark
+          path: backend/metrics-collector-benchmark.json
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Audit backend dependencies
         run: |
           python -m pip install pip-audit

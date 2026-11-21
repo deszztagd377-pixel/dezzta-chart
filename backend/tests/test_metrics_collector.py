@@ -147,3 +147,66 @@ def test_worker_timestamp_regression_does_not_mutate_checkpoint(tmp_path):
     with pytest.raises(MetricsSnapshotRegression, match="worker_timestamp_regressed"):
         collector.flush(worker, lower_req, lower_ws, now=899)
     assert collector.snapshot(now=901)["series"]["http.requests|GET|/health|2xx"] == 4
+
+
+def test_concurrent_workers_commit_without_losing_deltas(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+    import time
+
+    collector = SQLiteMetricsCollector(str(tmp_path / "metrics.sqlite3"))
+    worker_ids = [uuid.uuid4().hex for _ in range(4)]
+    barrier = Barrier(len(worker_ids))
+
+    def flush_worker(worker_id):
+        request, websocket = snapshots(5)
+        barrier.wait(timeout=5)
+        for attempt in range(6):
+            try:
+                collector.flush(worker_id, request, websocket, now=900 + attempt)
+                return
+            except sqlite3.OperationalError as exc:
+                if "locked" not in str(exc).lower() or attempt == 5:
+                    raise
+                time.sleep(0.01 * (2 ** attempt))
+        raise AssertionError("bounded SQLite retry loop exhausted")
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        list(pool.map(flush_worker, worker_ids))
+
+    result = collector.snapshot(now=910)
+    assert result["worker_count"] == 4
+    assert result["series"]["http.requests|GET|/health|2xx"] == 20
+    assert result["series"]["websocket|connections_completed"] == 20
+
+
+def test_busy_database_does_not_advance_checkpoint_and_recovers(tmp_path):
+    collector = SQLiteMetricsCollector(str(tmp_path / "metrics.sqlite3"))
+    worker = uuid.uuid4().hex
+    request, websocket = snapshots(3)
+    blocker = collector._connect()
+    try:
+        blocker.execute("BEGIN IMMEDIATE")
+        with pytest.raises(sqlite3.OperationalError, match="locked"):
+            collector.flush(worker, request, websocket, now=900)
+        blocker.rollback()
+    finally:
+        blocker.close()
+
+    collector.flush(worker, request, websocket, now=901)
+    result = collector.snapshot(now=902)
+    assert result["series"]["http.requests|GET|/health|2xx"] == 3
+    assert result["worker_count"] == 1
+
+
+def test_corrupt_metrics_database_fails_without_overwriting_file(tmp_path):
+    database = tmp_path / "metrics.sqlite3"
+    sentinel = b"not-a-valid-sqlite-database"
+    database.write_bytes(sentinel)
+    collector = SQLiteMetricsCollector(str(database))
+    request, websocket = snapshots(1)
+
+    with pytest.raises(sqlite3.DatabaseError):
+        collector.flush(uuid.uuid4().hex, request, websocket, now=900)
+
+    assert database.read_bytes() == sentinel
