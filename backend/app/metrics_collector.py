@@ -14,6 +14,7 @@ RETENTION_SECONDS = 604800
 STALE_SECONDS = 90
 MAX_LIVE_WORKERS = 16
 MAX_WORKER_GENERATIONS = 256
+MAX_RETIRED_WORKERS = 4096
 MAX_SERIES = 900
 MAX_PAYLOAD_BYTES = 256 * 1024
 MAX_ROWS = 650000
@@ -61,6 +62,18 @@ class SQLiteMetricsCollector:
                 ON metrics_buckets(bucket_start);
             CREATE INDEX IF NOT EXISTS idx_metrics_workers_seen
                 ON metrics_workers(last_seen);
+            CREATE TABLE IF NOT EXISTS metrics_retired_workers (
+                worker_id TEXT PRIMARY KEY,
+                expires_at REAL NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_metrics_retired_expiry
+                ON metrics_retired_workers(expires_at);
+            CREATE TABLE IF NOT EXISTS metrics_meta (
+                meta_key TEXT PRIMARY KEY,
+                meta_value INTEGER NOT NULL CHECK(meta_value >= 0)
+            );
+            INSERT OR IGNORE INTO metrics_meta(meta_key,meta_value)
+                VALUES('capacity_evicted_rows',0);
         """)
         return db
 
@@ -176,16 +189,36 @@ class SQLiteMetricsCollector:
         db = self._connect()
         try:
             db.execute("BEGIN IMMEDIATE")
+            db.execute("DELETE FROM metrics_retired_workers WHERE expires_at < ?", (stamp,))
+            retired = db.execute(
+                "SELECT 1 FROM metrics_retired_workers WHERE worker_id=?", (worker_id,)
+            ).fetchone()
+            if retired is not None:
+                raise MetricsSnapshotRegression("worker_checkpoint_expired")
             workers = db.execute("SELECT worker_id,snapshot_json,last_seen FROM metrics_workers").fetchall()
             current = next((row for row in workers if row["worker_id"] == worker_id), None)
             live = sum(1 for row in workers if row["last_seen"] >= stamp - STALE_SECONDS and row["worker_id"] != worker_id)
             if live >= MAX_LIVE_WORKERS:
                 raise MetricsCollectorError("live_worker_limit_exceeded")
+            if current is not None and stamp < current["last_seen"]:
+                raise MetricsSnapshotRegression("worker_timestamp_regressed")
             if current is None and len(workers) >= MAX_WORKER_GENERATIONS:
-                db.execute("DELETE FROM metrics_workers WHERE last_seen < ?", (cutoff,))
-                count = db.execute("SELECT COUNT(*) FROM metrics_workers").fetchone()[0]
-                if count >= MAX_WORKER_GENERATIONS:
+                needed = len(workers) - MAX_WORKER_GENERATIONS + 1
+                stale_workers = db.execute(
+                    "SELECT worker_id FROM metrics_workers WHERE last_seen < ? ORDER BY last_seen ASC LIMIT ?",
+                    (stamp - STALE_SECONDS, needed),
+                ).fetchall()
+                if len(stale_workers) < needed:
                     raise MetricsCollectorError("worker_generation_limit_exceeded")
+                retired_count = db.execute("SELECT COUNT(*) FROM metrics_retired_workers").fetchone()[0]
+                if retired_count + len(stale_workers) > MAX_RETIRED_WORKERS:
+                    raise MetricsCollectorError("retired_worker_limit_exceeded")
+                for stale_worker in stale_workers:
+                    db.execute(
+                        "INSERT OR REPLACE INTO metrics_retired_workers(worker_id,expires_at) VALUES(?,?)",
+                        (stale_worker["worker_id"], stamp + RETENTION_SECONDS),
+                    )
+                    db.execute("DELETE FROM metrics_workers WHERE worker_id=?", (stale_worker["worker_id"],))
             previous = json.loads(current["snapshot_json"]) if current else {}
             deltas = {key: self._subtract(value, previous[key]) if key in previous else value for key, value in values.items()}
             for key, delta in deltas.items():
@@ -214,13 +247,21 @@ class SQLiteMetricsCollector:
             db.execute("DELETE FROM metrics_buckets WHERE bucket_start < ?", (int(cutoff // BUCKET_SECONDS) * BUCKET_SECONDS,))
             row_count = db.execute("SELECT COUNT(*) FROM metrics_buckets").fetchone()[0]
             if row_count > MAX_ROWS:
-                db.execute(
+                evicted = db.execute(
                     """DELETE FROM metrics_buckets WHERE rowid IN
                        (SELECT rowid FROM metrics_buckets ORDER BY bucket_start ASC LIMIT ?)""",
                     (row_count - MAX_ROWS,),
+                ).rowcount
+                previous_evictions = db.execute(
+                    "SELECT meta_value FROM metrics_meta WHERE meta_key='capacity_evicted_rows'"
+                ).fetchone()[0]
+                db.execute(
+                    "UPDATE metrics_meta SET meta_value=? WHERE meta_key='capacity_evicted_rows'",
+                    (min(previous_evictions + max(0, evicted), MAX_COUNTER),),
                 )
+                row_count = db.execute("SELECT COUNT(*) FROM metrics_buckets").fetchone()[0]
             db.commit()
-            return {"series": len(values), "bucket": bucket, "rows": min(row_count, MAX_ROWS)}
+            return {"series": len(values), "bucket": bucket, "rows": row_count}
         except Exception:
             if db.in_transaction:
                 db.rollback()
@@ -230,9 +271,15 @@ class SQLiteMetricsCollector:
 
     def snapshot(self, *, now: float | None = None) -> dict[str, Any]:
         stamp = time.time() if now is None else float(now)
+        if not math.isfinite(stamp) or stamp < 0:
+            raise MetricsCollectorError("invalid_timestamp")
+        cutoff_bucket = int((stamp - RETENTION_SECONDS) // BUCKET_SECONDS) * BUCKET_SECONDS
         db = self._connect()
         try:
-            rows = db.execute("SELECT metric_key,value_json FROM metrics_buckets ORDER BY bucket_start").fetchall()
+            rows = db.execute(
+                "SELECT metric_key,value_json FROM metrics_buckets WHERE bucket_start >= ? ORDER BY bucket_start",
+                (cutoff_bucket,),
+            ).fetchall()
             totals: dict[str, Any] = {}
             for row in rows:
                 key, value = row["metric_key"], json.loads(row["value_json"])
@@ -241,7 +288,14 @@ class SQLiteMetricsCollector:
                 "SELECT COUNT(*),COALESCE(SUM(active_connections),0) FROM metrics_workers WHERE last_seen >= ?",
                 (stamp - STALE_SECONDS,),
             ).fetchone()
-            oldest = db.execute("SELECT MIN(bucket_start) FROM metrics_buckets").fetchone()[0]
+            oldest = db.execute(
+                "SELECT MIN(bucket_start) FROM metrics_buckets WHERE bucket_start >= ?",
+                (cutoff_bucket,),
+            ).fetchone()[0]
+            retained_rows = len(rows)
+            capacity_evicted_rows = db.execute(
+                "SELECT meta_value FROM metrics_meta WHERE meta_key='capacity_evicted_rows'"
+            ).fetchone()[0]
             return {
                 "schema_version": 1,
                 "scope": "same_host_multi_worker",
@@ -249,7 +303,12 @@ class SQLiteMetricsCollector:
                 "active_websocket_connections": live[1],
                 "series": totals,
                 "oldest_bucket": oldest,
+                "effective_retention_seconds": 0 if oldest is None else max(0, int(stamp - oldest)),
                 "retention_seconds": RETENTION_SECONDS,
+                "retained_aggregate_rows": retained_rows,
+                "capacity_limit_rows": MAX_ROWS,
+                "capacity_evicted_rows_total": capacity_evicted_rows,
+                "capacity_eviction_seen": capacity_evicted_rows > 0,
                 "degraded": False,
             }
         finally:

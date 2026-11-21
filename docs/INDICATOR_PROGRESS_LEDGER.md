@@ -1,3 +1,7 @@
+## Batch 62J-83 checkpoint — indicator implementation unchanged (21 November 2026)
+
+Gate 38 backend observability work did not alter indicator formulas, data contracts, hooks, renderers, UI, or indicator tests. No indicator progress credit is awarded. The existing status table below remains authoritative.
+
 
 
 ## Batch 62J-82 checkpoint — no indicator changes (21 November 2026)

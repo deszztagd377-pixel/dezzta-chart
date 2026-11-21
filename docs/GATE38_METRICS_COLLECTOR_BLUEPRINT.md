@@ -1,7 +1,8 @@
 # Gate 38 — Zero-cost metrics collector and retention blueprint
-**Status:** DESIGN FOR OWNER REVIEW — NOT IMPLEMENTED  
+**Status:** REPOSITORY IMPLEMENTATION PRESENT — EXACT-HEAD CI AND HOST ACCEPTANCE REQUIRED  
 **Prepared:** 21 November 2026  
-**Branch baseline:** 3eadda21f795abe5af195eedf0c81727d31f6436  
+**Branch baseline:** 3eadda21f795abe5af195eedf0c81727d31f6436
+**Implementation HEAD at hardening start:** b1e21f552182a720400cd9a2d276705834a41358  
 **Scope:** repository-side design for bounded multi-worker monitoring on one owner-controlled host.
 
 ## 1. Current verified baseline
@@ -116,3 +117,24 @@ Worker startup should apply a bounded initial phase offset so all workers do not
 ### 9.4 Interpretation of the 1,500x estimate
 
 The 8,640,000 versus 5,760 daily operation comparison describes a hypothetical design that persists every request versus periodic metric snapshots. The current implementation does not write one SQLite row per request; it records in-memory counters. The 1,500x figure is therefore a comparison against naive per-request persistence, not a measured reduction from the current implementation and not a benchmark result.
+
+
+## 10. Implemented repository behavior and hardening (Batch 62J-83)
+
+- `backend/app/metrics_collector.py` implements the same-host SQLite collector; `backend/app/main.py` schedules the 15-second off-event-loop flush and adds the cluster snapshot to the existing token-protected endpoint; `backend/app/config.py` exposes `OBSERVABILITY_METRICS_DB_PATH`.
+- Runtime limits: 16 live workers; 256 persisted worker checkpoints; 4096 retired-worker tombstones retained for seven days; 900 logical metric series per worker snapshot; 256 KiB serialized snapshot; 650,000 aggregate rows; 15-minute buckets; seven-day age window; 90-second live-worker staleness.
+- When the worker-checkpoint table reaches 256, only the oldest stale checkpoints are evicted, and their worker IDs are retained as tombstones for seven days. A process attempting to resume an evicted ID is rejected rather than replaying its cumulative counters. If no stale checkpoint can be safely evicted or the tombstone ceiling is reached, the new worker is rejected and collector status degrades; market-data paths remain independent.
+- Snapshot reads filter out buckets older than seven days even if no new flush has run. Aggregate-row capacity eviction is counted in `metrics_meta` and surfaced as `capacity_evicted_rows_total`, with the oldest retained bucket and effective retention also reported.
+- Worker timestamps must be monotonic for a worker ID. A backwards timestamp or counter regression rejects the transaction; checkpoint and aggregate remain unchanged.
+- The 650,000 row limit applies to aggregate bucket rows. Worker checkpoints, tombstones and metadata are separately bounded at 256, 4096 and one fixed row respectively. The combined logical table-row upper bound at full aggregate capacity is 654,353, before SQLite indexes and WAL pages; this is not a byte estimate.
+- New regression tests cover stale checkpoint eviction/tombstones, live worker limit, read-side age filtering, and timestamp regression. Do not mark CI accepted until the exact hardening HEAD has all three workflows successful.
+
+## 11. Remaining Gate 38 acceptance
+
+1. Exact-head Automated Tests, CodeQL and full Git-history secret audit all SUCCESS.
+2. Benchmark actual SQLite DB and WAL byte growth at representative 1/4/16-worker load; set an evidence-based disk budget with headroom.
+3. Test disk-full, read-only, corruption and lock contention; verify telemetry degradation never blocks HTTP/WebSocket delivery.
+4. Verify actual owner-host persistent local volume, permissions, restart persistence, backup/restore and retention behavior.
+5. Verify reverse-proxy/firewall restrictions and operator access to the existing Bearer-protected endpoint; complete acknowledgement/escalation and recovery drill.
+6. Keep multi-host aggregation explicitly unsupported unless a separate design and validated storage topology are approved.
+

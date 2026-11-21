@@ -1,3 +1,13 @@
+## Batch 62J-83 — Gate 38 telemetry hardening (21 November 2026)
+
+- Pre-change exact HEAD `b1e21f552182a720400cd9a2d276705834a41358`: Automated Tests 44898947136 SUCCESS (33/33 steps); CodeQL 44898947150 SUCCESS; Full Git History Secret Audit 44898947186 SUCCESS.
+- Collector hardening adds bounded stale-worker checkpoint eviction, seven-day retired-worker tombstones (4096 maximum) to reject a resumed evicted worker ID, seven-day read-side bucket filtering, explicit aggregate-row eviction counters, and worker timestamp monotonicity checks.
+- Added regression coverage for worker-generation saturation, tombstone rejection, 16-worker live limit, retention filtering, and timestamp regression. New commit's CI is the acceptance gate.
+- WebSocket lifecycle accounting and transport semantics remain unchanged. The metrics collector is best-effort same-host telemetry only; production WSS remains unaccepted pending actual host/proxy/Redis/browser/Android evidence.
+- No deployment, paid provider, Termux, production credential or `main` operation.
+
+---
+
 
 
 ## Batch 62J-82 — exact-head CI and capacity-model correction (21 November 2026)

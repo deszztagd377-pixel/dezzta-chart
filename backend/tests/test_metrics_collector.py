@@ -83,3 +83,67 @@ def test_rejects_invalid_worker_and_dimensions(tmp_path):
     req["requests"][0]["method"] = "TRACE"
     with pytest.raises(MetricsCollectorError):
         collector.flush(uuid.uuid4().hex, req, ws, now=900)
+
+
+
+def test_worker_generation_cap_evicts_stale_checkpoints_with_tombstones(tmp_path):
+    import json
+
+    collector = SQLiteMetricsCollector(str(tmp_path / "metrics.sqlite3"))
+    req, ws = snapshots(2)
+    collector.flush(uuid.uuid4().hex, req, ws, now=900)
+    db = collector._connect()
+    stale_ids = [uuid.uuid4().hex for _ in range(255)]
+    try:
+        db.executemany(
+            "INSERT INTO metrics_workers(worker_id,snapshot_json,last_seen,active_connections) VALUES(?,?,?,?)",
+            [(worker_id, json.dumps({}), index, 0) for index, worker_id in enumerate(stale_ids)],
+        )
+    finally:
+        db.close()
+
+    replacement_worker = uuid.uuid4().hex
+    collector.flush(replacement_worker, req, ws, now=1000)
+    result = collector.snapshot(now=1001)
+    assert result["worker_count"] == 1
+    assert result["series"]["http.requests|GET|/health|2xx"] == 4
+    with pytest.raises(MetricsSnapshotRegression):
+        collector.flush(stale_ids[0], req, ws, now=1002)
+
+
+def test_live_worker_limit_is_enforced(tmp_path):
+    import json
+
+    collector = SQLiteMetricsCollector(str(tmp_path / "metrics.sqlite3"))
+    db = collector._connect()
+    live_ids = [uuid.uuid4().hex for _ in range(16)]
+    try:
+        db.executemany(
+            "INSERT INTO metrics_workers(worker_id,snapshot_json,last_seen,active_connections) VALUES(?,?,?,?)",
+            [(worker_id, json.dumps({}), 900, 0) for worker_id in live_ids],
+        )
+    finally:
+        db.close()
+    req, ws = snapshots(1)
+    with pytest.raises(MetricsCollectorError, match="live_worker_limit_exceeded"):
+        collector.flush(uuid.uuid4().hex, req, ws, now=901)
+
+
+def test_snapshot_hides_data_outside_retention_even_without_a_new_flush(tmp_path):
+    collector = SQLiteMetricsCollector(str(tmp_path / "metrics.sqlite3"))
+    req, ws = snapshots(3)
+    collector.flush(uuid.uuid4().hex, req, ws, now=900)
+    result = collector.snapshot(now=900 + 604800 + 900)
+    assert result["series"] == {}
+    assert result["oldest_bucket"] is None
+
+
+def test_worker_timestamp_regression_does_not_mutate_checkpoint(tmp_path):
+    collector = SQLiteMetricsCollector(str(tmp_path / "metrics.sqlite3"))
+    worker = uuid.uuid4().hex
+    req, ws = snapshots(4)
+    collector.flush(worker, req, ws, now=900)
+    lower_req, lower_ws = snapshots(5)
+    with pytest.raises(MetricsSnapshotRegression, match="worker_timestamp_regressed"):
+        collector.flush(worker, lower_req, lower_ws, now=899)
+    assert collector.snapshot(now=901)["series"]["http.requests|GET|/health|2xx"] == 4

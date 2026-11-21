@@ -1,3 +1,17 @@
+## Batch 62J-83 — Gate 38 collector hardening and CI baseline (21 November 2026)
+
+- Active branch remains `phase-2/market-data-foundation`; pre-change HEAD `b1e21f552182a720400cd9a2d276705834a41358`.
+- Exact-head Automated Tests run [44898947136](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44898947136) completed SUCCESS (33/33 steps); CodeQL [44898947150](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44898947150) SUCCESS; Full Git History Secret Audit [44898947186](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44898947186) SUCCESS.
+- Source review found a worker-generation capacity edge case: 256 historical process checkpoints could block a replacement worker before the seven-day retention expired. The hardening change evicts only the oldest stale checkpoints under capacity pressure, records seven-day retired-worker tombstones to reject a resumed evicted process ID, and keeps active worker limits enforced.
+- Snapshot reads now hide buckets outside the seven-day window even when no new flush has occurred. Aggregate-capacity evictions are counted and exposed to the protected metrics response; timestamp regressions are rejected.
+- New tests cover stale-generation eviction/tombstones, the 16-live-worker limit, retention filtering without a subsequent flush, and worker timestamp regression. Exact-head CI for this hardening commit must pass before acceptance.
+- Gate 38 remains 🟧 OPEN: repository implementation is present, but host volume behavior, measured database byte budget, operator access/retention and incident recovery acceptance remain outstanding. No cross-host support is claimed.
+- WebSocket protocol, auth, replay, snapshots and market-data payload behavior are unchanged. The collector remains best-effort telemetry and cannot delay/fail market-data request paths.
+- Indicator formulas, renderers, UI and tests are unchanged; no indicator progress credit. Stage 1 remains 30/40 = 75% provisional. Gate 10 remains 0/10 formally closed.
+- ZERO COST: no deploy, Vercel/Cloudflare operation, Termux, paid service, production credential request or `main` modification.
+
+---
+
 
 
 ## Batch 62J-82 — exact-head CI reconciliation and Gate 38 capacity review (21 November 2026)
