@@ -21,9 +21,9 @@
 
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 21 November 2026 — Batch 62J-68, Gate 8 no-follow secret loader hardening and exact-head CI verification  
+**Checkpoint:** 21 November 2026 — Batch 62J-69, WebSocket source publisher lifecycle integration and exact-head CI verification  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest source/config/test HEAD:** `da9b2ad025ac5c49f75c95dbdd5f516573107f87`
+**Latest source/config/test HEAD:** `6f49951c253a7e7b995b4bdd52eba8153edaef77`
 
 ## Project stage dashboard
 
