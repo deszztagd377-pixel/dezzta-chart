@@ -42,7 +42,7 @@ No generated secret is committed or printed. When `REDIS_TEST_URL` is absent, th
 
 ## Verification status
 
-The new test and configuration are committed, but the exact final-head CI result must be inspected before any pass claim. No green status is inferred from earlier CI runs.
+**Source/test checkpoint:** `7e7d17144c178c8167c22520ce9efc8bcef52b07`. The exact-head CI result must be inspected before any pass claim. No green status is inferred from earlier CI runs.
 
 ## What this achieves
 
