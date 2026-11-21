@@ -256,21 +256,33 @@ class SQLiteMetricsCollector:
                     db.execute("DELETE FROM metrics_workers WHERE worker_id=?", (stale_worker["worker_id"],))
             previous = json.loads(current["snapshot_json"]) if current else {}
             deltas = {key: self._subtract(value, previous[key]) if key in previous else value for key, value in values.items()}
+
+            # Read this time bucket once instead of issuing one SELECT per
+            # logical series. The transaction remains BEGIN IMMEDIATE, so the
+            # snapshot of existing aggregates and subsequent UPSERTs are atomic.
+            bucket_rows = db.execute(
+                "SELECT metric_key,value_json FROM metrics_buckets WHERE bucket_start=?",
+                (bucket,),
+            ).fetchall()
+            bucket_values = {row["metric_key"]: json.loads(row["value_json"]) for row in bucket_rows}
+            upserts = []
             for key, delta in deltas.items():
                 if isinstance(delta, dict):
                     if not (delta["count"] or delta["sum_ms"] or any(delta["buckets"])):
                         continue
                 elif delta == 0:
                     continue
-                row = db.execute(
-                    "SELECT value_json FROM metrics_buckets WHERE bucket_start=? AND metric_key=?",
-                    (bucket, key),
-                ).fetchone()
-                total = self._add(json.loads(row["value_json"]), delta) if row else delta
-                db.execute(
+                total = self._add(bucket_values[key], delta) if key in bucket_values else delta
+                upserts.append((
+                    bucket,
+                    key,
+                    json.dumps(total, separators=(",", ":"), sort_keys=True, allow_nan=False),
+                ))
+            if upserts:
+                db.executemany(
                     """INSERT INTO metrics_buckets(bucket_start,metric_key,value_json) VALUES(?,?,?)
                        ON CONFLICT(bucket_start,metric_key) DO UPDATE SET value_json=excluded.value_json""",
-                    (bucket, key, json.dumps(total, separators=(",", ":"), sort_keys=True, allow_nan=False)),
+                    upserts,
                 )
             db.execute(
                 """INSERT INTO metrics_workers(worker_id,snapshot_json,last_seen,active_connections)
