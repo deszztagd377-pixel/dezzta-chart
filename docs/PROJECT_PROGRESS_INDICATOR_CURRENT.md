@@ -843,3 +843,24 @@ The Gate 38 source audit found that metric series cardinality was bounded but sc
 - ZERO COST. No production Redis connection, deployment, Vercel/Cloudflare operation, production credential, Termux/device action or `main` modification.
 
 **Acceptance boundary:** Gate 25 remains 🟧 OPEN pending live Redis TLS/ACL, persistence/failover and host credential lifecycle. Gate 36 remains 🟧 OPEN pending public HTTPS/WSS proxy and browser/Android runtime acceptance. Source publisher stays 🟨🟩 HOST VERIFICATION PENDING.
+
+
+## Latest engineering checkpoint — Batch 62J-73 (21 November 2026)
+
+**Zero-cost host simulation:** repository is GitHub + CI only; no owner-controlled production host exists. CI already provisions an isolated Redis 7 service via `REDIS_TEST_URL`, so the new acceptance test runs inside the existing backend test job without a new paid service, deployment, or additional workflow job.
+
+**New ACL finding and correction:**
+- Redis clients created from a `redis://...` or `rediss://.../0` URL initialize database selection during connection setup. The dedicated role allow-lists previously omitted `+select`, which could make the otherwise valid ACL user fail before it could PING or access the stream.
+- Added `+select` to both publisher and gateway ACL command matrices. Database 0 remains mandatory; no non-zero database access is introduced.
+- Added `backend/tests/test_ohlcv_redis_acl_integration.py`: creates disposable random ACL usernames/passwords at runtime, authenticates both roles through the same Redis URL path, verifies publisher append/read and denies consumer/lease writes, verifies gateway group/read/ack/claim and lease Lua operations, and checks key/command separation. Cleanup removes temporary ACL users and keys. Credentials are never committed or printed.
+- The integration test is opt-in outside CI and runs automatically in the existing backend CI job because that job already supplies `REDIS_TEST_URL`.
+
+**Verification:** the new exact-head CI result has not yet been observed. Do not mark Batch 62J-73 as CI-green until all checks for its final source/test SHA finish successfully.
+
+**Host boundary:** this is an ephemeral CI host simulation only. It does not create a persistent public server, public HTTPS/WSS endpoint, real multi-host gateway topology, production TLS certificate, external backup target or Android runtime acceptance. No production credentials are needed or requested.
+
+**Accounting:** Gate 25 remains 🟧 OPEN pending actual owner-host Redis TLS/ACL, persistence, failover and credential lifecycle. Gate 36 remains 🟧 OPEN pending a public HTTPS/WSS endpoint plus browser/Android acceptance. Gate 8 remains 🟨🟩 host-verification-only. Gate 10 remains 0/10 formally closed. Stage 1 remains 30/40 = 75% provisional; overall project percentage remains unscored.
+
+**Indicator ledger:** unchanged in this backend-only batch. SMA20 🟨 (first valid index 19); EMA20 🟨 (SMA seed, alpha 2/21, index 19); RSI14 🟨 (Wilder, index 14); MACD12/26/9 🟨 (MACD index 25, signal/histogram index 33); Bollinger20,2 🟨 (population SD, index 19); Shared Indicator Hook 🟨; Footprint 🟧 simulated/gated; Heatmap 🟥 not implemented; Liquidation Maps 🟥 not implemented. Full formulas, invariants and renderer work remain recorded in this dashboard.
+
+**Cost/device:** ZERO COST. No deployment, paid hosting, production credentials, Vercel/Cloudflare operation, Termux action or `main` modification.
