@@ -1116,3 +1116,8 @@ Gate 38 added SQLite tail-latency phase diagnostics only. No indicator formulas,
 ## Batch 62J-95 checkpoint — no indicator changes (21 November 2026)
 
 SQLite retry de-synchronization is Gate 38 telemetry infrastructure only. No indicator formula, data contract, shared hook, renderer, UI or indicator tests changed. **No indicator progress credit is awarded.** The complete indicator matrix and shared invariants remain unchanged.
+
+
+## Batch 62J-96 checkpoint — no indicator changes (21 November 2026)
+
+The Gate 38 retry-jitter experiment was rejected and reverted after a measured synthetic benchmark regression. The accepted diagnostic instrumentation from 62J-94 remains. No indicator formula, data contract, shared hook, renderer, UI or indicator test changed. **No indicator progress credit is awarded.** The complete indicator matrix and invariants remain unchanged.

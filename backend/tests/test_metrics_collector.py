@@ -397,18 +397,3 @@ def test_real_sqlite_page_limit_failure_rolls_back_and_recovers(tmp_path, monkey
     after_recovery = collector.snapshot(now=1803)
     assert after_recovery["series"]["http.requests|GET|/capacity/000|1xx"] == 2
     assert after_recovery["series"]["websocket|connections_completed"] == 2
-
-
-def test_lock_retry_backoff_is_stable_jittered_and_never_exceeds_existing_bound():
-    from app.metrics_collector import _lock_retry_delay
-
-    workers = [f"{index:032x}" for index in range(1, 17)]
-    delays = [_lock_retry_delay(worker, 0) for worker in workers]
-    assert len(set(delays)) == len(workers)
-    assert all(0.005 <= delay <= 0.01 for delay in delays)
-
-    # Existing schedule has seven explicit sleeps: 10, 20, 40, 80, 160,
-    # 250 and 250 ms. Per-worker jitter can shorten, but never extend, it.
-    for worker in workers:
-        total = sum(_lock_retry_delay(worker, attempt) for attempt in range(7))
-        assert 0 < total <= 0.81

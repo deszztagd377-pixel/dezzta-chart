@@ -6,7 +6,7 @@
 - Full-cardinality 899-series artifact (CI runner, 32 flushes/worker): at 16 threads, end-to-end p99 625.336 ms, writer-lock-wait p99 617.533 ms, transaction-body/commit p99 22.998 ms, 105 retries. At four OS processes, end-to-end p99 275.777 ms, lock-wait p99 103.635 ms, transaction p99 20.412 ms, one retry.
 - This isolates lock contention as the dominant measured tail in these synthetic concurrent cases; it does not establish production-host latency.
 
-## Change
+## Change (rejected and reverted in Batch 62J-96)
 The previous retry schedule used identical deterministic delays (10, 20, 40, 80, 160, 250, 250 ms) for every worker. Contending workers could therefore wake and retry together. The collector now derives a stable per-worker jitter factor from a BLAKE2s digest of the worker ID and scales each exponential delay by 0.5–1.0.
 
 ## Bound calculation
@@ -28,3 +28,8 @@ No indicator source changed; no progress credit. SMA20 🟨 (20-close mean, firs
 
 ## Project accounting
 Stage 1 remains 30/40 = 300/400 = 75% provisional. Gate 10 remains 0/10 formally closed. Overall project % remains unscored. No Gate 10 tick is awarded by synthetic CI. ZERO COST.
+
+
+## 62J-96 decision — REJECTED AND REVERTED
+
+The exact-head benchmark artifact showed 16-thread p95/p99/max rising from 390.277/625.336/878.721 ms to 599.624/1,125.048/2,042.702 ms; retry count rose from 105 to 181. Four-process p95 rose 62.234 → 139.278 ms. The source helper and its test were reverted. Keep the 62J-94 diagnostic instrumentation; do not claim a tail-latency improvement from jitter.
