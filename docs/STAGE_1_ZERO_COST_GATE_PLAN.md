@@ -1,6 +1,6 @@
 ## Batch 62J-67 — Gate 8 build-context and configuration hardening (21 November 2026)
 
-- Exact branch HEAD: `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d`.
+- Latest source/config/test HEAD: `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d`.
 - Added `backend/.dockerignore` to exclude local `.env` files, key/certificate material, SSH private-key names, runtime databases/backups, and Python-generated files from the Docker build context. This closes a repository-side exposure path: build-context files are sent to the Docker builder even when the Dockerfile does not COPY them into the image.
 - Expanded `backend/.env.example` with the optional alert-device encrypted-store path, disabled-by-default delivery worker, Redis URL, and operator incident token. No real credential or key is included.
 - The Dockerfile continues to copy only `requirements.txt` and `app/`; the runtime key must be injected separately and remain outside the image and repository.

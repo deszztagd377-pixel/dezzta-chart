@@ -1,7 +1,7 @@
 # Latest exact-head reconciliation — Batch 62J-67 (21 November 2026)
 
 **Working branch:** `phase-2/market-data-foundation`  
-**Current branch HEAD:** `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d`.
+**Latest source/config/test HEAD:** `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d`.
 
 - Automated Tests [44861035493](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035493): **SUCCESS** — frontend **247/247 tests across 29 files**; backend **1,235 passed in 49.78s**; all **33/33 workflow steps** passed.
 - CodeQL [44861035537](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035537): **SUCCESS**.

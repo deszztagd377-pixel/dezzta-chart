@@ -1,7 +1,7 @@
 ## Latest engineering checkpoint — Batch 62J-67 (21 November 2026)
 
 **Branch:** `phase-2/market-data-foundation`  
-**Current branch HEAD:** `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d`  
+**Latest source/config/test HEAD:** `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d`  
 **Gate 8 test/source checkpoint:** `58f0e721a197d95424395d08ecce2143ddcd4926`  
 **Gate 8 build-context/config checkpoint:** `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d`
 
@@ -24,7 +24,7 @@
 
 **Checkpoint:** 21 November 2026 — Batch 62J-67, Gate 8 build-context hardening and exact-head CI verification  
 **Active branch:** `phase-2/market-data-foundation`  
-**Current branch HEAD:** `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d`
+**Latest source/config/test HEAD:** `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d`
 
 ## Project stage dashboard
 

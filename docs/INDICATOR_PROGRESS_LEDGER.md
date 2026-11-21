@@ -1,6 +1,6 @@
 ## Latest indicator status — Batch 62J-67 (21 November 2026)
 
-**Current branch HEAD:** `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d` on `phase-2/market-data-foundation`.  
+**Latest source/config/test HEAD:** `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d` on `phase-2/market-data-foundation`.  
 **Exact-head CI:** Automated Tests [44861035493](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035493), CodeQL [44861035537](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035537), Full Git History Secret Audit [44861035482](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035482) — all **SUCCESS**. Frontend 247/247 across 29 files; backend 1,235 passed in 49.78s; 33/33 workflow steps passed.
 
 No indicator calculation, formula, shared hook, renderer, chart UI, or indicator test changed in Batches 62J-66/67. Gate 8 security tests and Docker build-context hardening are not indicator implementation. **No indicator completion credit is awarded.**

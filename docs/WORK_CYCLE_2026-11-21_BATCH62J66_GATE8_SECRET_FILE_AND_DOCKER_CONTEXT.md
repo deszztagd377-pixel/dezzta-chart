@@ -3,7 +3,7 @@
 
 **Date:** 21 November 2026  
 **Branch:** `phase-2/market-data-foundation`  
-**Current branch HEAD:** `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d`  
+**Latest source/config/test HEAD:** `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d`  
 **Policy:** ZERO COST; never modify `main`.
 
 ## Executive result
