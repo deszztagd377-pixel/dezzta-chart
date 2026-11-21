@@ -12,6 +12,8 @@ import base64
 from datetime import datetime, timezone
 import hashlib
 import json
+import math
+import shutil
 from pathlib import Path
 import platform
 import sqlite3
@@ -269,6 +271,73 @@ def _remove_created_database(path: Path) -> None:
             pass
 
 
+def _existing_directory(path: Path) -> Path:
+    """Find the nearest existing directory for filesystem capacity checks."""
+    candidate = path.resolve()
+    while not candidate.exists():
+        candidate = candidate.parent
+    if not candidate.is_dir():
+        raise NotADirectoryError("restore destination parent is not a directory")
+    return candidate
+
+
+def _preflight_capacity(source: Path, backup: Path, restored: Path) -> dict[str, int | bool]:
+    """Refuse a restore drill unless WAL-aware conservative free-space bounds hold."""
+    source_db = _ro(source)
+    try:
+        journal_mode = str(source_db.execute("PRAGMA journal_mode").fetchone()[0]).lower()
+        page_count = int(source_db.execute("PRAGMA page_count").fetchone()[0])
+        page_size = int(source_db.execute("PRAGMA page_size").fetchone()[0])
+    finally:
+        source_db.close()
+
+    rollback_journal = Path(f"{source}-journal")
+    if journal_mode != "wal" and rollback_journal.exists() and rollback_journal.stat().st_size:
+        raise sqlite3.DatabaseError(
+            "source rollback journal is present; refusing restore drill"
+        )
+
+    source_main_bytes = source.stat().st_size
+    wal_path = Path(f"{source}-wal")
+    source_wal_bytes = wal_path.stat().st_size if wal_path.is_file() else 0
+    logical_bytes = page_count * page_size
+    snapshot_bytes = max(source_main_bytes + source_wal_bytes, logical_bytes)
+    if snapshot_bytes < 1:
+        raise sqlite3.DatabaseError("source database has no measurable storage size")
+
+    backup_directory = _existing_directory(backup.parent)
+    restore_directory = _existing_directory(restored.parent)
+    same_filesystem = (
+        os.stat(backup_directory).st_dev == os.stat(restore_directory).st_dev
+    )
+    backup_free = int(shutil.disk_usage(backup_directory).free)
+    restore_free = int(shutil.disk_usage(restore_directory).free)
+
+    if same_filesystem:
+        peak_bytes = 3 * snapshot_bytes
+        required = peak_bytes + max(64 * 1024 * 1024, math.ceil(0.10 * peak_bytes))
+        backup_required = restore_required = required
+    else:
+        margin = max(64 * 1024 * 1024, math.ceil(0.10 * snapshot_bytes))
+        backup_required = snapshot_bytes + margin
+        restore_required = snapshot_bytes + margin
+
+    if backup_free < backup_required or restore_free < restore_required:
+        raise OSError("insufficient free space for safe SQLite restore drill")
+
+    return {
+        "source_main_bytes": source_main_bytes,
+        "source_wal_bytes": source_wal_bytes,
+        "logical_database_bytes": logical_bytes,
+        "estimated_snapshot_bytes": snapshot_bytes,
+        "backup_required_free_bytes": backup_required,
+        "restore_required_free_bytes": restore_required,
+        "backup_available_free_bytes": backup_free,
+        "restore_available_free_bytes": restore_free,
+        "destination_filesystems_match": same_filesystem,
+    }
+
+
 def run_restore_drill(source_path: str | Path, backup_path: str | Path,
                       restore_path: str | Path) -> dict:
     started = perf_counter()
@@ -289,6 +358,8 @@ def run_restore_drill(source_path: str | Path, backup_path: str | Path,
         raise FileExistsError("backup destination exists; refusing to overwrite")
     if restored.exists():
         raise FileExistsError("restore destination exists; refusing to overwrite")
+
+    capacity = _preflight_capacity(source, backup, restored)
 
     backup_created = False
     restore_created = False
@@ -339,6 +410,7 @@ def run_restore_drill(source_path: str | Path, backup_path: str | Path,
             "runtime": {"python": platform.python_version(), "platform": platform.system(),
                         "machine": platform.machine(), "sqlite": sqlite3.sqlite_version},
             "source_role": "source", "backup_role": "backup", "restore_role": "restored_copy",
+            "capacity_preflight": capacity,
             "backup_size_bytes": backup.stat().st_size, "restore_size_bytes": restored.stat().st_size,
             "backup_sha256": _hash(backup), "restore_sha256": _hash(restored),
             "integrity_check": "ok", "foreign_key_errors": 0,
