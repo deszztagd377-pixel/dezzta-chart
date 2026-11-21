@@ -3,7 +3,7 @@
 
 **Date:** 21 November 2026  
 **Branch:** `phase-2/market-data-foundation`  
-**Base source/test HEAD:** `e6fd0dcb8d27be85b4fa32bc6b82a1495403e8e8`
+**Latest source/test HEAD:** `f70f0bcfe2208b4fbfb37440fe8dc3b740e8fbcc`
 
 ### Defect found
 Batch 62J-77 prevented avoidable intermediate overflow by normalizing each SMA window. A further adversarial ordering showed that a tiny normalized residual could still be rounded away by ordinary summation:
@@ -20,11 +20,11 @@ Batch 62J-77 prevented avoidable intermediate overflow by normalizing each SMA w
 ### Complexity and scope
 - Time complexity remains O(N × P); expansion storage is O(P) for each window.
 - For SMA20, each window contains 20 values. No arbitrary-period controls are introduced.
-- EMA20, RSI14, MACD12/26/9, Bollinger20,2, WebSocket code, chart UI and renderer are unchanged.
+- EMA20, RSI14 and MACD12/26/9 calculations are unchanged. Bollinger middle-band mean now shares the stable mean helper; normalized population variance and bands are unchanged. WebSocket code, chart UI and renderer are unchanged.
 - This is numerical correctness work only; SMA20 remains 🟨 foundation.
 
 ### Verification
-Initial exact-head Automated Tests run 44893124624 caught a missing normalized vector still required by Bollinger variance calculation (7 tests failed from the same ReferenceError; 248 passed). The vector has been restored without reverting the compensated middle-band mean. Fresh exact-head CI must pass before this batch is accepted.
+Initial exact-head Automated Tests run 44893124624 caught a missing normalized vector still required by Bollinger variance calculation (7 tests failed from the same ReferenceError; 248 passed). The vector has been restored without reverting the compensated middle-band mean. On corrected HEAD f70f0bcfe2208b4fbfb37440fe8dc3b740e8fbcc, frontend tests/build, CodeQL and full Git-history secret audit passed; backend tests and APK build remain in progress.
 
 ### Project and Gate 10 accounting
 - Stage 1: 30/40 criteria = 75% provisional.
