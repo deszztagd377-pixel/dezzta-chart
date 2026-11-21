@@ -1,8 +1,8 @@
 # DEZZTA CHART — Complete Indicator Progress Ledger
 
-**Checkpoint:** 20 November 2026 — Batch 62J-48 exact-head CI reconciliation; indicator implementation unchanged
+**Checkpoint:** 21 November 2026 — Batch 62J-53 Redis consumer ownership guard; exact branch HEAD `56317eff2b71886040acb998bf692814622feedf`
 **Branch:** `phase-2/market-data-foundation`  
-**Indicator implementation status:** unchanged at exact source/test HEAD `0d548aa398cf3efb7952b65e2fb9723e330ddeb6`; the two latest commits modify backend tests only and do not award indicator progress.
+**Indicator implementation status:** indicator calculation, hook, chart and renderer files remain unchanged in Batch 62J-53. Latest exact source/test HEAD is `56317eff2b71886040acb998bf692814622feedf`; no indicator progress is awarded by backend WebSocket reliability work.
 **Interpretation:** statuses describe verified implementation boundaries, not a guessed completion percentage. No indicator weights or acceptance percentages have been approved, so per-indicator or total-indicator percentages are intentionally not fabricated.
 
 
@@ -18,6 +18,20 @@
 - The two commits since the previous checkpoint add four backend regression tests for in-memory ticket single-use/subject binding, exact TTL expiry, wrong-purpose consumption, and entitlement revocation during renewal. Runtime indicator and chart files are unchanged.
 - **No indicator state changed.** Passing WebSocket/backend CI validates repository tests; it does not render an indicator in the chart or prove real market-data correctness.
 - Stage 1 remains 30/40 = 75% provisional; Gate 10 remains 0/10 closed; no indicator or overall-project percentage is inferred.
+
+
+## Exact-head evidence refresh — Batch 62J-53 (21 November 2026)
+
+- Exact source/test HEAD: `56317eff2b71886040acb998bf692814622feedf` on `phase-2/market-data-foundation`.
+- Automated Tests [44774049019](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774049019): **SUCCESS** — frontend **245/245 tests across 29 files**; backend **1,218 passed, 6 warnings in 35.76 seconds**.
+- CodeQL [44774050265](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774050265): **SUCCESS** for Python and JavaScript/TypeScript.
+- Full Git History Secret Audit [44774048914](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774048914): **SUCCESS**.
+- Backend CI also completed the bounded synthetic outbox benchmark, dependency audit, container build, Redis ACL/AOF plus persistent-volume smoke test, and container vulnerability scan/report export.
+- The 1,218 backend tests include the Redis lease/consumer regression suite. The integration suite ran against the CI Redis service; the run completed with no skipped tests reported in the pytest summary.
+- The indicator calculation engine, indicator hook and chart rendering code were not changed. The 245 frontend tests are repository-wide and are **not** evidence that the indicators are visually integrated or accepted against live market data.
+- **Indicator state remains unchanged:** SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, shared indicator hook 🟨, Footprint 🟧, Heatmap 🟥, Liquidation Maps 🟥. See the full calculation contracts and remaining acceptance work below.
+- Stage 1 remains 30/40 = 300/400 ticks = **75% provisional**; Gate 10 remains **0/10 formally closed**. No new Stage 1 tick or indicator percentage is awarded.
+- No deployment, paid service, Vercel/Cloudflare operation, Termux/device command, or `main` modification occurred.
 
 ## Color legend
 

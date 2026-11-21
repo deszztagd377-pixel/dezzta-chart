@@ -1,12 +1,13 @@
-# Latest exact-head reconciliation — 20 November 2026
+# Latest exact-head reconciliation — 21 November 2026
 
 **Branch:** `phase-2/market-data-foundation`  
-**Latest branch HEAD:** `cf5ea982739cb570cc4bd2a3f9e1e2397b58e690` (documentation-only descendant of the source/test checkpoint).  
-**Latest source/test HEAD:** `0d548aa398cf3efb7952b65e2fb9723e330ddeb6`  
-**Source/test-head Automated Tests & Build:** [44755071944](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44755071944) **SUCCESS** — frontend 245/245 (29 files), backend 1,202 passed / 6 warnings.  
-**Source/test-head CodeQL:** [44755071870](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44755071870) **SUCCESS**.  
-**Source/test-head Full Git History Secret Audit:** [44755071865](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44755071865) **SUCCESS**.  
-**Exact branch-head CI:** Automated Tests & Build [44756726270](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44756726270), CodeQL [44756726223](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44756726223), and Full Git History Secret Audit [44756726233](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44756726233) all **SUCCESS** on `cf5ea982739cb570cc4bd2a3f9e1e2397b58e690`.  
+**Latest source/test HEAD:** `56317eff2b71886040acb998bf692814622feedf`  
+**Automated Tests:** [44774049019](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774049019) **SUCCESS** — frontend 245/245 (29 files), backend 1,218 passed / 6 warnings.  
+**CodeQL:** [44774050265](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774050265) **SUCCESS**.  
+**Full Git History Secret Audit:** [44774048914](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774048914) **SUCCESS**.  
+**Batch 62J-53:** Redis consumer ownership lease and exact-head integration/regression tests passed. This is repository-level WebSocket hardening; it does not close any owner-host gate by itself.  
+**Accounting:** Stage 1 remains **30/40 = 300/400 = 75% provisional**; Gate 10 remains **10/10 ORANGE / 0 closed**; Stages 2–6 and overall project percentage remain unscored.  
+**Boundary:** no production deployment, paid service, Termux/device operation, or `main` modification.
 **Gate 20 delta:** test evidence now includes in-memory ticket single-use/subject binding, exact TTL expiry, wrong-purpose consumption, cross-account renewal rejection (4401), and entitlement revocation during renewal (4403). This is repository-level regression coverage only. Real Firebase signed-token/session expiry/revocation and browser/Android reconnect remain external acceptance requirements.  
 **Accounting:** Stage 1 remains **30/40 = 300/400 = 75% provisional**; Gate 10 remains **10/10 ORANGE / 0 closed**; Stages 2–6 and overall project percentage remain unscored. No acceptance tick is awarded by this CI refresh.  
 **Boundary:** no runtime source change in the two latest commits, no deployment, no paid service, no Termux/device operation, and no `main` modification.

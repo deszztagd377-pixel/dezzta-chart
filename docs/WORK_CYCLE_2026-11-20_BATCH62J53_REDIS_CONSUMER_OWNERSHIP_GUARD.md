@@ -19,6 +19,9 @@ The gateway ACL now additionally requires `SET`, `EVAL`, `GET`, `PEXPIRE`, and `
 
 ## Validation
 
+**Exact-head CI on `56317eff2b71886040acb998bf692814622feedf`:** Automated Tests [44774049019](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774049019) **SUCCESS** (frontend 245/245 across 29 files; backend 1,218 passed, 6 warnings, 35.76s); CodeQL [44774050265](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774050265) **SUCCESS**; Full Git History Secret Audit [44774048914](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774048914) **SUCCESS**. Backend container build, Redis ACL/AOF + persistent-volume smoke test, bounded synthetic outbox benchmark, dependency audit and vulnerability scan/report export also passed. No skipped tests were reported in the backend pytest summary.
+
+
 The Redis 7 test suite covers competing processes, independent replica groups, TTL takeover, stale-owner fencing, lease-loss detection, and generation separation. This is a CI-level ownership guard, not proof of protection against arbitrary host compromise or every possible process pause/Redis partition. During an outage the consumer does not apply or ACK new events until ownership can be verified again. Event application remains idempotent and ACK is guarded by a fresh ownership check, but the ownership check and subsequent ACK are separate Redis operations; the design does not claim a transaction spanning local SQLite, WebSocket fan-out, and Redis ACK.
 
 ## Operational boundary

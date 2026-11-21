@@ -1,11 +1,9 @@
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 20 November 2026 — Batch 62J-48 exact-head WebSocket CI and indicator reconciliation
+**Checkpoint:** 21 November 2026 — Batch 62J-53 Redis consumer ownership guard and exact-head CI
 **Active branch:** `phase-2/market-data-foundation`
-**Latest branch HEAD:** `cf5ea982739cb570cc4bd2a3f9e1e2397b58e690` (documentation-only descendant; no runtime source/test changes).
-**Latest source/test HEAD:** `0d548aa398cf3efb7952b65e2fb9723e330ddeb6` (the two commits after `826bae749f48e844f5fddb82dfec396bb3f9baa7` add backend regression tests only; runtime source unchanged).
-**Source/test-head CI:** Automated Tests & Build [44755071944](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44755071944) **SUCCESS** — frontend 245/245 across 29 files; backend **1,202 passed, 6 warnings**. CodeQL [44755071870](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44755071870) **SUCCESS** • Full Git History Secret Audit [44755071865](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44755071865) **SUCCESS**.
-**Exact branch-head CI:** Automated Tests & Build [44756726270](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44756726270), CodeQL [44756726223](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44756726223), and Full Git History Secret Audit [44756726233](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44756726233) all **SUCCESS** on `cf5ea982739cb570cc4bd2a3f9e1e2397b58e690`.
+**Latest source/test HEAD:** `56317eff2b71886040acb998bf692814622feedf` (Redis consumer lease, worker/lifespan integration, ACL and regression tests).
+**Exact-head CI:** Automated Tests [44774049019](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774049019) **SUCCESS** — frontend **245/245 across 29 files**; backend **1,218 passed, 6 warnings in 35.76s**. CodeQL [44774050265](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774050265) **SUCCESS** • Full Git History Secret Audit [44774048914](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774048914) **SUCCESS**.
 **Audit evidence:** frontend dependency audit 0 vulnerabilities; backend dependency audit no known vulnerabilities; frontend source/bundle secret scan, backend container build, Redis ACL/AOF + mounted-volume smoke test, Trivy scan/report export all completed successfully.
 **WebSocket E:** COMPLETE FOR THE DEFINED AUTOMATED FAILURE-MATRIX SCOPE. This is distinct from Gate 20's real Firebase identity and browser/Android acceptance.
 **Gate 20:** repository regression coverage strengthened for single-use/expiry/purpose, cross-account renewal rejection, and entitlement revocation during renewal. Real Firebase project signed-token/session acceptance and browser/Android reconnect remain OPEN.
@@ -17,6 +15,18 @@
 
 > This document is the current concise dashboard. Historical work-cycle reports remain the evidence trail. Distinguish the latest source/test HEAD from a documentation-only branch HEAD, and cite CI only for the exact SHA shown by each run.
 
+
+
+## Batch 62J-53 — Redis consumer ownership guard (21 November 2026)
+
+- A token-fenced, generation-scoped Redis lease now enforces one active consumer process per local replica group. Startup acquires the lease before Redis group initialization; another process using the same replica identity fails closed.
+- Lease renewal, ownership checks and release are token-checked. The consumer verifies ownership before applying each event and before ACK. Transient Redis transport uncertainty pauses processing/ACK and retries verification; a successor token is never overwritten.
+- A missing ephemeral lease key may be reacquired only with `SET NX`; generation-scoped keys allow a new snapshot generation to proceed independently of the old one.
+- Restricted gateway ACL adds the lease namespace and `SET/EVAL/GET/PEXPIRE/DEL`; publisher ACL remains unchanged. No `XGROUP DESTROY` permission is added.
+- CI exercises two-process contention, independent replica identities, TTL takeover, stale-owner fencing, lease-loss-before-ACK, Redis interruption/recovery, and generation separation.
+- Exact-head CI is 3/3 successful; see run links in the checkpoint above. This closes the identified **repository-level WebSocket consumer-exclusivity defect**, not Gate 20/25 production acceptance.
+- Gate 10 remains **0/10 closed**. Stage 1 remains **30/40 = 75% provisional**. Indicator implementation is unchanged; no indicator score is awarded.
+- No production Redis, deployment, paid service, Termux/device action, or `main` change.
 
 ## Batch 62J-47 — cross-account WebSocket ticket renewal regression (20 November 2026)
 
