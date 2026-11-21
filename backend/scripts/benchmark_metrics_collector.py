@@ -1,10 +1,11 @@
 """Synthetic local-only benchmark for the same-host SQLite metrics collector.
 
+Exercises the full declared 899 logical-series envelope with 1, 4 and 16
+concurrent Python threads. This remains a CI/local baseline, not a production
+host, separate-process, multi-host, or market-data performance guarantee.
+
 Run from the backend directory:
     python scripts/benchmark_metrics_collector.py --flushes-per-worker 32
-
-This measures the local Python/SQLite runtime only. It is not a production-host,
-multi-host, or market-data performance guarantee.
 """
 from __future__ import annotations
 
@@ -23,10 +24,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.metrics_collector import SQLiteMetricsCollector
+from app.metrics_collector import MAX_SERIES, SQLiteMetricsCollector
 
 
 _BASE_TIME = 1_800_000_000.0
+_METHOD = "GET"
+_STATUSES = ("1xx", "2xx", "3xx", "4xx", "5xx", "other")
+_BUCKET_LIMITS = (5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000)
 
 
 def _positive_int(value: str) -> int:
@@ -59,26 +63,36 @@ def _summary(samples: list[float]) -> dict[str, float | int]:
 
 
 def _snapshot(count: int) -> tuple[dict, dict]:
-    request = {
-        "schema_version": 1,
-        "requests": [{
-            "method": "GET",
-            "route": "/benchmark/metrics",
-            "status_class": "2xx",
+    routes = [f"/benchmark/series/{index:03d}" for index in range(127)]
+    requests = [
+        {
+            "method": _METHOD,
+            "route": route,
+            "status_class": status,
             "count": count,
-        }],
-        "latency_ms": [{
-            "method": "GET",
-            "route": "/benchmark/metrics",
+        }
+        for route in routes
+        for status in _STATUSES
+    ]
+    latency = [
+        {
+            "method": _METHOD,
+            "route": route,
             "count": count,
             "sum_ms": float(count * 2),
             "buckets": [
                 {"le_ms": limit, "count": count if limit >= 5 else 0}
-                for limit in (5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000)
+                for limit in _BUCKET_LIMITS
             ] + [{"le_ms": None, "count": count}],
-        }],
+        }
+        for route in routes
+    ]
+    request_snapshot = {
+        "schema_version": 1,
+        "requests": requests,
+        "latency_ms": latency,
     }
-    websocket = {
+    websocket_snapshot = {
         "schema_version": 1,
         "connections_started": count,
         "connections_active": 0,
@@ -90,7 +104,7 @@ def _snapshot(count: int) -> tuple[dict, dict]:
             "1xxx": count, "2xxx": count, "4xxx": count, "5xxx": count, "other": count,
         },
     }
-    return request, websocket
+    return request_snapshot, websocket_snapshot
 
 
 def _file_sizes(database_path: Path) -> dict[str, int]:
@@ -158,11 +172,17 @@ def run_case(*, workers: int, flushes_per_worker: int) -> dict:
         snapshot_time = _BASE_TIME + flushes_per_worker * 15 + 20
         result = collector.snapshot(now=snapshot_time)
         expected_total = workers * flushes_per_worker
-        actual_total = result["series"].get("http.requests|GET|/benchmark/metrics|2xx", 0)
+        expected_series = MAX_SERIES
+        first_route_key = "http.requests|GET|/benchmark/series/000|2xx"
+        actual_total = result["series"].get(first_route_key, 0)
         if result["worker_count"] != workers or actual_total != expected_total:
             raise RuntimeError(
                 f"aggregation mismatch: workers={result['worker_count']}/{workers}, "
                 f"requests={actual_total}/{expected_total}"
+            )
+        if len(result["series"]) != expected_series:
+            raise RuntimeError(
+                f"cardinality mismatch: observed={len(result['series'])}/{expected_series}"
             )
 
         with sqlite3.connect(str(database_path), timeout=1.0) as verify:
@@ -177,6 +197,8 @@ def run_case(*, workers: int, flushes_per_worker: int) -> dict:
             "workers": workers,
             "flushes_per_worker": flushes_per_worker,
             "successful_flushes": expected_total,
+            "logical_series_verified": len(result["series"]),
+            "logical_series_expected": expected_series,
             "worker_count_verified": result["worker_count"],
             "aggregated_request_count_verified": actual_total,
             "sqlite_integrity": "ok",
@@ -191,20 +213,32 @@ def run_case(*, workers: int, flushes_per_worker: int) -> dict:
 def run_benchmark(*, flushes_per_worker: int) -> dict:
     if not 1 <= flushes_per_worker <= 1000:
         raise ValueError("flushes_per_worker must be between 1 and 1000")
+    request, websocket = _snapshot(1)
+    payload_bytes = len(json.dumps(
+        {"request": request, "websocket": websocket},
+        separators=(",", ":"), sort_keys=True, allow_nan=False,
+    ).encode("utf-8"))
     cases = [
         run_case(workers=workers, flushes_per_worker=flushes_per_worker)
         for workers in (1, 4, 16)
     ]
     return {
-        "benchmark": "sqlite_metrics_collector_local_synthetic",
+        "benchmark": "sqlite_metrics_collector_full_cardinality_local_synthetic",
         "data_source": "synthetic_operational_counters_only_not_market_data",
+        "declared_logical_series": MAX_SERIES,
+        "request_series": len(request["requests"]),
+        "latency_series": len(request["latency_ms"]),
+        "websocket_series": 10,
+        "snapshot_payload_bytes": payload_bytes,
+        "snapshot_payload_limit_bytes": 256 * 1024,
         "commit_sha": os.environ.get("GITHUB_SHA", "not_supplied"),
         "python": platform.python_version(),
         "platform": platform.platform(),
         "cases": cases,
         "notes": [
+            "Full declared 899-series envelope: 762 request + 127 latency + 10 WebSocket series.",
             "Single-host SQLite WAL benchmark using concurrent Python worker threads.",
-            "Measures synthetic flush throughput, lock retries, local file and WAL sizes.",
+            "Measures synthetic flush latency, lock retries, local file and WAL sizes.",
             "Does not simulate separate OS processes or a production persistent volume.",
             "Does not establish a production database byte cap or multi-host support.",
             "Results depend on the CI runner filesystem and must not be generalized to owner-host storage.",
