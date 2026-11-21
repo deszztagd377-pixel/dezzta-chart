@@ -507,18 +507,26 @@ def create_app(
                     phase_delay = int(metrics_worker_id[:8], 16) % 15
                     try:
                         await asyncio.wait_for(worker_stop.wait(), timeout=phase_delay)
-                        return
                     except asyncio.TimeoutError:
                         pass
                     retry_seconds = 1.0
                     while not worker_stop.is_set():
                         try:
-                            await asyncio.to_thread(metrics_collector.flush, metrics_worker_id, request_metrics.snapshot(), websocket_metrics.snapshot())
-                            application.state.metrics_collector_status.update({"state": "running", "last_error_code": None})
+                            await asyncio.to_thread(
+                                metrics_collector.flush, metrics_worker_id,
+                                request_metrics.snapshot(), websocket_metrics.snapshot(),
+                            )
+                            application.state.metrics_collector_status.update({
+                                "state": "running", "last_error_code": None,
+                            })
                             retry_seconds = 1.0
                         except Exception as exc:
-                            application.state.metrics_collector_status.update({"state": "degraded", "last_error_code": type(exc).__name__[:64]})
-                            logging.getLogger("dezzta.metrics").warning("Metrics snapshot flush failed; application traffic remains unaffected.")
+                            application.state.metrics_collector_status.update({
+                                "state": "degraded", "last_error_code": type(exc).__name__[:64],
+                            })
+                            logging.getLogger("dezzta.metrics").warning(
+                                "Metrics snapshot flush failed; application traffic remains unaffected."
+                            )
                         timeout = retry_seconds if application.state.metrics_collector_status["state"] == "degraded" else 15.0
                         try:
                             await asyncio.wait_for(worker_stop.wait(), timeout=timeout)
@@ -526,6 +534,17 @@ def create_app(
                             pass
                         if application.state.metrics_collector_status["state"] == "degraded":
                             retry_seconds = min(retry_seconds * 2.0, 15.0)
+                    # One bounded final checkpoint on graceful shutdown.
+                    try:
+                        await asyncio.wait_for(asyncio.to_thread(
+                            metrics_collector.flush, metrics_worker_id,
+                            request_metrics.snapshot(), websocket_metrics.snapshot(),
+                        ), timeout=1.0)
+                    except Exception as exc:
+                        logging.getLogger("dezzta.metrics").warning(
+                            "Final metrics checkpoint did not complete during shutdown (%s).",
+                            type(exc).__name__,
+                        )
                 metrics_task = asyncio.create_task(metrics_flush_loop(), name="dezzta-metrics-flush")
 
             if config.alert_delivery_worker_enabled:

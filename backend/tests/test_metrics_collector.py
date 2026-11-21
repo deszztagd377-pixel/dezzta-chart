@@ -39,16 +39,18 @@ def test_combines_workers_and_repeated_snapshots_are_idempotent(tmp_path):
 def test_failed_transaction_does_not_advance_checkpoint(tmp_path, monkeypatch):
     collector = SQLiteMetricsCollector(str(tmp_path / "metrics.sqlite3"))
     worker = uuid.uuid4().hex
+    baseline_req, baseline_ws = snapshots(1)
+    collector.flush(worker, baseline_req, baseline_ws, now=900)
     req, ws = snapshots(3)
     original = collector._add
     def fail(*args):
         raise sqlite3.OperationalError("simulated failure")
     monkeypatch.setattr(collector, "_add", fail)
     with pytest.raises(sqlite3.OperationalError):
-        collector.flush(worker, req, ws, now=900)
+        collector.flush(worker, req, ws, now=901)
     monkeypatch.setattr(collector, "_add", original)
-    collector.flush(worker, req, ws, now=901)
-    assert collector.snapshot(now=902)["series"]["http.requests|GET|/health|2xx"] == 3
+    collector.flush(worker, req, ws, now=902)
+    assert collector.snapshot(now=903)["series"]["http.requests|GET|/health|2xx"] == 3
 
 
 def test_counter_regression_is_rejected_without_mutating_aggregate(tmp_path):
