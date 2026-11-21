@@ -1,17 +1,17 @@
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 21 November 2026 — Batch 62J-55 WebSocket exact-head integration reconciliation
+**Checkpoint:** 21 November 2026 — Batch 62J-56 WebSocket exact-head CI and indicator reconciliation
 **Active branch:** `phase-2/market-data-foundation`
-**Latest runtime/source-test HEAD:** `56317eff2b71886040acb998bf692814622feedf` (Redis consumer lease, worker/lifespan integration, ACL and regression tests).
-**Exact-head CI:** Automated Tests [44774049019](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774049019) **SUCCESS** — frontend **245/245 across 29 files**; backend **1,218 passed, 6 warnings in 35.76s**. CodeQL [44774050265](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774050265) **SUCCESS** • Full Git History Secret Audit [44774048914](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774048914) **SUCCESS**.
-**Audit evidence:** frontend dependency audit 0 vulnerabilities; backend dependency audit no known vulnerabilities; frontend source/bundle secret scan, backend container build, Redis ACL/AOF + mounted-volume smoke test, Trivy scan/report export all completed successfully.
-**WebSocket E:** COMPLETE FOR THE DEFINED AUTOMATED FAILURE-MATRIX SCOPE. This is distinct from Gate 20's real Firebase identity and browser/Android acceptance.
-**Gate 20:** repository regression coverage strengthened for single-use/expiry/purpose, cross-account renewal rejection, and entitlement revocation during renewal. Real Firebase project signed-token/session acceptance and browser/Android reconnect remain OPEN.
+**Latest branch HEAD:** `96bfea52d9920b7d5d49ed85c0536610a6afd037` (test-only WebSocket compatibility cleanup; no production runtime or indicator source changed).
+**Exact-head CI:** Automated Tests [44849892717](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44849892717) **SUCCESS** — frontend **245/245 across 29 files**; backend **1,218 passed in 48.17s**, with no pytest warnings summary emitted. The full job completed all 31 listed steps, including dependency audits, source/bundle secret scans, Android preflight/publisher tests, SQLite outbox benchmark, backend container build, Redis ACL/AOF + persistent-volume smoke test, Trivy image scan and report upload.
+**CodeQL / full-history audit boundary:** latest separately recorded successful CodeQL and full-history secret-audit runs remain attached to the prior runtime source/test checkpoint `56317eff2b71886040acb998bf692814622feedf` (runs `44774050265` and `44774048914`). The current commit changes only four test-client arguments; do not relabel those prior runs as exact-head runs for `96bfea52d9920b7d5d49ed85c0536610a6afd037`.
+**WebSocket E:** COMPLETE FOR THE DEFINED AUTOMATED FAILURE-MATRIX SCOPE, including dual-ASGI live delivery, reconnect replay, process restart continuity, independent Redis TCP-path interruption/recovery, and snapshot-generation replacement. Production snapshot distribution/rotation, production Redis TLS/ACL/credential operations, public WSS and browser/Android acceptance remain external.
 **Gate 10:** **10/10 🟧 OPEN; 0/10 formally closed** — gates 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39.
-**Stage 1:** 30/40 criteria = 300/400 ticks = **75% provisional**; no new acceptance tick awarded by this cycle.
-**Stages 2–6:** not scored. **Overall project percentage:** not established; M1–M8 weighting/acceptance denominator remains unapproved.
-**Indicator aggregate:** not scored; no approved weights/denominator. Individual status remains in the complete indicator ledger below.
-**Cost/device boundary:** ZERO COST. No paid provider, hosting, subscription, deployment, Vercel or Cloudflare action. No Termux/device operation was run in this cycle. `main` remains untouched.
+**Stage 1:** 30/40 criteria = 300/400 ticks = **75% provisional**; 100 ticks / 10 criteria remain, with no new acceptance tick awarded by this cycle.
+**Indicators:** calculation foundations remain present; SMA20, EMA20, RSI14, MACD12/26/9, Bollinger20,2 and shared hook 🟨; Footprint 🟧 (reference/blueprint gated); Heatmap and Liquidation Maps 🟥. No aggregate percentage is approved.
+**Overall project:** not scored; M1–M8 weighting and acceptance denominator remain unapproved.
+**Cost/device boundary:** ZERO COST. No Vercel/Cloudflare deployment, paid service, production credential, Termux/device operation, or `main` modification.
+
 
 > This document is the current concise dashboard. Historical work-cycle reports remain the evidence trail. Distinguish the latest source/test HEAD from a documentation-only branch HEAD, and cite CI only for the exact SHA shown by each run.
 
@@ -214,24 +214,22 @@ Reviewed the Redis consumer, managed worker, event-loop dispatcher, replica brid
 - Snapshot/replay/live merge validates exact series identity, monotonic replay cursors, queued live cursor ordering and queue capacity; covered live events are discarded and newer events are resequenced.
 - FastAPI now has an explicit opt-in replica runtime path with verified-snapshot hydration and managed worker lifecycle. Source-backed mode remains the default; production activation remains separately gated.
 
-### Remaining WebSocket acceptance blockers — current position
+### Remaining WebSocket acceptance blockers — current position (reconciled 21 Nov 2026)
 
-1. **Production snapshot transport and lifecycle:** the runtime factory expects an owner-provisioned verified local replica snapshot. No production artifact distribution/rotation contract is selected.
-2. **Failure matrix completion:** add real process-level restart/recovery scenarios for ASGI gateway restart, Redis outage/recovery, snapshot-generation replacement and post-recovery cursor parity. Existing lower-level tests cover several component failures, but not every scenario across two live ASGI processes.
-3. **Production Redis security:** owner-provisioned TLS, least-privilege per-instance ACL credentials, credential rotation and target-environment verification.
-4. **External acceptance:** public WSS endpoint, browser client and Android device end-to-end tests.
-5. **Operational governance:** retention/stream trimming policy, authorized cleanup procedure, runbook and owner-side recovery drill.
+The earlier 62J-15 failure-matrix gap is **superseded** by the verified dual-ASGI and real-Redis evidence in Batches 62J-25, 62J-28 and 62J-31. Batch 62J-56 then removed four synchronous test-client deprecation warnings without changing runtime behavior.
 
-The opt-in route/lifecycle and two-process ASGI proof are implemented. Do not repeat those as unstarted tasks. Do not mix cursor domains, enable production mode without verified snapshot/TLS/ACL prerequisites, or close Gate 25/34/36 based on CI-only evidence.
+1. **Production snapshot lifecycle:** owner-provisioned distribution, rotation, rollback, retention and authorized cleanup of verified replica snapshots.
+2. **Production Redis operations:** real-host TLS certificate validation, least-privilege ACL provisioning/rotation, network policy, persistence, supervision and failover/recovery evidence.
+3. **External client path:** accepted public HTTPS/WSS endpoint plus browser and Android WebView handshake, auth/entitlement, reconnect/replay and resnapshot acceptance.
+4. **Operator acceptance:** target-host runbook, observed incident/recovery drill and evidence retention.
 
-### CI evidence boundary
+**Automated failure matrix:** COMPLETE for its defined scope. Do not reopen already-passed two-ASGI live delivery, replay, gateway restart, independent TCP-path interruption/recovery or generation-replacement tests as if they were unimplemented. Do not infer production deployment or close Gates 25/34/35/36 from CI-only evidence.
 
-At code HEAD `407d2b38882e92cdf6db5b7df6c44350b6cd746d`, the previously recorded exact-head workflows passed:
-- Automated Tests: run `44564212673` — backend 1,153 passed; frontend 236 passed across 28 test files; build, scans, dependency audit, container and Redis/persistent-volume checks passed.
-- CodeQL Python and JavaScript/TypeScript: run `44564212707` — SUCCESS.
-- Full Git History Secret Audit: run `44564212714` — SUCCESS.
+### Exact-head CI evidence — Batch 62J-56
 
-The later docs-only checkpoint does not change code and does not imply a new code CI run.
+At branch HEAD `96bfea52d9920b7d5d49ed85c0536610a6afd037`, Automated Tests run `44849892717` completed **SUCCESS**. Frontend: 245/245 tests across 29 files. Backend: 1,218 passed in 48.17 seconds; pytest emitted no warnings summary. All 31 listed job steps completed successfully, including frontend build/scans, backend tests, synthetic SQLite outbox benchmark, dependency audits, backend image build, Redis ACL/AOF + mounted-volume smoke test, Trivy scan and vulnerability report export.
+
+The four changed lines are confined to `backend/tests/test_ohlcv_redis_consumer.py`: synchronous WebSocket test clients now explicitly pass `legacy=True` alongside `ping_interval=None`. This resolves the legacy-client deprecation warnings shown by the previous test run. No production WebSocket code, API contract, chart, indicator or database behavior changed. The separately recorded CodeQL and full-history audit successes remain at prior code/test HEAD `56317eff2b71886040acb998bf692814622feedf`; they are not mislabeled as exact-head checks for this test-only commit.
 
 
 ## 62J-16 — Worker lifecycle and callback deadline regression coverage

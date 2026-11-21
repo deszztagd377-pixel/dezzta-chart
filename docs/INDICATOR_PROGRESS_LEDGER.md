@@ -697,3 +697,17 @@ Added `docs/GATE30_OWNER_HOST_RESTORE_DRILL_RUNBOOK.md` after source inspection 
 - No indicator weights/denominator have been approved; aggregate indicator percentage remains unscored.
 - Stage 1 remains 30/40 = 75% provisional; Gate 10 remains 0/10 formally closed; overall project percentage remains unestablished.
 - ZERO COST; no deployment, Termux/device action, or `main` modification.
+
+
+## Exact-head indicator and CI reconciliation — Batch 62J-56 (21 November 2026)
+
+- **Branch HEAD:** `96bfea52d9920b7d5d49ed85c0536610a6afd037`; branch `phase-2/market-data-foundation`.
+- **Exact-head Automated Tests:** [run 44849892717](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44849892717) **SUCCESS**. Frontend **245/245 tests across 29 files**; backend **1,218 passed in 48.17 seconds**. Pytest emitted no warnings summary. All 31 listed workflow job steps completed successfully, including frontend build, source/bundle secret scans, Android host-preflight and preview-publisher tests, SQLite outbox benchmark, dependency audits, backend container build, Redis ACL/AOF + persistent-volume smoke test, Trivy scan and vulnerability-report upload.
+- The only code change in this batch is four `legacy=True` options on synchronous WebSocket test clients in `backend/tests/test_ohlcv_redis_consumer.py`. It addresses the test-client deprecation warnings; no production WebSocket, indicator calculation, shared hook, chart renderer or database code changed.
+- The dual-ASGI WebSocket failure matrix remains **COMPLETE for the defined automated scope** from Batches 62J-25/28/31. Production snapshot distribution/rotation, production Redis TLS/ACL/credential lifecycle, public WSS and browser/Android acceptance remain external.
+- **No indicator progress is awarded by this CI run.** Status is unchanged: SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, shared indicator hook 🟨, Footprint 🟧, Heatmap 🟥, Liquidation Maps 🟥.
+- Calculation contracts remain: SMA20 and SMA-seeded EMA20 first valid at candle index 19; RSI14 Wilder smoothing first valid at index 14; MACD12/26/9 first MACD at 25 and signal/histogram at 33; Bollinger20,2 using population standard deviation first valid at 19. Warm-up slots remain null and candle-index aligned.
+- Footprint remains explicitly simulated/educational until validated exchange-native bid/ask data is available. Footprint OFF must preserve ordinary candle layout/spacing; only explicit ON may use the dedicated spaced-cluster layout. Footprint and Heatmap visuals remain gated on the user's reference images and reviewed blueprints. Liquidation Maps remain blocked on a validated data/calculation contract.
+- Stage 1 remains **30/40 criteria = 300/400 ticks = 75% provisional**. Ten criteria (8, 20, 25, 30, 31, 34, 35, 36, 38, 39) remain OPEN, 0/10 formally closed. No acceptance tick is awarded by this cycle.
+- No indicator aggregate percentage or overall-project percentage is published: neither has an approved weighting/acceptance denominator. Stages 2–6 remain unscored.
+- ZERO COST maintained: no deployment, paid service, Vercel/Cloudflare operation, Termux/device operation, production credentials, or `main` modification.
