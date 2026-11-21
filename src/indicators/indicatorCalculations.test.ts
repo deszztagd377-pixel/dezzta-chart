@@ -122,7 +122,7 @@ describe('shared indicator calculation engine', () => {
 
   it('fails closed instead of emitting infinite values from finite extreme inputs', () => {
     const extreme = Number.MAX_VALUE;
-    expect(() => calculateSma([extreme, extreme], 2)).toThrow(/finite numeric range/);
+    expect(calculateSma([extreme, extreme], 2)).toEqual([null, extreme]);
     expect(calculateEma([extreme, extreme], 2)).toEqual([null, extreme]);
     expect(() => calculateRsi([-extreme, extreme], 1)).toThrow(/finite numeric range/);
     expect(() => calculateBollingerBands([extreme, -extreme], 2, 2)).toThrow(/finite numeric range/);
@@ -139,7 +139,7 @@ describe('shared indicator calculation engine', () => {
   it('computes representable SMA means without overflowing the intermediate sum', () => {
     const extreme = Number.MAX_VALUE;
     expect(calculateSma([extreme, extreme], 2)).toEqual([null, extreme]);
-    expect(calculateSma([extreme, extreme, -extreme], 3)[2]).toBeCloseTo(extreme / 3, 10);
+    expect(calculateSma([extreme, extreme, -extreme], 3)[2]! / extreme).toBeCloseTo(1 / 3, 10);
     expect(calculateSma([extreme, extreme, -extreme, -extreme], 2)).toEqual([
       null, extreme, 0, -extreme,
     ]);
