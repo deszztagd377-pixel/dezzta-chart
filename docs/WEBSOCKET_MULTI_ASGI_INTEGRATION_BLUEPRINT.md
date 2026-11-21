@@ -151,3 +151,29 @@ Passing isolated Redis consumer tests is necessary but insufficient. Documentati
 - No production startup wiring before snapshot transport and lifecycle approval.
 - No Footprint/Heatmap visual implementation before user references and blueprint review.
 - No claim that work continues asynchronously after a response.
+
+## 9. Current implementation reconciliation — 21 November 2026
+
+This section supersedes the earlier implementation-state bullets in sections 2 and 3.4 where they say the FastAPI lifespan does not own the Redis worker or that the WebSocket route is always source-store-backed.
+
+Inspected runtime/source-test checkpoint: `56317eff2b71886040acb998bf692814622feedf`.
+
+- FastAPI lifespan now supports an **opt-in injected** `replica_runtime_factory`. It validates the replica store, dedicated Redis client, stream key, consumer bindings and generation-scoped group.
+- Startup acquires the consumer ownership lease before Redis group initialization, hydrates the pipeline from the verified local replica, creates the event-loop dispatcher, and starts the managed Redis worker.
+- Shutdown uses a bounded worker stop. Lease release occurs only after the worker has stopped successfully.
+- The WebSocket route uses `subscribe_replica_snapshot` and replica Redis replay when a replica runtime is injected; otherwise it retains the source-store path.
+- The Redis consumer, lease, worker, replica bridge and replay components have individual regression coverage. Exact documentation branch HEAD `290c4fe1b4a125e9a41b410d942e807db22c58aa` passed all four GitHub check runs: Test and Build, CodeQL JavaScript/TypeScript, CodeQL Python, and full reachable Git-history secret audit. Test totals: frontend 245/245 across 29 files; backend 1,218 passed, 6 warnings.
+
+### 9.1 Still-open acceptance
+
+A full test that launches two independent FastAPI/ASGI server processes, gives each a separate SQLite replica and consumer group, connects two WebSocket clients, and proves identical cursor/event delivery was not found in the inspected backend test inventory. Component tests are not a substitute for this end-to-end proof.
+
+Snapshot transport and installation are still not a complete owner-approved deployment contract. The runtime factory is opt-in and requires a verified snapshot/generation. Do not guess a production snapshot path, share a SQLite WAL database across hosts, or enable replica mode by default.
+
+Production Redis TLS/ACL/network/failover, actual host topology and supervision, public HTTPS/WSS, browser/Android reconnect tests, and real provider delivery remain owner-side acceptance items.
+
+### 9.2 Required next batch
+
+Implement the CI-only two-ASGI-process harness using the existing Redis 7 CI service and temporary test resources. Prove identical snapshot watermark, ordered events/cursors, replay/live boundary handoff exactly once, independent checkpoint convergence, and restart/outage/retention/lease-loss behavior. Keep production replica mode disabled until the snapshot topology is explicitly approved and owner-side evidence is available.
+
+**Current accounting:** WebSocket component reliability tests are green; full two-ASGI acceptance remains open. Gate 10 remains 0/10 formally closed; Stage 1 remains 30/40 = 75% provisional. No indicator progress is awarded. ZERO COST; no deployment or `main` change.
