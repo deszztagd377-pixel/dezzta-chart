@@ -1,6 +1,6 @@
 # DEZZTA CHART — Complete Indicator Progress Ledger
 
-**Checkpoint:** 21 November 2026 — Batch 62J-53 Redis consumer ownership guard; exact branch HEAD `56317eff2b71886040acb998bf692814622feedf`
+**Checkpoint:** 21 November 2026 — Batch 62J-55 WebSocket exact-head reconciliation; latest runtime/source-test HEAD `56317eff2b71886040acb998bf692814622feedf`
 **Branch:** `phase-2/market-data-foundation`  
 **Indicator implementation status:** indicator calculation, hook, chart and renderer files remain unchanged in Batch 62J-53. Latest exact source/test HEAD is `56317eff2b71886040acb998bf692814622feedf`; no indicator progress is awarded by backend WebSocket reliability work.
 **Interpretation:** statuses describe verified implementation boundaries, not a guessed completion percentage. No indicator weights or acceptance percentages have been approved, so per-indicator or total-indicator percentages are intentionally not fabricated.
@@ -686,3 +686,14 @@ No indicator source, calculation, chart UI, or formula changed in this batch. In
 ## Batch 62J-45 — 20 November 2026: Gate 30 preparation boundary
 
 Added `docs/GATE30_OWNER_HOST_RESTORE_DRILL_RUNBOOK.md` after source inspection of `backend/app/sqlite_restore_drill.py`, `backend/app/sqlite_backup.py`, `backend/app/config.py` and the restore-drill regression suite. The live database path is configured by `INSTRUMENT_REGISTRY_DB_PATH`, defaulting to `./data/instrument_registry.sqlite3` relative to the backend process working directory. The actual injected value, host, working directory and mounted volume are runtime-only facts not available from repository source. The runbook defines the source read-only boundary, distinct fresh output paths, conservative free-space calculation, conjunctive acceptance checks, privacy-safe evidence retention and stop conditions. No device/Termux operation occurred. Gate 30 remains 🟧 OPEN; no Stage 1 tick is awarded. Indicator implementation and all indicator statuses remain unchanged.
+
+## Exact-head indicator accounting refresh — Batch 62J-55 (21 November 2026)
+
+- Runtime/source-test checkpoint remains `56317eff2b71886040acb998bf692814622feedf`; subsequent branch commits in this batch are documentation-only.
+- No indicator calculation, hook, chart, renderer, or indicator test files changed during the WebSocket reconciliation.
+- No indicator completion credit is awarded for the backend WebSocket CI results.
+- SMA 20 🟨, EMA 20 🟨, RSI 14 🟨, MACD 12/26/9 🟨, Bollinger 20,2 🟨, shared indicator hook 🟨, Footprint 🟧, Heatmap 🟥, Liquidation Maps 🟥.
+- Footprint and Heatmap visual implementation remain blocked pending the user's respective reference images and reviewed blueprints. Footprint OFF must preserve the ordinary candlestick layout/spacing; the dedicated spaced cluster layout is only for explicit Footprint ON.
+- No indicator weights/denominator have been approved; aggregate indicator percentage remains unscored.
+- Stage 1 remains 30/40 = 75% provisional; Gate 10 remains 0/10 formally closed; overall project percentage remains unestablished.
+- ZERO COST; no deployment, Termux/device action, or `main` modification.
