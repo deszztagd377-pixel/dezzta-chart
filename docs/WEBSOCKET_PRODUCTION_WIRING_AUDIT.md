@@ -7,11 +7,11 @@
 
 ## Executive result
 
-The repository contains substantial, tested publisher and consumer primitives, but the complete production data path is not wired end-to-end. Do not mark WebSocket production acceptance complete and do not deploy this checkpoint as proof of live fan-out.
+The initial audit found that the repository contained substantial publisher and consumer primitives but lacked a source publisher lifecycle hook. Batch 62J-69 has since implemented that lifecycle hook and exact runtime-binding checks. The production data path is still not activated by the module-level default ASGI app and is not host-accepted; do not deploy this checkpoint as proof of live fan-out.
 
-The audit found two independent integration gaps:
+The initial audit found two independent integration gaps:
 
-1. **Source publisher lifecycle is absent.** `backend/app/ohlcv_redis_publisher.py` implements `SQLiteOhlcvPublisherCheckpoint`, `RedisOhlcvStreamAppender`, and `RedisOhlcvPublisher.publish_available()`. The publisher class explicitly documents that it is not connected to FastAPI startup. `backend/app/main.py` imports the gateway consumer worker but not the source publisher. Its `publish_persisted_bar()` reads the durable outbox event and calls only `stream_hub.publish()`; it does not append that event to Redis Streams.
+1. **Initial finding — source publisher lifecycle absent (superseded by Batch 62J-69).** `backend/app/ohlcv_redis_publisher.py` implements `SQLiteOhlcvPublisherCheckpoint`, `RedisOhlcvStreamAppender`, and `RedisOhlcvPublisher.publish_available()`. The publisher class explicitly documents that it is not connected to FastAPI startup. `backend/app/main.py` imports the gateway consumer worker but not the source publisher. Its `publish_persisted_bar()` reads the durable outbox event and calls only `stream_hub.publish()`; it does not append that event to Redis Streams.
 2. **Gateway runtime remains injection-only.** `create_app()` accepts an optional `replica_runtime_factory`; the module-level `app = create_app()` supplies none. Therefore the default ASGI entry point starts the provider/local-SQLite path, not the replica consumer path. A gateway host needs an explicit, verified factory and a preinstalled replica snapshot.
 
 These gaps are separate: wiring the source publisher does not automatically provision gateway snapshots or activate the replica runtime.
@@ -29,20 +29,16 @@ These gaps are separate: wiring the source publisher does not automatically prov
 
 ## Required implementation sequence
 
-### WS-PUB — source publisher lifecycle
+### WS-PUB — remaining host-side activation
 
-Add an opt-in source-side publisher lifecycle to FastAPI without changing the default local/development behavior:
+The FastAPI lifecycle hook is implemented and CI-verified. Remaining activation requirements are owner-host tasks:
 
-- Feature flag defaults OFF.
-- Reuse the existing configured Redis URL; production must continue enforcing TLS and ACL credentials.
-- Construct the publisher only when its durable checkpoint exists and matches the configured stream.
-- Ping Redis before accepting traffic.
-- Run bounded `publish_available()` calls off the event loop.
-- Wake the publisher after a durable source bar commit; retain a bounded polling fallback for restart/backlog recovery.
-- Retry transient Redis failures with bounded exponential backoff.
-- Stop permanently in `resnapshot_required` state when source outbox retention overtakes the checkpoint; never skip a cursor.
-- Close the dedicated Redis client during lifespan shutdown.
-- Expose a sanitized internal status (state, last batch counters, exception class only).
+- Inject a source-only `publisher_runtime_factory`; the default module-level app deliberately remains disabled.
+- Build the publisher against the exact `SQLiteOhlcvStore` instance supplied by FastAPI. Runtime startup rejects a different store, checkpoint, source ID, Redis client or stream key.
+- Require a pre-existing checkpoint or initialize it only from the exact global snapshot watermark already installed on every target gateway. Never infer or invent the cursor.
+- Use a dedicated least-privilege publisher ACL client and finite connect/socket timeouts; production must use `rediss://`.
+- Verify the owner-host durable volume, Redis ACL and snapshot generation before enabling the feature.
+- The sanitized lifecycle state is held in application state; it is not a public status route and does not expose credentials or exception messages.
 
 ### WS-SNAP — snapshot generation coordination
 
@@ -94,14 +90,14 @@ Keep source publisher and gateway consumer as separate application roles unless 
 
 ## Audit disposition
 
-**WebSocket repository primitives:** substantially implemented.  
-**Source-to-Redis publisher integration:** open, confirmed blocker.  
+**WebSocket repository primitives:** substantially implemented and CI-verified for the defined automated failure matrix.  
+**Source-to-Redis publisher lifecycle hook:** implemented and exact-head CI-verified; source runtime factory, snapshot watermark alignment, dedicated Redis ACL and host activation remain 🟨🟩 pending.  
 **Redis-to-gateway replica integration:** opt-in factory exists; default ASGI entry point is not wired.  
-**Production acceptance:** open.  
-**Code changes in this audit:** none; this document records verified source-level findings and prevents false production-completion claims.
+**Production acceptance:** open; public WSS, production Redis TLS/ACL topology, snapshot distribution/rotation/rollback, browser and Android WebView acceptance remain unverified.  
+**Initial audit code changes:** none. Batch 62J-69 adds the subsequent FastAPI publisher lifecycle and runtime-binding validation.
 
 
-## Batch 62J-56 — source publisher lifecycle integration (21 November 2026)
+## Batch 62J-69 — source publisher lifecycle integration (21 November 2026)
 
 **Source change:** FastAPI now accepts a dedicated, owner-injected `publisher_runtime_factory` for the source application role. Lifespan validates that the publisher, dedicated Redis client and exact stream key agree; performs Redis PING before provider ingestion starts; runs bounded synchronous publisher batches through `asyncio.to_thread`; wakes on persisted-bar callbacks; and polls once per second to recover retained backlog after restart. Transient failures use bounded 1–30 second exponential backoff. A typed retention-gap exception transitions the worker to terminal `resnapshot_required` without advancing the checkpoint. Shutdown waits up to 15 seconds and closes the dedicated client only after the publisher task has stopped.
 
@@ -109,4 +105,4 @@ Keep source publisher and gateway consumer as separate application roles unless 
 
 **Host gate:** the source runtime factory must construct `SQLiteOhlcvPublisherCheckpoint` against the durable source database, require an existing checkpoint or initialize it only from the exact global snapshot watermark already installed on every target gateway, and use a dedicated publisher ACL client with finite socket/connect timeouts. The code cannot prove remote snapshot installation; this remains an owner-host prerequisite. Publisher lifecycle wiring is therefore **🟨🟩 HOST-FACTORY / SNAPSHOT VERIFICATION PENDING**, not production-green. Do not enable the source publisher until snapshot and ACL preconditions are satisfied.
 
-**Verification boundary:** lifecycle contract tests were added for Redis readiness, task startup, graceful client close, source/gateway role separation, and runtime binding mismatch. Exact-head CI must pass before repository verification is credited. No deployment, live Redis connection, production host, Termux command, paid service, or `main` change was performed.
+**Verification boundary:** lifecycle contract tests cover Redis readiness, task startup, graceful client close, source/gateway role separation and runtime binding mismatch. The runtime also rejects a publisher bound to a different SQLite store or checkpoint/source ID. Exact-head CI on `6f49951c253a7e7b995b4bdd52eba8153edaef77` passed: Automated Tests [44866818528], CodeQL [44866818498] and Full Git History Secret Audit [44866818495] all SUCCESS; frontend 247/247, backend 1,241 passed, and all 33 workflow steps succeeded. Backend container build, Redis ACL/AOF + persistent-volume smoke, container scan and vulnerability-report export also succeeded. No deployment, live Redis connection, production host, Termux command, paid service, or `main` change was performed.

@@ -1,19 +1,20 @@
-## Latest engineering checkpoint — Batch 62J-68 (21 November 2026)
+## Latest engineering checkpoint — Batch 62J-69 (21 November 2026)
 
 **Branch:** `phase-2/market-data-foundation`  
-**Latest source/config/test HEAD:** `da9b2ad025ac5c49f75c95dbdd5f516573107f87`  
-**Gate 8 security source/test HEAD:** `da9b2ad025ac5c49f75c95dbdd5f516573107f87`  
-**Gate 8 build-context/config checkpoint:** `da9b2ad025ac5c49f75c95dbdd5f516573107f87`
+**Latest source/config/test HEAD:** `6f49951c253a7e7b995b4bdd52eba8153edaef77`  
+**Gate 8 security source/test and build-context checkpoint:** `da9b2ad025ac5c49f75c95dbdd5f516573107f87`
 
-- Automated Tests [44863517983](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44863517983), CodeQL [44863518025](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44863518025), Full Git History Secret Audit [44863517962](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44863517962) — all **SUCCESS**. Frontend 247/247; backend 1,238 passed in 49.89s; 32/32 workflow steps succeeded.
-- Container verification: backend image build, shared Redis ACL/AOF + persistent-volume smoke, Trivy scan and report export all passed. Trivy reported **0 vulnerabilities** for the scanned Alpine and Python package targets. Frontend npm audit reported **0 vulnerabilities**; backend dependency audit reported no known vulnerabilities.
-- Gate 8 repository-side improvements: settings repr/str redaction now explicitly covers the alert-device encryption key; 12 loader regression cases cover canonical Base64 256-bit key loading, permission rejection, malformed/wrong-size material, path validation, symbolic-link rejection, non-regular-file rejection, and sanitized non-ASCII decoding errors. `backend/.dockerignore` excludes local credentials and runtime state from the build context; `backend/.env.example` documents the relevant optional settings.
-- Gate 8 remains **OPEN — 🟨 HOST VERIFICATION ONLY**. Repository-side loader, redaction, Docker-context and CI evidence are complete. Only actual owner-host secret injection, owner/group/mode, UID/GID 10001 readability, process exposure, rotation, log/crash exposure and runtime verification remain. CI is not host acceptance.
-- WebSocket automated failure-matrix scope remains complete; production snapshot distribution/rotation, production Redis TLS/ACL lifecycle, public WSS, and browser/Android acceptance remain external.
-- No indicator calculation, formula, hook, renderer, chart UI, or indicator test changed. No indicator progress credit is awarded.
-- Stage 1 remains **30/40 criteria = 300/400 ticks = 75% provisional**. Gate 10 remains **0/10 formally closed**; **1/10 (Gate 8) is 🟨 host-verification-only**, while gates 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain 🟧 OPEN.
+- Exact-head Automated Tests [44866818528](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44866818528), CodeQL [44866818498](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44866818498), and Full Git History Secret Audit [44866818495](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44866818495) — all **SUCCESS**.
+- Frontend: **247/247 passed**. Backend: **1,241 passed**. Automated workflow: **33/33 steps succeeded**.
+- Backend image build, shared Redis ACL/AOF + persistent-volume smoke test, container scan, vulnerability-report export and artifact upload all completed successfully.
+- Source WebSocket publisher lifecycle is now implemented as an opt-in FastAPI runtime hook. Exact source-store identity, checkpoint state/source ID, Redis client and stream-key bindings are validated before Redis PING and provider startup. The worker uses bounded background batches, callback wake-up, 1-second backlog polling, bounded retry and terminal resnapshot-required handling.
+- Publisher lifecycle status: **🟨🟩 HOST-FACTORY / SNAPSHOT VERIFICATION PENDING**. The default ASGI app remains disabled unless its owner injects a source runtime factory. The owner must prove the durable checkpoint matches the exact global snapshot already installed on every target gateway and provide a dedicated least-privilege Redis client with finite timeouts.
+- Gate 8 remains **OPEN — 🟨 HOST VERIFICATION ONLY**. Repository-side loader, redaction, Docker-context and CI evidence are complete; actual owner-host secret injection, ownership/mode, UID/GID readability, process exposure, rotation and runtime verification remain external.
+- WebSocket automated failure-matrix scope remains complete. Production snapshot distribution/rotation, Redis production TLS/ACL lifecycle, public WSS and browser/Android acceptance remain open.
+- No indicator calculation, formula, hook, renderer, chart UI or indicator test changed. Indicator progress remains unchanged; no indicator credit is awarded.
+- Stage 1 remains **30/40 criteria = 300/400 ticks = 75% provisional**. Gate 10 remains **0/10 formally closed**: Gate 8 is 🟨 host-verification-only; gates 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain 🟧 OPEN.
 - Overall project and aggregate indicator percentages remain **unscored** until approved weights and acceptance denominators exist. Stages 2–6 remain unscored.
-- ZERO COST maintained: no deployment, paid service, production credential, Termux/device operation, or `main` modification.
+- ZERO COST: no deployment, paid service, production credential, Termux/device operation, or `main` modification.
 
 
 ---
@@ -287,7 +288,7 @@ Reviewed the Redis consumer, managed worker, event-loop dispatcher, replica brid
 
 ### Remaining WebSocket acceptance blockers — current position (reconciled 21 Nov 2026)
 
-The earlier 62J-15 failure-matrix gap is **superseded** by the verified dual-ASGI and real-Redis evidence in Batches 62J-25, 62J-28 and 62J-31. Batch 62J-56 then removed four synchronous test-client deprecation warnings without changing runtime behavior.
+The earlier 62J-15 failure-matrix gap is **superseded** by the verified dual-ASGI and real-Redis evidence in Batches 62J-25, 62J-28 and 62J-31. Batch 62J-69 then removed four synchronous test-client deprecation warnings without changing runtime behavior.
 
 1. **Production snapshot lifecycle:** owner-provisioned distribution, rotation, rollback, retention and authorized cleanup of verified replica snapshots.
 2. **Production Redis operations:** real-host TLS certificate validation, least-privilege ACL provisioning/rotation, network policy, persistence, supervision and failover/recovery evidence.
@@ -296,7 +297,7 @@ The earlier 62J-15 failure-matrix gap is **superseded** by the verified dual-ASG
 
 **Automated failure matrix:** COMPLETE for its defined scope. Do not reopen already-passed two-ASGI live delivery, replay, gateway restart, independent TCP-path interruption/recovery or generation-replacement tests as if they were unimplemented. Do not infer production deployment or close Gates 25/34/35/36 from CI-only evidence.
 
-### Exact-head CI evidence — Batch 62J-56
+### Exact-head CI evidence — Batch 62J-69
 
 At branch HEAD `96bfea52d9920b7d5d49ed85c0536610a6afd037`, Automated Tests run `44849892717` completed **SUCCESS**. Frontend: 245/245 tests across 29 files. Backend: 1,218 passed in 48.17 seconds; pytest emitted no warnings summary. All 31 listed job steps completed successfully, including frontend build/scans, backend tests, synthetic SQLite outbox benchmark, dependency audits, backend image build, Redis ACL/AOF + mounted-volume smoke test, Trivy scan and vulnerability report export.
 
@@ -818,9 +819,9 @@ The Gate 38 source audit found that metric series cardinality was bounded but sc
 - ZERO COST. No Termux/device command, deployment, Vercel/Cloudflare operation, paid service, or `main` modification.
 
 
-## Batch 62J-56 progress reconciliation — 21 November 2026
+## Batch 62J-69 progress reconciliation — 21 November 2026
 
-- WebSocket source publisher lifecycle: 🟨🟩 host-factory / snapshot-verification pending. FastAPI now supports a dedicated injected publisher runtime, startup Redis PING, bounded background relay, persisted-bar wake-up plus 1-second backlog polling, bounded retry, terminal resnapshot-required handling, and guarded shutdown. Exact-head CI is required before repository verification is credited; owner-host snapshot watermark, dedicated ACL and durable-volume checks remain open.
+- WebSocket source publisher lifecycle: 🟨🟩 host-factory / snapshot-verification pending. Exact-head CI passed on 6f49951c253a7e7b995b4bdd52eba8153edaef77. FastAPI validates source-store identity, checkpoint/source ID, dedicated Redis client and stream key; then performs startup PING, bounded background relay, persisted-bar wake-up, 1-second backlog polling, bounded retry, terminal resnapshot-required handling and guarded shutdown. Owner-host snapshot watermark, ACL and durable-volume checks remain open.
 - WebSocket production acceptance: 🟧 OPEN. This batch does not close public WSS, production Redis TLS/ACL topology, snapshot distribution/rotation/rollback, browser or Android WebView acceptance.
 - Indicator implementation unchanged. SMA20, EMA20, RSI14, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain 🟨 FOUNDATION; Footprint remains 🟧 SIMULATED / GATED; Heatmap and Liquidation Maps remain 🟥 NOT IMPLEMENTED. No indicator progress percentage is awarded by a backend-only change.
 - Gate 10 remains 0/10 formally closed. Stage 1 remains 30/40 = 75% provisional. Overall project percentage and aggregate indicator percentage remain unscored because approved denominators/weights are not established.
