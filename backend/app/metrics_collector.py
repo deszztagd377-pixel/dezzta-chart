@@ -211,6 +211,7 @@ class SQLiteMetricsCollector:
         cutoff = stamp - RETENTION_SECONDS
         db = self._connect()
         lock_retries = 0
+        lock_wait_started_ns = time.perf_counter_ns()
         try:
             # SQLite has one writer at a time. With up to 16 ASGI workers,
             # retry lock acquisition before transaction work so bounded
@@ -224,6 +225,8 @@ class SQLiteMetricsCollector:
                         raise
                     lock_retries += 1
                     time.sleep(min(0.01 * (2 ** attempt), 0.25))
+            lock_wait_ms = (time.perf_counter_ns() - lock_wait_started_ns) / 1_000_000
+            transaction_started_ns = time.perf_counter_ns()
             db.execute("DELETE FROM metrics_retired_workers WHERE expires_at < ?", (stamp,))
             retired = db.execute(
                 "SELECT 1 FROM metrics_retired_workers WHERE worker_id=?", (worker_id,)
@@ -308,7 +311,13 @@ class SQLiteMetricsCollector:
                 )
                 row_count = db.execute("SELECT COUNT(*) FROM metrics_buckets").fetchone()[0]
             db.commit()
-            return {"series": len(values), "bucket": bucket, "rows": row_count, "lock_retries": lock_retries}
+            transaction_ms = (time.perf_counter_ns() - transaction_started_ns) / 1_000_000
+            return {
+                "series": len(values), "bucket": bucket, "rows": row_count,
+                "lock_retries": lock_retries,
+                "lock_wait_ms": round(lock_wait_ms, 6),
+                "transaction_ms": round(transaction_ms, 6),
+            }
         except Exception:
             if db.in_transaction:
                 db.rollback()

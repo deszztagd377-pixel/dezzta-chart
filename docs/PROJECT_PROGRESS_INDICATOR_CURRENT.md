@@ -1141,3 +1141,8 @@ Gate 10 remains **0/10 formally closed**. Gates 8, 30, 34, 35 and 39 are 🟨�
 No indicator formula, hook, renderer, UI or market-data contract changed. SMA20 🟨 (first valid index 19); EMA20 🟨 (SMA seed, alpha 2/21, index 19); RSI14 🟨 (Wilder, index 14); MACD12/26/9 🟨 (MACD index 25, signal/histogram index 33); Bollinger20,2 🟨 (population SD, index 19); Shared Hook 🟨; Footprint 🟧; Heatmap 🟥; Liquidation Maps 🟥. Warm-up nulls, candle-index alignment, no future-candle repaint and stale-series clearing remain required.
 
 ZERO COST. No deployment, paid service, Vercel/Cloudflare operation, Termux/device action, production credentials or `main` modification.
+
+
+## Batch 62J-94 — Gate 38 tail-latency phase diagnostics (21 November 2026)
+
+The collector now reports internal writer-lock wait and transaction-body/commit durations. Full-cardinality 1/4/16-thread and four-process benchmark output includes phase percentiles alongside end-to-end latency. This is diagnostic instrumentation, not an optimization or host/SLA result; exact-head CI is required. WebSocket paths and indicator implementation are unchanged; no indicator credit. Stage 1 remains 30/40 = 75% provisional; Gate 10 remains 0/10 closed; overall project remains unscored. ZERO COST; no deployment, Termux, device operation or `main` change.

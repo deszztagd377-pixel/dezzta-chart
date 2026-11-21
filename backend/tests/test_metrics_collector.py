@@ -219,6 +219,8 @@ def test_flush_reports_bounded_lock_retries(tmp_path):
 
     assert result["lock_retries"] >= 1
     assert result["lock_retries"] <= 7
+    assert result["lock_wait_ms"] >= 0
+    assert result["transaction_ms"] >= 0
     snapshot = collector.snapshot(now=901)
     assert snapshot["series"]["http.requests|GET|/health|2xx"] == 2
 

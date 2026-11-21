@@ -130,6 +130,8 @@ def run_case(*, workers: int, flushes_per_worker: int) -> dict:
         retry_count = 0
         retry_lock = threading.Lock()
         latency_samples: list[float] = []
+        lock_wait_samples: list[float] = []
+        transaction_samples: list[float] = []
         latency_lock = threading.Lock()
 
         def record_sizes() -> None:
@@ -144,6 +146,8 @@ def run_case(*, workers: int, flushes_per_worker: int) -> dict:
             worker_id = f"{worker_index + 1:032x}"
             start_barrier.wait(timeout=10)
             local_samples = []
+            local_lock_wait = []
+            local_transaction = []
             local_retries = 0
             for sequence in range(1, flushes_per_worker + 1):
                 request, websocket = _snapshot(sequence)
@@ -151,12 +155,16 @@ def run_case(*, workers: int, flushes_per_worker: int) -> dict:
                 started = time.perf_counter_ns()
                 flush_result = collector.flush(worker_id, request, websocket, now=stamp)
                 local_retries += flush_result.get("lock_retries", 0)
+                local_lock_wait.append(flush_result["lock_wait_ms"])
+                local_transaction.append(flush_result["transaction_ms"])
                 local_samples.append((time.perf_counter_ns() - started) / 1_000_000)
                 record_sizes()
             with retry_lock:
                 retry_count += local_retries
             with latency_lock:
                 latency_samples.extend(local_samples)
+                lock_wait_samples.extend(local_lock_wait)
+                transaction_samples.extend(local_transaction)
             return {"worker_index": worker_index, "flushes": len(local_samples), "retries": local_retries}
 
         with ThreadPoolExecutor(max_workers=workers) as pool:
@@ -198,6 +206,8 @@ def run_case(*, workers: int, flushes_per_worker: int) -> dict:
             "sqlite_integrity": "ok",
             "retry_count": retry_count,
             "flush_latency": _summary(latency_samples),
+            "writer_lock_wait": _summary(lock_wait_samples),
+            "transaction_body_and_commit": _summary(transaction_samples),
             "peak_file_sizes_bytes": peak_sizes,
             "post_checkpoint_file_sizes_bytes": final_sizes,
             "worker_results": worker_results,
@@ -212,15 +222,17 @@ def _process_worker(database_path: str, worker_index: int, flushes_per_worker: i
         worker_id = f"{worker_index + 1:032x}"
         if not start_event.wait(timeout=20):
             raise TimeoutError("process benchmark start barrier timed out")
-        samples, retries = [], 0
+        samples, lock_wait_samples, transaction_samples, retries = [], [], [], 0
         for sequence in range(1, flushes_per_worker + 1):
             request, websocket = _snapshot(sequence)
             stamp = _BASE_TIME + sequence * 15 + worker_index / 1000
             started = time.perf_counter_ns()
             flush_result = collector.flush(worker_id, request, websocket, now=stamp)
             samples.append((time.perf_counter_ns() - started) / 1_000_000)
+            lock_wait_samples.append(flush_result["lock_wait_ms"])
+            transaction_samples.append(flush_result["transaction_ms"])
             retries += flush_result.get("lock_retries", 0)
-        result_queue.put({"worker_index": worker_index, "flushes": len(samples), "retries": retries, "latencies_ms": samples})
+        result_queue.put({"worker_index": worker_index, "flushes": len(samples), "retries": retries, "latencies_ms": samples, "lock_wait_ms": lock_wait_samples, "transaction_ms": transaction_samples})
     except BaseException as exc:
         result_queue.put({"worker_index": worker_index, "error": f"{type(exc).__name__}: {exc}"})
         raise
@@ -269,6 +281,8 @@ def run_process_case(*, workers: int, flushes_per_worker: int) -> dict:
                 raise RuntimeError(f"process SQLite integrity_check failed: {integrity}")
             verify.execute("PRAGMA wal_checkpoint(TRUNCATE)").fetchone()
         latencies = [value for worker in worker_results for value in worker["latencies_ms"]]
+        lock_waits = [value for worker in worker_results for value in worker["lock_wait_ms"]]
+        transactions = [value for worker in worker_results for value in worker["transaction_ms"]]
         return {
             "worker_type": "separate_os_processes",
             "workers": workers,
@@ -281,6 +295,8 @@ def run_process_case(*, workers: int, flushes_per_worker: int) -> dict:
             "sqlite_integrity": "ok",
             "retry_count": sum(worker["retries"] for worker in worker_results),
             "flush_latency": _summary(latencies),
+            "writer_lock_wait": _summary(lock_waits),
+            "transaction_body_and_commit": _summary(transactions),
             "post_checkpoint_file_sizes_bytes": _file_sizes(database_path),
             "worker_results": [{key: value for key, value in worker.items() if key != "latencies_ms"} for worker in worker_results],
         }
@@ -318,7 +334,8 @@ def run_benchmark(*, flushes_per_worker: int) -> dict:
             "Full declared 899-series envelope: 762 request + 127 latency + 10 WebSocket series.",
             "Thread cases use concurrent Python threads; process_case uses four independent OS processes.",
             "Each process creates its own collector and SQLite connections against the same local database.",
-            "Measures synthetic flush latency, internal lock retries, local file and WAL sizes.",
+            "Measures synthetic end-to-end flush latency, writer-lock wait, transaction body plus commit, retries, and local file/WAL/SHM sizes.",
+            "Lock-wait and transaction timings are diagnostic phase measurements, not production SLA estimates.",
             "Does not simulate a production persistent volume or multi-host topology.",
             "Does not establish a production database byte cap or multi-host support.",
             "Results depend on the CI runner filesystem and must not be generalized to owner-host storage.",

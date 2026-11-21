@@ -33,6 +33,8 @@ def test_metrics_collector_benchmark_measures_full_cardinality_at_one_four_and_s
         assert case["aggregated_request_count_verified"] == case["workers"] * 2
         assert case["sqlite_integrity"] == "ok"
         assert case["flush_latency"]["samples"] == case["workers"] * 2
+        assert case["writer_lock_wait"]["samples"] == case["workers"] * 2
+        assert case["transaction_body_and_commit"]["samples"] == case["workers"] * 2
         assert case["peak_file_sizes_bytes"]["total"] > 0
         assert case["post_checkpoint_file_sizes_bytes"]["database"] > 0
 
@@ -46,3 +48,5 @@ def test_metrics_collector_benchmark_measures_full_cardinality_at_one_four_and_s
     assert process_case["aggregated_request_count_verified"] == 8
     assert process_case["sqlite_integrity"] == "ok"
     assert process_case["flush_latency"]["samples"] == 8
+    assert process_case["writer_lock_wait"]["samples"] == 8
+    assert process_case["transaction_body_and_commit"]["samples"] == 8
