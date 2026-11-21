@@ -1,3 +1,23 @@
+## Batch 62J-98 — WebSocket + Gate 25 gateway runtime + Gate 38 + Gate 36 (21 November 2026)
+
+- Verified source/test HEAD: `b4325216d1293d3c747978fc45218bfe1fd1d79f` on `phase-2/market-data-foundation`.
+- Added `backend/app/ohlcv_redis_gateway_runtime.py`, six regression tests in `backend/tests/test_ohlcv_redis_gateway_runtime.py`, and gateway env placeholders in `backend/.env.example`.
+- Gateway builder validates authenticated installer result, durable replica checkpoint, source ID, snapshot generation, high-water cursor and SHA-256 before Redis client creation. Production requires rediss TLS certificate and hostname verification. Runtime is opt-in and requires an owner-supplied authenticated snapshot installer.
+- Exact-head Automated Tests [44916614912](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44916614912): SUCCESS; 255 frontend tests across 29 files, 1,277 backend tests in 42.72s. Container build, Redis ACL/AOF persistent-volume smoke, frontend build/secret scans and dependency audits succeeded.
+- Exact-head CodeQL [44916614959](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44916614959): SUCCESS. Full Git History Secret Audit [44916614967](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44916614967): SUCCESS.
+- Trivy artifact [14711468367](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44916614912) was downloaded and parsed: 0 HIGH/CRITICAL vulnerabilities in Alpine OS and Python package targets.
+- Gate 38 artifact [14712222307](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44916614912): 899/899 series, 512/512 staggered flushes, 16/16 workers, SQLite integrity ok, 0 retries. Staggered p95 18.34ms / p99 88.57ms / max 259.74ms. Simultaneous 16-thread p95 376.08ms / p99 796.15ms / max 1,406.30ms / 78 retries. Synthetic staggered reductions: p95 95.12%, p99 88.88%, max 81.53%. CI model only, not production SLO.
+- Four-process benchmark: 128/128 flushes, 899 series, integrity ok, one retry; p95 40.43ms, p99 239.10ms. Cross-host SQLite is not claimed.
+- WebSocket source/consumer failure-matrix scope remains complete for repository CI. Production WSS still requires owner-host Redis TLS/ACL, snapshot receipts, public HTTPS/WSS reverse proxy and browser/Android WebView acceptance.
+- Gate 25 source-side gateway runtime readiness improved; Gate 25 remains 🟧 pending live Redis, host credentials, ACL/network, persistence/failover and authenticated snapshot distribution. Gate 36 remains 🟧 pending public HTTPS/WSS and device acceptance. Gate 38 remains 🟧 pending central monitoring, host volume, retention/backup and operator recovery.
+- Gate 10 remains 0/10 formally closed. 🟨🟩 host/operator only: Gates 8, 30, 34, 35, 39. 🟧 integration/acceptance: Gates 20, 25, 31, 36, 38.
+- Stage 1 remains 30/40 = 75% provisional. Stages 2–6 and overall project percentage remain unscored.
+- Indicators unchanged; no credit: SMA20 🟨 (index 19), EMA20 🟨 (index 19), RSI14 🟨 (index 14), MACD12/26/9 🟨 (MACD index 25, signal/histogram 33), Bollinger20,2 🟨 (index 19), Shared Hook 🟨, Footprint 🟧, Heatmap 🟥, Liquidation Maps 🟥.
+- Initial candidate `7bf14593ddfa5d776245bb632896a8277635f9e0` had a syntax error caught by CI; it was corrected in `b4325216d1293d3c747978fc45218bfe1fd1d79f`. The final exact-head workflow passed.
+- ZERO COST. No deployment, paid service, production credentials, Vercel/Cloudflare operation, Termux/device operation or `main` modification.
+
+---
+
 ## Batch 62J-97 — production-staggered metrics benchmark (21 November 2026)
 
 - Source/test HEAD: `8deeba557f7be6ea5cb66fb0bfb55955aafc5a41` on `phase-2/market-data-foundation`; docs-only descendants now carry the ledger update.

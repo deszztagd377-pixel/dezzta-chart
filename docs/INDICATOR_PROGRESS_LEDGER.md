@@ -1,3 +1,22 @@
+## Batch 62J-98 checkpoint — indicator state unchanged (21 November 2026)
+
+Gate 25 gateway runtime construction, WebSocket transport audit and Gate 38 observability benchmarking are backend infrastructure work. No indicator formula, calculation module, data contract, shared hook, chart renderer, chart UI or indicator test changed. **No indicator progress credit is awarded.**
+
+Current complete indicator matrix:
+- SMA20 🟨 — mean of 20 closes; first valid index 19. Remaining: chart overlay, independent toggle, legend/current value, stale clearing, renderer/lifecycle tests.
+- EMA20 🟨 — SMA-seeded EMA, alpha 2/21; first valid index 19. Remaining: overlay, toggle, legend/current value, stale clearing, renderer/lifecycle tests.
+- RSI14 🟨 — Wilder smoothing over 14 price changes; first valid index 14. Remaining: 0–100 pane, 30/70 guides, toggle, legend, stale clearing, renderer tests.
+- MACD 12/26/9 🟨 — EMA12−EMA26; MACD first valid index 25; signal/histogram first valid index 33. Remaining: pane, lines, histogram, zero guide, toggle, legend, stale clearing, renderer tests.
+- Bollinger20,2 🟨 — mean ±2 × population standard deviation; first valid index 19. Remaining: upper/middle/lower overlay, toggle, values, stale clearing, renderer tests.
+- Shared Indicator Hook 🟨 — validated candle-index-aligned snapshot. Remaining: chart identity/timeframe binding, loading/error lifecycle, stale clearing, series isolation.
+- Footprint 🟧 — simulated, not exchange-native bid/ask truth. Requires user visual reference, reviewed blueprint, explicit ON-only spaced cluster layout, bid/ask cells and performance acceptance. OFF must preserve ordinary candle spacing.
+- Heatmap 🟥 — not implemented. Requires user reference, zero-cost source feasibility, validated data contract, reviewed blueprint and renderer.
+- Liquidation Maps 🟥 — not implemented. Requires zero-cost source feasibility, validated calculation/data contract, reference/blueprint and renderer.
+
+Shared invariants: warm-up values are null, never zero; outputs align to candle indexes; no future-candle repaint; symbol/venue/dataset/chart/timeframe changes clear stale series. Aggregate indicator percentage remains unscored because approved weights/denominators do not exist. Stage 4 visual work remains behind the official stage gate.
+
+---
+
 ## Batch 62J-97 checkpoint — indicator state unchanged (21 November 2026)
 
 Gate 38's production-staggered SQLite metrics benchmark is backend observability work only. No indicator formula, data contract, shared hook, renderer, chart UI or indicator test changed. **No indicator progress credit is awarded.**
