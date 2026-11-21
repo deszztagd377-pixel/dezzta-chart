@@ -827,3 +827,19 @@ The Gate 38 source audit found that metric series cardinality was bounded but sc
 - Indicator implementation unchanged. SMA20, EMA20, RSI14, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain 🟨 FOUNDATION; Footprint remains 🟧 SIMULATED / GATED; Heatmap and Liquidation Maps remain 🟥 NOT IMPLEMENTED. No indicator progress percentage is awarded by a backend-only change.
 - Gate 10 remains 0/10 formally closed. Stage 1 remains 30/40 = 75% provisional. Overall project percentage and aggregate indicator percentage remain unscored because approved denominators/weights are not established.
 - ZERO COST maintained: no deployment, paid service, production credential, Termux/device operation, or `main` modification.
+
+
+## Batch 62J-72 — snapshot artifact SHA-256 receipt binding (21 November 2026)
+
+**Source/test checkpoint:** `0a8e28e0ae9b8e63f800cf4ff643a057c942ee90` (CI result must be read from this exact commit before any pass claim).
+
+- Hardened `backend/app/ohlcv_redis_runtime.py`: the host verifier contract now requires the verified global snapshot's canonical lowercase SHA-256 digest (`snapshot_sha256`).
+- Every required gateway installation receipt must carry the exact same digest in addition to matching source ID, stream key, snapshot generation and cursor.
+- Missing/malformed manifest digests and per-gateway digest mismatches fail closed **before Redis client creation**.
+- The runtime returns the verified digest as part of its non-secret snapshot evidence summary.
+- This binds the receipts to the exact exported snapshot bytes. It does not authenticate receipts by itself: the owner-host verifier must still call the repository's `SQLiteOhlcvStore.verify_global_snapshot()` against the actual artifact and authenticate the authoritative receipt source. The repository cannot attest to remote host state.
+- Added regressions for per-gateway digest mismatch and malformed manifest digest, alongside the existing cursor mismatch and successful TLS factory path.
+- No indicator formula, hook, renderer or UI changed. No Gate 10 acceptance tick is awarded by this repository-side hardening.
+- ZERO COST. No production Redis connection, deployment, Vercel/Cloudflare operation, production credential, Termux/device action or `main` modification.
+
+**Acceptance boundary:** Gate 25 remains 🟧 OPEN pending live Redis TLS/ACL, persistence/failover and host credential lifecycle. Gate 36 remains 🟧 OPEN pending public HTTPS/WSS proxy and browser/Android runtime acceptance. Source publisher stays 🟨🟩 HOST VERIFICATION PENDING.
