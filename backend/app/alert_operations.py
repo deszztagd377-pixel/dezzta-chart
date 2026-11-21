@@ -20,6 +20,7 @@ class LocalAlertReporter:
         self._logger = logger
         self._incident_store = incident_store
         self._last_state: tuple[Any, ...] | None = None
+        self._journal_reconciled = False
 
     @staticmethod
     def _validate_counts(**counts: int) -> None:
@@ -67,12 +68,19 @@ class LocalAlertReporter:
             self._last_state = signature
             return
 
-        if self._last_state is not None:
-            self._resolve_incidents("alert_delivery")
-            self._logger.info(json.dumps({
-                "event": "alert_delivery_recovered",
-                "state": "healthy",
-            }, separators=(",", ":"), sort_keys=True))
+        # The in-memory transition state is lost on process restart, while the
+        # incident journal is durable. Reconcile it once on the first healthy
+        # batch after startup so a recovered worker cannot leave stale incidents
+        # open indefinitely.
+        if self._last_state is not None or not self._journal_reconciled:
+            resolved_count = self._resolve_incidents("alert_delivery")
+            if resolved_count is not None:
+                self._journal_reconciled = True
+                if self._last_state is not None or resolved_count > 0:
+                    self._logger.info(json.dumps({
+                        "event": "alert_delivery_recovered",
+                        "state": "healthy",
+                    }, separators=(",", ":"), sort_keys=True))
             self._last_state = None
 
     def report_error(self, error: Exception) -> None:
@@ -108,13 +116,14 @@ class LocalAlertReporter:
                 "error_code": type(exc).__name__[:64],
             }, separators=(",", ":"), sort_keys=True))
 
-    def _resolve_incidents(self, category: str) -> None:
+    def _resolve_incidents(self, category: str) -> int | None:
         if self._incident_store is None:
-            return
+            return 0
         try:
-            self._incident_store.resolve_category(category)
+            return self._incident_store.resolve_category(category)
         except Exception as exc:
             self._logger.error(json.dumps({
                 "event": "incident_journal_recovery_update_failed",
                 "error_code": type(exc).__name__[:64],
             }, separators=(",", ":"), sort_keys=True))
+            return None

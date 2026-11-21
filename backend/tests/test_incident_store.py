@@ -111,3 +111,61 @@ def test_worker_error_is_journaled_and_recovery_resolves_it(tmp_path):
     assert "sensitive provider response" not in str(rows)
     reporter.report_batch(claimed=0,delivered=0,retry_scheduled=0,terminal_failed=0,lease_lost=0)
     assert store.list_incidents()[0]["status"]=="resolved"
+
+def test_new_reporter_reconciles_persisted_incident_after_process_restart(tmp_path, caplog):
+    import json
+    import logging
+    from app.alert_operations import LocalAlertReporter
+
+    path = str(tmp_path / "incidents.sqlite3")
+    original_store = SQLiteIncidentStore(path)
+    incident = original_store.record_incident(
+        fingerprint="alert_delivery_degraded", category="alert_delivery",
+        severity="critical", summary_code="delivery_attention", now_utc=_at(),
+    )
+
+    # A new reporter models a process restart: its in-memory transition state
+    # is empty, but the SQLite incident remains open.
+    restarted_store = SQLiteIncidentStore(path)
+    logger = logging.getLogger("test.incident.restart-recovery")
+    reporter = LocalAlertReporter(logger, incident_store=restarted_store)
+    with caplog.at_level(logging.INFO, logger=logger.name):
+        reporter.report_batch(
+            claimed=0, delivered=0, retry_scheduled=0,
+            terminal_failed=0, lease_lost=0,
+        )
+        reporter.report_batch(
+            claimed=0, delivered=0, retry_scheduled=0,
+            terminal_failed=0, lease_lost=0,
+        )
+
+    recovered = next(row for row in restarted_store.list_incidents()
+                     if row["incident_id"] == incident["incident_id"])
+    assert recovered["status"] == "resolved"
+    records = [json.loads(record.message) for record in caplog.records]
+    assert [record["event"] for record in records] == ["alert_delivery_recovered"]
+
+
+def test_concurrent_store_instances_deduplicate_active_incident_writes(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+
+    path = str(tmp_path / "incidents.sqlite3")
+    workers = 4
+    writes_per_worker = 10
+
+    def write_batch(worker_index):
+        store = SQLiteIncidentStore(path)
+        for index in range(writes_per_worker):
+            store.record_incident(
+                fingerprint="alert_delivery_degraded", category="alert_delivery",
+                severity="warning", summary_code="delivery_attention",
+                now_utc=_at(worker_index * writes_per_worker + index),
+            )
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        list(executor.map(write_batch, range(workers)))
+
+    rows = SQLiteIncidentStore(path).list_incidents()
+    assert len(rows) == 1
+    assert rows[0]["status"] == "open"
+    assert rows[0]["occurrence_count"] == workers * writes_per_worker
