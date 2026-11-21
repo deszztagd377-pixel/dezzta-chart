@@ -406,6 +406,111 @@ def test_restore_drill_refuses_insufficient_capacity_before_creating_outputs(
     assert list(tmp_path.rglob("*.sqlite-restore.tmp")) == []
 
 
+def test_restore_preflight_uses_wal_sidecar_in_capacity_estimate(tmp_path, monkeypatch):
+    from app import sqlite_restore_drill
+
+    source = tmp_path / "wal-live.sqlite3"
+    backup = tmp_path / "backup" / "snapshot.sqlite3"
+    restored = tmp_path / "restore" / "restored.sqlite3"
+    _build_database(source)
+
+    writer = sqlite3.connect(source)
+    try:
+        assert writer.execute("PRAGMA journal_mode=WAL").fetchone()[0].lower() == "wal"
+        writer.execute("CREATE TABLE restore_wal_probe (value TEXT)")
+        writer.execute("INSERT INTO restore_wal_probe VALUES (?)", ("wal-sidecar-check",))
+        writer.commit()
+        wal_path = tmp_path / "wal-live.sqlite3-wal"
+        assert wal_path.is_file() and wal_path.stat().st_size > 0
+
+        monkeypatch.setattr(
+            sqlite3_restore_drill.shutil,
+            "disk_usage",
+            lambda _path: type("Usage", (), {"free": 10**12})(),
+        )
+        capacity = sqlite3_restore_drill._preflight_capacity(source, backup, restored)
+        assert capacity["source_wal_bytes"] == wal_path.stat().st_size
+        assert capacity["estimated_snapshot_bytes"] >= (
+            capacity["source_main_bytes"] + capacity["source_wal_bytes"]
+        )
+    finally:
+        writer.close()
+
+
+def test_restore_preflight_uses_independent_bounds_for_separate_filesystems(
+    tmp_path, monkeypatch
+):
+    from math import ceil
+    from types import SimpleNamespace
+    from app import sqlite_restore_drill
+
+    source = tmp_path / "live.sqlite3"
+    backup = tmp_path / "backup" / "snapshot.sqlite3"
+    restored = tmp_path / "restore" / "restored.sqlite3"
+    backup.parent.mkdir()
+    restored.parent.mkdir()
+    _build_database(source)
+
+    source_db = sqlite3.connect(source)
+    try:
+        logical_bytes = source_db.execute("PRAGMA page_count").fetchone()[0] * source_db.execute(
+            "PRAGMA page_size"
+        ).fetchone()[0]
+    finally:
+        source_db.close()
+    snapshot_bytes = max(source.stat().st_size, logical_bytes)
+
+    real_stat = sqlite3_restore_drill.os.stat
+    backup_directory = backup.parent.resolve()
+    restore_directory = restored.parent.resolve()
+
+    def fake_stat(path, *args, **kwargs):
+        resolved = Path(path).resolve()
+        if resolved == backup_directory:
+            return SimpleNamespace(st_dev=101)
+        if resolved == restore_directory:
+            return SimpleNamespace(st_dev=202)
+        return real_stat(path, *args, **kwargs)
+
+    monkeypatch.setattr(sqlite3_restore_drill.os, "stat", fake_stat)
+    monkeypatch.setattr(
+        sqlite3_restore_drill.shutil,
+        "disk_usage",
+        lambda _path: SimpleNamespace(free=10**12),
+    )
+
+    capacity = sqlite3_restore_drill._preflight_capacity(source, backup, restored)
+    expected = snapshot_bytes + max(64 * 1024 * 1024, ceil(0.10 * snapshot_bytes))
+    assert capacity["destination_filesystems_match"] is False
+    assert capacity["backup_required_free_bytes"] == expected
+    assert capacity["restore_required_free_bytes"] == expected
+
+
+def test_restore_preflight_rejects_nonempty_rollback_journal(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from app import sqlite_restore_drill
+
+    source = tmp_path / "live.sqlite3"
+    backup = tmp_path / "backup" / "snapshot.sqlite3"
+    restored = tmp_path / "restore" / "restored.sqlite3"
+    _build_database(source)
+    journal = tmp_path / "live.sqlite3-journal"
+    journal.write_bytes(b"unresolved-rollback-journal")
+
+    monkeypatch.setattr(
+        sqlite3_restore_drill.shutil,
+        "disk_usage",
+        lambda _path: SimpleNamespace(free=10**12),
+    )
+
+    with pytest.raises(sqlite3.DatabaseError, match="rollback journal"):
+        sqlite3_restore_drill._preflight_capacity(source, backup, restored)
+
+    assert journal.read_bytes() == b"unresolved-rollback-journal"
+    assert not backup.exists()
+    assert not restored.exists()
+
+
 def test_restore_drill_cli_failure_redacts_paths_and_error_details(tmp_path, capsys):
     from app.sqlite_restore_drill import main
 
@@ -463,6 +568,10 @@ def test_restore_drill_cli_success_emits_verifiable_redacted_report(tmp_path, ca
     assert report["table_content_match"] is True
     assert report["schema_match"] is True
     assert report["post_restore_write_read_cleanup"] == "passed"
+    assert report["capacity_preflight"]["destination_filesystems_match"] is True
+    assert report["capacity_preflight"]["estimated_snapshot_bytes"] > 0
+    assert report["capacity_preflight"]["backup_available_free_bytes"] >= report["capacity_preflight"]["backup_required_free_bytes"]
+    assert report["capacity_preflight"]["restore_available_free_bytes"] >= report["capacity_preflight"]["restore_required_free_bytes"]
     assert report["application_domain_readback"]["outbox_high_water"] == 1
     assert report["application_domain_readback"]["ohlcv_bars"] == 1
     report_without_hash = dict(report)
