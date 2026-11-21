@@ -1,7 +1,7 @@
 # DEZZTA CHART — Project Progress Indicator
 
 Status: **operational project-tracking specification**  
-Last audited: 2026-11-18  
+Last audited: 2026-11-21  
 Repository: https://github.com/deszztagd377-pixel/dezzta-chart  
 Official working branch: `phase-2/market-data-foundation`  
 Official current stage: **Stage 1 — Foundation, Security & Data Integrity**
@@ -9,25 +9,24 @@ Official current stage: **Stage 1 — Foundation, Security & Data Integrity**
 > This document defines the **project-process progress indicator**. It is not an in-app technical indicator, chart overlay, or APK feature. Technical indicators such as SMA, EMA, RSI, MACD and Bollinger Bands are separate product work governed by Stage 4.
 
 
-## Current verified snapshot — 2026-11-17
+## Current verified snapshot — 2026-11-21
 
 <badge>Authoritative current-state summary</badge>
 
 - **Official stage:** Stage 1 — Foundation, Security & Data Integrity.
-- **Stage 1 checklist:** **300/400 ticks = 75% provisional** (30/40 provisional criteria). This is not production acceptance.
-- **Gate 10:** **0/10 external criteria formally closed**. The ten open criteria are 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39.
-- **Gate 36 browser sub-check:** protected HTTP health 200, two distinct WSS sessions, owner-confirmed manual Disconnect → Connect, first pong sequence 1 in each session, and idle-timeout are evidenced. The reconnect sub-check is PASS; Gate 36 overall remains OPEN.
-- **Gate 36 Root Directory sub-check:** build log from latest READY POC deployment confirms Python 3.12 was selected from `poc/vercel_ws/.python-version` and dependencies loaded from `poc/vercel_ws/requirements.txt`; this verifies the deployed build used the intended subdirectory. Project settings read-back still omits the stored rootDirectory field.
-- **Gate 36 remaining:** maximum-duration close, independent effective Fluid Compute read-back, Android APK Capacitor WebView WSS against a compatible authenticated backend, production cross-instance fan-out, and cost/operational acceptance.
-- **Gate 38 repository sub-check:** metrics collector has a strict 127 total series including overflow, sanitized labels, detached snapshots, and rejects non-finite/boolean/string durations, handles unhashable method labels and clamps extreme finite samples. Two additional regression tests passed in the exact-head 1,008-test backend suite. Gate 38 remains OPEN because durable aggregation, retention, protected host operations and dashboard acceptance are not yet proven.
-- **Android wording correction:** the current APK packages the web frontend in a Capacitor wrapper and uses the JavaScript WebSocket API in its WebView. No separate Kotlin/Java native WebSocket transport is claimed.
-- **CI evidence:** exact source/test checkpoint `d32645019db6c93532666f691c43cfe87b9fa8d8` passed Automated Tests & Build [44107801447](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44107801447) (32/32 steps), CodeQL [44107801732](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44107801732), and Full Git History Secret Audit [44107801473](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44107801473). Backend suite: **1,008 passed in 26.26s**, including the new malformed-metrics-input tests. Both Vercel preview status contexts completed successfully. Earlier provider-catalog audit also confirmed all 11 catalog tests passed. These are repository/CI/preview results, not production acceptance.
-- **Stages 2–6:** NOT SCORED. Overall 20.90% remains a historical checkpoint only.
-- **ZERO COST:** no paid plan, external provider, or Termux package/repository/keyring change was introduced. No Termux command is required for this remote audit.
+- **Stage 1 checklist:** **300/400 ticks = 75% provisional** (30/40 criteria). This is not production acceptance.
+- **Gate 10:** **0/10 external criteria formally closed**. Open: 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39.
+- **Gate 8 repository evidence:** settings representation redaction, protected 256-bit key-file loader regression tests, backend Docker build-context exclusions, frontend bundle secret scan and full reachable Git-history secret audit are CI-verified. Gate 8 remains OPEN pending actual owner-host secret injection, permissions/ownership and runtime review.
+- **WebSocket:** the defined automated dual-ASGI/Redis failure matrix is complete. Production snapshot artifact lifecycle, production Redis TLS/ACL/failover, public WSS and real browser/Android acceptance remain external.
+- **Gate 30:** WAL-aware capacity preflight and repository restore tests are present; real owner-host/approved device restore acceptance remains open.
+- **Gate 38/39:** bounded metrics, sanitized HTTP correlation, persistent incident journal and escalation logic are repository-level foundations. Host collector/dashboard/retention and real operator alert/acknowledgement/recovery remain open.
+- **Exact-head CI:** current branch HEAD `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d` passed Automated Tests [44861035493](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035493) (33/33 steps; frontend 247/247 across 29 files; backend 1,235 passed), CodeQL [44861035537](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035537), and Full Git History Secret Audit [44861035482](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035482). Frontend npm audit reported 0 vulnerabilities; backend dependency audit found no known vulnerabilities; Trivy reported 0 vulnerabilities in scanned Alpine/Python targets. CI results are not production acceptance.
+- **Indicators:** SMA20 🟨; EMA20 🟨; RSI14 🟨; MACD12/26/9 🟨; Bollinger20,2 🟨; Shared Indicator Hook 🟨; Footprint 🟧 SIMULATED/reference-gated; Heatmap 🟥; Liquidation Maps 🟥. See the complete [Indicator Progress Ledger](INDICATOR_PROGRESS_LEDGER.md). No aggregate indicator percentage is assigned.
+- **Stages 2–6:** NOT SCORED. **Overall project:** NOT SCORED; no approved M1–M8 weighting/acceptance denominator exists. Historical 20.9% is not a current weighted result.
+- **ZERO COST:** no paid plan, deployment, external provider, or billing activation. No Termux command was required for these remote GitHub changes. The user has one Android device; no second device/PC is assumed.
 - **Branch:** `phase-2/market-data-foundation`; `main` untouched.
 
 Detailed ten-gate visual: [Stage 1 Gate Dashboard](assets/stage-1-gate-dashboard.svg).
-
 
 ## Visual presentation standard — permanent through Stage 6
 

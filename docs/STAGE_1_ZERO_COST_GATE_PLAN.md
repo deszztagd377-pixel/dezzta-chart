@@ -1,3 +1,13 @@
+## Batch 62J-67 — Gate 8 build-context and configuration hardening (21 November 2026)
+
+- Exact branch HEAD: `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d`.
+- Added `backend/.dockerignore` to exclude local `.env` files, key/certificate material, SSH private-key names, runtime databases/backups, and Python-generated files from the Docker build context. This closes a repository-side exposure path: build-context files are sent to the Docker builder even when the Dockerfile does not COPY them into the image.
+- Expanded `backend/.env.example` with the optional alert-device encrypted-store path, disabled-by-default delivery worker, Redis URL, and operator incident token. No real credential or key is included.
+- The Dockerfile continues to copy only `requirements.txt` and `app/`; the runtime key must be injected separately and remain outside the image and repository.
+- Exact-head Automated Tests [44861035493](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035493): **SUCCESS** — frontend 247/247 across 29 files; backend 1,235 passed; all 33 workflow steps passed, including backend image build, Redis ACL/AOF + persistent-volume smoke, and Trivy scan. Trivy reported 0 vulnerabilities in scanned Alpine/Python targets. CodeQL [44861035537](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035537) and Full Git History Secret Audit [44861035482](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035482): **SUCCESS**.
+- Gate 8 remains **OPEN**. CI does not verify the real host secret source, ownership, process exposure, rotation, or runtime access. The backend container runs as UID/GID 10001; any injected key file must be readable by that process while group/other permission bits remain zero.
+- No Stage 1 tick is awarded. Gate 10 remains 0/10 closed. ZERO COST; no deployment, paid service, Termux/device operation, or `main` modification.
+
 ## Batch 62J-64 — Gate 38 HTTP 500 correlation and redaction (21 November 2026)
 
 - Exact source/test HEAD: `54a319c9165a47b03a3ab02039e4bdeeae783e3a` on `phase-2/market-data-foundation`.
@@ -23,7 +33,12 @@ Decision: owner-mandated ZERO MONEY. This plan is a constraint-resolution design
 ## Gate-by-gate disposition and zero-cost path
 
 ### 8 — Production secret storage and leakage verification
-**Current status: external verification required.**
+**Current status: external verification required; repository-side checks are CI-verified.**
+- Repository evidence now covers `Settings.__repr__` and `Settings.__str__` redaction for the alert-device encryption key, plus protected-file loader behavior: absolute regular-file path, no group/other permission bits, bounded file size, canonical Base64, and exactly 32 decoded bytes.
+- `backend/.dockerignore` excludes local credentials and runtime state from the build context. The Dockerfile copies only the backend requirements and application package.
+- Exact-head CI for `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d` passed Automated Tests, CodeQL and Full Git History Secret Audit (runs 44861035493, 44861035537 and 44861035482).
+- Still required: inspect the actual owner-host secret injection path, owner/group/mode, process environment and arguments, runtime readability as UID/GID 10001, rotation and log/crash exposure. Never paste production secrets into chat.
+- Do not claim this gate passed until the actual host and secret-injection path are inspected. Do not introduce a paid secret manager.
 - Candidate zero-cost path: owner-controlled host using OS-protected service credentials (for example systemd credentials) or a root-owned secrets file with restrictive permissions, injected only into the backend process. Keep secrets out of source control, frontend build arguments, logs, crash reports, and command-line arguments.
 - Required evidence: host configuration review, permission/ownership check, process-environment exposure review, frontend bundle scan, log scan, and repository-history secret scan.
 - Do not claim this gate passed until the actual host and secret-injection path are inspected. Do not introduce a paid secret manager.

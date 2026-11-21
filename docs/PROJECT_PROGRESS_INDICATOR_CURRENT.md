@@ -1,45 +1,92 @@
-## Latest engineering checkpoint — Batch 62J-64 (21 November 2026)
+## Latest engineering checkpoint — Batch 62J-67 (21 November 2026)
 
 **Branch:** `phase-2/market-data-foundation`  
-**Source/test HEAD:** `54a319c9165a47b03a3ab02039e4bdeeae783e3a`  
-**Source commit:** `fdf70fc71afd5603fa92f74931cfbd0afd47f7bb`  
-**Regression-test commit:** `54a319c9165a47b03a3ab02039e4bdeeae783e3a`
+**Current branch HEAD:** `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d`  
+**Gate 8 test/source checkpoint:** `58f0e721a197d95424395d08ecce2143ddcd4926`  
+**Gate 8 build-context/config checkpoint:** `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d`
 
-- Automated Tests [44858630448](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44858630448): **SUCCESS** — frontend **247/247 tests across 29 files**; backend **1,225 passed in 59.22s**; all **33/33 workflow steps** passed, including frontend build/secret scans, dependency audits, SQLite outbox benchmark, backend container build, Redis/persistent-volume smoke, Trivy scan and report export.
-- CodeQL [44858630295](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44858630295): **SUCCESS** for JavaScript/TypeScript and Python.
-- Full Git History Secret Audit [44858630302](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44858630302): **SUCCESS**.
-- Gate 38 correction: unhandled HTTP 500 responses now preserve the request correlation ID in a sanitized response body; HTTP metrics retain the route/status observation without exposing query strings, headers, or exception messages. A new regression test verifies the response ID, 5xx metric, and redaction boundary.
-- Gate 30's previous WAL-aware capacity preflight remains exact-head CI-verified at source/test HEAD `0afaa3af5f4b2fe4fdc9a9779dc36dbb16b88543` (Automated Tests 44857959302, CodeQL 44857959330, Secret Audit 44857959338 — all SUCCESS). Owner-host drill remains external.
-- No indicator formulas, calculation source, shared hook, renderer, chart UI or indicator tests changed in Batch 62J-64. No indicator completion credit is awarded.
+- Automated Tests [44861035493](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035493): **SUCCESS** — frontend **247/247 tests across 29 files**; backend **1,235 passed in 49.78s**; **33/33 workflow steps** passed.
+- CodeQL [44861035537](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035537): **SUCCESS** for JavaScript/TypeScript and Python.
+- Full Git History Secret Audit [44861035482](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035482): **SUCCESS**.
+- Container verification: backend image build, shared Redis ACL/AOF + persistent-volume smoke, Trivy scan and report export all passed. Trivy reported **0 vulnerabilities** for the scanned Alpine and Python package targets. Frontend npm audit reported **0 vulnerabilities**; backend dependency audit reported no known vulnerabilities.
+- Gate 8 repository-side improvements: settings repr/str redaction now explicitly covers the alert-device encryption key; 9 loader cases cover canonical Base64 256-bit key loading, permission rejection, malformed/wrong-size material, and path validation. `backend/.dockerignore` excludes local credentials and runtime state from the build context; `backend/.env.example` documents the relevant optional settings.
+- Gate 8 remains **OPEN** pending actual owner-host secret injection, file ownership/permissions, process exposure, and runtime verification. CI is not host acceptance.
+- WebSocket automated failure-matrix scope remains complete; production snapshot distribution/rotation, production Redis TLS/ACL lifecycle, public WSS, and browser/Android acceptance remain external.
+- No indicator calculation, formula, hook, renderer, chart UI, or indicator test changed. No indicator progress credit is awarded.
 - Stage 1 remains **30/40 criteria = 300/400 ticks = 75% provisional**. Gate 10 remains **0/10 formally closed**; gates 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain OPEN.
-- Overall project and aggregate indicator percentages remain **unscored** until their weights and acceptance denominators are approved. Stages 2–6 remain unscored.
-- ZERO COST maintained: no deployment, paid service, Termux/device operation, production credentials, or `main` modification.
+- Overall project and aggregate indicator percentages remain **unscored** until approved weights and acceptance denominators exist. Stages 2–6 remain unscored.
+- ZERO COST maintained: no deployment, paid service, production credential, Termux/device operation, or `main` modification.
+
 
 ---
 
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 21 November 2026 — Batch 62J-62 Gate 30 WAL-aware capacity preflight and exact-head CI closure
-**Active branch:** `phase-2/market-data-foundation`
-**Current source/test HEAD:** `0fa2497cbf791e043e1ff314b7f138de2bf23106`.
-**Exact-head Automated Tests:** [44856652183](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44856652183) **SUCCESS** — frontend **247 tests across 29 files**; backend **1,221 passed in 43.47s**. All 33 job steps passed, including dependency audits, frontend build/secret scans, SQLite outbox benchmark, backend container build, Redis shared-guard + persistent-volume smoke, Trivy scan and report export.
-**Exact-head CodeQL:** [44856652218](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44856652218) **SUCCESS** for Python and JavaScript/TypeScript.
-**Exact-head Full Git History Secret Audit:** [44856652241](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44856652241) **SUCCESS**.
-**Batch 62J-62:** added Gate 30 WAL-aware capacity preflight with same-/separate-filesystem bounds and insufficient-space regression. No indicator implementation changed. Gate 30 still requires the real owner-host drill.
-**WebSocket E:** COMPLETE FOR THE DEFINED AUTOMATED FAILURE-MATRIX SCOPE, including dual-ASGI live delivery, reconnect replay, process restart continuity, independent Redis TCP-path interruption/recovery, and snapshot-generation replacement. Production snapshot distribution/rotation, production Redis TLS/ACL/credential operations, public WSS and browser/Android acceptance remain external.
-**Gate 10:** **10/10 🟧 OPEN; 0/10 formally closed** — gates 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39.
-**Stage 1:** 30/40 criteria = 300/400 ticks = **75% provisional**; 100 ticks / 10 criteria remain. No acceptance tick is awarded by this source/CI work.
-**Indicators:** SMA20 🟨 (index 19); EMA20 🟨 (alpha 2/21, index 19); RSI14 🟨 (index 14); MACD12/26/9 🟨 (25; signal/histogram 33); Bollinger20,2 🟨 (population deviation, index 19); shared hook 🟨; Footprint 🟧 SIMULATED and reference/blueprint gated; Heatmap 🟥; Liquidation Maps 🟥.
-**Overall project:** not scored; M1–M8 weighting and acceptance denominator remain unapproved.
-**Cost/device boundary:** ZERO COST. No Vercel/Cloudflare deployment, paid service, production credential, Termux/device operation, or `main` modification.
+**Checkpoint:** 21 November 2026 — Batch 62J-67, Gate 8 build-context hardening and exact-head CI verification  
+**Active branch:** `phase-2/market-data-foundation`  
+**Current branch HEAD:** `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d`
 
-**WebSocket E:** COMPLETE FOR THE DEFINED AUTOMATED FAILURE-MATRIX SCOPE, including dual-ASGI live delivery, reconnect replay, process restart continuity, independent Redis TCP-path interruption/recovery, and snapshot-generation replacement. Production snapshot distribution/rotation, production Redis TLS/ACL/credential operations, public WSS and browser/Android acceptance remain external.
-**Gate 10:** **10/10 🟧 OPEN; 0/10 formally closed** — gates 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39.
-**Stage 1:** 30/40 criteria = 300/400 ticks = **75% provisional**; 100 ticks / 10 criteria remain, with no new acceptance tick awarded by this cycle.
-**Indicators:** calculation foundations remain present; SMA20, EMA20, RSI14, MACD12/26/9, Bollinger20,2 and shared hook 🟨; Footprint 🟧 (reference/blueprint gated); Heatmap and Liquidation Maps 🟥. No aggregate percentage is approved.
-**Overall project:** not scored; M1–M8 weighting and acceptance denominator remain unapproved.
-**Cost/device boundary:** ZERO COST. No Vercel/Cloudflare deployment, paid service, production credential, Termux/device operation, or `main` modification.
+## Project stage dashboard
 
+| Stage | State | Verified progress |
+|---|---|---:|
+| Stage 1 — Foundation, Security & Data Integrity | 🟨 ACTIVE / provisional | **75%** — 30/40 criteria |
+| Stage 2 — Market Data & Provider Integration | ⬜ NOT SCORED | No approved denominator |
+| Stage 3 — Advanced Trading & Order Flow | ⬜ NOT SCORED | No approved denominator |
+| Stage 4 — Charting & Technical Indicators | ⬜ NOT SCORED | No approved denominator |
+| Stage 5 — Alerts, Automation & Workspace | ⬜ NOT SCORED | No approved denominator |
+| Stage 6 — Release, Operations & Scale | ⬜ NOT SCORED | No approved denominator |
+
+**Overall project:** NOT SCORED. M1–M8 weights and the overall acceptance denominator have not been approved. The historical 20.9% figure is not a current weighted result.
+
+## Stage 1 / Gate 10
+
+**Stage 1:** 30/40 criteria = 300/400 ticks = **75% provisional**. Remaining: 10 criteria / 100 ticks. Source changes, documentation and CI alone do not award production-acceptance ticks.
+
+**Gate 10:** <badge color="warning">0/10 formally closed</badge> — all ten external acceptance gates remain open.
+
+| Gate | State | Remaining acceptance evidence |
+|---:|---|---|
+| 8 — Secrets | 🟧 OPEN | Actual host secret injection, owner/mode, process exposure and runtime review |
+| 20 — Firebase | 🟧 OPEN | Verified no-billing real Firebase auth/revocation/entitlement and browser/Android flow |
+| 25 — Redis | 🟧 OPEN | Real host TLS, ACL, credential lifecycle, persistence and failover |
+| 30 — Restore | 🟧 OPEN | Restore drill against actual live database path on owner-controlled runtime |
+| 31 — Off-host backup | 🟧 OPEN | Independent destination/key custody and restore; constrained by one-device boundary |
+| 34 — Persistent volume | 🟧 OPEN | Actual host mount, ownership, restart persistence and disk-pressure recovery |
+| 35 — HTTPS | 🟧 OPEN | Real HTTPS endpoint, certificate/hostname and renewal path |
+| 36 — WSS | 🟧 OPEN | Public reverse proxy plus real browser and Android WebView acceptance |
+| 38 — Monitoring | 🟧 OPEN | Collector/dashboard, retention, access control and disk-pressure acceptance |
+| 39 — Incident response | 🟧 OPEN | Real operator visibility, acknowledgement/escalation and recovery drill |
+
+## Exact-head CI
+
+- Automated Tests [44861035493](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035493): **SUCCESS** — 247 frontend tests / 29 files, 1,235 backend tests, 33/33 workflow steps.
+- CodeQL [44861035537](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035537): **SUCCESS**.
+- Full Git History Secret Audit [44861035482](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035482): **SUCCESS**.
+- Frontend dependency audit: 0 vulnerabilities. Backend dependency audit: no known vulnerabilities. Trivy scanned Alpine and Python package targets with 0 vulnerabilities.
+- Backend container build and Redis ACL/AOF + persistent-volume smoke: **SUCCESS**.
+
+## WebSocket status
+
+**Automated failure matrix: COMPLETE for the defined repository scope.** Verified work includes two independent ASGI processes, separate replicas/consumer groups, authenticated live delivery, reconnect replay, process restart continuity, Redis read-failure recovery, independent Redis TCP interruption/recovery, and coordinated snapshot-generation replacement. External production snapshot distribution/rotation/rollback, production Redis TLS/ACL/network/failover, public HTTPS/WSS, and browser/Android acceptance remain open.
+
+## Complete indicator status
+
+| Indicator / subsystem | State | Formula / first valid candle | Remaining work |
+|---|---|---|---|
+| SMA20 | 🟨 FOUNDATION | Mean of 20 closes; index 19 | Overlay, toggle, legend/value, stale clearing, render/lifecycle tests |
+| EMA20 | 🟨 FOUNDATION | SMA-seeded EMA; alpha = 2/21; index 19 | Overlay, toggle, legend/value, stale clearing, render/lifecycle tests |
+| RSI14 | 🟨 FOUNDATION | Wilder smoothing over 14 close changes; index 14 | 0–100 pane, 30/70 guides, toggle, legend, renderer tests |
+| MACD 12/26/9 | 🟨 FOUNDATION | EMA12−EMA26; MACD index 25; signal/histogram index 33 | Pane, MACD/signal lines, histogram, zero guide, toggle, legend |
+| Bollinger20,2 | 🟨 FOUNDATION | Mean ± 2 × population SD; index 19 | Three-line overlay, toggle, values, stale clearing, renderer tests |
+| Shared Indicator Hook | 🟨 FOUNDATION | Validated backend snapshot; no DEMO fallback; candle-index aligned | Identity/timeframe binding, loading/error, stale clearing, series isolation |
+| Footprint | 🟧 SIMULATED / GATED | Educational simulated accumulator; not exchange-native bid/ask truth | Owner reference image, approved blueprint, ON-only spaced clusters, bid/ask cells, performance tests |
+| Heatmap | 🟥 NOT IMPLEMENTED | Data source/calculation contract not approved | Reference image, source feasibility, validated data contract, blueprint and renderer |
+| Liquidation Maps | 🟥 NOT IMPLEMENTED | No validated liquidation dataset/calculation contract | Zero-cost source feasibility, validated calculation, blueprint/reference and renderer |
+
+**Indicator correctness invariants:** warm-up slots are null, never fabricated zeroes; every series aligns to candle indices; appending future candles cannot change earlier outputs; symbol/venue/dataset/chart/timeframe changes invalidate stale series. Footprint OFF preserves standard candle spacing; only explicit ON activates the spaced cluster layout. Footprint and Heatmap visual work waits for the user's reference images and reviewed blueprints. No aggregate indicator percentage is assigned.
+
+**Cost/device boundary:** ZERO COST. No Vercel/Cloudflare deployment, paid service, Termux/device command, production credential, or `main` modification.
 
 > This document is the current concise dashboard. Historical work-cycle reports remain the evidence trail. Distinguish the latest source/test HEAD from a documentation-only branch HEAD, and cite CI only for the exact SHA shown by each run.
 

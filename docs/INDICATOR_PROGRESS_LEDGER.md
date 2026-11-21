@@ -1,9 +1,9 @@
-## Latest indicator status — Batch 62J-64 (21 November 2026)
+## Latest indicator status — Batch 62J-67 (21 November 2026)
 
-**Source/test HEAD:** `54a319c9165a47b03a3ab02039e4bdeeae783e3a` on `phase-2/market-data-foundation`.  
-**Exact-head CI:** Automated Tests 44858630448, CodeQL 44858630295, Full Git History Secret Audit 44858630302 — all SUCCESS.
+**Current branch HEAD:** `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d` on `phase-2/market-data-foundation`.  
+**Exact-head CI:** Automated Tests [44861035493](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035493), CodeQL [44861035537](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035537), Full Git History Secret Audit [44861035482](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035482) — all **SUCCESS**. Frontend 247/247 across 29 files; backend 1,235 passed in 49.78s; 33/33 workflow steps passed.
 
-No indicator source, calculation, hook, renderer, chart UI, or indicator test changed in this batch. The Gate 38 HTTP error-correlation hardening is backend observability work and earns **zero indicator completion credit**.
+No indicator calculation, formula, shared hook, renderer, chart UI, or indicator test changed in Batches 62J-66/67. Gate 8 security tests and Docker build-context hardening are not indicator implementation. **No indicator completion credit is awarded.**
 
 | Indicator / component | Status | Calculation / validity contract | Remaining implementation |
 |---|---|---|---|
@@ -25,7 +25,7 @@ No indicator source, calculation, hook, renderer, chart UI, or indicator test ch
 - Footprint and Heatmap visual work remains blocked until the user's own reference images are supplied and the scoped blueprint is reviewed.
 - No aggregate indicator percentage is assigned: there is no approved indicator weighting/acceptance denominator.
 
-**Exact-head backend verification for Batch 62J-64:** Automated Tests [44858630448](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44858630448) SUCCESS (1,225 backend tests; frontend 247/247); CodeQL [44858630295](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44858630295) SUCCESS; Secret Audit [44858630302](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44858630302) SUCCESS. These results do not change indicator status.
+**Project accounting:** Stage 1 remains 30/40 criteria = 300/400 ticks = **75% provisional**; Gate 10 remains **0/10 formally closed**. Overall project and aggregate indicator percentages remain unscored. ZERO COST; no deployment, paid service, Termux/device operation, production credential, or `main` modification.
 
 ---
 
