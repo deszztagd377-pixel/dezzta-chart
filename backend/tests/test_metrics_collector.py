@@ -397,3 +397,32 @@ def test_real_sqlite_page_limit_failure_rolls_back_and_recovers(tmp_path, monkey
     after_recovery = collector.snapshot(now=1803)
     assert after_recovery["series"]["http.requests|GET|/capacity/000|1xx"] == 2
     assert after_recovery["series"]["websocket|connections_completed"] == 2
+
+
+def test_sixteen_independent_collector_instances_can_cold_boot_concurrently(tmp_path):
+    import sqlite3
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+
+    worker_count = 16
+    path = str(tmp_path / "concurrent-cold-bootstrap.sqlite3")
+    collectors = [SQLiteMetricsCollector(path) for _ in range(worker_count)]
+    barrier = Barrier(worker_count)
+    request, websocket = snapshots(1)
+
+    def first_flush(index):
+        barrier.wait(timeout=5)
+        return collectors[index].flush(
+            f"{index + 1:032x}", request, websocket, now=900 + index / 1000,
+        )
+
+    with ThreadPoolExecutor(max_workers=worker_count) as pool:
+        results = list(pool.map(first_flush, range(worker_count)))
+
+    assert len(results) == worker_count
+    assert all(result["series"] == 899 for result in results)
+    snapshot = SQLiteMetricsCollector(path).snapshot(now=920)
+    assert snapshot["worker_count"] == worker_count
+    assert snapshot["series"]["http.requests|GET|/health|2xx"] == worker_count
+    with sqlite3.connect(path) as db:
+        assert db.execute("PRAGMA integrity_check").fetchone()[0] == "ok"

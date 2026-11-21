@@ -53,7 +53,11 @@ class SQLiteMetricsCollector:
                         # Multiple ASGI processes may bootstrap the same local
                         # volume simultaneously. Retry only bounded SQLite lock
                         # failures; never hide corruption or other DB errors.
-                        for attempt in range(7):
+                        # Independent ASGI workers may cold-start this shared
+                        # same-host database simultaneously. Keep bootstrap bounded,
+                        # but allow enough lock-wait budget for the full worker fan-out.
+                        # 12 × 250 ms busy timeout + 1.81 s capped backoff = 4.81 s.
+                        for attempt in range(12):
                             try:
                                 db.execute("PRAGMA journal_mode=WAL")
                                 db.execute("PRAGMA synchronous=NORMAL")
@@ -90,7 +94,7 @@ class SQLiteMetricsCollector:
                                 self._schema_ready = True
                                 break
                             except sqlite3.OperationalError as exc:
-                                if "locked" not in str(exc).lower() or attempt == 6:
+                                if "locked" not in str(exc).lower() or attempt == 11:
                                     raise
                                 time.sleep(min(0.01 * (2 ** attempt), 0.25))
             else:
