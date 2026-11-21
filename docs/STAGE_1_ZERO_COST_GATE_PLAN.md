@@ -1,3 +1,17 @@
+## Batch 62J-68 — Gate 8 no-follow secret-file hardening (21 November 2026)
+
+- Exact source/config/test HEAD: `da9b2ad025ac5c49f75c95dbdd5f516573107f87`.
+- Identified and closed a repository-side security gap: the previous alert-device key loader used path-level `is_file/stat/read_bytes`, which followed a final-component symbolic link and performed validation/read through separate path lookups.
+- Replaced it with a single opened file descriptor using `O_NOFOLLOW`, `O_CLOEXEC` where available, and `O_NONBLOCK` where available. `fstat()` validates the exact opened inode; only regular files with no group/other permission bits are accepted.
+- The loader reads at most 129 bytes to enforce the 128-byte maximum even if file size changes after the initial metadata check. Canonical Base64 and exactly 32 decoded bytes remain mandatory. Missing-file, symlink, and decoding failures retain sanitized, deterministic error messages.
+- Added three regression tests: reject symbolic links, reject non-regular files, and sanitize non-ASCII decoding errors. Together with the existing loader matrix, 12 loader cases are covered.
+- Exact-head Automated Tests [44863517983](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44863517983): **SUCCESS** — frontend 247/247; backend 1,238 passed in 49.89s; 32/32 workflow steps. CodeQL [44863518025](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44863518025) and Full Git History Secret Audit [44863517962](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44863517962): **SUCCESS**.
+- Backend image build, Redis ACL/AOF + persistent-volume smoke, Trivy scan and report export succeeded. Trivy reported 0 vulnerabilities for the scanned Alpine and Python package targets; backend dependency audit reported no known vulnerabilities.
+- **Gate 8: 🟨 HOST VERIFICATION ONLY (still OPEN).** Repository-side security hardening is complete. Remaining acceptance is actual owner-host secret injection, ownership/mode, readability by UID/GID 10001, process exposure, rotation, log/crash exposure and runtime verification.
+- Gate 10 accounting: **0/10 closed; 1/10 host-verification-only; 9/10 still externally open**. No Stage 1 tick is awarded. Stage 1 remains 30/40 = 300/400 = 75% provisional.
+- No indicator calculation, formula, hook, renderer, UI, or indicator test changed. The full indicator ledger remains unchanged and is reproduced at `docs/INDICATOR_PROGRESS_LEDGER.md`.
+- ZERO COST. No deploy, paid service, Vercel/Cloudflare operation, Termux/device command, production credential, or `main` modification.
+
 ## Batch 62J-67 — Gate 8 build-context and configuration hardening (21 November 2026)
 
 - Latest source/config/test HEAD: `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d`.
@@ -33,12 +47,12 @@ Decision: owner-mandated ZERO MONEY. This plan is a constraint-resolution design
 ## Gate-by-gate disposition and zero-cost path
 
 ### 8 — Production secret storage and leakage verification
-**Current status: external verification required; repository-side checks are CI-verified.**
-- Repository evidence now covers `Settings.__repr__` and `Settings.__str__` redaction for the alert-device encryption key, plus protected-file loader behavior: absolute regular-file path, no group/other permission bits, bounded file size, canonical Base64, and exactly 32 decoded bytes.
+**Current status: 🟨 HOST VERIFICATION ONLY (gate remains OPEN). Repository-side checks are CI-verified.**
+- Repository evidence now covers `Settings.__repr__` and `Settings.__str__` redaction for the alert-device encryption key, plus protected-file loader behavior: absolute regular-file path opened with O_NOFOLLOW, fstat on the opened inode, no group/other permission bits, bounded read, canonical Base64, and exactly 32 decoded bytes. Symbolic links and non-regular files are rejected; decoding errors are sanitized.
 - `backend/.dockerignore` excludes local credentials and runtime state from the build context. The Dockerfile copies only the backend requirements and application package.
-- Exact-head CI for `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d` passed Automated Tests, CodeQL and Full Git History Secret Audit (runs 44861035493, 44861035537 and 44861035482).
-- Still required: inspect the actual owner-host secret injection path, owner/group/mode, process environment and arguments, runtime readability as UID/GID 10001, rotation and log/crash exposure. Never paste production secrets into chat.
-- Do not claim this gate passed until the actual host and secret-injection path are inspected. Do not introduce a paid secret manager.
+- Exact-head CI for `da9b2ad025ac5c49f75c95dbdd5f516573107f87` passed Automated Tests, CodeQL and Full Git History Secret Audit (runs 44863517983, 44863518025 and 44863517962); frontend 247/247, backend 1,238 passed, 32/32 steps.
+- Only host acceptance remains: inspect actual secret injection, owner/group/mode, readability as UID/GID 10001, process environment/arguments, rotation and log/crash exposure. Never paste production secrets into chat.
+- Gate remains OPEN until actual host evidence is reviewed. Do not introduce a paid secret manager.
 - Candidate zero-cost path: owner-controlled host using OS-protected service credentials (for example systemd credentials) or a root-owned secrets file with restrictive permissions, injected only into the backend process. Keep secrets out of source control, frontend build arguments, logs, crash reports, and command-line arguments.
 - Required evidence: host configuration review, permission/ownership check, process-environment exposure review, frontend bundle scan, log scan, and repository-history secret scan.
 - Do not claim this gate passed until the actual host and secret-injection path are inspected. Do not introduce a paid secret manager.

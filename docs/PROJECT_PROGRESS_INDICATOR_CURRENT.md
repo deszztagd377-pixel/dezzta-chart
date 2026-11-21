@@ -1,19 +1,17 @@
-## Latest engineering checkpoint — Batch 62J-67 (21 November 2026)
+## Latest engineering checkpoint — Batch 62J-68 (21 November 2026)
 
 **Branch:** `phase-2/market-data-foundation`  
-**Latest source/config/test HEAD:** `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d`  
+**Latest source/config/test HEAD:** `da9b2ad025ac5c49f75c95dbdd5f516573107f87`  
 **Gate 8 test/source checkpoint:** `58f0e721a197d95424395d08ecce2143ddcd4926`  
-**Gate 8 build-context/config checkpoint:** `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d`
+**Gate 8 build-context/config checkpoint:** `da9b2ad025ac5c49f75c95dbdd5f516573107f87`
 
-- Automated Tests [44861035493](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035493): **SUCCESS** — frontend **247/247 tests across 29 files**; backend **1,235 passed in 49.78s**; **33/33 workflow steps** passed.
-- CodeQL [44861035537](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035537): **SUCCESS** for JavaScript/TypeScript and Python.
-- Full Git History Secret Audit [44861035482](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035482): **SUCCESS**.
+- Automated Tests [44863517983](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44863517983), CodeQL [44863518025](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44863518025), Full Git History Secret Audit [44863517962](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44863517962) — all **SUCCESS**. Frontend 247/247; backend 1,238 passed in 49.89s; 32/32 workflow steps succeeded.
 - Container verification: backend image build, shared Redis ACL/AOF + persistent-volume smoke, Trivy scan and report export all passed. Trivy reported **0 vulnerabilities** for the scanned Alpine and Python package targets. Frontend npm audit reported **0 vulnerabilities**; backend dependency audit reported no known vulnerabilities.
-- Gate 8 repository-side improvements: settings repr/str redaction now explicitly covers the alert-device encryption key; 9 loader cases cover canonical Base64 256-bit key loading, permission rejection, malformed/wrong-size material, and path validation. `backend/.dockerignore` excludes local credentials and runtime state from the build context; `backend/.env.example` documents the relevant optional settings.
-- Gate 8 remains **OPEN** pending actual owner-host secret injection, file ownership/permissions, process exposure, and runtime verification. CI is not host acceptance.
+- Gate 8 repository-side improvements: settings repr/str redaction now explicitly covers the alert-device encryption key; 12 loader regression cases cover canonical Base64 256-bit key loading, permission rejection, malformed/wrong-size material, path validation, symbolic-link rejection, non-regular-file rejection, and sanitized non-ASCII decoding errors. `backend/.dockerignore` excludes local credentials and runtime state from the build context; `backend/.env.example` documents the relevant optional settings.
+- Gate 8 remains **OPEN — 🟨 HOST VERIFICATION ONLY**. Repository-side loader, redaction, Docker-context and CI evidence are complete. Only actual owner-host secret injection, owner/group/mode, UID/GID 10001 readability, process exposure, rotation, log/crash exposure and runtime verification remain. CI is not host acceptance.
 - WebSocket automated failure-matrix scope remains complete; production snapshot distribution/rotation, production Redis TLS/ACL lifecycle, public WSS, and browser/Android acceptance remain external.
 - No indicator calculation, formula, hook, renderer, chart UI, or indicator test changed. No indicator progress credit is awarded.
-- Stage 1 remains **30/40 criteria = 300/400 ticks = 75% provisional**. Gate 10 remains **0/10 formally closed**; gates 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain OPEN.
+- Stage 1 remains **30/40 criteria = 300/400 ticks = 75% provisional**. Gate 10 remains **0/10 formally closed**; **1/10 (Gate 8) is 🟨 host-verification-only**, while gates 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain 🟧 OPEN.
 - Overall project and aggregate indicator percentages remain **unscored** until approved weights and acceptance denominators exist. Stages 2–6 remain unscored.
 - ZERO COST maintained: no deployment, paid service, production credential, Termux/device operation, or `main` modification.
 

@@ -1,9 +1,9 @@
-## Latest indicator status — Batch 62J-67 (21 November 2026)
+## Latest indicator status — Batch 62J-68 (21 November 2026)
 
-**Latest source/config/test HEAD:** `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d` on `phase-2/market-data-foundation`.  
+**Latest source/config/test HEAD:** `da9b2ad025ac5c49f75c95dbdd5f516573107f87` on `phase-2/market-data-foundation`.  
 **Exact-head CI:** Automated Tests [44861035493](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035493), CodeQL [44861035537](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035537), Full Git History Secret Audit [44861035482](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035482) — all **SUCCESS**. Frontend 247/247 across 29 files; backend 1,235 passed in 49.78s; 33/33 workflow steps passed.
 
-No indicator calculation, formula, shared hook, renderer, chart UI, or indicator test changed in Batches 62J-66/67. Gate 8 security tests and Docker build-context hardening are not indicator implementation. **No indicator completion credit is awarded.**
+No indicator calculation, formula, shared hook, renderer, chart UI, or indicator test changed in Batch 62J-68. The security loader hardening is not indicator implementation. Gate 8 security tests and Docker build-context hardening are not indicator implementation. **No indicator completion credit is awarded.**
 
 | Indicator / component | Status | Calculation / validity contract | Remaining implementation |
 |---|---|---|---|
@@ -25,7 +25,7 @@ No indicator calculation, formula, shared hook, renderer, chart UI, or indicator
 - Footprint and Heatmap visual work remains blocked until the user's own reference images are supplied and the scoped blueprint is reviewed.
 - No aggregate indicator percentage is assigned: there is no approved indicator weighting/acceptance denominator.
 
-**Project accounting:** Stage 1 remains 30/40 criteria = 300/400 ticks = **75% provisional**; Gate 10 remains **0/10 formally closed**. Overall project and aggregate indicator percentages remain unscored. ZERO COST; no deployment, paid service, Termux/device operation, production credential, or `main` modification.
+**Project accounting:** Stage 1 remains 30/40 criteria = 300/400 ticks = **75% provisional**; Gate 10 remains **0/10 formally closed**; Gate 8 is 🟨 host-verification-only and the other nine gates remain 🟧 OPEN. Overall project and aggregate indicator percentages remain unscored. ZERO COST; no deployment, paid service, Termux/device operation, production credential, or `main` modification.
 
 ---
 

@@ -1,18 +1,16 @@
-# Latest exact-head reconciliation — Batch 62J-67 (21 November 2026)
+# Latest exact-head reconciliation — Batch 62J-68 (21 November 2026)
 
 **Working branch:** `phase-2/market-data-foundation`  
-**Latest source/config/test HEAD:** `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d`.
+**Latest source/config/test HEAD:** `da9b2ad025ac5c49f75c95dbdd5f516573107f87`.
 
-- Automated Tests [44861035493](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035493): **SUCCESS** — frontend **247/247 tests across 29 files**; backend **1,235 passed in 49.78s**; all **33/33 workflow steps** passed.
-- CodeQL [44861035537](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035537): **SUCCESS**.
-- Full Git History Secret Audit [44861035482](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035482): **SUCCESS**.
+- Automated Tests [44863517983](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44863517983), CodeQL [44863518025](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44863518025), Full Git History Secret Audit [44863517962](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44863517962) — all **SUCCESS**. Frontend 247/247; backend 1,238 passed in 49.89s; 32/32 workflow steps succeeded.
 - Frontend npm audit: 0 vulnerabilities. Backend dependency audit: no known vulnerabilities. Trivy reported 0 vulnerabilities for scanned Alpine and Python package targets.
-- Gate 8 source-side improvements: explicit redaction coverage for `alert_device_encryption_key`; 9 file-loader test cases; backend Docker build-context exclusions; and complete optional configuration examples. The container build and Redis ACL/AOF + persistent-volume smoke passed.
-- Gate 8 remains **OPEN** pending real host secret injection, ownership/mode, process exposure and runtime verification. CI is not host acceptance.
+- Gate 8 source-side improvements: explicit redaction coverage for `alert_device_encryption_key`; 12 file-loader regression cases, including no-follow symbolic-link rejection, non-regular-file rejection and sanitized non-ASCII decoding errors; backend Docker build-context exclusions; and complete optional configuration examples. The container build and Redis ACL/AOF + persistent-volume smoke passed.
+- Gate 8 remains **OPEN — 🟨 HOST VERIFICATION ONLY** pending actual host secret injection, ownership/mode, UID/GID 10001 readability, process exposure, rotation and runtime verification. CI is not host acceptance.
 - Gate 30 remains OPEN pending the real owner-host/approved device restore drill. Gate 38 and Gate 39 remain OPEN pending host-side monitoring/operator acceptance.
 - WebSocket automated failure matrix is complete for the defined repository scope. Public WSS, production Redis topology/credentials and browser/Android acceptance remain external.
 - No indicator source, formula, hook, renderer, UI or indicator test changed. Indicator statuses remain SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, Shared Hook 🟨, Footprint 🟧 SIMULATED/reference-gated, Heatmap 🟥, Liquidation Maps 🟥.
-- Stage 1: **30/40 = 300/400 = 75% provisional**. Gate 10: **10/10 OPEN; 0/10 formally closed**. No acceptance tick is awarded.
+- Stage 1: **30/40 = 300/400 = 75% provisional**. Gate 10: **0/10 formally closed; 1/10 🟨 host-verification-only (Gate 8); 9/10 🟧 externally open**. No acceptance tick is awarded.
 - Overall project and aggregate indicator percentages remain unscored. Stages 2–6 remain unscored.
 - ZERO COST. No deployment, paid service, Termux/device operation, production credential, or `main` modification.
 
