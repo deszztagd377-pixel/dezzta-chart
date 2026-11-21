@@ -1,3 +1,9 @@
+## Batch 62J-87 checkpoint — no indicator changes (21 November 2026)
+
+Gate 38 received bounded SQLite writer-lock acquisition retry and a retry-accounting regression test. This is backend telemetry infrastructure only; indicator formulas, data contracts, hook, renderer, UI and indicator tests are unchanged. No indicator progress credit is awarded.
+
+---
+
 ## Batch 62J-86 checkpoint — no indicator changes (21 November 2026)
 
 The Gate 38 SQLite initialization fix and full-cardinality benchmark work do not change indicator formulas, contracts, hook, renderer, UI or indicator tests. No indicator progress credit is awarded. The complete calculation and visual-completion matrix in this ledger remains authoritative.

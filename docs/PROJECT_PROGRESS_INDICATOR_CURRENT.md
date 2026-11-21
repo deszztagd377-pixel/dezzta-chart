@@ -1,3 +1,18 @@
+## Batch 62J-87 — bounded SQLite writer-lock acquisition (21 November 2026)
+
+- Exact source/test predecessor `73a19e5db54b44d1d07caa038ec567d31d19a0a8`: Automated Tests [44902861326](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44902861326) **FAILED** at the 16-worker benchmark during `BEGIN IMMEDIATE` with `sqlite3.OperationalError: database is locked`. This was a writer-transaction contention failure, distinct from the earlier schema-bootstrap collision. CodeQL [44902861325](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44902861325) and Full Git History Secret Audit [44902861332](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44902861332) passed on that predecessor.
+- Added bounded retry/backoff around SQLite writer-lock acquisition before transaction work. It retries only lock errors, for at most eight attempts, retaining the existing 250 ms busy timeout. Corruption, integrity errors and other non-lock failures are not suppressed. The transaction body remains atomic.
+- `flush()` now reports the number of internal lock retries; benchmark aggregates those retries into its evidence output.
+- Added a regression test that holds a write lock, releases it after 350 ms, verifies the flush succeeds, verifies at least one retry was recorded, and confirms the counter delta was applied once.
+- Source/test commit: `c95a9a19091a5881136144491937073ba7fcb767`. Documentation commit follows; exact-head Automated Tests, CodeQL and secret-history audit are pending. No pass is claimed yet.
+- The benchmark remains 899 logical series, 1/4/16 concurrent Python worker threads, 32 flushes per worker, and 256 KiB payload cap. Separate OS-process contention remains untested.
+- Gate 38 remains 🟧 OPEN. Disk-full/read-only failure behavior, app-level HTTP/WebSocket isolation, retention/backup and owner-host/operator acceptance remain.
+- WebSocket wire protocol, auth, replay, snapshot and Redis data path unchanged; production WSS remains host-gated.
+- Indicator formula/hook/renderer/UI unchanged; no indicator progress credit. Gate 10 remains 0/10 formally closed; Stage 1 30/40 = 75% provisional; overall project remains unscored.
+- ZERO COST. No deployment, Vercel/Cloudflare operation, paid service, production credential, Termux/device operation or `main` modification.
+
+---
+
 ## Batch 62J-86 — SQLite schema-bootstrap contention hardening (21 November 2026)
 
 - Prior full-cardinality attempt at exact HEAD `c2f9b99fc05dd17050674a39317bd5aa601e6182`: Automated Tests run [44902446746](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44902446746) **FAILED** in the metrics benchmark because concurrent worker connections collided during repeated SQLite schema initialization (`database is locked`). This failure is retained as evidence; it is not reported as a pass.

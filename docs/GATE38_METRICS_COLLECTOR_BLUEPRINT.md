@@ -1,3 +1,15 @@
+## Batch 62J-87 — bounded writer-lock retry (21 November 2026)
+
+The 16-worker full-cardinality benchmark at source/test HEAD `73a19e5db54b44d1d07caa038ec567d31d19a0a8` failed at `BEGIN IMMEDIATE` with `database is locked`. This was separate from the schema-bootstrap race fixed in Batch 62J-86. The collector now retries writer-lock acquisition for up to eight attempts, with bounded exponential backoff and the existing 250 ms SQLite busy timeout. The retry count is included in flush results and benchmark evidence. A regression test exercises lock release after 350 ms and verifies the metrics delta is applied once.
+
+This does not prove that every 16-worker load passes; exact-head CI for the new source/test change is pending. Gate 38 remains 🟧 OPEN. Full separate-process test, disk-full/read-only behavior, HTTP/WebSocket traffic isolation and owner-host acceptance remain.
+
+Capacity model unchanged: 899 logical series × 672 15-minute buckets = 604,128 aggregate rows; 650,000 row ceiling leaves 45,872 rows before checkpoint/metadata and SQLite/WAL/index overhead. This is not a byte budget.
+
+ZERO COST. No deployment, paid provider, production credentials, Termux/device operation or `main` modification.
+
+---
+
 ## Batch 62J-86 — schema-bootstrap contention hardening (21 November 2026)
 
 The first full-cardinality CI benchmark attempt failed at concurrent SQLite schema initialization with `database is locked`. This is a real regression signal and is not suppressed. The collector now serializes one-time schema initialization per collector instance and applies bounded retry/backoff only to transient SQLite lock errors. The benchmark now gives each simulated worker a separate collector instance, and a new regression test exercises four independent instances initializing the same shared database concurrently.

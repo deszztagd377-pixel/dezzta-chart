@@ -1,3 +1,9 @@
+## Batch 62J-87 — Gate 38 writer-lock correction; WebSocket unchanged (21 November 2026)
+
+The 16-worker SQLite benchmark exposed lock contention at `BEGIN IMMEDIATE`. Gate 38 now retries bounded writer-lock acquisition and records retry counts. No WebSocket transport, authentication, snapshot/replay, cursor, gateway or Redis code changed. Production WSS acceptance remains pending real owner-host and client evidence.
+
+---
+
 ## Batch 62J-86 — telemetry bootstrap contention fix; WebSocket data path unchanged (21 November 2026)
 
 The Gate 38 benchmark exposed SQLite schema-initialization contention while separate collector instances opened the same local database. The collector now serializes schema initialization within each instance and retries bounded SQLite lock failures; the benchmark models separate collector instances per worker. The new exact-head CI is pending.
