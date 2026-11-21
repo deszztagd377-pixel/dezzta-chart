@@ -1,5 +1,20 @@
 # DEZZTA CHART — Complete Indicator Progress Ledger
 
+## Exact-head Gate 39 and indicator status — Batch 62J-61 (21 November 2026)
+
+- Current source/test HEAD: `f60faa44c4ce18f04f08e93462422b51363c3d5e` on `phase-2/market-data-foundation`.
+- Automated Tests [44854569804](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44854569804): **SUCCESS** — frontend **247/247 across 29 files**; backend **1,220 passed in 49.35s**; all 33 workflow steps succeeded, including backend container, Redis/persistent-volume smoke, Trivy scan and report export.
+- CodeQL [44854569759](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44854569759): **SUCCESS** for Python and JavaScript/TypeScript.
+- Full Git History Secret Audit [44854569709](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44854569709): **SUCCESS**.
+- Gate 39 defect fixed: a new reporter process now reconciles persisted active alert-delivery incidents on its first healthy batch. Reconciliation is attempted once per process after success; a journal write failure does not mark it complete, so a later healthy batch retries. Healthy batches do not repeatedly write to SQLite after successful reconciliation.
+- Added a restart-recovery regression test and a concurrent multi-instance deduplication test: four independent SQLite store instances perform 40 writes with the same active fingerprint; one active row remains with occurrence_count 40.
+- External Gate 39 remains OPEN: no real operator receiver, host access restriction, named operator acknowledgement/escalation, or owner-host incident recovery drill has been accepted.
+- No indicator source, formula, calculation hook, renderer or indicator test changed in this batch. Indicator states and formula contracts remain unchanged as detailed in the indicator dashboard.
+- Stage 1 remains 30/40 = 300/400 = 75% provisional; Gate 10 remains 0/10 closed. No Stage 1 tick is awarded. Overall and aggregate indicator percentages remain unscored.
+- ZERO COST: no deployment, paid notification provider, production credential, Termux/device operation or `main` modification.
+
+---
+
 ## Indicator correctness expansion — Batch 62J-59 (21 November 2026)
 
 - Exact source/test HEAD: 56dd8a3a9ebd9fb635357af5285980c461a5de0f on phase-2/market-data-foundation.

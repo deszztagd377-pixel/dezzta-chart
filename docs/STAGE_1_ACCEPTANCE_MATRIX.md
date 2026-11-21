@@ -1,18 +1,19 @@
 # Latest exact-head reconciliation — 21 November 2026
 
 **Working branch:** `phase-2/market-data-foundation`  
-**Documentation checkpoint before Batch 62J-57 reconciliation:** `47cabfebe2ea6ea508db6c983e579099ac439b3b` — this is a historical checkpoint, not the current branch HEAD.  
-
-**Checkpoint used for Batch 62J-58 status refresh:** `b96631e4108aadbe80dc118720312081e7b0eddf` (documentation-only checkpoint; a subsequent docs-only commit corrected status labels). At that checkpoint, Automated Tests [44852130975](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44852130975) and CodeQL [44852130903](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44852130903) were **IN PROGRESS**; Full Git History Secret Audit [44852130916](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44852130916) was **SUCCESS**. Its parent `fd6b6f09b928150a7543df9f212bcdb4026c0b4b` passed all three workflows (runs 44851517437, 44851517382 and 44851517387). No deployment or device acceptance is implied.
-
-**Latest source/test HEAD:** `96bfea52d9920b7d5d49ed85c0536610a6afd037` — Automated Tests [44849892717](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44849892717) **SUCCESS**: frontend **245/245 across 29 files**; backend **1,218 passed in 48.17s**, no pytest warnings summary; all 31 job steps passed, including backend container, Redis ACL/AOF + persistent-volume smoke test and Trivy scan.  
-**CodeQL / full-history audit boundary:** latest separately recorded successful CodeQL [44774050265](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774050265) and full Git History Secret Audit [44774048914](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774048914) are associated with prior source/test checkpoint `56317eff2b71886040acb998bf692814622feedf`; they are not represented as exact-head runs for `96bfea5`.  
-**WebSocket automated acceptance:** COMPLETE for the defined dual-ASGI/Redis failure matrix (Batches 62J-25/28/31). Production snapshot distribution/rotation, production Redis TLS/ACL/credential lifecycle, public WSS and browser/Android acceptance remain external.  
-**Stage 1:** **30/40 criteria = 300/400 ticks = 75% provisional**. Remaining 10 criteria: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.  
-**Gate 10:** **10/10 🟧 OPEN; 0/10 formally closed**. No new acceptance tick was awarded by the WebSocket test cleanup or documentation refresh.  
-**Overall project:** the roadmap's **20.9%** is a historical owner-confirmed checkpoint only, not a current weighted calculation. Current overall percentage remains **unscored** until M1–M8 weights and denominator are approved. Stages 2–6 remain unscored.  
-**Indicators:** SMA20, EMA20, RSI14, MACD12/26/9, Bollinger20,2 and shared hook 🟨 foundation; Footprint 🟧 reference/blueprint gated; Heatmap and Liquidation Maps 🟥 not implemented. No aggregate indicator percentage is approved.  
+**Current source/test HEAD:** `f60faa44c4ce18f04f08e93462422b51363c3d5e`.
+**Automated Tests:** [44854569804](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44854569804) **SUCCESS** — frontend **247/247 across 29 files**; backend **1,220 passed in 49.35s**; all 33 workflow steps succeeded, including backend container, Redis/persistent-volume smoke test and Trivy scan/report.
+**CodeQL:** [44854569759](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44854569759) **SUCCESS** for Python and JavaScript/TypeScript.
+**Full Git History Secret Audit:** [44854569709](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44854569709) **SUCCESS**.
+**Gate 39 source increment:** fixed persisted alert-delivery incident reconciliation after process restart; regression tests cover restart recovery and four independent store instances performing 40 writes. This does not close the external operator/incident-response criterion.
+**WebSocket automated acceptance:** COMPLETE for the defined dual-ASGI/Redis failure matrix (Batches 62J-25/28/31). Production snapshot distribution/rotation, production Redis TLS/ACL/credential lifecycle, public WSS and browser/Android acceptance remain external.
+**Stage 1:** **30/40 criteria = 300/400 ticks = 75% provisional**. Remaining criteria: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+**Gate 10:** **10/10 🟧 OPEN; 0/10 formally closed**. No external gate is closed by source code or CI alone.
+**Overall project:** historical owner-confirmed **20.9%** is not a current weighted calculation. Current overall percentage remains unscored until M1–M8 weights and denominator are approved. Stages 2–6 remain unscored.
+**Indicators:** SMA20 🟨 (index 19); EMA20 🟨 (alpha 2/21, index 19); RSI14 🟨 (index 14); MACD12/26/9 🟨 (MACD index 25, signal/histogram 33); Bollinger20,2 🟨 (population deviation, index 19); shared hook 🟨; Footprint 🟧 SIMULATED/reference-gated; Heatmap 🟥; Liquidation Maps 🟥. No indicator source changed in Batch 62J-61.
 **Boundary:** ZERO COST; no production deployment, paid service, Vercel/Cloudflare operation, Termux/device operation, production credentials, or `main` modification.
+
+---
 
 ---
 

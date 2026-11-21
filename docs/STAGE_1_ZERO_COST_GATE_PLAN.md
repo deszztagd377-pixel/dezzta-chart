@@ -406,3 +406,10 @@ The owner confirmed that the immediate goal is a working APK installable directl
 - Gate 31 remains constrained: the owner has one Android phone, no second device/off-host destination is evidenced, and the Termux Play Store package/keyring mismatch for the required cryptography dependency remains unresolved. No package downgrade, repository substitution or signature bypass is permitted.
 - Gate 8, 20, 25, 34, 35, 36, 38 and 39 may receive repository-side hardening in parallel, but external acceptance must not be inferred from CI.
 - All ten gates remain OPEN / ORANGE (0/10 closed). ZERO COST remains mandatory. No deploy, paid service, billing activation, `main` modification or Termux operation is authorized by this update.
+## Gate 39 source-level recovery correction — Batch 62J-61 (21 November 2026)
+
+Exact source/test HEAD `f60faa44c4ce18f04f08e93462422b51363c3d5e` passed Automated Tests [44854569804](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44854569804), CodeQL [44854569759](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44854569759), and Full Git History Secret Audit [44854569709](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44854569709).
+
+The local reporter now reconciles the durable SQLite incident journal on its first healthy batch after process startup. This closes the stale-incident-after-restart defect where the previous process's in-memory transition state was lost while the incident row remained open. Reconciliation is one-time per reporter after a successful journal operation; failed reconciliation is retried on a later healthy batch. Tests also verify deduplication across four independent store instances and 40 concurrent writes.
+
+**Gate 39 remains OPEN.** These are repository/CI improvements only. Owner-host route isolation, operator-token injection/rotation, alert visibility to the responsible operator, acknowledgement/escalation and a real incident-recovery drill remain mandatory. No paid notification provider is introduced and no Stage 1 tick is awarded.

@@ -1,13 +1,19 @@
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 21 November 2026 — Batch 62J-60 WAL-aware Gate 30 capacity correction and Batch 62J-59 exact-head CI closure
+**Checkpoint:** 21 November 2026 — Batch 62J-61 Gate 39 restart-recovery fix and exact-head CI closure
 **Active branch:** `phase-2/market-data-foundation`
-**Current source/test HEAD:** `56dd8a3a9ebd9fb635357af5285980c461a5de0f` on `phase-2/market-data-foundation`.
-**Exact-head Automated Tests:** [44853126329](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44853126329) **SUCCESS** — frontend **247/247 across 29 files**; backend **1,218 passed in 49.51s**. Frontend/backend dependency audits, secret scans, SQLite outbox benchmark, backend container build, Redis shared-guard + persistent-volume smoke test, Trivy scan and report export passed.
-**Exact-head CodeQL:** [44853126331](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44853126331) **SUCCESS**.
-**Exact-head Full Git History Secret Audit:** [44853126419](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44853126419) **SUCCESS**.
-**Android debug APK:** [Run 44853126386](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44853126386) **SUCCESS** — 3,877,412-byte artifact, 7-day retention; APK SHA-256 `543977791596e59e314611a5431f01dd4431d84f0fb0855f49ccd79ffd57e101`. Build success is not device acceptance.
-**Batch 62J-59:** prefix-causality and boundary regression tests added; 247 frontend tests and 1,218 backend tests passed. No production indicator formula or renderer changed.
+**Current source/test HEAD:** `f60faa44c4ce18f04f08e93462422b51363c3d5e`.
+**Exact-head Automated Tests:** [44854569804](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44854569804) **SUCCESS** — frontend **247/247 tests across 29 files**; backend **1,220 passed in 49.35s**. All 33 job steps passed, including dependency audits, frontend build/secret scans, SQLite outbox benchmark, backend container build, Redis shared-guard + persistent-volume smoke, Trivy scan and report export.
+**Exact-head CodeQL:** [44854569759](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44854569759) **SUCCESS** for Python and JavaScript/TypeScript.
+**Exact-head Full Git History Secret Audit:** [44854569709](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44854569709) **SUCCESS**.
+**Batch 62J-61:** fixed stale persisted Gate 39 incidents after backend restart; added restart-recovery and 4-instance/40-write deduplication tests. No indicator implementation changed.
+**WebSocket E:** COMPLETE FOR THE DEFINED AUTOMATED FAILURE-MATRIX SCOPE, including dual-ASGI live delivery, reconnect replay, process restart continuity, independent Redis TCP-path interruption/recovery, and snapshot-generation replacement. Production snapshot distribution/rotation, production Redis TLS/ACL/credential operations, public WSS and browser/Android acceptance remain external.
+**Gate 10:** **10/10 🟧 OPEN; 0/10 formally closed** — gates 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39.
+**Stage 1:** 30/40 criteria = 300/400 ticks = **75% provisional**; 100 ticks / 10 criteria remain. No acceptance tick is awarded by this source/CI work.
+**Indicators:** SMA20 🟨 (index 19); EMA20 🟨 (alpha 2/21, index 19); RSI14 🟨 (index 14); MACD12/26/9 🟨 (25; signal/histogram 33); Bollinger20,2 🟨 (population deviation, index 19); shared hook 🟨; Footprint 🟧 SIMULATED and reference/blueprint gated; Heatmap 🟥; Liquidation Maps 🟥.
+**Overall project:** not scored; M1–M8 weighting and acceptance denominator remain unapproved.
+**Cost/device boundary:** ZERO COST. No Vercel/Cloudflare deployment, paid service, production credential, Termux/device operation, or `main` modification.
+
 **WebSocket E:** COMPLETE FOR THE DEFINED AUTOMATED FAILURE-MATRIX SCOPE, including dual-ASGI live delivery, reconnect replay, process restart continuity, independent Redis TCP-path interruption/recovery, and snapshot-generation replacement. Production snapshot distribution/rotation, production Redis TLS/ACL/credential operations, public WSS and browser/Android acceptance remain external.
 **Gate 10:** **10/10 🟧 OPEN; 0/10 formally closed** — gates 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39.
 **Stage 1:** 30/40 criteria = 300/400 ticks = **75% provisional**; 100 ticks / 10 criteria remain, with no new acceptance tick awarded by this cycle.
