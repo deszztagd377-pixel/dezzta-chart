@@ -1052,3 +1052,8 @@ Added `docs/GATE30_OWNER_HOST_RESTORE_DRILL_RUNBOOK.md` after source inspection 
 - Liquidation Maps 🟥: not implemented. Requires zero-cost source feasibility, validated formula/data contract, reference/blueprint and renderer.
 - Warm-up null, candle-index aligned, no future-candle repaint, stale series cleared on identity/timeframe change. No aggregate indicator percentage without an approved denominator.
 - Stage 1 30/40 = 75% provisional; Gate 10 0/10 formally closed; overall project percentage remains unscored.
+
+
+## Batch 62J-89 — test-harness correction; no indicator change (21 November 2026)
+
+The first CI attempt for Batch 62J-88 exposed an unconditional leftover `AssertionError` immediately after the concurrent worker's successful `collector.flush()`. This was a test-edit residue, not collector retry exhaustion. The read-only test and separate-process benchmark contract both passed in that run. The assertion has been removed; exact-head CI is pending. Indicator formula, hook, renderer, UI and data contract remain unchanged: SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, shared hook 🟨, Footprint 🟧, Heatmap 🟥, Liquidation Maps 🟥. Stage 1 remains 75% provisional; Gate 10 remains 0/10 formally closed.

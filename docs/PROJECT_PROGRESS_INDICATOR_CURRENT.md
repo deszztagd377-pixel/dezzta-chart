@@ -1030,3 +1030,15 @@ Indicator invariants: warm-up values are `null`, never zero; all values align to
 - Indicator progress unchanged: SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, shared hook 🟨, Footprint 🟧, Heatmap 🟥, Liquidation Maps 🟥. No indicator credit from backend work.
 - Gate 10 remains 0/10 formally closed. Gates 8, 30, 34, 35, 39 🟨🟩; Gates 20, 25, 31, 36, 38 🟧. Stage 1 remains 30/40 = 75% provisional; overall project remains unscored.
 - ZERO COST; no deployment, Vercel/Cloudflare operation, Termux/device action, production credentials or `main` modification.
+
+
+## Batch 62J-89 — remove stray assertion from thread regression (21 November 2026)
+
+- Initial CI for commit `002517f778bed20bcb9e7fe7eed7946893c9763f`: Automated Tests [44904630244](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44904630244) failed one test; frontend 255/255 passed, backend 1,268 passed and one failed.
+- Root cause was a test-edit residue: after the intended single `collector.flush(...)` call, the thread test still contained an unconditional `raise AssertionError("bounded SQLite retry loop exhausted")`. The flush completed; the test then deliberately failed. This was not evidence of collector retry exhaustion.
+- In the same run, the new read-only recovery test passed, and the benchmark contract test—including the four spawned OS-process/899-series case—passed.
+- CodeQL [44904630257](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44904630257) SUCCESS; Full Git History Secret Audit [44904630302](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44904630302) SUCCESS.
+- Correction removes only the stray assertion. It does not restore benchmark/test outer retries and does not change production collector code.
+- Exact-head CI must rerun before the process/read-only additions are accepted. Gate 38 remains 🟧 OPEN.
+- Indicator state unchanged; Gate 10 remains 0/10 formally closed; Stage 1 remains 30/40 = 75% provisional; overall project remains unscored.
+- ZERO COST; no deployment, Termux/device action, or `main` modification.

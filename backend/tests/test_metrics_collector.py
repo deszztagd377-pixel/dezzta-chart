@@ -161,7 +161,6 @@ def test_concurrent_workers_commit_without_losing_deltas(tmp_path):
         request, websocket = snapshots(5)
         barrier.wait(timeout=5)
         collector.flush(worker_id, request, websocket, now=900)
-        raise AssertionError("bounded SQLite retry loop exhausted")
 
     with ThreadPoolExecutor(max_workers=4) as pool:
         list(pool.map(flush_worker, worker_ids))

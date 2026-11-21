@@ -193,3 +193,8 @@ The 899-series thread benchmark passed at 1/4/16 workers. The 16-thread case mea
 Batch 62J-88 adds a four-independent-process benchmark and read-only failure/recovery test, and removes outer retries from benchmark/test code so only the collector's internal bounded retry is measured. Treat additions as pending until exact-head CI is green. Process benchmark does not imply multi-host support.
 
 Capacity: 7×24×4 = 672 fifteen-minute buckets; 899×672 = 604,128 aggregate rows; 650,000 limit leaves 45,872 rows (7.06%) nominal headroom. This is not a byte budget. Full disk and app-level isolation remain outstanding, as do owner-host volume/retention/backup and operator acceptance.
+
+
+## 14. Batch 62J-89 — regression test correction
+
+The first CI attempt for Batch 62J-88 failed one thread test because an unconditional leftover `AssertionError("bounded SQLite retry loop exhausted")` remained directly after a successful `collector.flush()`. The read-only recovery test and the separate-process benchmark test both passed. This was a test harness defect, not evidence of lock retry exhaustion. Batch 62J-89 removes only that assertion; no collector implementation or retry policy change. Exact-head CI is pending. Gate 38 remains 🟧 OPEN until the corrected exact-head workflow passes and the remaining storage/app/host acceptance items are complete.
