@@ -2711,3 +2711,59 @@ def test_metrics_storage_failure_does_not_block_http_or_websocket(tmp_path, monk
         with client.websocket_connect("/ws/market-data") as websocket:
             websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
             assert websocket.receive_json()["type"] == "market_data.status"
+
+
+
+def test_incident_escalation_lifespan_dispatches_sanitized_due_event(monkeypatch, tmp_path, caplog):
+    import json
+    import logging
+    import threading
+    import time
+    from app.incident_store import SQLiteIncidentStore
+
+    attempted = threading.Event()
+    calls = 0
+
+    def fake_escalate_due(self, *, now_utc=None):
+        nonlocal calls
+        calls += 1
+        attempted.set()
+        if calls == 1:
+            return [{
+                "incident_id": "12345678-1234-5678-1234-567812345678",
+                "severity": "critical",
+                "summary_code": "delivery_attention",
+                "escalation_level": 1,
+            }]
+        return []
+
+    monkeypatch.setattr(SQLiteIncidentStore, "escalate_due", fake_escalate_due)
+    application = create_app(replace(
+        make_settings(),
+        instrument_registry_db_path=str(tmp_path / "incident-escalation.sqlite3"),
+    ))
+
+    with caplog.at_level(logging.ERROR, logger="dezzta.incidents"):
+        with TestClient(application):
+            assert attempted.wait(timeout=3)
+            deadline = time.monotonic() + 2
+            while not any(
+                record.name == "dezzta.incidents"
+                and '"operator_incident_escalated"' in record.message
+                for record in caplog.records
+            ) and time.monotonic() < deadline:
+                time.sleep(0.01)
+
+    events = [
+        json.loads(record.message)
+        for record in caplog.records
+        if record.name == "dezzta.incidents"
+    ]
+    assert events == [{
+        "event": "operator_incident_escalated",
+        "incident_id": "12345678-1234-5678-1234-567812345678",
+        "severity": "critical",
+        "summary_code": "delivery_attention",
+        "escalation_level": 1,
+    }]
+    assert calls >= 1

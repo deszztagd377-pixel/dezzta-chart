@@ -242,3 +242,48 @@ def test_websocket_metrics_only_counts_successfully_sent_accept_and_close_frames
     assert close_failure["connections_completed"] == 1
     assert close_failure["connections_accepted"] == 1
     assert close_failure["close_code_classes"]["other"] == 1
+
+
+
+def test_websocket_metrics_decrement_active_connection_when_task_is_cancelled():
+    import asyncio
+    import pytest
+    from app.observability import WebSocketMetrics, WebSocketMetricsMiddleware
+
+    async def scenario():
+        metrics = WebSocketMetrics()
+        entered = asyncio.Event()
+        release = asyncio.Event()
+
+        async def app(scope, receive, send):
+            entered.set()
+            await release.wait()
+
+        async def receive():
+            return {"type": "websocket.connect"}
+
+        async def send(message):
+            return None
+
+        middleware = WebSocketMetricsMiddleware(app, metrics=metrics)
+        task = asyncio.create_task(middleware(
+            {"type": "websocket", "path": "/ws/market-data", "headers": []},
+            receive,
+            send,
+        ))
+        await asyncio.wait_for(entered.wait(), timeout=1)
+        assert metrics.snapshot()["connections_active"] == 1
+
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+        snapshot = metrics.snapshot()
+        assert snapshot["connections_started"] == 1
+        assert snapshot["connections_active"] == 0
+        assert snapshot["connections_completed"] == 1
+        assert snapshot["connections_accepted"] == 0
+        assert sum(snapshot["close_code_classes"].values()) == 1
+        assert snapshot["close_code_classes"]["other"] == 1
+
+    asyncio.run(scenario())
