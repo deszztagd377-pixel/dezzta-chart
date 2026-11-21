@@ -26,9 +26,9 @@ def test_enabled_relay_requires_two_distinct_acl_identities():
     }, production=True)
     assert config.enabled is True
     assert config.stream_key == DEFAULT_OHLCV_STREAM_KEY
-    assert PUBLISHER_ACL_COMMANDS == ("+ping", "+xadd", "+xrange")
+    assert PUBLISHER_ACL_COMMANDS == ("+ping", "+select", "+xadd", "+xrange")
     assert GATEWAY_ACL_COMMANDS == (
-        "+ping", "+xgroup|create", "+xautoclaim", "+xreadgroup", "+xack", "+xrange",
+        "+ping", "+select", "+xgroup|create", "+xautoclaim", "+xreadgroup", "+xack", "+xrange",
         "+set", "+eval", "+get", "+pexpire", "+del",
     )
     assert "publish-secret" not in repr(config)
