@@ -1,3 +1,13 @@
+## Batch 62J-64 — Gate 38 HTTP 500 correlation and redaction (21 November 2026)
+
+- Exact source/test HEAD: `54a319c9165a47b03a3ab02039e4bdeeae783e3a` on `phase-2/market-data-foundation`.
+- Middleware already counted unhandled 500 responses, but discarded the generated request ID when the exception propagated. The 500 response therefore lacked the correlation ID needed to connect an operator-visible error response to its structured HTTP metric.
+- The middleware now stores the generated ID in request state before re-raising. A generic exception handler returns only `{"detail":"Internal server error."}`, preserves `X-Request-ID`, and applies no-store and security headers.
+- Regression test injects a controlled endpoint exception and proves: HTTP 500; 32-character request ID in the response and sanitized HTTP log; one `5xx` metric for the route; no query string, authorization header, private header value or exception message in the HTTP log or response.
+- Exact-head Automated Tests [44858630448](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44858630448): **SUCCESS** — backend 1,225 passed; frontend 247/247; all 33 steps passed. CodeQL [44858630295](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44858630295) and Full Git History Secret Audit [44858630302](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44858630302): **SUCCESS**.
+- Gate 38 remains OPEN for host firewall/reverse-proxy isolation, real operator-token injection/rotation, collector/dashboard access, bounded host-log retention/rotation, disk-pressure recovery and real credential-redaction review. Metrics remain process-local, not durable cross-process telemetry.
+- No Stage 1 tick is awarded. Stage 1 remains 30/40 = 75% provisional; Gate 10 remains 0/10 formally closed. ZERO COST; no deployment, paid service, Termux/device operation, or `main` modification.
+
 # Stage 1 — Zero-cost plan for the ten external acceptance gates
 
 Decision: owner-mandated ZERO MONEY. This plan is a constraint-resolution design, not proof that any production gate has passed. No cloud project, account, service, trial, billing plan, payment method, domain, VM, volume, runner, API, or subscription may be created or enabled by following this document.
