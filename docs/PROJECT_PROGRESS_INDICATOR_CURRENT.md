@@ -847,6 +847,8 @@ The Gate 38 source audit found that metric series cardinality was bounded but sc
 
 ## Latest engineering checkpoint — Batch 62J-73 (21 November 2026)
 
+**Source/test checkpoint:** `7e7d17144c178c8167c22520ce9efc8bcef52b07`. Exact-head CI status is not yet visible through the available repository status feed.
+
 **Zero-cost host simulation:** repository is GitHub + CI only; no owner-controlled production host exists. CI already provisions an isolated Redis 7 service via `REDIS_TEST_URL`, so the new acceptance test runs inside the existing backend test job without a new paid service, deployment, or additional workflow job.
 
 **New ACL finding and correction:**
@@ -855,7 +857,7 @@ The Gate 38 source audit found that metric series cardinality was bounded but sc
 - Added `backend/tests/test_ohlcv_redis_acl_integration.py`: creates disposable random ACL usernames/passwords at runtime, authenticates both roles through the same Redis URL path, verifies publisher append/read and denies consumer/lease writes, verifies gateway group/read/ack/claim and lease Lua operations, and checks key/command separation. Cleanup removes temporary ACL users and keys. Credentials are never committed or printed.
 - The integration test is opt-in outside CI and runs automatically in the existing backend CI job because that job already supplies `REDIS_TEST_URL`.
 
-**Verification:** the new exact-head CI result has not yet been observed. Do not mark Batch 62J-73 as CI-green until all checks for its final source/test SHA finish successfully.
+**Source/test checkpoint:** `7e7d17144c178c8167c22520ce9efc8bcef52b07`. The exact-head CI result has not yet been observed. Do not mark Batch 62J-73 as CI-green until all checks for its final source/test SHA finish successfully.
 
 **Host boundary:** this is an ephemeral CI host simulation only. It does not create a persistent public server, public HTTPS/WSS endpoint, real multi-host gateway topology, production TLS certificate, external backup target or Android runtime acceptance. No production credentials are needed or requested.
 
