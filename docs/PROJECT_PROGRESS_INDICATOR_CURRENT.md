@@ -1,3 +1,19 @@
+## Batch 62J-86 — SQLite schema-bootstrap contention hardening (21 November 2026)
+
+- Prior full-cardinality attempt at exact HEAD `c2f9b99fc05dd17050674a39317bd5aa601e6182`: Automated Tests run [44902446746](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44902446746) **FAILED** in the metrics benchmark because concurrent worker connections collided during repeated SQLite schema initialization (`database is locked`). This failure is retained as evidence; it is not reported as a pass.
+- CodeQL [44902446747](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44902446747) and Full Git History Secret Audit [44902446769](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44902446769) completed SUCCESS on that prior exact head.
+- Hardened `SQLiteMetricsCollector._connect()`: schema initialization now runs once per collector instance behind a thread lock, and transient SQLite lock errors during initialization receive bounded retry/backoff. Non-lock errors and corruption still fail closed. Subsequent connections no longer repeat the DDL script.
+- Changed the 1/4/16-thread benchmark so each simulated worker owns its own collector instance against the shared SQLite file, matching the per-process collector lifecycle more closely.
+- Added a regression test in which four independent collector instances initialize and write to the same database concurrently; the test verifies all worker deltas aggregate without loss.
+- Current source/test HEAD: `2c584fcef5a20b21ec2850692ab51e28341c4eff`. Exact-head Automated Tests, CodeQL and secret-history audit are pending; no pass is claimed yet.
+- The 899-series target, 256 KiB payload limit, 250 ms SQLite busy timeout, 650,000 aggregate-row ceiling and zero-cost scope are unchanged. The full-cardinality benchmark is not considered accepted until the new exact-head run passes.
+- Gate 38 remains 🟧 OPEN. Separate OS-process benchmark, physical read-only/disk-full behavior, app-level HTTP/WebSocket isolation and owner-host acceptance remain.
+- WebSocket protocol/auth/replay/snapshot/Redis code remains unchanged. Production WSS acceptance remains host-gated.
+- Indicator calculations and renderers remain unchanged; no indicator credit. Gate 10 remains 0/10 formally closed; Stage 1 30/40 = 75% provisional; overall project remains unscored.
+- ZERO COST. No deployment, Vercel/Cloudflare operation, paid service, production credential, Termux/device operation or `main` modification.
+
+---
+
 ## Batch 62J-85 — full-cardinality Gate 38 benchmark (21 November 2026)
 
 - Source/test HEAD: `de104f388a4dd5c214567e911933d4c341bff570` on `phase-2/market-data-foundation`; exact-head CI is pending and is not claimed as passing.

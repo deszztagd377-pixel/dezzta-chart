@@ -1,3 +1,11 @@
+## Batch 62J-86 — schema-bootstrap contention hardening (21 November 2026)
+
+The first full-cardinality CI benchmark attempt failed at concurrent SQLite schema initialization with `database is locked`. This is a real regression signal and is not suppressed. The collector now serializes one-time schema initialization per collector instance and applies bounded retry/backoff only to transient SQLite lock errors. The benchmark now gives each simulated worker a separate collector instance, and a new regression test exercises four independent instances initializing the same shared database concurrently.
+
+The previous attempt's CodeQL and secret-history audit passed, but Automated Tests failed at the benchmark step. Current source/test HEAD `2c584fcef5a20b21ec2850692ab51e28341c4eff` has new exact-head CI pending. Gate 38 remains 🟧 until the new benchmark and all failure/isolation/host requirements are accepted. The row-cap arithmetic is not a byte budget. ZERO COST; no deployment, no paid provider, no Termux, no production credential, and no `main` modification.
+
+---
+
 ## Batch 62J-85 — full-cardinality benchmark update (21 November 2026)
 
 The former 12-series synthetic benchmark has been replaced with a full 899-logical-series benchmark matching the current collector dimensions: 762 request series + 127 latency histogram series + 10 WebSocket metric series. It measures 1/4/16 Python-thread cases and checks aggregate cardinality, expected request totals, worker totals, serialized snapshot size and SQLite integrity. A write-rejection transaction rollback/retry regression was added.

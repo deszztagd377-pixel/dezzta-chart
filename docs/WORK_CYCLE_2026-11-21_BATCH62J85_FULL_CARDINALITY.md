@@ -4,7 +4,7 @@
 **Source changes:** full-cardinality synthetic benchmark, benchmark contract test, transactional storage-write-failure regression.  
 **Base source checkpoint:** `c8fc6ac6ebbf9a27f69c2ea8a4852336bc575d0f`  
 **Latest source checkpoint:** `de104f388a4dd5c214567e911933d4c341bff570`  
-**CI status at documentation time:** pending exact-head run; no pass is claimed yet.
+**CI status at documentation time:** the first full-cardinality run at c2f9 failed during schema bootstrap; Batch 62J-86 contains the fix and new exact-head CI is pending.
 
 ## Work completed
 

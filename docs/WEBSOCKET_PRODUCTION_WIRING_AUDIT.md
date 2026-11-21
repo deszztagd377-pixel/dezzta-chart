@@ -1,3 +1,11 @@
+## Batch 62J-86 — telemetry bootstrap contention fix; WebSocket data path unchanged (21 November 2026)
+
+The Gate 38 benchmark exposed SQLite schema-initialization contention while separate collector instances opened the same local database. The collector now serializes schema initialization within each instance and retries bounded SQLite lock failures; the benchmark models separate collector instances per worker. The new exact-head CI is pending.
+
+No WebSocket publisher, gateway consumer, auth, replay, snapshot, cursor or market-data payload code changed. The WebSocket repository-side automated failure matrix remains previously verified for its defined scope; production acceptance still requires owner-host snapshot/Redis/TLS/proxy/browser/Android evidence.
+
+---
+
 ## Batch 62J-85 — Gate 38 benchmark expansion; WebSocket scope unchanged (21 November 2026)
 
 The latest Gate 38 work expands the synthetic SQLite metrics benchmark from 12 to the full 899 declared logical series and adds a transaction write-rejection rollback/retry test. It does not modify WebSocket publisher, gateway consumer, replay, snapshot, authentication, cursor or payload code. Exact-head CI is pending; no pass is claimed yet.
