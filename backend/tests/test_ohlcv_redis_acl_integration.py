@@ -44,8 +44,8 @@ def test_real_redis_publisher_and_gateway_acl_roles_are_least_privilege():
             *GATEWAY_ACL_COMMANDS,
         )
 
-        # from_url(.../0) initializes the database selection during connect.
-        # Both dedicated identities must therefore have the explicit +select grant.
+        # redis-py treats database 0 as the default and does not need SELECT.
+        # Keep database switching denied; only the configured DB-0 URL is supported.
         publisher = redis_module.Redis.from_url(
             redis_url, username=publisher_user, password=publisher_password,
             decode_responses=True,
@@ -56,6 +56,10 @@ def test_real_redis_publisher_and_gateway_acl_roles_are_least_privilege():
         )
         assert publisher.ping() is True
         assert gateway.ping() is True
+        with pytest.raises(redis_module.exceptions.NoPermissionError):
+            publisher.execute_command("SELECT", 1)
+        with pytest.raises(redis_module.exceptions.NoPermissionError):
+            gateway.execute_command("SELECT", 1)
 
         # Publisher can append and verify deterministic stream entries.
         assert publisher.xadd(stream_key, {"payload": "one"}, id="1-0") == "1-0"

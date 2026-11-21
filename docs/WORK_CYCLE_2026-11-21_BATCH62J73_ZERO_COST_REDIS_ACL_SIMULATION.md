@@ -1,5 +1,5 @@
 # DEZZTA CHART — Work Cycle Batch 62J-73
-## Zero-cost Redis ACL host simulation and database-selection correction
+## Zero-cost Redis ACL host simulation (superseded ACL note corrected in Batch 62J-74)
 
 **Date:** 21 November 2026  
 **Branch:** `phase-2/market-data-foundation`  
@@ -84,6 +84,6 @@ The CI Redis instance is ephemeral and must never be represented as a production
 
 Invariants: warm-up values are null, never zero; series align to candle indices; no future-candle repaint; identity/timeframe changes clear stale series. Footprint OFF preserves normal candle spacing; explicit ON alone enables spaced clusters. Full renderer work remains in the project dashboard.
 
-## Cost and device boundary
+## Batch 62J-74 correction and CI result\n\nThe prior `+select` permission was unnecessary for database 0 and has been removed from both roles. The ACL integration test now proves that each role can operate on its DB-0 URL while explicit `SELECT 1` is denied. Exact-head CI passed with 1,249 backend tests; the full CI run, container smoke, CodeQL and history secret audit succeeded. See the current dashboard and WebSocket audit for exact run references and the remaining production-host boundary.\n\n## Cost and device boundary
 
 ZERO COST. No deployment, paid hosting, production credentials, Vercel/Cloudflare operation, Termux/device action or `main` modification.

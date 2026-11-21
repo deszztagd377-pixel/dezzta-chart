@@ -845,24 +845,37 @@ The Gate 38 source audit found that metric series cardinality was bounded but sc
 **Acceptance boundary:** Gate 25 remains 🟧 OPEN pending live Redis TLS/ACL, persistence/failover and host credential lifecycle. Gate 36 remains 🟧 OPEN pending public HTTPS/WSS proxy and browser/Android runtime acceptance. Source publisher stays 🟨🟩 HOST VERIFICATION PENDING.
 
 
-## Latest engineering checkpoint — Batch 62J-73 (21 November 2026)
+## Latest engineering checkpoint — Batch 62J-74 (21 November 2026)
 
-**Source/test checkpoint:** `7e7d17144c178c8167c22520ce9efc8bcef52b07`. Exact-head CI status is not yet visible through the available repository status feed.
+**Verified CI head:** `3e3428910e3226f3d4365808f3a36a3138674231` — Automated Tests run [44874341856](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44874341856), CodeQL run [44874341916](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44874341916), and full Git-history secret audit run [44874341885](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44874341885) all SUCCESS. The CI run executed the Redis ACL integration test and finished with **1,249 backend tests passed in 57.10 seconds**. The Docker smoke step, image scan and vulnerability-report export/upload also succeeded.
 
-**Zero-cost host simulation:** repository is GitHub + CI only; no owner-controlled production host exists. CI already provisions an isolated Redis 7 service via `REDIS_TEST_URL`, so the new acceptance test runs inside the existing backend test job without a new paid service, deployment, or additional workflow job.
+**Batch 62J-73 correction — least privilege:** review of the real-Redis ACL tests showed that redis-py uses database 0 as its default without issuing `SELECT 0`. Granting `+select` was therefore unnecessary and broader than required. Batch 62J-74 removes `+select` from both publisher and gateway allow-lists. The integration test now proves both roles can PING and perform their allowed operations while explicit `SELECT 1` is denied. URL validation continues to reject every non-zero database path. This is a security-scope tightening; the earlier claim that `+select` was needed is superseded.
 
-**New ACL finding and correction:**
-- Redis clients created from a `redis://...` or `rediss://.../0` URL initialize database selection during connection setup. The dedicated role allow-lists previously omitted `+select`, which could make the otherwise valid ACL user fail before it could PING or access the stream.
-- Added `+select` to both publisher and gateway ACL command matrices. Database 0 remains mandatory; no non-zero database access is introduced.
-- Added `backend/tests/test_ohlcv_redis_acl_integration.py`: creates disposable random ACL usernames/passwords at runtime, authenticates both roles through the same Redis URL path, verifies publisher append/read and denies consumer/lease writes, verifies gateway group/read/ack/claim and lease Lua operations, and checks key/command separation. Cleanup removes temporary ACL users and keys. Credentials are never committed or printed.
-- The integration test is opt-in outside CI and runs automatically in the existing backend CI job because that job already supplies `REDIS_TEST_URL`.
+**Verified zero-cost CI simulation:**
+- Redis 7 service-backed ACL integration: publisher and gateway identities authenticate with disposable runtime-only passwords; allowed stream/lease operations succeed and prohibited command/key access is denied.
+- Existing end-to-end Redis tests also pass: source publisher deterministic cursor append/read-back, per-gateway consumer groups, durable apply-before-ACK, snapshot generation reset, event replay, callback retry, lease ownership and ACL role separation.
+- Backend container smoke: authenticated Redis ACL; rejects unauthenticated, wrong-password and unrelated SET access; AOF data and ACL file survive Redis container restart; backend returns fail-closed 503 while Redis is down and recovers after Redis returns; non-root UID/GID and mounted-volume ownership are verified; SQLite integrity and backend restart persistence are verified; rate-limit enforcement is verified.
+- Backend image vulnerability scan and vulnerability report artifact export/upload: SUCCESS.
+- Frontend tests/build/secret scans, backend dependency audit, Gitleaks full-history audit and CodeQL: SUCCESS.
+- The synthetic outbox benchmark uses 1,000 synthetic bars, 250-event pages and two concurrent readers. It is explicitly synthetic and is not market-data performance evidence.
 
-**Source/test checkpoint:** `7e7d17144c178c8167c22520ce9efc8bcef52b07`. The exact-head CI result has not yet been observed. Do not mark Batch 62J-73 as CI-green until all checks for its final source/test SHA finish successfully.
+**Important scope boundary:** the CI smoke Redis is a temporary guard-service container with an AOF volume. It does not establish production persistence/failover for the dedicated OHLCV stream, nor a live production Redis TLS endpoint. The CI ACL test is real Redis command/key enforcement but remains ephemeral. No production host exists.
 
-**Host boundary:** this is an ephemeral CI host simulation only. It does not create a persistent public server, public HTTPS/WSS endpoint, real multi-host gateway topology, production TLS certificate, external backup target or Android runtime acceptance. No production credentials are needed or requested.
+**WebSocket status:** repository-side automated WebSocket E/failure-matrix acceptance is complete for its defined CI scope. Production WebSocket acceptance is not complete: real snapshot distribution and installation receipts, production Redis TLS/ACL topology, host secret rotation, stream persistence/failover/retention, public HTTPS/WSS reverse proxy and browser/Android WebView acceptance remain external.
 
-**Accounting:** Gate 25 remains 🟧 OPEN pending actual owner-host Redis TLS/ACL, persistence, failover and credential lifecycle. Gate 36 remains 🟧 OPEN pending a public HTTPS/WSS endpoint plus browser/Android acceptance. Gate 8 remains 🟨🟩 host-verification-only. Gate 10 remains 0/10 formally closed. Stage 1 remains 30/40 = 75% provisional; overall project percentage remains unscored.
+**Gate 10:** 0/10 formally closed. Gate 8 remains 🟨🟩 host-verification-only. Gates 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain 🟧 OPEN; this batch provides repository/CI evidence but does not award a formal gate tick. Stage 1 remains 30/40 = 75% provisional. Stages 2–6 and overall project percentage remain unscored because approved denominators/weights are not established.
 
-**Indicator ledger:** unchanged in this backend-only batch. SMA20 🟨 (first valid index 19); EMA20 🟨 (SMA seed, alpha 2/21, index 19); RSI14 🟨 (Wilder, index 14); MACD12/26/9 🟨 (MACD index 25, signal/histogram index 33); Bollinger20,2 🟨 (population SD, index 19); Shared Indicator Hook 🟨; Footprint 🟧 simulated/gated; Heatmap 🟥 not implemented; Liquidation Maps 🟥 not implemented. Full formulas, invariants and renderer work remain recorded in this dashboard.
+**Complete indicator ledger — unchanged by this backend batch:**
+- SMA20 — 🟨 foundation; arithmetic mean of the last 20 closes; first valid candle index 19. Remaining: overlay rendering, visibility toggle, legend/current value, stale-series clearing and renderer tests.
+- EMA20 — 🟨 foundation; SMA-seeded EMA, alpha = 2/21; first valid index 19. Remaining: overlay rendering, visibility toggle, legend/current value, stale-series clearing and renderer tests.
+- RSI14 — 🟨 foundation; Wilder smoothing; first valid index 14. Remaining: dedicated 0–100 pane, 30/70 guides, toggle, legend and renderer tests.
+- MACD 12/26/9 — 🟨 foundation; EMA12−EMA26 first valid index 25; signal and histogram first valid index 33. Remaining: dedicated pane, signal lines, histogram, zero guide, toggle, legend and renderer tests.
+- Bollinger20,2 — 🟨 foundation; mean ± 2 × population standard deviation; first valid index 19. Remaining: three-line overlay, toggle, displayed values, stale-series clearing and renderer tests.
+- Shared Indicator Hook — 🟨 foundation; validated, candle-index-aligned snapshot. Remaining: full identity/timeframe binding, loading/error lifecycle, stale clearing and series isolation.
+- Footprint — 🟧 simulated/gated; requires the user's visual reference, approved blueprint, ON-only spaced candle/cluster layout, bid/ask cells and performance acceptance.
+- Heatmap — 🟥 not implemented; requires user's visual reference, zero-cost source feasibility, validated data contract, approved blueprint and renderer.
+- Liquidation Maps — 🟥 not implemented; requires zero-cost source feasibility, validated calculation/data contract, approved blueprint/reference and renderer.
 
-**Cost/device:** ZERO COST. No deployment, paid hosting, production credentials, Vercel/Cloudflare operation, Termux action or `main` modification.
+Indicator invariants: warm-up values are `null`, never zero; all values align to candle indices; no future-candle repaint; symbol/venue/dataset/chart/timeframe changes clear stale series. Footprint OFF preserves ordinary candle spacing; only explicit ON enables spaced cluster layout. No indicator implementation credit is awarded by backend-only work.
+
+**Cost/device:** ZERO COST. No paid hosting, deployment, Vercel/Cloudflare operation, production credential request, Termux command, device action or `main` modification.

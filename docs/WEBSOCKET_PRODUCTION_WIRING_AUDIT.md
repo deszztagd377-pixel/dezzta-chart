@@ -191,35 +191,38 @@ Regression coverage now includes:
 **Gate status:** Gate 25 🟧 OPEN (live Redis TLS/ACL, persistence, failover and credential lifecycle remain unverified). Gate 36 🟧 OPEN (public HTTPS/WSS reverse proxy and browser/Android runtime acceptance remain unverified). Source publisher activation remains 🟨🟩 host-verification pending.
 
 
-## Batch 62J-73 — zero-cost Redis ACL host simulation and database selection correction
+## Batch 62J-74 — exact-head CI acceptance and Redis ACL least-privilege correction
 
-### Finding
+### Exact CI evidence
 
-Both dedicated Redis clients are created from Redis URLs constrained to database 0. Redis client initialization selects the configured database when connecting. The prior publisher and gateway ACL command matrices omitted `+select`; consequently, a least-privilege ACL user could be rejected during connection initialization before its permitted PING / stream operations. This was a genuine startup integration gap, not a production-host failure.
+The Automated Tests workflow completed successfully on head `3e3428910e3226f3d4365808f3a36a3138674231` (run [44874341856](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44874341856)). Backend pytest reported **1,249 passed in 57.10 seconds**. The new Redis ACL integration test and the existing full publisher/consumer ACL integration test both passed. CodeQL (run [44874341916](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44874341916)) and full Git-history secret audit (run [44874341885](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44874341885)) also succeeded.
 
-### Correction
+The existing CI Docker smoke additionally verified:
+- Redis ACL rejects unauthenticated access, wrong passwords and unrelated SET operations.
+- Redis AOF data and its ACL file survive a Redis container restart on a named volume.
+- The backend returns the expected fail-closed 503 during Redis outage and recovers after Redis returns.
+- Non-root application UID/GID, persistent-volume/database ownership, SQLite integrity and backend restart persistence.
+- HTTP rate-limit enforcement.
+- Backend container image scan and vulnerability-report export/upload succeeded.
 
-Added `+select` to `PUBLISHER_ACL_COMMANDS` and `GATEWAY_ACL_COMMANDS`. Database 0 remains the only permitted database. No broad command categories or extra key patterns were added.
+This is repository/CI simulation evidence, not production-host acceptance. The Redis AOF/volume smoke is for the shared guard service and does not prove production persistence/failover of the dedicated OHLCV relay stream.
 
-### Real Redis ACL integration test
+### Redis ACL correction — supersedes Batch 62J-73 SELECT claim
 
-Added `backend/tests/test_ohlcv_redis_acl_integration.py`. It runs against the isolated Redis 7 service already supplied by the existing CI workflow through `REDIS_TEST_URL`. It generates disposable random user names and passwords at runtime and tests:
-- Both dedicated clients can connect through the database-0 URL and PING.
-- Publisher can XADD/XRANGE only on its exact stream key.
-- Publisher cannot XREADGROUP or modify gateway lease keys.
-- Gateway can XGROUP CREATE, XREADGROUP, XAUTOCLAIM, XACK and XRANGE.
-- Gateway cannot XADD and cannot access keys outside its exact stream/lease patterns.
-- Gateway can execute the lease SET/EVAL/GET/PEXPIRE/DEL sequence under its configured allow-list.
-- Temporary keys and ACL users are deleted in a `finally` cleanup path.
+The earlier Batch 62J-73 note incorrectly stated that redis-py needs `+select` when connecting to database 0. The existing real-Redis end-to-end ACL test used a `/0` URL without `+select` and passed. Database 0 is the Redis default; the client does not need a SELECT command to use it.
 
-The test uses no persistent credential, does not print generated secrets and is skipped in local test runs when `REDIS_TEST_URL` is absent. The existing CI backend test step supplies that variable, so no extra workflow job or new paid service is introduced.
+Batch 62J-74 removes `+select` from both publisher and gateway command allow-lists. The new integration test explicitly verifies:
+- Both clients connect through the DB-0 URL and PING successfully.
+- Publisher/gateway allowed stream and lease operations work.
+- Explicit `SELECT 1` is rejected for both roles.
+- Publisher and gateway prohibited commands and out-of-scope key access remain rejected.
 
-### What this proves — and what it does not
+This tightens least privilege. URL parsing still rejects non-zero database paths.
 
-This proves Redis command/key ACL behavior against an ephemeral Redis instance in CI. It does not prove public Redis TLS, a production Redis provider, real host secret rotation, persistence/failover of the dedicated OHLCV stream, cross-host gateway installation, or public WSS/browser/Android acceptance. Those remain host-only acceptance items.
+### Production boundary and gates
 
-**CI disposition:** pending exact-head CI for the resulting source/test commit. No success is claimed until the actual final SHA has green checks.
+WebSocket E is complete for the defined automated repository failure matrix. Production acceptance still requires owner-controlled evidence for actual global snapshot artifact distribution and authenticated per-gateway receipts, production Redis TLS/ACL topology and secret rotation, dedicated OHLCV stream persistence/failover/retention, public HTTPS/WSS reverse proxy, browser and Android WebView runtime acceptance.
 
-**Gate disposition:** Gate 25 🟧 OPEN; Gate 36 🟧 OPEN; source publisher remains 🟨🟩 HOST VERIFICATION PENDING. Gate 10 remains 0/10 closed.
+Gate 8 remains 🟨🟩 host-verification-only. Gate 25 and Gate 36 remain 🟧 OPEN; Gates 20, 30, 31, 34, 35, 38 and 39 remain 🟧 OPEN. Gate 10 remains 0/10 formally closed. Stage 1 remains 30/40 = 75% provisional; overall project percentage remains unscored.
 
-No indicator formula, hook or renderer changed. See `PROJECT_PROGRESS_INDICATOR_CURRENT.md` for the complete indicator ledger and current project accounting. ZERO COST; no deployment, production credentials, Termux, Vercel/Cloudflare operation or `main` modification.
+See `PROJECT_PROGRESS_INDICATOR_CURRENT.md` for the complete indicator ledger and current accounting. ZERO COST; no deployment, production credentials, Termux, Vercel/Cloudflare operation or `main` modification.
