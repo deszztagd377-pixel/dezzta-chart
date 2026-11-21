@@ -1,3 +1,22 @@
+## Batch 62J-79 — bounded WebSocket lifecycle observability (21 November 2026)
+
+**Source/test HEAD:** `2274f9adc5ac9907ea508800a2d962d9a7c14a84`  
+**Branch:** `phase-2/market-data-foundation`
+
+- Added a pure ASGI lifecycle observer for `/ws/market-data`. It counts connection starts, current active connections, completed connections, accepted connections, peer disconnects, close-code classes and cumulative duration.
+- The observer deliberately does not inspect WebSocket payloads, authorization headers, tickets, IP addresses, symbols, account IDs or query strings.
+- Cardinality is fixed: close codes are reduced to five classes (`1xxx`, `2xxx`, `4xxx`, `5xxx`, `other`). Counters saturate at the largest exactly representable JSON integer; duration samples are finite and capped at one day.
+- Metrics are exposed only inside the existing bearer-token-protected `/internal/metrics` endpoint, nested under `websocket`; no new public endpoint or credential was added.
+- Added middleware tests for accepted/closed lifecycle, peer disconnect and route isolation.
+- This is process-local telemetry only. It does not create cross-worker aggregation, central collection, dashboards, durable metrics retention, off-host log storage or external operator notification. Gate 38 remains 🟧 OPEN.
+- WebSocket protocol, authentication, replay, queue and data payload contracts are unchanged. No production host or public WSS endpoint was created.
+
+**Exact-head verification:** Automated Tests [44894262277](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44894262277), CodeQL [44894262276](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44894262276), and Full Git History Secret Audit [44894262301](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44894262301) are running against this source/test HEAD. Frontend unit tests, backend tests and both CodeQL language analyses have passed; remaining build, container and audit steps are pending. No full CI acceptance is claimed yet.
+
+**ZERO COST:** no hosting, paid provider, Vercel/Cloudflare deployment, production credential, Termux/device command or `main` modification.
+
+---
+
 ## Batch 62J-78 — compensated SMA cancellation accuracy (21 November 2026)
 
 **Latest source/test HEAD:** f70f0bcfe2208b4fbfb37440fe8dc3b740e8fbcc  

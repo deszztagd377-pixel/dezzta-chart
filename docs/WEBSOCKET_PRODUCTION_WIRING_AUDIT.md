@@ -273,3 +273,14 @@ Source/test HEAD e6fd0dcb8d27be85b4fa32bc6b82a1495403e8e8 passed Automated Tests
 SMA raw rolling-sum intermediate overflow was corrected using normalized window means; tests cover finite MAX_VALUE means and large cancellation. Full details are in docs/WORK_CYCLE_2026-11-21_BATCH62J77_NORMALIZED_SMA_AND_ACCEPTANCE.md and docs/INDICATOR_PROGRESS_LEDGER.md.
 
 Repository WebSocket automated scope remains complete. Production acceptance remains blocked by absent owner-controlled host/public HTTPS-WSS endpoint and missing real production Redis/snapshot receipts. Gate 10 remains 0/10 formally closed. Gates 8, 30, 34, 35, 39 are 🟨🟩 host/owner-verification-only; Gates 20, 25, 31, 36, 38 remain 🟧. Stage 1 is 75% provisional; overall project remains unscored. ZERO COST; no host, credentials, deployment, Termux or device operation.
+
+
+## Batch 62J-79 — WebSocket lifecycle metrics extension (21 November 2026)
+
+- `backend/app/observability.py` now includes `WebSocketMetrics` and `WebSocketMetricsMiddleware`, scoped only to `/ws/market-data`.
+- Captured fields: started, active, completed, accepted, peer disconnect count, five fixed close-code classes and cumulative duration. No payload/header/user data is read.
+- Existing bearer-protected `/internal/metrics` response now includes a `websocket` object alongside HTTP metrics. No new public route.
+- Tests cover accepted/closed lifecycle, peer disconnect and route isolation.
+- The new metrics are process-local and reset at process start. They are not central telemetry, durable retention or an operator dashboard. Gate 38 remains 🟧 OPEN.
+- Source/test HEAD: `2274f9adc5ac9907ea508800a2d962d9a7c14a84`. Frontend/backend tests and CodeQL analyses passed in the current run; remaining Automated Tests workflow steps were still running at documentation time. Full Git History Secret Audit passed. Exact links: [Automated Tests](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44894262277), [CodeQL](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44894262276), [Secret Audit](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44894262301).
+- No WebSocket protocol, auth, replay, snapshot or market-data payload contract was changed. No public WSS/production acceptance claim is made.

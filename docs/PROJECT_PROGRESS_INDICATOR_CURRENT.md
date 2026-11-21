@@ -1,3 +1,17 @@
+## Latest work cycle — Batch 62J-79 (21 November 2026)
+
+- Added bounded process-local WebSocket lifecycle metrics for the exact `/ws/market-data` ASGI route: starts, active, completed, accepted, peer disconnects, five close-code classes and cumulative duration.
+- The observer records lifecycle metadata only. It does not inspect payloads, auth tickets, authorization headers, account IDs, IP addresses, symbols or query strings. It is returned only through the existing bearer-token-protected `/internal/metrics` endpoint.
+- New tests cover accepted/closed lifecycle, peer disconnect and route isolation. WebSocket wire protocol and data path are unchanged.
+- Source/test HEAD: `2274f9adc5ac9907ea508800a2d962d9a7c14a84`. Frontend tests, backend tests and CodeQL have passed in exact-head run [44894262277](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44894262277) / [44894262276](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44894262276); full workflow still has container/build/audit steps pending. Secret-history audit [44894262301](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44894262301) passed. Do not claim full CI acceptance yet.
+- Gate 38 improves at repository level but remains 🟧 OPEN: telemetry is process-local; central collector, multi-worker aggregation, dashboard, durable retention and independent operator notification remain absent.
+- WebSocket automated protocol/failure-matrix scope remains complete for the defined CI scope. Production acceptance remains blocked by missing owner-controlled host, production Redis topology, snapshot receipts, public HTTPS/WSS and real browser/Android WebView acceptance.
+- Indicator formulas and visual completion are unchanged. Full indicator status is in `INDICATOR_PROGRESS_LEDGER.md`; no renderer credit is awarded by this observability batch.
+- Gate 10 remains 0/10 formally closed. 🟨🟩 host/owner verification only: Gates 8, 30, 34, 35, 39. 🟧 additional integration: Gates 20, 25, 31, 36, 38.
+- Stage 1 remains 30/40 = 75% provisional. Stages 2–6 and overall project remain unscored. ZERO COST; no deployment, Termux/device command, production credentials or `main` modification.
+
+---
+
 ## Latest work cycle — Batch 62J-78 (21 November 2026)
 
 - SMA numeric audit found and corrected a second-order cancellation case after Batch 62J-77: a small representable residual between `MAX_VALUE` and `-MAX_VALUE` was lost by ordinary normalized reduction.
