@@ -126,6 +126,8 @@ def _load_alert_device_encryption_key(path: str) -> bytes:
         if len(raw) > 128:
             raise ValueError("Alert-device encryption key file has an invalid size.")
         encoded = raw.decode("ascii").strip()
+    except FileNotFoundError as exc:
+        raise ValueError("ALERT_DEVICE_ENCRYPTION_KEY_FILE must reference a regular file.") from exc
     except UnicodeDecodeError as exc:
         raise ValueError("Alert-device encryption key file is unavailable or invalid.") from exc
     except ValueError:
