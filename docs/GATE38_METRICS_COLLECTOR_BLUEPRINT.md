@@ -209,3 +209,8 @@ Batch 62J-90 adds two regression tests:
 2. An application-level failure-isolation test that forces metrics flush to raise a storage-full error, waits for the collector to enter `degraded`, then checks `/health`, authenticated `/internal/metrics`, and authenticated `/ws/market-data` remain responsive.
 
 These tests are pending exact-head CI. They do not prove actual owner-host filesystem exhaustion behavior or production operator recovery. Gate 38 remains 🟧 OPEN until exact-head CI and host acceptance.
+
+
+## 17. Batch 62J-91 — disk-full test observation correction
+
+The SQLite page-limit test correctly reached `SQLITE_FULL` and verified aggregate rollback. Its worker-count assertion used snapshot time 1801 against an unchanged checkpoint at 900, so the worker was correctly stale under the 90-second threshold. The test now checks at 901 to verify the unchanged checkpoint while it remains live. App-level collector failure isolation and read-only recovery passed in the same run. Only the test timestamp changed; no collector implementation change. Exact-head CI pending.

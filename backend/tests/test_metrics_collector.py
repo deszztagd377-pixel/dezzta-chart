@@ -384,7 +384,9 @@ def test_real_sqlite_page_limit_failure_rolls_back_and_recovers(tmp_path, monkey
         collector.flush(worker, next_request, next_websocket, now=1800)
 
     monkeypatch.setattr(collector, "_connect", original_connect)
-    after_failure = collector.snapshot(now=1801)
+    # The failed attempt at 1800 must not advance last_seen; inspect at 901
+    # so the original checkpoint is still inside the 90-second live window.
+    after_failure = collector.snapshot(now=901)
     assert after_failure["series"]["http.requests|GET|/capacity/000|1xx"] == 1
     assert after_failure["worker_count"] == 1
 

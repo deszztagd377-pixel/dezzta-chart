@@ -1067,3 +1067,8 @@ The first CI attempt for Batch 62J-88 exposed an unconditional leftover `Asserti
 - New tests add real SQLite page-limit exhaustion rollback/recovery and app-level proof that collector failure does not block HTTP/WebSocket. Pending exact-head CI.
 - No indicator formula, hook, renderer, UI or market-data contract changed. SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, Shared Hook 🟨, Footprint 🟧, Heatmap 🟥, Liquidation Maps 🟥.
 - Stage 1 remains 30/40 = 75% provisional; Gate 10 remains 0/10 formally closed; overall project remains unscored.
+
+
+## Batch 62J-91 — indicator state unchanged
+
+The disk-full test timing correction changes only its observation timestamp: the failed write was rolled back, and the worker checkpoint remains at 900, so liveness is inspected at 901 rather than 1801. App-level HTTP/WebSocket failure isolation and read-only recovery tests passed. No indicator formula, hook, renderer, UI or data contract changed. SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, Shared Hook 🟨, Footprint 🟧, Heatmap 🟥, Liquidation Maps 🟥. Stage 1 75% provisional; Gate 10 0/10 closed; overall unscored.

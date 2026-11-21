@@ -1061,3 +1061,8 @@ All four cases verified 899 logical series; process case verified four separate 
 Batch 62J-90 adds a genuine SQLite page-limit/disk-full rollback-and-recovery test plus an app-level test that forces metrics flush failure while verifying HTTP health, operator metrics status and authenticated WebSocket status remain responsive. These additions are pending exact-head CI. No production collector behavior changes in this batch.
 
 - Batch 62J-90 adds a genuine SQLite `max_page_count` exhaustion test and application-level collector-failure isolation test. They are pending exact-head CI; Gate 38 remains 🟧 until passed and owner-host checks are complete.
+
+
+## Batch 62J-91 — disk-full test liveness assertion timing correction
+
+Automated Tests [44905465144](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905465144) reported 1,270 passed / 1 failed. The SQLite `SQLITE_FULL` exception and aggregate rollback assertions passed. The only failure was the test expecting one live worker at snapshot time 1801 although the last successful checkpoint was 900 and the stale threshold is 90 seconds; the collector correctly reported zero live workers. The test now checks at timestamp 901 (checkpoint age 1 second). The app-level HTTP/WebSocket failure-isolation test and read-only recovery test passed. CodeQL [44905465128](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905465128) and Full Git History Secret Audit [44905464959](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905464959) passed. Exact-head Automated Tests rerun pending. No collector code or indicator implementation changed.

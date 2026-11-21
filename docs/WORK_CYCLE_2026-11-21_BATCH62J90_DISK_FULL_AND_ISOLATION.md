@@ -22,3 +22,8 @@ Exact-head CI for these new tests is pending. Do not close Gate 38 until they pa
 Indicator state unchanged: SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, Shared Hook 🟨, Footprint 🟧, Heatmap 🟥, Liquidation Maps 🟥. Gate 10 remains 0/10 formally closed; Stage 1 30/40 = 75% provisional; overall project percentage unscored.
 
 ZERO COST. No deployment, paid provider, Vercel/Cloudflare operation, Termux/device action, production credentials or `main` modification.
+
+
+## Batch 62J-91 — disk-full test liveness assertion timing correction
+
+Automated Tests [44905465144](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905465144) reported 1,270 passed / 1 failed. The SQLite `SQLITE_FULL` exception and aggregate rollback assertions passed. The only failure was the test expecting one live worker at snapshot time 1801 although the last successful checkpoint was 900 and the stale threshold is 90 seconds; the collector correctly reported zero live workers. The test now checks at timestamp 901 (checkpoint age 1 second). The app-level HTTP/WebSocket failure-isolation test and read-only recovery test passed. CodeQL [44905465128](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905465128) and Full Git History Secret Audit [44905464959](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905464959) passed. Exact-head Automated Tests rerun pending. No collector code or indicator implementation changed.
