@@ -1,3 +1,22 @@
+## Latest engineering checkpoint — Batch 62J-64 (21 November 2026)
+
+**Branch:** `phase-2/market-data-foundation`  
+**Source/test HEAD:** `54a319c9165a47b03a3ab02039e4bdeeae783e3a`  
+**Source commit:** `fdf70fc71afd5603fa92f74931cfbd0afd47f7bb`  
+**Regression-test commit:** `54a319c9165a47b03a3ab02039e4bdeeae783e3a`
+
+- Automated Tests [44858630448](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44858630448): **SUCCESS** — frontend **247/247 tests across 29 files**; backend **1,225 passed in 59.22s**; all **33/33 workflow steps** passed, including frontend build/secret scans, dependency audits, SQLite outbox benchmark, backend container build, Redis/persistent-volume smoke, Trivy scan and report export.
+- CodeQL [44858630295](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44858630295): **SUCCESS** for JavaScript/TypeScript and Python.
+- Full Git History Secret Audit [44858630302](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44858630302): **SUCCESS**.
+- Gate 38 correction: unhandled HTTP 500 responses now preserve the request correlation ID in a sanitized response body; HTTP metrics retain the route/status observation without exposing query strings, headers, or exception messages. A new regression test verifies the response ID, 5xx metric, and redaction boundary.
+- Gate 30's previous WAL-aware capacity preflight remains exact-head CI-verified at source/test HEAD `0afaa3af5f4b2fe4fdc9a9779dc36dbb16b88543` (Automated Tests 44857959302, CodeQL 44857959330, Secret Audit 44857959338 — all SUCCESS). Owner-host drill remains external.
+- No indicator formulas, calculation source, shared hook, renderer, chart UI or indicator tests changed in Batch 62J-64. No indicator completion credit is awarded.
+- Stage 1 remains **30/40 criteria = 300/400 ticks = 75% provisional**. Gate 10 remains **0/10 formally closed**; gates 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain OPEN.
+- Overall project and aggregate indicator percentages remain **unscored** until their weights and acceptance denominators are approved. Stages 2–6 remain unscored.
+- ZERO COST maintained: no deployment, paid service, Termux/device operation, production credentials, or `main` modification.
+
+---
+
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
 **Checkpoint:** 21 November 2026 — Batch 62J-62 Gate 30 WAL-aware capacity preflight and exact-head CI closure
