@@ -110,7 +110,12 @@ class WebSocketMetrics:
             self._started = min(self._started + 1, _MAX_COUNTER)
             self._active = min(self._active + 1, _MAX_COUNTER)
 
-    def finish(self, *, accepted: bool, peer_disconnect: bool, close_code: object, duration_ms: float) -> None:
+    def accept(self) -> None:
+        """Count a successful ASGI handshake immediately, including active sessions."""
+        with self._lock:
+            self._accepted = min(self._accepted + 1, _MAX_COUNTER)
+
+    def finish(self, *, peer_disconnect: bool, close_code: object, duration_ms: float) -> None:
         if isinstance(close_code, int) and not isinstance(close_code, bool) and 1000 <= close_code <= 5999:
             code_class = f"{close_code // 1000}xxx"
             if code_class not in self._close_codes:
@@ -125,8 +130,6 @@ class WebSocketMetrics:
         with self._lock:
             self._active = max(0, self._active - 1)
             self._completed = min(self._completed + 1, _MAX_COUNTER)
-            if accepted:
-                self._accepted = min(self._accepted + 1, _MAX_COUNTER)
             if peer_disconnect:
                 self._peer_disconnects = min(self._peer_disconnects + 1, _MAX_COUNTER)
             self._close_codes[code_class] = min(self._close_codes[code_class] + 1, _MAX_COUNTER)
@@ -179,8 +182,9 @@ class WebSocketMetricsMiddleware:
             # downstream send fails, do not report a handshake or close frame
             # that was never successfully handed to the server transport.
             await send(message)
-            if message.get("type") == "websocket.accept":
+            if message.get("type") == "websocket.accept" and not accepted:
                 accepted = True
+                self.metrics.accept()
             elif message.get("type") == "websocket.close":
                 close_code = message.get("code")
 
@@ -189,7 +193,6 @@ class WebSocketMetricsMiddleware:
         finally:
             elapsed_ms = max(0.0, (time.monotonic_ns() - started_ns) / 1_000_000)
             self.metrics.finish(
-                accepted=accepted,
                 peer_disconnect=peer_disconnect,
                 close_code=close_code,
                 duration_ms=elapsed_ms,
