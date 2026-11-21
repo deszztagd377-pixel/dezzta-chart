@@ -1,10 +1,17 @@
 """Additional edge-case tests for configuration security boundaries."""
 
+import base64
 from dataclasses import replace
 
 import pytest
 
-from app.config import Settings, _parse_bool, _parse_cors_origins, _parse_int
+from app.config import (
+    Settings,
+    _load_alert_device_encryption_key,
+    _parse_bool,
+    _parse_cors_origins,
+    _parse_int,
+)
 
 
 def make_settings(**overrides):
@@ -286,3 +293,59 @@ def test_operator_incident_token_is_redacted_and_requires_strong_value():
 def test_operator_incident_token_rejects_weak_values(token):
     with pytest.raises(ValueError, match="32-256 non-whitespace"):
         make_settings(operator_incident_token=token)
+
+
+
+def test_alert_device_encryption_key_loader_accepts_protected_canonical_256_bit_key(
+    tmp_path,
+):
+    key = bytes(range(32))
+    key_file = tmp_path / "alert-device.key"
+    key_file.write_text(base64.b64encode(key).decode("ascii"), encoding="ascii")
+    key_file.chmod(0o600)
+
+    assert _load_alert_device_encryption_key(str(key_file)) == key
+
+
+@pytest.mark.parametrize("mode", [0o640, 0o604, 0o644, 0o660])
+def test_alert_device_encryption_key_loader_rejects_group_or_other_permissions(
+    tmp_path, mode
+):
+    key_file = tmp_path / "alert-device.key"
+    key_file.write_text(
+        base64.b64encode(b"K" * 32).decode("ascii"), encoding="ascii"
+    )
+    key_file.chmod(mode)
+
+    with pytest.raises(ValueError, match="permissions must deny group and other"):
+        _load_alert_device_encryption_key(str(key_file))
+
+
+@pytest.mark.parametrize(
+    "encoded,expected_error",
+    [
+        ("not-base64!", "canonical base64"),
+        (base64.b64encode(b"K" * 31).decode("ascii"), "exactly 32 bytes"),
+        (base64.b64encode(b"K" * 33).decode("ascii"), "exactly 32 bytes"),
+    ],
+)
+def test_alert_device_encryption_key_loader_rejects_invalid_key_material(
+    tmp_path, encoded, expected_error
+):
+    key_file = tmp_path / "alert-device.key"
+    key_file.write_text(encoded, encoding="ascii")
+    key_file.chmod(0o600)
+
+    with pytest.raises(ValueError, match=expected_error):
+        _load_alert_device_encryption_key(str(key_file))
+
+
+def test_alert_device_encryption_key_loader_requires_absolute_existing_file(
+    tmp_path,
+):
+    with pytest.raises(ValueError, match="absolute path"):
+        _load_alert_device_encryption_key("relative/alert-device.key")
+
+    missing_file = tmp_path / "missing-alert-device.key"
+    with pytest.raises(ValueError, match="regular file"):
+        _load_alert_device_encryption_key(str(missing_file))
