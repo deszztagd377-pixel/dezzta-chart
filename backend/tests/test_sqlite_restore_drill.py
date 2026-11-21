@@ -378,6 +378,34 @@ def test_encrypted_application_backup_round_trip_feeds_full_restore_drill(tmp_pa
     assert list(tmp_path.rglob("*.sqlite-restore.tmp")) == []
 
 
+def test_restore_drill_refuses_insufficient_capacity_before_creating_outputs(
+    tmp_path, monkeypatch
+):
+    from types import SimpleNamespace
+    from app import sqlite_restore_drill
+
+    source = tmp_path / "live.sqlite3"
+    backup = tmp_path / "backup" / "snapshot.sqlite3"
+    restored = tmp_path / "restore" / "restored.sqlite3"
+    _build_database(source)
+    source_before = source.read_bytes()
+
+    monkeypatch.setattr(
+        sqlite_restore_drill.shutil,
+        "disk_usage",
+        lambda _path: SimpleNamespace(free=0),
+    )
+
+    with pytest.raises(OSError, match="insufficient free space"):
+        run_restore_drill(source, backup, restored)
+
+    assert source.read_bytes() == source_before
+    assert not backup.exists()
+    assert not restored.exists()
+    assert list(tmp_path.rglob("*.sqlite-backup.tmp")) == []
+    assert list(tmp_path.rglob("*.sqlite-restore.tmp")) == []
+
+
 def test_restore_drill_cli_failure_redacts_paths_and_error_details(tmp_path, capsys):
     from app.sqlite_restore_drill import main
 
