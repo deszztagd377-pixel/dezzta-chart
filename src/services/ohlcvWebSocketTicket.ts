@@ -9,6 +9,9 @@ export async function requestOhlcvWebSocketTicket(baseUrl: string, idToken: stri
   if (!['http:', 'https:'].includes(endpoint.protocol) || endpoint.username || endpoint.password) {
     throw new Error('Market-data backend URL must use HTTP(S) without embedded credentials.');
   }
+  if (import.meta.env.PROD && endpoint.protocol !== 'https:') {
+    throw new Error('Production WebSocket ticket requests must use HTTPS.');
+  }
   endpoint.pathname = '/v1/auth/websocket-ticket';
   endpoint.search = '';
   endpoint.hash = '';

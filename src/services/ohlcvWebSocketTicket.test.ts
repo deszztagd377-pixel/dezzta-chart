@@ -14,6 +14,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
 describe('requestOhlcvWebSocketTicket', () => {
@@ -98,6 +99,15 @@ describe('requestOhlcvWebSocketTicket', () => {
       'https://market.example.test',
       'firebase-id-token',
     )).rejects.toThrow(/failed validation/i);
+  });
+
+  it('rejects plaintext ticket transport in production before making a request', async () => {
+    vi.stubEnv('PROD', true);
+    await expect(requestOhlcvWebSocketTicket(
+      'http://market.example.test',
+      'firebase-id-token',
+    )).rejects.toThrow(/must use HTTPS/i);
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it('rejects missing credentials and URLs with embedded credentials before making a request', async () => {

@@ -106,9 +106,27 @@ function setup() {
 
 afterEach(() => {
   vi.useRealTimers();
+  vi.unstubAllEnvs();
 });
 
 describe('connectOhlcvStream', () => {
+  it('rejects plaintext remote WebSocket transport in production before opening a socket', () => {
+    vi.stubEnv('PROD', true);
+    const webSocketFactory = vi.fn(() => new FakeSocket() as unknown as WebSocket);
+    expect(() => connectOhlcvStream({
+      baseUrl: 'http://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      ticket: 'ws-ticket-abcdefghijklmnopqrstuvwxyz1234567890',
+      getRenewalTicket: async () => 'renewed-ticket-abcdefghijklmnopqrstuvwxyz1234567890',
+      webSocketFactory,
+      onSnapshot: vi.fn(),
+      onUpdate: vi.fn(),
+    })).toThrow(/HTTPS\/WSS/i);
+    expect(webSocketFactory).not.toHaveBeenCalled();
+  });
+
+
   it('authenticates, requests an exact series, then applies snapshot and next update', () => {
     const { socket, onSnapshot, onUpdate, connection } = setup();
     expect(connection.state).toBe('connecting');

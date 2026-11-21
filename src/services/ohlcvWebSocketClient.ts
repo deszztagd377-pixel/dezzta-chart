@@ -46,6 +46,9 @@ function buildWebSocketUrl(baseUrl: string): string {
   if (!['http:', 'https:'].includes(base.protocol) || base.username || base.password) {
     throw new Error('Market-data backend URL must use HTTP(S) without embedded credentials.');
   }
+  if (import.meta.env.PROD && base.protocol !== 'https:') {
+    throw new Error('Production market-data WebSocket connections must use HTTPS/WSS.');
+  }
   base.protocol = base.protocol === 'https:' ? 'wss:' : 'ws:';
   base.pathname = '/ws/market-data';
   base.search = '';
