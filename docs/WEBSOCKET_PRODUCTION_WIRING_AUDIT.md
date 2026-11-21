@@ -381,3 +381,10 @@ Repository-side WebSocket failure-matrix scope remains complete. Exact-head Auto
 Exact HEAD `427e5952d2f209ae1f40405223d8d0a4c7d8408c` passed Automated Tests [44905839386](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905839386), CodeQL [44905839403](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905839403) and Full Git History Secret Audit [44905839442](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905839442). Backend container build, ephemeral Redis shared-guard/persistent-volume smoke and Trivy scan/report also passed. The Gate 38 app-level isolation test confirmed that a failing metrics collector does not block authenticated WebSocket status delivery. No WebSocket protocol, transport, auth, replay, cursor, gateway or Redis market-data data-path change was made.
 
 This does not close Gate 36: public HTTPS/WSS reverse proxy, certificates, owner-host Redis TLS/ACL/persistence/failover, snapshot distribution/installation receipts and real browser/Android WebView acceptance remain host-gated.
+
+
+## Batch 62J-93 — WebSocket/Gate 38 exact-head reconciliation (21 November 2026)
+
+Exact source/test HEAD `a62e7423a5d36d3fdbc003e0e56d86c3a9e6ecbb` passed Automated Tests [44911391436](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44911391436), CodeQL [44911391400](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44911391400) and Full Git History Secret Audit [44911391397](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44911391397). Backend tests: 1,271 passed; frontend: 255/255. The new SQLite batch-read optimization affects only metrics aggregation. No WebSocket protocol, transport, authentication, replay, cursor, gateway, Redis market-data path or message payload changed. Gate 38 app-level isolation still proves the metrics collector can degrade without blocking authenticated WebSocket status.
+
+Gate 36 remains 🟧 OPEN for owner-host public HTTPS/WSS reverse proxy/certificate, production Redis TLS/ACL/persistence/failover, snapshot installation receipts and real browser/Android WebView acceptance.

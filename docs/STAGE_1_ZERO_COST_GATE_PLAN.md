@@ -464,3 +464,12 @@ The local reporter now reconciles the durable SQLite incident journal on its fir
 - Exact-head CI is recorded in the current acceptance matrix. This remains repository-level evidence: Gate 30 still requires a timestamped drill against the actual owner-host database and verified runtime path.
 - Stage 1 remains 30/40 = 300/400 = 75% provisional. Gate 10 remains 0/10 formally closed. No acceptance tick is awarded.
 - ZERO COST: no deployment, paid service, Termux/device operation, or `main` modification.
+
+
+## Batch 62J-93 — Gate 38 SQLite batch-read optimization and Gate 10 reconciliation (21 November 2026)
+
+Exact source/test HEAD `a62e7423a5d36d3fdbc003e0e56d86c3a9e6ecbb` passed Automated Tests [44911391436](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44911391436), CodeQL [44911391400](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44911391400) and Full Git History Secret Audit [44911391397](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44911391397). Frontend 255/255; backend 1,271 passed. The 899-series collector benchmark, read-only recovery, `SQLITE_FULL` rollback/recovery and HTTP/WebSocket failure-isolation tests passed.
+
+The new collector reads the current bucket once and batches aggregate UPSERTs. At 899 series × 512 flushes this reduces bucket SELECT statements from 460,288 to 512 (99.8888%). The 16-thread p95 improved 8.22%, max improved 37.64%, retries fell 38.65%; p99 regressed 2.52%. Four-process p95 improved 52.94%, retries halved, while p99 changed +0.92%. Four-thread p99 regressed 39.93%. Do not conceal these tails or claim an SLA.
+
+Current Gate 10 classification: 0/10 formally closed; Gates 8, 30, 34, 35, 39 🟨🟩 host/owner-verification-only; Gates 20, 25, 31, 36, 38 🟧 externally open. Stage 1 remains 30/40 = 75% provisional. No acceptance tick is awarded by CI or repository optimization.

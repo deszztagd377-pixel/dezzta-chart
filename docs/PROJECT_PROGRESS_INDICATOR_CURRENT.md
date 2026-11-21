@@ -1096,3 +1096,48 @@ No indicator calculation, hook, renderer or UI changed. SMA20 🟨 (first valid 
 Gate 10 remains **0/10 formally closed**. Gates 8, 30, 34, 35 and 39 remain 🟨🟩 host/owner-verification-only. Gates 20, 25, 31, 36 and 38 remain 🟧 OPEN; Gate 38 is not yellow-green because operator dashboard/notification/recovery and owner-host acceptance remain. Stage 1 remains **30/40 = 75% provisional**. Stages 2–6 and overall project percentage remain unscored without approved weights/denominators.
 
 ZERO COST. No deployment, paid service, Vercel/Cloudflare operation, Termux/device action, production credentials or `main` modification.
+
+## Batch 62J-93 — SQLite metrics batch-read optimization and exact-head acceptance (21 November 2026)
+
+**Source/test HEAD:** `a62e7423a5d36d3fdbc003e0e56d86c3a9e6ecbb`
+
+- Automated Tests [44911391436](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44911391436): **SUCCESS**, 35/35 steps.
+- Frontend: **255/255 tests across 29 files**.
+- Backend: **1,271 passed in 55.86 seconds**.
+- CodeQL [44911391400](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44911391400): **SUCCESS** for Python and JavaScript/TypeScript.
+- Full Git History Secret Audit [44911391397](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44911391397): **SUCCESS**.
+- Frontend npm audit: 0 vulnerabilities; backend dependency audit: no known vulnerabilities; Trivy reported 0 vulnerabilities in the scanned Alpine and Python package targets.
+- Backend container build, shared-Redis/SQLite persistent-volume smoke, full-cardinality metrics benchmark, image scan and report export: **SUCCESS**.
+
+### What changed
+`backend/app/metrics_collector.py` now reads the existing rows for the active 15-minute bucket once per flush, computes deltas in memory, and submits non-zero aggregate updates through `executemany`. The existing `BEGIN IMMEDIATE` transaction boundary, per-worker checkpoint, JSON value schema, retention cleanup, capacity enforcement and rollback behavior remain intact. This removes one bucket SELECT per logical series without changing the metric schema or WebSocket data path.
+
+At 899 active logical series and 512 flushes, bucket reads are reduced from 460,288 per-key SELECTs to 512 batched SELECTs: **99.8888% fewer bucket-read statements**. This is a query-count calculation from the old/new code paths; the benchmark independently measures resulting wall-clock behavior.
+
+### Full-cardinality benchmark — before versus after
+The prior baseline is exact-head commit `2650c70e977b22a4c70a5e0e292dcc3a8a59082c`; the optimized result is exact-head `a62e7423a5d36d3fdbc003e0e56d86c3a9e6ecbb`. Both use synthetic 899-series payloads on CI runners, not production hardware.
+
+| Workload | p95 before → after | p99 before → after | Max before → after | Retries before → after |
+|---|---:|---:|---:|---:|
+| 1 thread, 32 flushes | 15.997 → 13.172 ms | 17.820 → 14.003 ms | 17.820 → 14.003 ms | 0 → 0 |
+| 4 threads, 128 flushes | 192.993 → 190.979 ms | 290.086 → 405.913 ms | 354.538 → 441.050 ms | 2 → 3 |
+| 16 threads, 512 flushes | 654.798 → 600.947 ms | 921.534 → 944.797 ms | 2,769.913 → 1,727.381 ms | 251 → 154 |
+| 4 OS processes, 128 flushes | 243.724 → 114.703 ms | 278.107 → 280.654 ms | 415.647 → 378.409 ms | 4 → 2 |
+
+Relative changes:
+- 16-thread p95 **−8.22%**, p99 **+2.52%**, max **−37.64%**, retries **−38.65%**.
+- Four-process p95 **−52.94%**, p99 **+0.92%**, max **−8.96%**, retries **−50%**.
+- Four-thread p95 **−1.04%**, but p99 **+39.93%** and max **+24.40%**. This tail regression is retained explicitly, not hidden.
+- One-thread p95 **−17.66%** and p99 **−21.42%**.
+
+All cases verified 899/899 logical series and SQLite `integrity_check=ok`; all expected flushes completed. The 16-thread case still has measurable lock contention. No latency SLA has been approved, so these results are comparative evidence, not a production performance guarantee.
+
+### Gate 38 disposition
+Repository-side full-cardinality benchmark, separate-process contention, read-only recovery, SQLite `SQLITE_FULL` rollback/recovery and app-level HTTP/WebSocket failure isolation are CI-verified. Gate 38 remains 🟧 OPEN pending actual owner-host volume/permissions/restart/retention/backup/disk-pressure, firewall/reverse-proxy and operator-token controls, dashboard visibility/access review, independent notification, acknowledgement/escalation and recovery drill. Same-host SQLite only; multi-host remains unsupported.
+
+### Project and indicator accounting
+Gate 10 remains **0/10 formally closed**. Gates 8, 30, 34, 35 and 39 are 🟨🟩 host/owner-verification-only; Gates 20, 25, 31, 36 and 38 remain 🟧. Stage 1 remains **30/40 = 75% provisional**; no tick is awarded by this optimization. Stages 2–6 and overall project percentage remain unscored.
+
+No indicator formula, hook, renderer, UI or market-data contract changed. SMA20 🟨 (first valid index 19); EMA20 🟨 (SMA seed, alpha 2/21, index 19); RSI14 🟨 (Wilder, index 14); MACD12/26/9 🟨 (MACD index 25, signal/histogram index 33); Bollinger20,2 🟨 (population SD, index 19); Shared Hook 🟨; Footprint 🟧; Heatmap 🟥; Liquidation Maps 🟥. Warm-up nulls, candle-index alignment, no future-candle repaint and stale-series clearing remain required.
+
+ZERO COST. No deployment, paid service, Vercel/Cloudflare operation, Termux/device action, production credentials or `main` modification.

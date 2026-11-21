@@ -1089,3 +1089,20 @@ Exact HEAD `427e5952d2f209ae1f40405223d8d0a4c7d8408c` passed Automated Tests (fr
 - Liquidation Maps 🟥 — not implemented; requires zero-cost source feasibility, validated formula/data contract, reference/blueprint and renderer.
 
 Warm-up values remain null (never zero), values candle-index aligned, no future-candle repaint, and identity/timeframe changes clear stale series. No aggregate indicator percentage is published without an approved denominator. Stage 1 remains 30/40 = 75% provisional; Gate 10 0/10 formally closed; overall project percentage unscored.
+
+
+## Batch 62J-93 — indicator progress carry-forward (21 November 2026)
+
+The Gate 38 SQLite batch-read optimization changed backend observability storage only. It did not modify indicator formulas, hook, chart UI, renderer or market-data contracts. Indicator progress therefore remains unchanged:
+
+- **SMA20 — 🟨 foundation:** arithmetic mean of the last 20 closes; first valid candle index 19. Remaining: visible overlay, toggle, legend/current value, stale clearing and renderer/lifecycle tests.
+- **EMA20 — 🟨 foundation:** SMA-seeded EMA, alpha (2/21); first valid index 19. Remaining: overlay, toggle, legend/current value, stale clearing and renderer/lifecycle tests.
+- **RSI14 — 🟨 foundation:** Wilder smoothing; first valid index 14. Remaining: dedicated 0–100 pane, 30/70 guides, toggle, legend, stale clearing and renderer tests.
+- **MACD12/26/9 — 🟨 foundation:** MACD first valid index 25; signal and histogram first valid index 33. Remaining: dedicated pane, MACD/signal lines, histogram, zero guide, toggle and legend.
+- **Bollinger20,2 — 🟨 foundation:** mean ±2 × population standard deviation; first valid index 19. Remaining: upper/middle/lower overlay, toggle, displayed values, stale clearing and renderer tests.
+- **Shared Indicator Hook — 🟨 foundation:** validated candle-index-aligned backend snapshot. Remaining: identity/timeframe binding, loading/error lifecycle, stale clearing and series isolation.
+- **Footprint — 🟧 simulated/reference-gated:** bounded synthetic data only. Requires the owner's visual reference, reviewed blueprint, explicit ON-only spaced cluster layout, bid/ask cells and performance acceptance. OFF must preserve normal candle spacing.
+- **Heatmap — 🟥 not implemented:** requires owner visual reference, zero-cost source feasibility, validated data contract, reviewed blueprint, calculation and renderer tests.
+- **Liquidation Maps — 🟥 not implemented:** requires zero-cost source feasibility, validated calculation/data contract, owner reference/blueprint and renderer tests.
+
+Warm-up values remain null (never zero); outputs align to candle indices; no future-candle repaint; symbol/venue/dataset/chart/timeframe changes clear stale series. No aggregate indicator percentage is published without an approved denominator. Stage 4 visible-indicator work remains behind the official stage gate; no stage was skipped.

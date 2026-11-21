@@ -223,3 +223,21 @@ Exact HEAD `427e5952d2f209ae1f40405223d8d0a4c7d8408c` passed Automated Tests [44
 The repository-side Gate 38 matrix now includes full 899-series thread/process contention, read-only failure/recovery, genuine SQLite `SQLITE_FULL` rollback/recovery, and app-level isolation proving HTTP health, authenticated metrics scrape and authenticated WebSocket status remain responsive during collector failure. All passed on the exact HEAD above.
 
 Gate 38 remains 🟧 OPEN, not 🟨🟩: actual owner-host persistent volume/permissions/restart/backup/retention/disk-pressure, operator-token perimeter/rotation, operator dashboard visibility, independent notification/acknowledgement/escalation and recovery drill remain. SQLite aggregation remains same-host only; no multi-host claim.
+
+
+## 19. Batch 62J-93 — batched bucket reads and measured contention
+
+Exact source/test HEAD `a62e7423a5d36d3fdbc003e0e56d86c3a9e6ecbb` passed Automated Tests [44911391436](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44911391436), CodeQL [44911391400](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44911391400) and Full Git History Secret Audit [44911391397](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44911391397).
+
+The collector now performs one `SELECT metric_key,value_json WHERE bucket_start=?` per flush and calculates existing totals in memory, then uses `executemany` for non-zero UPSERTs. The `BEGIN IMMEDIATE` transaction still protects both bucket reads and aggregate/checkpoint writes. At 899 series × 512 flushes, the per-key bucket-read query count falls from 460,288 to 512 (99.8888% reduction).
+
+Full 899-series results, prior exact-head comparison:
+
+| Workload | p95 before → after | p99 before → after | Max before → after | Retries before → after |
+|---|---:|---:|---:|---:|
+| 1 thread | 15.997 → 13.172 ms | 17.820 → 14.003 ms | 17.820 → 14.003 ms | 0 → 0 |
+| 4 threads | 192.993 → 190.979 ms | 290.086 → 405.913 ms | 354.538 → 441.050 ms | 2 → 3 |
+| 16 threads | 654.798 → 600.947 ms | 921.534 → 944.797 ms | 2,769.913 → 1,727.381 ms | 251 → 154 |
+| 4 OS processes | 243.724 → 114.703 ms | 278.107 → 280.654 ms | 415.647 → 378.409 ms | 4 → 2 |
+
+The 4-thread p99/max and the 16-thread p99 did not improve. The 16-thread p95/max/retries and four-process p95/retries did improve. The workload is synthetic and runner-dependent; no SLA or production disk/latency guarantee is inferred. All workloads verified 899/899 series and SQLite integrity `ok`. Gate 38 remains 🟧 OPEN for owner-host and operator acceptance.

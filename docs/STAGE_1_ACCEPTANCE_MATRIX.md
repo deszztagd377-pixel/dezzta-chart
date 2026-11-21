@@ -1,41 +1,20 @@
-# Latest exact-head reconciliation — Batch 62J-68 (21 November 2026)
+# Latest exact-head reconciliation — Batch 62J-93 (21 November 2026)
 
-**Working branch:** `phase-2/market-data-foundation`  
-**Latest source/config/test HEAD:** `da9b2ad025ac5c49f75c95dbdd5f516573107f87`.
+**Branch:** `phase-2/market-data-foundation`  
+**Source/test HEAD:** `a62e7423a5d36d3fdbc003e0e56d86c3a9e6ecbb`
 
-- Automated Tests [44863517983](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44863517983), CodeQL [44863518025](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44863518025), Full Git History Secret Audit [44863517962](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44863517962) — all **SUCCESS**. Frontend 247/247; backend 1,238 passed in 49.89s; 32/32 workflow steps succeeded.
-- Frontend npm audit: 0 vulnerabilities. Backend dependency audit: no known vulnerabilities. Trivy reported 0 vulnerabilities for scanned Alpine and Python package targets.
-- Gate 8 source-side improvements: explicit redaction coverage for `alert_device_encryption_key`; 12 file-loader regression cases, including no-follow symbolic-link rejection, non-regular-file rejection and sanitized non-ASCII decoding errors; backend Docker build-context exclusions; and complete optional configuration examples. The container build and Redis ACL/AOF + persistent-volume smoke passed.
-- Gate 8 remains **OPEN — 🟨 HOST VERIFICATION ONLY** pending actual host secret injection, ownership/mode, UID/GID 10001 readability, process exposure, rotation and runtime verification. CI is not host acceptance.
-- Gate 30 remains OPEN pending the real owner-host/approved device restore drill. Gate 38 and Gate 39 remain OPEN pending host-side monitoring/operator acceptance.
-- WebSocket automated failure matrix is complete for the defined repository scope. Public WSS, production Redis topology/credentials and browser/Android acceptance remain external.
-- No indicator source, formula, hook, renderer, UI or indicator test changed. Indicator statuses remain SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, Shared Hook 🟨, Footprint 🟧 SIMULATED/reference-gated, Heatmap 🟥, Liquidation Maps 🟥.
-- Stage 1: **30/40 = 300/400 = 75% provisional**. Gate 10: **0/10 formally closed; 1/10 🟨 host-verification-only (Gate 8); 9/10 🟧 externally open**. No acceptance tick is awarded.
-- Overall project and aggregate indicator percentages remain unscored. Stages 2–6 remain unscored.
-- ZERO COST. No deployment, paid service, Termux/device operation, production credential, or `main` modification.
-
-
----
-
-# Latest exact-head reconciliation — 21 November 2026
-
-**Working branch:** `phase-2/market-data-foundation`  
-**Current source/test HEAD:** `0fa2497cbf791e043e1ff314b7f138de2bf23106`.
-
-- **Automated Tests** [44856652183](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44856652183): **SUCCESS** — frontend **247 tests across 29 files**; backend **1,221 passed in 43.47s**; all 33 workflow steps succeeded, including dependency audits, bounded SQLite outbox benchmark, backend container build, Redis shared-guard/persistent-volume smoke, Trivy scan and report export.
-- **CodeQL** [44856652218](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44856652218): **SUCCESS** for Python and JavaScript/TypeScript.
-- **Full Git History Secret Audit** [44856652241](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44856652241): **SUCCESS**.
-- **Gate 30 source increment:** restore drill now performs a WAL-aware capacity preflight before creating outputs, enforces the runbook's same-/separate-filesystem free-space bounds, and fails closed for inadequate space or a non-empty rollback journal in non-WAL mode. Regression coverage confirms source preservation and zero output artifacts when capacity is insufficient.
-- **Gate 30 remains OPEN:** no owner-host drill has been run against the actual database path of the live backend. CI fixtures do not substitute for that operation.
-- **WebSocket automated acceptance:** COMPLETE for the defined dual-ASGI/Redis failure matrix (Batches 62J-25/28/31). Production snapshot distribution/rotation, production Redis TLS/ACL/credential lifecycle, public WSS and browser/Android acceptance remain external.
-- **Stage 1:** **30/40 criteria = 300/400 ticks = 75% provisional**. Remaining criteria: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
-- **Gate 10:** **10/10 🟧 OPEN; 0/10 formally closed**. No external gate is closed by source code or CI alone.
-- **Overall project:** historical owner-confirmed **20.9%** is not a current weighted calculation. Current overall percentage remains unscored until M1–M8 weights and denominator are approved. Stages 2–6 remain unscored.
-- **Indicators:** SMA20 🟨 (index 19); EMA20 🟨 (alpha 2/21, index 19); RSI14 🟨 (index 14); MACD12/26/9 🟨 (MACD index 25, signal/histogram 33); Bollinger20,2 🟨 (population deviation, index 19); shared hook 🟨; Footprint 🟧 SIMULATED/reference-gated; Heatmap 🟥; Liquidation Maps 🟥. No indicator source, formula, hook, renderer or indicator test changed in Batch 62J-62.
-- **Boundary:** ZERO COST; no production deployment, paid service, Vercel/Cloudflare operation, Termux/device operation, production credentials, or `main` modification.
+- Automated Tests [44911391436](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44911391436): **SUCCESS**, 35/35 workflow steps.
+- Frontend: **255/255 tests across 29 files**; backend: **1,271 passed in 55.86 seconds**.
+- CodeQL [44911391400](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44911391400): **SUCCESS**; Full Git History Secret Audit [44911391397](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44911391397): **SUCCESS**.
+- Frontend npm audit: 0 vulnerabilities; backend dependency audit: no known vulnerabilities; Trivy scanned Alpine and Python package targets with 0 reported vulnerabilities.
+- Gate 38 batch-read optimization passed exact-head CI. Full 899-series benchmark passed for 1/4/16 threads and four separate OS processes; read-only failure/recovery, SQLite `SQLITE_FULL` rollback/recovery and application-level HTTP/WebSocket failure isolation passed.
+- WebSocket repository-side automated failure matrix remains complete. Production HTTPS/WSS, Redis owner-host topology, snapshot distribution and browser/Android owner acceptance remain external.
+- **Gate 10: 0/10 formally closed.** Gates **8, 30, 34, 35, 39** are 🟨🟩 repository-ready / host-owner verification only. Gates **20, 25, 31, 36, 38** remain 🟧 externally open. Yellow-green is not closure; bright green requires full acceptance evidence.
+- **Stage 1: 30/40 = 300/400 = 75% provisional**, unchanged; no gate tick awarded by this source optimization. Stages 2–6 remain unscored. Overall project percentage remains unscored without approved weights/denominators.
+- Indicators unchanged: SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, Shared Hook 🟨, Footprint 🟧, Heatmap 🟥, Liquidation Maps 🟥.
+- ZERO COST. No deployment, paid service, Vercel/Cloudflare operation, Termux/device action, production credentials or `main` modification.
 
 ---
-
 
 ## Batch 15 — upstream dependency remediation review — 2026-11-18
 
@@ -115,7 +94,7 @@ This matrix separates repository implementation from evidence that must come fro
 5. **Implemented / test present** — shared HTTP/WebSocket limits reject booleans, non-integers, zero, and negative values.
 6. **Implemented / test present** — Redis and provider credentials are excluded from settings representations.
 7. **Implemented / test present** — safe provider defaults keep live and historical ingestion disabled.
-8. **External verification required** — confirm production secrets use an owner-controlled, no-billing host secret-injection mechanism (for example OS-protected service credentials) and are absent from frontend bundles, logs, build output, and repository history. Do not introduce a paid secret manager.
+8. **🟨🟩 Host verification only** — confirm production secrets use an owner-controlled, no-billing host secret-injection mechanism (for example OS-protected service credentials) and are absent from frontend bundles, logs, build output, and repository history. Do not introduce a paid secret manager.
 
 ### B. Identity and WebSocket authorization
 
@@ -146,7 +125,7 @@ This matrix separates repository implementation from evidence that must come fro
 27. **Implemented / test present** — backup output is checked with `PRAGMA integrity_check`.
 28. **Implemented / test present** — backup publication uses a temporary file and atomic replacement; POSIX snapshot data is flushed before publication and the parent directory is flushed after rename; pre-publication failures preserve the previous destination. Directory-flush failure is surfaced because rename durability is uncertain.
 29. **Implemented / test present** — POSIX backup files are restricted to owner-only permissions, and failure to set permissions prevents publication.
-30. **External verification required** — perform and record a restore drill from a real production-like backup into a fresh database, verifying application-level records as well as SQLite integrity. Batch 6 adds a CI integration test chaining encrypted snapshot recovery into the full application restore drill; this is repository evidence only and does not replace the target-host drill.
+30. **🟨🟩 Owner-device/host verification only** — perform and record a restore drill from the actual application database into a fresh destination into a fresh database, verifying application-level records as well as SQLite integrity. Batch 6 adds a CI integration test chaining encrypted snapshot recovery into the full application restore drill; this is repository evidence only and does not replace the target-host drill.
     - Batch 27 strengthens the repository probe: it now commits a unique test record, verifies it through a fresh read-only connection, then commits cleanup and verifies absence through another read-only connection. Two regression tests cover durable readback and cleanup after injected failure. This remains CI/repository evidence only; Gate 30 stays OPEN pending the actual owner-device database drill.
 31. **External verification required** — encrypt backups before off-host transfer, store encryption keys separately, enforce retention/access policy, and prove a restore using the documented key-recovery procedure. Batch 6 adds an end-to-end CI regression for snapshot → AES-256-GCM artifact → authenticated decrypt → application restore; off-host storage, separate key custody, retention, and owner-target recovery remain unverified.
 
@@ -154,15 +133,15 @@ This matrix separates repository implementation from evidence that must come fro
 
 32. **Implemented / test present** — the backend container runs the application as UID/GID `10001:10001`.
 33. **Implemented / test present** — the CI workflow contains a Docker smoke test for volume ownership, SQLite integrity, restart persistence, and rate-limit behavior.
-34. **External verification required** — configure a persistent data volume on existing owner-controlled hardware and verify mount path, owner, permissions, restart durability, disk-pressure behavior, and recovery. Do not provision a paid provider volume.
-35. **External verification required / zero-cost constrained** — run the backend on existing owner-controlled hardware and verify HTTPS health checks, startup failure behavior, and backend-only secret injection. Expose it publicly only if the existing network/domain path is verified to create no incremental charge; otherwise keep it local/LAN and defer public deployment.
+34. **🟨🟩 Host verification only** — configure a persistent data volume on existing owner-controlled hardware and verify mount path, owner, permissions, restart durability, disk-pressure behavior, and recovery. Do not provision a paid provider volume.
+35. **🟨🟩 Host verification only / zero-cost constrained** — run the backend on existing owner-controlled hardware and verify HTTPS health checks, startup failure behavior, and backend-only secret injection. Expose it publicly only if the existing network/domain path is verified to create no incremental charge; otherwise keep it local/LAN and defer public deployment.
 36. **External verification required** — verify the WSS handshake and authenticated subscription flow from supported web and Android clients through a reverse proxy on the owner-controlled host. Do not purchase hosting, domain, or CDN to satisfy this gate.
 
 ### F. Operations and production acceptance
 
 37. **Implemented / test present** — the market-data status endpoint exposes bounded application-level operational state; it is not external monitoring.
-38. **External verification required / paid observability prohibited** — repository collector has bounded 127-series cardinality, sanitized labels, process-local counters/histograms, detached snapshots, finite duration clamping, and saturating JSON-safe counters (2^53−1) plus a finite accumulated-duration ceiling. Batch 62J-44 adds a boundary regression test. Exact branch HEAD `3c06d9820d7f821677211c65770a3d80051416f1`, a documentation-only descendant of source/test HEAD `a6acf605a44fe356602f92e8bc8e31d1f8e547b6`, passed Automated Tests [44742035520](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44742035520), CodeQL [44742035394](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44742035394), and Full Git History Secret Audit [44742035688](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44742035688). This verifies repository source/test CI, not the required live host observability acceptance. Still configure self-hosted metrics/log collection, bounded retention, dashboards, and access controls on existing hardware, or explicitly defer if resource limits prevent safe operation. This repository hardening does not close the external criterion.
-39. **External verification required / paid delivery prohibited** — demonstrate a no-incremental-cost local alert path and document incident ownership, escalation, and recovery steps. Do not assume email/SMS/push delivery is free.
+38. **🟧 External verification required / paid observability prohibited** — repository-side instrumentation now includes bounded HTTP/WebSocket process-local metrics and a same-host SQLite multi-worker collector (899 logical series, 15-minute buckets, 7-day retention, 650,000-row cap, up to 16 live workers). Exact-head CI verifies full-cardinality thread/process benchmarks, SQLite read-only and `SQLITE_FULL` recovery, and HTTP/WebSocket failure isolation. Batch 62J-93 reduces per-flush bucket reads to one SELECT (99.8888% fewer SELECT statements at 899 series) and records both improved and regressed latency percentiles. This remains CI evidence only. Actual owner-host persistent volume, permissions, restart, retention, disk pressure, backup/restore, firewall, operator token rotation, dashboard, independent notification and acknowledgement/recovery remain required.
+39. **🟨🟩 Host/operator verification only / paid delivery prohibited** — demonstrate a no-incremental-cost local alert path and document incident ownership, escalation, and recovery steps. Do not assume email/SMS/push delivery is free.
 40. **Owner-approved design — complete (2026-11-10)** — the owner explicitly approved the detailed replay cursor model, outbox retention policy, reconnect semantics, benchmark plan, and short-lived scoped WebSocket-ticket threat model in [WEBSOCKET_RELIABILITY_DESIGN.md](WEBSOCKET_RELIABILITY_DESIGN.md). This closes the owner-approval criterion. Durable outbox/replay implementation still requires incremental code review and regression evidence; ticket exchange additionally remains gated on an independent security review before ticket code is added.
 
 ## Evidence required before Stage 1 can be marked 100%
