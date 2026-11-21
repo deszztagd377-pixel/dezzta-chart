@@ -154,4 +154,3 @@ def gateway_replica_runtime_factory_from_environment(
         production=source.get("APP_ENV", "development").strip().lower() == "production",
         redis_client_factory=redis_client_factory,
     )
-}
