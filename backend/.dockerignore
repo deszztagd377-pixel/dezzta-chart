@@ -1,0 +1,30 @@
+# Local credentials must never be sent as part of the backend build context.
+.env
+.env.*
+*.key
+*.pem
+*.p8
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+.ssh/
+
+# Runtime databases, backups and persistent application state.
+data/
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.db
+*.db-wal
+*.db-shm
+
+# Python-generated files and local environments.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
