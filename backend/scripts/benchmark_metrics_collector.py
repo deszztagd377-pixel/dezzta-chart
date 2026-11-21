@@ -172,7 +172,7 @@ def run_case(*, workers: int, flushes_per_worker: int) -> dict:
         snapshot_time = _BASE_TIME + flushes_per_worker * 15 + 20
         result = collector.snapshot(now=snapshot_time)
         expected_total = workers * flushes_per_worker
-        expected_series = MAX_SERIES
+        expected_series = 899
         first_route_key = "http.requests|GET|/benchmark/series/000|2xx"
         actual_total = result["series"].get(first_route_key, 0)
         if result["worker_count"] != workers or actual_total != expected_total:
@@ -225,7 +225,8 @@ def run_benchmark(*, flushes_per_worker: int) -> dict:
     return {
         "benchmark": "sqlite_metrics_collector_full_cardinality_local_synthetic",
         "data_source": "synthetic_operational_counters_only_not_market_data",
-        "declared_logical_series": MAX_SERIES,
+        "declared_logical_series": 899,
+        "collector_series_limit": MAX_SERIES,
         "request_series": len(request["requests"]),
         "latency_series": len(request["latency_ms"]),
         "websocket_series": 10,
