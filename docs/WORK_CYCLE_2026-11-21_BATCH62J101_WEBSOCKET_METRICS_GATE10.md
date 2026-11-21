@@ -26,9 +26,10 @@ Existing middleware tests continue to cover failed accept send, failed close sen
 - Candidate `0857936d9129e51fad37dc921e895c79219f2108` failed backend tests: 1,280 passed and 1 failed. The failure showed accepted was 0 while the connection was already active.
 - Intermediate candidate `13924cca3b3edff5e6fe41b43df6489924bf3a7b` temporarily changed the test expectation to match the old delayed counter. That interpretation was rejected after reviewing metric semantics; it is not accepted.
 - Corrected source/test commit: `db010cf76d6da2b1e950156f05bb18606b4fff2d`.
-- Automated Tests [44923590787](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44923590787): **IN PROGRESS** at the time of this document; do not treat as passed.
+- Automated Tests [44923590787](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44923590787): **SUCCESS** on exact source/test HEAD; 255 frontend tests passed across 29 files; 1,281 backend tests passed in 48.87 seconds. Synthetic outbox and 899-series SQLite metrics benchmarks, backend dependency audit, container build, shared Redis guard/persistent-volume smoke and configured HIGH/CRITICAL Trivy scan all succeeded.
 - CodeQL [44923590774](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44923590774): **SUCCESS**.
 - Full Git History Secret Audit [44923590739](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44923590739): **SUCCESS**.
+- CI is attached to source/test HEAD `db010cf76d6da2b1e950156f05bb18606b4fff2d`. The subsequent documentation-only commits use `[skip ci]` and do not change source/test behavior.
 
 ## 4. WebSocket / Gate 10 disposition
 
