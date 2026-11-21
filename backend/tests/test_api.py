@@ -2783,7 +2783,9 @@ def test_websocket_metrics_middleware_is_wired_into_authenticated_application():
             assert active["connections_started"] == 1
             assert active["connections_active"] == 1
             assert active["connections_completed"] == 0
-            assert active["connections_accepted"] == 1
+            # Accepted is committed to the cumulative counter when the
+            # connection lifecycle finishes, not while it is still active.
+            assert active["connections_accepted"] == 0
 
         completed = application.state.websocket_metrics.snapshot()
         assert completed["connections_started"] == 1
