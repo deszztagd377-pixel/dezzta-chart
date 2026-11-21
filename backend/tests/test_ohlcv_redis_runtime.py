@@ -11,6 +11,9 @@ class FakeRedis:
     def __init__(self):
         self.closed = False
 
+    def ping(self):
+        return True
+
     def close(self):
         self.closed = True
 
