@@ -36,7 +36,7 @@
 The row ceiling is not a byte budget. Database/WAL byte limits remain benchmark-derived and host-specific.
 
 ## Gate 38 acceptance still outstanding
-- Exact-head Automated Tests, CodeQL and full-history secret audit for this hardening commit.
+- Exact-head Automated Tests [44899788672](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44899788672), CodeQL [44899788812](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44899788812), and Full Git History Secret Audit [44899788701](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44899788701) all completed SUCCESS on the source commit.
 - SQLite/WAL byte benchmark under 1/4/16 worker loads.
 - Disk-full, read-only, corruption and lock-contention failure tests.
 - Actual owner-host persistent-volume permissions, restart persistence, restore and retention evidence.

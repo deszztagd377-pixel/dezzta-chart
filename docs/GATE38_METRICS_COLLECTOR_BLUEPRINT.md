@@ -1,5 +1,5 @@
 # Gate 38 — Zero-cost metrics collector and retention blueprint
-**Status:** REPOSITORY IMPLEMENTATION PRESENT — EXACT-HEAD CI AND HOST ACCEPTANCE REQUIRED  
+**Status:** REPOSITORY IMPLEMENTATION AND EXACT-HEAD CI VERIFIED — HOST ACCEPTANCE REQUIRED  
 **Prepared:** 21 November 2026  
 **Branch baseline:** 3eadda21f795abe5af195eedf0c81727d31f6436
 **Implementation HEAD at hardening start:** b1e21f552182a720400cd9a2d276705834a41358  
@@ -22,7 +22,7 @@ Use a dedicated SQLite metrics database file on the same owner-controlled host a
 - The database uses WAL, a finite busy timeout and explicit transaction boundaries. Flush runs off the event loop; it never runs synchronously inside request or WebSocket callbacks.
 - The collector stores aggregated 15-minute buckets and current worker heartbeats. It does not persist request payloads, raw URLs, query strings, headers, account identifiers, IP addresses, auth material, symbols or arbitrary labels.
 - The protected metrics endpoint reads a combined snapshot across live worker heartbeats. A separate history view may expose only bounded time windows and fixed metric dimensions.
-- A worker heartbeat older than 90 seconds is stale for live gauges. Stale workers are removed from the live-worker table; committed historical buckets remain.
+- A worker heartbeat older than 90 seconds is stale for live gauges. Worker checkpoint rows remain available for idempotence until capacity pressure requires eviction; an evicted worker ID is retained in a seven-day tombstone table so it cannot resume and replay counters. Committed historical buckets remain.
 - Retention target: 7 days of 15-minute buckets, with a hard row/size ceiling and oldest-bucket eviction. Retention is bounded by both age and capacity; the endpoint must report when capacity eviction shortens effective retention.
 - The metrics DB path is configurable and must be validated on the actual persistent local volume before production use. It must not be placed on an unsupported network filesystem.
 
@@ -36,7 +36,7 @@ Each worker snapshot contains monotonically increasing counters for that process
 2. Compare new counters with that worker's last snapshot. A lower counter is an invalid regression for the same worker ID; process restart must generate a new worker ID.
 3. Add deltas to the current 15-minute aggregate bucket and update the worker checkpoint in the same transaction.
 4. Update active-connection gauges and heartbeat separately from cumulative counters.
-5. On restart, the new worker ID starts a new checkpoint. The old worker expires from live gauges after 90 seconds; it cannot double-count prior totals.
+5. On restart, the new worker ID starts a new checkpoint. The old worker expires from live gauges after 90 seconds; if its checkpoint is later evicted, a seven-day tombstone rejects that retired ID so it cannot replay prior cumulative totals.
 6. If a flush fails, retain the last successfully persisted checkpoint and retry with bounded exponential backoff. Never advance the checkpoint before the aggregate write commits.
 
 Histogram bucket deltas must remain monotonic and cumulative. WebSocket counters and close-code classes use the same delta rule. Active connections are gauges, not summed historical counters.
@@ -49,7 +49,7 @@ At 100 HTTP requests/second, raw per-request persistence would create 8,640,000 
 
 These are operation-count estimates, not a benchmark or a promise of zero I/O contention. A dedicated DB, off-event-loop flush, short transaction, finite busy timeout and load tests are mandatory.
 
-The collector must enforce bounded worker count, bounded metric-series cardinality, bounded payload size per flush, bounded transaction duration/retry count, 7-day age retention plus a hard row/database-size ceiling, and explicit disk-full, busy-lock, corruption and read-only-volume behavior.
+The collector enforces 16 live workers, 256 checkpoint generations, 4,096 seven-day retired-worker tombstones, 900 logical series per snapshot, 256 KiB serialized snapshot size, 650,000 aggregate rows, and seven-day age retention. The actual SQLite byte ceiling remains benchmark-derived; explicit disk-full, busy-lock, corruption and read-only-volume acceptance remains required.
 
 ## 5. Security and failure behavior
 
@@ -106,7 +106,7 @@ The current RequestMetrics contract caps method/route pairs at 127, including th
 - WebSocket lifecycle history: conservatively budget 11 scalar series (five close-code classes plus starts, active/current gauge, completed, accepted, peer disconnects and duration sum). The active gauge is stored as current worker state, not added to historical bucket totals.
 - Conservative total planning ceiling: 900 logical series per 15-minute bucket.
 
-Seven days at 15-minute resolution is 7 × 24 × 4 = 672 buckets. Therefore the planning ceiling is 900 × 672 = 604,800 aggregate rows. With a hard maximum of 16 workers and up to 900 per-worker checkpoint values, the checkpoint ceiling is 14,400 rows; 16 heartbeat rows are additional. The resulting planned logical-row ceiling is 619,216 before schema metadata. Set the initial hard logical-row ceiling to 650,000, leaving 30,784 rows (about 4.97%) above this calculated planning bound. Enforce the 16-worker and 900-series limits so the row calculation remains valid.
+Seven days at 15-minute resolution is 7 × 24 × 4 = 672 buckets. Therefore the planning ceiling is 900 × 672 = 604,800 aggregate rows. The implementation stores one JSON checkpoint row per worker generation, not one SQL row per series: the checkpoint table is capped at 256 rows. A separate retired-worker tombstone table is capped at 4,096 rows and expires entries after seven days; the metadata table has one fixed counter row. The aggregate-table ceiling is 650,000 rows, leaving 45,200 rows (about 7.47%) above the 604,800-row seven-day planning bound. At the aggregate ceiling, the additional bounded tables contribute at most 256 + 4,096 + 1 = 4,353 rows, so the combined logical table-row ceiling is 654,353 before SQLite indexes and WAL pages. Enforce all four limits independently; do not mislabel the aggregate-row ceiling as a total database-row or byte ceiling.
 
 These are schema-level planning bounds, not measured SQLite disk consumption. A separate byte ceiling must be selected from the isolated benchmark, including WAL and index overhead. Do not invent a byte limit from logical row count. If the benchmark cannot fit the chosen operational disk budget with headroom, reduce series/retention or revise the schema before implementation acceptance.
 
