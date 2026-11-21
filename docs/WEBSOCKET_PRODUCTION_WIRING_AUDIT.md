@@ -106,3 +106,65 @@ Keep source publisher and gateway consumer as separate application roles unless 
 **Host gate:** the source runtime factory must construct `SQLiteOhlcvPublisherCheckpoint` against the durable source database, require an existing checkpoint or initialize it only from the exact global snapshot watermark already installed on every target gateway, and use a dedicated publisher ACL client with finite socket/connect timeouts. The code cannot prove remote snapshot installation; this remains an owner-host prerequisite. Publisher lifecycle wiring is therefore **🟨🟩 HOST-FACTORY / SNAPSHOT VERIFICATION PENDING**, not production-green. Do not enable the source publisher until snapshot and ACL preconditions are satisfied.
 
 **Verification boundary:** lifecycle contract tests cover Redis readiness, task startup, graceful client close, source/gateway role separation and runtime binding mismatch. The runtime also rejects a publisher bound to a different SQLite store or checkpoint/source ID. Exact-head CI on `6f49951c253a7e7b995b4bdd52eba8153edaef77` passed: Automated Tests [44866818528], CodeQL [44866818498] and Full Git History Secret Audit [44866818495] all SUCCESS; frontend 247/247, backend 1,241 passed, and all 33 workflow steps succeeded. Backend container build, Redis ACL/AOF + persistent-volume smoke, container scan and vulnerability-report export also succeeded. No deployment, live Redis connection, production host, Termux command, paid service, or `main` change was performed.
+
+
+
+## Batch 62J-70/71 — dedicated source runtime and production transport enforcement
+
+### Source publisher runtime (62J-70)
+
+Added `backend/app/ohlcv_redis_runtime.py`:
+- Separate dedicated publisher ACL URL; does not reuse the shared HTTP/WebSocket guard URL.
+- Production validation requires `rediss://`, dedicated ACL username/password and database 0.
+- Redis client uses 3-second connect timeout, 5-second socket timeout, 15-second health-check interval, TLS certificate-chain verification and hostname verification.
+- The durable publisher checkpoint must already exist. The factory never creates an arbitrary cursor.
+- Before creating a Redis client, an owner-injected snapshot verifier must prove exact source ID, stream key, generation and cursor equality between the global manifest and one installation receipt per required gateway.
+- Missing gateway receipts, duplicate/empty gateway identities, or any generation/cursor/source/stream mismatch fail closed.
+- Environment helper remains opt-in; default module-level ASGI app is not silently enabled.
+
+The publisher and gateway ACL command matrices now include `+ping` for their readiness checks. Other command permissions remain separated by role. Tests assert the exact allow-lists.
+
+### Production HTTPS/WSS enforcement (62J-71)
+
+- Production frontend builds reject a plaintext HTTP ticket endpoint before issuing the Firebase bearer request.
+- Production frontend builds reject a plaintext `ws://` market-data endpoint before creating the WebSocket.
+- HTTPS maps to WSS. Development mode retains its prior HTTP/WS behavior for local work.
+- Added frontend regressions for both rejected production plaintext paths.
+
+### Exact-head verification
+
+Source/test HEAD: `5575f5d820dd26d16a7170cb2c55e9c707c2afc1`.
+
+- Automated Tests [44868539276] — SUCCESS; frontend **249/249 across 29 files**, backend **1,246 passed**, all **33/33 workflow steps**.
+- CodeQL [44868539309] — SUCCESS.
+- Full Git History Secret Audit [44868539423] — SUCCESS.
+- Android APK Build (zero-cost CI) [44868539288] — SUCCESS. This confirms build output only, not installation or runtime acceptance on a physical Android device.
+- Frontend/backend dependency audits, backend container build, Redis shared-guard/persistent-volume smoke, container scan, vulnerability-report export and artifact upload — SUCCESS.
+
+### Production acceptance boundary
+
+Repository-side source publisher runtime construction and production transport guards are implemented and CI-verified. **Production WebSocket acceptance is not yet complete.** The remaining evidence requires owner-controlled runtime access:
+- Actual snapshot manifest and signed/controlled installation receipts for every target gateway.
+- Durable source SQLite path, checkpoint watermark and actual gateway replica volumes.
+- Live Redis TLS handshake, ACL enforcement, persistence, failover and private network restrictions.
+- Owner-host secret injection, rotation and rollback.
+- Gateway runtime factory configured on the target host.
+- Public HTTPS/WSS reverse proxy, hostname/certificate/renewal.
+- Browser end-to-end and actual Android WebView/device acceptance.
+
+The snapshot-verifier callback is a strict contract; the repository cannot probe the user's remote hosts. No host acceptance is inferred from CI. Gate 25 and Gate 36 remain 🟧 OPEN. Source publisher remains 🟨🟩 HOST VERIFICATION PENDING. Gate 8 remains 🟨 HOST VERIFICATION ONLY.
+
+### Indicator and project accounting
+
+No indicator formula, calculation, hook, renderer or chart UI changed. The complete indicator ledger remains in `PROJECT_PROGRESS_INDICATOR_CURRENT.md`:
+- SMA20 🟨, first valid candle index 19.
+- EMA20 🟨, SMA-seeded with alpha 2/21, first valid index 19.
+- RSI14 🟨, Wilder smoothing, first valid index 14.
+- MACD12/26/9 🟨, MACD index 25 and signal/histogram index 33.
+- Bollinger20,2 🟨, population standard deviation, first valid index 19.
+- Shared Indicator Hook 🟨.
+- Footprint 🟧 SIMULATED / GATED.
+- Heatmap 🟥 NOT IMPLEMENTED.
+- Liquidation Maps 🟥 NOT IMPLEMENTED.
+
+Gate 10 remains 0/10 formally closed; Stage 1 remains 30/40 = 75% provisional; Stages 2–6 and overall project percentage remain unscored. ZERO COST; no production deployment, paid service, Termux/device operation, Vercel/Cloudflare operation or `main` change.

@@ -1,29 +1,30 @@
-## Latest engineering checkpoint — Batch 62J-69 (21 November 2026)
+## Latest engineering checkpoint — Batch 62J-70/71 (21 November 2026)
 
 **Branch:** `phase-2/market-data-foundation`  
-**Latest source/config/test HEAD:** `6f49951c253a7e7b995b4bdd52eba8153edaef77`  
-**Gate 8 security source/test and build-context checkpoint:** `da9b2ad025ac5c49f75c95dbdd5f516573107f87`
+**Latest source/config/test HEAD:** `5575f5d820dd26d16a7170cb2c55e9c707c2afc1`
 
-- Exact-head Automated Tests [44866818528](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44866818528), CodeQL [44866818498](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44866818498), and Full Git History Secret Audit [44866818495](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44866818495) — all **SUCCESS**.
-- Frontend: **247/247 passed**. Backend: **1,241 passed**. Automated workflow: **33/33 steps succeeded**.
-- Backend image build, shared Redis ACL/AOF + persistent-volume smoke test, container scan, vulnerability-report export and artifact upload all completed successfully.
-- Source WebSocket publisher lifecycle is now implemented as an opt-in FastAPI runtime hook. Exact source-store identity, checkpoint state/source ID, Redis client and stream-key bindings are validated before Redis PING and provider startup. The worker uses bounded background batches, callback wake-up, 1-second backlog polling, bounded retry and terminal resnapshot-required handling.
-- Publisher lifecycle status: **🟨🟩 HOST-FACTORY / SNAPSHOT VERIFICATION PENDING**. The default ASGI app remains disabled unless its owner injects a source runtime factory. The owner must prove the durable checkpoint matches the exact global snapshot already installed on every target gateway and provide a dedicated least-privilege Redis client with finite timeouts.
-- Gate 8 remains **OPEN — 🟨 HOST VERIFICATION ONLY**. Repository-side loader, redaction, Docker-context and CI evidence are complete; actual owner-host secret injection, ownership/mode, UID/GID readability, process exposure, rotation and runtime verification remain external.
-- WebSocket automated failure-matrix scope remains complete. Production snapshot distribution/rotation, Redis production TLS/ACL lifecycle, public WSS and browser/Android acceptance remain open.
-- No indicator calculation, formula, hook, renderer, chart UI or indicator test changed. Indicator progress remains unchanged; no indicator credit is awarded.
+- Exact-head Automated Tests [44868539276], CodeQL [44868539309], Full Git History Secret Audit [44868539423], and Android APK Build [44868539288] — all **SUCCESS**.
+- Frontend: **249/249 passed across 29 test files**. Backend: **1,246 passed**. Automated workflow: **33/33 steps succeeded**.
+- Frontend and backend dependency audits passed; backend container build, Redis shared-guard/persistent-volume smoke, container scan, vulnerability-report export and artifact upload succeeded.
+- Batch 62J-70 adds a dedicated source-role publisher runtime factory. It rejects missing checkpoints and mismatched snapshot manifest / gateway receipts before Redis client creation; validates source ID, stream key, generation and cursor; requires production rediss://, dedicated ACL credentials, database 0, TLS hostname/certificate verification and finite connection timeouts.
+- Publisher and gateway ACL command allow-lists now include `+ping` for readiness checks while retaining separate command scopes.
+- Batch 62J-71 adds a production frontend transport guard: ticket requests require HTTPS and WebSocket transport requires WSS in production builds. Development mode remains unchanged.
+- Publisher activation remains **🟨🟩 HOST VERIFICATION PENDING**. The default ASGI app remains disabled until the owner injects the runtime factory and supplies a real host snapshot-verifier adapter with verified receipts for every gateway.
+- WebSocket repository/CI failure-matrix scope is complete. Production Redis endpoint/ACL, snapshot distribution/rotation/rollback, public HTTPS/WSS reverse proxy, browser runtime and actual Android WebView/device acceptance remain external.
+- Indicator calculations and renderers did not change. SMA20, EMA20, RSI14, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain 🟨 FOUNDATION; Footprint remains 🟧 SIMULATED / GATED; Heatmap and Liquidation Maps remain 🟥 NOT IMPLEMENTED.
 - Stage 1 remains **30/40 criteria = 300/400 ticks = 75% provisional**. Gate 10 remains **0/10 formally closed**: Gate 8 is 🟨 host-verification-only; gates 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain 🟧 OPEN.
-- Overall project and aggregate indicator percentages remain **unscored** until approved weights and acceptance denominators exist. Stages 2–6 remain unscored.
-- ZERO COST: no deployment, paid service, production credential, Termux/device operation, or `main` modification.
+- Overall project and aggregate indicator percentages remain unscored until approved weights and acceptance denominators exist. Stages 2–6 remain unscored.
+- ZERO COST: no production deployment, paid service, production credential, Termux/device operation, Vercel/Cloudflare operation or `main` modification. Android APK workflow success is build evidence only, not a device-install acceptance.
+
 
 
 ---
 
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 21 November 2026 — Batch 62J-69, WebSocket source publisher lifecycle integration and exact-head CI verification  
+**Checkpoint:** 21 November 2026 — Batch 62J-70/71, dedicated source publisher runtime, snapshot verification gate and production HTTPS/WSS client enforcement  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest source/config/test HEAD:** `6f49951c253a7e7b995b4bdd52eba8153edaef77`
+**Latest source/config/test HEAD:** `5575f5d820dd26d16a7170cb2c55e9c707c2afc1`
 
 ## Project stage dashboard
 
