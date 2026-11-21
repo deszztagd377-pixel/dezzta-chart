@@ -23,6 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import Settings
 from app.observability import RequestMetrics, WebSocketMetrics, WebSocketMetricsMiddleware
+from app.metrics_collector import SQLiteMetricsCollector
 from app.coverage_store import SQLiteCoverageTracker
 from app.databento_sources import DatabentoHistoricalSource, DatabentoLiveSource
 from app.ingest import OhlcvIngestionService
@@ -173,6 +174,8 @@ def create_app(
     config = settings or Settings.from_environment()
     request_metrics = RequestMetrics()
     websocket_metrics = WebSocketMetrics()
+    metrics_collector = SQLiteMetricsCollector(config.observability_metrics_db_path) if config.observability_metrics_token else None
+    metrics_worker_id = uuid4().hex
     if shared_guard is None and config.redis_url:
         shared_guard = RedisSharedGuard(
             config.redis_url,
@@ -314,6 +317,7 @@ def create_app(
         worker_stop = asyncio.Event()
         worker_task = None
         incident_task = None
+        metrics_task = None
         publisher_task = None
         publisher_instance = None
         publisher_redis_client = None
@@ -498,6 +502,31 @@ def create_app(
             incident_task = asyncio.create_task(
                 incident_escalation_loop(), name="dezzta-incident-escalation"
             )
+            if metrics_collector is not None:
+                async def metrics_flush_loop() -> None:
+                    phase_delay = int(metrics_worker_id[:8], 16) % 15
+                    try:
+                        await asyncio.wait_for(worker_stop.wait(), timeout=phase_delay)
+                        return
+                    except asyncio.TimeoutError:
+                        pass
+                    retry_seconds = 1.0
+                    while not worker_stop.is_set():
+                        try:
+                            await asyncio.to_thread(metrics_collector.flush, metrics_worker_id, request_metrics.snapshot(), websocket_metrics.snapshot())
+                            application.state.metrics_collector_status.update({"state": "running", "last_error_code": None})
+                            retry_seconds = 1.0
+                        except Exception as exc:
+                            application.state.metrics_collector_status.update({"state": "degraded", "last_error_code": type(exc).__name__[:64]})
+                            logging.getLogger("dezzta.metrics").warning("Metrics snapshot flush failed; application traffic remains unaffected.")
+                        timeout = retry_seconds if application.state.metrics_collector_status["state"] == "degraded" else 15.0
+                        try:
+                            await asyncio.wait_for(worker_stop.wait(), timeout=timeout)
+                        except asyncio.TimeoutError:
+                            pass
+                        if application.state.metrics_collector_status["state"] == "degraded":
+                            retry_seconds = min(retry_seconds * 2.0, 15.0)
+                metrics_task = asyncio.create_task(metrics_flush_loop(), name="dezzta-metrics-flush")
 
             if config.alert_delivery_worker_enabled:
                 if alert_device_store is None:
@@ -565,6 +594,11 @@ def create_app(
             publisher_wakeup.set()
             if incident_task is not None:
                 await incident_task
+            if metrics_task is not None:
+                try:
+                    await asyncio.wait_for(metrics_task, timeout=2.0)
+                except asyncio.TimeoutError:
+                    logging.getLogger("dezzta.metrics").warning("Metrics flush loop exceeded shutdown deadline.")
             if worker_task is not None:
                 await worker_task
             if replica_worker is not None:
@@ -691,6 +725,8 @@ def create_app(
     application.state.shared_guard_enabled = shared_guard is not None
     application.state.request_metrics = request_metrics
     application.state.websocket_metrics = websocket_metrics
+    application.state.metrics_collector = metrics_collector
+    application.state.metrics_collector_status = {"enabled": metrics_collector is not None, "state": "disabled" if metrics_collector is None else "starting", "last_error_code": None}
 
     application.add_middleware(WebSocketMetricsMiddleware, metrics=websocket_metrics)
     application.add_middleware(
@@ -891,7 +927,14 @@ def create_app(
             if not isinstance(authorization, str) or not hmac.compare_digest(authorization, expected):
                 raise HTTPException(status_code=401, detail="Metrics authentication is required.",
                                     headers={"WWW-Authenticate": "Bearer"})
-            return JSONResponse(content={**request_metrics.snapshot(), "websocket": websocket_metrics.snapshot()}, headers={
+            content = {**request_metrics.snapshot(), "websocket": websocket_metrics.snapshot()}
+            if metrics_collector is not None:
+                try:
+                    content["cluster"] = await asyncio.to_thread(metrics_collector.snapshot)
+                    content["collector_status"] = dict(application.state.metrics_collector_status)
+                except Exception as exc:
+                    content["collector_status"] = {"enabled": True, "state": "degraded", "last_error_code": type(exc).__name__[:64]}
+            return JSONResponse(content=content, headers={
                 "Cache-Control": "private, no-store, max-age=0",
                 "Pragma": "no-cache", "X-Content-Type-Options": "nosniff",
             })

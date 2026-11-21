@@ -188,6 +188,7 @@ class Settings:
     alert_delivery_max_attempts: int = 8
     redis_url: str = field(default="", repr=False)
     observability_metrics_token: str = field(default="", repr=False)
+    observability_metrics_db_path: str = "./data/observability_metrics.sqlite3"
     operator_incident_token: str = field(default="", repr=False)
     http_rate_limit_per_client: int = 120
     http_rate_limit_global: int = 6000
@@ -382,6 +383,7 @@ class Settings:
             ),
             redis_url=os.getenv("REDIS_URL", "").strip(),
             observability_metrics_token=os.getenv("OBSERVABILITY_METRICS_TOKEN", "").strip(),
+            observability_metrics_db_path=os.getenv("OBSERVABILITY_METRICS_DB_PATH", "./data/observability_metrics.sqlite3").strip() or "./data/observability_metrics.sqlite3",
             operator_incident_token=os.getenv("OPERATOR_INCIDENT_TOKEN", "").strip(),
             http_rate_limit_per_client=_parse_int(os.getenv("HTTP_RATE_LIMIT_PER_CLIENT", "120"), 120),
             http_rate_limit_global=_parse_int(os.getenv("HTTP_RATE_LIMIT_GLOBAL", "6000"), 6000),
