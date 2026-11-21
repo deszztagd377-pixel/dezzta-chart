@@ -65,6 +65,8 @@ def test_real_redis_publisher_and_gateway_acl_roles_are_least_privilege():
         with pytest.raises(redis_module.exceptions.ResponseError):
             publisher.xreadgroup(group_name, "publisher", {stream_key: ">"}, count=1)
         with pytest.raises(redis_module.exceptions.ResponseError):
+            publisher.xadd(f"{stream_key}:outside-scope", {"payload": "forbidden"}, id="1-0")
+        with pytest.raises(redis_module.exceptions.ResponseError):
             publisher.set(lease_key, "not-allowed")
 
         # Gateway can consume/acknowledge entries and reclaim abandoned pending work.
