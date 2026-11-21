@@ -4,7 +4,7 @@
 **Date:** 21 November 2026  
 **Branch:** `phase-2/market-data-foundation`  
 **Source/test HEAD:** `8deeba557f7be6ea5cb66fb0bfb55955aafc5a41`  
-**Documentation-only commit:** pending in this cycle; `main` remains untouched.
+**Documentation commits:** `7daf6dc7daac4ec3c7efc4e10478c917ac190216`, `fc6111ac7a7105143338e20eef7bf91b79424fd9`, `42a88ef1dae4bd466e41cfadf754cd71672e9a27`; `main` remains untouched.
 
 ## 1. Scope and source audit
 
@@ -22,7 +22,7 @@ Source review confirmed that `backend/app/main.py` uses the same UUID-prefix mod
 
 ## 2. Exact-head CI status
 
-At documentation time, exact-head run [44914991306](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44914991306) was still **IN PROGRESS** on `8deeba557f7be6ea5cb66fb0bfb55955aafc5a41`.
+Exact-head run [44914991306](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44914991306) on `8deeba557f7be6ea5cb66fb0bfb55955aafc5a41` completed **SUCCESS** at 21 November 2026 21:42 WIB.
 
 Completed successfully in the workflow:
 - Frontend unit tests.
@@ -36,14 +36,31 @@ Completed successfully in the workflow:
 - Backend container build.
 - Shared Redis guard / persistent-volume smoke test.
 
-Still running/pending at the checkpoint:
-- Trivy backend image scan and report export/upload.
-- Final dependency-audit enforcement and job cleanup.
+Final Trivy scan, vulnerability report export/upload, dependency-audit enforcement and cleanup also completed successfully. The downloaded Trivy report artifact [14710634254](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44914991306) was parsed directly: **0 vulnerabilities** in both Alpine OS packages and Python packages, including zero HIGH/CRITICAL.
 
 Exact-head CodeQL [44914991295](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44914991295) — **SUCCESS**.  
 Exact-head Full Git History Secret Audit [44914991439](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44914991439) — **SUCCESS**.
 
-No full-workflow pass is claimed until run 44914991306 completes successfully. Benchmark numerical results are not asserted before the report artifact is read and checked.
+
+## 2A. Read-back benchmark results
+
+The CI artifact `synthetic-metrics-collector-benchmark` (artifact 14710929657) was downloaded and parsed. All benchmark assertions passed:
+
+| Profile | Flushes | p95 | p99 | Max | Lock retries |
+|---|---:|---:|---:|---:|---:|
+| 1 thread | 32/32 | 7.36 ms | 9.51 ms | 9.51 ms | 0 |
+| 4 threads | 128/128 | 86.91 ms | 274.07 ms | 296.15 ms | 3 |
+| 16 simultaneous threads | 512/512 | 371.91 ms | 610.31 ms | 1,922.15 ms | 68 |
+| 4 OS processes | 128/128 | 85.67 ms | 237.86 ms | 270.85 ms | 1 |
+| 16 startup-staggered threads | 512/512 | 19.98 ms | 86.72 ms | 120.73 ms | 0 |
+
+The 16-worker staggered case verified 16/16 workers, 512/512 flushes, 899/899 series, aggregate request count 512 and SQLite integrity `ok`. Its deterministic worker phase offsets were within 0–14 seconds. With 0.01 wall-clock cadence scaling, it models the logical 15-second production cadence; it is not a real-time soak test.
+
+Relative to the simultaneous 16-thread stress case, the staggered synthetic profile reduced p95 by **94.63%**, p99 by **85.79%** and maximum flush latency by **93.72%**; lock retries fell from 68 to 0. The staggered p99 remains 86.72 ms, so tail latency is not declared eliminated. The separate four-process case still recorded one retry.
+
+Staggered-case peak DB+WAL+SHM size was **3,169,952 bytes**; after WAL checkpoint it was **1,126,400 bytes**. These are CI-runner observations, not a production storage budget. Snapshot payload was **105,586 / 262,144 bytes = 40.28%**, leaving 156,558 bytes of the configured cap.
+
+The benchmark's simultaneous and staggered cases are both synthetic profiles. Their difference supports retaining production staggering; it does not justify changing retry policy, production cadence, storage cap or declaring a production SLO.
 
 ## 3. Engineering interpretation and limits
 
