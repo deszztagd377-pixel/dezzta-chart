@@ -23,6 +23,17 @@ Current official stage: **Stage 1 — Foundation, Security & Data Integrity**
 - Some Stage 2 market-data foundation code and documentation already exist on this branch. That work must not be used to silently waive Stage 1 acceptance or reorder the official roadmap.
 - The overall project figure **20.9%** is a historical owner-confirmed checkpoint, not a newly recalculated weighted score. The proposed weighted ledger still needs owner review and reproducible scoring.
 
+## Candle Replay — owner-requested future chart feature
+
+- **Requested feature:** a TradingView-style historical candle replay mode in the Android app.
+- **Roadmap placement:** Stage 3 — Chart Engine & Timeframe, as a chart interaction built on validated historical OHLCV. It is not the Redis/WebSocket durable event-replay mechanism already implemented for transport recovery.
+- **Planned behavior for a future scoped blueprint:** choose a historical starting candle, hide all later candles from the visible chart, advance playback by one candle or at a bounded selectable speed, pause/resume, step backward/forward, seek along the historical timeline, and exit replay to restore the live chart without mixing replay and live cursors.
+- **Data contract:** replay must use the same canonical instrument, venue/provider, dataset, timeframe, bucket/calendar identity and validated historical OHLCV contract as the normal chart. The playback cutoff is authoritative; no future candle may leak into chart, indicators or derived studies while replay is active.
+- **Lifecycle:** switching instrument/timeframe or losing the historical dataset must stop or explicitly invalidate the replay session. Leaving replay must resynchronize from a fresh live snapshot/watermark rather than append live events onto a stale historical cursor.
+- **Mobile/performance:** controls must be touch-usable on narrow Android screens; playback must be deterministic, bounded and cancellable. No per-tick network polling or paid service is assumed.
+- **Safety/scope:** chart playback only. No broker connection, order execution, automated trading, signal generation or recommendation.
+- **Authorization:** **NOT ACTIVE / NOT IMPLEMENTED** during Stage 1. Prepare and review the detailed interaction/data/performance blueprint when Stage 3 is reached and prerequisite historical-data capability is accepted. This request does not reorder the six-stage roadmap or award progress ticks.
+
 ## Indicator placement
 
 - SMA 20, EMA 20, Wilder RSI 14, MACD 12/26/9 and Bollinger Bands 20,2 have calculation foundations and automated tests. This is groundwork only.

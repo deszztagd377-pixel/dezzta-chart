@@ -1,16 +1,15 @@
 # Latest exact-head reconciliation — 21 November 2026
 
-**Branch:** `phase-2/market-data-foundation`  
-**Latest source/test HEAD:** `56317eff2b71886040acb998bf692814622feedf`  
-**Automated Tests:** [44774049019](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774049019) **SUCCESS** — frontend 245/245 (29 files), backend 1,218 passed / 6 warnings.  
-**CodeQL:** [44774050265](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774050265) **SUCCESS**.  
-**Full Git History Secret Audit:** [44774048914](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774048914) **SUCCESS**.  
-**Batch 62J-53:** Redis consumer ownership lease and exact-head integration/regression tests passed. This is repository-level WebSocket hardening; it does not close any owner-host gate by itself.  
-**Accounting:** Stage 1 remains **30/40 = 300/400 = 75% provisional**; Gate 10 remains **10/10 ORANGE / 0 closed**; Stages 2–6 and overall project percentage remain unscored.  
-**Boundary:** no production deployment, paid service, Termux/device operation, or `main` modification.
-**Gate 20 delta:** test evidence now includes in-memory ticket single-use/subject binding, exact TTL expiry, wrong-purpose consumption, cross-account renewal rejection (4401), and entitlement revocation during renewal (4403). This is repository-level regression coverage only. Real Firebase signed-token/session expiry/revocation and browser/Android reconnect remain external acceptance requirements.  
-**Accounting:** Stage 1 remains **30/40 = 300/400 = 75% provisional**; Gate 10 remains **10/10 ORANGE / 0 closed**; Stages 2–6 and overall project percentage remain unscored. No acceptance tick is awarded by this CI refresh.  
-**Boundary:** no runtime source change in the two latest commits, no deployment, no paid service, no Termux/device operation, and no `main` modification.
+**Working branch:** `phase-2/market-data-foundation`  
+**Current documentation HEAD:** `47cabfebe2ea6ea508db6c983e579099ac439b3b` — documentation-only checkpoint; exact-head Automated Tests [44850710705](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44850710705) **SUCCESS**.  
+**Latest source/test HEAD:** `96bfea52d9920b7d5d49ed85c0536610a6afd037` — Automated Tests [44849892717](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44849892717) **SUCCESS**: frontend **245/245 across 29 files**; backend **1,218 passed in 48.17s**, no pytest warnings summary; all 31 job steps passed, including backend container, Redis ACL/AOF + persistent-volume smoke test and Trivy scan.  
+**CodeQL / full-history audit boundary:** latest separately recorded successful CodeQL [44774050265](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774050265) and full Git History Secret Audit [44774048914](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774048914) are associated with prior source/test checkpoint `56317eff2b71886040acb998bf692814622feedf`; they are not represented as exact-head runs for `96bfea5`.  
+**WebSocket automated acceptance:** COMPLETE for the defined dual-ASGI/Redis failure matrix (Batches 62J-25/28/31). Production snapshot distribution/rotation, production Redis TLS/ACL/credential lifecycle, public WSS and browser/Android acceptance remain external.  
+**Stage 1:** **30/40 criteria = 300/400 ticks = 75% provisional**. Remaining 10 criteria: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.  
+**Gate 10:** **10/10 🟧 OPEN; 0/10 formally closed**. No new acceptance tick was awarded by the WebSocket test cleanup or documentation refresh.  
+**Overall project:** the roadmap's **20.9%** is a historical owner-confirmed checkpoint only, not a current weighted calculation. Current overall percentage remains **unscored** until M1–M8 weights and denominator are approved. Stages 2–6 remain unscored.  
+**Indicators:** SMA20, EMA20, RSI14, MACD12/26/9, Bollinger20,2 and shared hook 🟨 foundation; Footprint 🟧 reference/blueprint gated; Heatmap and Liquidation Maps 🟥 not implemented. No aggregate indicator percentage is approved.  
+**Boundary:** ZERO COST; no production deployment, paid service, Vercel/Cloudflare operation, Termux/device operation, production credentials, or `main` modification.
 
 ---
 
