@@ -84,10 +84,10 @@ def _snapshot(count: int) -> tuple[dict, dict]:
         "connections_active": 0,
         "connections_completed": count,
         "connections_accepted": count,
-        "peer_disconnects": 0,
+        "peer_disconnects": count,
         "duration_sum_ms": float(count * 3),
         "close_code_classes": {
-            "1xxx": count, "2xxx": 0, "4xxx": 0, "5xxx": 0, "other": 0,
+            "1xxx": count, "2xxx": count, "4xxx": count, "5xxx": count, "other": count,
         },
     }
     return request, websocket
