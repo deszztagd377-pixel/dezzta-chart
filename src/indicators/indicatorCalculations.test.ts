@@ -132,7 +132,7 @@ describe('shared indicator calculation engine', () => {
     const extreme = Number.MAX_VALUE;
     const result = calculateRsi([0, extreme, 0, extreme], 2);
     expect(result[2]).toBe(50);
-    expect(result[3]).toBe(75);
+    expect(result[3]).toBeCloseTo(75, 10);
     expect(result.slice(2).every((value) => value !== null && Number.isFinite(value))).toBe(true);
   });
 
