@@ -168,3 +168,24 @@ No indicator formula, calculation, hook, renderer or chart UI changed. The compl
 - Liquidation Maps 🟥 NOT IMPLEMENTED.
 
 Gate 10 remains 0/10 formally closed; Stage 1 remains 30/40 = 75% provisional; Stages 2–6 and overall project percentage remain unscored. ZERO COST; no production deployment, paid service, Termux/device operation, Vercel/Cloudflare operation or `main` change.
+
+
+## Batch 62J-72 — snapshot artifact digest binding
+
+The source publisher runtime now requires the exact SHA-256 digest returned by the verified global snapshot manifest and requires every gateway installation receipt to bind to that same digest. The runtime rejects malformed/missing digests and any gateway receipt mismatch before creating the Redis client.
+
+The digest contract is grounded in the existing snapshot exporter/verifier:
+- `SQLiteOhlcvStore.export_global_snapshot()` writes a SHA-256 digest over the canonical header and every canonical bar record, and returns it with the snapshot generation, source ID and high-water cursor.
+- `SQLiteOhlcvStore.verify_global_snapshot()` recomputes the digest from the artifact and validates the manifest digest and row count.
+- The host verifier must invoke that verifier on the actual snapshot artifact and authenticate the installation receipt source. It then maps the export/verifier `generation_id`, `cursor`, and `sha256` into the runtime evidence contract (`snapshot_generation`, `snapshot_cursor`, `snapshot_sha256`); each receipt must contain the matching `snapshot_sha256`.
+
+This is stronger artifact identity binding, not proof of remote installation or receipt authenticity. No receipt-signing format or storage backend is invented by this change. Host-side verification remains external.
+
+Regression coverage now includes:
+- Missing publisher checkpoint fails before Redis client creation.
+- Gateway cursor mismatch fails before Redis client creation.
+- Gateway snapshot digest mismatch fails before Redis client creation.
+- Malformed manifest digest fails before Redis client creation.
+- Matching source, stream, generation, cursor and digest can construct the dedicated TLS client with certificate and hostname verification.
+
+**Gate status:** Gate 25 🟧 OPEN (live Redis TLS/ACL, persistence, failover and credential lifecycle remain unverified). Gate 36 🟧 OPEN (public HTTPS/WSS reverse proxy and browser/Android runtime acceptance remain unverified). Source publisher activation remains 🟨🟩 host-verification pending.
