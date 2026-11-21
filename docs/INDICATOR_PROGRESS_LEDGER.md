@@ -1,5 +1,8 @@
 ## Latest indicator status — Batch 62J-64 (21 November 2026)
 
+**Source/test HEAD:** `54a319c9165a47b03a3ab02039e4bdeeae783e3a` on `phase-2/market-data-foundation`.  
+**Exact-head CI:** Automated Tests 44858630448, CodeQL 44858630295, Full Git History Secret Audit 44858630302 — all SUCCESS.
+
 No indicator source, calculation, hook, renderer, chart UI, or indicator test changed in this batch. The Gate 38 HTTP error-correlation hardening is backend observability work and earns **zero indicator completion credit**.
 
 | Indicator / component | Status | Calculation / validity contract | Remaining implementation |
