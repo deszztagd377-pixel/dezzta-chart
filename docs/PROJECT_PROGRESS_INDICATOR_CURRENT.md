@@ -1,3 +1,14 @@
+## Latest work cycle — Batch 62J-80 (21 November 2026)
+
+- Corrected WebSocket lifecycle telemetry so accept/close events are counted only after downstream ASGI send succeeds.
+- Added regression coverage for accept-send and close-send transport failures; the finally path must return active connections to zero and must not count unsent frames.
+- This is observability correctness, not a WebSocket protocol/data-path change. Gate 38 remains 🟧 because metrics remain process-local without central aggregation, durable retention or independent operator notification.
+- Indicator status is unchanged; the complete indicator ledger and formulas remain in INDICATOR_PROGRESS_LEDGER.md. No visual progress is credited.
+- Gate 10 remains 0/10 formally closed. Gates 8, 30, 34, 35, 39 remain 🟨🟩 host/owner verification only; Gates 20, 25, 31, 36, 38 remain 🟧.
+- ZERO COST; no deploy, paid service, production credentials, Termux/device operation, Vercel/Cloudflare operation or main modification.
+
+---
+
 ## Latest work cycle — Batch 62J-79 (21 November 2026)
 
 - Added bounded process-local WebSocket lifecycle metrics for the exact `/ws/market-data` ASGI route: starts, active, completed, accepted, peer disconnects, five close-code classes and cumulative duration.

@@ -1,3 +1,16 @@
+## Batch 62J-80 — send-confirmed WebSocket lifecycle metrics
+
+**Reviewed branch:** phase-2/market-data-foundation  
+**Change scope:** backend/app/observability.py and backend/tests/test_observability.py
+
+The observer now updates accepted-handshake and close-code metrics only after the downstream ASGI send call returns successfully. A failed send no longer produces false-positive acceptance/close telemetry. The middleware finally block still finalizes the connection, decrements the active count and records completion even when the application/transport raises.
+
+Regression cases cover failure at the accept frame and failure at the close frame after a successful accept. These cases assert active=0 and completed=1, with accepted and close-class counters reflecting only successful downstream sends.
+
+No WebSocket payload/protocol/auth/replay/snapshot behavior changed. Gate 38 remains 🟧 OPEN: metrics are process-local, not centrally aggregated or durably retained. The production acceptance boundary described below remains unchanged.
+
+---
+
 # WebSocket Production Wiring Audit
 
 **Audit date:** 21 November 2026  

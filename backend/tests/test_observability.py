@@ -199,3 +199,46 @@ def test_websocket_metrics_records_peer_disconnect_and_ignores_other_routes():
         {"type": "websocket", "path": "/ws/other", "headers": []}, receive, send
     ))
     assert metrics.snapshot() == before
+
+
+def test_websocket_metrics_only_counts_successfully_sent_accept_and_close_frames():
+    import asyncio
+    import pytest
+    from app.observability import WebSocketMetrics, WebSocketMetricsMiddleware
+
+    async def run_case(fail_on):
+        metrics = WebSocketMetrics()
+
+        async def app(scope, receive, send):
+            await send({"type": "websocket.accept"})
+            await send({"type": "websocket.close", "code": 1000})
+
+        async def receive():
+            return {"type": "websocket.connect"}
+
+        async def send(message):
+            if message["type"] == fail_on:
+                raise RuntimeError("simulated transport send failure")
+
+        middleware = WebSocketMetricsMiddleware(app, metrics=metrics)
+        with pytest.raises(RuntimeError, match="simulated transport send failure"):
+            await middleware(
+                {"type": "websocket", "path": "/ws/market-data", "headers": []},
+                receive,
+                send,
+            )
+        return metrics.snapshot()
+
+    accept_failure = asyncio.run(run_case("websocket.accept"))
+    assert accept_failure["connections_started"] == 1
+    assert accept_failure["connections_active"] == 0
+    assert accept_failure["connections_completed"] == 1
+    assert accept_failure["connections_accepted"] == 0
+    assert accept_failure["close_code_classes"]["other"] == 1
+
+    close_failure = asyncio.run(run_case("websocket.close"))
+    assert close_failure["connections_started"] == 1
+    assert close_failure["connections_active"] == 0
+    assert close_failure["connections_completed"] == 1
+    assert close_failure["connections_accepted"] == 1
+    assert close_failure["close_code_classes"]["other"] == 1

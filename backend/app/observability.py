@@ -175,11 +175,14 @@ class WebSocketMetricsMiddleware:
 
         async def observed_send(message):
             nonlocal accepted, close_code
+            # Count only events the ASGI server accepted successfully. If the
+            # downstream send fails, do not report a handshake or close frame
+            # that was never successfully handed to the server transport.
+            await send(message)
             if message.get("type") == "websocket.accept":
                 accepted = True
             elif message.get("type") == "websocket.close":
                 close_code = message.get("code")
-            await send(message)
 
         try:
             await self.app(scope, observed_receive, observed_send)

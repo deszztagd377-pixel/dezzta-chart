@@ -1,3 +1,7 @@
+## Batch 62J-80 checkpoint — no indicator status change (21 November 2026)
+
+This batch corrects WebSocket lifecycle accounting only. No indicator formula, chart renderer, indicator hook, UI toggle or data contract changed. Therefore no indicator completion credit is awarded. The complete formula, warm-up, numerical-invariant and remaining-work ledger follows unchanged below. Current statuses remain: SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, Shared Indicator Hook 🟨, Footprint 🟧, Heatmap 🟥, Liquidation Maps 🟥.
+
 ## Batch 62J-79 — bounded WebSocket lifecycle observability (21 November 2026)
 
 **Source/test HEAD:** `2274f9adc5ac9907ea508800a2d962d9a7c14a84`  
