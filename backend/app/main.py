@@ -490,6 +490,23 @@ def create_app(
         description="Secure backend foundation for DEZZTA CHART market data.",
         lifespan=lifespan,
     )
+
+    @application.exception_handler(Exception)
+    async def sanitized_internal_error(request, exc):
+        """Return a non-sensitive 500 body with the middleware correlation ID."""
+        request_id = getattr(request.state, "request_id", None) or uuid4().hex
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error."},
+            headers={
+                "X-Request-ID": request_id,
+                "Cache-Control": "private, no-store, max-age=0",
+                "Pragma": "no-cache",
+                "X-Content-Type-Options": "nosniff",
+                "X-Frame-Options": "DENY",
+                "Referrer-Policy": "no-referrer",
+            },
+        )
     application.state.ohlcv_pipeline = ohlcv_pipeline
     application.state.ohlcv_stream_hub = stream_hub
     application.state.ohlcv_store = ohlcv_store
@@ -576,7 +593,8 @@ def create_app(
         try:
             response = await call_next(request)
         except Exception:
-            observe_http_request(request, 500, started_ns)
+            # Preserve the same request correlation ID in the sanitized 500 response.
+            request.state.request_id = observe_http_request(request, 500, started_ns)
             raise
         response.headers["X-Request-ID"] = observe_http_request(request, response.status_code, started_ns)
         if request.url.path == "/health" or request.url.path.startswith("/v1/"):
