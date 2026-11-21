@@ -1,3 +1,36 @@
+## Latest indicator status — Batch 62J-77 (21 November 2026)
+
+**Source/test HEAD:** e6fd0dcb8d27be85b4fa32bc6b82a1495403e8e8 on phase-2/market-data-foundation.  
+**Exact-head CI:** Automated Tests [44877470829](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44877470829): **SUCCESS** — frontend **253/253 across 29 files**; backend **1,249 passed in 48.11s**. CodeQL [44877470826](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44877470826), Full Git History Secret Audit [44877470841](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44877470841), and Android debug APK build [44877470773](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44877470773): **SUCCESS**.
+
+### Batch 62J-77 — SMA intermediate-overflow correction
+
+- Raw rolling sums could overflow even when the arithmetic mean was representable. Example: two finite MAX_VALUE inputs have a finite mean equal to MAX_VALUE, although their unscaled sum is Infinity.
+- SMA now computes each rolling window with a normalized scale before summing. It fails closed only when the resulting mean is non-finite, rather than when an avoidable intermediate sum overflows.
+- Tests cover repeated MAX_VALUE, cancellation across large opposite-sign values, and subsequent sliding windows.
+- First CI exposed two test expectation defects: the legacy assertion still expected SMA to throw, and a large-scale ratio assertion used an unsuitable absolute tolerance. Both were corrected. Final exact-head CI passed.
+- Complexity: O(N × P) for N input bars and period P because each rolling window is normalized independently. Standard SMA20 work is 20N window-value visits. This is numerically robust for the current fixed period-20 indicator; if arbitrary very large periods become a chart feature, optimize to a verified O(N) scaled rolling recurrence before enabling that UI.
+
+### Full indicator ledger
+
+| Indicator / component | Status | Calculation / validity contract | Remaining implementation |
+|---|---|---|---|
+| SMA20 | 🟨 Foundation | Normalized mean of each 20-close window; first valid index 19; finite output guard | Overlay, toggle, legend/current value, stale clearing, renderer/lifecycle tests |
+| EMA20 | 🟨 Foundation | SMA-seeded EMA; alpha 2/21; first valid index 19; normalized seed and finite recurrence | Overlay, toggle, legend/current value, stale clearing, renderer/lifecycle tests |
+| RSI14 | 🟨 Foundation | Wilder smoothing; first valid index 14; normalized gain/loss ratio | 0–100 pane, 30/70 guides, toggle, legend, stale clearing, renderer tests |
+| MACD 12/26/9 | 🟨 Foundation | EMA12−EMA26; MACD index 25; signal/histogram index 33; finite difference guards | Pane, lines, histogram, zero guide, toggle, legend, renderer tests |
+| Bollinger20,2 | 🟨 Foundation | Mean ± 2 × population SD; first valid index 19; normalized variance | Three-line overlay, toggle, displayed values, stale clearing, renderer tests |
+| Shared Indicator Hook | 🟨 Foundation | Validated backend snapshot, candle-index aligned | Chart/symbol/timeframe identity, loading/error lifecycle, stale clearing, series isolation |
+| Footprint | 🟧 SIMULATED / gated | Educational simulated accumulator; not exchange-native bid/ask truth | User reference image, reviewed blueprint, explicit-ON spaced cluster layout, bid/ask cells, performance tests |
+| Heatmap | 🟥 Not implemented | Source/calculation contract not approved | User reference image, zero-cost source feasibility, data contract, blueprint, renderer |
+| Liquidation Maps | 🟥 Not implemented | No validated liquidation dataset/calculation contract | Zero-cost source feasibility, calculation contract, blueprint/reference, renderer |
+
+**Correctness invariants:** warm-up values remain null, never zero; output stays candle-index aligned; appending future candles cannot change prior values; symbol/venue/dataset/chart/timeframe changes clear stale series. Footprint OFF preserves ordinary candle spacing; explicit ON alone enables spaced clusters.
+
+**Progress accounting:** numerical-safety work strengthens the calculation foundation but does not complete visual overlays, panes, toggles, legends or renderers. No per-indicator percentage is fabricated. Gate 10 remains 0/10 formally closed; Stage 1 remains 30/40 = 75% provisional; overall project percentage remains unscored.
+
+---
+
 ## Latest indicator status — Batch 62J-76 (21 November 2026)
 
 **Source/test HEAD:** 57b918feafd1b259b008b5efe1272199a29facff on phase-2/market-data-foundation.  

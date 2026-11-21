@@ -264,3 +264,12 @@ WebSocket repository/CI failure-matrix status remains complete for its defined a
 Gate 31 remains open: repository encryption is AES-256-GCM/PBKDF2-based, but there is no independently controlled off-host destination or separate recovery-key custody. Gate 38 remains open: HTTP metrics are bounded and process-local, incident records persist in local SQLite, but central collection/dashboard, cross-worker aggregation, metrics retention/rotation, WebSocket telemetry and independent operator notification remain absent. The new Gate 38 runbook documents these boundaries.
 
 Gate 10 remains 0/10 formally closed. Gates 8, 30, 34, 35 and 39 are host/owner-verification-only 🟨🟩; Gates 20, 25, 31, 36 and 38 remain 🟧. Stage 1 is 30/40 = 75% provisional; overall project remains unscored. ZERO COST; no host, credentials, deployment, Termux or device operation.
+
+
+## Batch 62J-77 — exact-head WebSocket/indicator acceptance checkpoint
+
+Source/test HEAD e6fd0dcb8d27be85b4fa32bc6b82a1495403e8e8 passed Automated Tests [44877470829](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44877470829), CodeQL [44877470826](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44877470826), Full Git History Secret Audit [44877470841](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44877470841), and Android debug APK build [44877470773](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44877470773). Frontend 253/253 tests across 29 files; backend 1,249 passed in 48.11 seconds. Backend container build, Redis shared-guard/persistent-volume smoke and Trivy scan/export all succeeded.
+
+SMA raw rolling-sum intermediate overflow was corrected using normalized window means; tests cover finite MAX_VALUE means and large cancellation. Full details are in docs/WORK_CYCLE_2026-11-21_BATCH62J77_NORMALIZED_SMA_AND_ACCEPTANCE.md and docs/INDICATOR_PROGRESS_LEDGER.md.
+
+Repository WebSocket automated scope remains complete. Production acceptance remains blocked by absent owner-controlled host/public HTTPS-WSS endpoint and missing real production Redis/snapshot receipts. Gate 10 remains 0/10 formally closed. Gates 8, 30, 34, 35, 39 are 🟨🟩 host/owner-verification-only; Gates 20, 25, 31, 36, 38 remain 🟧. Stage 1 is 75% provisional; overall project remains unscored. ZERO COST; no host, credentials, deployment, Termux or device operation.

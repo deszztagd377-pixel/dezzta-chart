@@ -1,18 +1,19 @@
-## Latest engineering checkpoint — Batch 62J-76 (21 November 2026)
+## Latest engineering checkpoint — Batch 62J-77 (21 November 2026)
 
 **Branch:** phase-2/market-data-foundation  
-**Source/test HEAD:** 57b918feafd1b259b008b5efe1272199a29facff
+**Source/test HEAD:** e6fd0dcb8d27be85b4fa32bc6b82a1495403e8e8
 
-- Exact-head Automated Tests [44876347017](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44876347017): **SUCCESS** — frontend **252/252 tests across 29 files**; backend **1,249 passed in 50.02s**. Frontend build, source/bundle secret scan, dependency audits, bounded outbox benchmark, backend container build, Redis shared-guard/persistent-volume smoke, Trivy scan and report export/upload all completed.
-- Exact-head CodeQL [44876347037](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44876347037): **SUCCESS**.
-- Exact-head Full Git History Secret Audit [44876347101](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44876347101): **SUCCESS**.
-- Exact-head Android debug APK build [44876347021](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44876347021): **SUCCESS**. Artifact ID 14695834076, expires 28 November 2026. APK SHA-256: 4363cff2db8653976e5a429a85d3bc42d08901af568578f8a1d0527a0b9c7fea. Build evidence is not physical-device acceptance.
-- Batch 62J-76 hardens finite arithmetic in SMA, EMA, RSI, MACD and Bollinger calculations. Warm-up indices and formulas remain unchanged. Three regression tests cover extreme finite values, normalized RSI stability and large same-sign Bollinger prices. Indicator rendering/UI is unchanged.
-- Gate 31 audit: authenticated AES-256-GCM/PBKDF2 local backup artifact support exists, but no separate off-host destination or independently controlled recovery-key custody is configured. Gate 31 remains 🟧 OPEN.
-- Gate 38 audit: HTTP request metrics are bounded and process-local; private metrics endpoints are token-gated when configured; incident records persist locally in bounded SQLite. There is no central multi-worker collector/dashboard, metrics retention/rotation pipeline, WebSocket metric aggregation or external notification integration. Gate 38 remains 🟧 OPEN.
-- Gate 10: **0/10 formally closed**. 🟨🟩 host/owner-verification-only: Gates 8, 30, 34, 35 and 39. 🟧 additional integration remains: Gates 20, 25, 31, 36 and 38. This classification supersedes older historical gate boards below; no gate is marked passed.
+- Exact-head Automated Tests [44877470829](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44877470829): **SUCCESS** — frontend **253/253 tests across 29 files**; backend **1,249 passed in 48.11s**. Frontend build, frontend source/bundle secret scans, npm audit (0 vulnerabilities), backend dependency audit (no known vulnerabilities), bounded outbox benchmark, backend container build, Redis shared-guard/persistent-volume smoke, Trivy container scan and report export/upload all completed.
+- Exact-head CodeQL [44877470826](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44877470826): **SUCCESS**.
+- Exact-head Full Git History Secret Audit [44877470841](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44877470841): **SUCCESS**.
+- Exact-head Android debug APK build [44877470773](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44877470773): **SUCCESS**. Artifact ID 14696311954, expires 28 November 2026. APK size 3,877,454 bytes; SHA-256 cc7288ac77fa0c28f2cfeebba7f9703003f15a970b1575618e1998548887ed7a. CI build does not equal physical-device acceptance.
+- Batch 62J-77 fixes SMA intermediate overflow: each rolling window uses scale-normalized mean calculation. Representable averages such as mean(MAX_VALUE, MAX_VALUE) now return MAX_VALUE instead of throwing because a raw sum overflowed. Regression coverage includes extreme same-sign values and cancellation. Calculation remains candle-index aligned and warm-up nulls unchanged.
+- CI caught two issues in the first attempt: an old test still expected the prior SMA overflow failure, and a relative-large-value assertion used an absolute tolerance inappropriate at MAX_VALUE scale. Both tests were corrected; the exact final source/test commit passed all checks.
+- Gate 31 remains 🟧 OPEN: encrypted local backup exists, but no independent no-cost off-host destination or separate recovery-key custody is configured.
+- Gate 38 remains 🟧 OPEN: bounded process-local HTTP metrics and local incident journal exist; central multi-worker collector/dashboard, WebSocket metric aggregation, durable metric/log retention and independent operator notification remain absent.
+- Gate 10: **0/10 formally closed**. 🟨🟩 host/owner-verification-only: Gates 8, 30, 34, 35 and 39. 🟧 additional integration remains: Gates 20, 25, 31, 36 and 38. No gate is marked passed.
 - Stage 1 remains **30/40 criteria = 300/400 ticks = 75% provisional**. Stages 2–6 and overall project percentage remain unscored because approved weights/denominators are absent.
-- Indicator statuses: SMA20 🟨; EMA20 🟨; RSI14 🟨; MACD12/26/9 🟨; Bollinger20,2 🟨; shared indicator hook 🟨; Footprint 🟧; Heatmap 🟥; Liquidation Maps 🟥. No visual-completion credit is awarded.
+- Indicator statuses: SMA20 🟨; EMA20 🟨; RSI14 🟨; MACD12/26/9 🟨; Bollinger20,2 🟨; shared indicator hook 🟨; Footprint 🟧; Heatmap 🟥; Liquidation Maps 🟥. Numerical correctness work is not visual completion.
 - ZERO COST: no paid hosting, deployment, production credentials, Vercel/Cloudflare operation, Termux/device operation or main modification.
 
 
@@ -22,9 +23,9 @@
 
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 21 November 2026 — Batch 62J-76, indicator numeric-safety hardening and Gate 31/38 acceptance-boundary audit  
+**Checkpoint:** 21 November 2026 — Batch 62J-77, normalized SMA overflow correction and exact-head CI acceptance  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest source/test HEAD:** `57b918feafd1b259b008b5efe1272199a29facff`
+**Latest source/test HEAD:** `e6fd0dcb8d27be85b4fa32bc6b82a1495403e8e8`
 
 ## Project stage dashboard
 
