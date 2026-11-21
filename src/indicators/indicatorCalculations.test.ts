@@ -136,6 +136,15 @@ describe('shared indicator calculation engine', () => {
     expect(result.slice(2).every((value) => value !== null && Number.isFinite(value))).toBe(true);
   });
 
+  it('computes representable SMA means without overflowing the intermediate sum', () => {
+    const extreme = Number.MAX_VALUE;
+    expect(calculateSma([extreme, extreme], 2)).toEqual([null, extreme]);
+    expect(calculateSma([extreme, extreme, -extreme], 3)[2]).toBeCloseTo(extreme / 3, 10);
+    expect(calculateSma([extreme, extreme, -extreme, -extreme], 2)).toEqual([
+      null, extreme, 0, -extreme,
+    ]);
+  });
+
   it('keeps Bollinger population deviation finite for large same-sign prices', () => {
     const extreme = Number.MAX_VALUE;
     const expected = extreme * 0.9;

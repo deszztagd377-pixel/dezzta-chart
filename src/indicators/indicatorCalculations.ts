@@ -52,15 +52,11 @@ export function calculateSma(values: readonly number[], period: number): Array<n
   validatePeriod(period);
   validateValues(values);
   const output: Array<number | null> = Array(values.length).fill(null);
-  let sum = 0;
-  for (let index = 0; index < values.length; index += 1) {
-    sum = requireFiniteResult(sum + values[index], 'SMA rolling sum');
-    if (index >= period) {
-      sum = requireFiniteResult(sum - values[index - period], 'SMA rolling sum');
-    }
-    if (index >= period - 1) {
-      output[index] = requireFiniteResult(sum / period, 'SMA output');
-    }
+  for (let index = period - 1; index < values.length; index += 1) {
+    // Normalize each window before summing. A raw rolling sum can overflow
+    // even when the arithmetic mean itself is representable (e.g. MAX + MAX).
+    const window = values.slice(index - period + 1, index + 1);
+    output[index] = stableMean(window);
   }
   return output;
 }
