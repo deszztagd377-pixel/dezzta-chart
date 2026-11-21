@@ -420,7 +420,7 @@ def test_sixteen_independent_collector_instances_can_cold_boot_concurrently(tmp_
         results = list(pool.map(first_flush, range(worker_count)))
 
     assert len(results) == worker_count
-    assert all(result["series"] == 899 for result in results)
+    assert all(result["series"] == 12 for result in results)  # 1 HTTP + 1 latency + 10 WebSocket series
     snapshot = SQLiteMetricsCollector(path).snapshot(now=920)
     assert snapshot["worker_count"] == worker_count
     assert snapshot["series"]["http.requests|GET|/health|2xx"] == worker_count
