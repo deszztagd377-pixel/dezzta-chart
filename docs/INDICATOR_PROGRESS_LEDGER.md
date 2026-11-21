@@ -1,3 +1,22 @@
+## Batch 62J-97 checkpoint — indicator state unchanged (21 November 2026)
+
+Gate 38's production-staggered SQLite metrics benchmark is backend observability work only. No indicator formula, data contract, shared hook, renderer, chart UI or indicator test changed. **No indicator progress credit is awarded.**
+
+Current complete indicator state:
+- SMA20 🟨 — mean of 20 closes; first valid index 19. Visible overlay, toggle, legend/current value, stale clearing and renderer/lifecycle tests remain.
+- EMA20 🟨 — SMA-seeded EMA, alpha 2/21; first valid index 19. Overlay, toggle, legend/current value, stale clearing and renderer/lifecycle tests remain.
+- RSI14 🟨 — Wilder smoothing; first valid index 14. Dedicated 0–100 pane, 30/70 guides, toggle, legend, stale clearing and renderer tests remain.
+- MACD 12/26/9 🟨 — MACD first valid index 25; signal/histogram index 33. Pane, MACD/signal lines, histogram, zero guide, toggle, legend and renderer tests remain.
+- Bollinger20,2 🟨 — mean ±2 × population standard deviation; first valid index 19. Upper/middle/lower overlay, toggle, displayed values, stale clearing and renderer tests remain.
+- Shared Indicator Hook 🟨 — validated candle-index-aligned snapshot. Full chart identity/timeframe binding, loading/error lifecycle, stale clearing and series isolation remain.
+- Footprint 🟧 — simulated/reference-gated; requires the user's visual reference, reviewed blueprint, explicit ON-only spaced cluster layout, bid/ask cells and performance acceptance. OFF must preserve ordinary candle spacing.
+- Heatmap 🟥 — not implemented; requires the user's visual reference, zero-cost source feasibility, validated data contract, reviewed blueprint and renderer.
+- Liquidation Maps 🟥 — not implemented; requires zero-cost source feasibility, validated calculation/data contract, reference/blueprint and renderer.
+
+Shared invariants: warm-up values are null, never zero; outputs align to candle indexes; no future-candle repaint; symbol/venue/dataset/chart/timeframe changes clear stale series. No aggregate indicator percentage is published without an approved denominator. Stage 4 visual-indicator work remains behind the official stage gate.
+
+---
+
 ## Batch 62J-87 checkpoint — no indicator changes (21 November 2026)
 
 Gate 38 received bounded SQLite writer-lock acquisition retry and a retry-accounting regression test. This is backend telemetry infrastructure only; indicator formulas, data contracts, hook, renderer, UI and indicator tests are unchanged. No indicator progress credit is awarded.
