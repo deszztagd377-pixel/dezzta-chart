@@ -284,19 +284,20 @@ def _existing_directory(path: Path) -> Path:
 
 def _preflight_capacity(source: Path, backup: Path, restored: Path) -> dict[str, int | bool]:
     """Refuse a restore drill unless WAL-aware conservative free-space bounds hold."""
+    # Fail closed before SQLite opens the source: a hot rollback journal may
+    # require recovery writes, which are incompatible with this read-only drill.
+    rollback_journal = Path(f"{source}-journal")
+    if rollback_journal.exists() and rollback_journal.stat().st_size:
+        raise sqlite3.DatabaseError(
+            "source rollback journal is present; refusing restore drill"
+        )
+
     source_db = _ro(source)
     try:
-        journal_mode = str(source_db.execute("PRAGMA journal_mode").fetchone()[0]).lower()
         page_count = int(source_db.execute("PRAGMA page_count").fetchone()[0])
         page_size = int(source_db.execute("PRAGMA page_size").fetchone()[0])
     finally:
         source_db.close()
-
-    rollback_journal = Path(f"{source}-journal")
-    if journal_mode != "wal" and rollback_journal.exists() and rollback_journal.stat().st_size:
-        raise sqlite3.DatabaseError(
-            "source rollback journal is present; refusing restore drill"
-        )
 
     source_main_bytes = source.stat().st_size
     wal_path = Path(f"{source}-wal")
