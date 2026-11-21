@@ -32,18 +32,18 @@ This corrects older statements in the Batch 62J-19 blueprint that said FastAPI l
 
 ## 3. Remaining WebSocket blockers — do not mislabel as fixed
 
-1. **No full two-ASGI end-to-end acceptance harness is present in the inspected backend test inventory.** Existing Redis lease/consumer/worker/replica-bridge tests validate components, but they do not establish that two independent FastAPI server processes both receive the same live event sequence through separate replica databases and WebSocket clients.
-2. **Snapshot bootstrap/transport is not an approved complete deployment contract.** A consumer requires a verified installed snapshot and generation. The runtime factory is injected; this audit did not find owner-approved snapshot distribution, installation orchestration, and source identity proof for the intended real topology.
-3. **Real topology and operations remain external:** independent production Redis TLS/ACL/networking/failover, per-instance durable replica paths, owner-controlled process supervision, public HTTPS/WSS, browser and Android WebView reconnect/freshness tests, and real provider delivery.
-4. **Production route remains opt-in.** Do not enable replica mode by guessing configuration or sharing a SQLite WAL database across hosts. Do not add a paid service or deploy to manufacture evidence.
+1. **Two-ASGI CI acceptance is already implemented and verified.** Batch 62J-25 launches two independent Uvicorn/FastAPI processes, separate SQLite replicas and instrument registries, separate Redis clients/groups, and two authenticated WebSocket clients. Both receive the same live cursor; both replica checkpoints converge. It also reconnects from cursor 0 and verifies replay_started, replayed cursor 1, and replay_complete.
+2. **The automated WebSocket E failure matrix is complete for its defined CI scope.** Batch 62J-28 verifies transient Redis read failure/recovery across two ASGI processes and replay/restart continuity. Batch 62J-31 verifies independent Redis TCP-path interruption/recovery without restarting gateways and coordinated two-replica snapshot-generation replacement with cursor parity. Exact-head CI on those batches passed.
+3. **Snapshot bootstrap/transport remains an owner-side production gap.** CI proves local snapshot export/install and generation switching, but not production artifact distribution, rotation, rollback, or owner-host source identity/security.
+4. **Real production topology and operations remain external:** production Redis TLS/ACL/networking/failover and credential rotation, owner-controlled process supervision, public HTTPS/WSS, browser and Android WebView acceptance, and real provider delivery.
+5. **Production replica route remains opt-in.** Do not enable replica mode by guessing configuration or sharing a SQLite WAL database across hosts. Do not add a paid service or deploy to manufacture evidence.
 
 ## 4. Next safe implementation order
 
-1. Add a CI-only two-ASGI process harness using the existing Redis 7 service, separate temporary SQLite replica files, independent consumer groups, and test-only configuration.
-2. Prove identical snapshot watermark, ordered event IDs/cursors on both WebSocket clients, exactly-once replay/live boundary handoff, and checkpoint convergence.
-3. Exercise gateway restart, consumer restart, Redis interruption/recovery, stale generation, retention gap, and one-replica lease contention.
-4. Keep production replica mode disabled until snapshot transport/topology is explicitly approved and owner-host security/availability evidence exists.
-5. Only after the automated harness is green, resume the external Gate 25/36 acceptance sequence. Do not claim Gate 10 closure from CI alone.
+1. Treat the repository/CI WebSocket E matrix as complete for its explicitly tested scope; do not repeat the already-passing two-ASGI harness work.
+2. Keep production replica mode disabled until snapshot artifact distribution/rotation/rollback, source identity, topology and Redis TLS/ACL are explicitly approved and verified by the responsible owner.
+3. After owner-side evidence is available, perform public authenticated WSS, browser and Android WebView reconnect/freshness acceptance.
+4. Continue the remaining Gate 10 items in dependency order. Do not claim Gate 10 closure from CI alone.
 
 ## 5. Indicator and project accounting
 
@@ -69,4 +69,4 @@ No indicator source, calculation, hook, chart renderer, or indicator test was ch
 
 ## 6. Result
 
-The previously identified repository-level Redis consumer ownership defect has CI-verified coverage. FastAPI lifespan and replica-backed snapshot/replay integration are present behind opt-in runtime injection. The unresolved technical task is the real two-ASGI-process WebSocket proof plus an approved snapshot bootstrap topology—not another isolated Redis lease patch. This batch is a documentation/source reconciliation only; it awards no Gate 10 or indicator completion credit.
+The previously identified repository-level Redis consumer ownership defect has CI-verified coverage. FastAPI lifespan and replica-backed snapshot/replay integration are present behind opt-in runtime injection. Two-ASGI process delivery, replay reconnect, transient Redis read recovery, TCP-path interruption recovery, and coordinated snapshot-generation replacement have already passed the defined CI acceptance batches. Remaining WebSocket blockers are production snapshot artifact operations, production Redis TLS/ACL/topology, and public client acceptance. This batch is a documentation/source reconciliation only; it awards no Gate 10 or indicator completion credit.
