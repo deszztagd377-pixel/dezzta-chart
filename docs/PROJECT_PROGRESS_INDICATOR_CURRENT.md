@@ -1,8 +1,8 @@
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 21 November 2026 — Batch 62J-53 Redis consumer ownership guard and exact-head CI
+**Checkpoint:** 21 November 2026 — Batch 62J-55 WebSocket exact-head integration reconciliation
 **Active branch:** `phase-2/market-data-foundation`
-**Latest source/test HEAD:** `56317eff2b71886040acb998bf692814622feedf` (Redis consumer lease, worker/lifespan integration, ACL and regression tests).
+**Latest runtime/source-test HEAD:** `56317eff2b71886040acb998bf692814622feedf` (Redis consumer lease, worker/lifespan integration, ACL and regression tests). **Current documentation branch HEAD before this refresh:** `0251e5b7d2915bee723dc47895b950250c26e50c`.
 **Exact-head CI:** Automated Tests [44774049019](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774049019) **SUCCESS** — frontend **245/245 across 29 files**; backend **1,218 passed, 6 warnings in 35.76s**. CodeQL [44774050265](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774050265) **SUCCESS** • Full Git History Secret Audit [44774048914](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44774048914) **SUCCESS**.
 **Audit evidence:** frontend dependency audit 0 vulnerabilities; backend dependency audit no known vulnerabilities; frontend source/bundle secret scan, backend container build, Redis ACL/AOF + mounted-volume smoke test, Trivy scan/report export all completed successfully.
 **WebSocket E:** COMPLETE FOR THE DEFINED AUTOMATED FAILURE-MATRIX SCOPE. This is distinct from Gate 20's real Firebase identity and browser/Android acceptance.
@@ -736,3 +736,14 @@ The Gate 38 source audit found that metric series cardinality was bounded but sc
 **Gate 38 remains 🟧 OPEN.** Host firewall/reverse-proxy restriction, operator-token injection/rotation, bounded host-log/collector retention, disk-pressure recovery, real credential-redaction review and dashboard access acceptance still require owner-host evidence. The application metrics are process-local and are not a durable host-log retention mechanism.
 
 **Project accounting:** Stage 1 remains 30/40 = 75% provisional; no tick is credited without approved criterion mapping. Gate 10 remains 10/10 🟧 ORANGE / 0 closed. Stages 2–6 and overall project percentage remain unscored. No indicator calculation or UI work changed; indicator statuses and warm-up boundaries remain unchanged. WebSocket E remains complete for the defined automated CI matrix only; production WSS and host operations remain open. ZERO COST; no deployment, paid service, main change, Termux or device operation.
+
+## Batch 62J-55 — WebSocket exact-head integration reconciliation (21 November 2026)
+
+- Verified FastAPI lifespan owns the injected opt-in Redis replica worker; it validates the runtime bindings, acquires a generation-scoped consumer lease before group startup, dispatches events onto the ASGI loop, and releases the lease only after confirmed worker shutdown.
+- Verified `/ws/market-data` selects replica-backed atomic snapshot registration and bounded exact-series Redis replay when replica runtime is injected. The source-store path remains default when no replica runtime is supplied.
+- Corrected the older multi-ASGI blueprint statements that described lifespan ownership and route selection as not yet implemented.
+- Full two-independent-ASGI-process/WebSocket-client acceptance is still not present in the inspected test inventory. Snapshot transport/installation and real owner-approved topology also remain open. Do not claim production cross-instance fan-out.
+- Exact docs HEAD `290c4fe1b4a125e9a41b410d942e807db22c58aa`: Test and Build, CodeQL JavaScript/TypeScript, CodeQL Python, and full reachable Git-history secret audit all SUCCESS. Frontend 245/245 across 29 files; backend 1,218 passed, 6 warnings. This is CI evidence, not production acceptance.
+- No runtime/indicator code changed. Indicator status remains unchanged; no indicator percentage is assigned. Gate 10 remains 0/10 formally closed; Stage 1 remains 30/40 = 75% provisional; overall project and aggregate indicator percentages remain unestablished.
+- Next technical batch: build the two-ASGI CI harness on existing Redis 7 CI with separate temporary replica databases/groups and verify snapshot watermark, ordered dual delivery, replay/live handoff, restart/outage/retention and lease-loss behavior.
+- ZERO COST. No Termux/device command, deployment, Vercel/Cloudflare operation, paid service, or `main` modification.
