@@ -1,9 +1,9 @@
 ## Latest indicator status — Batch 62J-68 (21 November 2026)
 
 **Latest source/config/test HEAD:** `da9b2ad025ac5c49f75c95dbdd5f516573107f87` on `phase-2/market-data-foundation`.  
-**Exact-head CI:** Automated Tests [44861035493](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035493), CodeQL [44861035537](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035537), Full Git History Secret Audit [44861035482](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035482) — all **SUCCESS**. Frontend 247/247 across 29 files; backend 1,235 passed in 49.78s; 33/33 workflow steps passed.
+**Exact-head CI:** Automated Tests [44863517983](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44863517983): **SUCCESS** — frontend 247/247; backend 1,238 passed in 49.89s; 32/32 workflow steps. CodeQL [44863518025](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44863518025) and Full Git History Secret Audit [44863517962](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44863517962): **SUCCESS**.
 
-No indicator calculation, formula, shared hook, renderer, chart UI, or indicator test changed in Batch 62J-68. The security loader hardening is not indicator implementation. Gate 8 security tests and Docker build-context hardening are not indicator implementation. **No indicator completion credit is awarded.**
+No indicator calculation, formula, shared hook, renderer, chart UI, or indicator test changed in Batch 62J-68. The Gate 8 security loader hardening and Docker build-context work are not indicator implementation. **No indicator completion credit is awarded.**
 
 | Indicator / component | Status | Calculation / validity contract | Remaining implementation |
 |---|---|---|---|
@@ -42,7 +42,7 @@ No indicator calculation, formula, shared hook, renderer, chart UI, or indicator
 - No indicator calculation, formula, shared hook, chart renderer, indicator UI, or indicator test changed in Batch 62J-62. No indicator completion credit is awarded.
 - Indicator dashboard remains unchanged: SMA20 🟨; EMA20 🟨; RSI14 🟨; MACD12/26/9 🟨; Bollinger20,2 🟨; shared indicator hook 🟨; Footprint 🟧 SIMULATED/reference-gated; Heatmap 🟥; Liquidation Maps 🟥.
 - Formula contracts remain: SMA20 and SMA-seeded EMA20 first valid at index 19; RSI14 Wilder first valid at index 14; MACD line at index 25 and signal/histogram at index 33; Bollinger20,2 population deviation first valid at index 19. Warm-up values remain null and aligned to candle indexes.
-- Stage 1 remains 30/40 = 300/400 = **75% provisional**; Gate 10 remains **0/10 formally closed**. Overall project and aggregate indicator percentages remain unscored.
+- Stage 1 remains 30/40 = 300/400 = **75% provisional**; Gate 10 remains **0/10 formally closed**; Gate 8 is 🟨 host-verification-only and the other nine gates remain 🟧 OPEN. Overall project and aggregate indicator percentages remain unscored.
 - ZERO COST: no deployment, paid service, Termux/device operation, production credential, or `main` modification.
 
 

@@ -2,7 +2,7 @@
 
 **Branch:** `phase-2/market-data-foundation`  
 **Latest source/config/test HEAD:** `da9b2ad025ac5c49f75c95dbdd5f516573107f87`  
-**Gate 8 test/source checkpoint:** `58f0e721a197d95424395d08ecce2143ddcd4926`  
+**Gate 8 security source/test HEAD:** `da9b2ad025ac5c49f75c95dbdd5f516573107f87`  
 **Gate 8 build-context/config checkpoint:** `da9b2ad025ac5c49f75c95dbdd5f516573107f87`
 
 - Automated Tests [44863517983](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44863517983), CodeQL [44863518025](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44863518025), Full Git History Secret Audit [44863517962](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44863517962) — all **SUCCESS**. Frontend 247/247; backend 1,238 passed in 49.89s; 32/32 workflow steps succeeded.
@@ -20,9 +20,9 @@
 
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 21 November 2026 — Batch 62J-67, Gate 8 build-context hardening and exact-head CI verification  
+**Checkpoint:** 21 November 2026 — Batch 62J-68, Gate 8 no-follow secret loader hardening and exact-head CI verification  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest source/config/test HEAD:** `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d`
+**Latest source/config/test HEAD:** `da9b2ad025ac5c49f75c95dbdd5f516573107f87`
 
 ## Project stage dashboard
 
@@ -41,11 +41,11 @@
 
 **Stage 1:** 30/40 criteria = 300/400 ticks = **75% provisional**. Remaining: 10 criteria / 100 ticks. Source changes, documentation and CI alone do not award production-acceptance ticks.
 
-**Gate 10:** <badge color="warning">0/10 formally closed</badge> — all ten external acceptance gates remain open.
+**Gate 10:** <badge color="warning">0/10 formally closed</badge> — Gate 8 is 🟨 host-verification-only; the other nine gates remain 🟧 OPEN. A gate turns 🟩 only after complete acceptance evidence is reviewed.
 
 | Gate | State | Remaining acceptance evidence |
 |---:|---|---|
-| 8 — Secrets | 🟧 OPEN | Actual host secret injection, owner/mode, process exposure and runtime review |
+| 8 — Secrets | 🟨 HOST VERIFICATION ONLY | Actual host secret injection, owner/mode, process exposure and runtime review |
 | 20 — Firebase | 🟧 OPEN | Verified no-billing real Firebase auth/revocation/entitlement and browser/Android flow |
 | 25 — Redis | 🟧 OPEN | Real host TLS, ACL, credential lifecycle, persistence and failover |
 | 30 — Restore | 🟧 OPEN | Restore drill against actual live database path on owner-controlled runtime |
@@ -58,9 +58,7 @@
 
 ## Exact-head CI
 
-- Automated Tests [44861035493](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035493): **SUCCESS** — 247 frontend tests / 29 files, 1,235 backend tests, 33/33 workflow steps.
-- CodeQL [44861035537](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035537): **SUCCESS**.
-- Full Git History Secret Audit [44861035482](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035482): **SUCCESS**.
+- Automated Tests [44863517983](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44863517983): **SUCCESS** — frontend 247/247; backend 1,238 passed in 49.89s; 32/32 workflow steps. CodeQL [44863518025](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44863518025) and Full Git History Secret Audit [44863517962](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44863517962): **SUCCESS**.
 - Frontend dependency audit: 0 vulnerabilities. Backend dependency audit: no known vulnerabilities. Trivy scanned Alpine and Python package targets with 0 vulnerabilities.
 - Backend container build and Redis ACL/AOF + persistent-volume smoke: **SUCCESS**.
 
