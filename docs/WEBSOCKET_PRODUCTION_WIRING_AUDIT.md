@@ -226,3 +226,30 @@ WebSocket E is complete for the defined automated repository failure matrix. Pro
 Gate 8 remains 🟨🟩 host-verification-only. Gate 25 and Gate 36 remain 🟧 OPEN; Gates 20, 30, 31, 34, 35, 38 and 39 remain 🟧 OPEN. Gate 10 remains 0/10 formally closed. Stage 1 remains 30/40 = 75% provisional; overall project percentage remains unscored.
 
 See `PROJECT_PROGRESS_INDICATOR_CURRENT.md` for the complete indicator ledger and current accounting. ZERO COST; no deployment, production credentials, Termux, Vercel/Cloudflare operation or `main` modification.
+
+
+## Batch 62J-75 — exact-head CI confirmation and host/device acceptance boundary
+
+Exact-head CI for `f3264c7ee0db573b4ff999c558506c4efe3e59d5` completed successfully:
+- Automated Tests [44875028851](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44875028851) — SUCCESS; 1,249 backend tests passed in 49.05 seconds.
+- CodeQL [44875028870](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44875028870) — SUCCESS.
+- Full Git History Secret Audit [44875028765](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44875028765) — SUCCESS.
+- Redis ACL integration verified DB-0 operation with no `+select`; explicit `SELECT 1` is denied for publisher and gateway roles.
+- Backend container build, Redis shared-guard/AOF persistent-volume smoke, image vulnerability scan and report export/upload — SUCCESS.
+
+The ACL correction supersedes the Batch 62J-73 diagnosis: database 0 is the default in the redis-py client path used by this repository; granting `+select` was unnecessary and has been removed. This is a least-privilege improvement.
+
+### WebSocket acceptance disposition
+
+The repository-side automated WebSocket E/failure matrix is complete for its defined CI scope. The real-host production acceptance cannot be completed because this project currently has GitHub + CI only and no owner-controlled backend server. The CI Redis service and Docker smoke are ephemeral and do not create a public WSS endpoint.
+
+### Gate 10 host/device classification
+
+- 🟨🟩 Host/owner verification only: Gate 8 (secret injection/runtime exposure), Gate 30 (restore on actual owner-controlled database path), Gate 34 (actual persistent volume/restart/disk pressure), Gate 35 (real HTTPS certificate/proxy/renewal), Gate 39 (live operator visibility, acknowledgement/escalation and recovery).
+- 🟧 Additional integration still open: Gate 20 (real Firebase project and browser/Android auth/revocation), Gate 25 (owner-injected snapshot verifier/receipts and live dedicated Redis TLS/ACL topology), Gate 31 (off-host backup destination and independent key custody), Gate 36 (public WSS plus browser/Android WebView acceptance), Gate 38 (collector/dashboard/retention integration).
+
+Yellow-green is not acceptance or closure. Gate 10 remains 0/10 formally closed; only complete external evidence can turn a gate bright green.
+
+**Host verification is not an APK-only test.** It requires evidence from the actual server/provider/storage/operator environment. Opening the APK is a separate client acceptance step. For Gate 36, Android/browser testing should occur only after a real public HTTPS/WSS endpoint is available. No Termux or phone-side command is required at this stage.
+
+No production host, endpoint, TLS certificate, backup destination, Firebase project or credentials were fabricated or requested. ZERO COST; no deployment, no paid service, no `main` modification.

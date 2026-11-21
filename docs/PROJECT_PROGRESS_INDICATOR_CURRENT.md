@@ -1,20 +1,18 @@
-## Latest engineering checkpoint — Batch 62J-70/71 (21 November 2026)
+## Latest engineering checkpoint — Batch 62J-75 (21 November 2026)
 
 **Branch:** `phase-2/market-data-foundation`  
-**Latest source/config/test HEAD:** `5575f5d820dd26d16a7170cb2c55e9c707c2afc1`
+**Latest source/config/test HEAD:** `f3264c7ee0db573b4ff999c558506c4efe3e59d5`
 
-- Exact-head Automated Tests [44868539276], CodeQL [44868539309], Full Git History Secret Audit [44868539423], and Android APK Build [44868539288] — all **SUCCESS**.
-- Frontend: **249/249 passed across 29 test files**. Backend: **1,246 passed**. Automated workflow: **33/33 steps succeeded**.
-- Frontend and backend dependency audits passed; backend container build, Redis shared-guard/persistent-volume smoke, container scan, vulnerability-report export and artifact upload succeeded.
-- Batch 62J-70 adds a dedicated source-role publisher runtime factory. It rejects missing checkpoints and mismatched snapshot manifest / gateway receipts before Redis client creation; validates source ID, stream key, generation and cursor; requires production rediss://, dedicated ACL credentials, database 0, TLS hostname/certificate verification and finite connection timeouts.
-- Publisher and gateway ACL command allow-lists now include `+ping` for readiness checks while retaining separate command scopes.
-- Batch 62J-71 adds a production frontend transport guard: ticket requests require HTTPS and WebSocket transport requires WSS in production builds. Development mode remains unchanged.
-- Publisher activation remains **🟨🟩 HOST VERIFICATION PENDING**. The default ASGI app remains disabled until the owner injects the runtime factory and supplies a real host snapshot-verifier adapter with verified receipts for every gateway.
-- WebSocket repository/CI failure-matrix scope is complete. Production Redis endpoint/ACL, snapshot distribution/rotation/rollback, public HTTPS/WSS reverse proxy, browser runtime and actual Android WebView/device acceptance remain external.
-- Indicator calculations and renderers did not change. SMA20, EMA20, RSI14, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain 🟨 FOUNDATION; Footprint remains 🟧 SIMULATED / GATED; Heatmap and Liquidation Maps remain 🟥 NOT IMPLEMENTED.
-- Stage 1 remains **30/40 criteria = 300/400 ticks = 75% provisional**. Gate 10 remains **0/10 formally closed**: Gate 8 is 🟨 host-verification-only; gates 20, 25, 30, 31, 34, 35, 36, 38 and 39 remain 🟧 OPEN.
-- Overall project and aggregate indicator percentages remain unscored until approved weights and acceptance denominators exist. Stages 2–6 remain unscored.
-- ZERO COST: no production deployment, paid service, production credential, Termux/device operation, Vercel/Cloudflare operation or `main` modification. Android APK workflow success is build evidence only, not a device-install acceptance.
+- Exact-head Automated Tests [44875028851](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44875028851), CodeQL [44875028870](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44875028870), and Full Git History Secret Audit [44875028765](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44875028765) — all **SUCCESS**.
+- Backend: **1,249 passed in 49.05 seconds**. The Redis ACL test explicitly verifies publisher and gateway can use DB 0 without `+select`, while explicit `SELECT 1` is denied. Existing end-to-end Redis relay ACL test also passed.
+- Frontend tests/build/secret scans, backend dependency audit, synthetic outbox benchmark, backend container build, Redis shared-guard/persistent-volume smoke, image vulnerability scan and report export/upload — **SUCCESS**.
+- Container smoke verified Redis ACL rejection, AOF/ACL persistence across Redis restart, backend fail-closed 503 during Redis outage, recovery after Redis returns, non-root UID/GID, mounted-volume ownership, SQLite integrity/restart persistence and HTTP rate limiting.
+- Batch 62J-74 removed unnecessary `+select` from publisher/gateway ACL command allow-lists. DB 0 remains the only accepted URL database. This tightens least privilege; the earlier Batch 62J-73 SELECT diagnosis is superseded.
+- WebSocket repository/CI failure-matrix scope is complete. Production WSS remains unaccepted because no owner-controlled backend host or public endpoint exists.
+- Gate 10: **0/10 formally closed**. 🟨🟩 host/owner-verification-only: Gates 8, 30, 34, 35 and 39. 🟧 still require additional provider/host/device integration: Gates 20, 25, 31, 36 and 38. These colors do not mean any gate is formally closed; bright green is reserved for complete acceptance evidence.
+- Stage 1 remains **30/40 criteria = 300/400 ticks = 75% provisional**. Stages 2–6 and overall project percentage remain unscored because approved denominators/weights are absent.
+- Indicator implementation is unchanged. Full indicator ledger and formula/warm-up boundaries remain in this dashboard below. No indicator completion credit is awarded by backend work.
+- ZERO COST: no paid hosting, deployment, production credential request, Termux/device operation, Vercel/Cloudflare operation or `main` modification. Android APK testing is not currently required because no public WSS endpoint exists.
 
 
 
@@ -22,9 +20,9 @@
 
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 21 November 2026 — Batch 62J-70/71, dedicated source publisher runtime, snapshot verification gate and production HTTPS/WSS client enforcement  
+**Checkpoint:** 21 November 2026 — Batch 62J-75, exact-head Redis ACL least-privilege CI acceptance and Gate 10 host/device boundary reconciliation  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest source/config/test HEAD:** `5575f5d820dd26d16a7170cb2c55e9c707c2afc1`
+**Latest source/config/test HEAD:** `f3264c7ee0db573b4ff999c558506c4efe3e59d5`
 
 ## Project stage dashboard
 
@@ -43,20 +41,22 @@
 
 **Stage 1:** 30/40 criteria = 300/400 ticks = **75% provisional**. Remaining: 10 criteria / 100 ticks. Source changes, documentation and CI alone do not award production-acceptance ticks.
 
-**Gate 10:** <badge color="warning">0/10 formally closed</badge> — Gate 8 is 🟨 host-verification-only; the other nine gates remain 🟧 OPEN. A gate turns 🟩 only after complete acceptance evidence is reviewed.
+**Gate 10:** <badge color="warning">0/10 formally closed</badge> — Gates 8, 30, 34, 35 and 39 are 🟨🟩 host/owner-verification-only; Gates 20, 25, 31, 36 and 38 remain 🟧 OPEN for additional provider/host/device integration. A gate turns 🟩 only after complete acceptance evidence is reviewed.
+
+**Meaning of host/owner verification only:** this is not the same as opening the Android APK. It means the repository-side implementation and CI checks are complete for that gate, but evidence must be collected from the real owner-controlled server, storage, certificate/provider account or operator process. For Gate 36, a separate Android/browser acceptance test will be needed only after a real public HTTPS/WSS endpoint exists. No APK test can substitute for Redis TLS, host secrets, backup storage, persistent volumes or operator recovery evidence.
 
 | Gate | State | Remaining acceptance evidence |
 |---:|---|---|
-| 8 — Secrets | 🟨 HOST VERIFICATION ONLY | Actual host secret injection, owner/mode, process exposure and runtime review |
+| 8 — Secrets | 🟨🟩 HOST VERIFICATION ONLY | Actual host secret injection, owner/mode, process exposure and runtime review |
 | 20 — Firebase | 🟧 OPEN | Verified no-billing real Firebase auth/revocation/entitlement and browser/Android flow |
 | 25 — Redis | 🟧 OPEN | Real host TLS, ACL, credential lifecycle, persistence and failover |
-| 30 — Restore | 🟧 OPEN | Restore drill against actual live database path on owner-controlled runtime |
+| 30 — Restore | 🟨🟩 HOST VERIFICATION ONLY | Restore drill against actual live database path on owner-controlled runtime |
 | 31 — Off-host backup | 🟧 OPEN | Independent destination/key custody and restore; constrained by one-device boundary |
-| 34 — Persistent volume | 🟧 OPEN | Actual host mount, ownership, restart persistence and disk-pressure recovery |
-| 35 — HTTPS | 🟧 OPEN | Real HTTPS endpoint, certificate/hostname and renewal path |
+| 34 — Persistent volume | 🟨🟩 HOST VERIFICATION ONLY | Actual host mount, ownership, restart persistence and disk-pressure recovery |
+| 35 — HTTPS | 🟨🟩 HOST VERIFICATION ONLY | Real HTTPS endpoint, certificate/hostname and renewal path |
 | 36 — WSS | 🟧 OPEN | Public reverse proxy plus real browser and Android WebView acceptance |
 | 38 — Monitoring | 🟧 OPEN | Collector/dashboard, retention, access control and disk-pressure acceptance |
-| 39 — Incident response | 🟧 OPEN | Real operator visibility, acknowledgement/escalation and recovery drill |
+| 39 — Incident response | 🟨🟩 HOST/OPERATOR VERIFICATION ONLY | Real operator visibility, acknowledgement/escalation and recovery drill |
 
 ## Exact-head CI
 
@@ -845,7 +845,7 @@ The Gate 38 source audit found that metric series cardinality was bounded but sc
 **Acceptance boundary:** Gate 25 remains 🟧 OPEN pending live Redis TLS/ACL, persistence/failover and host credential lifecycle. Gate 36 remains 🟧 OPEN pending public HTTPS/WSS proxy and browser/Android runtime acceptance. Source publisher stays 🟨🟩 HOST VERIFICATION PENDING.
 
 
-## Latest engineering checkpoint — Batch 62J-74 (21 November 2026)
+## Latest engineering checkpoint — Batch 62J-75 (21 November 2026)
 
 **Verified CI head:** `3e3428910e3226f3d4365808f3a36a3138674231` — Automated Tests run [44874341856](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44874341856), CodeQL run [44874341916](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44874341916), and full Git-history secret audit run [44874341885](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44874341885) all SUCCESS. The CI run executed the Redis ACL integration test and finished with **1,249 backend tests passed in 57.10 seconds**. The Docker smoke step, image scan and vulnerability-report export/upload also succeeded.
 
