@@ -6,23 +6,36 @@ from collections.abc import Callable, Mapping
 from typing import Any
 from urllib.parse import urlsplit
 
+
 from app.ohlcv_redis_config import DEFAULT_OHLCV_STREAM_KEY, OhlcvRedisRelayConfig, _parse_acl_url
 from app.ohlcv_redis_publisher import RedisOhlcvPublisher, SQLiteOhlcvPublisherCheckpoint
 from app.ohlcv_store import SQLiteOhlcvStore
 
 
+def _is_sha256(value: object) -> bool:
+    """Accept only the canonical lowercase SHA-256 hex digest."""
+    return (
+        isinstance(value, str)
+        and len(value) == 64
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
 def _validate_snapshot_evidence(
     evidence: object, *, source_id: str, checkpoint_cursor: int, stream_key: str,
 ) -> dict[str, Any]:
-    """Validate manifest plus one matching installation receipt per required gateway.
+    """Validate the manifest digest plus one matching install receipt per gateway.
 
-    The owner-host callback must read authoritative manifest/receipt data.
-    This function validates the evidence contract; it cannot probe remote hosts.
+    The owner-host callback must verify the snapshot file with
+    SQLiteOhlcvStore.verify_global_snapshot() and authenticate/read the
+    authoritative installation receipts. This function binds every receipt
+    to the exact verified artifact; it cannot probe remote hosts itself.
     """
     if not isinstance(evidence, Mapping):
         raise RuntimeError("A verified global snapshot manifest is required.")
     generation = evidence.get("snapshot_generation")
     cursor = evidence.get("snapshot_cursor")
+    snapshot_sha256 = evidence.get("snapshot_sha256")
     required = evidence.get("required_gateway_ids")
     installations = evidence.get("gateway_installations")
     if (
@@ -30,10 +43,11 @@ def _validate_snapshot_evidence(
         or evidence.get("source_id") != source_id
         or evidence.get("stream_key") != stream_key
         or type(cursor) is not int or cursor != checkpoint_cursor
+        or not _is_sha256(snapshot_sha256)
         or not isinstance(required, (list, tuple))
         or not isinstance(installations, Mapping)
     ):
-        raise RuntimeError("Snapshot evidence does not match the publisher source and checkpoint.")
+        raise RuntimeError("Snapshot evidence does not match the publisher source, checkpoint or SHA-256 manifest.")
     if (
         not required
         or any(not isinstance(item, str) or not item.strip() for item in required)
@@ -50,13 +64,15 @@ def _validate_snapshot_evidence(
             or receipt.get("snapshot_generation") != generation
             or type(receipt.get("snapshot_cursor")) is not int
             or receipt.get("snapshot_cursor") != cursor
+            or receipt.get("snapshot_sha256") != snapshot_sha256
         ):
-            raise RuntimeError("A gateway snapshot receipt does not match the global snapshot manifest.")
+            raise RuntimeError("A gateway snapshot receipt does not match the global snapshot manifest and SHA-256.")
     return {
         "source_id": source_id,
         "stream_key": stream_key,
         "snapshot_generation": generation,
         "snapshot_cursor": cursor,
+        "snapshot_sha256": snapshot_sha256,
         "verified_gateway_count": len(required),
     }
 
