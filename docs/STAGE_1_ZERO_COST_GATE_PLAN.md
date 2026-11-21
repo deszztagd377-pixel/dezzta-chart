@@ -31,9 +31,10 @@ Decision: owner-mandated ZERO MONEY. This plan is a constraint-resolution design
 - If existing hardware cannot host it reliably, keep production shared-guard acceptance deferred.
 
 ### 30 — Production-like backup restore drill
-**Current status: external verification required.**
+**Current status: external verification required; WAL-aware capacity preflight documented.**
 - Candidate: use SQLite Online Backup API on the owner-controlled host, copy the backup to a new database path on existing local storage, run integrity checks, and verify representative application-level rows and replay/outbox continuity.
-- Required evidence: timestamped backup/restore report, source and target database identity, integrity output, record-count/key checks, and recovery time.
+- Before allocating artifacts, estimate consistent snapshot size as S = max(main DB bytes + current WAL bytes, PRAGMA page_count × page_size) through a read-only connection that sees committed WAL state. Use the capacity bounds in GATE30_OWNER_HOST_RESTORE_DRILL_RUNBOOK.md; stop on unresolved rollback-journal/recovery state or insufficient space.
+- Required evidence: timestamped backup/restore report, source and target database identity, WAL-aware capacity measurements, integrity output, record-count/key checks, and recovery time.
 - CI smoke tests alone do not close this production-like restore gate.
 
 ### 31 — Encrypted off-host backup and key recovery

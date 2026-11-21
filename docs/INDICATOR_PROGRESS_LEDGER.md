@@ -2,7 +2,11 @@
 
 ## Indicator correctness expansion — Batch 62J-59 (21 November 2026)
 
-- Source/test parent checkpoint: 96fe84ec537d68f5588b880a2fddafd1772a39e4 on phase-2/market-data-foundation. Parent exact-head Automated Tests, CodeQL and Full Git History Secret Audit all passed (runs 44852405512, 44852405426 and 44852405453).
+- Exact source/test HEAD: 56dd8a3a9ebd9fb635357af5285980c461a5de0f on phase-2/market-data-foundation.
+- Exact-head Automated Tests [44853126329](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44853126329): **SUCCESS** — frontend **247/247 tests across 29 files**; backend **1,218 passed in 49.51s**. Frontend build, bundle secret scans, frontend dependency audit, backend dependency audit, bounded SQLite outbox benchmark, backend container build, Redis shared-guard + persistent-volume smoke test, Trivy scan and vulnerability report upload all succeeded.
+- Exact-head CodeQL [44853126331](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44853126331): **SUCCESS**.
+- Exact-head Full Git History Secret Audit [44853126419](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44853126419): **SUCCESS**.
+- Android debug APK build [44853126386](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44853126386): **SUCCESS**; artifact ID 14686087699, 3,877,412 bytes, retention 7 days; APK SHA-256 `543977791596e59e314611a5431f01dd4431d84f0fb0855f49ccd79ffd57e101`. CI build is not Android device acceptance.
 - Added regression coverage in src/indicators/indicatorCalculations.test.ts for prefix causality across SMA20, EMA20, RSI14, MACD12/26/9 and Bollinger20,2. Prefixes ending at 1, 14, 15, 19, 20, 26, 34, 35, 48 and 64 candles must exactly equal the corresponding prefix of the full-series calculation.
 - This guards the no-future-leak requirement needed for historical chart inspection and planned Candle Replay. Appending later candles must not retroactively alter earlier indicator points.
 - Added falling-only RSI output and period-one SMA/EMA/RSI boundary tests. Existing warm-up, formula, population-deviation, timeframe and invalid-input tests remain.
@@ -13,8 +17,9 @@
 
 ---
 
-**Checkpoint:** 21 November 2026 — Batch 62J-59 indicator prefix-causality and boundary regression coverage; current source/test HEAD pending exact-head CI
+**Checkpoint:** 21 November 2026 — Batch 62J-59 indicator prefix-causality and boundary regression coverage; exact-head CI complete
 **Branch:** `phase-2/market-data-foundation`  
+**Current source/test HEAD:** `56dd8a3a9ebd9fb635357af5285980c461a5de0f`
 **Indicator implementation status:** calculation formulas, hook, chart and renderer remain unchanged. Batch 62J-59 adds regression tests only; it does not award visual-integration or formula-implementation completion.
 **Interpretation:** statuses describe verified implementation boundaries, not a guessed completion percentage. No indicator weights or acceptance percentages have been approved, so per-indicator or total-indicator percentages are intentionally not fabricated.
 

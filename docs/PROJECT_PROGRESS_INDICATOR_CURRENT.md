@@ -1,9 +1,13 @@
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 21 November 2026 — Batch 62J-59 indicator prefix-causality and boundary regression coverage
+**Checkpoint:** 21 November 2026 — Batch 62J-60 WAL-aware Gate 30 capacity correction and Batch 62J-59 exact-head CI closure
 **Active branch:** `phase-2/market-data-foundation`
-**Current source/test parent:** 96fe84ec537d68f5588b880a2fddafd1772a39e4 on phase-2/market-data-foundation; its exact-head Automated Tests [44852405512](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44852405512), CodeQL [44852405426](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44852405426), and Full Git History Secret Audit [44852405453](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44852405453) all **SUCCESS**.
-**Batch 62J-59 changes:** regression tests only in src/indicators/indicatorCalculations.test.ts; current commit will be reported separately after its CI completes. No production indicator code or UI changed.
+**Current source/test HEAD:** `56dd8a3a9ebd9fb635357af5285980c461a5de0f` on `phase-2/market-data-foundation`.
+**Exact-head Automated Tests:** [44853126329](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44853126329) **SUCCESS** — frontend **247/247 across 29 files**; backend **1,218 passed in 49.51s**. Frontend/backend dependency audits, secret scans, SQLite outbox benchmark, backend container build, Redis shared-guard + persistent-volume smoke test, Trivy scan and report export passed.
+**Exact-head CodeQL:** [44853126331](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44853126331) **SUCCESS**.
+**Exact-head Full Git History Secret Audit:** [44853126419](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44853126419) **SUCCESS**.
+**Android debug APK:** [Run 44853126386](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44853126386) **SUCCESS** — 3,877,412-byte artifact, 7-day retention; APK SHA-256 `543977791596e59e314611a5431f01dd4431d84f0fb0855f49ccd79ffd57e101`. Build success is not device acceptance.
+**Batch 62J-59:** prefix-causality and boundary regression tests added; 247 frontend tests and 1,218 backend tests passed. No production indicator formula or renderer changed.
 **WebSocket E:** COMPLETE FOR THE DEFINED AUTOMATED FAILURE-MATRIX SCOPE, including dual-ASGI live delivery, reconnect replay, process restart continuity, independent Redis TCP-path interruption/recovery, and snapshot-generation replacement. Production snapshot distribution/rotation, production Redis TLS/ACL/credential operations, public WSS and browser/Android acceptance remain external.
 **Gate 10:** **10/10 🟧 OPEN; 0/10 formally closed** — gates 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39.
 **Stage 1:** 30/40 criteria = 300/400 ticks = **75% provisional**; 100 ticks / 10 criteria remain, with no new acceptance tick awarded by this cycle.

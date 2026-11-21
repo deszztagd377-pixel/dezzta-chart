@@ -44,17 +44,28 @@ If the effective database is in-memory, missing, inaccessible, or its actual run
 
 ## 3. Capacity and destination planning
 
-Let `S` be the current source database file size in bytes.
+Do not estimate capacity from the main database file alone. SQLite may hold committed transactions in a write-ahead log (WAL), so the main file can be smaller than the consistent logical snapshot copied by the Online Backup API.
 
-The backup helper writes a temporary backup file in the backup destination directory before atomic publication. The restore helper similarly writes a temporary restore file before publishing the restored copy. The final backup and restored copy are retained for inspection.
+Define these byte counts on the actual backend host immediately before the drill:
 
-Conservative additional free-space planning:
+- `S_main`: source database main-file size.
+- `S_wal`: current source `-wal` sidecar size, or zero if absent.
+- `S_logical`: `PRAGMA page_count * PRAGMA page_size` from a read-only SQLite connection to the same source. The connection must see committed WAL state.
+- `S = max(S_main + S_wal, S_logical)`: conservative snapshot-size estimate.
+
+If the source is in rollback-journal mode and a `-journal` sidecar exists, do not guess its meaning or proceed during an unresolved transaction/recovery state. Establish a stable, healthy database state first. Do not delete, checkpoint, truncate, or otherwise manipulate SQLite sidecars as part of this preflight.
+
+The backup helper writes a temporary snapshot in the backup destination directory and atomically publishes it. The restore helper similarly writes a temporary restored copy in the restore destination directory. The retained backup and restored copy are both present after a successful drill.
+
+For two destinations on the **same filesystem**, use the conservative bound:
 
 ```
 required_free_bytes >= 3 * S + max(64 MiB, ceil(0.10 * 3 * S))
 ```
 
-This covers the backup temporary file, retained backup, restore temporary file, plus a minimum/percentage safety margin. The source file itself is already present and is not included in the additional-free-space figure. Check available space on both destination filesystems if the two destinations are on different mounts; each mount must independently accommodate its peak temporary/final allocation.
+For destinations on **separate filesystems**, independently require at least `S + max(64 MiB, ceil(0.10 * S))` free on the backup filesystem and the restore filesystem. The source filesystem must retain its normal operating headroom; do not count existing source/WAL bytes as newly required drill space.
+
+This deliberately overestimates peak allocation to account for temporary publication, retained outputs, filesystem overhead and a safety margin. If measured free space is below the applicable bound, stop before creating either artifact.
 
 Use two new, distinct destination paths on storage controlled by the backend owner. Both must be absent before the drill. Do not place either destination over the source, a live database, a symlink target, or an existing backup. Keep the report and artifacts in a private owner-only directory. The helper applies owner-only file permissions on POSIX and fails closed if it cannot safely publish.
 

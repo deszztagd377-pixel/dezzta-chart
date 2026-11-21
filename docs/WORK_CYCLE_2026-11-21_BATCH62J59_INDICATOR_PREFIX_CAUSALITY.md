@@ -65,4 +65,4 @@ Stage 1 remains 30/40 = 75% provisional. Gate 10 remains 0/10 formally closed. O
 
 ## 7. Verification boundary
 
-The parent CI is green. The new test-only commit must receive its own exact-head Automated Tests, CodeQL and secret-audit results before the new tests are called verified. This report does not pre-claim those outcomes.
+The exact-head test-only commit is verified by Automated Tests [44853126329](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44853126329), CodeQL [44853126331](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44853126331), and Full Git History Secret Audit [44853126419](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44853126419). Frontend: 247/247 tests across 29 files. Backend: 1,218 passed in 49.51 seconds. Android debug APK build [44853126386](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44853126386) also succeeded; this is CI evidence, not physical-device acceptance.
