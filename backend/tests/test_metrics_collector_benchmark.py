@@ -38,6 +38,21 @@ def test_metrics_collector_benchmark_measures_full_cardinality_at_one_four_and_s
         assert case["peak_file_sizes_bytes"]["total"] > 0
         assert case["post_checkpoint_file_sizes_bytes"]["database"] > 0
 
+    staggered = report["startup_staggered_case"]
+    assert staggered["worker_type"] == "production_startup_phase_staggered_threads"
+    assert staggered["workers"] == 16
+    assert staggered["successful_flushes"] == 32
+    assert staggered["worker_count_verified"] == 16
+    assert staggered["logical_series_verified"] == 899
+    assert staggered["aggregated_request_count_verified"] == 32
+    assert staggered["sqlite_integrity"] == "ok"
+    assert staggered["flush_latency"]["samples"] == 32
+    assert staggered["writer_lock_wait"]["samples"] == 32
+    assert staggered["transaction_body_and_commit"]["samples"] == 32
+    assert len(staggered["startup_phase_delays_seconds"]) == 16
+    assert all(0 <= delay <= 14 for delay in staggered["startup_phase_delays_seconds"])
+    assert staggered["production_flush_interval_seconds"] == 15
+
     process_case = report["process_case"]
     assert process_case["worker_type"] == "separate_os_processes"
     assert process_case["workers"] == 4
