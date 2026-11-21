@@ -86,4 +86,37 @@ describe('shared indicator calculation engine', () => {
     expect(() => calculateEma([1, Number.NaN], 2)).toThrow();
     expect(() => calculateMacd([1, 2, 3], 26, 12)).toThrow();
   });
+
+  it('keeps every indicator prefix-causal so future candles cannot change earlier values', () => {
+    const bars = Array.from({ length: 64 }, (_, index) => {
+      const close = 100 + index * 0.37 + Math.sin(index / 3) * 2 + (index % 7) * 0.11;
+      const open = close - 0.2;
+      return {
+        timestamp: 1_800_000_000 + index * 60,
+        open,
+        high: Math.max(open, close) + 0.5,
+        low: Math.min(open, close) - 0.5,
+        close,
+        volume: 10 + index,
+      };
+    });
+    const full = calculateIndicators(bars);
+    const checkpoints = [1, 14, 15, 19, 20, 26, 34, 35, 48, 64];
+
+    for (const length of checkpoints) {
+      const prefix = calculateIndicators(bars.slice(0, length));
+      expect(prefix.sma20, `SMA prefix length ${length}`).toEqual(full.sma20.slice(0, length));
+      expect(prefix.ema20, `EMA prefix length ${length}`).toEqual(full.ema20.slice(0, length));
+      expect(prefix.rsi14, `RSI prefix length ${length}`).toEqual(full.rsi14.slice(0, length));
+      expect(prefix.macd, `MACD prefix length ${length}`).toEqual(full.macd.slice(0, length));
+      expect(prefix.bollinger20, `Bollinger prefix length ${length}`).toEqual(full.bollinger20.slice(0, length));
+    }
+  });
+
+  it('handles falling-only RSI and period-one moving averages at exact source indices', () => {
+    expect(calculateRsi([4, 3, 2, 1], 2)).toEqual([null, null, 0, 0]);
+    expect(calculateSma([3, 2, 4], 1)).toEqual([3, 2, 4]);
+    expect(calculateEma([3, 2, 4], 1)).toEqual([3, 2, 4]);
+    expect(calculateRsi([3, 2, 4], 1)).toEqual([null, 0, 100]);
+  });
 });

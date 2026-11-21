@@ -1,8 +1,21 @@
 # DEZZTA CHART — Complete Indicator Progress Ledger
 
-**Checkpoint:** 21 November 2026 — Batch 62J-55 WebSocket exact-head reconciliation; latest runtime/source-test HEAD `56317eff2b71886040acb998bf692814622feedf`
+## Indicator correctness expansion — Batch 62J-59 (21 November 2026)
+
+- Source/test parent checkpoint: 96fe84ec537d68f5588b880a2fddafd1772a39e4 on phase-2/market-data-foundation. Parent exact-head Automated Tests, CodeQL and Full Git History Secret Audit all passed (runs 44852405512, 44852405426 and 44852405453).
+- Added regression coverage in src/indicators/indicatorCalculations.test.ts for prefix causality across SMA20, EMA20, RSI14, MACD12/26/9 and Bollinger20,2. Prefixes ending at 1, 14, 15, 19, 20, 26, 34, 35, 48 and 64 candles must exactly equal the corresponding prefix of the full-series calculation.
+- This guards the no-future-leak requirement needed for historical chart inspection and planned Candle Replay. Appending later candles must not retroactively alter earlier indicator points.
+- Added falling-only RSI output and period-one SMA/EMA/RSI boundary tests. Existing warm-up, formula, population-deviation, timeframe and invalid-input tests remain.
+- No production calculation, hook, renderer, chart UI or formula changed. This is additional correctness evidence, not visual integration or a completed indicator.
+- Dashboard remains: SMA20 🟨; EMA20 🟨; RSI14 🟨; MACD12/26/9 🟨; Bollinger20,2 🟨; shared hook 🟨; Footprint 🟧; Heatmap 🟥; Liquidation Maps 🟥.
+- No aggregate indicator percentage is assigned. Stage 1 remains 30/40 = 75% provisional; Gate 10 remains 0/10 closed; overall project remains unscored.
+- ZERO COST: no deployment, paid service, production data, credentials, Termux/device operation, or main-branch modification.
+
+---
+
+**Checkpoint:** 21 November 2026 — Batch 62J-59 indicator prefix-causality and boundary regression coverage; current source/test HEAD pending exact-head CI
 **Branch:** `phase-2/market-data-foundation`  
-**Indicator implementation status:** indicator calculation, hook, chart and renderer files remain unchanged in Batch 62J-53. Latest exact source/test HEAD is `56317eff2b71886040acb998bf692814622feedf`; no indicator progress is awarded by backend WebSocket reliability work.
+**Indicator implementation status:** calculation formulas, hook, chart and renderer remain unchanged. Batch 62J-59 adds regression tests only; it does not award visual-integration or formula-implementation completion.
 **Interpretation:** statuses describe verified implementation boundaries, not a guessed completion percentage. No indicator weights or acceptance percentages have been approved, so per-indicator or total-indicator percentages are intentionally not fabricated.
 
 
