@@ -1,17 +1,19 @@
 # DEZZTA CHART — Complete Indicator Progress Ledger
 
-## Exact-head Gate 39 and indicator status — Batch 62J-61 (21 November 2026)
+## Exact-head Gate 30 and indicator status — Batch 62J-62 (21 November 2026)
 
-- Current source/test HEAD: `f60faa44c4ce18f04f08e93462422b51363c3d5e` on `phase-2/market-data-foundation`.
-- Automated Tests [44854569804](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44854569804): **SUCCESS** — frontend **247/247 across 29 files**; backend **1,220 passed in 49.35s**; all 33 workflow steps succeeded, including backend container, Redis/persistent-volume smoke, Trivy scan and report export.
-- CodeQL [44854569759](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44854569759): **SUCCESS** for Python and JavaScript/TypeScript.
-- Full Git History Secret Audit [44854569709](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44854569709): **SUCCESS**.
-- Gate 39 defect fixed: a new reporter process now reconciles persisted active alert-delivery incidents on its first healthy batch. Reconciliation is attempted once per process after success; a journal write failure does not mark it complete, so a later healthy batch retries. Healthy batches do not repeatedly write to SQLite after successful reconciliation.
-- Added a restart-recovery regression test and a concurrent multi-instance deduplication test: four independent SQLite store instances perform 40 writes with the same active fingerprint; one active row remains with occurrence_count 40.
-- External Gate 39 remains OPEN: no real operator receiver, host access restriction, named operator acknowledgement/escalation, or owner-host incident recovery drill has been accepted.
-- No indicator source, formula, calculation hook, renderer or indicator test changed in this batch. Indicator states and formula contracts remain unchanged as detailed in the indicator dashboard.
-- Stage 1 remains 30/40 = 300/400 = 75% provisional; Gate 10 remains 0/10 closed. No Stage 1 tick is awarded. Overall and aggregate indicator percentages remain unscored.
-- ZERO COST: no deployment, paid notification provider, production credential, Termux/device operation or `main` modification.
+- Current source/test HEAD: `0fa2497cbf791e043e1ff314b7f138de2bf23106` on `phase-2/market-data-foundation`.
+- Automated Tests [44856652183](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44856652183): **SUCCESS** — frontend **247 tests across 29 files**; backend **1,221 passed in 43.47s**; all 33 workflow steps succeeded.
+- CodeQL [44856652218](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44856652218): **SUCCESS**.
+- Full Git History Secret Audit [44856652241](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44856652241): **SUCCESS**.
+- Gate 30 source increment: added WAL-aware capacity estimation and fail-closed filesystem capacity checks before creating backup/restore artifacts. A regression test verifies inadequate capacity leaves the source unchanged and creates no output artifacts.
+- Gate 30 remains OPEN until a timestamped owner-host drill proves the live backend database path, free-space preflight, integrity, foreign-key, schema/row hashes, domain readback, outbox continuity, and post-restore write/read/cleanup.
+- No indicator calculation, formula, shared hook, chart renderer, indicator UI, or indicator test changed in Batch 62J-62. No indicator completion credit is awarded.
+- Indicator dashboard remains unchanged: SMA20 🟨; EMA20 🟨; RSI14 🟨; MACD12/26/9 🟨; Bollinger20,2 🟨; shared indicator hook 🟨; Footprint 🟧 SIMULATED/reference-gated; Heatmap 🟥; Liquidation Maps 🟥.
+- Formula contracts remain: SMA20 and SMA-seeded EMA20 first valid at index 19; RSI14 Wilder first valid at index 14; MACD line at index 25 and signal/histogram at index 33; Bollinger20,2 population deviation first valid at index 19. Warm-up values remain null and aligned to candle indexes.
+- Stage 1 remains 30/40 = 300/400 = **75% provisional**; Gate 10 remains **0/10 formally closed**. Overall project and aggregate indicator percentages remain unscored.
+- ZERO COST: no deployment, paid service, Termux/device operation, production credential, or `main` modification.
+
 
 ---
 

@@ -1,21 +1,22 @@
 # Latest exact-head reconciliation — 21 November 2026
 
 **Working branch:** `phase-2/market-data-foundation`  
-**Current source/test HEAD:** `f60faa44c4ce18f04f08e93462422b51363c3d5e`.
-**Automated Tests:** [44854569804](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44854569804) **SUCCESS** — frontend **247/247 across 29 files**; backend **1,220 passed in 49.35s**; all 33 workflow steps succeeded, including backend container, Redis/persistent-volume smoke test and Trivy scan/report.
-**CodeQL:** [44854569759](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44854569759) **SUCCESS** for Python and JavaScript/TypeScript.
-**Full Git History Secret Audit:** [44854569709](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44854569709) **SUCCESS**.
-**Gate 39 source increment:** fixed persisted alert-delivery incident reconciliation after process restart; regression tests cover restart recovery and four independent store instances performing 40 writes. This does not close the external operator/incident-response criterion.
-**WebSocket automated acceptance:** COMPLETE for the defined dual-ASGI/Redis failure matrix (Batches 62J-25/28/31). Production snapshot distribution/rotation, production Redis TLS/ACL/credential lifecycle, public WSS and browser/Android acceptance remain external.
-**Stage 1:** **30/40 criteria = 300/400 ticks = 75% provisional**. Remaining criteria: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
-**Gate 10:** **10/10 🟧 OPEN; 0/10 formally closed**. No external gate is closed by source code or CI alone.
-**Overall project:** historical owner-confirmed **20.9%** is not a current weighted calculation. Current overall percentage remains unscored until M1–M8 weights and denominator are approved. Stages 2–6 remain unscored.
-**Indicators:** SMA20 🟨 (index 19); EMA20 🟨 (alpha 2/21, index 19); RSI14 🟨 (index 14); MACD12/26/9 🟨 (MACD index 25, signal/histogram 33); Bollinger20,2 🟨 (population deviation, index 19); shared hook 🟨; Footprint 🟧 SIMULATED/reference-gated; Heatmap 🟥; Liquidation Maps 🟥. No indicator source changed in Batch 62J-61.
-**Boundary:** ZERO COST; no production deployment, paid service, Vercel/Cloudflare operation, Termux/device operation, production credentials, or `main` modification.
+**Current source/test HEAD:** `0fa2497cbf791e043e1ff314b7f138de2bf23106`.
+
+- **Automated Tests** [44856652183](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44856652183): **SUCCESS** — frontend **247 tests across 29 files**; backend **1,221 passed in 43.47s**; all 33 workflow steps succeeded, including dependency audits, bounded SQLite outbox benchmark, backend container build, Redis shared-guard/persistent-volume smoke, Trivy scan and report export.
+- **CodeQL** [44856652218](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44856652218): **SUCCESS** for Python and JavaScript/TypeScript.
+- **Full Git History Secret Audit** [44856652241](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44856652241): **SUCCESS**.
+- **Gate 30 source increment:** restore drill now performs a WAL-aware capacity preflight before creating outputs, enforces the runbook's same-/separate-filesystem free-space bounds, and fails closed for inadequate space or a non-empty rollback journal in non-WAL mode. Regression coverage confirms source preservation and zero output artifacts when capacity is insufficient.
+- **Gate 30 remains OPEN:** no owner-host drill has been run against the actual database path of the live backend. CI fixtures do not substitute for that operation.
+- **WebSocket automated acceptance:** COMPLETE for the defined dual-ASGI/Redis failure matrix (Batches 62J-25/28/31). Production snapshot distribution/rotation, production Redis TLS/ACL/credential lifecycle, public WSS and browser/Android acceptance remain external.
+- **Stage 1:** **30/40 criteria = 300/400 ticks = 75% provisional**. Remaining criteria: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
+- **Gate 10:** **10/10 🟧 OPEN; 0/10 formally closed**. No external gate is closed by source code or CI alone.
+- **Overall project:** historical owner-confirmed **20.9%** is not a current weighted calculation. Current overall percentage remains unscored until M1–M8 weights and denominator are approved. Stages 2–6 remain unscored.
+- **Indicators:** SMA20 🟨 (index 19); EMA20 🟨 (alpha 2/21, index 19); RSI14 🟨 (index 14); MACD12/26/9 🟨 (MACD index 25, signal/histogram 33); Bollinger20,2 🟨 (population deviation, index 19); shared hook 🟨; Footprint 🟧 SIMULATED/reference-gated; Heatmap 🟥; Liquidation Maps 🟥. No indicator source, formula, hook, renderer or indicator test changed in Batch 62J-62.
+- **Boundary:** ZERO COST; no production deployment, paid service, Vercel/Cloudflare operation, Termux/device operation, production credentials, or `main` modification.
 
 ---
 
----
 
 ## Batch 15 — upstream dependency remediation review — 2026-11-18
 

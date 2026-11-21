@@ -71,6 +71,30 @@ Use two new, distinct destination paths on storage controlled by the backend own
 
 Do not place backup artifacts in a publicly served frontend directory, repository checkout, shared downloads folder, or cloud-sync directory.
 
+### Automated capacity preflight (enforced by the CLI)
+
+Before creating either output artifact, the drill now opens the source read-only and measures:
+
+- source main-file bytes;
+- WAL sidecar bytes when present;
+- logical database bytes from `PRAGMA page_count × page_size`;
+- estimated snapshot size (S = max(main + WAL, logical));
+- available bytes on the backup and restore destination filesystems.
+
+If both destinations share a filesystem, the CLI requires at least:
+
+```
+3 × S + max(64 MiB, ceil(10% × 3 × S))
+```
+
+If they are on separate filesystems, each destination filesystem must independently provide:
+
+```
+S + max(64 MiB, ceil(10% × S))
+```
+
+A non-empty rollback-journal sidecar while the database is not in WAL mode, an unmeasurable database size, or insufficient free space causes a fail-closed stop before backup/restore artifacts are created. The success report records the size estimates, required capacity and observed free bytes without disclosing host paths. Keep the application database stable during the drill; this preflight does not replace the owner-host operational window or the actual restore acceptance checks.
+
 ## 4. Execution contract
 
 The existing command is:

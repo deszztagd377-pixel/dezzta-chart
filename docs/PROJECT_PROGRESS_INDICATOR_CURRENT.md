@@ -1,12 +1,12 @@
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 21 November 2026 — Batch 62J-61 Gate 39 restart-recovery fix and exact-head CI closure
+**Checkpoint:** 21 November 2026 — Batch 62J-62 Gate 30 WAL-aware capacity preflight and exact-head CI closure
 **Active branch:** `phase-2/market-data-foundation`
-**Current source/test HEAD:** `f60faa44c4ce18f04f08e93462422b51363c3d5e`.
-**Exact-head Automated Tests:** [44854569804](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44854569804) **SUCCESS** — frontend **247/247 tests across 29 files**; backend **1,220 passed in 49.35s**. All 33 job steps passed, including dependency audits, frontend build/secret scans, SQLite outbox benchmark, backend container build, Redis shared-guard + persistent-volume smoke, Trivy scan and report export.
-**Exact-head CodeQL:** [44854569759](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44854569759) **SUCCESS** for Python and JavaScript/TypeScript.
-**Exact-head Full Git History Secret Audit:** [44854569709](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44854569709) **SUCCESS**.
-**Batch 62J-61:** fixed stale persisted Gate 39 incidents after backend restart; added restart-recovery and 4-instance/40-write deduplication tests. No indicator implementation changed.
+**Current source/test HEAD:** `0fa2497cbf791e043e1ff314b7f138de2bf23106`.
+**Exact-head Automated Tests:** [44856652183](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44856652183) **SUCCESS** — frontend **247 tests across 29 files**; backend **1,221 passed in 43.47s**. All 33 job steps passed, including dependency audits, frontend build/secret scans, SQLite outbox benchmark, backend container build, Redis shared-guard + persistent-volume smoke, Trivy scan and report export.
+**Exact-head CodeQL:** [44856652218](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44856652218) **SUCCESS** for Python and JavaScript/TypeScript.
+**Exact-head Full Git History Secret Audit:** [44856652241](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44856652241) **SUCCESS**.
+**Batch 62J-62:** added Gate 30 WAL-aware capacity preflight with same-/separate-filesystem bounds and insufficient-space regression. No indicator implementation changed. Gate 30 still requires the real owner-host drill.
 **WebSocket E:** COMPLETE FOR THE DEFINED AUTOMATED FAILURE-MATRIX SCOPE, including dual-ASGI live delivery, reconnect replay, process restart continuity, independent Redis TCP-path interruption/recovery, and snapshot-generation replacement. Production snapshot distribution/rotation, production Redis TLS/ACL/credential operations, public WSS and browser/Android acceptance remain external.
 **Gate 10:** **10/10 🟧 OPEN; 0/10 formally closed** — gates 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39.
 **Stage 1:** 30/40 criteria = 300/400 ticks = **75% provisional**; 100 ticks / 10 criteria remain. No acceptance tick is awarded by this source/CI work.

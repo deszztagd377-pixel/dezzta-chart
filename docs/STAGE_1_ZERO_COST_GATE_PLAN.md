@@ -413,3 +413,15 @@ Exact source/test HEAD `f60faa44c4ce18f04f08e93462422b51363c3d5e` passed Automat
 The local reporter now reconciles the durable SQLite incident journal on its first healthy batch after process startup. This closes the stale-incident-after-restart defect where the previous process's in-memory transition state was lost while the incident row remained open. Reconciliation is one-time per reporter after a successful journal operation; failed reconciliation is retried on a later healthy batch. Tests also verify deduplication across four independent store instances and 40 concurrent writes.
 
 **Gate 39 remains OPEN.** These are repository/CI improvements only. Owner-host route isolation, operator-token injection/rotation, alert visibility to the responsible operator, acknowledgement/escalation and a real incident-recovery drill remain mandatory. No paid notification provider is introduced and no Stage 1 tick is awarded.
+
+
+## Batch 62J-62 — Gate 30 WAL-aware capacity preflight (21 November 2026)
+
+- Added an enforced preflight to `backend/app/sqlite_restore_drill.py` before any output artifact is created.
+- The estimate is WAL-aware: (S = max(source main-file bytes + WAL bytes, PRAGMA page_count × page_size)).
+- Same-filesystem outputs require (3S + max(64 MiB, ceil(0.10 × 3S))) free. Separate filesystems independently require (S + max(64 MiB, ceil(0.10 × S))).
+- A non-empty rollback journal in non-WAL mode or inadequate free space fails closed before artifact creation.
+- A regression test proves an insufficient-capacity result preserves the source and creates neither backup nor restore output or temporary file.
+- Exact-head CI is recorded in the current acceptance matrix. This remains repository-level evidence: Gate 30 still requires a timestamped drill against the actual owner-host database and verified runtime path.
+- Stage 1 remains 30/40 = 300/400 = 75% provisional. Gate 10 remains 0/10 formally closed. No acceptance tick is awarded.
+- ZERO COST: no deployment, paid service, Termux/device operation, or `main` modification.
