@@ -122,7 +122,6 @@ def _file_sizes(database_path: Path) -> dict[str, int]:
 def run_case(*, workers: int, flushes_per_worker: int) -> dict:
     with tempfile.TemporaryDirectory(prefix=f"dezzta-metrics-{workers}-workers-") as directory:
         database_path = Path(directory) / "metrics.sqlite3"
-        collector = SQLiteMetricsCollector(str(database_path))
         start_barrier = threading.Barrier(workers)
         size_lock = threading.Lock()
         peak_sizes = {"database": 0, "-wal": 0, "-shm": 0, "total": 0}
@@ -139,6 +138,7 @@ def run_case(*, workers: int, flushes_per_worker: int) -> dict:
 
         def worker_run(worker_index: int) -> dict:
             nonlocal retry_count
+            collector = SQLiteMetricsCollector(str(database_path))
             worker_id = f"{worker_index + 1:032x}"
             start_barrier.wait(timeout=10)
             local_samples = []
@@ -170,6 +170,7 @@ def run_case(*, workers: int, flushes_per_worker: int) -> dict:
             worker_results = list(pool.map(worker_run, range(workers)))
 
         snapshot_time = _BASE_TIME + flushes_per_worker * 15 + 20
+        collector = SQLiteMetricsCollector(str(database_path))
         result = collector.snapshot(now=snapshot_time)
         expected_total = workers * flushes_per_worker
         expected_series = 899

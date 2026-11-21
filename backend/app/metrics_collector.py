@@ -5,6 +5,7 @@ import json
 import math
 import re
 import sqlite3
+import threading
 import time
 from pathlib import Path
 from typing import Any
@@ -37,45 +38,67 @@ class SQLiteMetricsCollector:
         if not isinstance(database_path, str) or not database_path.strip() or database_path == ":memory:":
             raise ValueError("A persistent local metrics database path is required.")
         self.database_path = database_path
+        self._schema_ready = False
+        self._schema_lock = threading.Lock()
 
     def _connect(self) -> sqlite3.Connection:
         Path(self.database_path).parent.mkdir(parents=True, exist_ok=True)
         db = sqlite3.connect(self.database_path, timeout=0.25, isolation_level=None)
         db.row_factory = sqlite3.Row
         db.execute("PRAGMA busy_timeout=250")
-        db.execute("PRAGMA journal_mode=WAL")
-        db.execute("PRAGMA synchronous=NORMAL")
-        db.executescript("""
-            CREATE TABLE IF NOT EXISTS metrics_workers (
-                worker_id TEXT PRIMARY KEY,
-                snapshot_json TEXT NOT NULL,
-                last_seen REAL NOT NULL,
-                active_connections INTEGER NOT NULL CHECK(active_connections >= 0)
-            );
-            CREATE TABLE IF NOT EXISTS metrics_buckets (
-                bucket_start INTEGER NOT NULL,
-                metric_key TEXT NOT NULL,
-                value_json TEXT NOT NULL,
-                PRIMARY KEY(bucket_start, metric_key)
-            );
-            CREATE INDEX IF NOT EXISTS idx_metrics_buckets_time
-                ON metrics_buckets(bucket_start);
-            CREATE INDEX IF NOT EXISTS idx_metrics_workers_seen
-                ON metrics_workers(last_seen);
-            CREATE TABLE IF NOT EXISTS metrics_retired_workers (
-                worker_id TEXT PRIMARY KEY,
-                expires_at REAL NOT NULL
-            );
-            CREATE INDEX IF NOT EXISTS idx_metrics_retired_expiry
-                ON metrics_retired_workers(expires_at);
-            CREATE TABLE IF NOT EXISTS metrics_meta (
-                meta_key TEXT PRIMARY KEY,
-                meta_value INTEGER NOT NULL CHECK(meta_value >= 0)
-            );
-            INSERT OR IGNORE INTO metrics_meta(meta_key,meta_value)
-                VALUES('capacity_evicted_rows',0);
-        """)
-        return db
+        try:
+            if not self._schema_ready:
+                with self._schema_lock:
+                    if not self._schema_ready:
+                        # Multiple ASGI processes may bootstrap the same local
+                        # volume simultaneously. Retry only bounded SQLite lock
+                        # failures; never hide corruption or other DB errors.
+                        for attempt in range(7):
+                            try:
+                                db.execute("PRAGMA journal_mode=WAL")
+                                db.execute("PRAGMA synchronous=NORMAL")
+                                db.executescript("""
+                                    CREATE TABLE IF NOT EXISTS metrics_workers (
+                                        worker_id TEXT PRIMARY KEY,
+                                        snapshot_json TEXT NOT NULL,
+                                        last_seen REAL NOT NULL,
+                                        active_connections INTEGER NOT NULL CHECK(active_connections >= 0)
+                                    );
+                                    CREATE TABLE IF NOT EXISTS metrics_buckets (
+                                        bucket_start INTEGER NOT NULL,
+                                        metric_key TEXT NOT NULL,
+                                        value_json TEXT NOT NULL,
+                                        PRIMARY KEY(bucket_start, metric_key)
+                                    );
+                                    CREATE INDEX IF NOT EXISTS idx_metrics_buckets_time
+                                        ON metrics_buckets(bucket_start);
+                                    CREATE INDEX IF NOT EXISTS idx_metrics_workers_seen
+                                        ON metrics_workers(last_seen);
+                                    CREATE TABLE IF NOT EXISTS metrics_retired_workers (
+                                        worker_id TEXT PRIMARY KEY,
+                                        expires_at REAL NOT NULL
+                                    );
+                                    CREATE INDEX IF NOT EXISTS idx_metrics_retired_expiry
+                                        ON metrics_retired_workers(expires_at);
+                                    CREATE TABLE IF NOT EXISTS metrics_meta (
+                                        meta_key TEXT PRIMARY KEY,
+                                        meta_value INTEGER NOT NULL CHECK(meta_value >= 0)
+                                    );
+                                    INSERT OR IGNORE INTO metrics_meta(meta_key,meta_value)
+                                        VALUES('capacity_evicted_rows',0);
+                                """)
+                                self._schema_ready = True
+                                break
+                            except sqlite3.OperationalError as exc:
+                                if "locked" not in str(exc).lower() or attempt == 6:
+                                    raise
+                                time.sleep(min(0.01 * (2 ** attempt), 0.25))
+            else:
+                db.execute("PRAGMA synchronous=NORMAL")
+            return db
+        except Exception:
+            db.close()
+            raise
 
     @staticmethod
     def _number(value: Any, *, integer: bool = False) -> int | float:

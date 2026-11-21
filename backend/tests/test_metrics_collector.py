@@ -232,6 +232,30 @@ def test_write_failure_rolls_back_aggregate_and_worker_checkpoint(tmp_path):
     assert result["series"]["http.requests|GET|/health|2xx"] == 4
     assert result["series"]["websocket|connections_completed"] == 4
 
+
+def test_concurrent_collector_instances_initialize_shared_database(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+
+    database_path = str(tmp_path / "shared-metrics.sqlite3")
+    worker_ids = [uuid.uuid4().hex for _ in range(4)]
+    barrier = Barrier(len(worker_ids))
+
+    def flush_worker(worker_id):
+        collector = SQLiteMetricsCollector(database_path)
+        request, websocket = snapshots(5)
+        barrier.wait(timeout=5)
+        collector.flush(worker_id, request, websocket, now=900)
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        list(pool.map(flush_worker, worker_ids))
+
+    result = SQLiteMetricsCollector(database_path).snapshot(now=901)
+    assert result["worker_count"] == 4
+    assert result["series"]["http.requests|GET|/health|2xx"] == 20
+    assert result["series"]["websocket|connections_completed"] == 20
+
+
 def test_corrupt_metrics_database_fails_without_overwriting_file(tmp_path):
     database = tmp_path / "metrics.sqlite3"
     sentinel = b"not-a-valid-sqlite-database"
