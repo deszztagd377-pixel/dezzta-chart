@@ -206,20 +206,25 @@ def test_flush_reports_bounded_lock_retries(tmp_path):
 
     collector = SQLiteMetricsCollector(str(tmp_path / "metrics.sqlite3"))
     request, websocket = snapshots(2)
-    blocker = collector._connect()
-    blocker.execute("BEGIN IMMEDIATE")
+    lock_acquired = threading.Event()
 
-    def release_lock():
-        time.sleep(0.35)
-        blocker.rollback()
+    def hold_then_release_lock():
+        blocker = collector._connect()
+        try:
+            blocker.execute("BEGIN IMMEDIATE")
+            lock_acquired.set()
+            time.sleep(0.35)
+            blocker.rollback()
+        finally:
+            blocker.close()
 
-    releaser = threading.Thread(target=release_lock)
+    releaser = threading.Thread(target=hold_then_release_lock)
     releaser.start()
+    assert lock_acquired.wait(timeout=3)
     try:
         result = collector.flush(uuid.uuid4().hex, request, websocket, now=900)
     finally:
         releaser.join(timeout=3)
-        blocker.close()
 
     assert result["lock_retries"] >= 1
     assert result["lock_retries"] <= 7
