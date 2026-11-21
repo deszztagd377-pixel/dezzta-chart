@@ -149,7 +149,8 @@ def run_case(*, workers: int, flushes_per_worker: int) -> dict:
                 started = time.perf_counter_ns()
                 for attempt in range(6):
                     try:
-                        collector.flush(worker_id, request, websocket, now=stamp)
+                        flush_result = collector.flush(worker_id, request, websocket, now=stamp)
+                        local_retries += flush_result.get("lock_retries", 0)
                         break
                     except sqlite3.OperationalError as exc:
                         if "locked" not in str(exc).lower() or attempt == 5:

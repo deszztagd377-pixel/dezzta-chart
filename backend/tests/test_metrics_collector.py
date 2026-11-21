@@ -199,6 +199,33 @@ def test_busy_database_does_not_advance_checkpoint_and_recovers(tmp_path):
     assert result["worker_count"] == 1
 
 
+
+def test_flush_reports_bounded_lock_retries(tmp_path):
+    import threading
+    import time
+
+    collector = SQLiteMetricsCollector(str(tmp_path / "metrics.sqlite3"))
+    request, websocket = snapshots(2)
+    blocker = collector._connect()
+    blocker.execute("BEGIN IMMEDIATE")
+
+    def release_lock():
+        time.sleep(0.35)
+        blocker.rollback()
+
+    releaser = threading.Thread(target=release_lock)
+    releaser.start()
+    try:
+        result = collector.flush(uuid.uuid4().hex, request, websocket, now=900)
+    finally:
+        releaser.join(timeout=3)
+        blocker.close()
+
+    assert result["lock_retries"] >= 1
+    assert result["lock_retries"] <= 7
+    snapshot = collector.snapshot(now=901)
+    assert snapshot["series"]["http.requests|GET|/health|2xx"] == 2
+
 def test_write_failure_rolls_back_aggregate_and_worker_checkpoint(tmp_path):
     collector = SQLiteMetricsCollector(str(tmp_path / "metrics.sqlite3"))
     worker = uuid.uuid4().hex
