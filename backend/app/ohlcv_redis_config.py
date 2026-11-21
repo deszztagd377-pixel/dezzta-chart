@@ -13,9 +13,10 @@ from urllib.parse import unquote, urlsplit
 
 
 DEFAULT_OHLCV_STREAM_KEY = "dezzta:market-data:ohlcv:v1"
-PUBLISHER_ACL_COMMANDS = ("+ping", "+xadd", "+xrange")
+PUBLISHER_ACL_COMMANDS = ("+ping", "+select", "+xadd", "+xrange")
 GATEWAY_ACL_COMMANDS = (
     "+ping",
+    "+select",
     "+xgroup|create",
     "+xautoclaim",
     "+xreadgroup",
