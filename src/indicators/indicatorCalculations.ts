@@ -220,6 +220,7 @@ export function calculateBollingerBands(
       throw new Error('Bollinger input contains a non-finite value.');
     }
     const scale = window.reduce((maximum, value) => Math.max(maximum, Math.abs(value)), 0);
+    const normalized = scale === 0 ? window.map(() => 0) : window.map((value) => value / scale);
     const mean = stableMean(window, scale);
     const normalizedMean = scale === 0 ? 0 : mean / scale;
     const normalizedVariance = normalized.reduce(

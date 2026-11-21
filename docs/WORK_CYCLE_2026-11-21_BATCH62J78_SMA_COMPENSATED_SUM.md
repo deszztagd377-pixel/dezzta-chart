@@ -24,7 +24,7 @@ Batch 62J-77 prevented avoidable intermediate overflow by normalizing each SMA w
 - This is numerical correctness work only; SMA20 remains 🟨 foundation.
 
 ### Verification
-Exact-head CI must pass before this batch is considered accepted. No test, build, security or artifact result is assumed in advance.
+Initial exact-head Automated Tests run 44893124624 caught a missing normalized vector still required by Bollinger variance calculation (7 tests failed from the same ReferenceError; 248 passed). The vector has been restored without reverting the compensated middle-band mean. Fresh exact-head CI must pass before this batch is accepted.
 
 ### Project and Gate 10 accounting
 - Stage 1: 30/40 criteria = 75% provisional.

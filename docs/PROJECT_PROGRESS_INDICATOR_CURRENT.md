@@ -2,7 +2,7 @@
 
 - SMA numeric audit found and corrected a second-order cancellation case after Batch 62J-77: a small representable residual between `MAX_VALUE` and `-MAX_VALUE` was lost by ordinary normalized reduction.
 - The feature branch now uses an error-free floating-point expansion only for materially cancelling normalized windows, preserving the fast path for ordinary price windows. SMA and Bollinger middle-band means share the stable helper; forward/reverse-order regression tests cover the residual case.
-- Exact-head CI is pending. Until all checks pass, this is a prepared source change—not a verified release.
+- First exact-head CI (run [44893124624](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44893124624)) caught a missing normalized vector used by the Bollinger variance pass. The vector is restored; corrected exact-head CI is pending. This is not yet a verified release.
 - No visual indicator credit is awarded: SMA20 stays 🟨 foundation; all other indicator statuses remain as shown in the full ledger below.
 - WebSocket repository-side failure-matrix scope remains complete; public WSS/production acceptance remains externally blocked.
 - Gate 10 remains 0/10 formally closed. 🟨🟩 host/owner verification only: 8, 30, 34, 35, 39. 🟧 additional integration: 20, 25, 31, 36, 38.
