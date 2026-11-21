@@ -1,3 +1,23 @@
+## Batch 62J-84 checkpoint — no indicator changes (21 November 2026)
+
+Gate 38 collector tests and its SQLite worker benchmark did not change indicator formulas, data contracts, shared hook, chart renderer, UI or indicator tests. No indicator progress credit is awarded.
+
+| Indicator/subsystem | Status | Calculation / first valid index | Remaining work |
+|---|---|---|---|
+| SMA20 | 🟨 FOUNDATION | Mean of 20 closes; index 19 | Overlay, toggle, legend/current value, stale clearing, renderer/lifecycle tests |
+| EMA20 | 🟨 FOUNDATION | SMA-seeded EMA; α=2/21; index 19 | Overlay, toggle, legend/current value, stale clearing, renderer/lifecycle tests |
+| RSI14 | 🟨 FOUNDATION | Wilder smoothing; index 14 | 0–100 pane, 30/70 guides, toggle, legend, renderer tests |
+| MACD 12/26/9 | 🟨 FOUNDATION | MACD index 25; signal/histogram index 33 | Pane, lines, histogram, zero guide, toggle, legend |
+| Bollinger20,2 | 🟨 FOUNDATION | Mean ± 2 × population SD; index 19 | Three-line overlay, toggle, values, stale clearing, renderer tests |
+| Shared Indicator Hook | 🟨 FOUNDATION | Validated candle-index-aligned snapshot | Chart identity/timeframe binding, loading/error, stale clear, series isolation |
+| Footprint | 🟧 GATED | Simulated accumulator only | User visual reference, reviewed blueprint, ON-only spaced cluster layout, bid/ask cells and performance acceptance |
+| Heatmap | 🟥 NOT IMPLEMENTED | No validated zero-cost data contract | User reference, source feasibility, contract, blueprint and renderer |
+| Liquidation Maps | 🟥 NOT IMPLEMENTED | No validated formula/source | Zero-cost source feasibility, calculation contract, reference and renderer |
+
+Warm-up remains `null`, not zero; outputs remain candle-index aligned; future-candle repaint is prohibited; identity/timeframe changes must clear stale data. Footprint OFF must preserve normal candle spacing; only explicit ON enables spaced clusters.
+
+---
+
 ## Batch 62J-83 checkpoint — indicator implementation unchanged (21 November 2026)
 
 Gate 38 backend observability work did not alter indicator formulas, data contracts, hooks, renderers, UI, or indicator tests. No indicator progress credit is awarded. The existing status table below remains authoritative.

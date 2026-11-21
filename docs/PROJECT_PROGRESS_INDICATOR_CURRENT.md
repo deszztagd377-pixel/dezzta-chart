@@ -1,3 +1,20 @@
+## Batch 62J-84 — Gate 38 failure-path tests and SQLite worker benchmark (21 November 2026)
+
+- Source/test HEAD: `92119a8dc05690e6492aab160662c9e36c839cad` on `phase-2/market-data-foundation`; `main` untouched.
+- Exact-head Automated Tests [44900892637](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44900892637): **SUCCESS, 35/35 workflow steps**. Backend pytest: **1,265 passed in 36.46s**. The workflow also completed frontend tests/build, backend dependency audit, container build, Redis ACL/persistent-volume smoke, Trivy scan and report upload.
+- Exact-head CodeQL [44900892567](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44900892567): **SUCCESS**. Full Git History Secret Audit [44900892606](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44900892606): **SUCCESS**.
+- Added collector regression tests for concurrent worker commits, bounded recovery after SQLite lock contention, and safe rejection of a corrupt metrics database. Existing transaction rollback, idempotence, stale-worker, retention, generation/tombstone and monotonic timestamp tests remain.
+- Added `backend/scripts/benchmark_metrics_collector.py`, a local-only synthetic 1/4/16-worker thread benchmark, plus a CI artifact. At 32 flushes per worker, observed p99 flush latency was 2.145ms / 19.108ms / 78.978ms; no retries occurred. Peak total DB+WAL+SHM bytes were 81,920 / 1,293,232 / 4,284,304.
+- **Benchmark boundary:** this initial profile has only 12 logical series, not the collector's 899-series full budget; worker concurrency is Python threads, not separate OS processes. It is a baseline only, not a maximum-cardinality capacity test, a production-host estimate or a justified byte ceiling. No database byte limit is set from it.
+- Gate 38 remains 🟧 OPEN. Exact-head repository CI is verified; full-cardinality benchmark, disk-full/read-only isolation, owner-host persistence/restore/retention, operator access and recovery acceptance remain.
+- WebSocket protocol, authentication, replay, snapshot ordering, Redis guard and market-data payloads were not modified.
+- Gate 10 remains **0/10 formally closed**. Stage 1 remains **30/40 = 75% provisional**; Stages 2–6 and overall percentage remain unscored.
+- Complete indicator ledger: SMA20 🟨 (20-close mean, first valid index 19); EMA20 🟨 (SMA-seeded, α=2/21, index 19); RSI14 🟨 (Wilder, index 14); MACD12/26/9 🟨 (MACD index 25, signal/histogram index 33); Bollinger20,2 🟨 (mean ±2 population SD, index 19); Shared Indicator Hook 🟨; Footprint 🟧 (reference image/approved blueprint and ON-only cluster renderer pending); Heatmap 🟥; Liquidation Maps 🟥. No indicator source or renderer changed; no indicator credit awarded.
+- Invariants: warm-up `null`, candle-index alignment, no future-candle repaint, stale-series clearing on identity/timeframe changes, and Footprint OFF preserving ordinary candle spacing.
+- ZERO COST: no deployment, Vercel/Cloudflare operation, paid provider, production credential request, Termux/device operation or `main` modification.
+
+---
+
 ## Batch 62J-83 — Gate 38 collector hardening and CI baseline (21 November 2026)
 
 - Active branch remains `phase-2/market-data-foundation`; pre-change HEAD `b1e21f552182a720400cd9a2d276705834a41358`.

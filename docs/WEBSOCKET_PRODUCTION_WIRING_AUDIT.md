@@ -1,3 +1,14 @@
+## Batch 62J-84 — Gate 38 SQLite failure-path and worker-load evidence (21 November 2026)
+
+- Exact source/test HEAD `92119a8dc05690e6492aab160662c9e36c839cad`: Automated Tests [44900892637](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44900892637) SUCCESS (35/35 steps; 1,265 backend tests), CodeQL [44900892567](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44900892567) SUCCESS, Full Git History Secret Audit [44900892606](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44900892606) SUCCESS.
+- Added tests for concurrent collector workers, busy-lock rollback/recovery and corrupt-database rejection. Added a local-only synthetic benchmark for 1/4/16 Python worker threads; CI artifact records latency and database/WAL/SHM size.
+- Initial low-cardinality benchmark used 12 logical series. At 16 workers/512 flushes, p99 was 78.978ms, retry count zero and peak total DB+WAL+SHM was 4,284,304 bytes. This is not full 899-series capacity evidence or an owner-host byte budget.
+- No WebSocket protocol, auth, replay, snapshot, market-data payload or Redis guard behavior changed. No public WSS or production acceptance is claimed.
+- Gate 38 remains 🟧 OPEN pending full-cardinality/process-level benchmark, disk-full/read-only/app-isolation tests and owner-host acceptance. Gate 10 remains 0/10 formally closed.
+- Indicator implementation is unchanged; no indicator progress credit is awarded. ZERO COST; no deploy, production credentials, Termux/device operation or `main` modification.
+
+---
+
 ## Batch 62J-83 — Gate 38 telemetry hardening (21 November 2026)
 
 - Pre-change exact HEAD `b1e21f552182a720400cd9a2d276705834a41358`: Automated Tests 44898947136 SUCCESS (33/33 steps); CodeQL 44898947150 SUCCESS; Full Git History Secret Audit 44898947186 SUCCESS.

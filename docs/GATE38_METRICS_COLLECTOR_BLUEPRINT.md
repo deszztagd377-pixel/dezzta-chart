@@ -1,5 +1,5 @@
 # Gate 38 — Zero-cost metrics collector and retention blueprint
-**Status:** REPOSITORY IMPLEMENTATION AND EXACT-HEAD CI VERIFIED — HOST ACCEPTANCE REQUIRED  
+**Status:** REPOSITORY IMPLEMENTATION AND EXACT-HEAD CI VERIFIED — INITIAL LOW-CARDINALITY BENCHMARK MEASURED; FULL-CARDINALITY AND HOST ACCEPTANCE REQUIRED  
 **Prepared:** 21 November 2026  
 **Branch baseline:** 3eadda21f795abe5af195eedf0c81727d31f6436
 **Implementation HEAD at hardening start:** b1e21f552182a720400cd9a2d276705834a41358  
@@ -131,10 +131,22 @@ The 8,640,000 versus 5,760 daily operation comparison describes a hypothetical d
 
 ## 11. Remaining Gate 38 acceptance
 
-1. Exact-head Automated Tests, CodeQL and full Git-history secret audit all SUCCESS.
-2. Benchmark actual SQLite DB and WAL byte growth at representative 1/4/16-worker load; set an evidence-based disk budget with headroom.
-3. Test disk-full, read-only, corruption and lock contention; verify telemetry degradation never blocks HTTP/WebSocket delivery.
-4. Verify actual owner-host persistent local volume, permissions, restart persistence, backup/restore and retention behavior.
+1. Exact-head repository CI is verified on `92119a8dc05690e6492aab160662c9e36c839cad`: Automated Tests [44900892637](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44900892637) SUCCESS (35/35 steps; 1,265 backend tests), CodeQL [44900892567](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44900892567) SUCCESS, and Full Git History Secret Audit [44900892606](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44900892606) SUCCESS.
+2. An initial 1/4/16-worker SQLite/WAL benchmark is complete. It uses 12 logical series and Python worker threads; it is a low-cardinality baseline only. Full 899-series cardinality and process-level concurrency still need measurement before any byte budget is considered.
+3. Regression tests now cover concurrent worker commits, SQLite busy-lock recovery, corrupt-database rejection, transaction rollback, idempotence, stale-worker/tombstone behavior, retention filtering and timestamp regression. Disk-full and read-only tests, plus an app-level proof that collector failure cannot block HTTP/WebSocket traffic, remain.
+4. Verify actual owner-host persistent local volume, permissions, restart persistence, backup/restore, disk-pressure recovery and retention behavior.
 5. Verify reverse-proxy/firewall restrictions and operator access to the existing Bearer-protected endpoint; complete acknowledgement/escalation and recovery drill.
 6. Keep multi-host aggregation explicitly unsupported unless a separate design and validated storage topology are approved.
+
+## 12. Initial benchmark evidence — low-cardinality only
+
+CI artifact: `synthetic-metrics-collector-benchmark`, from Automated Tests run [44900892637](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44900892637). Each worker performed 32 successful flushes against 12 logical series. All three cases passed aggregate-count verification and SQLite `integrity_check`; lock retry count was zero.
+
+| Worker threads | Successful flushes | p50 ms | p95 ms | p99 ms | Peak database bytes | Peak WAL bytes | Peak total DB+WAL+SHM |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 32 | 0.803282 | 0.888808 | 2.144816 | 49,152 | 0 | 81,920 |
+| 4 | 128 | 0.324234 | 4.258792 | 19.107692 | 49,152 | 1,211,312 | 1,293,232 |
+| 16 | 512 | 0.436627 | 19.058717 | 78.977826 | 57,344 | 4,194,192 | 4,284,304 |
+
+After `wal_checkpoint(TRUNCATE)`, WAL size was zero and combined database+SHM sizes were 81,920 / 81,920 / 90,112 bytes respectively. These values are runner-specific and cannot be extrapolated linearly to 899 series, separate processes, persistent host volumes or a production retention window. They do not justify a database byte cap.
 
