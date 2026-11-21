@@ -1111,3 +1111,8 @@ Warm-up values remain null (never zero); outputs align to candle indices; no fut
 ## Batch 62J-94 checkpoint — no indicator changes (21 November 2026)
 
 Gate 38 added SQLite tail-latency phase diagnostics only. No indicator formulas, data contracts, shared hook, renderer, UI or indicator tests changed. **No indicator progress credit is awarded.** The complete status table, formulas, warm-up indices, remaining renderer work, Footprint reference/blueprint gate, Heatmap/Liquidation source gates and shared invariants remain unchanged.
+
+
+## Batch 62J-95 checkpoint — no indicator changes (21 November 2026)
+
+SQLite retry de-synchronization is Gate 38 telemetry infrastructure only. No indicator formula, data contract, shared hook, renderer, UI or indicator tests changed. **No indicator progress credit is awarded.** The complete indicator matrix and shared invariants remain unchanged.

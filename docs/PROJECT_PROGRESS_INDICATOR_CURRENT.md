@@ -1146,3 +1146,8 @@ ZERO COST. No deployment, paid service, Vercel/Cloudflare operation, Termux/devi
 ## Batch 62J-94 — Gate 38 tail-latency phase diagnostics (21 November 2026)
 
 The collector now reports internal writer-lock wait and transaction-body/commit durations. Full-cardinality 1/4/16-thread and four-process benchmark output includes phase percentiles alongside end-to-end latency. This is diagnostic instrumentation, not an optimization or host/SLA result; exact-head CI is required. WebSocket paths and indicator implementation are unchanged; no indicator credit. Stage 1 remains 30/40 = 75% provisional; Gate 10 remains 0/10 closed; overall project remains unscored. ZERO COST; no deployment, Termux, device operation or `main` change.
+
+
+## Batch 62J-95 — SQLite retry de-synchronization (21 November 2026)
+
+The prior benchmark separated lock wait from transaction time and showed lock wait dominated the 16-thread p99 (617.533 ms of 625.336 ms) and remained significant in the four-process case (103.635 ms of 275.777 ms). Identical deterministic retry delays could synchronize contending workers. The collector now uses stable BLAKE2s-derived per-worker jitter (factor 0.5–1.0) while preserving the explicit-backoff ceiling: 0.81 s. With eight 250 ms SQLite busy-timeout attempts, the theoretical lock-acquisition wait remains ≤2.81 s. This is an optimization hypothesis pending exact-head CI and a fresh benchmark; no improvement is claimed yet. Indicators and WebSocket data path unchanged; no indicator credit. Stage 1 30/40 = 75% provisional; Gate 10 0/10 closed; overall project unscored. ZERO COST; no deploy/Termux/device operation.

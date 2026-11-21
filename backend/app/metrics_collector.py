@@ -1,6 +1,7 @@
 """SQLite metrics collector: bounded, same-host, best-effort operational telemetry."""
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import re
@@ -21,6 +22,13 @@ MAX_PAYLOAD_BYTES = 256 * 1024
 MAX_ROWS = 650000
 MAX_COUNTER = (1 << 53) - 1
 WORKER_ID = re.compile(r"^[0-9a-f]{32}$")
+
+
+def _lock_retry_delay(worker_id: str, attempt: int) -> float:
+    """Return a stable per-worker jittered backoff without extending its bound."""
+    seed = int.from_bytes(hashlib.blake2s(worker_id.encode("ascii"), digest_size=4).digest(), "big")
+    factor = 0.5 + 0.5 * (seed / 0xFFFFFFFF)
+    return min(0.01 * (2 ** attempt), 0.25) * factor
 
 
 class MetricsCollectorError(RuntimeError):
@@ -224,7 +232,7 @@ class SQLiteMetricsCollector:
                     if "locked" not in str(exc).lower() or attempt == 7:
                         raise
                     lock_retries += 1
-                    time.sleep(min(0.01 * (2 ** attempt), 0.25))
+                    time.sleep(_lock_retry_delay(worker_id, attempt))
             lock_wait_ms = (time.perf_counter_ns() - lock_wait_started_ns) / 1_000_000
             transaction_started_ns = time.perf_counter_ns()
             db.execute("DELETE FROM metrics_retired_workers WHERE expires_at < ?", (stamp,))
