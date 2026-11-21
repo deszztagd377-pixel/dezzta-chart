@@ -1,18 +1,20 @@
-## Latest engineering checkpoint — Batch 62J-75 (21 November 2026)
+## Latest engineering checkpoint — Batch 62J-76 (21 November 2026)
 
-**Branch:** `phase-2/market-data-foundation`  
-**Latest source/config/test HEAD:** `f3264c7ee0db573b4ff999c558506c4efe3e59d5`
+**Branch:** phase-2/market-data-foundation  
+**Source/test HEAD:** 57b918feafd1b259b008b5efe1272199a29facff
 
-- Exact-head Automated Tests [44875028851](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44875028851), CodeQL [44875028870](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44875028870), and Full Git History Secret Audit [44875028765](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44875028765) — all **SUCCESS**.
-- Backend: **1,249 passed in 49.05 seconds**. The Redis ACL test explicitly verifies publisher and gateway can use DB 0 without `+select`, while explicit `SELECT 1` is denied. Existing end-to-end Redis relay ACL test also passed.
-- Frontend tests/build/secret scans, backend dependency audit, synthetic outbox benchmark, backend container build, Redis shared-guard/persistent-volume smoke, image vulnerability scan and report export/upload — **SUCCESS**.
-- Container smoke verified Redis ACL rejection, AOF/ACL persistence across Redis restart, backend fail-closed 503 during Redis outage, recovery after Redis returns, non-root UID/GID, mounted-volume ownership, SQLite integrity/restart persistence and HTTP rate limiting.
-- Batch 62J-74 removed unnecessary `+select` from publisher/gateway ACL command allow-lists. DB 0 remains the only accepted URL database. This tightens least privilege; the earlier Batch 62J-73 SELECT diagnosis is superseded.
-- WebSocket repository/CI failure-matrix scope is complete. Production WSS remains unaccepted because no owner-controlled backend host or public endpoint exists.
-- Gate 10: **0/10 formally closed**. 🟨🟩 host/owner-verification-only: Gates 8, 30, 34, 35 and 39. 🟧 still require additional provider/host/device integration: Gates 20, 25, 31, 36 and 38. These colors do not mean any gate is formally closed; bright green is reserved for complete acceptance evidence.
-- Stage 1 remains **30/40 criteria = 300/400 ticks = 75% provisional**. Stages 2–6 and overall project percentage remain unscored because approved denominators/weights are absent.
-- Indicator implementation is unchanged. Full indicator ledger and formula/warm-up boundaries remain in this dashboard below. No indicator completion credit is awarded by backend work.
-- ZERO COST: no paid hosting, deployment, production credential request, Termux/device operation, Vercel/Cloudflare operation or `main` modification. Android APK testing is not currently required because no public WSS endpoint exists.
+- Exact-head Automated Tests [44876347017](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44876347017): **SUCCESS** — frontend **252/252 tests across 29 files**; backend **1,249 passed in 50.02s**. Frontend build, source/bundle secret scan, dependency audits, bounded outbox benchmark, backend container build, Redis shared-guard/persistent-volume smoke, Trivy scan and report export/upload all completed.
+- Exact-head CodeQL [44876347037](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44876347037): **SUCCESS**.
+- Exact-head Full Git History Secret Audit [44876347101](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44876347101): **SUCCESS**.
+- Exact-head Android debug APK build [44876347021](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44876347021): **SUCCESS**. Artifact ID 14695834076, expires 28 November 2026. APK SHA-256: 4363cff2db8653976e5a429a85d3bc42d08901af568578f8a1d0527a0b9c7fea. Build evidence is not physical-device acceptance.
+- Batch 62J-76 hardens finite arithmetic in SMA, EMA, RSI, MACD and Bollinger calculations. Warm-up indices and formulas remain unchanged. Three regression tests cover extreme finite values, normalized RSI stability and large same-sign Bollinger prices. Indicator rendering/UI is unchanged.
+- Gate 31 audit: authenticated AES-256-GCM/PBKDF2 local backup artifact support exists, but no separate off-host destination or independently controlled recovery-key custody is configured. Gate 31 remains 🟧 OPEN.
+- Gate 38 audit: HTTP request metrics are bounded and process-local; private metrics endpoints are token-gated when configured; incident records persist locally in bounded SQLite. There is no central multi-worker collector/dashboard, metrics retention/rotation pipeline, WebSocket metric aggregation or external notification integration. Gate 38 remains 🟧 OPEN.
+- Gate 10: **0/10 formally closed**. 🟨🟩 host/owner-verification-only: Gates 8, 30, 34, 35 and 39. 🟧 additional integration remains: Gates 20, 25, 31, 36 and 38. This classification supersedes older historical gate boards below; no gate is marked passed.
+- Stage 1 remains **30/40 criteria = 300/400 ticks = 75% provisional**. Stages 2–6 and overall project percentage remain unscored because approved weights/denominators are absent.
+- Indicator statuses: SMA20 🟨; EMA20 🟨; RSI14 🟨; MACD12/26/9 🟨; Bollinger20,2 🟨; shared indicator hook 🟨; Footprint 🟧; Heatmap 🟥; Liquidation Maps 🟥. No visual-completion credit is awarded.
+- ZERO COST: no paid hosting, deployment, production credentials, Vercel/Cloudflare operation, Termux/device operation or main modification.
+
 
 
 
@@ -20,9 +22,9 @@
 
 # DEZZTA CHART — CURRENT PROJECT CONTROL DASHBOARD
 
-**Checkpoint:** 21 November 2026 — Batch 62J-75, exact-head Redis ACL least-privilege CI acceptance and Gate 10 host/device boundary reconciliation  
+**Checkpoint:** 21 November 2026 — Batch 62J-76, indicator numeric-safety hardening and Gate 31/38 acceptance-boundary audit  
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest source/config/test HEAD:** `f3264c7ee0db573b4ff999c558506c4efe3e59d5`
+**Latest source/test HEAD:** `57b918feafd1b259b008b5efe1272199a29facff`
 
 ## Project stage dashboard
 

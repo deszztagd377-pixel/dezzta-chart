@@ -1,3 +1,38 @@
+## Latest indicator status — Batch 62J-76 (21 November 2026)
+
+**Source/test HEAD:** 57b918feafd1b259b008b5efe1272199a29facff on phase-2/market-data-foundation.  
+**Exact-head CI:** Automated Tests [44876347017](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44876347017): **SUCCESS** — frontend **252/252 across 29 files**; backend **1,249 passed in 50.02s**. CodeQL [44876347037](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44876347037) and Full Git History Secret Audit [44876347101](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44876347101): **SUCCESS**.
+
+### Numerical correctness work
+
+- **SMA:** validates every input and rejects non-finite rolling sums/outputs instead of returning Infinity or NaN.
+- **EMA:** uses a scale-normalized seed mean and convex-combination recurrence to reduce intermediate overflow; every emitted value must remain finite.
+- **RSI:** uses incremental arithmetic means for initial gains/losses, Wilder-equivalent smoothing without multiplying large averages by the period, and a normalized gain/loss ratio. Non-finite price changes fail closed.
+- **MACD:** rejects non-finite fast/slow differences and histogram outputs.
+- **Bollinger 20,2:** calculates population mean and variance on normalized values, then rejects non-finite deviation or band outputs.
+- Three regression tests cover extreme finite values, large but finite RSI gain/loss ratios, and constant large same-sign Bollinger inputs.
+- A first CI attempt caught an overly strict floating-point equality assertion (74.99999999999999 vs 75); the test was corrected to use a 10-digit toBeCloseTo tolerance. The corrected source/test HEAD passed exact-head CI.
+
+### Full indicator ledger
+
+| Indicator / component | Status | Calculation / validity contract | Remaining implementation |
+|---|---|---|---|
+| SMA20 | 🟨 Foundation | Mean of 20 closes; first valid index 19; non-finite intermediates rejected | Overlay, toggle, legend/current value, stale clearing, renderer/lifecycle tests |
+| EMA20 | 🟨 Foundation | SMA-seeded EMA; alpha 2/21; first valid index 19; normalized seed and finite recurrence | Overlay, toggle, legend/current value, stale clearing, renderer/lifecycle tests |
+| RSI14 | 🟨 Foundation | Wilder smoothing; first valid index 14; normalized gain/loss ratio | 0–100 pane, 30/70 guides, toggle, legend, stale clearing, renderer tests |
+| MACD 12/26/9 | 🟨 Foundation | EMA12−EMA26; MACD index 25; signal/histogram index 33; finite difference guards | Pane, lines, histogram, zero guide, toggle, legend, renderer tests |
+| Bollinger20,2 | 🟨 Foundation | Mean ± 2 × population SD; first valid index 19; normalized variance | Three-line overlay, toggle, displayed values, stale clearing, renderer tests |
+| Shared Indicator Hook | 🟨 Foundation | Validated backend snapshot, candle-index aligned | Chart/symbol/timeframe identity, loading/error lifecycle, stale clearing, series isolation |
+| Footprint | 🟧 SIMULATED / gated | Educational simulated accumulator; not exchange-native bid/ask truth | User reference image, reviewed blueprint, explicit-ON spaced cluster layout, bid/ask cells, performance tests |
+| Heatmap | 🟥 Not implemented | Source/calculation contract not approved | User reference image, zero-cost source feasibility, data contract, blueprint, renderer |
+| Liquidation Maps | 🟥 Not implemented | No validated liquidation dataset/calculation contract | Zero-cost source feasibility, calculation contract, blueprint/reference, renderer |
+
+**Correctness invariants:** warm-up values remain null, never zero; output stays candle-index aligned; appending future candles cannot change prior values; symbol/venue/dataset/chart/timeframe changes clear stale series. Footprint OFF preserves ordinary candle spacing; explicit ON alone enables spaced clusters.
+
+**Progress accounting:** numerical-safety work strengthens the calculation foundation but does not complete visual overlays, panes, toggles, legends or renderers. No per-indicator percentage is fabricated. Gate 10 remains 0/10 formally closed; Stage 1 remains 30/40 = 75% provisional; overall project percentage remains unscored.
+
+---
+
 ## Latest indicator status — Batch 62J-68 (21 November 2026)
 
 **Latest source/config/test HEAD:** `da9b2ad025ac5c49f75c95dbdd5f516573107f87` on `phase-2/market-data-foundation`.  

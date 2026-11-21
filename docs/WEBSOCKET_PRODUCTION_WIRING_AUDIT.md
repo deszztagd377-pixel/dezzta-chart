@@ -253,3 +253,14 @@ Yellow-green is not acceptance or closure. Gate 10 remains 0/10 formally closed;
 **Host verification is not an APK-only test.** It requires evidence from the actual server/provider/storage/operator environment. Opening the APK is a separate client acceptance step. For Gate 36, Android/browser testing should occur only after a real public HTTPS/WSS endpoint is available. No Termux or phone-side command is required at this stage.
 
 No production host, endpoint, TLS certificate, backup destination, Firebase project or credentials were fabricated or requested. ZERO COST; no deployment, no paid service, no `main` modification.
+
+
+## Batch 62J-76 — exact-head verification and adjacent Gate 31/38 boundaries
+
+Source/test HEAD 57b918feafd1b259b008b5efe1272199a29facff passed Automated Tests [44876347017](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44876347017), CodeQL [44876347037](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44876347037), Full Git History Secret Audit [44876347101](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44876347101), and Android debug APK build [44876347021](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44876347021). Frontend 252/252 tests across 29 files; backend 1,249 passed in 50.02 seconds. The Android artifact is a CI build only, not device acceptance.
+
+WebSocket repository/CI failure-matrix status remains complete for its defined automated scope. Production acceptance remains unavailable because no active backend host or public HTTPS/WSS endpoint exists. Do not infer production acceptance from the CI Redis service or container smoke.
+
+Gate 31 remains open: repository encryption is AES-256-GCM/PBKDF2-based, but there is no independently controlled off-host destination or separate recovery-key custody. Gate 38 remains open: HTTP metrics are bounded and process-local, incident records persist in local SQLite, but central collection/dashboard, cross-worker aggregation, metrics retention/rotation, WebSocket telemetry and independent operator notification remain absent. The new Gate 38 runbook documents these boundaries.
+
+Gate 10 remains 0/10 formally closed. Gates 8, 30, 34, 35 and 39 are host/owner-verification-only 🟨🟩; Gates 20, 25, 31, 36 and 38 remain 🟧. Stage 1 is 30/40 = 75% provisional; overall project remains unscored. ZERO COST; no host, credentials, deployment, Termux or device operation.
