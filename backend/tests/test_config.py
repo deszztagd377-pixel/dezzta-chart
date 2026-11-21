@@ -369,3 +369,12 @@ def test_alert_device_encryption_key_loader_rejects_non_regular_file(tmp_path):
 
     with pytest.raises(ValueError, match="regular file"):
         _load_alert_device_encryption_key(str(directory))
+
+
+def test_alert_device_encryption_key_loader_redacts_non_ascii_file_errors(tmp_path):
+    key_file = tmp_path / "non-ascii-alert-device.key"
+    key_file.write_bytes(b"\xff" * 44)
+    key_file.chmod(0o600)
+
+    with pytest.raises(ValueError, match="unavailable or invalid"):
+        _load_alert_device_encryption_key(str(key_file))
