@@ -1,10 +1,13 @@
 ## Batch 62J-97 — production-staggered metrics benchmark (21 November 2026)
 
-- Source/test HEAD: `8deeba557f7be6ea5cb66fb0bfb55955aafc5a41` on `phase-2/market-data-foundation`.
-- Added a synthetic 16-worker × 32-flush case (512 flushes expected) mirroring `main.py`'s UUID-prefix modulo-15 startup phase and 15-second flush cadence. CI wall-clock sleeps are scaled; logical timestamps preserve production cadence. This is not a real-time soak test.
-- The benchmark validates 899 logical series, worker count, aggregate request count, SQLite integrity, retries, flush latency, lock wait, transaction/commit timing and DB/WAL/SHM sizes. Simultaneous thread stress and separate-process tests remain separate cases.
-- Exact-head Automated Tests [44914991306](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44914991306) were still IN PROGRESS at the checkpoint; benchmark step completed, but final image scan/report and job cleanup were pending. CodeQL [44914991295](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44914991295) SUCCESS; Full Git History Secret Audit [44914991439](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44914991439) SUCCESS. No full CI pass is claimed yet.
-- Gate 38 remains 🟧 OPEN pending exact-head workflow completion, owner-host volume/retention/backup, access control, dashboard visibility and recovery acceptance.
+- Source/test HEAD: `8deeba557f7be6ea5cb66fb0bfb55955aafc5a41` on `phase-2/market-data-foundation`; docs-only descendants now carry the ledger update.
+- Exact-head Automated Tests [44914991306](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44914991306): **SUCCESS**. CodeQL [44914991295](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44914991295): **SUCCESS**. Full Git History Secret Audit [44914991439](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44914991439): **SUCCESS**.
+- Trivy artifact [14710634254](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44914991306) was downloaded and parsed: **0 vulnerabilities** in Alpine OS and Python package targets, including zero HIGH/CRITICAL.
+- The benchmark mirrors production's UUID-prefix modulo-15 startup phase and 15-second flush cadence. Staggered 16-thread profile: **512/512 flushes**, **899/899 series**, 16/16 workers, SQLite integrity `ok`, **0 retries**, p95 **19.98 ms**, p99 **86.72 ms**, max **120.73 ms**.
+- Simultaneous 16-thread stress: 512/512 flushes, p95 371.91 ms, p99 610.31 ms, max 1,922.15 ms, 68 retries. Staggered profile reduced p95 94.63%, p99 85.79%, max 93.72% in this synthetic CI comparison. Tail latency is not eliminated; the staggered p99 remains 86.72 ms.
+- Separate four-process profile: 128/128 flushes, 899 series, integrity `ok`, p95 85.67 ms, p99 237.86 ms, one retry. Cross-host SQLite is not claimed.
+- Staggered peak DB+WAL+SHM was 3,169,952 bytes; post-checkpoint total 1,126,400 bytes. Snapshot payload 105,586/262,144 bytes (40.28%). CI-runner measurements are not production capacity/SLO guarantees.
+- Gate 38 remains 🟧 OPEN pending owner-host volume/retention/backup, access control, dashboard visibility and recovery acceptance.
 - WebSocket repository-side automated protocol/failure-matrix scope remains complete; production WSS remains host-gated. No WebSocket protocol/relay/auth/replay code changed in this batch.
 - Gate 10 remains 0/10 formally closed. 🟨🟩 host/operator verification only: Gates 8, 30, 34, 35, 39. 🟧 additional integration: Gates 20, 25, 31, 36, 38.
 - Indicators unchanged; no progress credit. SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, Shared Hook 🟨, Footprint 🟧, Heatmap 🟥, Liquidation Maps 🟥.
