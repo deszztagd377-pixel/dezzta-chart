@@ -1,3 +1,18 @@
+## Batch 62J-97 — production-staggered metrics benchmark (21 November 2026)
+
+- Source/test HEAD: `8deeba557f7be6ea5cb66fb0bfb55955aafc5a41` on `phase-2/market-data-foundation`.
+- Added a synthetic 16-worker × 32-flush case (512 flushes expected) mirroring `main.py`'s UUID-prefix modulo-15 startup phase and 15-second flush cadence. CI wall-clock sleeps are scaled; logical timestamps preserve production cadence. This is not a real-time soak test.
+- The benchmark validates 899 logical series, worker count, aggregate request count, SQLite integrity, retries, flush latency, lock wait, transaction/commit timing and DB/WAL/SHM sizes. Simultaneous thread stress and separate-process tests remain separate cases.
+- Exact-head Automated Tests [44914991306](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44914991306) were still IN PROGRESS at the checkpoint; benchmark step completed, but final image scan/report and job cleanup were pending. CodeQL [44914991295](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44914991295) SUCCESS; Full Git History Secret Audit [44914991439](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44914991439) SUCCESS. No full CI pass is claimed yet.
+- Gate 38 remains 🟧 OPEN pending exact-head workflow completion, owner-host volume/retention/backup, access control, dashboard visibility and recovery acceptance.
+- WebSocket repository-side automated protocol/failure-matrix scope remains complete; production WSS remains host-gated. No WebSocket protocol/relay/auth/replay code changed in this batch.
+- Gate 10 remains 0/10 formally closed. 🟨🟩 host/operator verification only: Gates 8, 30, 34, 35, 39. 🟧 additional integration: Gates 20, 25, 31, 36, 38.
+- Indicators unchanged; no progress credit. SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, Shared Hook 🟨, Footprint 🟧, Heatmap 🟥, Liquidation Maps 🟥.
+- Stage 1 remains 30/40 = 75% provisional. Stages 2–6, overall project percentage and aggregate indicator percentage remain unscored.
+- ZERO COST; no deployment, Vercel/Cloudflare operation, paid service, production credentials, Termux/device operation or `main` modification.
+
+---
+
 ## Batch 62J-87 — bounded SQLite writer-lock acquisition (21 November 2026)
 
 - Exact source/test predecessor `73a19e5db54b44d1d07caa038ec567d31d19a0a8`: Automated Tests [44902861326](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44902861326) **FAILED** at the 16-worker benchmark during `BEGIN IMMEDIATE` with `sqlite3.OperationalError: database is locked`. This was a writer-transaction contention failure, distinct from the earlier schema-bootstrap collision. CodeQL [44902861325](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44902861325) and Full Git History Secret Audit [44902861332](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44902861332) passed on that predecessor.
