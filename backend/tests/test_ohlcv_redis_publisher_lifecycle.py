@@ -40,6 +40,22 @@ class FakePublisher:
         self.called = threading.Event()
         self.calls = 0
 
+    def bind_source_store(self, source_store):
+        self.source_store = source_store
+        self.checkpoint = type(
+            "FakeCheckpoint",
+            (),
+            {
+                "source_store": source_store,
+                "stream_key": "test:ohlcv",
+                "state": lambda checkpoint: {
+                    "source_id": source_store.source_id(),
+                    "stream_key": "test:ohlcv",
+                },
+            },
+        )()
+        self.appender.source_id = source_store.source_id()
+
     def publish_available(self):
         self.calls += 1
         self.called.set()
@@ -59,6 +75,7 @@ def test_publisher_runtime_is_pinged_started_and_closed_by_lifespan(tmp_path):
 
     def runtime_factory(source_store):
         assert source_store.database_path == str(tmp_path / "publisher-lifecycle.sqlite3")
+        publisher.bind_source_store(source_store)
         return {
             "publisher": publisher,
             "redis_client": redis_client,
@@ -98,13 +115,17 @@ def test_publisher_runtime_mismatch_fails_startup_without_accepting_traffic(tmp_
     redis_client = FakeRedis()
     publisher = FakePublisher(redis_client)
 
-    application = create_app(
-        make_settings(tmp_path),
-        publisher_runtime_factory=lambda store: {
+    def mismatched_runtime(source_store):
+        publisher.bind_source_store(source_store)
+        return {
             "publisher": publisher,
             "redis_client": redis_client,
             "stream_key": "different:stream",
-        },
+        }
+
+    application = create_app(
+        make_settings(tmp_path),
+        publisher_runtime_factory=mismatched_runtime,
     )
 
     with pytest.raises(RuntimeError, match="does not match"):

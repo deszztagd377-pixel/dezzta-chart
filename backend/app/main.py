@@ -332,15 +332,28 @@ def create_app(
                 publisher_redis_client = runtime.get("redis_client")
                 publisher_stream_key = runtime.get("stream_key")
                 appender = getattr(publisher_instance, "appender", None)
+                checkpoint = getattr(publisher_instance, "checkpoint", None)
                 if (
                     not callable(getattr(publisher_instance, "publish_available", None))
                     or publisher_redis_client is None
                     or not isinstance(publisher_stream_key, str)
                     or not publisher_stream_key.strip()
+                    or getattr(publisher_instance, "source_store", None) is not ohlcv_store
+                    or getattr(checkpoint, "source_store", None) is not ohlcv_store
+                    or getattr(checkpoint, "stream_key", None) != publisher_stream_key
+                    or not callable(getattr(checkpoint, "state", None))
                     or getattr(appender, "redis", None) is not publisher_redis_client
                     or getattr(appender, "stream_key", None) != publisher_stream_key
+                    or getattr(appender, "source_id", None) != ohlcv_store.source_id()
                 ):
-                    raise RuntimeError("Publisher runtime does not match its dedicated Redis client and stream.")
+                    raise RuntimeError("Publisher runtime does not match its source store, checkpoint, dedicated Redis client and stream.")
+                checkpoint_state = await asyncio.to_thread(checkpoint.state)
+                if (
+                    not isinstance(checkpoint_state, dict)
+                    or checkpoint_state.get("stream_key") != publisher_stream_key
+                    or checkpoint_state.get("source_id") != ohlcv_store.source_id()
+                ):
+                    raise RuntimeError("Publisher checkpoint is missing or does not match the source snapshot and stream.")
                 await asyncio.to_thread(publisher_redis_client.ping)
                 publisher_event_loop = asyncio.get_running_loop()
                 publisher_status.update({
