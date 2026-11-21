@@ -456,6 +456,10 @@ class RedisStreamConflict(RuntimeError):
     """A deterministic Redis Stream ID exists with a different source event."""
 
 
+class PublisherResnapshotRequired(RuntimeError):
+    """Terminal publisher state: the checkpoint fell behind retained outbox history."""
+
+
 class RedisAppendUnconfirmed(RuntimeError):
     """Redis append outcome is unknown; the durable checkpoint was not advanced."""
 
@@ -647,7 +651,7 @@ class RedisOhlcvPublisher:
                 reason = page.get("reason", "unknown")
                 floor = page.get("retention_floor")
                 high_water = page.get("high_water")
-                raise RuntimeError(
+                raise PublisherResnapshotRequired(
                     "Publisher requires a fresh global snapshot: "
                     f"reason={reason}, retention_floor={floor}, high_water={high_water}."
                 )

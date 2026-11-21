@@ -816,3 +816,12 @@ The Gate 38 source audit found that metric series cardinality was bounded but sc
 - No runtime/indicator code changed. Indicator status remains unchanged; no indicator percentage is assigned. Gate 10 remains 0/10 formally closed; Stage 1 remains 30/40 = 75% provisional; overall project and aggregate indicator percentages remain unestablished.
 - Next WebSocket batch: do not repeat the passing two-ASGI CI harness. Progress only through approved owner-side snapshot artifact lifecycle, production Redis TLS/ACL/topology evidence, and then public WSS/browser/Android acceptance. Keep production replica mode opt-in.
 - ZERO COST. No Termux/device command, deployment, Vercel/Cloudflare operation, paid service, or `main` modification.
+
+
+## Batch 62J-56 progress reconciliation — 21 November 2026
+
+- WebSocket source publisher lifecycle: 🟨🟩 host-factory / snapshot-verification pending. FastAPI now supports a dedicated injected publisher runtime, startup Redis PING, bounded background relay, persisted-bar wake-up plus 1-second backlog polling, bounded retry, terminal resnapshot-required handling, and guarded shutdown. Exact-head CI is required before repository verification is credited; owner-host snapshot watermark, dedicated ACL and durable-volume checks remain open.
+- WebSocket production acceptance: 🟧 OPEN. This batch does not close public WSS, production Redis TLS/ACL topology, snapshot distribution/rotation/rollback, browser or Android WebView acceptance.
+- Indicator implementation unchanged. SMA20, EMA20, RSI14, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain 🟨 FOUNDATION; Footprint remains 🟧 SIMULATED / GATED; Heatmap and Liquidation Maps remain 🟥 NOT IMPLEMENTED. No indicator progress percentage is awarded by a backend-only change.
+- Gate 10 remains 0/10 formally closed. Stage 1 remains 30/40 = 75% provisional. Overall project percentage and aggregate indicator percentage remain unscored because approved denominators/weights are not established.
+- ZERO COST maintained: no deployment, paid service, production credential, Termux/device operation, or `main` modification.

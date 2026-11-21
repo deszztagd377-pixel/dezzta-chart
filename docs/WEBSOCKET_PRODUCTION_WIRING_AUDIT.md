@@ -99,3 +99,14 @@ Keep source publisher and gateway consumer as separate application roles unless 
 **Redis-to-gateway replica integration:** opt-in factory exists; default ASGI entry point is not wired.  
 **Production acceptance:** open.  
 **Code changes in this audit:** none; this document records verified source-level findings and prevents false production-completion claims.
+
+
+## Batch 62J-56 — source publisher lifecycle integration (21 November 2026)
+
+**Source change:** FastAPI now accepts a dedicated, owner-injected `publisher_runtime_factory` for the source application role. Lifespan validates that the publisher, dedicated Redis client and exact stream key agree; performs Redis PING before provider ingestion starts; runs bounded synchronous publisher batches through `asyncio.to_thread`; wakes on persisted-bar callbacks; and polls once per second to recover retained backlog after restart. Transient failures use bounded 1–30 second exponential backoff. A typed retention-gap exception transitions the worker to terminal `resnapshot_required` without advancing the checkpoint. Shutdown waits up to 15 seconds and closes the dedicated client only after the publisher task has stopped.
+
+**Role isolation:** one FastAPI app cannot be configured with both source publisher and gateway replica runtime factories. The module-level default app remains publisher-disabled unless its owner explicitly injects a source runtime factory. No Redis URL, credentials, snapshot cursor or snapshot artifact is inferred by application code.
+
+**Host gate:** the source runtime factory must construct `SQLiteOhlcvPublisherCheckpoint` against the durable source database, require an existing checkpoint or initialize it only from the exact global snapshot watermark already installed on every target gateway, and use a dedicated publisher ACL client with finite socket/connect timeouts. The code cannot prove remote snapshot installation; this remains an owner-host prerequisite. Publisher lifecycle wiring is therefore **🟨🟩 HOST-FACTORY / SNAPSHOT VERIFICATION PENDING**, not production-green. Do not enable the source publisher until snapshot and ACL preconditions are satisfied.
+
+**Verification boundary:** lifecycle contract tests were added for Redis readiness, task startup, graceful client close, source/gateway role separation, and runtime binding mismatch. Exact-head CI must pass before repository verification is credited. No deployment, live Redis connection, production host, Termux command, paid service, or `main` change was performed.

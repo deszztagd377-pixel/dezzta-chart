@@ -56,6 +56,7 @@ from app.ohlcv_stream import OhlcvStreamHub, OhlcvStreamResnapshotRequired
 from app.ohlcv_store import SQLiteOhlcvReplicaStore, SQLiteOhlcvStore
 from app.ohlcv_event_loop import EventLoopCallbackDispatcher
 from app.ohlcv_redis_worker import RedisOhlcvGatewayWorker
+from app.ohlcv_redis_publisher import PublisherResnapshotRequired
 from app.ohlcv_redis_replay import replay_replica_history
 from app.ohlcv_replica_bridge import (
     forward_replica_event,
@@ -161,9 +162,14 @@ def create_app(
     historical_source_factory=None,
     shared_guard=None,
     replica_runtime_factory=None,
+    publisher_runtime_factory=None,
 ) -> FastAPI:
     if replica_runtime_factory is not None and not callable(replica_runtime_factory):
         raise TypeError("replica_runtime_factory must be callable when provided.")
+    if publisher_runtime_factory is not None and not callable(publisher_runtime_factory):
+        raise TypeError("publisher_runtime_factory must be callable when provided.")
+    if replica_runtime_factory is not None and publisher_runtime_factory is not None:
+        raise ValueError("Source publisher and gateway replica runtimes must use separate app roles.")
     config = settings or Settings.from_environment()
     request_metrics = RequestMetrics()
     if shared_guard is None and config.redis_url:
@@ -202,6 +208,14 @@ def create_app(
     resolver = InstrumentResolver()
     stream_hub = OhlcvStreamHub()
     ohlcv_store = SQLiteOhlcvStore(config.instrument_registry_db_path)
+    publisher_wakeup = asyncio.Event()
+    publisher_event_loop = None
+    publisher_status = {
+        "enabled": publisher_runtime_factory is not None,
+        "state": "disabled" if publisher_runtime_factory is None else "not_started",
+        "last_batch": None,
+        "last_error_code": None,
+    }
 
     def publish_persisted_bar(bar) -> None:
         # Resolve the exact revision: derived-timeframe persistence may occur
@@ -214,6 +228,9 @@ def create_app(
             durable_cursor=event["cursor"],
             durable_event_id=event["eventId"],
         )
+        # Provider callbacks may originate outside the ASGI event-loop thread.
+        if publisher_event_loop is not None:
+            publisher_event_loop.call_soon_threadsafe(publisher_wakeup.set)
 
     coverage_tracker = SQLiteCoverageTracker(config.instrument_registry_db_path)
     session_calendar_registry, session_calendar_status = load_session_calendar_runtime(
@@ -292,16 +309,103 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
-        nonlocal replica_worker
+        nonlocal replica_worker, publisher_event_loop
         worker_stop = asyncio.Event()
         worker_task = None
         incident_task = None
+        publisher_task = None
+        publisher_instance = None
+        publisher_redis_client = None
         provider_started = False
         replica_redis_client = None
         ownership_lease = None
         try:
             if shared_guard is not None:
                 await shared_guard.start()
+            if publisher_runtime_factory is not None:
+                runtime = publisher_runtime_factory(ohlcv_store)
+                if inspect.isawaitable(runtime):
+                    runtime = await runtime
+                if not isinstance(runtime, dict):
+                    raise RuntimeError("Publisher runtime factory must return a mapping.")
+                publisher_instance = runtime.get("publisher")
+                publisher_redis_client = runtime.get("redis_client")
+                publisher_stream_key = runtime.get("stream_key")
+                appender = getattr(publisher_instance, "appender", None)
+                if (
+                    not callable(getattr(publisher_instance, "publish_available", None))
+                    or publisher_redis_client is None
+                    or not isinstance(publisher_stream_key, str)
+                    or not publisher_stream_key.strip()
+                    or getattr(appender, "redis", None) is not publisher_redis_client
+                    or getattr(appender, "stream_key", None) != publisher_stream_key
+                ):
+                    raise RuntimeError("Publisher runtime does not match its dedicated Redis client and stream.")
+                await asyncio.to_thread(publisher_redis_client.ping)
+                publisher_event_loop = asyncio.get_running_loop()
+                publisher_status.update({
+                    "enabled": True,
+                    "state": "starting",
+                    "last_error_code": None,
+                })
+                application.state.ohlcv_publisher = publisher_instance
+                application.state.ohlcv_publisher_redis_client = publisher_redis_client
+                application.state.ohlcv_publisher_stream_key = publisher_stream_key
+
+                async def source_publisher_loop() -> None:
+                    retry_seconds = 1.0
+                    while not worker_stop.is_set():
+                        publisher_wakeup.clear()
+                        try:
+                            batch = await asyncio.to_thread(
+                                publisher_instance.publish_available
+                            )
+                            publisher_status["state"] = "running"
+                            publisher_status["last_error_code"] = None
+                            publisher_status["last_batch"] = {
+                                key: batch[key]
+                                for key in (
+                                    "status", "published", "verified_existing",
+                                    "published_cursor", "high_water", "has_more",
+                                )
+                                if key in batch
+                            }
+                            retry_seconds = 1.0
+                            if batch.get("has_more"):
+                                continue
+                        except PublisherResnapshotRequired as exc:
+                            publisher_status["state"] = "resnapshot_required"
+                            publisher_status["last_error_code"] = type(exc).__name__
+                            logging.getLogger("dezzta.websocket_publisher").error(
+                                "OHLCV publisher requires a fresh globally installed snapshot."
+                            )
+                            return
+                        except Exception as exc:
+                            publisher_status["state"] = "degraded"
+                            publisher_status["last_error_code"] = type(exc).__name__[:64]
+                            logging.getLogger("dezzta.websocket_publisher").warning(
+                                "OHLCV publisher batch failed; durable outbox remains authoritative."
+                            )
+                            try:
+                                await asyncio.wait_for(
+                                    worker_stop.wait(), timeout=retry_seconds
+                                )
+                            except asyncio.TimeoutError:
+                                pass
+                            retry_seconds = min(retry_seconds * 2.0, 30.0)
+                            continue
+                        try:
+                            await asyncio.wait_for(
+                                publisher_wakeup.wait(), timeout=1.0
+                            )
+                        except asyncio.TimeoutError:
+                            pass
+                    if publisher_status["state"] != "resnapshot_required":
+                        publisher_status["state"] = "stopped"
+
+                publisher_task = asyncio.create_task(
+                    source_publisher_loop(), name="dezzta-ohlcv-source-publisher"
+                )
             if replica_runtime_factory is None:
                 await provider.start()
                 provider_started = True
@@ -444,6 +548,7 @@ def create_app(
             yield
         finally:
             worker_stop.set()
+            publisher_wakeup.set()
             if incident_task is not None:
                 await incident_task
             if worker_task is not None:
@@ -474,6 +579,36 @@ def create_app(
                 if ownership_lease is not None:
                     await asyncio.to_thread(ownership_lease.release)
                 close_client = getattr(replica_redis_client, "close", None)
+                if callable(close_client):
+                    if inspect.iscoroutinefunction(close_client):
+                        await close_client()
+                    else:
+                        await asyncio.to_thread(close_client)
+            if publisher_task is not None:
+                done, _ = await asyncio.wait({publisher_task}, timeout=15.0)
+                if publisher_task in done:
+                    publisher_event_loop = None
+                    if publisher_redis_client is not None:
+                        close_client = getattr(publisher_redis_client, "close", None)
+                        if callable(close_client):
+                            try:
+                                if inspect.iscoroutinefunction(close_client):
+                                    await close_client()
+                                else:
+                                    await asyncio.to_thread(close_client)
+                            except Exception:
+                                logging.getLogger("dezzta.websocket_publisher").exception(
+                                    "Publisher Redis client close failed."
+                                )
+                else:
+                    logging.getLogger("dezzta.websocket_publisher").error(
+                        "Publisher did not stop within the shutdown deadline; Redis client left open."
+                    )
+                application.state.ohlcv_publisher = None
+                application.state.ohlcv_publisher_redis_client = None
+            elif publisher_redis_client is not None:
+                publisher_event_loop = None
+                close_client = getattr(publisher_redis_client, "close", None)
                 if callable(close_client):
                     if inspect.iscoroutinefunction(close_client):
                         await close_client()
@@ -515,6 +650,11 @@ def create_app(
     application.state.ohlcv_replica_stream_key = None
     application.state.ohlcv_replica_worker = None
     application.state.ohlcv_replica_hydration = None
+    application.state.ohlcv_publisher = None
+    application.state.ohlcv_publisher_redis_client = None
+    application.state.ohlcv_publisher_stream_key = None
+    application.state.ohlcv_publisher_status = publisher_status
+    application.state.ohlcv_publisher_wakeup = publisher_wakeup
     application.state.coverage_tracker = coverage_tracker
     application.state.ingestion = ingestion
     application.state.session_calendar_registry = session_calendar_registry
