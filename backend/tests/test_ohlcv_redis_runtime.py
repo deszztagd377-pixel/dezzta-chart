@@ -22,8 +22,9 @@ def make_store(tmp_path):
     return SQLiteOhlcvStore(str(tmp_path / "source-runtime.sqlite3"))
 
 
-def snapshot_evidence(store, checkpoint, *, bad_gateway=False):
+def snapshot_evidence(store, checkpoint, *, bad_gateway=False, bad_digest=False):
     required = ["gateway-a", "gateway-b"]
+    snapshot_sha256 = "a" * 64
     installations = {}
     for gateway_id in required:
         installations[gateway_id] = {
@@ -31,12 +32,14 @@ def snapshot_evidence(store, checkpoint, *, bad_gateway=False):
             "stream_key": "dezzta:market-data:ohlcv:v1",
             "snapshot_generation": "snapshot-generation-0007",
             "snapshot_cursor": checkpoint["published_cursor"] + (1 if bad_gateway and gateway_id == "gateway-b" else 0),
+            "snapshot_sha256": ("b" * 64) if bad_digest and gateway_id == "gateway-b" else snapshot_sha256,
         }
     return {
         "source_id": store.source_id(),
         "stream_key": "dezzta:market-data:ohlcv:v1",
         "snapshot_generation": "snapshot-generation-0007",
         "snapshot_cursor": checkpoint["published_cursor"],
+        "snapshot_sha256": snapshot_sha256,
         "required_gateway_ids": required,
         "gateway_installations": installations,
     }
@@ -73,6 +76,44 @@ def test_factory_rejects_gateway_snapshot_cursor_mismatch_before_redis_creation(
     assert checkpoint.state()["published_cursor"] == checkpoint_state["published_cursor"]
 
 
+def test_factory_rejects_gateway_snapshot_digest_mismatch_before_redis_creation(tmp_path):
+    store = make_store(tmp_path)
+    checkpoint = SQLiteOhlcvPublisherCheckpoint(store)
+    checkpoint.initialize_from_snapshot(0, now_ms=1000)
+    created = []
+    factory = build_source_publisher_runtime_factory(
+        redis_url="rediss://publisher:secret@redis.example:6380/0",
+        owner="source-host-01", production=True,
+        snapshot_verifier=lambda source, state: snapshot_evidence(source, state, bad_digest=True),
+        redis_client_factory=lambda *args, **kwargs: created.append(True),
+    )
+    with pytest.raises(RuntimeError, match="SHA-256"):
+        factory(store)
+    assert created == []
+
+
+def test_factory_rejects_invalid_manifest_digest_before_redis_creation(tmp_path):
+    store = make_store(tmp_path)
+    checkpoint = SQLiteOhlcvPublisherCheckpoint(store)
+    checkpoint.initialize_from_snapshot(0, now_ms=1000)
+    created = []
+
+    def invalid_manifest(source, state):
+        evidence = snapshot_evidence(source, state)
+        evidence["snapshot_sha256"] = "not-a-sha256"
+        return evidence
+
+    factory = build_source_publisher_runtime_factory(
+        redis_url="rediss://publisher:secret@redis.example:6380/0",
+        owner="source-host-01", production=True,
+        snapshot_verifier=invalid_manifest,
+        redis_client_factory=lambda *args, **kwargs: created.append(True),
+    )
+    with pytest.raises(RuntimeError, match="SHA-256"):
+        factory(store)
+    assert created == []
+
+
 def test_factory_creates_dedicated_tls_client_after_all_gateway_receipts_match(tmp_path):
     store = make_store(tmp_path)
     checkpoint = SQLiteOhlcvPublisherCheckpoint(store)
@@ -95,6 +136,7 @@ def test_factory_creates_dedicated_tls_client_after_all_gateway_receipts_match(t
     assert runtime["publisher"].source_store is store
     assert runtime["snapshot_evidence"]["verified_gateway_count"] == 2
     assert runtime["snapshot_evidence"]["snapshot_cursor"] == 0
+    assert runtime["snapshot_evidence"]["snapshot_sha256"] == "a" * 64
     assert captured["options"]["socket_connect_timeout"] == 3.0
     assert captured["options"]["socket_timeout"] == 5.0
     assert captured["options"]["ssl_cert_reqs"] == "required"
