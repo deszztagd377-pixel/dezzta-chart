@@ -1,3 +1,17 @@
+
+
+## Batch 62J-82 — exact-head CI and capacity-model correction (21 November 2026)
+
+- Exact HEAD `c3577d7174ce5873502ebd8df7a57f27447a296b`: Automated Tests 44897164887 SUCCESS; CodeQL 44897164916 SUCCESS; Full Git History Secret Audit 44897164908 SUCCESS.
+- Automated Tests completed backend container build, Redis persistent-volume smoke, Trivy scan and vulnerability report export/upload, in addition to frontend/backend tests, SQLite outbox benchmark and dependency audits.
+- Gate 38 blueprint now explicitly states the nominal crash-loss window of up to one 15-second flush interval plus scheduler delay. Transactional checkpoints prevent replay of committed deltas but cannot recover unflushed in-memory increments. This is telemetry, not financial accounting.
+- Series capacity is bounded from source contracts: 127 method/route pairs × 6 status classes = 762 request series; 127 latency series; conservative total planning ceiling 900 series per 15-minute bucket. 672 buckets represent seven days. Aggregate planning bound 604,800 rows; 16 workers × 900 checkpoints = 14,400; plus 16 heartbeats. Initial logical-row ceiling: 650,000. SQLite byte cap remains benchmark-derived.
+- The 1,500x operation estimate is explicitly a comparison with hypothetical per-request persistence, not a measured improvement over current in-memory counters.
+- No runtime source changed. Gate 38 remains 🟧 OPEN pending explicit blueprint approval, implementation, exact-head CI, measured byte budget and owner-host/operator acceptance.
+- WebSocket send-confirmed lifecycle accounting remains unchanged and CI-verified. Production WSS acceptance still requires host-side snapshot/Redis/TLS/proxy/browser/Android evidence.
+- ZERO COST; no deployment, production credentials, Redis ACL change, Termux, main modification or paid provider.
+
+---
 ## Batch 62J-81 — Gate 38 zero-cost collector design (21 November 2026)
 
 - Exact-head baseline 3eadda21f795abe5af195eedf0c81727d31f6436 rechecked: Automated Tests run 44895224507 SUCCESS; CodeQL run 44895224465 SUCCESS for JS/TS and Python; full Git-history secret audit run 44895224498 SUCCESS.

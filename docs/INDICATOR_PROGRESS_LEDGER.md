@@ -1,3 +1,24 @@
+
+
+## Batch 62J-82 checkpoint — no indicator changes (21 November 2026)
+
+The exact-head CI for the Gate 38 documentation checkpoint completed SUCCESS, but no indicator source, formula, hook, chart renderer, UI or indicator test changed. No indicator progress credit is awarded. Full formula definitions, warm-up indices, renderer work and invariants remain recorded in this ledger.
+
+| Indicator/subsystem | Status | Calculation / first valid index | Remaining work |
+|---|---|---|---|
+| SMA20 | 🟨 FOUNDATION | Mean of 20 closes; index 19 | Overlay, toggle, legend/current value, stale clearing, renderer/lifecycle tests |
+| EMA20 | 🟨 FOUNDATION | SMA-seeded EMA; α=2/21; index 19 | Overlay, toggle, legend/current value, stale clearing, renderer/lifecycle tests |
+| RSI14 | 🟨 FOUNDATION | Wilder smoothing; index 14 | 0–100 pane, 30/70 guides, toggle, legend, renderer tests |
+| MACD 12/26/9 | 🟨 FOUNDATION | MACD index 25; signal/histogram index 33 | Pane, lines, histogram, zero guide, toggle, legend |
+| Bollinger20,2 | 🟨 FOUNDATION | Mean ± 2 × population SD; index 19 | Three-line overlay, toggle, values, stale clearing, renderer tests |
+| Shared Indicator Hook | 🟨 FOUNDATION | Validated candle-index-aligned snapshot | Chart identity/timeframe binding, loading/error, stale clearing, series isolation |
+| Footprint | 🟧 SIMULATED / GATED | Educational accumulator, not exchange-native bid/ask truth | User reference, approved blueprint, ON-only spaced clusters, bid/ask cells, performance tests |
+| Heatmap | 🟥 NOT IMPLEMENTED | No approved data source/contract | User reference, zero-cost source feasibility, validated data contract, blueprint, renderer |
+| Liquidation Maps | 🟥 NOT IMPLEMENTED | No validated dataset/formula | Zero-cost source feasibility, validated calculation, reference/blueprint, renderer |
+
+Invariants: warm-up values are null, never zero; outputs align with candle indices; no future-candle repaint; identity/timeframe changes clear stale series; Footprint OFF preserves normal candle spacing and only explicit ON enables spaced clusters. Footprint and Heatmap visual implementation remain gated on user-provided references and blueprint review. Aggregate indicator percentage remains unscored without approved weights.
+
+---
 ## Batch 62J-81 checkpoint — 21 November 2026
 
 No indicator calculation, data contract, hook, chart renderer, UI, or indicator test file changed during the Gate 38 architecture work. No indicator progress credit is awarded.

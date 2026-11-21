@@ -88,3 +88,31 @@ A single-host SQLite collector cannot satisfy a multi-host requirement. If the o
 No production host is provisioned, no external provider is selected, no secret or production credential is requested, no Redis guard behavior is changed, no deployment is performed, and no Gate 10 status is upgraded by this document.
 
 **Review gate:** implementation must not begin until this bounded scope is reviewed and explicitly approved. This preserves the project's blueprint-before-major-implementation rule.
+
+
+## 9. Explicit loss window, cardinality and row budget (design clarification)
+
+### 9.1 Monitoring-data loss semantics
+
+The counters remain in process memory between successful flushes. A process crash can therefore lose the most recent unflushed interval: nominally up to 15 seconds, plus scheduler delay. A graceful shutdown should attempt one bounded final flush, but shutdown must not block market-data service termination indefinitely. This collector is operational telemetry, not a billing ledger, financial audit trail, or exact event store. The checkpoint transaction prevents double-counting already committed deltas; it cannot recover increments that were never flushed.
+
+### 9.2 Series and retention calculation
+
+The current RequestMetrics contract caps method/route pairs at 127, including the shared overflow series. It emits at most six HTTP status classes (1xx–5xx plus other), so request counters are bounded by:
+
+- HTTP request series: 127 × 6 = 762.
+- HTTP latency series: 127.
+- WebSocket lifecycle history: conservatively budget 11 scalar series (five close-code classes plus starts, active/current gauge, completed, accepted, peer disconnects and duration sum). The active gauge is stored as current worker state, not added to historical bucket totals.
+- Conservative total planning ceiling: 900 logical series per 15-minute bucket.
+
+Seven days at 15-minute resolution is 7 × 24 × 4 = 672 buckets. Therefore the planning ceiling is 900 × 672 = 604,800 aggregate rows. With a hard maximum of 16 workers and up to 900 per-worker checkpoint values, the checkpoint ceiling is 14,400 rows; 16 heartbeat rows are additional. The resulting planned logical-row ceiling is 619,216 before schema metadata. Set the initial hard logical-row ceiling to 650,000, leaving 30,784 rows (about 4.97%) above this calculated planning bound. Enforce the 16-worker and 900-series limits so the row calculation remains valid.
+
+These are schema-level planning bounds, not measured SQLite disk consumption. A separate byte ceiling must be selected from the isolated benchmark, including WAL and index overhead. Do not invent a byte limit from logical row count. If the benchmark cannot fit the chosen operational disk budget with headroom, reduce series/retention or revise the schema before implementation acceptance.
+
+### 9.3 Flush scheduling and contention
+
+Worker startup should apply a bounded initial phase offset so all workers do not flush simultaneously. Keep the nominal 15-second interval and 90-second stale threshold. Test synchronized starts as a worst case, then test staggered starts and 16 concurrent workers. The finite SQLite busy timeout and retry deadline must be measured; a failed flush must never advance its checkpoint.
+
+### 9.4 Interpretation of the 1,500x estimate
+
+The 8,640,000 versus 5,760 daily operation comparison describes a hypothetical design that persists every request versus periodic metric snapshots. The current implementation does not write one SQLite row per request; it records in-memory counters. The 1,500x figure is therefore a comparison against naive per-request persistence, not a measured reduction from the current implementation and not a benchmark result.
