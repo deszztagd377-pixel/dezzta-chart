@@ -315,3 +315,81 @@ def test_read_only_storage_rejects_flush_without_advancing_checkpoint(tmp_path, 
     collector.flush(worker, next_request, next_websocket, now=903)
     recovered = collector.snapshot(now=904)
     assert recovered["series"]["http.requests|GET|/health|2xx"] == 3
+
+
+def test_real_sqlite_page_limit_failure_rolls_back_and_recovers(tmp_path, monkeypatch):
+    collector = SQLiteMetricsCollector(str(tmp_path / "metrics.sqlite3"))
+    worker = uuid.uuid4().hex
+    statuses = ("1xx", "2xx", "3xx", "4xx", "5xx", "other")
+    limits = (5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000)
+
+    def full_snapshots(count):
+        routes = [f"/capacity/{index:03d}" for index in range(127)]
+        request = {
+            "schema_version": 1,
+            "requests": [
+                {"method": "GET", "route": route, "status_class": status, "count": count}
+                for route in routes for status in statuses
+            ],
+            "latency_ms": [
+                {
+                    "method": "GET", "route": route, "count": count,
+                    "sum_ms": float(count * 2),
+                    "buckets": [
+                        {"le_ms": limit, "count": count if limit >= 5 else 0}
+                        for limit in limits
+                    ] + [{"le_ms": None, "count": count}],
+                }
+                for route in routes
+            ],
+        }
+        websocket = {
+            "schema_version": 1,
+            "connections_started": count,
+            "connections_active": 0,
+            "connections_completed": count,
+            "connections_accepted": count,
+            "peer_disconnects": count,
+            "duration_sum_ms": float(count * 3),
+            "close_code_classes": {
+                "1xxx": count, "2xxx": count, "4xxx": count, "5xxx": count, "other": count,
+            },
+        }
+        return request, websocket
+
+    baseline_request, baseline_websocket = full_snapshots(1)
+    next_request, next_websocket = full_snapshots(2)
+    baseline = collector.flush(worker, baseline_request, baseline_websocket, now=900)
+    assert baseline["series"] == 899
+
+    original_connect = collector._connect
+    db = original_connect()
+    try:
+        db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        db.execute("VACUUM")
+        page_count = db.execute("PRAGMA page_count").fetchone()[0]
+        assert page_count > 0
+        assert db.execute("PRAGMA freelist_count").fetchone()[0] == 0
+    finally:
+        db.close()
+
+    def disk_limited_connect():
+        connection = original_connect()
+        applied_limit = connection.execute(f"PRAGMA max_page_count={page_count}").fetchone()[0]
+        assert applied_limit == page_count
+        return connection
+
+    monkeypatch.setattr(collector, "_connect", disk_limited_connect)
+    with pytest.raises(sqlite3.OperationalError, match="database or disk is full"):
+        collector.flush(worker, next_request, next_websocket, now=1800)
+
+    monkeypatch.setattr(collector, "_connect", original_connect)
+    after_failure = collector.snapshot(now=1801)
+    assert after_failure["series"]["http.requests|GET|/capacity/000|1xx"] == 1
+    assert after_failure["worker_count"] == 1
+
+    recovered = collector.flush(worker, next_request, next_websocket, now=1802)
+    assert recovered["series"] == 899
+    after_recovery = collector.snapshot(now=1803)
+    assert after_recovery["series"]["http.requests|GET|/capacity/000|1xx"] == 2
+    assert after_recovery["series"]["websocket|connections_completed"] == 2

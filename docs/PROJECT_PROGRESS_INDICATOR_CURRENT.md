@@ -1042,3 +1042,22 @@ Indicator invariants: warm-up values are `null`, never zero; all values align to
 - Exact-head CI must rerun before the process/read-only additions are accepted. Gate 38 remains 🟧 OPEN.
 - Indicator state unchanged; Gate 10 remains 0/10 formally closed; Stage 1 remains 30/40 = 75% provisional; overall project remains unscored.
 - ZERO COST; no deployment, Termux/device action, or `main` modification.
+
+## Batch 62J-90 — process benchmark and corrected exact-head acceptance (21 November 2026)
+
+Exact-head source/test commit `2650c70e977b22a4c70a5e0e292dcc3a8a59082c` passed Automated Tests [44904944196](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44904944196): 35/35 workflow steps, frontend 255/255 tests across 29 files, backend 1,269 passed in 53.67 seconds. CodeQL [44904944207](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44904944207) SUCCESS; Full Git History Secret Audit [44904944202](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44904944202) SUCCESS.
+
+Artifact `synthetic-metrics-collector-benchmark`, ID `14707137707`, verifies all 899 series and SQLite integrity for thread and process cases.
+
+| Workload | Flushes | p50 ms | p95 ms | p99 ms | Max ms | Retries |
+|---|---:|---:|---:|---:|---:|---:|
+| 1 thread | 32 | 15.198 | 15.997 | 17.820 | 17.820 | 0 |
+| 4 threads | 128 | 14.024 | 192.993 | 290.086 | 354.538 | 2 |
+| 16 threads | 512 | 120.955 | 654.798 | 921.534 | 2,769.913 | 251 |
+| 4 OS processes | 128 | 14.403 | 243.724 | 278.107 | 415.647 | 4 |
+
+All four cases verified 899 logical series; process case verified four separate workers and 128/128 flushes. The 16-thread contention tail remains high and is not hidden by benchmark-only retries. Process case post-checkpoint DB+WAL+SHM = 487,424 bytes; not a peak-size or production-volume estimate.
+
+Batch 62J-90 adds a genuine SQLite page-limit/disk-full rollback-and-recovery test plus an app-level test that forces metrics flush failure while verifying HTTP health, operator metrics status and authenticated WebSocket status remain responsive. These additions are pending exact-head CI. No production collector behavior changes in this batch.
+
+- Batch 62J-90 adds a genuine SQLite `max_page_count` exhaustion test and application-level collector-failure isolation test. They are pending exact-head CI; Gate 38 remains 🟧 until passed and owner-host checks are complete.

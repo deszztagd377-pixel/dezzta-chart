@@ -40,3 +40,8 @@ Gate 38 remains 🟧 OPEN pending corrected exact-head CI, genuine disk-full/sto
 Indicators unchanged. Gate 10 remains 0/10 formally closed. Stage 1 remains 30/40 = 75% provisional. Overall project percentage remains unscored.
 
 ZERO COST. No deployment, Termux/device action, paid service, production credentials or `main` modification.
+
+
+## Batch 62J-90 — exact-head acceptance for the prior correction
+
+The corrected thread regression test is accepted on exact HEAD `2650c70e977b22a4c70a5e0e292dcc3a8a59082c`: Automated Tests [44904944196](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44904944196) SUCCESS (35/35 steps; frontend 255/255 across 29 files; backend 1,269 passed in 53.67 seconds), CodeQL [44904944207](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44904944207) SUCCESS, Full Git History Secret Audit [44904944202](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44904944202) SUCCESS. The separate-process benchmark and read-only recovery test are therefore CI-accepted for this exact HEAD.

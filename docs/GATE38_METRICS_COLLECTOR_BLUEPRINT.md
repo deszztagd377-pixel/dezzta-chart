@@ -198,3 +198,14 @@ Capacity: 7×24×4 = 672 fifteen-minute buckets; 899×672 = 604,128 aggregate ro
 ## 14. Batch 62J-89 — regression test correction
 
 The first CI attempt for Batch 62J-88 failed one thread test because an unconditional leftover `AssertionError("bounded SQLite retry loop exhausted")` remained directly after a successful `collector.flush()`. The read-only recovery test and the separate-process benchmark test both passed. This was a test harness defect, not evidence of lock retry exhaustion. Batch 62J-89 removes only that assertion; no collector implementation or retry policy change. Exact-head CI is pending. Gate 38 remains 🟧 OPEN until the corrected exact-head workflow passes and the remaining storage/app/host acceptance items are complete.
+
+
+## 15. Disk-full and application isolation tests — Batch 62J-90
+
+Exact-head baseline `2650c70e977b22a4c70a5e0e292dcc3a8a59082c` passed all repository CI (frontend 255/255; backend 1,269 passed; CodeQL and secret audit passed). The four-process 899-series case completed 128/128 flushes with integrity `ok`; 16-thread contention measured p95 654.798 ms and max 2,769.913 ms with 251 retries. This remains CI-runner evidence.
+
+Batch 62J-90 adds two regression tests:
+1. A genuine SQLite storage-exhaustion path using `PRAGMA max_page_count` fixed at the existing database page count after VACUUM. The second full-cardinality bucket must raise `SQLITE_FULL`, roll back all partial bucket writes and worker checkpoint changes, and then recover on a later writable flush without double counting.
+2. An application-level failure-isolation test that forces metrics flush to raise a storage-full error, waits for the collector to enter `degraded`, then checks `/health`, authenticated `/internal/metrics`, and authenticated `/ws/market-data` remain responsive.
+
+These tests are pending exact-head CI. They do not prove actual owner-host filesystem exhaustion behavior or production operator recovery. Gate 38 remains 🟧 OPEN until exact-head CI and host acceptance.

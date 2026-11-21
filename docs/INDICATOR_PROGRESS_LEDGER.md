@@ -1057,3 +1057,13 @@ Added `docs/GATE30_OWNER_HOST_RESTORE_DRILL_RUNBOOK.md` after source inspection 
 ## Batch 62J-89 — test-harness correction; no indicator change (21 November 2026)
 
 The first CI attempt for Batch 62J-88 exposed an unconditional leftover `AssertionError` immediately after the concurrent worker's successful `collector.flush()`. This was a test-edit residue, not collector retry exhaustion. The read-only test and separate-process benchmark contract both passed in that run. The assertion has been removed; exact-head CI is pending. Indicator formula, hook, renderer, UI and data contract remain unchanged: SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, shared hook 🟨, Footprint 🟧, Heatmap 🟥, Liquidation Maps 🟥. Stage 1 remains 75% provisional; Gate 10 remains 0/10 formally closed.
+
+
+## Batch 62J-90 — indicator state unchanged; Gate 38 reliability tests extended
+
+- Exact-head baseline `2650c70e977b22a4c70a5e0e292dcc3a8a59082c` passed frontend 255/255 and backend 1,269 tests; CodeQL and full-history secret audit passed.
+- Full-cardinality 899-series thread/process benchmark passed. Four separate OS processes completed 128/128 flushes, 899/899 series, integrity `ok`; p95 243.724 ms, p99 278.107 ms, 4 retries.
+- 16-thread case: 512/512 flushes, p95 654.798 ms, p99 921.534 ms, max 2,769.913 ms, 251 retries. This is synthetic CI evidence and indicates contention tail remains.
+- New tests add real SQLite page-limit exhaustion rollback/recovery and app-level proof that collector failure does not block HTTP/WebSocket. Pending exact-head CI.
+- No indicator formula, hook, renderer, UI or market-data contract changed. SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, Shared Hook 🟨, Footprint 🟧, Heatmap 🟥, Liquidation Maps 🟥.
+- Stage 1 remains 30/40 = 75% provisional; Gate 10 remains 0/10 formally closed; overall project remains unscored.

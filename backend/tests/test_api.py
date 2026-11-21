@@ -2662,3 +2662,52 @@ def test_websocket_ticket_renewal_rechecks_revoked_instrument_entitlement():
             websocket.receive_json()
 
     assert disconnected.value.code == 4403
+
+
+def test_metrics_storage_failure_does_not_block_http_or_websocket(tmp_path, monkeypatch):
+    import sqlite3
+    import time
+    from itertools import count
+    from threading import Event
+    from uuid import UUID
+    from app.metrics_collector import SQLiteMetricsCollector
+
+    flush_attempted = Event()
+    operator_token = "metrics-token-for-tests-only-32chars"
+    identifiers = count()
+
+    def fail_metrics_flush(self, *args, **kwargs):
+        flush_attempted.set()
+        raise sqlite3.OperationalError("database or disk is full")
+
+    monkeypatch.setattr(main_module, "uuid4", lambda: UUID(int=next(identifiers)))
+    monkeypatch.setattr(SQLiteMetricsCollector, "flush", fail_metrics_flush)
+    settings = replace(
+        make_settings(),
+        observability_metrics_token=operator_token,
+        observability_metrics_db_path=str(tmp_path / "metrics.sqlite3"),
+    )
+    application = create_app(settings)
+    _install_test_identity(application)
+
+    with TestClient(application) as client:
+        assert flush_attempted.wait(timeout=3)
+        deadline = time.monotonic() + 2
+        while application.state.metrics_collector_status["state"] != "degraded" and time.monotonic() < deadline:
+            time.sleep(0.01)
+        assert application.state.metrics_collector_status["state"] == "degraded"
+
+        health = client.get("/health")
+        assert health.status_code == 200
+        assert health.json()["status"] == "ok"
+
+        metrics = client.get(
+            "/internal/metrics",
+            headers={"Authorization": f"Bearer {operator_token}"},
+        )
+        assert metrics.status_code == 200
+        assert metrics.json()["collector_status"]["state"] == "degraded"
+
+        with client.websocket_connect("/ws/market-data") as websocket:
+            websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+            assert websocket.receive_json()["type"] == "market_data.status"
