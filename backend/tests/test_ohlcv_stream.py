@@ -355,11 +355,16 @@ def test_same_series_subscribers_are_isolated_when_one_disconnects() -> None:
         # Consume the event already delivered before disconnect. Unsubscribe
         # closes future delivery; it does not retroactively erase queued data.
         first_delivered = first.queue.get_nowait()
+        second_delivered = second.queue.get_nowait()
         assert first_delivered["bar"]["sequence"] == first_update.sequence
+        assert second_delivered["bar"]["sequence"] == first_update.sequence
+        # A logical bar event has one stable event ID and emission timestamp
+        # across every panel subscribed to the same canonical series.
+        assert first_delivered["eventId"] == second_delivered["eventId"]
+        assert first_delivered["emittedAtNs"] == second_delivered["emittedAtNs"]
 
         hub.unsubscribe(first.stream_id)
         assert hub.subscriber_count == 1
-        second.queue.get_nowait()
 
         second_update = make_bar(2)
         assert pipeline.apply(second_update) == "inserted"

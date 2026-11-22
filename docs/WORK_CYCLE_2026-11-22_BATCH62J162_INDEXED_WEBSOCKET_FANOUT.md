@@ -101,3 +101,10 @@ Indicator acceptance invariants:
 - This avoids building the outgoing payload and converting decimal fields when no client can receive the event.
 - Added a regression test with an active NQ subscription and an unobserved ES update; the test fails if payload serialization is attempted.
 - This is a code-path optimization, not a measured throughput claim.
+
+
+## Event metadata consistency hardening
+- A single logical bar publication now generates one `eventId` and one `emittedAtNs` value, shared by every subscriber of that exact series.
+- Previously, the UUID and clock were evaluated separately inside the per-subscriber loop, giving different identifiers/timestamps to panels receiving the same logical publication.
+- The same-series multi-panel regression test now verifies identical event IDs and emission timestamps for both recipients.
+- This preserves durable `eventId` values when supplied by the outbox and generates one fallback ID per publication otherwise.

@@ -192,6 +192,8 @@ class OhlcvStreamHub:
             # Avoid constructing/serializing an OHLCV payload when no panel is
             # listening to this exact canonical series.
             return
+        event_id = durable_event_id or uuid.uuid4().hex
+        emitted_at_ns = str(self._clock_ns())
         payload_bar = {
             "dataset": bar.dataset,
             "provider": bar.provider,
@@ -229,10 +231,10 @@ class OhlcvStreamHub:
                 "type": "market_data.ohlcv.update",
                 "version": 1,
                 "streamId": subscription.stream_id,
-                "eventId": durable_event_id or uuid.uuid4().hex,
+                "eventId": event_id,
                 "sequence": next_sequence,
                 **({"cursor": str(durable_cursor)} if durable_cursor is not None else {}),
-                "emittedAtNs": str(self._clock_ns()),
+                "emittedAtNs": emitted_at_ns,
                 "operation": "upsert",
                 "isFinal": bar.completeness == "complete",
                 "series": {
