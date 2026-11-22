@@ -192,3 +192,42 @@ This document is a foundation proposal, not an implementation authorization. Rev
 **Recommended direction:** build the portable foundation first; use free hosting only as disposable test infrastructure; keep the canonical data and security model independent of the provider; and require tested export/restore plus vendor-exit evidence before any production cutover.
 
 This is the only honest approach that preserves the zero-cost constraint without pretending that a vendor's current free tier can guarantee service for decades.
+
+
+## 11. Expanded free-provider research — 2026-11-22
+
+This section broadens the candidate search. These are capability and risk findings from official provider documentation, not deployment approval. A free label alone does not satisfy the owner's zero-cost and longevity requirements.
+
+| Provider / service | Current official free-plan facts | Suitability for DEZZTA CHART |
+|---|---|---|
+| Oracle Cloud Infrastructure Always Free | Advertises Always Free Ampere A1 compute up to 1,500 OCPU-hours and 9,000 GB-hours monthly, plus up to 200 GB block volume and 20 GB object storage. Signup requires valid card details for identity verification. Accounts inactive for 30 days may be suspended/terminated; idle compute can be reclaimed when CPU/network (and A1 memory) utilization remains below 20% at the 95th percentile for seven days. | Technically the strongest self-managed VM candidate discovered so far, but **not approved**: card requirement conflicts with a strict no-billing-risk interpretation, idle reclamation is material, capacity availability varies, and operations/backup/monitoring remain owner responsibilities. Do not create an account or assume it will be available. |
+| Google Cloud Free Tier | Includes a small E2-micro VM in selected US regions, but requires an active Cloud Billing account. Usage beyond free limits is billed on a paid billing account; Google may change or remove limits with 30 days' notice. | **Excluded for now** because a billing account and overage path conflict with a hard no-charge guarantee. Region and network limits are also unsuitable assumptions for an Indonesia-first low-latency service. |
+| AWS Free Plan | New Free plan is limited to up to six months or until credits are exhausted; a paid plan can incur charges after upgrade. | **Excluded**: time-limited trial/credit is not a decades-long zero-cost foundation. |
+| Northflank Developer Sandbox | Advertises up to $20/month of resources, two services, two jobs, one database, and always-on sandbox compute. The provider's docs say the free sandbox is for testing/hobby use and should not be used for production; resource caps and paid usage paths remain. | **Candidate only for a disposable POC** if no card/payment method is required and hard resource caps demonstrably prevent billing. Not a production durability layer. |
+| Koyeb Free Instance | One free web service per organization, 512 MB RAM, 0.1 vCPU, 2 GB SSD; scales to zero after one hour without traffic; no persistent volumes; not recommended for production. Free Postgres is limited to five active hours and 1 GB. | **POC only**, not suitable for always-on WebSocket or durable database. |
+| Neon Free Postgres | Current published free plan: up to 100 projects, 100 compute-hours per project/month, 1 GB storage per project (up to 20 GB total), and 5 GB public network transfer per project; compute scales to zero after five minutes of inactivity. | **Strong database portability test candidate**, but not an always-on database and not a substitute for independent backups. |
+| Upstash Redis Free | 250 MB, 500,000 commands/month, and 10 GB monthly bandwidth. The current pricing comparison does not establish the complete ACL/security feature set required by this repository; production HA/SLA features are paid. | **Not approved for production guards or relay**. Use only after exact TLS, ACL, atomicity, and failure semantics are proven; otherwise exclude. |
+| Deno Deploy Free | 1 million requests/month and 20 GiB egress, 512 MB memory, and no reliability SLA during the public beta. It is not a drop-in host for this Python/FastAPI service. | **Not selected for the core backend**. Could be evaluated only for a separately scoped edge utility if a concrete need emerges. |
+
+Official references checked on 2026-11-22:
+- Oracle Always Free: https://www.oracle.com/cloud/free/
+- Oracle Free Tier FAQ (identity/card and inactive account): https://www.oracle.com/cloud/free/faq/
+- Oracle idle compute reclamation: https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm
+- Google Cloud Free Tier: https://docs.cloud.google.com/free/docs/free-cloud-features
+- AWS Free Tier FAQ: https://aws.amazon.com/free/free-tier-faqs/
+- Northflank pricing: https://northflank.com/pricing
+- Northflank free-plan limitations: https://northflank.com/docs/v1/application/billing/pricing-on-northflank
+- Koyeb free instances: https://www.koyeb.com/docs/reference/instances
+- Koyeb pricing FAQ: https://www.koyeb.com/docs/faqs/pricing
+- Neon free-plan quotas: https://neon.com/docs/introduction/pro-plan
+- Upstash Redis pricing: https://upstash.com/pricing/redis
+- Deno Deploy pricing: https://deno.com/deploy/pricing
+- Deno Deploy limits / beta reliability: https://docs.deno.com/deploy/pricing_and_limits/
+
+### 11.1 Research conclusion
+
+The broad search did find additional genuine free allowances, but none currently proves a fully free, always-on, durable, secure, multi-service production stack for decades. Oracle A1 is worth retaining as a future technical candidate only if the account/payment constraints are acceptable and the owner explicitly approves it; it is not an automatic recommendation. Neon is a useful Postgres adapter test target. Northflank, Koyeb, Render, and Deno remain POC/limited-use candidates, each with material caveats. Google Cloud and AWS are excluded from the strict no-billing/no-expiry shortlist.
+
+The architecture therefore remains provider-neutral. The long-lived assets are our source code, portable container, database schema/migrations, open export formats, tests, event/cursor contracts, backup tooling, and runbooks—not a promise from any one free hosting company.
+
+No account was created, no card/payment details were requested, no service was provisioned, and no deployment occurred.
