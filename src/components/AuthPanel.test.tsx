@@ -15,8 +15,6 @@ const baseAuth = {
   user: null,
   status: 'unconfigured' as const,
   error: null,
-  signInEmail: vi.fn(async () => undefined),
-  registerEmail: vi.fn(async () => undefined),
   signInGoogle: vi.fn(async () => undefined),
   signOutUser: vi.fn(async () => undefined),
   clearError: vi.fn(),
@@ -27,7 +25,7 @@ beforeEach(() => {
   authMocks.useAuth.mockReturnValue({ ...baseAuth });
 });
 
-describe('AuthPanel status presentation', () => {
+describe('Google-only AuthPanel', () => {
   it('shows an explicit authentication error instead of reporting signed out', () => {
     authMocks.useAuth.mockReturnValue({
       ...baseAuth,
@@ -49,15 +47,19 @@ describe('AuthPanel status presentation', () => {
     expect(markup).not.toContain('SIGNED OUT');
   });
 
-  it('disables every sign-in action while Firebase is not configured', () => {
+  it('exposes Google sign-in only and no email/password form', () => {
     const markup = renderToStaticMarkup(<AuthPanel />);
-    const actionButtons = [...markup.matchAll(/<button\b[^>]*>/g)].map(([button]) => button);
 
-    expect(actionButtons).toHaveLength(3);
-    expect(actionButtons.every((button) => button.includes('disabled=""'))).toBe(true);
+    expect(markup).toContain('Continue with Google');
+    expect(markup).not.toContain('OR USE EMAIL');
+    expect(markup).not.toContain('type="email"');
+    expect(markup).not.toContain('type="password"');
+    const actionButtons = [...markup.matchAll(/<button\\b[^>]*>/g)].map(([button]) => button);
+    expect(actionButtons).toHaveLength(1);
+    expect(actionButtons[0]).toContain('disabled=""');
   });
 
-  it('shows signed-in state when the provider has an authenticated user', () => {
+  it('shows signed-in state and sign-out when Google has authenticated a user', () => {
     authMocks.useAuth.mockReturnValue({
       ...baseAuth,
       user: { displayName: 'Test User', email: 'test@example.com' },
@@ -68,5 +70,6 @@ describe('AuthPanel status presentation', () => {
 
     expect(markup).toContain('SIGNED IN');
     expect(markup).toContain('test@example.com');
+    expect(markup).toContain('Sign out');
   });
 });
