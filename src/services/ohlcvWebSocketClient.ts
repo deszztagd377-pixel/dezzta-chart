@@ -232,6 +232,10 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
           socket.send(JSON.stringify({ type: 'auth.renew', ticket: renewedTicket }));
           renewalAckTimer = setTimeout(() => { renewalAckTimer = null; fail(new Error('WebSocket ticket renewal acknowledgement timed out.')); }, 10_000);
         } catch (error) {
+          // Closing the connection while renewal is pending is an intentional
+          // lifecycle transition. Ignore its late rejection instead of
+          // reporting a transport failure after teardown.
+          if (state !== 'subscribed') return;
           if ((error as { status?: number } | null)?.status === 401) {
             clearTimer(); clearHeartbeat(); clearTicketRenewal();
             let closeFailed = false;
