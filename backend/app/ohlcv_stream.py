@@ -187,6 +187,11 @@ class OhlcvStreamHub:
         ):
             raise ValueError("durable_event_id must be a non-empty string up to 128 characters")
         identity = self.identity_for(bar)
+        matching_subscriptions = self._subscriptions_by_identity.get(identity)
+        if not matching_subscriptions:
+            # Avoid constructing/serializing an OHLCV payload when no panel is
+            # listening to this exact canonical series.
+            return
         payload_bar = {
             "dataset": bar.dataset,
             "provider": bar.provider,
@@ -212,7 +217,7 @@ class OhlcvStreamHub:
             "origin": bar.origin,
             "completeness": bar.completeness,
         }
-        for subscription in tuple(self._subscriptions_by_identity.get(identity, {}).values()):
+        for subscription in tuple(matching_subscriptions.values()):
             if subscription.closed or subscription.overflowed or subscription.identity != identity:
                 continue
             # Durable cursors are global and monotonic. A replay after Redis ACK

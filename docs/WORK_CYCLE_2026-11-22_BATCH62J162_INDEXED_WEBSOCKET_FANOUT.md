@@ -94,3 +94,10 @@ Indicator acceptance invariants:
 3. Complete reconnect/replay reconciliation and cross-process ownership tests.
 4. Continue indicator renderer integration only after preserving the existing warm-up, gap, identity, and no-future-leak invariants.
 5. Keep OCI/hosting work limited to zero-cost local/CI readiness unless a genuinely free, no-card, no-billing option is verified.
+
+
+## Follow-on optimization while CI was running
+- `OhlcvStreamHub.publish()` now returns immediately when no subscriber exists for the incoming bar's exact canonical identity.
+- This avoids building the outgoing payload and converting decimal fields when no client can receive the event.
+- Added a regression test with an active NQ subscription and an unobserved ES update; the test fails if payload serialization is attempted.
+- This is a code-path optimization, not a measured throughput claim.

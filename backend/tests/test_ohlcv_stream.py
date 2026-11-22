@@ -232,6 +232,25 @@ def test_invalid_durable_cursor_is_rejected_before_snapshot_query() -> None:
         else:
             raise AssertionError(f"durable cursor {cursor!r} should be rejected")
 
+
+def test_publish_skips_payload_serialization_without_matching_series_subscribers(monkeypatch) -> None:
+    import app.ohlcv_stream as stream_module
+
+    pipeline = OhlcvPipeline()
+    nq = make_bar(0, raw_symbol="NQZ6", instrument_id=202)
+    assert pipeline.apply(nq) == "inserted"
+    hub = OhlcvStreamHub()
+    hub.subscribe_snapshot(
+        pipeline, dataset="GLBX.MDP3", publisher_id=1, instrument_id=202,
+        raw_symbol="NQZ6", timeframe="1s", limit=100,
+    )
+
+    def unexpected_serialization(_value):
+        raise AssertionError("unobserved series must not serialize a bar payload")
+
+    monkeypatch.setattr(stream_module, "decimal_to_string", unexpected_serialization)
+    hub.publish(make_bar(1, raw_symbol="ESZ6", instrument_id=101))
+
 def test_hub_rejects_invalid_queue_capacity() -> None:
     for value in (0, -1, True, 1.5):
         try:
