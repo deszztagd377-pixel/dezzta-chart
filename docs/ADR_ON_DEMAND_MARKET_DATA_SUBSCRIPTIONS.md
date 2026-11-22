@@ -168,3 +168,35 @@ No runtime, schema, dependency, deployment or account change is authorized by th
 - One user's disconnect must never stop another user's session or the independent backend.
 - Do not claim shared upstream, quota savings, Stage 2 completion or production readiness without direct test evidence.
 - No implementation before source audit and acceptance tests are designed.
+
+
+## 11. Repository source audit addendum — Batch 62J-146 (22 November 2026)
+
+Inspected current source at the documentation branch baseline. This is a source review, not a runtime change.
+
+### Frontend ownership
+
+- `src/components/CandlestickChart.tsx` starts an authenticated supervisor for the selected contract/timeframe and binds it to the chart component lifecycle and foreground/online state.
+- `src/services/ohlcvStreamSupervisor.ts` has a module-level `activeSupervisorStop` singleton. Starting a new supervisor stops the previous owner. This protects the singleton market-data store from competing writers, but it means the current frontend architecture supports one active supervisor owner, not independently active simultaneous chart panels.
+- `src/services/ohlcvWebSocketClient.ts` sends one exact-series `market_data.subscribe` request after authentication. The transport supports ticket renewal, heartbeat, cursor replay and sequence validation.
+- The current client therefore has a meaningful single-chart on-demand selection boundary, but it is not yet a general multi-chart subscription manager.
+
+### Backend ownership and upstream boundary
+
+- `backend/app/main.py` constructs one `ProviderManager` and, in the non-replica mode, calls `await provider.start()` from application lifespan startup. Provider lifecycle is therefore process-scoped in the current source path, not activated/deactivated by the count of open chart subscriptions.
+- `backend/app/provider.py` starts the ingestion consumer and supervises its configured live source when provider configuration and live-symbol settings permit. No chart-subscriber demand registry is wired into this provider lifecycle in the inspected path.
+- `backend/app/ohlcv_stream.py` implements an in-memory `OhlcvStreamHub`: each WebSocket subscription receives its own stream ID and bounded queue; publish filters by exact series identity and fans out to matching subscriptions. This is downstream client fan-out, not proof of provider upstream pooling, demand-based provider subscribe/unsubscribe, or reference-counted upstream shutdown.
+- The current provider pipeline is intentionally separate from the WebSocket subscriber registry. Do not conflate an active client subscription with an upstream provider connection.
+
+### Consequence
+
+The complete requested behavior is **not yet implemented**. The gap is broader than adding a client-side unsubscribe:
+1. Keep the existing single-chart behavior correct while designing an explicit active-chart owner abstraction.
+2. Decide whether simultaneous chart panels are a supported product requirement now or a later extension; do not silently broaden the current singleton store.
+3. Introduce a provider-demand coordinator between active authorized series and the provider adapter, with provider-specific multiplexing semantics and a reference-counted desired-subscription set.
+4. Reconcile desired upstream subscriptions on startup, reconnect, entitlement change, last-subscriber release and provider restart.
+5. Preserve process independence: a client disconnect only removes that subscriber; it never stops the provider process while other subscribers or explicitly required ingestion work remain.
+6. Prove the absence of inactive-pair polling/streaming using tests at both the client and provider boundary.
+
+No runtime implementation is made in this addendum because the provider-demand ownership contract, multi-chart support boundary and provider SDK subscription semantics must be resolved first. Do not weaken the existing persistence, replay, sequence, entitlement or lifecycle guarantees.
+
