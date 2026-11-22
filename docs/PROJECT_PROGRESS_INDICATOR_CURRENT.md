@@ -25,7 +25,9 @@ OCI qualification: CI image/build/runtime smoke evidence only, not an OCI tenanc
 
 Added `backend/tests/test_ohlcv_stream.py::test_same_series_subscribers_are_isolated_when_one_disconnects`. Two clients subscribe to the same exact series; both receive the first update; after client A unsubscribes, client B continues receiving the next update; A remains closed and receives no more events. Subscriber count is verified across 2 → 1 → 0.
 
-This is a downstream per-client fan-out regression test, not proof of upstream dynamic provider subscription or reference counting. The existing real WSS multi-user test also covers client disconnect isolation at the API boundary. Exact-H### Exact-HEAD CI — failing parent f972e15d429328870047878c57e268af7c35d6f7
+This is a downstream per-client fan-out regression test, not proof of upstream dynamic provider subscription or reference counting. The existing real WSS multi-user test also covers client disconnect isolation at the API boundary.
+
+### Exact-HEAD CI — failing parent f972e15d429328870047878c57e268af7c35d6f7
 
 - Automated Tests [45018172626](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45018172626): FAILURE — 1,297 passed, 1 failed, 1 skipped. Sole failure was the same-series subscriber isolation test: subscriber A's first already-enqueued event was not consumed before unsubscribe, but the test then asserted its queue was empty. This was an incorrect test precondition; unsubscribe closes future delivery and does not erase an event already queued.
 - CodeQL [45018172635](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45018172635): SUCCESS for Python and JavaScript/TypeScript.
@@ -34,8 +36,7 @@ This is a downstream per-client fan-out regression test, not proof of upstream d
 
 ### Batch 62J-150 correction
 
-Test-only change at cb708c3e6357c59ef7a61fcb5fc5c304b014d62a: consume and verify subscriber A's first delivered event before unsubscribe, then verify no subsequent update is delivered to A while subscriber B continues. No production runtime code changed. New exact-HEAD CI is pending; previous parent results do not qualify the correction commit.GRESS at last poll.
-
+Test-only change at cb708c3e6357c59ef7a61fcb5fc5c304b014d62a: consume and verify subscriber A's first delivered event before unsubscribe, then verify no subsequent update is delivered to A while subscriber B continues. No production runtime code changed. New exact-HEAD CI is pending; previous parent results do not qualify the correction commit.
 ## Stage and Gate accounting
 
 | Stage | Verified status |
