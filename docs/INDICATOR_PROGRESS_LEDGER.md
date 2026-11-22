@@ -1,3 +1,21 @@
+# Canonical indicator status — Batch 62J-115 (22 November 2026)
+
+The source-backed current indicator audit is maintained in [INDICATOR_PROGRESS_AUDIT_2026-11-22.md](INDICATOR_PROGRESS_AUDIT_2026-11-22.md). This section is the authoritative current checkpoint; older entries below are historical snapshots and must not override it.
+
+- Audited source/test baseline: `0074f1d0b0e421f32800294742f92d9bc9c8a2c6`.
+- SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨: calculation foundations and 15 calculation tests exist; none is a finished visible chart feature.
+- Shared market-indicator hook 🟨: validated-backend-only hook exists, but the chart does not call it and no dedicated hook test file was found.
+- Footprint 🟧: synthetic offline educational accumulator only; not live exchange order flow. OFF preserves ordinary candle spacing; explicit ON alone may enable spaced clusters.
+- Heatmap 🟥 and Liquidation Maps 🟥: no implementation found.
+- `CandlestickChart.tsx` creates only a candlestick series; no indicator overlay, oscillator pane, toggle or legend is wired.
+- Frontend baseline CI: 255/255 tests across 29 files. This is not 255 indicator tests. Backend: 1,294 passed, 1 skipped. Automated Tests, CodeQL and Full Git History Secret Audit passed on baseline.
+- Visible indicator work belongs to official Stage 4. The project remains Stage 1 at 30/40 = 75% provisional; the 40% blueprint milestone does not authorize skipping stages.
+- Aggregate indicator percentage remains **unscored** until approved per-indicator weights and a completion denominator exist. No progress credit is awarded by this docs-only batch.
+
+See the audit for formulas, first-valid indices, numerical safeguards, data lineage, lifecycle invariants, visual acceptance criteria, reference prerequisites, exact CI evidence and ordered next work.
+
+---
+
 ## Batch 62J-104 checkpoint — indicator implementation unchanged (22 November 2026)
 
 The five-track Gate 10 audit and exact-head CI acceptance did not modify indicator calculations, candle data contracts, shared indicator hook, chart renderer, chart UI or indicator tests. **No indicator progress credit is awarded.** Exact source/test HEAD `a18e963d4cd067fe22ec8d03c653418e003c7fde` passed Automated Tests (backend 1,289; frontend 255/255), CodeQL and full reachable Git-history secret audit. These are backend/CI results, not visible indicator acceptance.

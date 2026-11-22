@@ -1,3 +1,11 @@
+## Current indicator integration audit — 22 November 2026
+
+The calculation engine and `useMarketIndicators()` hook are implemented, but they are **not yet connected to the visible chart**. At audited baseline `0074f1d0b0e421f32800294742f92d9bc9c8a2c6`, `CandlestickChart.tsx` imports neither the hook nor any indicator series type and creates only one candlestick series. No indicator overlay, oscillator pane, toggle or legend is wired into current chart UI. Treat the diagram above as intended shared data lineage, not proof of finished UI integration.
+
+The five tested calculation foundations are SMA20, SMA-seeded EMA20, Wilder RSI14, MACD12/26/9 and Bollinger20,2. Their formulas, warm-up indices, numerical safeguards, test evidence and visual acceptance criteria are in [INDICATOR_PROGRESS_AUDIT_2026-11-22.md](INDICATOR_PROGRESS_AUDIT_2026-11-22.md). Footprint is simulation-only; Heatmap and Liquidation Maps are unimplemented. Official Stage 4 authorization remains required for visible indicator implementation.
+
+---
+
 # DEZZTA CHART — Shared chart and indicator data architecture
 
 ## Product rule

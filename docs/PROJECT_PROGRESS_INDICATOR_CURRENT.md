@@ -1,3 +1,20 @@
+## Batch 62J-115 — complete source-backed indicator progress audit (22 November 2026)
+
+- Audited baseline: `0074f1d0b0e421f32800294742f92d9bc9c8a2c6` on `phase-2/market-data-foundation`.
+- Added `docs/INDICATOR_PROGRESS_AUDIT_2026-11-22.md` as the canonical detailed audit; refreshed the current checkpoint in `docs/INDICATOR_PROGRESS_LEDGER.md` and this current project-progress file.
+- Verified: SMA20, EMA20, Wilder RSI14, MACD12/26/9 and Bollinger20,2 have tested calculation foundations; none is a completed visible chart feature. The shared backend-only hook exists but is not wired into `CandlestickChart.tsx`. The chart still creates only one candlestick series.
+- Calculation suite contains 15 cases. Baseline frontend CI passed 255/255 tests across 29 files; backend passed 1,294 with 1 skipped. Automated Tests, CodeQL and Full Git History Secret Audit passed on baseline.
+- Footprint remains a synthetic offline educational accumulator; no real order-flow source or visual cluster renderer. Heatmap and Liquidation Maps are not implemented.
+- Documented formula definitions, first-valid indices, numerical safety, exact data identity, stale-series rules, prefix-causality, proposed overlay/pane scope, UI acceptance, reference prerequisites and roadmap gates.
+- No formula, hook, chart, visual UI, runtime or test source changed. **No indicator progress credit.**
+- Official project remains Stage 1, 30/40 = 75% provisional. Stage 4 visual implementation is not authorized during Stage 1. Aggregate indicator percentage remains unscored without approved weights/denominator.
+- ZERO COST; no deployment, paid service, production credential, Termux/device action or `main` modification.
+- Exact-head CI for this documentation commit must be checked before declaring this docs batch CI-accepted.
+
+Full detail: [INDICATOR_PROGRESS_AUDIT_2026-11-22.md](INDICATOR_PROGRESS_AUDIT_2026-11-22.md).
+
+---
+
 ## Batch 62J-104 — five remaining Gate 10 tracks and exact-head CI acceptance (22 November 2026)
 
 - Audited source/test HEAD: `a18e963d4cd067fe22ec8d03c653418e003c7fde`.
