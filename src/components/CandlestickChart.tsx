@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import {
   createChart,
@@ -10,11 +10,9 @@ import type { FuturesContractDto } from '../types/instrumentCatalogApi';
 import { demoCandles, getDemoCandleValidationErrors } from '../data/demoCandles';
 import { startOhlcvStreamSupervisor } from '../services/ohlcvStreamSupervisor';
 import { getOhlcvStreamLifecycle } from '../services/ohlcvStreamLifecycle';
-import {
-  getMarketDataSnapshot,
-  resetMarketDataSnapshot,
-  subscribeMarketData,
-} from '../services/marketDataStore';
+import { resetMarketDataSnapshot, isSameMarketSeriesIdentity } from '../services/marketDataStore';
+import { marketDataSeriesStore } from '../services/marketDataSeriesStore';
+import { useMarketDataSeriesSnapshot } from '../services/useMarketDataSeriesSnapshot';
 import { toCandlestickSeriesData } from '../utils/candlestickSeriesData';
 import { buildChartOptions } from '../utils/chartOptions';
 import { getMeasurableChartSize } from '../utils/chartViewport';
@@ -36,6 +34,17 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
   marketDataApiBaseUrl,
 }) => {
   const { user, getIdToken } = useAuth();
+  const marketDataIdentity = useMemo(() => selectedContract ? ({
+    dataset: selectedContract.dataset,
+    publisherId: selectedContract.publisher_id,
+    instrumentId: selectedContract.instrument_id,
+    rawSymbol: selectedContract.raw_symbol,
+    timeframe,
+    bucketPolicy: getBucketPolicyForTimeframe(timeframe),
+    calendarId: '',
+    calendarVersion: '',
+  }) : null, [selectedContract, timeframe]);
+  const marketDataSnapshot = useMarketDataSeriesSnapshot(marketDataIdentity);
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const setSeriesDataRef = useRef<((data: CandlestickData[]) => void) | null>(null);
@@ -190,80 +199,60 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
     });
   }, [showGrid]);
 
-  // The shared store is the single update path for authenticated WebSocket
-  // snapshots and validated revisions. This keeps the chart current without
-  // coupling chart rendering to the transport implementation.
+  // Each chart reads only its canonical series key. The keyed external store
+  // prevents another panel's selection or updates from replacing this snapshot.
   useEffect(() => {
-    if (!isChartReady || !selectedContract) return;
+    if (!isChartReady || !selectedContract || !marketDataIdentity) return;
 
-    const syncFromStore = () => {
-      const snapshot = getMarketDataSnapshot();
-      const identity = snapshot.identity;
-      if (
-        !identity ||
-        identity.dataset !== selectedContract.dataset ||
-        identity.publisherId !== selectedContract.publisher_id ||
-        identity.instrumentId !== selectedContract.instrument_id ||
-        identity.rawSymbol !== selectedContract.raw_symbol ||
-        identity.timeframe !== timeframe ||
-        (identity.bucketPolicy ?? 'UTC_LEGACY') !== getBucketPolicyForTimeframe(timeframe) ||
-        (identity.calendarId ?? '') !== '' ||
-        (identity.calendarVersion ?? '') !== ''
-      ) {
-        return;
-      }
+    const snapshot = marketDataSnapshot;
+    if (!isSameMarketSeriesIdentity(snapshot.identity, marketDataIdentity)) return;
 
-      if (snapshot.status === 'loading') {
-        setSeriesDataRef.current?.(demoCandles);
-        lastRenderedRevisionRef.current = null;
-        lastRenderedTimestampRef.current = null;
-        setMarketDataStatus('loading');
-        setMarketDataDetail(snapshot.detail ?? 'Waiting for a fresh validated snapshot.');
-        return;
-      }
+    if (snapshot.status === 'loading') {
+      setSeriesDataRef.current?.(demoCandles);
+      lastRenderedRevisionRef.current = null;
+      lastRenderedTimestampRef.current = null;
+      setMarketDataStatus('loading');
+      setMarketDataDetail(snapshot.detail ?? 'Waiting for a fresh validated snapshot.');
+      return;
+    }
 
-      if (snapshot.status === 'unavailable' || snapshot.status === 'error') {
-        setSeriesDataRef.current?.(demoCandles);
-        lastRenderedRevisionRef.current = null;
-        lastRenderedTimestampRef.current = null;
-        setMarketDataStatus(snapshot.status);
-        setMarketDataDetail(snapshot.detail ?? 'No verified backend bars are available.');
-        return;
-      }
-
-      if (snapshot.source !== 'backend' ||
-          (snapshot.status !== 'ready' && snapshot.status !== 'degraded')) return;
-      const candles = toCandlestickSeriesData(snapshot.bars);
-      if (candles.length === 0) return;
-
-      const lastChange = snapshot.lastChange;
-      if (
-        lastChange.type === 'update' &&
-        lastRenderedRevisionRef.current === snapshot.revision - 1 &&
-        lastRenderedTimestampRef.current !== null &&
-        lastChange.bar.timestamp >= lastRenderedTimestampRef.current &&
-        updateSeriesRef.current
-      ) {
-        const updateCandle = toCandlestickSeriesData([lastChange.bar])[0];
-        if (updateCandle) updateSeriesRef.current(updateCandle);
-        else setSeriesDataRef.current?.(candles);
-      } else {
-        // Snapshot replacements, missed revisions, and historical corrections
-        // require a full ordered setData. Normal newest-candle updates use the
-        // Lightweight Charts incremental API to avoid redrawing the full series.
-        setSeriesDataRef.current?.(candles);
-      }
-
-      lastRenderedRevisionRef.current = snapshot.revision;
-      lastRenderedTimestampRef.current = snapshot.bars[snapshot.bars.length - 1].timestamp;
+    if (snapshot.status === 'unavailable' || snapshot.status === 'error') {
+      setSeriesDataRef.current?.(demoCandles);
+      lastRenderedRevisionRef.current = null;
+      lastRenderedTimestampRef.current = null;
       setMarketDataStatus(snapshot.status);
-      setMarketDataDetail(snapshot.detail ?? `${candles.length} validated bars · ${timeframe}`);
-    };
+      setMarketDataDetail(snapshot.detail ?? 'No verified backend bars are available.');
+      return;
+    }
 
-    const unsubscribe = subscribeMarketData(syncFromStore);
-    syncFromStore();
-    return unsubscribe;
-  }, [isChartReady, selectedContract, timeframe]);
+    if (snapshot.source !== 'backend' ||
+        (snapshot.status !== 'ready' && snapshot.status !== 'degraded')) return;
+    const candles = toCandlestickSeriesData(snapshot.bars);
+    if (candles.length === 0) return;
+
+    const lastChange = snapshot.lastChange;
+    if (
+      lastChange.type === 'update' &&
+      lastRenderedRevisionRef.current === snapshot.revision - 1 &&
+      lastRenderedTimestampRef.current !== null &&
+      lastChange.bar.timestamp >= lastRenderedTimestampRef.current &&
+      updateSeriesRef.current
+    ) {
+      const updateCandle = toCandlestickSeriesData([lastChange.bar])[0];
+      if (updateCandle) updateSeriesRef.current(updateCandle);
+      else setSeriesDataRef.current?.(candles);
+    } else {
+      // Snapshot replacements, missed revisions, and historical corrections
+      // require a full ordered setData. Normal newest-candle updates use the
+      // Lightweight Charts incremental API to avoid redrawing the full series.
+      setSeriesDataRef.current?.(candles);
+    }
+
+    lastRenderedRevisionRef.current = snapshot.revision;
+    lastRenderedTimestampRef.current = snapshot.bars[snapshot.bars.length - 1].timestamp;
+    setMarketDataStatus(snapshot.status);
+    setMarketDataDetail(snapshot.detail ?? `${candles.length} validated bars · ${timeframe}`);
+  }, [isChartReady, selectedContract, timeframe, marketDataIdentity, marketDataSnapshot]);
 
   useEffect(() => {
     if (!isChartReady || !setSeriesDataRef.current) return;
@@ -276,15 +265,15 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       return;
     }
 
-    const identity = {
-      dataset: selectedContract.dataset,
-      publisherId: selectedContract.publisher_id,
-      instrumentId: selectedContract.instrument_id,
-      rawSymbol: selectedContract.raw_symbol,
-      timeframe,
-      bucketPolicy: getBucketPolicyForTimeframe(timeframe),
-      calendarId: '',
-      calendarVersion: '',
+    const identity = marketDataIdentity;
+    if (!identity) return;
+
+    const resetSelectedSeries = (
+      status: 'loading' | 'unavailable',
+      detail: string,
+    ) => {
+      resetMarketDataSnapshot(identity, status, detail);
+      marketDataSeriesStore.reset(identity, status, detail);
     };
 
     // A canonical ID must come from the validated instrument catalog. Never
@@ -293,7 +282,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       setSeriesDataRef.current(demoCandles);
       setMarketDataStatus('unavailable');
       setMarketDataDetail('This contract has no active canonical registry mapping; authenticated streaming is disabled.');
-      resetMarketDataSnapshot(identity, 'unavailable', 'No active canonical instrument mapping exists.');
+      resetSelectedSeries('unavailable', 'No active canonical instrument mapping exists.');
       return;
     }
 
@@ -301,7 +290,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       setSeriesDataRef.current(demoCandles);
       setMarketDataStatus('unavailable');
       setMarketDataDetail('Sign in with Firebase to request authenticated backend data.');
-      resetMarketDataSnapshot(identity, 'unavailable', 'Firebase sign-in is required.');
+      resetSelectedSeries('unavailable', 'Firebase sign-in is required.');
       return;
     }
 
@@ -314,7 +303,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       lastRenderedTimestampRef.current = null;
       setMarketDataStatus('unavailable');
       setMarketDataDetail(detail);
-      resetMarketDataSnapshot(identity, 'unavailable', detail);
+      resetSelectedSeries('unavailable', detail);
       return;
     }
 
@@ -323,7 +312,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
     setSeriesDataRef.current(demoCandles);
     setMarketDataStatus('loading');
     setMarketDataDetail(`Authenticating WebSocket stream for ${identity.rawSymbol} · ${timeframe}.`);
-    resetMarketDataSnapshot(identity, 'loading', 'Waiting for an authenticated WebSocket snapshot.');
+    resetSelectedSeries('loading', 'Waiting for an authenticated WebSocket snapshot.');
 
     const supervisor = startOhlcvStreamSupervisor({
       baseUrl: marketDataApiBaseUrl,
@@ -343,7 +332,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
           // The validated snapshot replaces demo candles with a different time
           // range; fit once at snapshot arrival, not on every streaming tick.
           chartRef.current?.timeScale().fitContent();
-          const snapshot = getMarketDataSnapshot();
+          const snapshot = marketDataSeriesStore.getSnapshot(identity);
           setMarketDataStatus(snapshot.status === 'unavailable'
             ? 'unavailable'
             : snapshot.status === 'degraded' ? 'degraded' : 'ready');
