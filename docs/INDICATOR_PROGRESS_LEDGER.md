@@ -1279,3 +1279,22 @@ The complete matrix remains:
 - Liquidation Maps 🟥 — not implemented; requires zero-cost source feasibility, validated calculation/data contract, user reference/blueprint and renderer.
 
 Invariants: warm-up values null, never zero; candle-index alignment; no future-candle repaint; stale clearing on symbol/venue/dataset/chart/timeframe change. Stage 4 visible-indicator implementation remains gated. Aggregate indicator percentage remains unscored without approved weights/denominators.
+
+## Batch 62J-106 — Production WebSocket acceptance reconciliation (22 November 2026)
+
+This cycle reconciled the production-acceptance pack against the existing two-process and dual-gateway CI evidence. No indicator calculation, formula, data contract, shared hook, chart renderer, chart UI or indicator test changed. **No indicator progress credit is awarded.**
+
+The complete indicator matrix remains unchanged:
+- SMA20 🟨 — arithmetic mean of 20 closes; first valid index 19. Remaining overlay, toggle, legend/current value, stale clearing and renderer/lifecycle tests.
+- EMA20 🟨 — SMA-seeded EMA, alpha 2/21; first valid index 19. Remaining overlay, toggle, legend/current value, stale clearing and renderer/lifecycle tests.
+- RSI14 🟨 — Wilder smoothing over 14 close changes; first valid index 14. Remaining 0–100 pane, 30/70 guides, toggle, legend, stale clearing and renderer tests.
+- MACD 12/26/9 🟨 — EMA12−EMA26; MACD first valid index 25; signal/histogram first valid index 33. Remaining pane, lines, histogram, zero guide, toggle, legend, stale clearing and renderer tests.
+- Bollinger20,2 🟨 — 20-close mean ±2×population SD; first valid index 19. Remaining three-line overlay, toggle, values, stale clearing and renderer tests.
+- Shared Indicator Hook 🟨 — validated candle-index-aligned snapshot. Remaining chart identity/timeframe binding, loading/error lifecycle, stale clearing and series isolation.
+- Footprint 🟧 — simulated educational accumulator, not exchange-native bid/ask truth. User visual reference and reviewed blueprint are mandatory before visual implementation; OFF preserves normal candle spacing; explicit ON enables spaced clusters.
+- Heatmap 🟥 — not implemented; requires user reference, zero-cost source feasibility, validated data contract, reviewed blueprint and renderer.
+- Liquidation Maps 🟥 — not implemented; requires zero-cost source feasibility, validated calculation/data contract, user reference/blueprint and renderer.
+
+Invariants remain: warm-up values null, never zero; candle-index alignment; no future-candle repaint; stale clearing on symbol/venue/dataset/chart/timeframe changes. Stage 4 visible-indicator work remains gated. Aggregate indicator percentage remains unscored without approved weights and denominator.
+
+WebSocket CI work, even when it verifies real two-process fan-out, does not count as indicator UI or calculation completion.
