@@ -2927,10 +2927,32 @@ def test_websocket_metrics_middleware_is_wired_into_authenticated_application():
 def test_closing_one_websocket_client_preserves_other_client_subscription() -> None:
     """A mobile client's disconnect must never stop another user's live socket."""
     application = _app_with_bars()
+    application.state.instrument_entitlements.grant(
+        subject="firebase-user-456",
+        canonical_instrument_id="0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+    )
+
+    class MultiUserVerifier:
+        def verify(self, token):
+            subjects = {
+                "user-a-token": "firebase-user-123",
+                "user-b-token": "firebase-user-456",
+            }
+            subject = subjects.get(token)
+            if subject is None:
+                raise IdentityVerificationError("invalid token")
+            return VerifiedPrincipal(
+                subject=subject,
+                issuer="https://securetoken.google.com/test-project",
+                audience="test-project",
+                auth_time=1_798_000_000,
+            )
+
+    application.state.identity_verifier = MultiUserVerifier()
 
     with TestClient(application) as client:
         with client.websocket_connect("/ws/market-data") as surviving:
-            surviving.send_json({"type": "auth", "token": "valid-firebase-token"})
+            surviving.send_json({"type": "auth", "token": "user-a-token"})
             assert surviving.receive_json()["type"] == "market_data.status"
             surviving.send_json({
                 "type": "market_data.subscribe",
@@ -2948,7 +2970,7 @@ def test_closing_one_websocket_client_preserves_other_client_subscription() -> N
             assert application.state.ohlcv_stream_hub.subscriber_count == 1
 
             with client.websocket_connect("/ws/market-data") as closing:
-                closing.send_json({"type": "auth", "token": "valid-firebase-token"})
+                closing.send_json({"type": "auth", "token": "user-b-token"})
                 assert closing.receive_json()["type"] == "market_data.status"
                 closing.send_json({
                     "type": "market_data.subscribe",
