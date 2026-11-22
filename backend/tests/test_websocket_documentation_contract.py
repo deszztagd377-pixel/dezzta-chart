@@ -12,7 +12,7 @@ def test_backend_readme_matches_single_use_websocket_ticket_contract():
 
     assert "post /v1/auth/websocket-ticket" in normalized
     assert "authorization: bearer firebase_id_token" in normalized
-    assert '{"type":"auth","ticket":"one_time_websocket_ticket"}' in readme
+    assert '{"type":"auth","ticket":"one_time_websocket_ticket"}' in normalized
     assert f"current ticket ttl is {WEBSOCKET_TICKET_TTL_SECONDS} seconds" in normalized
     assert "non-production compatibility path" in normalized
     assert "not yet\nimplemented" not in normalized
