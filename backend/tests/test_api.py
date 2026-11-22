@@ -3028,7 +3028,7 @@ def test_real_tls_websocket_upgrade_origin_policy_and_application_heartbeat(tmp_
     )
 
     server_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    server_name = x509.Name([x509.NameAttribute(x509.NameOID.COMMON_NAME, "localhost")])
+    server_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "localhost")])
     server_certificate = (
         x509.CertificateBuilder()
         .subject_name(server_name)
