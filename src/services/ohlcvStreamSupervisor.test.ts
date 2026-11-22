@@ -119,6 +119,7 @@ describe('OHLCV stream supervisor', () => {
 
   it('supersedes the previous supervisor on timeframe change without allowing stale callbacks to replace the new series', async () => {
     const oldSocket = new FakeSocket();
+    oldSocket.deferCloseEvent = true;
     const oldSupervisor = startOhlcvStreamSupervisor({
       baseUrl: 'https://market.example.test',
       identity,
@@ -149,19 +150,28 @@ describe('OHLCV stream supervisor', () => {
     });
 
     expect(oldSupervisor.status).toBe('stopped');
-    expect(oldSocket.readyState).toBe(3);
-    expect(getMarketDataSnapshot().identity?.timeframe).toBe('1m');
-    expect(getMarketDataSnapshot().status).toBe('loading');
-    expect(getMarketDataSnapshot().bars).toHaveLength(0);
-
-    // Simulate a queued browser message from the old socket after replacement.
-    oldSocket.message(snapshot);
-    oldSupervisor.stop();
+    // The old browser socket is still CLOSING; its native close event arrives later.
+    expect(oldSocket.readyState).toBe(2);
     expect(getMarketDataSnapshot().identity?.timeframe).toBe('1m');
     expect(getMarketDataSnapshot().status).toBe('loading');
     expect(getMarketDataSnapshot().bars).toHaveLength(0);
 
     await vi.waitFor(() => expect(nextSocket.listeners.has('open')).toBe(true));
+    nextSocket.readyState = 1;
+    nextSocket.emit('open', new Event('open'));
+    nextSocket.message({ type: 'market_data.status', version: 1 });
+    const nextBar = { ...bar, timeframe: '1m' };
+    nextSocket.message({ ...snapshot, bars: [nextBar] });
+    expect(getMarketDataSnapshot().identity?.timeframe).toBe('1m');
+    expect(getMarketDataSnapshot().bars).toHaveLength(1);
+
+    // Both a queued data message and a delayed native close from the old socket
+    // must be harmless after the replacement has published its own snapshot.
+    oldSocket.message(snapshot);
+    oldSocket.completeClose();
+    expect(getMarketDataSnapshot().identity?.timeframe).toBe('1m');
+    expect(getMarketDataSnapshot().bars).toEqual([nextBar]);
+
     nextSupervisor.stop();
     expect(nextSupervisor.status).toBe('stopped');
   });
