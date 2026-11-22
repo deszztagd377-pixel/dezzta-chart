@@ -42,6 +42,74 @@ If any prerequisite cannot be verified, keep production deployment deferred.
 Do not substitute plaintext Redis, an in-memory limiter, a free trial, or a
 paid managed endpoint.
 
+## Oracle Cloud Always Free candidate — single-instance acceptance profile
+
+The owner has selected Oracle Cloud Infrastructure (OCI) Always Free as the
+candidate public host for the first single-instance deployment. This is a
+candidate deployment target, not evidence that an OCI tenancy, VM, hostname,
+or public endpoint exists.
+
+The initial topology is intentionally single-node:
+
+- One Always Free eligible Ampere A1 VM runs the FastAPI application, reverse
+  proxy, and a locally bound Redis instance.
+- SQLite remains the authoritative OHLCV store and durable outbox on the VM's
+  persistent boot/block volume. The application and database must use the same
+  configured persistent path.
+- Redis is used for the production shared security guard and single-use
+  WebSocket ticket storage. Bind it only to loopback/private interfaces, use a
+  dedicated ACL user, and require TLS with certificate and hostname validation.
+- The normal source-mode WebSocket hub remains process-local. Do not enable
+  publisher/replica mode or add gateway replicas for this first deployment.
+- The reverse proxy terminates public HTTPS/WSS and forwards only to the
+  loopback FastAPI listener. Do not expose Redis or the application worker port
+  directly to the public internet.
+
+OCI currently documents Always Free Ampere A1 allowance as up to 2 OCPUs and
+12 GB memory, with 200 GB total boot/block-volume storage in the tenancy's
+home region. Capacity is not guaranteed; an out-of-host-capacity response can
+prevent provisioning. Always Free resources are free only within their
+published limits and eligible labels. Do not create or resize into a paid
+shape, paid volume, paid load balancer, or other non-Always-Free resource.
+
+**Availability limitation:** OCI states that Always Free compute instances may
+be reclaimed when they remain below its idle thresholds over a seven-day
+period (CPU p95 below 20%, network below 20%, and memory below 20% for A1).
+The tenancy account can also be suspended or terminated under OCI's account
+and inactivity terms. Therefore Always Free is a zero-cost candidate, not a
+promise of uninterrupted service or permanent data retention. Keep encrypted
+backups outside the VM and prove restore independently.
+
+Before any production deployment, the adult account owner must confirm the
+tenancy's current Always Free eligibility, region capacity, resource labels,
+account terms, and that no billing upgrade or paid resource is enabled. Never
+share identity, card, tenancy, SSH, Firebase, or Redis credentials in chat.
+Do not create multiple accounts or bypass identity, payment-method, age, or
+account-verification requirements.
+
+**OCI-specific acceptance gates (all remain open until tested):**
+
+1. Confirm the VM shape, boot volume, and every attached resource are marked
+   Always Free in the actual tenancy and stay within published limits.
+2. Confirm the host survives restart with the SQLite database and Redis data
+   intact; measure disk usage, WAL growth, and Redis persistence behavior.
+3. Configure the Redis ACL user and TLS trust chain. The backend must reject
+   wrong hostname, untrusted certificate, invalid ACL credentials, and
+   unreachable Redis during production startup.
+4. Establish a stable public HTTPS hostname and publicly trusted TLS chain
+   without introducing a paid domain or service. If that cannot be achieved
+   at zero cost, public WSS acceptance remains blocked.
+5. Validate reverse-proxy WebSocket upgrade, heartbeat, ticket renewal, and
+   reconnect using a real browser and Android client.
+6. Back up the SQLite database, encrypt the backup, restore it to a clean
+   location, and verify the restored outbox cursor and OHLCV snapshot.
+7. Record actual host resource use and test recovery after VM restart and
+   unexpected termination. Do not claim high availability from a single VM.
+
+Official OCI limits and policies must be rechecked at provisioning time:
+- https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm
+- https://www.oracle.com/cloud/free/
+
 ## Container build and local smoke test
 
 Run from the repository root after configuring an owner-controlled self-hosted
