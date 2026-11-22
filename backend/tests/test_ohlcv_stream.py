@@ -389,9 +389,10 @@ def test_stream_hub_rejects_updates_when_any_series_identity_dimension_differs()
         mismatches = [
             replace(make_bar(1), dataset="OTHER.DATASET"),
             replace(make_bar(1), publisher_id=2),
-            replace(make_bar(1), instrument_id=202, raw_symbol="NQZ6"),
+            replace(make_bar(1), instrument_id=202),
             replace(make_bar(1), raw_symbol="NQZ6"),
-            replace(make_bar(1), timeframe="5s"),
+            # A 5-second bar must also use a 5-second-aligned timestamp.
+            replace(make_bar(5), timeframe="5s"),
             replace(make_bar(1), provider="provider-b"),
             replace(make_bar(1), series_type="continuous"),
             replace(make_bar(1), bucket_policy="UTC_FIXED_V1"),
