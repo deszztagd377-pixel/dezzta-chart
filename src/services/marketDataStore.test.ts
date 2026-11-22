@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import type { MarketSeriesIdentity } from './marketDataStore';
 import {
   getMarketDataSnapshot,
   publishMarketDataSnapshot,
@@ -111,6 +112,36 @@ describe('shared market data store', () => {
       bar: bars[0],
     })).toThrow(/identity/);
     expect(getMarketDataSnapshot().identity?.bucketPolicy).toBe('UTC_FIXED_V1');
+  });
+
+  it('rejects unsupported or malformed series identity metadata without mutating state', () => {
+    const invalidIdentities = [
+      { ...identity, calendarId: 'CME', calendarVersion: '2026a' },
+      { ...identity, provider: '   ' },
+      { ...identity, seriesType: 'unsupported' },
+      { ...identity, bucketPolicy: 'CME_SESSION_V1' },
+    ] as unknown as MarketSeriesIdentity[];
+
+    for (const invalidIdentity of invalidIdentities) {
+      expect(() => publishMarketDataSnapshot({
+        identity: invalidIdentity,
+        status: 'loading',
+        detail: 'invalid identity fixture',
+      })).toThrow();
+    }
+    expect(getMarketDataSnapshot().identity).toBeNull();
+
+    publishMarketDataSnapshot({ identity, status: 'ready', bars });
+    const before = getMarketDataSnapshot();
+    expect(() => publishMarketDataUpdate({
+      identity: {
+        ...identity,
+        calendarId: 'CME',
+        calendarVersion: '2026a',
+      },
+      bar: bars[0],
+    })).toThrow(/session-aware bucket policy/);
+    expect(getMarketDataSnapshot()).toBe(before);
   });
 
   it('rejects invalid OHLCV updates without mutating the current snapshot', () => {

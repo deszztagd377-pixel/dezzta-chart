@@ -54,6 +54,43 @@ export function subscribeMarketData(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 
+function validateSeriesIdentity(identity: MarketSeriesIdentity): void {
+  if (
+    typeof identity.dataset !== 'string' || !identity.dataset.trim() ||
+    typeof identity.rawSymbol !== 'string' || !identity.rawSymbol.trim() ||
+    !Number.isSafeInteger(identity.publisherId) || identity.publisherId <= 0 ||
+    !Number.isSafeInteger(identity.instrumentId) || identity.instrumentId <= 0
+  ) {
+    throw new Error('Market data series identity is incomplete or invalid.');
+  }
+
+  const provider = identity.provider ?? 'databento';
+  if (typeof provider !== 'string' || !provider.trim()) {
+    throw new Error('Market data provider identity is invalid.');
+  }
+  const seriesType = identity.seriesType ?? 'contract';
+  if (seriesType !== 'contract' && seriesType !== 'continuous') {
+    throw new Error('Market data series type is unsupported.');
+  }
+  const bucketPolicy = identity.bucketPolicy ?? getBucketPolicyForTimeframe(identity.timeframe);
+  if (bucketPolicy !== 'UTC_LEGACY' && bucketPolicy !== 'UTC_FIXED_V1') {
+    throw new Error('Market data bucket policy is unsupported by the frontend.');
+  }
+
+  const calendarId = identity.calendarId ?? '';
+  const calendarVersion = identity.calendarVersion ?? '';
+  if (
+    typeof calendarId !== 'string' ||
+    typeof calendarVersion !== 'string' ||
+    calendarId.trim() ||
+    calendarVersion.trim()
+  ) {
+    throw new Error(
+      'Exchange calendar metadata cannot be used until a session-aware bucket policy is supported.',
+    );
+  }
+}
+
 function validateBars(bars: readonly ChartData[]): void {
   let previousTimestamp = -Infinity;
   bars.forEach((bar, index) => {
@@ -98,14 +135,7 @@ export function publishMarketDataSnapshot(input: {
   if (isBackendStatus && !input.identity) {
     throw new Error('Backend market data requires an exact series identity.');
   }
-  if (input.identity && (
-    !input.identity.dataset ||
-    !input.identity.rawSymbol ||
-    !Number.isSafeInteger(input.identity.publisherId) || input.identity.publisherId <= 0 ||
-    !Number.isSafeInteger(input.identity.instrumentId) || input.identity.instrumentId <= 0
-  )) {
-    throw new Error('Market data series identity is incomplete or invalid.');
-  }
+  if (input.identity) validateSeriesIdentity(input.identity);
   if (isBackendStatus && bars.length === 0) {
     throw new Error('Backend market data cannot be ready without validated bars.');
   }
@@ -159,6 +189,7 @@ export function publishMarketDataUpdate(input: {
   identity: MarketSeriesIdentity;
   bar: ChartData;
 }): void {
+  validateSeriesIdentity(input.identity);
   const current = currentSnapshot;
   if (
     current.source !== 'backend' ||
