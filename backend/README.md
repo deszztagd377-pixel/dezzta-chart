@@ -72,23 +72,42 @@ Incremental events are ordered by `ts_event`: older updates cannot overwrite new
 
 ## WebSocket
 
-WebSocket: `ws://127.0.0.1:8000/ws/market-data`
+Local development: `ws://127.0.0.1:8000/ws/market-data`  
+Production: `wss://<public-host>/ws/market-data` (only after HTTPS/TLS and reverse-proxy acceptance).
 
-The current prototype requires the client to send a Firebase Authentication ID token
-as the first WebSocket message after connecting. The backend verifies the token
-with Firebase Admin, including revocation checks, and derives the account identity
-from the verified principal:
+Production clients authenticate in two steps. First, obtain a Firebase
+Authentication ID token from the configured client authentication provider and
+exchange it over HTTPS:
 
-```json
-{"type":"auth","token":"FIREBASE_ID_TOKEN"}
+```http
+POST /v1/auth/websocket-ticket
+Authorization: Bearer FIREBASE_ID_TOKEN
 ```
 
-Do not use a static shared WebSocket token or put a signing secret in the browser.
-The prototype currently verifies the Firebase ID token directly; the separately
-approved short-lived, narrowly scoped WebSocket-ticket exchange is **not yet
-implemented**. Do not treat this prototype handshake as the final production
-credential design. Production release remains blocked on the ticket lifecycle,
-real Firebase signed-token end-to-end tests, and deployment verification.
+The backend verifies the Firebase token with Firebase Admin (including the
+configured revocation check) and returns a purpose-bound, short-lived,
+single-use WebSocket ticket. The current ticket TTL is 90 seconds. The ticket
+store consumes the ticket once; production deployments must use the shared
+Redis-backed guard/ticket store rather than the process-local in-memory
+fallback.
+
+Then connect to the WebSocket endpoint and send the ticket as the first frame:
+
+```json
+{"type":"auth","ticket":"ONE_TIME_WEBSOCKET_TICKET"}
+```
+
+The backend consumes the ticket and derives the account subject from the
+stored verified identity; the client cannot choose the account subject. Direct
+Firebase-token authentication in the WebSocket frame is retained only as a
+non-production compatibility path and is rejected when `APP_ENV=production`.
+
+Never put Firebase ID tokens, WebSocket tickets, Redis credentials, or signing
+secrets in URL query parameters, browser bundles, logs, or source control. The
+ticket lifecycle and its repository failure matrix are implemented and covered
+by CI. Production release remains blocked on real Firebase-project signed-token
+and entitlement E2E, owner-host shared Redis/TLS/ACL and ticket-store operation,
+public HTTPS/WSS deployment verification, and browser/Android WebView acceptance.
 
 After authentication, the server sends a status message. The client must then send
 one version 1 subscription with the exact verified series identity:
