@@ -1883,3 +1883,14 @@ IP3S is a per-work-cycle delivery-quality score, **not** an overall project comp
 Score each dimension from 0–100% and apply its weight. Documentation alone earns no runtime implementation points; CI cannot close owner-host or real-device gates. A newly clarified blocker earns only decision-readiness credit, not gate-closure credit.
 
 **Batch 62J-129: 58/100** (0/25 engineering delta + 20/20 exact-head CI + 8/20 blocker reduction + 15/20 canonical documentation + 15/15 scope/cost integrity). This is a work-cycle quality score, not project completion. Keep it separate from Stage 1 30/40 = 75% provisional and Gate 10 0/10 formally closed.
+
+
+## Batch 62J-137 reconciliation — 22 November 2026
+
+WebSocket Gate 25 source/test audit refined the trust boundary: gateway runtime compares source/generation/cursor to durable checkpoint, but callback-returned SHA-256 is only syntax-checked because the replica has no durable immutable receipt. Publisher-side gateway installation mappings are validated as a consistent envelope, while actual gateway receipt authentication/retrieval is explicitly delegated to the owner-host callback. Local tests do not prove remote receipt authenticity or custody.
+
+Receipt migration proposal is additive and separate from mutable checkpoint state. Existing checkpoints without receipts must remain LEGACY_UNATTESTED; never synthesize historical digest or attestation. Snapshot rows, checkpoint and receipt must commit atomically; same identity tuple + same digest is idempotent, while same tuple + conflicting digest/manifest fails closed. Generation ordering must use an explicit source/cursor policy, not lexical UUID order. Fourteen focused migration, conflict, rollback, restart, runtime-binding and owner-host tests are specified in the Batch 62J-137 report. No implementation/schema change was made.
+
+No indicator source, tests, calculations, hook, renderer or chart UI changed. Indicator matrix remains unchanged: SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook 🟨 foundation; Footprint 🟧 synthetic/reference-gated; Heatmap and Liquidation Maps 🟥 unimplemented. No indicator progress credit or aggregate percentage.
+
+Stage 1 remains 30/40 = 75% provisional; Stages 2–6 NOT SCORED/not officially opened; overall project NOT SCORED; Gate 10 remains 0/10 external criteria formally closed. WebSocket Gates 25, 36 and 38 remain OPEN. IP3S Batch 62J-137 is PENDING exact-HEAD CI; no numeric score until checks complete. ZERO COST; no deployment/credentials/device work; main untouched. See [Batch 62J-137](WORK_CYCLE_2026-11-22_BATCH62J137_GATE25_RECEIPT_TRUST_AND_MIGRATION.md).
