@@ -3209,6 +3209,13 @@ def test_real_tls_websocket_upgrade_origin_policy_and_application_heartbeat(tmp_
                     assert json.loads(await asyncio.wait_for(departing.recv(), timeout=5))["type"] == "market_data.ohlcv.snapshot"
                     assert application.state.ohlcv_stream_hub.subscriber_count == 2
 
+                # The client close handshake can complete just before ASGI finally cleanup.
+                cleanup_deadline = asyncio.get_running_loop().time() + 5
+                while (
+                    application.state.ohlcv_stream_hub.subscriber_count != 1
+                    and asyncio.get_running_loop().time() < cleanup_deadline
+                ):
+                    await asyncio.sleep(0.01)
                 assert application.state.ohlcv_stream_hub.subscriber_count == 1
                 await surviving.send("ping")
                 assert json.loads(await asyncio.wait_for(surviving.recv(), timeout=5)) == {
