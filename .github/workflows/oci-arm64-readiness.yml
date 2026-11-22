@@ -89,7 +89,9 @@ jobs:
           fi
 
           node -e 'const fs=require("node:fs"); const p=JSON.parse(fs.readFileSync("/tmp/dezzta-arm64-health.json","utf8")); if(p.status!=="ok") process.exit(1);'
-          test "$(docker exec "$container_name" id -u)" = "10001"
+          runtime_uid="$(docker exec "$container_name" sh -c 'grep "^Uid:" /proc/1/status' | awk '{print $2}')"
+          test "$runtime_uid" = "10001"
+          echo "PASS: backend PID 1 runs as UID 10001."
           docker exec --user 10001:10001 "$container_name" sh -c 'touch /data/arm64-volume-write-probe && test -w /data/arm64-volume-write-probe'
           docker exec --user 10001:10001 "$container_name" sh -c 'test -f /data/arm64-volume-write-probe'
           echo "PASS: application UID 10001 can write to the mounted persistent volume."

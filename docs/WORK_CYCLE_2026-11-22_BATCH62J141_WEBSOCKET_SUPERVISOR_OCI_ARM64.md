@@ -51,7 +51,7 @@ It uses GitHub's native `ubuntu-24.04-arm` runner and is intended to:
 - verify the application user can write to the mounted data volume;
 - restart the container and verify the volume data remains available.
 
-The first ARM64 run [45000139431](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45000139431) proved the backend image builds as `arm64`, but its smoke step failed on a brittle host Docker-volume-path check. The workflow was revised to perform the write/persistence assertions through the running container instead. The corrected workflow's rerun is **PENDING**; do not call ARM64 runtime acceptance complete until that run succeeds.
+The first two ARM64 smoke attempts [45000139431](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45000139431) and [45000662591](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45000662591) both proved the backend image builds as `arm64`, but the smoke step failed at a UID assertion. The Docker image's configured `USER` is root because its entrypoint must normalize mounted-volume ownership; the entrypoint then uses `su-exec` to run the actual PID 1 application as UID 10001. `docker exec ... id -u` reports the exec process's default image user, not PID 1's effective UID, so that assertion was invalid. The workflow now reads PID 1's UID from `/proc/1/status`, then separately verifies that UID 10001 can write to the mounted volume and that the file survives container restart. The corrected rerun is **PENDING**; do not call ARM64 runtime acceptance complete until it succeeds.
 
 GitHub documents standard ARM64 hosted runners as free and unlimited for public repositories:
 - https://docs.github.com/en/actions/reference/runners/github-hosted-runners
