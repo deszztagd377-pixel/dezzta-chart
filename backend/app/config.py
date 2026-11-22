@@ -279,6 +279,8 @@ class Settings:
                 "by the ZERO MONEY policy."
             )
         if self.redis_tls_ca_certs:
+            if not isinstance(self.redis_tls_ca_certs, str):
+                raise ValueError("REDIS_TLS_CA_CERTS must be a string path.")
             if not Path(self.redis_tls_ca_certs).is_absolute():
                 raise ValueError("REDIS_TLS_CA_CERTS must be an absolute path to a PEM CA bundle.")
             if self.redis_url and not self.redis_url.lower().startswith("rediss://"):
