@@ -1002,6 +1002,49 @@ describe('OHLCV stream supervisor', () => {
     expect(supervisor.status).toBe('stopped');
   });
 
+  it('does not republish late snapshot or update messages after supervisor stop', async () => {
+    const socket = new FakeSocket();
+    const supervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken: async () => 'fresh-token',
+      webSocketFactory: () => socket as unknown as WebSocket,
+      random: () => 0,
+    });
+
+    await vi.waitFor(() => expect(socket.listeners.has('open')).toBe(true));
+    socket.readyState = 1;
+    socket.emit('open', new Event('open'));
+    socket.message({ type: 'market_data.status', version: 1 });
+    socket.message(snapshot);
+    expect(getMarketDataSnapshot().source).toBe('backend');
+    expect(getMarketDataSnapshot().bars).toHaveLength(1);
+
+    supervisor.stop();
+    expect(getMarketDataSnapshot().status).toBe('unavailable');
+    expect(getMarketDataSnapshot().detail).toBe('OHLCV stream stopped.');
+
+    socket.message({ ...snapshot, streamId: 'late-stream', watermark: 99 });
+    socket.message({
+      type: 'market_data.ohlcv.update',
+      version: 1,
+      streamId: 'stream-a',
+      eventId: 'late-update',
+      sequence: 8,
+      emittedAtNs: '1793577601000000000',
+      operation: 'upsert',
+      isFinal: true,
+      series: identity,
+      bar: { ...bar, sequence: 8, close: '7000.000' },
+    });
+
+    expect(supervisor.status).toBe('stopped');
+    expect(getMarketDataSnapshot().status).toBe('unavailable');
+    expect(getMarketDataSnapshot().detail).toBe('OHLCV stream stopped.');
+    expect(getMarketDataSnapshot().bars).toHaveLength(0);
+  });
+
   it('does not reconnect after an explicit stop', async () => {
     vi.useFakeTimers();
     const factory = vi.fn(() => new FakeSocket() as unknown as WebSocket);
