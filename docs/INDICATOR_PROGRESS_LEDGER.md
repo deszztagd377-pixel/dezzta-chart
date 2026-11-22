@@ -1,6 +1,6 @@
 ## Batch 62J-103 checkpoint — indicator state unchanged (22 November 2026)
 
-WebSocket ticket renewal and Redis ticket-store tests are backend authentication/transport work. No indicator formula, calculation module, market-data indicator contract, shared indicator hook, chart renderer, chart UI, or indicator test changed. **No indicator progress credit is awarded.**
+WebSocket ticket renewal failure-matrix and Redis ticket-contract tests are backend authentication/transport work. No indicator formula, calculation module, market-data indicator contract, shared indicator hook, chart renderer, chart UI, or indicator test changed. **No indicator progress credit is awarded.** Source/test HEAD: `a18e963d4cd067fe22ec8d03c653418e003c7fde`.
 
 Current complete indicator matrix and acceptance criteria:
 
