@@ -1,4 +1,9 @@
-# Canonical indicator status — Batch 62J-119 (22 November 2026)
+# Canonical indicator status — Batch 62J-120 (22 November 2026)
+
+## Batch 62J-120 — exact-head CI and artifact inspection (22 November 2026)
+
+**Tested HEAD:** `c6cd331c5f9293093418bda31f93960f5aed1600`. Automated Tests #1954, CodeQL and Full Git History Secret Audit all completed SUCCESS. The Trivy JSON artifact was inspected: zero reported vulnerabilities in the scanned Alpine OS and Python package groups for the `linux/amd64` CI image. Synthetic outbox replay passed; the 899-series metrics collector benchmark exposed increasing SQLite writer-lock retries under higher concurrency. These are CI-only measurements, not production SLOs. ARM64 remains unverified; public WSS, production Redis/Firebase and browser/Android E2E remain open. No indicator source or test changed; indicator statuses and Stage 1 accounting remain unchanged. Full evidence and limitations: [Batch 62J-120](WORK_CYCLE_2026-11-22_BATCH62J120_EXACT_HEAD_CI_ARTIFACT_AND_ACCEPTANCE_AUDIT.md).
+
 
 ## Batch 62J-119 — WebSocket acceptance and indicator ledger exact-head reconciliation (22 November 2026)
 
