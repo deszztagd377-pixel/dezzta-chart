@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
 import uvicorn
 import websockets
 
@@ -3013,7 +3014,7 @@ def test_real_tls_websocket_upgrade_origin_policy_and_application_heartbeat(tmp_
 
     now = datetime.now(timezone.utc)
     ca_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    ca_name = x509.Name([x509.NameAttribute(x509.NameOID.COMMON_NAME, "DEZZTA ephemeral test CA")])
+    ca_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "DEZZTA ephemeral test CA")])
     ca_certificate = (
         x509.CertificateBuilder()
         .subject_name(ca_name)
@@ -3045,7 +3046,7 @@ def test_real_tls_websocket_upgrade_origin_policy_and_application_heartbeat(tmp_
         )
         .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
         .add_extension(
-            x509.ExtendedKeyUsage([x509.oid.ExtendedKeyUsageOID.SERVER_AUTH]),
+            x509.ExtendedKeyUsage([ExtendedKeyUsageOID.SERVER_AUTH]),
             critical=False,
         )
         .sign(ca_key, hashes.SHA256())
