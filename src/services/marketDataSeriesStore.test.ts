@@ -212,6 +212,28 @@ describe('keyed market-data series store', () => {
     expect(store.getSeriesCount()).toBe(1);
   });
 
+  it('provides stable render-pure reads without allocating entries or changing LRU order', () => {
+    const store = new MarketDataSeriesStore(2);
+    const missingBeforeSubscribe = store.peekSnapshot(nq);
+    expect(store.peekSnapshot(nq)).toBe(missingBeforeSubscribe);
+    expect(missingBeforeSubscribe.identity).toBeNull();
+    expect(store.getSeriesCount()).toBe(0);
+
+    store.publishSnapshot({ identity: nq, status: 'ready', bars });
+    store.publishSnapshot({ identity: es, status: 'ready', bars });
+    const nqSnapshot = store.peekSnapshot(nq);
+    expect(nqSnapshot.bars).toEqual(bars);
+
+    // A pure render read must not make NQ more recent than ES.
+    const ym = { ...nq, instrumentId: 789, rawSymbol: 'YMZ6' };
+    store.publishSnapshot({ identity: ym, status: 'ready', bars });
+
+    expect(store.hasSeries(nq)).toBe(false);
+    expect(store.hasSeries(es)).toBe(true);
+    expect(store.hasSeries(ym)).toBe(true);
+    expect(store.getSeriesCount()).toBe(2);
+  });
+
   it('isolates listener failures so one panel cannot block another', () => {
     const store = new MarketDataSeriesStore();
     let healthyPanel = 0;
