@@ -120,6 +120,7 @@ describe('shared market data store', () => {
       { ...identity, provider: '   ' },
       { ...identity, seriesType: 'unsupported' },
       { ...identity, bucketPolicy: 'CME_SESSION_V1' },
+      { ...identity, timeframe: 'invalid', bucketPolicy: 'UTC_FIXED_V1' },
     ] as unknown as MarketSeriesIdentity[];
 
     for (const invalidIdentity of invalidIdentities) {

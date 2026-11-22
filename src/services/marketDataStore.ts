@@ -72,7 +72,10 @@ function validateSeriesIdentity(identity: MarketSeriesIdentity): void {
   if (seriesType !== 'contract' && seriesType !== 'continuous') {
     throw new Error('Market data series type is unsupported.');
   }
-  const bucketPolicy = identity.bucketPolicy ?? getBucketPolicyForTimeframe(identity.timeframe);
+  // Resolve the timeframe even when an explicit bucket policy is supplied,
+  // so malformed runtime values cannot bypass the supported-timeframe guard.
+  const defaultBucketPolicy = getBucketPolicyForTimeframe(identity.timeframe);
+  const bucketPolicy = identity.bucketPolicy ?? defaultBucketPolicy;
   if (bucketPolicy !== 'UTC_LEGACY' && bucketPolicy !== 'UTC_FIXED_V1') {
     throw new Error('Market data bucket policy is unsupported by the frontend.');
   }
