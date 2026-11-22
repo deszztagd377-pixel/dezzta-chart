@@ -33,6 +33,27 @@ Exact source/test HEAD `a62e7423a5d36d3fdbc003e0e56d86c3a9e6ecbb`:
 ### Full-cardinality benchmark notes
 The batch-read optimization reduces 16-worker bucket SELECT count from 460,288 to 512 per 512 flushes. On the CI runner, 16-thread p95 changed 654.798 → 600.947 ms, p99 921.534 → 944.797 ms, max 2,769.913 → 1,727.381 ms, retries 251 → 154. Four-process p95 changed 243.724 → 114.703 ms and retries 4 → 2. Four-thread p99 regressed 290.086 → 405.913 ms; 16-thread p99 regressed 2.52%. Keep the tail-latency caveat visible; no production SLA is established.
 
+## Latest exact-head CI and full-cardinality benchmark — Batch 62J-104 (22 November 2026)
+
+Source/test HEAD `a18e963d4cd067fe22ec8d03c653418e003c7fde`:
+- Automated Tests [44970436441](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44970436441): SUCCESS; backend 1,289 passed in 51.98 s; frontend 255/255 across 29 files.
+- CodeQL [44970436417](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44970436417): SUCCESS.
+- Full Git History Secret Audit [44970436377](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44970436377): SUCCESS.
+- Exact-head benchmark artifact: [synthetic-metrics-collector-benchmark, artifact 14732789024](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44970436441/artifacts/14732789024).
+
+Latest 16-worker startup-phase-staggered synthetic profile:
+- 512/512 flushes committed; 16 workers verified; 899/899 logical series verified; aggregate request count 512; zero lock retries; SQLite integrity `ok`.
+- Flush latency: p50 13.697 ms, p95 54.797 ms, p99 191.384 ms, max 262.567 ms.
+- Writer-lock wait: p50 3.141 ms, p95 34.047 ms, p99 178.749 ms, max 252.701 ms.
+- Transaction body + commit: p50 8.400 ms, p95 11.051 ms, p99 24.737 ms, max 32.750 ms.
+- Peak DB+WAL+SHM: 5,744,952 bytes; post-checkpoint total: 1,126,400 bytes.
+- Snapshot payload: 105,586 / 262,144 bytes (40.30%); series capacity: 899 / 900 (99.89%).
+- 4 separate OS-process profile also passed 128/128 flushes with 899 logical series and SQLite integrity `ok`; this remains synthetic CI-host evidence.
+
+Capacity arithmetic remains 899 × 672 = 604,128 planned aggregate rows against a 650,000 cap, leaving 45,872 rows (7.06%). The benchmark's byte measurements are from the GitHub runner's filesystem and do not establish owner-host disk sizing, production SLA, multi-host capability or actual restart persistence.
+
+**Acceptance boundary unchanged:** Gate 38 remains 🟧 OPEN until the owner-controlled host proves its actual persistent volume and permissions, restart persistence, private network perimeter, operator-token injection/rotation, human-facing dashboard/access review, independent no-cost notification/acknowledgement and a real disk-pressure/incident/recovery drill. CI container smoke and synthetic benchmark do not close host/operator criteria.
+
 ## 2. Why Gate 38 remains orange
 
 1. No owner-host proof of the actual persistent volume, mount identity, ownership/mode, restart persistence, disk pressure, bounded retention or backup/restore.
