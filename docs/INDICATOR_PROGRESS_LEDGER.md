@@ -1,3 +1,12 @@
+
+## Batch 62J-147 reconciliation — 22 November 2026
+
+- No indicator source, formula, calculation test, hook, chart renderer or UI was changed.
+- All indicator implementation statuses remain unchanged: SMA20 🟨, EMA20 🟨, RSI14 Wilder 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, Shared Indicator Hook 🟨, Footprint 🟧 (synthetic/reference-gated), Heatmap 🟥, Liquidation Maps 🟥.
+- The detailed formula, first-valid-index, numerical safety, prefix-causality, chart-integration and visual acceptance matrix remains in `docs/INDICATOR_PROGRESS_AUDIT_2026-11-22.md`. This ledger must not reduce those acceptance requirements to a generic "foundation" label.
+- On-demand market-data architecture is Stage 2 and gives no indicator implementation credit. Stage 4 visual implementation remains subject to the approved roadmap and visual-reference gates.
+- Aggregate indicator completion remains NOT SCORED because per-study weights and a denominator are not approved.
+
 # CURRENT INDICATOR LEDGER — Batch 62J-146 (22 November 2026)
 
 Repository audit baseline: `06a3c3c9e5b5ecd2ff4c8c29e0e472972c1c6e7e` on `phase-2/market-data-foundation`.
