@@ -132,3 +132,31 @@ Indicator acceptance invariants:
 - Failure cause: the new test file's `afterEach` cleanup left the keyed snapshot in `unavailable`; the following test correctly observed that persisted state instead of its assumed initial `loading` state.
 - Corrected test isolation by resetting both fixture identities to `loading` after each test. No production runtime logic was changed for this test-only failure.
 - The correction must be verified by the next exact-HEAD Automated Tests run before the cycle is green.
+
+
+## Final exact-code verification — 2026-11-22
+Code/test HEAD: `d269b3a907922026eef831aecdd893e912da486d`.
+
+All required workflows completed successfully for this exact code/test HEAD:
+- Automated Tests: run `45043642609` — SUCCESS.
+  - Frontend unit tests — SUCCESS, including keyed indicator hook isolation and shared frozen-result tests.
+  - Frontend production build and bundle credential scans — SUCCESS.
+  - Backend tests — SUCCESS, including indexed exact-series fan-out and durable-cursor validation ordering.
+  - Synthetic SQLite outbox benchmark — SUCCESS.
+  - Same-host SQLite metrics collector benchmark — SUCCESS.
+  - Backend dependency audit — SUCCESS.
+  - Backend container build and shared-Redis/persistent-volume smoke test — SUCCESS.
+  - Backend container vulnerability scan and report export — SUCCESS.
+- CodeQL: run `45043642655` — SUCCESS (Python and JavaScript/TypeScript).
+- Full Git History Secret Audit: run `45043642627` — SUCCESS.
+- OCI ARM64 image readiness: run `45043642593` — SUCCESS (native ARM64 image build and smoke test).
+- Android Debug APK: run `45043642579` — SUCCESS; APK assembled, non-empty artifact verified, SHA-256 calculated, and short-lived CI artifact uploaded.
+
+The intermediate test failure on `33d119ba057282f3390ba887c25df223e06023d2` was caused by test cleanup leaving a keyed snapshot in `unavailable`. Cleanup now restores fixture snapshots to `loading`; all tests passed on `d269b3a`.
+
+This cycle's final documentation commit is documentation-only and has no source-code changes. If workflows are triggered by that docs-only commit, the exact code/test HEAD above remains the validated source tree.
+
+## OCI / APK release boundary
+- OCI ARM64 success certifies CI image build and smoke-test readiness only. No Oracle Cloud account, VM, public endpoint, billing method, or paid resource was provisioned.
+- Android APK success certifies a debug APK CI artifact. It is short-lived CI storage, not a public app release or a persistent private download endpoint.
+- No Google Play publication or GitHub preview release was initiated.
