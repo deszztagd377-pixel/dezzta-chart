@@ -92,7 +92,7 @@ export class MarketDataSeriesStore {
   }
 
   publishSnapshot(input: PublishSeriesSnapshotInput): void {
-    const entry = this.getEntry(input.identity);
+    validateMarketSeriesIdentity(input.identity);
     const bars = input.bars ?? [];
     const backendState = input.status === 'ready' || input.status === 'degraded';
 
@@ -104,6 +104,8 @@ export class MarketDataSeriesStore {
     }
     if (backendState) validateMarketDataBars(bars);
 
+    // Validate first: a rejected publication must not evict a valid cached series.
+    const entry = this.getEntry(input.identity);
     const immutableBars = Object.freeze(
       bars.map((bar) => Object.freeze({ ...bar })),
     );
@@ -120,7 +122,13 @@ export class MarketDataSeriesStore {
   }
 
   publishUpdate(input: { identity: MarketSeriesIdentity; bar: ChartData }): void {
-    const entry = this.getEntry(input.identity);
+    validateMarketSeriesIdentity(input.identity);
+    validateMarketDataBars([input.bar]);
+    const key = getMarketSeriesIdentityKey(input.identity);
+    const entry = this.entries.get(key);
+    if (!entry) {
+      throw new Error('Incremental updates require an active backend snapshot for this series.');
+    }
     const current = entry.snapshot;
     if (
       current.source !== 'backend' ||
@@ -129,7 +137,8 @@ export class MarketDataSeriesStore {
       throw new Error('Incremental updates require an active backend snapshot for this series.');
     }
 
-    validateMarketDataBars([input.bar]);
+    this.entries.delete(key);
+    this.entries.set(key, entry);
     const nextBars = [...current.bars];
     let low = 0;
     let high = nextBars.length;
