@@ -959,6 +959,45 @@ describe('OHLCV stream supervisor', () => {
     expect(supervisor.status).toBe('stopped');
   });
 
+  it('cancels a superseded supervisor while its Firebase token request is pending', async () => {
+    vi.useFakeTimers();
+    let resolveOldToken!: (token: string) => void;
+    const oldTokenPromise = new Promise<string>((resolve) => {
+      resolveOldToken = resolve;
+    });
+    const oldFactory = vi.fn(() => new FakeSocket() as unknown as WebSocket);
+    const oldSupervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken: () => oldTokenPromise,
+      webSocketFactory: oldFactory,
+      random: () => 0,
+    });
+
+    const replacementSocket = new FakeSocket();
+    const replacementIdentity = { ...identity, timeframe: '5s' as const };
+    const replacementSupervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity: replacementIdentity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken: async () => 'replacement-token',
+      webSocketFactory: () => replacementSocket as unknown as WebSocket,
+      random: () => 0,
+    });
+
+    expect(oldSupervisor.status).toBe('stopped');
+    resolveOldToken('late-old-token');
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(oldFactory).not.toHaveBeenCalled();
+    expect(replacementSupervisor.status).toBe('connecting');
+    expect(getMarketDataSnapshot().identity?.timeframe).toBe('5s');
+
+    await vi.waitFor(() => expect(replacementSocket.listeners.has('open')).toBe(true));
+    replacementSupervisor.stop();
+  });
+
   it('does not open a socket when stop occurs while ID-token acquisition is pending', async () => {
     vi.useFakeTimers();
     let resolveToken!: (token: string) => void;
