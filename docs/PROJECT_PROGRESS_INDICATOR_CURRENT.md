@@ -1343,3 +1343,18 @@ ZERO COST. No deployment, paid service, production credential, Termux/device act
 - WebSocket production acceptance remains open: public HTTPS/WSS/proxy, owner-host Redis TLS/ACL/persistence/failover, authenticated snapshot transport/receipts, real Firebase E2E, browser and Android WebView acceptance. No production gate closed.
 - No indicator implementation changed. Full matrix unchanged: SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD 12/26/9 🟨, Bollinger20,2 🟨, Shared Indicator Hook 🟨, Footprint 🟧, Heatmap 🟥, Liquidation Maps 🟥. Formulas, warm-up indices, invariants and remaining tasks are in this ledger; no indicator progress credit.
 - ZERO COST. No deployment, paid service, production credential, Vercel/Cloudflare operation, Termux/device action or `main` modification.
+
+
+---
+
+## Batch 62J-110 — real Redis TLS integration acceptance (22 November 2026)
+
+- Baseline: `ec8566a2d34e693283b0fa18421aaf3d4d01ef45`; branch `phase-2/market-data-foundation`.
+- Adds an ephemeral Redis 7 TLS-only CI fixture with a generated test CA, DNS SAN certificate, separate untrusted CA, ACL-restricted user and disabled plaintext listener.
+- Adds real redis-py/RedisSharedGuard handshake tests: trusted CA + correct hostname succeeds; wrong hostname, wrong CA and plaintext protocol are rejected.
+- The valid TLS session exercises HTTP rate-limit Lua, one-time WebSocket tickets and WebSocket lease acquire/renew/release.
+- Test keys, passwords, certificates and private keys are generated at runtime only; Redis is loopback-bound and removed by the workflow trap.
+- No production runtime behavior, indicator code, market-data source or WebSocket protocol changed.
+- No indicator progress credit. SMA20 🟨 (index 19); EMA20 🟨 (index 19); RSI14 🟨 (index 14); MACD12/26/9 🟨 (MACD index 25, signal/histogram 33); Bollinger20,2 🟨 (index 19); Shared Indicator Hook 🟨; Footprint 🟧 reference-gated; Heatmap 🟥 not implemented; Liquidation Maps 🟥 not implemented. Formulas, warm-up rules and remaining visual acceptance are documented in `docs/WORK_CYCLE_2026-11-22_BATCH62J110_REDIS_TLS_INTEGRATION.md`.
+- Gate 10 remains 0/10 formally closed; Gate 25 and Gate 36 remain 🟧 OPEN for owner-host/public endpoint evidence. Stage 1 remains 30/40 = 75% provisional; overall project percentage remains unscored.
+- Exact-head CI is required before declaring this batch accepted. ZERO COST; no deployment, paid services, Termux/device operation, Vercel/Cloudflare operation or `main` modification.

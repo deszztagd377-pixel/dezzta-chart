@@ -103,6 +103,68 @@ jobs:
       - name: Install backend dependencies
         run: python -m pip install -r backend/requirements-dev.txt
 
+      - name: Start isolated Redis TLS fixture and test CA/hostname enforcement
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          tls_dir="$RUNNER_TEMP/dezzta-redis-tls"
+          mkdir -p "$tls_dir"
+          trap 'docker rm -f dezzta-redis-tls-ci >/dev/null 2>&1 || true' EXIT
+
+          # Ephemeral test-only CA and a server certificate for DNS:localhost.
+          openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 2 \
+            -keyout "$tls_dir/ca.key" -out "$tls_dir/ca.crt" \
+            -subj "/CN=DEZZTA CI Redis Test CA"
+          openssl req -newkey rsa:2048 -sha256 -nodes \
+            -keyout "$tls_dir/server.key" -out "$tls_dir/server.csr" \
+            -subj "/CN=localhost"
+          printf 'subjectAltName=DNS:localhost\nextendedKeyUsage=serverAuth\nkeyUsage=digitalSignature,keyEncipherment\n' > "$tls_dir/server.ext"
+          openssl x509 -req -sha256 -days 2 \
+            -in "$tls_dir/server.csr" -CA "$tls_dir/ca.crt" \
+            -CAkey "$tls_dir/ca.key" -CAcreateserial \
+            -extfile "$tls_dir/server.ext" -out "$tls_dir/server.crt"
+          openssl req -x509 -newkey rsa:2048 -sha256 -nodes -days 2 \
+            -keyout "$tls_dir/wrong-ca.key" -out "$tls_dir/wrong-ca.crt" \
+            -subj "/CN=Untrusted DEZZTA CI Test CA"
+
+          redis_password="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
+          printf 'user default off\nuser dezzta_tls on >%s ~dezzta:{guard-http}:* ~dezzta:{guard-ws}:* +ping +eval +set +get +del +incr +expire +ttl +zremrangebyscore +zscore +zcard +zadd +pexpire +zrem\n' \
+            "$redis_password" > "$tls_dir/users.acl"
+          chmod 600 "$tls_dir/ca.key" "$tls_dir/server.key" "$tls_dir/wrong-ca.key" "$tls_dir/users.acl"
+
+          docker run --detach --name dezzta-redis-tls-ci \
+            --publish 127.0.0.1:6380:6380 \
+            --mount "type=bind,src=$tls_dir,dst=/tls,readonly" \
+            redis:7-alpine redis-server \
+              --port 0 --tls-port 6380 \
+              --tls-cert-file /tls/server.crt \
+              --tls-key-file /tls/server.key \
+              --tls-ca-cert-file /tls/ca.crt \
+              --tls-auth-clients no \
+              --aclfile /tls/users.acl \
+              --save "" --appendonly no
+
+          ready=0
+          for attempt in $(seq 1 30); do
+            if docker exec -e REDISCLI_AUTH="$redis_password" dezzta-redis-tls-ci \
+              redis-cli --tls --cacert /tls/ca.crt --user dezzta_tls \
+              -h localhost -p 6380 ping 2>/dev/null | grep -Fxq PONG; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then
+            docker logs --tail 100 dezzta-redis-tls-ci || true
+            echo "Redis TLS fixture failed to become ready."
+            exit 1
+          fi
+
+          REDIS_TLS_TEST_URL="rediss://dezzta_tls:${redis_password}@localhost:6380/0" \
+          REDIS_TLS_TEST_CA="$tls_dir/ca.crt" \
+          REDIS_TLS_TEST_WRONG_CA="$tls_dir/wrong-ca.crt" \
+            python -m pytest -q tests/test_shared_guard_tls_integration.py
+
       - name: Run backend tests
         working-directory: backend
         env:
