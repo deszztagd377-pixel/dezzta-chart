@@ -233,3 +233,24 @@ The source-level audit was extended to `backend/app/databento_sources.py`, `back
 
 **Decision:** No runtime source change is made in this batch. This is a deliberate safety stop, not a claim of implementation. The Stage 2 On-demand requirement remains mandatory and open. The ZERO COST gate currently blocks enabling the existing Databento live source as a sustainable production baseline.
 
+## 13. External source and ZERO COST verification — Batch 62J-148 (22 November 2026)
+
+Official-source review was performed to avoid assuming that a public delayed quote page is a free redistributable API.
+
+### CME Group
+
+- CME's Real-Time Futures & Options WebSocket API is an orderable product. CME's ordering documentation says REST/WebSocket market-data APIs are subscribed to on a monthly basis and the real-time futures API requires portal onboarding and an order. See [CME API ordering](https://www.cmegroup.com/tools-information/webhelp/data-services-portal/Content/Ordering-CME-Group-Market-Data-APIs.html).
+- CME's public delayed-quotes page says displayed quotes are delayed by at least 10 minutes. This is evidence of a public web display, not by itself an API entitlement or a right to ingest and redistribute the data in this application. See [CME delayed quotes](https://www.cmegroup.com/market-data/browse-data/delayed-quotes.html).
+- CME's Futures and Options Website Information REST API is a separate delayed snapshot feed. The API documentation requires OAuth entitlement and an active Public Website (Delayed) Redistribution license for access. Its Last Trade snapshot is generated at 15 minutes past each hour, not a general continuous intraday bar stream. See [CME website information REST API onboarding and availability](https://cmegroupclientsite.atlassian.net/wiki/spaces/EPICSANDBOX/pages/1892122625/Distribution+Trades+and+Settlements+REST+API).
+
+### Databento
+
+- The current official pricing page lists $125 signup credits, but the usage-based tier is historical data only. The Standard plan lists live data at $199/month; Plus lists $1,750/month and external distribution. See [Databento pricing](https://databento.com/pricing/).
+- The official live-data guide explains that real-time data is included in Standard/Plus/Unlimited plans and that venue licensing may add fees. See [Databento live-data guide](https://www.databento.tech/docs/portal/live-data).
+
+### Engineering decision
+
+No recurring-$0, exact-CME-instrument, application-redistributable live or delayed API has been approved by this audit. This is a bounded research finding, not a universal claim that no free market data exists. A source is eligible only after its exact instrument coverage, freshness, endpoint/API terms, display and redistribution rights, user/device limits, and sustainable recurring price are verified.
+
+Do not scrape the public delayed-quote webpage or repurpose a personal web display as an API. Do not silently treat finite trial credits as a zero-cost production feed. Keep affected CME series unavailable/demo until a compliant source is approved. On-demand provider coordination remains mandatory Stage 2 work, but it cannot solve a source entitlement or pricing gap.
+
