@@ -2059,3 +2059,24 @@ No indicator formulas, numeric kernels, shared hook, renderer, UI or indicator t
 Shared invariants: warm-up nulls; exact source-index alignment; prefix causality/no future-candle repaint; invalid/missing/gapped bars never silently become zero; stale-output clearing on symbol/venue/dataset/chart/timeframe changes; formula/rendering/interaction/lifecycle/accessibility/performance are separate acceptance dimensions. Footprint OFF preserves ordinary candle spacing; explicit ON alone enables spaced clusters. Footprint/Heatmap visual work remains blocked pending user reference image(s) and reviewed blueprint. Aggregate indicator completion remains NOT SCORED because weights and denominator are unapproved.
 
 WebSocket-only lifecycle and auth test repairs receive zero indicator progress credit. See [Batch 62J-144 report](WORK_CYCLE_2026-11-22_BATCH62J144_MULTI_USER_WEBSOCKET_LIFECYCLE.md).
+
+
+## Batch 62J-145 — indicator reconciliation (22 November 2026)
+
+No indicator calculation, numeric kernel, shared hook, renderer, chart UI or indicator tests changed. The real TLS/WSS and multi-user transport test work receives **zero indicator implementation credit**.
+
+| Indicator/component | Status | Verified foundation | Remaining acceptance |
+|---|---|---|---|
+| SMA20 | 🟨 Foundation | 20-close arithmetic mean; first valid index 19 | Numeric edge cases, chart integration, identity invalidation, lifecycle and performance |
+| EMA20 | 🟨 Foundation | SMA-seeded EMA; alpha 2/21; first valid index 19 | Numeric edge cases, chart integration, identity invalidation, lifecycle and performance |
+| RSI14 Wilder | 🟨 Foundation | Wilder smoothing; first valid index 14 | Flat/monotonic/zero-loss edge cases, chart integration and lifecycle |
+| MACD12/26/9 | 🟨 Foundation | MACD first valid index 25; signal/histogram first valid index 33 | Numerical edge cases, chart integration, identity invalidation and lifecycle |
+| Bollinger20,2 | 🟨 Foundation | 20-close mean ±2 population standard deviations; first valid index 19 | Variance/flat-series edge cases, chart integration and lifecycle |
+| Shared Indicator Hook | 🟨 Foundation | Backend snapshot/aligned calculation output | Full chart integration, visible settings/legend/current values and stale-output clearing |
+| Footprint | 🟧 Prototype only | Synthetic educational accumulator; not exchange-native bid/ask truth | User reference image(s), reviewed blueprint, licensed bid/ask data contract, cluster renderer and acceptance |
+| Heatmap | 🟥 Not implemented | No accepted runtime/render implementation | User reference image(s), reviewed blueprint, validated depth/liquidity data contract and renderer |
+| Liquidation Maps | 🟥 Not implemented | No accepted runtime/render implementation | Defensible data provenance/contract, reviewed design, renderer and tests |
+
+Shared invariants remain: warm-up nulls; exact source-index alignment; prefix causality/no future-candle repaint; invalid/missing/gapped bars never silently become zero; stale-output clearing on symbol/venue/dataset/chart/timeframe changes; calculation/rendering/interaction/lifecycle/accessibility/performance are separate acceptance dimensions. Footprint OFF preserves ordinary candle spacing; explicit ON alone enables spaced clusters. Footprint/Heatmap visual work remains blocked pending user reference image(s) and reviewed blueprint. Aggregate indicator completion remains NOT SCORED because weights and denominator are unapproved.
+
+See Batch 62J-145 work-cycle report. No progress percentage or color status changed for any indicator.

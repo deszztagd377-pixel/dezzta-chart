@@ -1299,3 +1299,24 @@ Batch 62J-129 also introduced IP3S, a per-cycle delivery-quality score. Its 58/1
 The durable `ohlcv_replica_checkpoint` schema stores source ID, replica ID, applied cursor, snapshot generation, retention floor, bar-retention metadata and schema/protocol versions. It does **not** store snapshot SHA-256. The gateway installer return value is checked for 64-character lowercase-hex format and propagated; source/generation/cursor are compared with the durable checkpoint. Do not describe the installer digest as being compared with a digest in that checkpoint. The canonical snapshot exporter/verifier independently computes and validates SHA-256 over snapshot contents. Any persistent digest field requires an explicit decision about immutable installation provenance, stream-update lifecycle, schema migration and compatibility. No source edit was made.
 
 Overall project progress remains **NOT SCORED** because there is no approved six-stage weighting/denominator. Stage 1 is **30/40 = 75% provisional**, Gate 10 is **0/10 formally closed**, and Stages 2–6 are NOT SCORED. Batch IP3S is separate from project completion. Gate 25 and Gate 36 remain OPEN. See `WORK_CYCLE_2026-11-22_BATCH62J130_OVERALL_PROGRESS_WEBSOCKET_ACCEPTANCE.md`.
+
+
+## Batch 62J-145 — real TLS/WSS and multi-user disconnect integration (22 November 2026)
+
+Source/test HEAD: f8e41ad68656e82a82d30cf40f720f3ec98ac337.
+
+A new backend integration test starts a real Uvicorn loopback server with an ephemeral X.509 CA/server certificate, connects using the websockets client over wss://, verifies TLS and the HTTP Upgrade, accepts the configured HTTPS Origin, rejects a disallowed Origin with HTTP 403, and rejects a client that does not trust the test CA. It authenticates using the non-production test-token path, subscribes to an exact canonical OHLCV series, receives a four-bar snapshot, and completes the application text ping/pong exchange.
+
+The same TLS listener also tests two distinct identities with separately granted entitlement. Both subscriptions become active; after User B disconnects, the test waits for ASGI final cleanup, verifies the subscription count returns from two to one, and confirms User A still receives pong. The separate TestClient multi-user regression remains.
+
+Important limitation: this test uses the backend's test-only legacy token authentication path. It does not yet exercise the production HTTPS Firebase ID-token to one-time ticket endpoint to ticket-authenticated WSS handshake/renewal over the same TLS listener. That is the next implementation target.
+
+Exact-HEAD CI on f8e41ad:
+- Automated Tests 45005536779: SUCCESS; 1,297 passed, 1 skipped, 6 warnings.
+- CodeQL 45005536789: SUCCESS.
+- Full Git History Secret Audit 45005537134: SUCCESS.
+- OCI ARM64 readiness 45005536741: SUCCESS.
+
+The Automated Tests workflow also passed frontend tests/build, Redis TLS CA/hostname/ACL/AOF fixture, synthetic SQLite outbox and metrics benchmarks, backend dependency audit, backend image build, shared Redis/persistent-volume smoke, and Trivy HIGH/CRITICAL image scan. The Trivy report showed zero findings for scanned Alpine 3.24.4 OS and Python package targets. Container smoke verified UID/GID 10001, persistent volume ownership, SQLite integrity/restart, Redis AOF/ACL recovery, and fail-closed API behavior during Redis outage.
+
+This remains repository CI/local synthetic integration evidence, not a public WSS endpoint, production Firebase project, OCI deployment, owner-host Redis acceptance or Android WebView acceptance. Gate 10 remains 0/10 formally closed; Gates 25, 36 and 38 remain OPEN. ZERO COST; main untouched; no deployment or production credentials. See WORK_CYCLE_2026-11-22_BATCH62J145_REAL_TLS_MULTI_USER_WEBSOCKET.md.

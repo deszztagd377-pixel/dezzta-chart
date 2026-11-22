@@ -98,3 +98,20 @@ The chart-level lifecycle behavior is now covered separately from the pure lifec
 - An initially offline mount is verified not to create a supervisor until the online event arrives.
 
 These are jsdom integration tests with mocked chart rendering and transport. They verify React effect ownership and event cleanup, not native Android WebView behavior or deployed WSS acceptance.
+
+
+## Real TLS/WSS transport integration — Batch 62J-145 (22 November 2026)
+
+The backend CI now includes a real loopback TLS/WebSocket integration test. It creates an ephemeral test CA and server certificate, starts Uvicorn with TLS on an OS-selected local port, and uses the websockets client to perform an actual WSS handshake and HTTP Upgrade.
+
+Verified in the test:
+- Trusted test CA and certificate SAN validation.
+- Allowed HTTPS Origin succeeds; disallowed Origin receives HTTP 403 before WebSocket upgrade.
+- Untrusted CA is rejected.
+- Authenticated test-mode session can subscribe to the exact series and receive a validated four-bar snapshot.
+- Application text ping receives the versioned market_data.pong response.
+- Two separately authenticated test identities can subscribe simultaneously; closing one removes only that client's subscription after bounded ASGI cleanup, while the other remains able to ping/pong.
+
+The harness uses the backend's non-production legacy token path and a fake identity verifier. It does not prove the production HTTPS Firebase ID-token → one-time ticket → ticket-authenticated WSS handshake or renewal over TLS. That end-to-end ticket path remains the next test target. It also does not prove a public reverse proxy, deployed DNS/certificate, production Redis, real Firebase, or Android WebView behavior.
+
+Exact source/test HEAD f8e41ad68656e82a82d30cf40f720f3ec98ac337 passed Automated Tests, CodeQL, Full Git History Secret Audit and OCI ARM64 readiness. Backend pytest: 1,297 passed, 1 skipped, 6 warnings. See WORK_CYCLE_2026-11-22_BATCH62J145_REAL_TLS_MULTI_USER_WEBSOCKET.md.

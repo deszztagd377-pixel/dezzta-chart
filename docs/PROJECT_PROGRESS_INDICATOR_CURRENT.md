@@ -3818,3 +3818,70 @@ No indicator implementation credit. Shared invariants: warm-up nulls; source-ind
 - IP3S Batch 62J-144: PENDING exact-HEAD CI.
 
 ZERO COST; no cloud deployment, payment method, provider credentials, device/Termux work, or main branch changes.
+
+
+## Batch 62J-145 — real TLS/WSS and multi-user disconnect regression (22 November 2026)
+
+### Verified engineering delta
+
+Added a real loopback Uvicorn TLS/WSS integration test in backend/tests/test_api.py:
+- Ephemeral test CA/server certificate, TLS handshake and SAN verification.
+- Real WebSocket HTTP Upgrade.
+- Allowed HTTPS Origin accepted; disallowed Origin rejected with HTTP 403.
+- Untrusted CA rejected.
+- Authenticated test-mode exact-series subscription and OHLCV snapshot.
+- Application text ping/pong.
+- Two distinct test identities with separate entitlements and simultaneous subscriptions.
+- Closing User B removes only B's subscription after bounded ASGI cleanup; User A remains connected and receives pong.
+
+The harness uses a fake identity verifier and the backend's non-production legacy token path. Production Firebase HTTPS token exchange, one-time ticket authentication/renewal over WSS, public reverse proxy and real Android WebView remain separate acceptance work.
+
+### Exact-HEAD CI
+
+Final source/test HEAD: f8e41ad68656e82a82d30cf40f720f3ec98ac337.
+
+- Automated Tests 45005536779: SUCCESS — 1,297 passed, 1 skipped, 6 warnings.
+- CodeQL 45005536789: SUCCESS.
+- Full Git History Secret Audit 45005537134: SUCCESS.
+- OCI ARM64 readiness 45005536741: SUCCESS.
+- Frontend tests/build and dependency audit passed.
+- Backend pip-audit reported no known vulnerabilities.
+- Redis TLS/CA/hostname/ACL/AOF fixture passed.
+- Synthetic SQLite outbox and metrics benchmarks passed.
+- Backend container build and Redis/persistent-volume smoke passed.
+- Container UID/GID 10001 and persistent volume/SQLite integrity/restart verified.
+- Redis outage fail-closed behavior and recovery passed.
+- Trivy HIGH/CRITICAL scan reported zero vulnerabilities in scanned Alpine 3.24.4 OS and Python package targets.
+
+These are CI/local synthetic results. No public WSS, real Firebase project, OCI deployment, owner-host Redis, production provider feed or Android WebView acceptance is claimed.
+
+### Indicator progress — unchanged
+
+| Indicator/component | Status | Verified foundation / boundary |
+|---|---|---|
+| SMA20 | 🟨 | 20-close mean; first valid index 19 |
+| EMA20 | 🟨 | SMA-seeded, alpha 2/21; first valid index 19 |
+| RSI14 Wilder | 🟨 | Wilder smoothing; first valid index 14 |
+| MACD12/26/9 | 🟨 | MACD index 25; signal/histogram index 33 |
+| Bollinger20,2 | 🟨 | 20-close mean ±2 population SD; first valid index 19 |
+| Shared Indicator Hook | 🟨 | Backend snapshot/aligned output; not fully chart-integrated |
+| Footprint | 🟧 | Synthetic educational prototype only; reference + reviewed blueprint required |
+| Heatmap | 🟥 | Not implemented; reference + reviewed blueprint required |
+| Liquidation Maps | 🟥 | Not implemented |
+
+No indicator implementation credit. Preserve warm-up nulls, source-index alignment, prefix causality/no repaint, invalid/gapped-bar rejection, stale-output clearing and Footprint OFF normal candle spacing. No aggregate indicator percentage without approved weights/denominator.
+
+### Project-wide progress
+
+- Stage 1 Foundation, Security & Data Integrity: 30/40 = 75% provisional 🟨.
+- Stage 2 Market Data Infrastructure: ⬜ NOT SCORED / not officially opened.
+- Stage 3 Chart Engine & Timeframe: ⬜ NOT SCORED / not officially opened.
+- Stage 4 Indicators & Analytics: ⬜ NOT SCORED / not officially opened.
+- Stage 5 Professional UI & Interactive Tools: ⬜ NOT SCORED / not officially opened.
+- Stage 6 Hardening, Validation & APK Release: ⬜ NOT SCORED / not officially opened.
+- Overall project: NOT SCORED; approved six-stage weights and denominator remain unavailable.
+- Gate 10: 0/10 external criteria formally closed.
+- Gates 25, 36 and 38: OPEN; owner-host and production/device evidence remains outstanding.
+- IPS35/IP3S Batch 62J-145: pending final canonical documentation HEAD CI.
+
+ZERO COST; active branch remains phase-2/market-data-foundation; main untouched; no deployment, payment method, production credentials, device or Termux work.

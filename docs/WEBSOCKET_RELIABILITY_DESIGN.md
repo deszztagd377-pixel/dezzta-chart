@@ -208,3 +208,16 @@ A source audit found a representation mismatch in the post-replay queue drain: `
 The remediation normalizes both integer and ASCII-decimal-string cursor representations before comparing them with the replay boundary. Unknown cursor shapes are conservatively retained rather than silently discarded. A parameterized regression test covers before/equal/after boundaries, both representations, and malformed values.
 
 Acceptance remains pending until the exact remediation commit's CI completes. This correction does not establish reverse-proxy WSS, Android/browser production connectivity, restart drill, or latency percentiles. Stage 1 scoring and all ten external acceptance gates remain unchanged until their separate evidence requirements are met.
+
+
+## 17. Real TLS/WSS and multi-user disconnect regression — Batch 62J-145
+
+Exact source/test HEAD: f8e41ad68656e82a82d30cf40f720f3ec98ac337.
+
+A real Uvicorn TLS listener and websockets client now exercise the network transport, rather than relying solely on TestClient or mocked browser sockets. The test verifies the trusted certificate chain, SAN, WebSocket HTTP Upgrade, exact Origin allowlist behavior, rejection of an untrusted CA, authenticated test-mode subscription, snapshot delivery, and application text heartbeat.
+
+The same listener hosts two distinct test subjects and two independently authorized subscriptions. User B disconnects; after bounded server-side ASGI cleanup, the stream hub returns to one subscription and User A still receives pong. The separate TestClient multi-user isolation test also passes.
+
+Exact-HEAD CI: Automated Tests 45005536779 SUCCESS (1,297 passed, 1 skipped, 6 warnings); CodeQL 45005536789 SUCCESS; Secret Audit 45005537134 SUCCESS; OCI ARM64 readiness 45005536741 SUCCESS. The container smoke additionally passed Redis TLS/ACL/AOF restart, backend fail-closed behavior during Redis outage, UID/GID 10001, persistent volume/SQLite integrity, and restart persistence. Trivy HIGH/CRITICAL scan found zero vulnerabilities in scanned Alpine OS and Python package targets.
+
+Scope boundary: WSS is local CI only. The integration test uses a fake identity verifier and the non-production legacy token path. Production ticket exchange/renewal over HTTPS/WSS, public reverse proxy, owner-host Redis and snapshot receipt trust, real Firebase, and physical Android WebView remain unaccepted. No production deployment or live provider feed is implied.
