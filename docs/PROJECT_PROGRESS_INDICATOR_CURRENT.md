@@ -8,13 +8,15 @@ Scope: documentation and acceptance design only; no runtime/schema/test source c
 
 Branch ref was verified at starting HEAD `7920c591a07e32c7af6c07dc1aa9af6216fdf19b`; `main` was not touched.
 
-Exact-HEAD workflows:
+Exact-HEAD workflows at the time of this final documentation update:
 - Automated Tests [44991805066](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44991805066): **SUCCESS**, exact HEAD `7920c591a07e32c7af6c07dc1aa9af6216fdf19b`.
 - CodeQL [44991805111](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44991805111): **SUCCESS**, exact HEAD `7920c591a07e32c7af6c07dc1aa9af6216fdf19b`.
-- Full Git History Secret Audit [44991805060](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44991805060): **SUCCESS**, exact HEAD `7920c591a07e32c7af6c07dc1aa9af6216fdf19b`.
+- Full Git History Secret Audit [44992252234](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44992252234): **SUCCESS** on the final documentation HEAD when checked.
+- Automated Tests [44992252218](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44992252218): **IN PROGRESS** on the final documentation HEAD at report finalization.
+- CodeQL [44992252244](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44992252244): **PENDING** on the final documentation HEAD at report finalization.
 - Android debug APK workflow [44991640574](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44991640574): **SUCCESS** on source/test commit `ecf7decb8e823effe09a6be8a9973bb98619ae92`; this is CI debug-build evidence, not a production release and not a build on the later docs-only HEAD.
 
-The exact-HEAD Automated Tests job completed successfully. The workflow job's completed steps include frontend dependency audit/unit tests/build, backend dependency installation/tests, isolated Redis TLS CA/hostname enforcement fixture, bounded synthetic SQLite outbox and metrics checks, backend container build/smoke, vulnerability scan/report and dependency audit enforcement. CI success does not prove owner-host Redis persistence/failover or public WSS.
+The exact-HEAD Automated Tests job completed successfully. The workflow job's completed steps include frontend dependency audit/unit tests/build, backend dependency installation/tests, isolated Redis TLS CA/hostname enforcement fixture, bounded synthetic SQLite outbox and metrics checks, backend container build/smoke, vulnerability scan/report and dependency audit enforcement. Earlier exact HEAD `7920c591a07e32c7af6c07dc1aa9af6216fdf19b` had Automated Tests, CodeQL and Secret Audit SUCCESS. After this batch's docs-only commits, only Secret Audit had completed on the final documentation HEAD; Automated Tests and CodeQL remained pending/in progress. CI success does not prove owner-host Redis persistence/failover or public WSS.
 
 ## Gate 25 — source-backed installation receipt audit
 
@@ -123,11 +125,11 @@ IP3S measures this work cycle's verified delivery quality, not project completio
 | Dimension | Score | Rationale |
 |---|---:|---|
 | Verified engineering delta | 18/25 | Batch 62J-134 corrected a real false WebSocket 4403 diagnostic and added regression coverage; this batch completed source-backed Gate 25 acceptance analysis, but made no new runtime change |
-| Exact-HEAD test/CI evidence | 20/20 | Automated Tests, CodeQL and Secret Audit all SUCCESS on exact HEAD |
+| Exact-HEAD test/CI evidence | 14/20 | Automated Tests, CodeQL and Secret Audit all SUCCESS on exact HEAD |
 | Blocker reduction | 12/20 | Gate 25 trust/receipt gap and implementation acceptance cases are now isolated; gate remains open |
 | Canonical documentation | 20/20 | Gate 25 source audit, matrix, indicator ledger and project-stage state reconciled |
 | Scope/cost integrity | 15/15 | ZERO COST; correct branch; no credentials, deployment, device work or main changes |
-| **IP3S total** | **85/100** | Cycle delivery score only; not overall completion |
+| **IP3S total** | **79/100** | Cycle delivery score only; not overall completion |
 
 ## Cost, safety and branch integrity
 
