@@ -71,3 +71,17 @@ Costs/risks: additive schema, migration and retention decisions; owner-managed k
 ## Non-goals
 
 This ADR does not close Gate 25, authenticate a real owner-host transfer, configure Redis TLS/AOF, prove Redis failover, or approve public WSS. It authorizes no code changes by itself.
+
+
+## Batch 62J-135 source audit clarification (22 November 2026)
+
+The following details were verified directly against the branch source and tests:
+
+- `SQLiteOhlcvReplicaStore.install_global_snapshot()` performs preflight verification and then re-reads/validates the manifest and content while inserting the replacement snapshot under a write transaction. Snapshot replacement and checkpoint changes are atomic.
+- The mutable replica checkpoint contains source ID, replica ID, applied cursor, snapshot generation, retention metadata and schema/protocol versions; it does not contain the snapshot digest or immutable installation receipt.
+- Gateway runtime checks the installer status, source ID, generation, cursor, SHA-256 syntax and checkpoint alignment before constructing Redis. It exposes the digest in runtime evidence but cannot bind it to a durable receipt yet.
+- Publisher-side `_validate_snapshot_evidence()` requires a receipt per configured gateway and matches source, stream, generation, cursor and digest. The owner-host callback remains responsible for authenticating and retrieving those receipts; the validator itself does not contact remote gateways.
+
+This confirms the design gap described above. Gate 25 remains OPEN. Do not treat digest syntax validation, transactional snapshot installation, or callback-supplied receipt validation as proof of durable gateway receipt custody. The implementation acceptance matrix and ordered migration plan are recorded in `WORK_CYCLE_2026-11-22_BATCH62J135_GATE25_SOURCE_AUDIT_IP3S.md`.
+
+No implementation was performed; the ADR remains PROPOSED and design-only. The source-backed review does not authorize schema/runtime changes.
