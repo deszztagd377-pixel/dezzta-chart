@@ -1,7 +1,7 @@
 # DEZZTA CHART — Project Progress Indicator
 
 Status: **operational project-tracking specification**  
-Last audited: 2026-11-21  
+Last audited: 2026-11-22  
 Repository: https://github.com/deszztagd377-pixel/dezzta-chart  
 Official working branch: `phase-2/market-data-foundation`  
 Official current stage: **Stage 1 — Foundation, Security & Data Integrity**
@@ -9,24 +9,24 @@ Official current stage: **Stage 1 — Foundation, Security & Data Integrity**
 > This document defines the **project-process progress indicator**. It is not an in-app technical indicator, chart overlay, or APK feature. Technical indicators such as SMA, EMA, RSI, MACD and Bollinger Bands are separate product work governed by Stage 4.
 
 
-## Current verified snapshot — 2026-11-21
+## Current verified snapshot — 2026-11-22 (Batch 62J-130)
 
-<badge>Authoritative current-state summary</badge>
+- **Official working branch:** `phase-2/market-data-foundation`.
+- **Overall DEZZTA CHART project:** **NOT SCORED**. No approved six-stage M1–M8 weighting/acceptance denominator exists. Do not invent or reuse the historical 20.9% as a current weighted result.
+- **Stage 1 — Foundation, Security & Data Integrity:** **30/40 criteria = 300/400 ticks = 75% provisional**. This is not production acceptance.
+- **Gate 10:** **0/10 external criteria formally closed**. Open gates: 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39.
+- **Stage 2 — Market Data Infrastructure:** not officially opened; preparatory implementation exists; NOT SCORED.
+- **Stage 3 — Chart Engine & Timeframe:** not officially opened; NOT SCORED.
+- **Stage 4 — Indicators & Analytics:** not officially opened; calculation groundwork exists; NOT SCORED.
+- **Stage 5 — Professional UI & Interactive Tools:** not officially opened; expansion gate applies; NOT SCORED.
+- **Stage 6 — Hardening, Validation & APK Release:** not officially opened; NOT SCORED.
+- **IP3S:** Batch 62J-129 = 58/100, a per-cycle delivery-quality score only, never overall project completion.
+- **Technical indicators:** SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook 🟨 foundation; Footprint 🟧 simulated/reference-gated; Heatmap and Liquidation Maps 🟥 not implemented. No aggregate technical-indicator percentage is approved.
+- **WebSocket:** Gate 25 and Gate 36 remain OPEN. Gateway replica checkpoint has no snapshot SHA-256 column; digest provenance design is pending. Public WSS/reverse-proxy and real browser/Android acceptance remain unproven.
+- **Exact-head CI on `3468489152bf2b6432b4e2296fa74d64081a1035`:** Automated Tests IN PROGRESS at latest check; CodeQL SUCCESS; Full Git History Secret Audit SUCCESS. CI is not production acceptance.
+- **ZERO COST:** no paid hosting, domain, deployment, cloud resource, account or external service created. `main` untouched.
 
-- **Official stage:** Stage 1 — Foundation, Security & Data Integrity.
-- **Stage 1 checklist:** **300/400 ticks = 75% provisional** (30/40 criteria). This is not production acceptance.
-- **Gate 10:** **0/10 external criteria formally closed**. Open: 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39.
-- **Gate 8 repository evidence:** settings representation redaction, protected 256-bit key-file loader regression tests, backend Docker build-context exclusions, frontend bundle secret scan and full reachable Git-history secret audit are CI-verified. Gate 8 remains OPEN pending actual owner-host secret injection, permissions/ownership and runtime review.
-- **WebSocket:** the defined automated dual-ASGI/Redis failure matrix is complete. Production snapshot artifact lifecycle, production Redis TLS/ACL/failover, public WSS and real browser/Android acceptance remain external.
-- **Gate 30:** WAL-aware capacity preflight and repository restore tests are present; real owner-host/approved device restore acceptance remains open.
-- **Gate 38/39:** bounded metrics, sanitized HTTP correlation, persistent incident journal and escalation logic are repository-level foundations. Host collector/dashboard/retention and real operator alert/acknowledgement/recovery remain open.
-- **Exact-head CI:** latest source/config/test HEAD `8636e2a1f0b1a2ff5c1d803e00516a7570e5289d` passed Automated Tests [44861035493](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035493) (33/33 steps; frontend 247/247 across 29 files; backend 1,235 passed), CodeQL [44861035537](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035537), and Full Git History Secret Audit [44861035482](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44861035482). Frontend npm audit reported 0 vulnerabilities; backend dependency audit found no known vulnerabilities; Trivy reported 0 vulnerabilities in scanned Alpine/Python targets. CI results are not production acceptance.
-- **Indicators:** SMA20 🟨; EMA20 🟨; RSI14 🟨; MACD12/26/9 🟨; Bollinger20,2 🟨; Shared Indicator Hook 🟨; Footprint 🟧 SIMULATED/reference-gated; Heatmap 🟥; Liquidation Maps 🟥. See the complete [Indicator Progress Ledger](INDICATOR_PROGRESS_LEDGER.md). No aggregate indicator percentage is assigned.
-- **Stages 2–6:** NOT SCORED. **Overall project:** NOT SCORED; no approved M1–M8 weighting/acceptance denominator exists. Historical 20.9% is not a current weighted result.
-- **ZERO COST:** no paid plan, deployment, external provider, or billing activation. No Termux command was required for these remote GitHub changes. The user has one Android device; no second device/PC is assumed.
-- **Branch:** `phase-2/market-data-foundation`; `main` untouched.
-
-Detailed ten-gate visual: [Stage 1 Gate Dashboard](assets/stage-1-gate-dashboard.svg).
+[Batch 62J-130 overall progress and WebSocket acceptance report](WORK_CYCLE_2026-11-22_BATCH62J130_OVERALL_PROGRESS_WEBSOCKET_ACCEPTANCE.md).
 
 ## Visual presentation standard — permanent through Stage 6
 
