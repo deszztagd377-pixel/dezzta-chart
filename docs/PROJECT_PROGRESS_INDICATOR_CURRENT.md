@@ -1,3 +1,49 @@
+# CURRENT PROJECT PROGRESS — Batch 62J-141 (22 November 2026)
+
+This section is the latest verified snapshot and supersedes older dated entries below.
+
+**Branch:** `phase-2/market-data-foundation`  
+**Source/test baseline:** `f0c55e37998c2c32c3ba0aeab743bbe02e0c72d7`  
+**Main:** untouched.
+
+## Exact-source CI
+
+- Automated Tests [45000228409](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45000228409): **SUCCESS**.
+- CodeQL [45000228422](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45000228422): **SUCCESS**.
+- Full Git History Secret Audit [45000228438](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45000228438): **SUCCESS**.
+
+## Stage and Gate progress
+
+| Stage | Progress | State |
+|---|---:|---|
+| 1. Foundation, Security & Data Integrity | 30/40 = 75% provisional | 🟨 Active |
+| 2. Market Data Infrastructure | Not scored | ⬜ Not officially opened |
+| 3. Chart Engine & Timeframe | Not scored | ⬜ Not officially opened |
+| 4. Indicators & Analytics | Not scored | ⬜ Not officially opened |
+| 5. Professional UI & Interactive Tools | Not scored | ⬜ Not officially opened |
+| 6. Hardening, Validation & APK Release | Not scored | ⬜ Not officially opened |
+
+**Gate 10: 0/10 external criteria formally closed.** Open tracks: 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39.  
+**Overall project: NOT SCORED** because the six-stage weights and overall acceptance denominator have not been approved.
+
+## WebSocket and OCI
+
+The supervisor now enforces one active owner of the shared market-data store. Regression tests cover a pending Firebase token request during replacement and a delayed native WebSocket close/late message after timeframe replacement.
+
+OCI ARM64 workflow: image build succeeded on the first native ARM64 run, but its smoke step failed on a brittle host-volume-path assertion. The workflow was revised to check volume writes and restart persistence through the container. Corrected rerun remains pending; no OCI account/resource was created.
+
+Gates 25, 36 and 38 remain OPEN for authenticated snapshot receipts, owner-host Redis, public WSS/Firebase/Android lifecycle, and durable monitoring/recovery evidence.
+
+## Technical indicator status
+
+SMA20 🟨; EMA20 🟨; RSI14 Wilder 🟨; MACD12/26/9 🟨; Bollinger20,2 🟨; Shared Indicator Hook 🟨 (backend alignment foundation, not fully chart-integrated); Footprint 🟧 (synthetic educational prototype only); Heatmap 🟥; Liquidation Maps 🟥. No indicator code changed and no indicator progress credit is awarded. See [INDICATOR_PROGRESS_LEDGER.md](INDICATOR_PROGRESS_LEDGER.md).
+
+**IPS35:** pending final documentation-HEAD CI and corrected ARM64 smoke workflow. It measures cycle delivery quality, not project completion.
+
+ZERO COST: no paid service, cloud account/resource, deployment, production credential, payment method, device or Termux operation. OCI account ownership/verification must be handled by a parent/guardian as lawful account owner. Full report: [WORK_CYCLE_2026-11-22_BATCH62J141_WEBSOCKET_SUPERVISOR_OCI_ARM64.md](WORK_CYCLE_2026-11-22_BATCH62J141_WEBSOCKET_SUPERVISOR_OCI_ARM64.md).
+
+---
+
 # Batch 62J-135 — Gate 25 source audit, exact-head CI acceptance and IP3S reconciliation
 Date: 22 November 2026
 Branch: `phase-2/market-data-foundation`

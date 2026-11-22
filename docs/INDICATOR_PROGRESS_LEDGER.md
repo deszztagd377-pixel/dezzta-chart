@@ -1,3 +1,31 @@
+# CURRENT INDICATOR LEDGER — Batch 62J-141 (22 November 2026)
+
+This section supersedes earlier dated snapshots below when reporting the latest state.
+
+No indicator formula, hook, renderer, UI or indicator test source changed in Batch 62J-141. WebSocket supervisor ownership and OCI ARM64 readiness work earns **zero technical-indicator implementation credit**.
+
+| Indicator/component | Status | Verified foundation and remaining work |
+|---|---|---|
+| SMA20 | 🟨 Foundation | 20-close arithmetic mean; first valid index 19; chart integration and edge-case acceptance remain |
+| EMA20 | 🟨 Foundation | SMA-seeded EMA, alpha 2/21; first valid index 19; chart integration and edge-case acceptance remain |
+| RSI14 Wilder | 🟨 Foundation | Wilder smoothing; first valid index 14; numerical edge cases and chart integration remain |
+| MACD12/26/9 | 🟨 Foundation | MACD first valid index 25; signal/histogram first valid index 33; chart integration remains |
+| Bollinger20,2 | 🟨 Foundation | 20-close mean ±2 population standard deviations; first valid index 19; chart integration remains |
+| Shared Indicator Hook | 🟨 Foundation | Backend snapshot/aligned calculation output; full chart integration remains |
+| Footprint | 🟧 Prototype only | Synthetic educational accumulator, not exchange-native bid/ask truth; reference image(s) and reviewed blueprint required before visuals |
+| Heatmap | 🟥 Not implemented | Reference image(s), validated data contract and reviewed blueprint required before visuals |
+| Liquidation Maps | 🟥 Not implemented | No implementation evidence; data contract and renderer remain |
+
+Shared invariants: warm-up nulls; candle-index alignment; prefix causality/no future repaint; invalid/gapped bars never silently converted to zero; stale output cleared on symbol/venue/dataset/chart/timeframe changes; calculation, rendering, interaction, lifecycle and performance are distinct acceptance dimensions. Footprint OFF preserves standard candle spacing; explicit ON alone enables spaced clusters. Footprint/Heatmap visuals require user references and reviewed blueprints.
+
+Aggregate technical-indicator percentage: **NOT SCORED** because weights and denominator are unapproved.
+
+Project stage context: Stage 1 = 30/40 = 75% provisional; Stage 2–6 NOT SCORED/not officially opened; Gate 10 = 0/10 external criteria formally closed; overall project NOT SCORED. IPS35 final score pending exact documentation-HEAD CI and corrected ARM64 smoke acceptance.
+
+Full cycle: [WORK_CYCLE_2026-11-22_BATCH62J141_WEBSOCKET_SUPERVISOR_OCI_ARM64.md](WORK_CYCLE_2026-11-22_BATCH62J141_WEBSOCKET_SUPERVISOR_OCI_ARM64.md).
+
+---
+
 # Batch 62J-135 — Gate 25 source audit, exact-head CI acceptance and IP3S reconciliation
 Date: 22 November 2026
 Branch: `phase-2/market-data-foundation`
