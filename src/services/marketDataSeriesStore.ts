@@ -162,6 +162,11 @@ export class MarketDataSeriesStore {
     this.publishSnapshot({ identity, status, bars: [], detail });
   }
 
+  hasSeries(identity: MarketSeriesIdentity): boolean {
+    validateMarketSeriesIdentity(identity);
+    return this.entries.has(getMarketSeriesIdentityKey(identity));
+  }
+
   getSeriesCount(): number {
     return this.entries.size;
   }
