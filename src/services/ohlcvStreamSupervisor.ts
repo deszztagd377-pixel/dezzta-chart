@@ -39,6 +39,10 @@ export interface OhlcvStreamSupervisor {
   readonly status: OhlcvSupervisorStatus;
 }
 
+// The market-data store is a singleton, so it must have exactly one active
+// supervisor owner. Replacing a chart selection stops the previous owner first.
+let activeSupervisorStop: (() => void) | null = null;
+
 function sameIdentity(left: MarketSeriesIdentity | null, right: MarketSeriesIdentity): boolean {
   return left !== null &&
     (left.provider ?? 'databento') === (right.provider ?? 'databento') &&
@@ -82,6 +86,9 @@ export function startOhlcvStreamSupervisor(
   if (!Number.isFinite(identityTokenTimeoutMs) || identityTokenTimeoutMs <= 0 || identityTokenTimeoutMs > 60_000) {
     throw new Error('Firebase ID-token timeout must be positive and no greater than 60 seconds.');
   }
+  // A new series selection supersedes the previous owner of the shared store.
+  activeSupervisorStop?.();
+
   const pendingIdentityRequests = new Set<() => void>();
   const getFreshIdToken = (): Promise<string> => new Promise((resolve, reject) => {
     let settled = false;
@@ -308,7 +315,7 @@ export function startOhlcvStreamSupervisor(
   resetMarketDataSnapshot(options.identity, 'loading', 'Authenticating the OHLCV stream.');
   void connect();
 
-  return {
+  const supervisor: OhlcvStreamSupervisor = {
     stop() {
       if (stopped) return;
       stopped = true;
@@ -318,11 +325,20 @@ export function startOhlcvStreamSupervisor(
       const active = connection;
       connection = null;
       active?.close();
-      resetMarketDataSnapshot(options.identity, 'unavailable', 'OHLCV stream stopped.');
-      setStatus('stopped');
+      // A superseded supervisor must never clear or overwrite the new
+      // selection's shared snapshot when its cleanup runs later.
+      if (activeSupervisorStop === supervisor.stop) {
+        activeSupervisorStop = null;
+        resetMarketDataSnapshot(options.identity, 'unavailable', 'OHLCV stream stopped.');
+        setStatus('stopped');
+      } else {
+        currentStatus = 'stopped';
+      }
     },
     get status() {
       return currentStatus;
     },
   };
+  activeSupervisorStop = supervisor.stop;
+  return supervisor;
 }
