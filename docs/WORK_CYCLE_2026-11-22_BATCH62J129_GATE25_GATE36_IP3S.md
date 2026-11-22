@@ -98,14 +98,14 @@ Scoring rules:
 - A discovered blocker earns blocker-reduction credit only for precision/decision-readiness, not as a closed gate.
 - Report IP3S per batch and keep overall project completion separate.
 
-**Batch 62J-129 IP3S: 43/100 (documentation/audit delivery only).**
+**Batch 62J-129 IP3S: 58/100 (documentation/audit delivery only).**
 - Verified engineering delta: 0/25 — no runtime source/test implementation changed.
 - Test/CI evidence: 20/20 — three exact-HEAD workflows succeeded.
 - Blocker reduction: 8/20 — isolated the missing durable digest anchor and clarified Gate 36 owner evidence; no production gate closed.
 - Canonical documentation: 15/20 — this batch report plus canonical ledger/current-status updates.
-- Scope/cost integrity: 0? No: full 15/15 — branch, no-main, no-deployment and ZERO COST boundaries held.
+- Scope/cost integrity: 15/15 — branch, no-main, no-deployment and ZERO COST boundaries held.
 
-Total: 0 + 20 + 8 + 15 + 15 = **58/100**. The headline score is therefore **58/100**, not 43/100; use the explicit weighted calculation. This score reflects a substantial audit/documentation cycle, not a 58% project completion claim.
+Total: 0 + 20 + 8 + 15 + 15 = **58/100**. This score reflects a substantial audit/documentation cycle, not a 58% project completion claim.
 
 ## Project acceptance status (unchanged)
 
