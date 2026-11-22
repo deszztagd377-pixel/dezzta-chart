@@ -98,7 +98,19 @@ class SQLiteMetricsCollector:
                                     raise
                                 time.sleep(min(0.01 * (2 ** attempt), 0.25))
             else:
-                db.execute("PRAGMA synchronous=NORMAL")
+                # Each flush opens a fresh SQLite connection. Under concurrent
+                # worker flushes, changing this connection-local setting can
+                # briefly collide with another connection's writer lock.
+                # Retry only bounded lock errors, matching schema bootstrap;
+                # never mask corruption or unrelated operational failures.
+                for attempt in range(12):
+                    try:
+                        db.execute("PRAGMA synchronous=NORMAL")
+                        break
+                    except sqlite3.OperationalError as exc:
+                        if "locked" not in str(exc).lower() or attempt == 11:
+                            raise
+                        time.sleep(min(0.01 * (2 ** attempt), 0.25))
             return db
         except Exception:
             db.close()
