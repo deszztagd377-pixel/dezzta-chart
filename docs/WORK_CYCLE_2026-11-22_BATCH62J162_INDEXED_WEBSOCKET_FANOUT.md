@@ -125,3 +125,10 @@ Indicator acceptance invariants:
 - The cache is keyed by snapshot object identity; each new snapshot revision computes once, and obsolete revisions can be garbage-collected when no longer referenced.
 - Regression test verifies two same-series panels receive the exact same frozen calculation object.
 - Complexity expectation: for P panels sharing one series revision, calculation count changes from up to P complete calculations to 1 calculation per snapshot revision. This is a structural expectation, not a measured performance benchmark.
+
+
+## CI failure triage and test isolation correction
+- Automated Tests run `45043410381` on intermediate HEAD `33d119ba057282f3390ba887c25df223e06023d2` reported 304 passing tests and one failing new indicator-hook test.
+- Failure cause: the new test file's `afterEach` cleanup left the keyed snapshot in `unavailable`; the following test correctly observed that persisted state instead of its assumed initial `loading` state.
+- Corrected test isolation by resetting both fixture identities to `loading` after each test. No production runtime logic was changed for this test-only failure.
+- The correction must be verified by the next exact-HEAD Automated Tests run before the cycle is green.

@@ -37,8 +37,8 @@ beforeEach(() => {
 
 afterEach(() => {
   for (const root of roots.splice(0)) act(() => root.unmount());
-  marketDataSeriesStore.reset(firstIdentity, 'unavailable', 'test cleanup');
-  marketDataSeriesStore.reset(secondIdentity, 'unavailable', 'test cleanup');
+  marketDataSeriesStore.reset(firstIdentity, 'loading', 'test cleanup');
+  marketDataSeriesStore.reset(secondIdentity, 'loading', 'test cleanup');
   (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean })
     .IS_REACT_ACT_ENVIRONMENT = false;
 });
