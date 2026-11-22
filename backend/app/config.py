@@ -187,6 +187,7 @@ class Settings:
     alert_delivery_lease_seconds: int = 120
     alert_delivery_max_attempts: int = 8
     redis_url: str = field(default="", repr=False)
+    redis_tls_ca_certs: str = ""
     observability_metrics_token: str = field(default="", repr=False)
     observability_metrics_db_path: str = "./data/observability_metrics.sqlite3"
     operator_incident_token: str = field(default="", repr=False)
@@ -277,6 +278,11 @@ class Settings:
                 "Databento credentials and provider access are disabled in production "
                 "by the ZERO MONEY policy."
             )
+        if self.redis_tls_ca_certs:
+            if not Path(self.redis_tls_ca_certs).is_absolute():
+                raise ValueError("REDIS_TLS_CA_CERTS must be an absolute path to a PEM CA bundle.")
+            if self.redis_url and not self.redis_url.lower().startswith("rediss://"):
+                raise ValueError("REDIS_TLS_CA_CERTS can only be used with a rediss:// REDIS_URL.")
         if self.redis_url:
             try:
                 parsed = urlsplit(self.redis_url)
@@ -382,6 +388,7 @@ class Settings:
                 os.getenv("ALERT_DELIVERY_MAX_ATTEMPTS", "8"), 8
             ),
             redis_url=os.getenv("REDIS_URL", "").strip(),
+            redis_tls_ca_certs=os.getenv("REDIS_TLS_CA_CERTS", "").strip(),
             observability_metrics_token=os.getenv("OBSERVABILITY_METRICS_TOKEN", "").strip(),
             observability_metrics_db_path=os.getenv("OBSERVABILITY_METRICS_DB_PATH", "./data/observability_metrics.sqlite3").strip() or "./data/observability_metrics.sqlite3",
             operator_incident_token=os.getenv("OPERATOR_INCIDENT_TOKEN", "").strip(),
