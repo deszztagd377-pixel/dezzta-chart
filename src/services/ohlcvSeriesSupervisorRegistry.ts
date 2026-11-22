@@ -37,6 +37,12 @@ export interface OhlcvSeriesSupervisorLease {
 export class OhlcvSeriesSupervisorRegistry {
   private readonly entries = new Map<string, SeriesEntry>();
 
+  constructor(private readonly maxActiveSeries = 32) {
+    if (!Number.isSafeInteger(maxActiveSeries) || maxActiveSeries < 1) {
+      throw new Error('OHLCV active-series capacity must be a positive safe integer.');
+    }
+  }
+
   acquire(
     options: OhlcvStreamSupervisorOptions,
     ownerId: string,
@@ -48,6 +54,10 @@ export class OhlcvSeriesSupervisorRegistry {
     const normalizedOwnerId = ownerId.trim();
     const key = getMarketSeriesIdentityKey(options.identity);
     let entry = this.entries.get(key);
+
+    if (!entry && this.entries.size >= this.maxActiveSeries) {
+      throw new Error(`OHLCV active-series capacity (${this.maxActiveSeries}) is exhausted.`);
+    }
 
     if (!entry) {
       const owners = new Map<string, { generation: number; callbacks: OwnerCallbacks }>();
@@ -113,6 +123,10 @@ export class OhlcvSeriesSupervisorRegistry {
 
   getSeriesCount(): number {
     return this.entries.size;
+  }
+
+  getCapacity(): number {
+    return this.maxActiveSeries;
   }
 
   getStatus(identity: MarketSeriesIdentity): OhlcvSupervisorStatus | 'stopped' {
