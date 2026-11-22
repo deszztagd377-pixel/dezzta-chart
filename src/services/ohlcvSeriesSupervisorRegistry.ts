@@ -83,6 +83,9 @@ export class OhlcvSeriesSupervisorRegistry {
       generation,
       callbacks: { onStatus: options.onStatus, onError: options.onError },
     });
+    // A panel joining an already-running series must receive its current state
+    // immediately; otherwise its UI can remain "connecting" until the next tick.
+    try { options.onStatus?.(entry.supervisor.status); } catch { /* Observer isolation. */ }
 
     let released = false;
     return Object.freeze({
