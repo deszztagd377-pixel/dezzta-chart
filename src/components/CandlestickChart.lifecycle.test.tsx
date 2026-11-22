@@ -153,7 +153,7 @@ afterEach(() => {
 describe('CandlestickChart WebSocket browser lifecycle integration', () => {
   it('stops offline, recreates on return online, pauses hidden, and cleans up on unmount', () => {
     renderChart();
-    expect(mocks.startSupervisor).toHaveBeenCalledTimes(1);
+    expect(mocks.acquireSupervisor).toHaveBeenCalledTimes(1);
     expect(stopHandles).toHaveLength(1);
 
     setBrowserLifecycle(false, 'visible');
@@ -164,17 +164,17 @@ describe('CandlestickChart WebSocket browser lifecycle integration', () => {
 
     setBrowserLifecycle(true, 'visible');
     act(() => window.dispatchEvent(new Event('online')));
-    expect(mocks.startSupervisor).toHaveBeenCalledTimes(2);
+    expect(mocks.acquireSupervisor).toHaveBeenCalledTimes(2);
 
     setBrowserLifecycle(true, 'hidden');
     act(() => document.dispatchEvent(new Event('visibilitychange')));
     expect(stopHandles[1]).toHaveBeenCalledOnce();
-    expect(getMarketDataSnapshot().status).toBe('unavailable');
-    expect(getMarketDataSnapshot().detail).toContain('background');
+    expect(marketDataSeriesStore.getSnapshot(marketDataIdentity).status).toBe('unavailable');
+    expect(marketDataSeriesStore.getSnapshot(marketDataIdentity).detail).toContain('background');
 
     setBrowserLifecycle(true, 'visible');
     act(() => document.dispatchEvent(new Event('visibilitychange')));
-    expect(mocks.startSupervisor).toHaveBeenCalledTimes(3);
+    expect(mocks.acquireSupervisor).toHaveBeenCalledTimes(3);
 
     act(() => {
       root?.unmount();
@@ -186,16 +186,16 @@ describe('CandlestickChart WebSocket browser lifecycle integration', () => {
   it('does not create a supervisor when initially offline', () => {
     setBrowserLifecycle(false, 'visible');
     renderChart();
-    expect(mocks.startSupervisor).not.toHaveBeenCalled();
+    expect(mocks.acquireSupervisor).not.toHaveBeenCalled();
 
     setBrowserLifecycle(true, 'visible');
     act(() => window.dispatchEvent(new Event('online')));
-    expect(mocks.startSupervisor).toHaveBeenCalledTimes(1);
+    expect(mocks.acquireSupervisor).toHaveBeenCalledTimes(1);
   });
 
   it('coalesces rapid offline, hidden and return events without overlapping supervisors', () => {
     renderChart();
-    expect(mocks.startSupervisor).toHaveBeenCalledTimes(1);
+    expect(mocks.acquireSupervisor).toHaveBeenCalledTimes(1);
 
     setBrowserLifecycle(false, 'visible');
     act(() => window.dispatchEvent(new Event('offline')));
@@ -203,19 +203,19 @@ describe('CandlestickChart WebSocket browser lifecycle integration', () => {
 
     setBrowserLifecycle(false, 'hidden');
     act(() => document.dispatchEvent(new Event('visibilitychange')));
-    expect(mocks.startSupervisor).toHaveBeenCalledTimes(1);
+    expect(mocks.acquireSupervisor).toHaveBeenCalledTimes(1);
 
     setBrowserLifecycle(true, 'hidden');
     act(() => window.dispatchEvent(new Event('online')));
-    expect(mocks.startSupervisor).toHaveBeenCalledTimes(1);
+    expect(mocks.acquireSupervisor).toHaveBeenCalledTimes(1);
 
     setBrowserLifecycle(true, 'visible');
     act(() => document.dispatchEvent(new Event('visibilitychange')));
-    expect(mocks.startSupervisor).toHaveBeenCalledTimes(2);
+    expect(mocks.acquireSupervisor).toHaveBeenCalledTimes(2);
 
     act(() => window.dispatchEvent(new Event('online')));
     act(() => document.dispatchEvent(new Event('visibilitychange')));
-    expect(mocks.startSupervisor).toHaveBeenCalledTimes(2);
+    expect(mocks.acquireSupervisor).toHaveBeenCalledTimes(2);
     expect(stopHandles[1]).not.toHaveBeenCalled();
 
     act(() => {
@@ -227,16 +227,16 @@ describe('CandlestickChart WebSocket browser lifecycle integration', () => {
 
   it('pauses on pagehide and creates a fresh supervisor on pageshow', () => {
     renderChart();
-    expect(mocks.startSupervisor).toHaveBeenCalledTimes(1);
+    expect(mocks.acquireSupervisor).toHaveBeenCalledTimes(1);
 
     act(() => window.dispatchEvent(new Event('pagehide')));
     expect(stopHandles[0]).toHaveBeenCalledOnce();
-    expect(getMarketDataSnapshot().status).toBe('unavailable');
-    expect(getMarketDataSnapshot().detail).toContain('background');
+    expect(marketDataSeriesStore.getSnapshot(marketDataIdentity).status).toBe('unavailable');
+    expect(marketDataSeriesStore.getSnapshot(marketDataIdentity).detail).toContain('background');
 
     setBrowserLifecycle(true, 'visible');
     act(() => window.dispatchEvent(new Event('pageshow')));
-    expect(mocks.startSupervisor).toHaveBeenCalledTimes(2);
+    expect(mocks.acquireSupervisor).toHaveBeenCalledTimes(2);
     expect(stopHandles[1]).not.toHaveBeenCalled();
 
     act(() => {
@@ -249,10 +249,10 @@ describe('CandlestickChart WebSocket browser lifecycle integration', () => {
   it('does not create a supervisor when initially hidden', () => {
     setBrowserLifecycle(true, 'hidden');
     renderChart();
-    expect(mocks.startSupervisor).not.toHaveBeenCalled();
+    expect(mocks.acquireSupervisor).not.toHaveBeenCalled();
 
     setBrowserLifecycle(true, 'visible');
     act(() => document.dispatchEvent(new Event('visibilitychange')));
-    expect(mocks.startSupervisor).toHaveBeenCalledTimes(1);
+    expect(mocks.acquireSupervisor).toHaveBeenCalledTimes(1);
   });
 });
