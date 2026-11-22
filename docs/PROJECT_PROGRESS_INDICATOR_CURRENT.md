@@ -1,3 +1,25 @@
+## Batch 62J-117 — exact-head WebSocket CI and indicator progress reconciliation (22 November 2026)
+
+## Batch 62J-117 — exact-head CI and indicator ledger reconciliation (22 November 2026)
+
+**Verified branch HEAD:** `e76b6cd6c8f7380e5a10a7d4707028fa7da78a02` (`phase-2/market-data-foundation`). The source-backed indicator audit baseline `0074f1d0b0e421f32800294742f92d9bc9c8a2c6` remains valid: GitHub comparison from that baseline to this HEAD contains documentation-only changes, with no indicator implementation, calculation, hook, renderer, chart UI or indicator-test source changes.
+
+**Exact-head workflows on `e76b6cd6c8f7380e5a10a7d4707028fa7da78a02`:**
+- Automated Tests [run #1952 / 44981803844](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981803844): **SUCCESS**; all 61 reported workflow steps completed successfully, including frontend tests/build, backend tests, Redis TLS CA/hostname fixture, backend container build, persistent-volume Redis smoke test, image scan/report and dependency audits.
+- CodeQL [44981803808](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981803808): **SUCCESS**.
+- Full Git History Secret Audit [44981803851](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981803851): **SUCCESS**.
+- These are exact-head repository CI/security results. They do not constitute production Firebase, owner-host Redis, public WSS, browser or Android WebView acceptance.
+
+**Indicator disposition — unchanged, zero progress credit:** SMA20 🟨, EMA20 🟨, RSI14 Wilder 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, Shared Indicator Hook 🟨, Footprint 🟧 (synthetic/reference-gated), Heatmap 🟥, Liquidation Maps 🟥. The five calculation foundations and their first-valid indices remain as recorded in the canonical audit; none is accepted as a finished visible chart feature. The chart integration, controls, legends/current values, pane/overlay rendering, stale-series clearing and lifecycle/render acceptance remain outstanding as listed per study. Footprint OFF must preserve ordinary candle spacing; only explicit ON may switch to spaced clusters. Footprint, Heatmap and Liquidation Maps visual work remains gated by user-provided reference image(s) and reviewed blueprint.
+
+**Accounting:** no indicator or project completion credit is awarded by WebSocket CI or this documentation reconciliation. Aggregate indicator percentage remains unscored without approved weights and denominator. Stage 1 remains 30/40 = 75% provisional; Gate 10 remains 0/10 formally closed. Gates 20, 25 and 36 remain open for real Firebase/entitlement evidence, owner-host Redis TLS/ACL/persistence/recovery and public HTTPS/WSS proxy plus browser/Android acceptance. No deployment or production readiness is claimed.
+
+**Cost/scope:** ZERO COST. No paid hosting/provider, OCI provisioning, credentials, deployment, Termux/device action or `main` modification.
+
+Full source-backed formula, numerical-safety, data-lineage and UI acceptance matrix: [INDICATOR_PROGRESS_AUDIT_2026-11-22.md](INDICATOR_PROGRESS_AUDIT_2026-11-22.md). WebSocket production blockers and evidence matrix: [WORK_CYCLE_2026-11-22_BATCH62J117_EXACT_HEAD_WEBSOCKET_AND_INDICATOR_RECONCILIATION.md](WORK_CYCLE_2026-11-22_BATCH62J117_EXACT_HEAD_WEBSOCKET_AND_INDICATOR_RECONCILIATION.md).
+
+---
+
 ## Batch 62J-115 — complete source-backed indicator progress audit (22 November 2026)
 
 - Audited baseline: `0074f1d0b0e421f32800294742f92d9bc9c8a2c6` on `phase-2/market-data-foundation`.

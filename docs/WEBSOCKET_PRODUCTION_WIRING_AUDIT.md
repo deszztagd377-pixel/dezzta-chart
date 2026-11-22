@@ -1,3 +1,13 @@
+## Batch 62J-117 — exact-head CI verification (22 November 2026)
+
+At exact branch HEAD e76b6cd6c8f7380e5a10a7d4707028fa7da78a02, Automated Tests [run #1952](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981803844), CodeQL [44981803808](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981803808), and Full Git History Secret Audit [44981803851](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981803851) all completed **SUCCESS**. The Automated Tests workflow reports all 61 steps successful, including frontend/backend tests, backend container build, isolated Redis TLS/CA/hostname fixture, persistent-volume Redis restart smoke, container scan/report and dependency audits. This verifies repository CI only; it does not close external production gates.
+
+The repository-side client matrix remains 17 WebSocket transport tests, 7 HTTPS ticket-exchange tests and 21 stream-supervisor tests. Real Firebase token/entitlement cases (Gate 20), owner-host Redis TLS/ACL/persistence/recovery and snapshot installation receipts (Gate 25), and public HTTPS/WSS reverse-proxy plus real browser/Android WebView lifecycle tests (Gate 36) remain open. No public host or endpoint is verified. Keep ZERO COST; no OCI provisioning, deployment, production credentials or main-branch changes.
+
+The indicator audit is unchanged because the comparison from its source/test baseline to this HEAD contains documentation-only changes. No indicator credit is awarded by this WebSocket CI pass. See the indicator audit and Batch 62J-117 reconciliation.
+
+---
+
 ## Batch 62J-116 — current WebSocket acceptance evidence (22 November 2026)
 
 At baseline `a3febdb3f7d3dd233f1cfeb8e482e986e56348e1`, exact-head CI is green: Automated Tests [44981340874](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981340874), CodeQL [44981340863](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981340863), and Full Git History Secret Audit [44981341220](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981341220). Frontend 29 test files passed; backend 1,294 passed and 1 skipped; all 36 automated workflow steps completed, including container and CI Redis persistence smoke.
