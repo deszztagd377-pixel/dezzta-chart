@@ -4114,3 +4114,12 @@ No indicator implementation credit. Preserve warm-up nulls, source-index alignme
 - IPS35/IP3S Batch 62J-145: pending final canonical documentation HEAD CI.
 
 ZERO COST; active branch remains phase-2/market-data-foundation; main untouched; no deployment, payment method, production credentials, device or Termux work.
+
+## Batch 62J-149 — WebSocket downstream subscriber isolation regression
+
+Added `backend/tests/test_ohlcv_stream.py::test_same_series_subscribers_are_isolated_when_one_disconnects`.
+
+The test creates two subscribers for the same exact series, verifies both receive the first accepted update, unsubscribes the first, then verifies the remaining subscriber continues receiving the next update while the disconnected subscriber is closed and receives nothing further. It also verifies subscriber count transitions 2 → 1 → 0.
+
+This proves downstream per-client fan-out isolation only. It does **not** prove dynamic upstream provider subscribe/unsubscribe, shared upstream reference counting, or the mandatory on-demand market subscription feature. Exact-HEAD CI for this new commit is pending.
+
