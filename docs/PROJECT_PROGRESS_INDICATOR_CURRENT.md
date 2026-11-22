@@ -3770,3 +3770,51 @@ Indicator ledger unchanged by this WebSocket fix:
 Stage 1 remains 30/40 = 75% provisional. Stages 2–6 remain NOT SCORED. Overall project remains NOT SCORED because stage weights and total acceptance denominator are not approved.
 
 ZERO COST preserved: no paid services, deployment, account creation, production secrets, device/Termux work, dependencies or schema changes. `main` untouched.
+
+
+## Batch 62J-144 — multi-user WebSocket lifecycle and indicator reconciliation (22 November 2026)
+
+### WebSocket multi-user ownership
+
+The app's connection lifecycle is per client, not per backend process. Backend source creates a unique connection ID and unique subscription stream/queue for each accepted client. Disconnect cleanup removes only that client's subscription and shared connection lease. Other users' active subscriptions are not stopped when one user closes the app. The FastAPI process and lifespan-owned publisher/replica workers are service resources, not children of a mobile client connection.
+
+A global zero-active-client policy to pause optional upstream ingestion after a grace period is NOT implemented. If approved later, it must use an aggregate active-connection/lease view and a grace period; it must never stop the backend because one particular user closes their app. Provider live-feed remains disabled/unprovisioned by default. The Redis cross-process relay is opt-in and still subject to Gate 25 host receipt and recovery acceptance.
+
+Source audit: backend/app/main.py WebSocket route creates/releases unique connection leases and unsubscribes only its own stream in finally; backend/app/ohlcv_stream.py creates a unique stream ID and bounded queue per subscription. Slow-client overflow is isolated to that client and requires reconnect/resnapshot.
+
+### Exact-HEAD test repair and client lifecycle coverage
+
+The prior docs HEAD 36ae4c01f7e09e084a31b8a62f785e13e270f6ac had a malformed JSX role="alert" attribute in AuthPanel, causing two suites to fail during transform. The Google-only test also had an over-escaped button matcher. Both were corrected. Added a browser lifecycle regression test proving pagehide stops the current supervisor and pageshow creates a fresh supervisor when visible/online. Commits: 43fb860b74544030432b51b035de288547e69cb2, ee6c21da678db11b8c1d9c6dd93c84970f915e27, and 78044a3b2419a6b38ecc251fa408f10b97608c54. Latest exact-HEAD CI must finish before acceptance is claimed.
+
+See [Batch 62J-144](WORK_CYCLE_2026-11-22_BATCH62J144_MULTI_USER_WEBSOCKET_LIFECYCLE.md).
+
+### Indicator ledger — unchanged
+
+| Indicator/component | Status | Verified foundation / boundary |
+|---|---|---|
+| SMA20 | 🟨 | 20-close mean; first valid index 19 |
+| EMA20 | 🟨 | SMA-seeded, alpha 2/21; first valid index 19 |
+| RSI14 Wilder | 🟨 | Wilder smoothing; first valid index 14 |
+| MACD12/26/9 | 🟨 | MACD index 25; signal/histogram index 33 |
+| Bollinger20,2 | 🟨 | 20-close mean ±2 population SD; first valid index 19 |
+| Shared Indicator Hook | 🟨 | Validated aligned backend output; not fully chart-integrated |
+| Footprint | 🟧 | Synthetic educational accumulator only; not exchange-native bid/ask; reference + reviewed blueprint required |
+| Heatmap | 🟥 | Not implemented; reference + reviewed blueprint required |
+| Liquidation Maps | 🟥 | Not implemented |
+
+No indicator implementation credit. Shared invariants: warm-up nulls; source-index alignment; prefix causality/no future repaint; invalid/gapped bars not silently converted to zero; stale output cleared on identity/timeframe changes; Footprint OFF standard candle spacing, explicit ON spaced clusters. No aggregate indicator % without approved weights/denominator.
+
+### Project-wide progress
+
+- Stage 1 Foundation, Security & Data Integrity: 30/40 = 75% provisional 🟨.
+- Stage 2 Market Data Infrastructure: ⬜ NOT SCORED / not officially opened.
+- Stage 3 Chart Engine & Timeframe: ⬜ NOT SCORED / not officially opened.
+- Stage 4 Indicators & Analytics: ⬜ NOT SCORED / not officially opened.
+- Stage 5 Professional UI & Interactive Tools: ⬜ NOT SCORED / not officially opened.
+- Stage 6 Hardening, Validation & APK Release: ⬜ NOT SCORED / not officially opened.
+- Overall project: NOT SCORED; six-stage weights and denominator remain unapproved.
+- Gate 10: 0/10 external criteria formally closed.
+- Gates 25, 36 and 38: OPEN; external owner-host and device evidence remains outstanding.
+- IP3S Batch 62J-144: PENDING exact-HEAD CI.
+
+ZERO COST; no cloud deployment, payment method, provider credentials, device/Termux work, or main branch changes.
