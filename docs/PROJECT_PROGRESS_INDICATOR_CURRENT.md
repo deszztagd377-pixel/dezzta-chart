@@ -3493,3 +3493,41 @@ IP3S is a per-work-cycle delivery-quality score, **not** an overall project comp
 Score each dimension from 0–100% and apply its weight. Documentation alone earns no runtime implementation points; CI cannot close owner-host or real-device gates. A newly clarified blocker earns only decision-readiness credit, not gate-closure credit.
 
 **Batch 62J-129: 58/100** (0/25 engineering delta + 20/20 exact-head CI + 8/20 blocker reduction + 15/20 canonical documentation + 15/15 scope/cost integrity). This is a work-cycle quality score, not project completion. Keep it separate from Stage 1 30/40 = 75% provisional and Gate 10 0/10 formally closed.
+
+
+## Batch 62J-137 — current WebSocket acceptance and project indicators (22 November 2026)
+
+### Gate 25 — receipt trust and migration
+
+The gateway runtime binds callback-returned source ID, generation ID and high-water cursor to the durable replica checkpoint, but it only checks callback-returned SHA-256 syntax. No immutable digest receipt is stored in the replica database. The source publisher runtime validates the global snapshot envelope and required gateway installation mappings, but actual gateway receipt authentication and authoritative retrieval are delegated to the owner-host callback. Thus local validation proves metadata consistency, not independent remote receipt authenticity/custody.
+
+The proposed next schema is a separate append-only receipt table, not extra mutable checkpoint columns. It must use a source/replica/generation identity tuple, canonical digest, immutable manifest/cursor metadata, non-secret attestation/key identifiers, authenticated transfer correlation and installation timestamp. Same tuple/same digest is idempotent; same tuple/conflicting digest or metadata is rejected. Rows, checkpoint and receipt commit atomically. Legacy checkpoints without receipts are LEGACY_UNATTESTED, never backfilled with invented provenance. Generation progression follows an approved cursor/source policy, not lexical UUID ordering. Design remains pending owner approval; no runtime or schema change.
+
+Required tests: atomic persistence; idempotent replay; conflicting digest/manifest; generation progression; legacy migration/reopen; transaction fault injection; pre/post-commit restart; gateway durable-digest binding; gateway identity/cursor mismatch; publisher missing/duplicate/stale/revoked gateway receipt; receipt immutability after event advancement; concurrent read consistency. See [Batch 62J-137 report](WORK_CYCLE_2026-11-22_BATCH62J137_GATE25_RECEIPT_TRUST_AND_MIGRATION.md).
+
+### Current indicator matrix
+
+| Indicator | Status | Evidence boundary |
+|---|---|---|
+| SMA20 | 🟨 Foundation | 20-close mean; first valid index 19 |
+| EMA20 | 🟨 Foundation | SMA-seeded; alpha 2/21; first valid index 19 |
+| RSI14 Wilder | 🟨 Foundation | First valid index 14 |
+| MACD12/26/9 | 🟨 Foundation | MACD index 25; signal/histogram index 33 |
+| Bollinger20,2 | 🟨 Foundation | 20-close mean ±2 population SD; first valid index 19 |
+| Shared Indicator Hook | 🟨 Foundation | Validated aligned backend output; not chart-integrated |
+| Footprint | 🟧 Prototype | Synthetic accumulator only; user reference and reviewed blueprint gate visual implementation |
+| Heatmap | 🟥 Not implemented | User reference and reviewed blueprint required |
+| Liquidation Maps | 🟥 Not implemented | No implementation evidence |
+
+No indicator runtime, calculation, tests, hook, renderer or UI changed in Batch 62J-137. No indicator progress credit. Shared invariants: warm-up nulls, candle-index alignment, no future-candle repaint, invalid/gapped bars not silently coerced to zero, stale-output clearing on identity/timeframe changes. Footprint OFF preserves standard candle spacing; explicit ON alone activates spaced cluster layout. No aggregate indicator percentage without approved weights/denominator.
+
+### Overall project progress
+
+- Stage 1 Foundation, Security & Data Integrity: 30/40 criteria = 75% provisional.
+- Stages 2–6: NOT SCORED / not officially opened.
+- Overall project: NOT SCORED (stage weights and total denominator not approved).
+- Gate 10: 0/10 external criteria formally closed.
+- WebSocket Gates 25, 36 and 38: OPEN.
+- IP3S Batch 62J-137: PENDING exact-HEAD CI; no numeric score yet.
+
+ZERO COST. No paid hosting/API/domain, deployment, account, production credential, device or Termux work. main untouched.
