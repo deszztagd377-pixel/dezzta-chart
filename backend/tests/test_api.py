@@ -2130,7 +2130,7 @@ def test_websocket_ticket_endpoint_rejects_missing_bearer_identity():
     response = TestClient(application).post("/v1/auth/websocket-ticket")
 
     assert response.status_code == 401
-    assert response.json()["detail"] == "Authentication credentials are required."
+    assert response.json()["detail"] == "Bearer authentication is required."
 
 
 def test_websocket_ticket_endpoint_fails_closed_when_shared_store_is_unavailable():
