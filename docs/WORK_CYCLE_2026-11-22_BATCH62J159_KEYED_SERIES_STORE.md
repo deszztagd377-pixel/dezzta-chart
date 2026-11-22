@@ -82,9 +82,10 @@ Final code HEAD before this documentation commit: `964f9f9ecf8f2d69de7d5df83da3f
 
 ## Safety and correctness boundaries
 
-- Existing `marketDataStore` remains the active source for the current single-chart path.
-- Existing `ohlcvStreamSupervisor` remains singleton-owned.
-- New keyed store is implemented and tested in isolation but is not yet wired into `CandlestickChart` or the WebSocket supervisor.
+- The legacy `marketDataStore` remains as a compatibility publication path.
+- `CandlestickChart` reads its selected keyed snapshot through `useMarketDataSeriesSnapshot`.
+- `ohlcvStreamSupervisor` still has a global singleton owner and currently dual-publishes validated events to legacy and keyed stores.
+- The keyed store is integrated for chart reads, but multiple simultaneous WebSocket supervisors are not supported yet.
 - No dynamic provider subscription, upstream reference counting, provider API, data vendor, API key, or paid service was added.
 - No market-data source is represented as free unless its exact coverage and app redistribution rights are proven.
 - Cache capacity is 32 keyed series by default. Active subscribers are never evicted; if every slot is active, new series acquisition fails closed.
@@ -102,11 +103,13 @@ Final code HEAD before this documentation commit: `964f9f9ecf8f2d69de7d5df83da3f
 - Frontend shared ten-dimension canonical identity comparator.
 - New keyed immutable per-series snapshot store.
 - Per-series listener isolation and bounded cache with active-subscriber pinning.
+- Keyed React chart snapshot hook and chart binding.
+- Render-pure `peekSnapshot` path for `useSyncExternalStore`.
 
 ### Still open
-1. Migrate chart snapshot selectors to keyed store without changing current single-chart behavior.
-2. Add per-panel owner leases/generation guards and test two panels on same/different series.
-3. Migrate supervisor ownership from singleton to per-series only after keyed-store integration tests pass.
+1. Add per-panel owner leases/generation guards and test two panels on the same series and on different series.
+2. Refactor supervisor ownership from one global singleton to per-series shared transport ownership only after lifecycle tests pass.
+3. Add per-series transport cleanup and reconnect reconciliation.
 4. Add per-series transport cleanup/reconnect reconciliation.
 5. Verify provider SDK add/remove-symbol lifecycle using exact pinned SDK docs/version.
 6. Implement provider demand only when wired to an actual verified provider lifecycle.
@@ -125,7 +128,7 @@ No indicator formula or renderer changed in this cycle. Indicator implementation
 | RSI14 Wilder | 🟨 Foundation | Wilder smoothing; first valid index 14; flat/rising/falling/alternating and numerical-stability tests | Gap/reset semantics, 0–100 pane, 30/70 guides, toggle, legend/latest value, renderer tests |
 | MACD12/26/9 | 🟨 Foundation | MACD index 25; signal/histogram index 33; causality tests | Gap semantics, dedicated pane, MACD/signal lines, histogram, zero guide, controls and renderer tests |
 | Bollinger20,2 | 🟨 Foundation | 20-close mean ±2 population SD; first valid index 19; numeric stability and causality tests | Gap semantics, upper/middle/lower overlay, toggle, latest values and renderer tests |
-| Shared Indicator Hook | 🟨 Foundation | Backend snapshot gating and aligned calculations; new keyed store now available but not integrated | Hook tests, keyed-store binding, calendar-aware gap semantics, stale clearing, renderer integration |
+| Shared Indicator Hook | 🟨 Foundation | Backend snapshot gating and aligned calculations; keyed React store binding is present | Calendar-aware gap semantics, stale clearing, chart renderer integration, and indicator-specific hook tests |
 | Footprint | 🟧 Prototype only | Synthetic educational accumulator only | User-provided visual reference image(s), reviewed blueprint, validated bid/ask provenance/rights, cluster renderer and acceptance |
 | Heatmap | 🟥 Not implemented | No accepted depth/liquidity renderer | User-provided visual reference image(s), validated depth/liquidity contract, reviewed blueprint, renderer and lifecycle tests |
 | Liquidation Maps | 🟥 Not implemented | No accepted provenance-backed calculation/renderer | Defensible data provenance, validated calculation contract, reviewed blueprint, visualization and tests |
@@ -150,7 +153,7 @@ No indicator formula or renderer changed in this cycle. Indicator implementation
 |---|---:|---|
 | Stage 1 — Foundation, Security & Data Integrity | 30/40 = 75% provisional | 🟨 Existing scored baseline; not re-scored in this cycle |
 | Stage 2 — Market Data Infrastructure | Not scored | ⬜ Keyed store foundation exists; provider demand lifecycle and rights-cleared recurring-$0 source remain open |
-| Stage 3 — Chart Engine & Timeframe | Not scored | ⬜ Keyed store not yet wired into chart panels; multi-chart ownership remains open |
+| Stage 3 — Chart Engine & Timeframe | Not scored | ⬜ Keyed chart snapshot binding is present; simultaneous multi-series transport ownership and broader chart acceptance remain open |
 | Stage 4 — Indicators & Analytics | Not scored | ⬜ Calculation foundations exist; gap semantics, hook integration and renderers incomplete |
 | Stage 5 — Professional UI & Interactive Tools | Not scored | ⬜ No approved denominator |
 | Stage 6 — Hardening, Validation & APK Release | Not scored | ⬜ Exact-HEAD CI and debug APK acceptance still pending; physical-device and public release acceptance incomplete |
@@ -162,13 +165,11 @@ No indicator formula or renderer changed in this cycle. Indicator implementation
 ## Next engineering sequence
 
 1. Preserve the exact-HEAD green CI baseline once all required workflows pass.
-2. Add a keyed React snapshot hook with stable subscribe/getSnapshot functions.
-3. Migrate one chart panel behind an explicit feature boundary; preserve legacy behavior as fallback until tests pass.
-4. Add panel owner leases and generation guards; verify two same-series panels and two different-series panels.
-5. Migrate WebSocket supervisor ownership per series after chart-store migration is green.
-6. Define per-series retention/window limits and stale cleanup.
-7. Define calendar-aware gap annotations and per-indicator gap/reset semantics.
-8. Integrate SMA/EMA/Bollinger overlays and RSI/MACD panes only after the keyed data/gap contracts pass.
-9. Keep Footprint/Heatmap visual work behind the user's references and blueprint review.
+2. Add panel owner leases and generation guards; verify two same-series panels and two different-series panels under the current singleton supervisor.
+3. Refactor WebSocket supervisor ownership per series only after the panel lifecycle matrix is green.
+4. Define per-series retention/window limits and stale cleanup.
+5. Define calendar-aware gap annotations and per-indicator gap/reset semantics.
+6. Integrate SMA/EMA/Bollinger overlays and RSI/MACD panes only after keyed data and gap contracts pass.
+7. Keep Footprint/Heatmap visual work behind the user's references and blueprint review.
 
 Delivery target remains 24 December 2026. ZERO COST remains a hard constraint.
