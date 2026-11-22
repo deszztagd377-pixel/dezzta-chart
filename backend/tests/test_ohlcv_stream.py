@@ -367,3 +367,44 @@ def test_replay_boundary_fails_closed_on_overflow_or_wrong_series():
             raise AssertionError("wrong-series replay must be rejected")
 
     asyncio.run(scenario())
+
+def test_stream_hub_rejects_updates_when_any_series_identity_dimension_differs() -> None:
+    from dataclasses import replace
+
+    async def scenario() -> None:
+        pipeline = OhlcvPipeline()
+        initial = make_bar(0)
+        assert pipeline.apply(initial) == "inserted"
+        hub = OhlcvStreamHub()
+        subscription, _, _ = hub.subscribe_snapshot(
+            pipeline,
+            dataset="GLBX.MDP3",
+            publisher_id=1,
+            instrument_id=101,
+            raw_symbol="ESZ6",
+            timeframe="1s",
+            limit=100,
+        )
+
+        mismatches = [
+            replace(make_bar(1), dataset="OTHER.DATASET"),
+            replace(make_bar(1), publisher_id=2),
+            replace(make_bar(1), instrument_id=202, raw_symbol="NQZ6"),
+            replace(make_bar(1), raw_symbol="NQZ6"),
+            replace(make_bar(1), timeframe="5s"),
+            replace(make_bar(1), provider="provider-b"),
+            replace(make_bar(1), series_type="continuous"),
+            replace(make_bar(1), bucket_policy="UTC_FIXED_V1"),
+            replace(make_bar(1), calendar_id="CME"),
+            replace(make_bar(1), calendar_version="2026a"),
+        ]
+
+        for mismatched_bar in mismatches:
+            hub.publish(mismatched_bar)
+
+        assert subscription.queue.empty()
+        assert subscription.watermark == 0
+        hub.unsubscribe(subscription.stream_id)
+        assert hub.subscriber_count == 0
+
+    asyncio.run(scenario())
