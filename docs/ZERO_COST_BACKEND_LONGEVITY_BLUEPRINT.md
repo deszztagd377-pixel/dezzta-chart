@@ -33,7 +33,7 @@ Free plans are useful for prototypes, but their limits are material:
 
 | Candidate | Verified free-plan facts | Architectural decision |
 |---|---|---|
-| Render Free Web Service | Supports Python/FastAPI and WebSockets; sleeps after 15 minutes without inbound HTTP/WebSocket messages; about one minute to wake; filesystem is ephemeral; free services can restart at any time; no persistent disks; free Postgres expires after 30 days; free Key Value is in-memory and loses state on restart. | **POC compute only. Not production, not durable storage, not the Redis shared-guard.** |
+| Render Free Web Service | Supports Python/FastAPI and WebSockets; sleeps after 15 minutes without inbound HTTP/WebSocket messages; about one minute to wake; filesystem is ephemeral; free services can restart at any time; no persistent disks; free Postgres expires after 30 days; free Key Value is in-memory and loses state on restart. Outbound bandwidth is quota-limited and excess usage can be billed. | **Not selected for use yet.** It may be considered for synthetic-data POC only after the account's billing/overage controls are verified to make accidental charges impossible. Never use it as production compute, durable storage, or the Redis shared-guard. |
 | Supabase Free | Postgres database; 500 MB database; 5 GB egress; free projects can pause after about seven days of low activity; no automatic backups on Free; manual export is required; Realtime Free limits include 200 concurrent connections and 100 messages/second. | **Candidate for a disposable integration/portability POC only.** Do not make it the only backup or assume continuous availability. Revalidate quotas before use. |
 | Neon Free | Serverless Postgres with scale-to-zero and a published free allowance; exact quotas and plan rules can change. | **Secondary database candidate for a controlled comparison**, not a production decision until current official quotas, inactivity behavior, export/restore, and billing safeguards are rechecked. |
 | Koyeb, Railway, Fly.io, cloud free credits, and similar offers | Some offers sleep, require a card, are time-limited credits, or have no standing always-free compute. | **Not selected.** A trial or credit is not a permanent zero-cost plan. |
@@ -181,7 +181,7 @@ Stop the affected phase and keep its gate open if:
 This document is a foundation proposal, not an implementation authorization. Review these decisions before code changes:
 
 1. Accept the vendor-neutral architecture and the rule that no free provider is considered permanent.
-2. Keep Render Free as an optional synthetic-data compute POC only; do not use its filesystem, free Postgres, or free Key Value as production durability.
+2. Do not use Render until billing/overage controls are verified to prevent accidental charges. If that cannot be proven, exclude it entirely; even if later approved for a synthetic-data POC, never use its filesystem, free Postgres, or free Key Value as production durability.
 3. Keep Supabase/Neon as isolated Postgres portability candidates only; do not select one as the canonical production store until export/restore, pause behavior, quotas, and billing constraints are proven.
 4. Preserve the existing Firebase + Redis TLS/ACL security contract until an explicitly reviewed replacement passes equivalent tests.
 5. Keep Gate 31 (off-host backup), Gate 35 (public HTTPS/TLS), Gate 36 (public WSS/Android), and all other Gate 10 criteria open until actual evidence exists.
