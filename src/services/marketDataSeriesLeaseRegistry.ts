@@ -40,6 +40,7 @@ export class MarketDataSeriesLeaseRegistry {
     if (typeof ownerId !== 'string' || ownerId.trim().length === 0) {
       throw new Error('Market-data panel owner ID must be a non-empty string.');
     }
+    const normalizedOwnerId = ownerId.trim();
 
     const key = getMarketSeriesIdentityKey(identity);
     let entry = this.entries.get(key);
@@ -52,15 +53,18 @@ export class MarketDataSeriesLeaseRegistry {
       this.entries.set(key, entry);
     }
 
+    if (!Number.isSafeInteger(entry.nextGeneration + 1)) {
+      throw new Error('Market-data panel lease generation exhausted its safe integer range.');
+    }
     const generation = ++entry.nextGeneration;
     // Reacquiring with the same owner ID replaces its generation rather than
     // incrementing the number of unique panels.
-    entry.owners.set(ownerId, { generation });
+    entry.owners.set(normalizedOwnerId, { generation });
 
     let released = false;
     return Object.freeze({
       key,
-      ownerId,
+      ownerId: normalizedOwnerId,
       generation,
       release: () => {
         if (released) return;
@@ -68,10 +72,10 @@ export class MarketDataSeriesLeaseRegistry {
 
         const currentEntry = this.entries.get(key);
         if (!currentEntry) return;
-        const currentOwner = currentEntry.owners.get(ownerId);
+        const currentOwner = currentEntry.owners.get(normalizedOwnerId);
         if (!currentOwner || currentOwner.generation !== generation) return;
 
-        currentEntry.owners.delete(ownerId);
+        currentEntry.owners.delete(normalizedOwnerId);
         if (currentEntry.owners.size !== 0) return;
 
         this.entries.delete(key);
