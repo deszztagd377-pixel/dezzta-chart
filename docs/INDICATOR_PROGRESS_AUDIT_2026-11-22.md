@@ -1,3 +1,55 @@
+## Batch 62J-134 — WebSocket close-reason accuracy fix (22 November 2026)
+
+Source/test commit: `ecf7decb8e823effe09a6be8a9973bb98619ae92` on `phase-2/market-data-foundation`.
+
+### Engineering change
+Backend source uses WebSocket close code 4403 for both:
+- Origin policy rejection: reason `Origin not allowed` before authentication.
+- Canonical instrument/series entitlement denial: reason such as `Instrument access denied` or `Instrument access revoked`.
+
+Previously the client supervisor mapped every 4403 to an entitlement failure. That produced a false diagnosis for a frontend Origin configuration error. The supervisor now classifies 4403 by the server-provided close reason:
+- Origin rejection → “WebSocket Origin is not allowlisted” diagnostic.
+- Other 4403 reasons → entitlement denial/revocation diagnostic.
+Both remain terminal and do not trigger an automatic reconnect loop.
+
+Regression tests cover both branches, verify the error and snapshot detail, and verify no retry. Files changed:
+- `src/services/ohlcvStreamSupervisor.ts`
+- `src/services/ohlcvStreamSupervisor.test.ts`
+
+This is a diagnostic correctness fix only; it does not weaken authentication, authorization, Origin enforcement, or reconnect policy.
+
+### Exact-commit CI status
+- Automated Tests run [44991640588](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44991640588): **IN PROGRESS** at documentation time; frontend unit tests and frontend build passed, Redis TLS fixture passed, backend tests still running.
+- CodeQL run [44991640593](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44991640593): **SUCCESS** (JavaScript/TypeScript and Python).
+- Full Git History Secret Audit run [44991640577](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44991640577): **SUCCESS**.
+- Zero-cost Android debug APK workflow [44991640574](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44991640574): **IN PROGRESS**; web build and Android wrapper setup passed, APK assembly still running.
+
+Do not call the new regression tests accepted until Automated Tests completes successfully. No APK artifact is claimed until its workflow reports success.
+
+### Remaining WebSocket acceptance
+- Gate 25 OPEN: immutable snapshot installation digest/provenance receipt, owner-authenticated transfer and owner-host Redis acceptance.
+- Gate 36 OPEN: public WSS/reverse proxy/certificate lifecycle, live Firebase project, production browser session and Android WebView foreground/background/process-death/network handover.
+- Gate 38 OPEN: owner-host metrics persistence, disk pressure/restart/backup/retention and operator dashboard/alert/recovery.
+- Redis TLS/AOF restart: isolated CI fixture PASS on the preceding exact-head docs baseline; owner-host failover/backup/restore remains untested.
+
+### Indicator and project indicators
+No indicator source or tests changed; indicator implementation status receives no credit:
+- SMA20 🟨 foundation (first valid index 19).
+- EMA20 🟨 SMA-seeded alpha 2/21 (first valid index 19).
+- RSI14 Wilder 🟨 foundation (first valid index 14).
+- MACD12/26/9 🟨 foundation (MACD index 25; signal/histogram index 33).
+- Bollinger20,2 🟨 foundation (first valid index 19).
+- Shared Indicator Hook 🟨 backend snapshot/alignment only; not chart-integrated.
+- Footprint 🟧 synthetic educational accumulator only; wait for user visual reference and reviewed blueprint.
+- Heatmap 🟥 not implemented; wait for user visual reference and reviewed blueprint.
+- Liquidation Maps 🟥 not implemented.
+
+Stage 1 remains 30/40 = 75% provisional. Stages 2–6 remain NOT SCORED; Gate 10 remains 0/10 external criteria formally closed. Overall project remains NOT SCORED until stage weights and acceptance denominator are approved.
+
+IP3S for this batch is **PENDING** until exact-commit Automated Tests completes. This prevents unverified source changes from receiving CI-evidence credit. ZERO COST; no deployment, paid service, production credentials, device/Termux operations or `main` changes.
+
+---
+
 ## Batch 62J-132 — exact-baseline CI acceptance and indicator reconciliation (22 November 2026)
 
 **Source/test baseline:** `d549d99318abbeb156f716a4e2cf749eef226ca9` on `phase-2/market-data-foundation`. This is the commit tested by the three successful workflows; the documentation follow-up commit is a separate HEAD and must receive its own CI check.
