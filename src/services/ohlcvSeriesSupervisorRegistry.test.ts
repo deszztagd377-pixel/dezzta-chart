@@ -147,13 +147,17 @@ describe('per-series shared OHLCV supervisor registry', () => {
     const statusesA: string[] = [];
     const statusesB: string[] = [];
     const first = registry.acquire(makeOptions(es, socket, (status) => statusesA.push(status)), 'panel-a');
-    const second = registry.acquire(makeOptions(es, new FakeSocket(), (status) => statusesB.push(status)), 'panel-b');
 
     expect(registry.getSeriesCount()).toBe(1);
-    expect(registry.getOwnerCount(es)).toBe(2);
     await authenticateAndPublish(socket, es, 'stream-shared');
     expect(statusesA).toContain('subscribed');
-    expect(statusesB).toContain('subscribed');
+
+    // A late-joining panel reuses the active transport and receives its current state.
+    const unusedSocket = new FakeSocket();
+    const second = registry.acquire(makeOptions(es, unusedSocket, (status) => statusesB.push(status)), 'panel-b');
+    expect(registry.getOwnerCount(es)).toBe(2);
+    expect(statusesB).toEqual(['subscribed']);
+    expect(unusedSocket.listeners.size).toBe(0);
 
     first.release();
     expect(registry.getOwnerCount(es)).toBe(1);
