@@ -52,9 +52,9 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
     typeof document === 'undefined' ? 'visible' : document.visibilityState,
   ));
 
-  // Mobile browsers may suspend timers while the app is backgrounded. Stop the
-  // stream while hidden/offline; a fresh supervisor obtains a new snapshot when
-  // the document is visible and the browser reports network connectivity.
+  // Mobile browsers may suspend timers while the app is backgrounded.
+  // Pause on hidden/pagehide/offline; resume with a fresh authenticated
+  // supervisor and snapshot on visible/pageshow/online.
   useEffect(() => {
     const syncLifecycle = () => {
       setStreamLifecycle(getOhlcvStreamLifecycle(
@@ -62,15 +62,22 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
         document.visibilityState,
       ));
     };
+    const pauseForPageHide = () => {
+      setStreamLifecycle(getOhlcvStreamLifecycle(navigator.onLine, 'hidden'));
+    };
 
     window.addEventListener('online', syncLifecycle);
     window.addEventListener('offline', syncLifecycle);
+    window.addEventListener('pageshow', syncLifecycle);
+    window.addEventListener('pagehide', pauseForPageHide);
     document.addEventListener('visibilitychange', syncLifecycle);
     syncLifecycle();
 
     return () => {
       window.removeEventListener('online', syncLifecycle);
       window.removeEventListener('offline', syncLifecycle);
+      window.removeEventListener('pageshow', syncLifecycle);
+      window.removeEventListener('pagehide', pauseForPageHide);
       document.removeEventListener('visibilitychange', syncLifecycle);
     };
   }, []);
