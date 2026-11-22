@@ -151,6 +151,46 @@ describe('keyed market-data series store', () => {
     expect(notifications).toBe(0);
   });
 
+  it('evicts the least-recently-used inactive series but pins active chart subscriptions', () => {
+    const store = new MarketDataSeriesStore(2);
+    const releaseNq = store.subscribe(nq, () => {});
+    store.publishSnapshot({ identity: es, status: 'ready', bars });
+
+    const ym = { ...nq, instrumentId: 789, rawSymbol: 'YMZ6' };
+    store.publishSnapshot({ identity: ym, status: 'ready', bars });
+
+    expect(store.getSeriesCount()).toBe(2);
+    expect(store.getSnapshot(nq).status).toBe('loading');
+    expect(store.getSnapshot(es).bars).toEqual([]);
+    expect(store.getSnapshot(ym).bars).toEqual(bars);
+    expect(store.getSubscriberCount(nq)).toBe(1);
+
+    releaseNq();
+  });
+
+  it('rejects new series when every cache entry is pinned by active panels', () => {
+    const store = new MarketDataSeriesStore(2);
+    const releaseNq = store.subscribe(nq, () => {});
+    const releaseEs = store.subscribe(es, () => {});
+    const ym = { ...nq, instrumentId: 789, rawSymbol: 'YMZ6' };
+
+    expect(() => store.getSnapshot(ym)).toThrow(/capacity is exhausted/);
+    expect(store.getSeriesCount()).toBe(2);
+    expect(store.getSnapshot(nq).status).toBe('loading');
+    expect(store.getSnapshot(es).status).toBe('loading');
+
+    releaseNq();
+    releaseEs();
+    expect(store.getSnapshot(ym).status).toBe('loading');
+    expect(store.getSeriesCount()).toBe(2);
+  });
+
+  it('validates bounded-store capacity at construction', () => {
+    expect(() => new MarketDataSeriesStore(0)).toThrow(/positive safe integer/);
+    expect(() => new MarketDataSeriesStore(1.5)).toThrow(/positive safe integer/);
+    expect(new MarketDataSeriesStore(3).getCapacity()).toBe(3);
+  });
+
   it('isolates listener failures so one panel cannot block another', () => {
     const store = new MarketDataSeriesStore();
     let healthyPanel = 0;
