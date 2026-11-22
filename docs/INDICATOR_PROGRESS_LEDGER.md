@@ -1586,3 +1586,26 @@ No aggregate indicator percentage is published without approved per-study weight
 ## Batch 62J-127 — WebSocket acceptance reconciliation
 
 Exact-parent CI for b7d0482ff8fa5906c006460583ad3b175f4c282c: Automated Tests, CodeQL and Full Git History Secret Audit all SUCCESS (runs 44987388625, 44987388511 and 44987388505). Operational-response audit distinguishes implemented user price-alert FCM delivery from local operator incident escalation: FCM uses owner-scoped encrypted device tokens and runtime ADC, while operator escalation currently writes local logs; no external operator paging/receipt is proven. Same-host SQLite metrics aggregation exists (15-minute buckets, 7-day retention) alongside process-local counters, but no central dashboard/off-host monitoring proof exists. Gates 8, 20, 38 and 39 remain open. Gate 10 is 0/10; Stage 1 is 30/40 provisional. Indicator statuses are unchanged and receive zero progress credit; six foundations/shared hook 🟨, Footprint 🟧 reference-gated, Heatmap/Liquidation Maps 🟥. Documentation-only, ZERO COST.
+
+
+## Batch 62J-129 reconciliation — 22 November 2026
+
+No indicator source, tests, calculations, hook, renderer or chart UI changed. No indicator implementation progress is credited. Current matrix remains: SMA20 🟨 (20-close mean, first valid index 19); EMA20 🟨 (SMA-seeded, alpha 2/21, index 19); RSI14 Wilder 🟨 (14 close changes, index 14); MACD12/26/9 🟨 (MACD index 25, signal/histogram 33); Bollinger20,2 🟨 (20-close mean ±2 population SD, index 19); Shared Indicator Hook 🟨 (validated aligned output, not chart-integrated); Footprint 🟧 (simulated educational accumulator, visual work gated on user reference and reviewed blueprint); Heatmap 🟥; Liquidation Maps 🟥.
+
+Shared acceptance remains: warm-up nulls, candle-index alignment, prefix causality/no future-candle repaint, stale-series clearing on identity/timeframe changes, visible toggles/legends/current values, chart renderer/lifecycle tests. Footprint OFF preserves normal candle spacing; only explicit ON enables spaced clusters. Footprint/Heatmap visuals remain blocked until the user supplies reference image(s) and reviews the scoped blueprint. No aggregate indicator percentage without approved weights and denominator.
+
+## IP3S — Indicator Proses Peningkatan Proyek Signifikan (introduced 22 November 2026)
+
+IP3S is a per-work-cycle delivery-quality score, **not** an overall project completion percentage. Weights and full-credit rules:
+
+| Dimension | Weight | Full-credit condition |
+|---|---:|---|
+| Verified engineering delta | 25 | Tested runtime/source improvement or independently verified acceptance evidence |
+| Test/CI evidence | 20 | Relevant checks pass on exact HEAD; limitations are explicit |
+| Blocker reduction | 20 | A real acceptance blocker is closed or its exact owner/action is isolated |
+| Canonical documentation | 20 | Source-backed findings, status and next acceptance criteria are reconciled |
+| Scope/cost integrity | 15 | Correct branch, honest evidence claims, ZERO COST and authorization boundaries respected |
+
+Score each dimension from 0–100% and apply its weight. Documentation alone earns no runtime implementation points; CI cannot close owner-host or real-device gates. A newly clarified blocker earns only decision-readiness credit, not gate-closure credit.
+
+**Batch 62J-129: 58/100** (0/25 engineering delta + 20/20 exact-head CI + 8/20 blocker reduction + 15/20 canonical documentation + 15/15 scope/cost integrity). This is a work-cycle quality score, not project completion. Keep it separate from Stage 1 30/40 = 75% provisional and Gate 10 0/10 formally closed.
