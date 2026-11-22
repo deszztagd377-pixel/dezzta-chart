@@ -311,7 +311,7 @@ export function startOhlcvStreamSupervisor(
       if (!stopped) {
         if ((error as { status?: number } | null)?.status === 401) {
           stopped = true;
-          resetMarketDataSnapshot(
+          resetMarketDataStores(
             options.identity,
             'unavailable',
             'Firebase authentication was rejected. Sign in again before reconnecting.',
