@@ -16,15 +16,26 @@ def test_rediss_guard_requires_ca_validation_and_hostname_verification(monkeypat
     monkeypatch.setattr(Redis, "from_url", classmethod(fake_from_url))
 
     guard = RedisSharedGuard(
-        "rediss://guard-user:guard-password@redis.example:6380/0"
+        "rediss://guard-user:guard-password@redis.example:6380/0",
+        redis_tls_ca_certs="/run/certs/redis-private-ca.pem",
     )
 
     assert guard._redis is not None
     assert captured["url"] == "rediss://guard-user:guard-password@redis.example:6380/0"
     assert captured["options"]["ssl_cert_reqs"] == "required"
     assert captured["options"]["ssl_check_hostname"] is True
+    assert captured["options"]["ssl_ca_certs"] == "/run/certs/redis-private-ca.pem"
     assert captured["options"]["socket_connect_timeout"] == 2
     assert captured["options"]["socket_timeout"] == 2
+
+
+def test_custom_ca_requires_absolute_path_and_tls_url():
+    import pytest
+
+    with pytest.raises(ValueError, match="absolute CA bundle path"):
+        RedisSharedGuard("rediss://guard:secret@redis.example:6380/0", redis_tls_ca_certs="relative/ca.pem")
+    with pytest.raises(ValueError, match="requires a rediss:// URL"):
+        RedisSharedGuard("redis://localhost:6379/0", redis_tls_ca_certs="/etc/redis/ca.pem")
 
 
 def test_plain_redis_guard_does_not_silently_enable_tls_options(monkeypatch):
