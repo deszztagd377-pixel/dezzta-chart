@@ -102,8 +102,6 @@ describe('keyed market-data series store', () => {
       { ...nq, rawSymbol: 'ESZ6' },
       { ...nq, timeframe: '5m' as const },
       { ...nq, bucketPolicy: 'UTC_LEGACY' as const },
-      { ...nq, calendarId: 'CME' },
-      { ...nq, calendarVersion: '2026a' },
     ];
     store.publishSnapshot({ identity: nq, status: 'ready', bars });
 
@@ -112,7 +110,9 @@ describe('keyed market-data series store', () => {
       expect(store.getSnapshot(variant).identity).toEqual(variant);
     }
     expect(store.getSnapshot(nq).bars).toEqual(bars);
-    expect(store.getSeriesCount()).toBe(11);
+    expect(store.getSeriesCount()).toBe(9);
+    expect(() => store.getSnapshot({ ...nq, calendarId: 'CME' })).toThrow(/session-aware bucket policy/);
+    expect(() => store.getSnapshot({ ...nq, calendarVersion: '2026a' })).toThrow(/session-aware bucket policy/);
   });
 
   it('does not expose mutable snapshot, bar, or identity references', () => {
