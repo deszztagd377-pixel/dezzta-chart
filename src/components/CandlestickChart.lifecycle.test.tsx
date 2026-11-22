@@ -7,7 +7,7 @@ import type { FuturesContractDto } from '../types/instrumentCatalogApi';
 
 const mocks = vi.hoisted(() => ({
   createChart: vi.fn(),
-  startSupervisor: vi.fn(),
+  acquireSupervisor: vi.fn(),
   getIdToken: vi.fn(async () => 'fresh-firebase-token'),
   user: { uid: 'lifecycle-test-user' },
 }));
@@ -21,12 +21,13 @@ vi.mock('lightweight-charts', () => ({
   CandlestickSeries: {},
 }));
 
-vi.mock('../services/ohlcvStreamSupervisor', () => ({
-  startOhlcvStreamSupervisor: mocks.startSupervisor,
+vi.mock('../services/ohlcvSeriesSupervisorRegistry', () => ({
+  ohlcvSeriesSupervisorRegistry: { acquire: mocks.acquireSupervisor },
 }));
 
 import CandlestickChart from './CandlestickChart';
-import { getMarketDataSnapshot } from '../services/marketDataStore';
+import { marketDataSeriesStore } from '../services/marketDataSeriesStore';
+import { getBucketPolicyForTimeframe } from '../utils/ohlcvBucketPolicy';
 
 const selectedContract: FuturesContractDto = {
   root: 'ES',
@@ -44,6 +45,17 @@ const selectedContract: FuturesContractDto = {
   series_type: 'contract',
   canonical_instrument_id: '11111111-1111-4111-8111-111111111111',
 };
+const marketDataIdentity = {
+  dataset: selectedContract.dataset,
+  publisherId: selectedContract.publisher_id,
+  instrumentId: selectedContract.instrument_id,
+  rawSymbol: selectedContract.raw_symbol,
+  timeframe: '1m' as const,
+  bucketPolicy: getBucketPolicyForTimeframe('1m'),
+  calendarId: '',
+  calendarVersion: '',
+};
+
 
 let container: HTMLDivElement;
 let root: Root | null;
@@ -117,10 +129,11 @@ beforeEach(() => {
     remove: vi.fn(),
   };
   mocks.createChart.mockReturnValue(chartApi);
-  mocks.startSupervisor.mockImplementation(() => {
-    const stop = vi.fn();
-    stopHandles.push(stop);
-    return { stop, status: 'connecting' };
+  mocks.acquireSupervisor.mockImplementation((options: { identity: typeof marketDataIdentity }) => {
+    const release = vi.fn(() => marketDataSeriesStore.reset(options.identity, 'unavailable', 'Stream paused by browser lifecycle.'));
+    stopHandles.push(release);
+    marketDataSeriesStore.reset(options.identity, 'loading', 'Connecting in lifecycle test.');
+    return { release, key: 'lifecycle-test', ownerId: 'panel-test', generation: stopHandles.length };
   });
 });
 
@@ -146,8 +159,8 @@ describe('CandlestickChart WebSocket browser lifecycle integration', () => {
     setBrowserLifecycle(false, 'visible');
     act(() => window.dispatchEvent(new Event('offline')));
     expect(stopHandles[0]).toHaveBeenCalledOnce();
-    expect(getMarketDataSnapshot().status).toBe('unavailable');
-    expect(getMarketDataSnapshot().detail).toContain('offline');
+    expect(marketDataSeriesStore.getSnapshot(marketDataIdentity).status).toBe('unavailable');
+    expect(marketDataSeriesStore.getSnapshot(marketDataIdentity).detail).toContain('offline');
 
     setBrowserLifecycle(true, 'visible');
     act(() => window.dispatchEvent(new Event('online')));
