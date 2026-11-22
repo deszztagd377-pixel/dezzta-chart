@@ -99,4 +99,55 @@ describe('useMarketDataSeriesSnapshot', () => {
     expect(marketDataSeriesStore.getSubscriberCount(secondIdentity)).toBe(1);
     expect(container.textContent).toBe('ready:1');
   });
+  it('isolates simultaneous React chart panels and preserves the remaining panel on unmount', () => {
+    const container = document.createElement('div');
+    const root = createRoot(container);
+    roots.push(root);
+
+    function Probe({ identity }: { identity: MarketSeriesIdentity }) {
+      const snapshot = useMarketDataSeriesSnapshot(identity);
+      return createElement('span', null, `${identity.rawSymbol}:${snapshot.revision}:${snapshot.bars.length};`);
+    }
+
+    act(() => root.render(createElement(
+      'div',
+      null,
+      createElement(Probe, { identity: firstIdentity }),
+      createElement(Probe, { identity: secondIdentity }),
+    )));
+    expect(marketDataSeriesStore.getSubscriberCount(firstIdentity)).toBe(1);
+    expect(marketDataSeriesStore.getSubscriberCount(secondIdentity)).toBe(1);
+
+    act(() => marketDataSeriesStore.publishSnapshot({
+      identity: firstIdentity,
+      status: 'ready',
+      bars,
+    }));
+    expect(container.textContent).toContain('HOOK_A:1:1;');
+    expect(container.textContent).toContain('HOOK_B:0:0;');
+
+    act(() => marketDataSeriesStore.publishSnapshot({
+      identity: secondIdentity,
+      status: 'ready',
+      bars,
+    }));
+    expect(container.textContent).toContain('HOOK_A:1:1;');
+    expect(container.textContent).toContain('HOOK_B:1:1;');
+
+    act(() => root.render(createElement(
+      'div',
+      null,
+      createElement(Probe, { identity: firstIdentity }),
+    )));
+    expect(marketDataSeriesStore.getSubscriberCount(firstIdentity)).toBe(1);
+    expect(marketDataSeriesStore.getSubscriberCount(secondIdentity)).toBe(0);
+
+    act(() => marketDataSeriesStore.publishUpdate({
+      identity: firstIdentity,
+      bar: { ...bars[0], close: 101.5, high: 102, volume: 11 },
+    }));
+    expect(container.textContent).toContain('HOOK_A:2:1;');
+    expect(container.textContent).not.toContain('HOOK_B:');
+  });
+
 });
