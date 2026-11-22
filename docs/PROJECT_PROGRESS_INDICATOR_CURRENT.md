@@ -1,3 +1,47 @@
+# CURRENT PROJECT PROGRESS — Batch 62J-143 (22 November 2026)
+
+This snapshot supersedes earlier dated summaries below.
+
+**Branch:** `phase-2/market-data-foundation`  
+**Latest source HEAD:** `bd83d40bdf58262922462d67cde3da6c1f4a4387`  
+**Latest documentation commit:** `c8e216ff362289f8d05fd276b71e102672e16006`  
+**Main:** untouched.
+
+## Latest product behavior change
+
+- Account UI now exposes Google sign-in only; signed-in users see account identity and Sign out. Email/password fields and account creation are no longer exposed by the panel.
+- WebSocket pauses on hidden/offline and explicit `pagehide`; it resumes on `pageshow`/visible/online with fresh Firebase ID token and one-time ticket.
+- App is foreground-only. No background keep-alive or paid server is required by this client lifecycle.
+- Exact-HEAD CI on source HEAD `bd83d40...` was pending when recorded; see [Batch 62J-143 work cycle](WORK_CYCLE_2026-11-22_BATCH62J143_GOOGLE_ONLY_FOREGROUND_WEBSOCKET.md). Do not transfer earlier green status to this HEAD.
+
+## Hosting status
+
+Cloudflare Durable Objects remains a candidate architecture only, not selected/deployed. Render Free is a sleeping proof-of-concept only. OCI is blocked on card verification. No provider signup, cloud resource or deployment occurred. Any cloud account must be owned/managed by a parent/guardian.
+
+## Stage and Gate progress
+
+| Stage | Progress | State |
+|---|---:|---|
+| 1. Foundation, Security & Data Integrity | 30/40 = 75% provisional | 🟨 |
+| 2. Market Data Infrastructure | Not scored | ⬜ Not officially opened |
+| 3. Chart Engine & Timeframe | Not scored | ⬜ Not officially opened |
+| 4. Indicators & Analytics | Not scored | ⬜ Not officially opened |
+| 5. Professional UI & Interactive Tools | Not scored | ⬜ Not officially opened |
+| 6. Hardening, Validation & APK Release | Not scored | ⬜ Not officially opened |
+
+**Gate 10: 0/10 external criteria formally closed.** Open: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.  
+**Overall project: NOT SCORED** because six-stage weights and total acceptance denominator are not approved.
+
+## Indicator snapshot
+
+SMA20 🟨; EMA20 🟨; RSI14 Wilder 🟨; MACD12/26/9 🟨; Bollinger20,2 🟨; Shared Indicator Hook 🟨; Footprint 🟧 (synthetic educational prototype only); Heatmap 🟥; Liquidation Maps 🟥. No indicator code changed in Batch 62J-143. Full details and mathematical invariants remain in [INDICATOR_PROGRESS_LEDGER.md](INDICATOR_PROGRESS_LEDGER.md).
+
+**IPS35:** pending exact-HEAD CI. No numeric score assigned.
+
+ZERO COST: no paid service, cloud account/resource, deployment, payment method, production credential, or device/Termux operation.
+
+---
+
 # CURRENT PROJECT PROGRESS — Batch 62J-142 (22 November 2026)
 
 This verified snapshot supersedes older dated summaries below.
