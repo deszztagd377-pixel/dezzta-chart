@@ -54,7 +54,7 @@ const AuthPanel: React.FC = () => {
       )}
 
       {status === 'unconfigured' && <p className="auth-panel__hint">Firebase Console sudah disiapkan, tetapi environment VITE_FIREBASE_* belum tersedia di aplikasi.</p>}
-      {error && <p className="auth-panel__error" role="alert'>{error} <button type="button" onClick={clearError}>Dismiss</button></p>}
+      {error && <p className="auth-panel__error" role="alert">{error} <button type="button" onClick={clearError}>Dismiss</button></p>}
       <p className="auth-panel__hint">Google Sign-In membuktikan identitas akun. Akses data pasar tetap memerlukan entitlement backend yang valid.</p>
     </section>
   );
