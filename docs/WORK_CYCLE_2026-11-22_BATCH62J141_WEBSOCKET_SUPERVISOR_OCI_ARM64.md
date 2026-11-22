@@ -51,7 +51,7 @@ It uses GitHub's native `ubuntu-24.04-arm` runner and is intended to:
 - verify the application user can write to the mounted data volume;
 - restart the container and verify the volume data remains available.
 
-The first two ARM64 smoke attempts [45000139431](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45000139431) and [45000662591](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45000662591) both proved the backend image builds as `arm64`, but the smoke step failed at a UID assertion. The Docker image's configured `USER` is root because its entrypoint must normalize mounted-volume ownership; the entrypoint then uses `su-exec` to run the actual PID 1 application as UID 10001. `docker exec ... id -u` reports the exec process's default image user, not PID 1's effective UID, so that assertion was invalid. The workflow now reads PID 1's UID from `/proc/1/status`, then separately verifies that UID 10001 can write to the mounted volume and that the file survives container restart. The corrected rerun is **PENDING**; do not call ARM64 runtime acceptance complete until it succeeds.
+The corrected native ARM64 workflow [45000816460](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45000816460) completed **SUCCESS** on exact HEAD `0372d488e1fd803343a06234105295b9675a3e0b`. It verified the native ARM64 runner, built the backend image as `arm64`, confirmed the backend health endpoint, verified PID 1 runs as UID 10001, proved that UID 10001 can write to the mounted persistent volume, restarted the container, and confirmed the probe file remained available. This is ARM64 image/runtime smoke evidence on GitHub-hosted CI; it is not an OCI account, VM, public WSS endpoint or production deployment.
 
 GitHub documents standard ARM64 hosted runners as free and unlimited for public repositories:
 - https://docs.github.com/en/actions/reference/runners/github-hosted-runners
@@ -121,7 +121,7 @@ Overall project: **NOT SCORED**. The six-stage weights and overall acceptance de
 
 ## 9. IPS35 — Indicator Proses Peningkatan Proyek Signifikan
 
-IPS35 measures verified cycle delivery quality, not overall project completion. The final numeric score is **PENDING** until the documentation commit receives exact-HEAD CI and the corrected native ARM64 smoke workflow completes successfully. No points are awarded in advance for a pending workflow.
+IPS35 measures verified cycle delivery quality, not overall project completion. The ARM64 readiness workflow is now accepted by its native CI smoke test. The final numeric score remains **PENDING** until this documentation commit receives exact-HEAD Automated Tests, CodeQL and Secret Audit. No points are awarded in advance for a pending workflow.
 
 Scoring dimensions:
 - Engineering delta: 25 points.

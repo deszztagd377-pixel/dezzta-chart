@@ -20,7 +20,7 @@ Shared invariants: warm-up nulls; candle-index alignment; prefix causality/no fu
 
 Aggregate technical-indicator percentage: **NOT SCORED** because weights and denominator are unapproved.
 
-Project stage context: Stage 1 = 30/40 = 75% provisional; Stage 2–6 NOT SCORED/not officially opened; Gate 10 = 0/10 external criteria formally closed; overall project NOT SCORED. IPS35 final score pending exact documentation-HEAD CI and corrected ARM64 smoke acceptance.
+Project stage context: Stage 1 = 30/40 = 75% provisional; Stage 2–6 NOT SCORED/not officially opened; Gate 10 = 0/10 external criteria formally closed; overall project NOT SCORED. IPS35 final score pending exact documentation-HEAD CI; native ARM64 image/runtime smoke acceptance passed in run 45000816460.
 
 Full cycle: [WORK_CYCLE_2026-11-22_BATCH62J141_WEBSOCKET_SUPERVISOR_OCI_ARM64.md](WORK_CYCLE_2026-11-22_BATCH62J141_WEBSOCKET_SUPERVISOR_OCI_ARM64.md).
 

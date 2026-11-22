@@ -30,7 +30,7 @@ This section is the latest verified snapshot and supersedes older dated entries 
 
 The supervisor now enforces one active owner of the shared market-data store. Regression tests cover a pending Firebase token request during replacement and a delayed native WebSocket close/late message after timeframe replacement.
 
-OCI ARM64 workflow: image build succeeded on native ARM64, but two smoke attempts exposed an invalid UID assertion: `docker exec` uses the image's configured root user, while the entrypoint runs PID 1 as UID 10001 via `su-exec`. The workflow now verifies PID 1's UID through `/proc/1/status`, then checks volume write and restart persistence. Corrected rerun remains pending; no OCI account/resource was created.
+OCI ARM64 workflow: <badge>PASS</badge> Native ARM64 image build, backend health, PID 1 UID 10001, mounted-volume write and restart persistence all passed in run [45000816460](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45000816460) on exact HEAD `0372d488e1fd803343a06234105295b9675a3e0b`. This is CI readiness evidence only; no OCI account/resource was created or deployed.
 
 Gates 25, 36 and 38 remain OPEN for authenticated snapshot receipts, owner-host Redis, public WSS/Firebase/Android lifecycle, and durable monitoring/recovery evidence.
 
