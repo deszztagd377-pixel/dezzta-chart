@@ -105,3 +105,45 @@ Indicator invariants:
 - `18a9cbf84dbce14e762e12a05dd99e444f6e4018` — lifecycle tests updated for keyed registry behavior.
 - `af19807e9471424f1ccaa5607258be2402ba64a9` — immediate status for joining panel.
 - `0e21edbc03002455acb3502474e9514142cc9e23` — late-join regression test.
+
+
+## Final verification addendum — 2026-11-22
+
+### Additional resource guard
+- `OhlcvSeriesSupervisorRegistry` now has a configurable positive-safe-integer capacity, defaulting to 32 active canonical series.
+- A 33rd distinct active series is rejected before creating a new supervisor; existing series and owners remain untouched.
+- Reacquiring an already-active series is allowed even at capacity.
+- `CandlestickChart` catches acquisition-capacity errors, records an unavailable keyed snapshot, and presents an error state instead of allowing an unhandled React effect exception.
+- Regression tests cover capacity enforcement and invalid capacities.
+
+### Final code/test HEAD
+`727efb5dbeefcc4ebc8de892702c8407340d7218`
+
+Commits added after the initial work-cycle report:
+- `af19807e9471424f1ccaa5607258be2402ba64a9` — immediately send current supervisor status to a joining panel.
+- `0e21edbc03002455acb3502474e9514142cc9e23` — test late panel join and no duplicate socket.
+- `38a93e82f1b8298a39cc93db8d0d77aa7af9a945` — update every lifecycle test assertion to keyed-store/registry APIs.
+- `f03423b952e694cf63c87484da06e73c3cb4bcad` — enforce maximum 32 active per-series supervisors.
+- `d70825157d66953301f3a7ac5b6be52039fe2e31` — catch capacity exhaustion in chart effect.
+- `727efb5dbeefcc4ebc8de892702c8407340d7218` — add capacity boundary regression tests.
+
+### Exact-HEAD CI result
+All required workflows completed successfully for code/test HEAD `727efb5dbeefcc4ebc8de892702c8407340d7218`:
+- Automated Tests: run `45041500171` — SUCCESS.
+  - Frontend unit tests: SUCCESS.
+  - Frontend production build and bundle secret scans: SUCCESS.
+  - Backend tests: SUCCESS.
+  - Synthetic SQLite outbox benchmark: SUCCESS.
+  - Same-host SQLite metrics collector benchmark: SUCCESS.
+  - Backend dependency audit: SUCCESS.
+  - Backend container build and Redis-guard/persistent-volume smoke test: SUCCESS.
+  - Backend container vulnerability scan and report export: SUCCESS.
+- CodeQL: run `45041500048` — SUCCESS (Python and JavaScript/TypeScript).
+- OCI ARM64 readiness: run `45041500106` — SUCCESS (native ARM64 build and smoke test).
+- Secret Audit: run `45041500042` — SUCCESS.
+- Android Debug APK build: run `45041500040` — SUCCESS (APK artifact verified and uploaded to short-lived CI artifact storage; not a public release).
+
+The later documentation-only commit is tracked separately and must not be confused with the tested code HEAD. No source-code changes were made after the exact-HEAD successful test run.
+
+### Final boundary
+The frontend now supports one authenticated WebSocket supervisor per canonical series and one shared supervisor across panels requesting that exact series. Upstream provider demand/ref-counting remains a separate unfinished backend task. No recurring-zero-cost CME data entitlement or redistribution rights have been established. No OCI VM, public endpoint, production credentials, or paid resource was provisioned.
