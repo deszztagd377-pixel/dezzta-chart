@@ -1285,3 +1285,27 @@ Accepted source/test HEAD `9e9a3d099f30faa2b641b8c991187394de783960`. The 16-wor
 - Stage 1 remains 30/40 = 75% provisional; overall project percentage remains unscored.
 - No indicator implementation changes; no indicator credit. Complete formula, warm-up, rendering and remaining-work matrix recorded in the indicator ledger.
 - No deployment, paid service, Termux, production credential or main-branch change.
+
+## Batch 62J-106 — Production WebSocket acceptance reconciliation (22 November 2026)
+
+### WebSocket production-acceptance disposition
+
+The repository already has CI-verified two-process ASGI/WebSocket fan-out, cursor replay, dual-gateway TCP-path interruption recovery without process restart, and coordinated snapshot-generation replacement. These are repository/CI passes, not public-host acceptance.
+
+The source and gateway runtime factories are implemented with fail-closed validation for production TLS, separate ACL identities, snapshot source/generation/cursor/SHA-256 and gateway installation receipts. FastAPI activation remains owner-injected because authenticated snapshot transfer and receipt verification must be supplied by the actual operator. No production host, public WSS endpoint, real dedicated Redis failover evidence or physical Android WebView session is available in this checkpoint.
+
+Accordingly, WebSocket production acceptance remains **OPEN**. No production pass or gate closure is inferred from CI. The exact outstanding evidence is public HTTPS/WSS and certificate/reverse-proxy acceptance; dedicated production OHLCV Redis TLS/ACL/secret rotation/persistence/failover; authenticated global snapshot distribution and receipts; and browser plus Android WebView acceptance.
+
+### Gate 10
+
+Gate 10 remains **0/10 formally closed**:
+- 🟨🟩 Host/operator verification-only: Gates 8, 30, 34, 35 and 39.
+- 🟧 Integration/acceptance still open: Gates 20, 25, 31, 36 and 38.
+
+Stage 1 remains **30/40 = 75% provisional**. Stages 2–6 and overall project percentage remain unscored because approved denominators/weights are absent.
+
+### Indicator progress
+
+No indicator source, formula, data contract, hook, renderer, chart UI or indicator test changed. No indicator progress credit is awarded. The full formula, warm-up, status and remaining-work matrix is recorded in `docs/INDICATOR_PROGRESS_LEDGER.md`; statuses remain SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, Shared Indicator Hook 🟨, Footprint 🟧, Heatmap 🟥 and Liquidation Maps 🟥. Warm-up nulls, candle-index alignment, no future-candle repaint and stale-series clearing remain mandatory.
+
+ZERO COST. No deployment, paid service, production credential, Termux/device action, Vercel/Cloudflare operation or `main` modification.
