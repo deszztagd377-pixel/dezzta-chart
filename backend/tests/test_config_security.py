@@ -138,6 +138,24 @@ def test_production_accepts_tls_redis_url_without_exposing_it_in_repr() -> None:
 
 
 
+def test_redis_tls_ca_bundle_path_is_loaded_and_must_be_absolute(monkeypatch) -> None:
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("REDIS_URL", "rediss://guard-user:secret@redis.example:6380/0")
+    monkeypatch.setenv("REDIS_TLS_CA_CERTS", "/run/certs/redis-private-ca.pem")
+    monkeypatch.setenv("FIREBASE_PROJECT_ID", "dezzta-chart-prod")
+    settings = Settings.from_environment()
+    assert settings.redis_tls_ca_certs == "/run/certs/redis-private-ca.pem"
+
+    with pytest.raises(ValueError, match="absolute path"):
+        Settings(
+            app_env="production", market_data_ws_token="",
+            cors_allowed_origins=("https://chart.example",),
+            redis_url="rediss://guard-user:secret@redis.example:6380/0",
+            redis_tls_ca_certs="relative/ca.pem",
+            firebase_project_id="dezzta-chart-prod",
+        )
+
+
 def test_production_requires_firebase_project_id() -> None:
     import pytest
 
