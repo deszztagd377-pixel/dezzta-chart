@@ -161,6 +161,77 @@ def test_slow_consumer_is_marked_for_resnapshot_without_silent_sequence_skip() -
     asyncio.run(scenario())
 
 
+
+def test_hub_indexes_fanout_by_exact_series_and_cleans_index_on_unsubscribe() -> None:
+    pipeline = OhlcvPipeline()
+    es_first = make_bar(0)
+    nq_first = make_bar(0, raw_symbol="NQZ6", instrument_id=202)
+    assert pipeline.apply(es_first) == "inserted"
+    assert pipeline.apply(nq_first) == "inserted"
+
+    hub = OhlcvStreamHub()
+    es_a, _, _ = hub.subscribe_snapshot(
+        pipeline, dataset="GLBX.MDP3", publisher_id=1, instrument_id=101,
+        raw_symbol="ESZ6", timeframe="1s", limit=100,
+    )
+    es_b, _, _ = hub.subscribe_snapshot(
+        pipeline, dataset="GLBX.MDP3", publisher_id=1, instrument_id=101,
+        raw_symbol="ESZ6", timeframe="1s", limit=100,
+    )
+
+    nq_bars, nq_total = pipeline.query(
+        dataset="GLBX.MDP3", publisher_id=1, instrument_id=202,
+        raw_symbol="NQZ6", timeframe="1s", limit=100,
+    )
+    nq, _, _ = hub.subscribe_snapshot_bars(
+        nq_bars, total=nq_total, dataset="GLBX.MDP3", publisher_id=1,
+        instrument_id=202, raw_symbol="NQZ6", timeframe="1s", limit=100,
+    )
+
+    es_identity = hub.identity_for(es_first)
+    nq_identity = hub.identity_for(nq_first)
+    assert hub.subscriber_count == 3
+    assert hub.series_count == 2
+    assert hub.subscriber_count_for(es_identity) == 2
+    assert hub.subscriber_count_for(nq_identity) == 1
+
+    es_update = make_bar(1)
+    assert pipeline.apply(es_update) == "inserted"
+    hub.publish(es_update)
+    assert es_a.queue.qsize() == 1
+    assert es_b.queue.qsize() == 1
+    assert nq.queue.empty()
+
+    hub.unsubscribe(es_a.stream_id)
+    assert hub.subscriber_count_for(es_identity) == 1
+    hub.unsubscribe(es_b.stream_id)
+    assert hub.subscriber_count_for(es_identity) == 0
+    assert hub.series_count == 1
+
+    hub.publish(make_bar(2))
+    assert nq.queue.empty()
+    hub.unsubscribe(nq.stream_id)
+    assert hub.subscriber_count == 0
+    assert hub.series_count == 0
+
+
+def test_invalid_durable_cursor_is_rejected_before_snapshot_query() -> None:
+    class QueryMustNotRun:
+        def query(self, **_kwargs):
+            raise AssertionError("snapshot query must not run for an invalid cursor")
+
+    for cursor in (-1, True, 1.5):
+        try:
+            OhlcvStreamHub().subscribe_snapshot(
+                QueryMustNotRun(), dataset="GLBX.MDP3", publisher_id=1,
+                instrument_id=101, raw_symbol="ESZ6", timeframe="1s",
+                limit=10, durable_cursor=cursor,
+            )
+        except ValueError as exc:
+            assert "durable_cursor" in str(exc)
+        else:
+            raise AssertionError(f"durable cursor {cursor!r} should be rejected")
+
 def test_hub_rejects_invalid_queue_capacity() -> None:
     for value in (0, -1, True, 1.5):
         try:

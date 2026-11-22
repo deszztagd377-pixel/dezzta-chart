@@ -46,6 +46,11 @@ class OhlcvStreamHub:
         self._queue_capacity = queue_capacity
         self._clock_ns = clock_ns
         self._subscriptions: dict[str, OhlcvStreamSubscription] = {}
+        # Index fan-out by the full canonical identity so unrelated markets are
+        # not scanned for every accepted bar.
+        self._subscriptions_by_identity: dict[
+            SeriesIdentity, dict[str, OhlcvStreamSubscription]
+        ] = {}
 
     @staticmethod
     def identity_for(bar: OhlcvBar) -> SeriesIdentity:
@@ -87,6 +92,8 @@ class OhlcvStreamHub:
             provider, dataset, publisher_id, instrument_id, series_type,
             raw_symbol, timeframe, bucket_policy, calendar_id, calendar_version,
         )
+        if not isinstance(durable_cursor, int) or isinstance(durable_cursor, bool) or durable_cursor < 0:
+            raise ValueError("durable_cursor must be a non-negative integer")
         bars, total = pipeline.query(
             dataset=dataset,
             publisher_id=publisher_id,
@@ -100,8 +107,6 @@ class OhlcvStreamHub:
             series_type=series_type,
             limit=limit,
         )
-        if not isinstance(durable_cursor, int) or isinstance(durable_cursor, bool) or durable_cursor < 0:
-            raise ValueError("durable_cursor must be a non-negative integer")
         stream_id = uuid.uuid4().hex
         subscription = OhlcvStreamSubscription(
             stream_id=stream_id,
@@ -109,7 +114,7 @@ class OhlcvStreamHub:
             queue=asyncio.Queue(maxsize=self._queue_capacity),
             durable_cursor=durable_cursor,
         )
-        self._subscriptions[stream_id] = subscription
+        self._register(subscription)
         return subscription, bars, total
 
 
@@ -164,7 +169,7 @@ class OhlcvStreamHub:
             queue=asyncio.Queue(maxsize=self._queue_capacity),
             durable_cursor=durable_cursor,
         )
-        self._subscriptions[stream_id] = subscription
+        self._register(subscription)
         return subscription, list(bars), total
 
     def publish(
@@ -207,7 +212,7 @@ class OhlcvStreamHub:
             "origin": bar.origin,
             "completeness": bar.completeness,
         }
-        for subscription in tuple(self._subscriptions.values()):
+        for subscription in tuple(self._subscriptions_by_identity.get(identity, {}).values()):
             if subscription.closed or subscription.overflowed or subscription.identity != identity:
                 continue
             # Durable cursors are global and monotonic. A replay after Redis ACK
@@ -338,11 +343,32 @@ class OhlcvStreamHub:
         )
         return len(pending_live)
 
+    def _register(self, subscription: OhlcvStreamSubscription) -> None:
+        self._subscriptions[subscription.stream_id] = subscription
+        self._subscriptions_by_identity.setdefault(subscription.identity, {})[
+            subscription.stream_id
+        ] = subscription
+
     def unsubscribe(self, stream_id: str) -> None:
         subscription = self._subscriptions.pop(stream_id, None)
-        if subscription is not None:
-            subscription.closed = True
+        if subscription is None:
+            return
+        subscription.closed = True
+        series_subscriptions = self._subscriptions_by_identity.get(subscription.identity)
+        if series_subscriptions is not None:
+            series_subscriptions.pop(stream_id, None)
+            if not series_subscriptions:
+                self._subscriptions_by_identity.pop(subscription.identity, None)
 
     @property
     def subscriber_count(self) -> int:
         return len(self._subscriptions)
+
+    @property
+    def series_count(self) -> int:
+        """Number of canonical series currently holding at least one subscriber."""
+        return len(self._subscriptions_by_identity)
+
+    def subscriber_count_for(self, identity: SeriesIdentity) -> int:
+        """Return the active subscriber count for one exact canonical series."""
+        return len(self._subscriptions_by_identity.get(identity, {}))
