@@ -298,3 +298,8 @@ A source-to-documentation check found that `backend/README.md` still claimed the
 The README was corrected to describe the HTTP Bearer-token exchange and the one-use ticket frame, while explicitly preserving the production requirements for shared Redis-backed ticket storage. No runtime source, client source, tests, or indicator code changed. No CI run was triggered; prior CI evidence remains tied to its recorded source/test HEAD.
 
 This correction closes no production gate. Gate 20 still needs real Firebase-project token/revocation/entitlement E2E; Gate 25 still needs owner-host Redis TLS/ACL, persistent failover and verified snapshot distribution; Gate 36 still needs public HTTPS/WSS, reverse-proxy and browser/Android WebView acceptance. Full indicator matrix and exact progress remain in `docs/WORK_CYCLE_2026-11-22_BATCH62J107_WEBSOCKET_AUTH_DOC_RECONCILIATION.md` and `docs/INDICATOR_PROGRESS_LEDGER.md`.
+
+
+## 15. Batch 62J-108 — regression guard for ticket documentation (22 November 2026)
+
+Added `backend/tests/test_websocket_documentation_contract.py` to assert that the README's documented HTTP ticket endpoint, Firebase Bearer exchange, one-time auth frame, TTL and non-production direct-token compatibility remain aligned with the backend source. This prevents recurrence of the documentation drift recorded in Batch 62J-107. The test is repository-side only and does not establish real Firebase, production Redis, public WSS, or Android WebView acceptance. No indicator implementation changed and no indicator progress credit is awarded. CI must be checked against the exact batch commit before this test is called passing.

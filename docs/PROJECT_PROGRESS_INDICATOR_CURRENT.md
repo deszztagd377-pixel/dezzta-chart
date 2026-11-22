@@ -1320,3 +1320,13 @@ ZERO COST. No deployment, paid service, production credential, Termux/device act
 - Stage 1 remains 30/40 = 75% provisional. Stages 2–6 and overall project percentage remain unscored without approved weights/denominators.
 - Indicator matrix unchanged; no progress credit: SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, Shared Indicator Hook 🟨, Footprint 🟧, Heatmap 🟥, Liquidation Maps 🟥. Full formulas, first-valid indices, invariants and remaining work are documented in `docs/WORK_CYCLE_2026-11-22_BATCH62J107_WEBSOCKET_AUTH_DOC_RECONCILIATION.md` and `docs/INDICATOR_PROGRESS_LEDGER.md`.
 - ZERO COST; no deployment, Vercel/Cloudflare operation, paid service, production credential, Termux/device action, or `main` modification.
+
+
+## Batch 62J-108 — WebSocket documentation contract regression guard (22 November 2026)
+
+- Added `backend/tests/test_websocket_documentation_contract.py` to keep the README aligned with the implemented single-use WebSocket-ticket endpoint, source-defined TTL, auth frame and production legacy-auth rejection.
+- No runtime, client, or indicator source changed. No indicator progress credit.
+- Gate 10 remains 0/10 formally closed. Stage 1 remains 30/40 = 75% provisional. Stages 2–6 and overall project percentage remain unscored.
+- Gate 20/25/36 production acceptance still requires real Firebase-project E2E, owner-host Redis TLS/ACL/persistence/failover/snapshot receipts, and public HTTPS/WSS plus browser/Android WebView acceptance.
+- CI result must be checked against this exact batch commit; no pass is claimed in advance.
+- ZERO COST. No deployment, Vercel/Cloudflare operation, paid service, production credential, Termux/device action, or `main` modification.

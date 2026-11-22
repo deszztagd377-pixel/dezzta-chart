@@ -1298,3 +1298,8 @@ The complete indicator matrix remains unchanged:
 Invariants remain: warm-up values null, never zero; candle-index alignment; no future-candle repaint; stale clearing on symbol/venue/dataset/chart/timeframe changes. Stage 4 visible-indicator work remains gated. Aggregate indicator percentage remains unscored without approved weights and denominator.
 
 WebSocket CI work, even when it verifies real two-process fan-out, does not count as indicator UI or calculation completion.
+
+
+## Batch 62J-108 checkpoint — no indicator implementation changes (22 November 2026)
+
+A focused backend regression test was added to prevent future drift between the WebSocket ticket source contract and `backend/README.md`. It does not touch indicator formulas, data contracts, calculations, hooks, renderers, UI, or indicator tests. No indicator progress credit is awarded. Statuses remain SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD 12/26/9 🟨, Bollinger20,2 🟨, Shared Indicator Hook 🟨, Footprint 🟧, Heatmap 🟥 and Liquidation Maps 🟥. See `docs/WORK_CYCLE_2026-11-22_BATCH62J108_WEBSOCKET_CONTRACT_GUARD.md` for the full formula, first-valid-index and remaining-work matrix.
