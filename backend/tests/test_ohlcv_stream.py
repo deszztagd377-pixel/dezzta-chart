@@ -262,6 +262,10 @@ def test_same_series_subscribers_are_isolated_when_one_disconnects() -> None:
         hub.publish(first_update)
         assert first.queue.qsize() == 1
         assert second.queue.qsize() == 1
+        # Consume the event already delivered before disconnect. Unsubscribe
+        # closes future delivery; it does not retroactively erase queued data.
+        first_delivered = first.queue.get_nowait()
+        assert first_delivered["bar"]["sequence"] == first_update.sequence
 
         hub.unsubscribe(first.stream_id)
         assert hub.subscriber_count == 1
