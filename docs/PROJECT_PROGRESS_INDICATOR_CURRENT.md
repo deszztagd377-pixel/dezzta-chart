@@ -1235,3 +1235,17 @@ Accepted source/test HEAD `9e9a3d099f30faa2b641b8c991187394de783960`. The 16-wor
 - The accepted-counter fix is now CI-verified. This does not close Gate 36: production WSS, owner-host TLS/reverse proxy, live Redis and browser/Android WebView acceptance remain external.
 - Gate 10 remains 0/10 formally closed; host/operator-only Gates 8/30/34/35/39 🟨🟩; integration/acceptance Gates 20/25/31/36/38 🟧.
 - No indicator source or tests changed; no indicator progress credit. Stage 1 remains 30/40 = 75% provisional; overall project remains unscored.
+
+
+## Batch 62J-102 — Gate 20 ticket failure boundaries + Gate 10 evidence reconciliation (22 November 2026)
+
+- Source/test HEAD `140df3f33fcebb9154f8ad26f40986ec73e2336f`; Automated Tests, CodeQL and Full Git History Secret Audit all SUCCESS.
+- Three FastAPI ticket-endpoint integration tests added: missing Bearer identity → 401; unavailable ticket store → 503; ticket-store exception → sanitized 503 without internal/credential leakage.
+- Production Redis policy audited and found already correct: production requires REDIS_URL, rediss TLS and ACL username/password. No unnecessary configuration change.
+- Backend 1,284 passed in 46.77 s; frontend 255 passed across 29 files.
+- Trivy artifact 14732364657: zero HIGH/CRITICAL findings in scanned Alpine OS and Python package targets, within configured scope.
+- Gate 38 synthetic benchmark artifact 14732279593: 899/900 series (99.89%); all profiles passed data/integrity checks; 16-thread contention remains visible (67 retries, p99 595.76 ms, max 1,258.36 ms). CI-runner synthetic only, not production SLA.
+- Gate 20 repository evidence improved but no gate closed. Gate 10 remains 0/10; host/operator-only Gates 8/30/34/35/39 🟨🟩; integration/acceptance Gates 20/25/31/36/38 🟧.
+- Stage 1 remains 30/40 = 75% provisional; overall project percentage remains unscored.
+- No indicator implementation changes; no indicator credit. Complete formula, warm-up, rendering and remaining-work matrix recorded in the indicator ledger.
+- No deployment, paid service, Termux, production credential or main-branch change.
