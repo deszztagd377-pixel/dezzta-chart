@@ -2123,6 +2123,51 @@ def test_websocket_ticket_endpoint_rejects_invalid_bearer_token():
     response = TestClient(application).post("/v1/auth/websocket-ticket", headers={"Authorization": "Bearer invalid-token"})
     assert response.status_code == 401
 
+def test_websocket_ticket_endpoint_rejects_missing_bearer_identity():
+    application = create_app(make_settings())
+    _install_test_identity(application)
+
+    response = TestClient(application).post("/v1/auth/websocket-ticket")
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Authentication credentials are required."
+
+
+def test_websocket_ticket_endpoint_fails_closed_when_shared_store_is_unavailable():
+    application = create_app(make_settings())
+    _install_test_identity(application)
+    application.state.websocket_ticket_store = None
+
+    response = TestClient(application).post(
+        "/v1/auth/websocket-ticket",
+        headers={"Authorization": "Bearer valid-firebase-token"},
+    )
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "WebSocket ticket protection is temporarily unavailable."
+
+
+def test_websocket_ticket_endpoint_redacts_ticket_store_failure_details():
+    application = create_app(make_settings())
+    _install_test_identity(application)
+
+    class BrokenTicketStore:
+        async def issue_websocket_ticket(self, account_subject):
+            assert account_subject == "firebase-user-123"
+            raise RuntimeError("redis password=private-secret")
+
+    application.state.websocket_ticket_store = BrokenTicketStore()
+    response = TestClient(application).post(
+        "/v1/auth/websocket-ticket",
+        headers={"Authorization": "Bearer valid-firebase-token"},
+    )
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == "WebSocket ticket protection is temporarily unavailable."
+    assert "private-secret" not in response.text
+    assert "redis password" not in response.text
+
+
 def test_websocket_ticket_https_post_is_allowed_by_cors_preflight():
     client = TestClient(create_app(make_settings()))
     response = client.options(
