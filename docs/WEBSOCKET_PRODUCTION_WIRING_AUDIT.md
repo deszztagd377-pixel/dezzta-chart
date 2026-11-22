@@ -1149,3 +1149,12 @@ ZERO COST. Documentation-only; no runtime source, tests, workflows, deployment, 
 No WebSocket runtime code, FCM runtime code, operator routes, tests or workflows changed. No indicator implementation, formula, hook, renderer, UI or tests changed. SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain 🟨 foundation; Footprint 🟧 synthetic/reference-gated; Heatmap and Liquidation Maps 🟥 unimplemented. No indicator progress credit or aggregate percentage. Preserve warm-up nulls, source-index alignment, no future-candle repaint, stale-series clearing and Footprint OFF standard candle spacing.
 
 ZERO COST; documentation-only; main untouched.
+
+
+## Batch 62J-129 — Gate 25 checkpoint digest precision correction (22 November 2026)
+
+Read-only review of `backend/app/ohlcv_redis_gateway_runtime.py`, `backend/app/ohlcv_store.py` and `backend/tests/test_ohlcv_redis_gateway_runtime.py` found that the durable replica checkpoint stores source ID, replica ID, applied cursor, snapshot generation, retention floor and schema/protocol versions, but **does not store snapshot SHA-256**. The gateway runtime compares source/generation/cursor with that checkpoint and returns the installer-provided digest after checking its lowercase-hex shape. The unit test compares that returned digest with the source export metadata, but does not show digest persistence in the checkpoint. Therefore earlier wording that the gateway compares the digest against its durable checkpoint is inaccurate and is corrected by Batch 62J-129.
+
+The verified installer callback still calls the store's snapshot verifier/installer; this is a trust boundary. No exploit is asserted. Persisting a digest would require a design decision covering checkpoint schema migration and the meaning/lifecycle of a snapshot-only digest after stream updates. Gate 25 remains OPEN pending this design decision plus authenticated owner-host transfer, independent gateway receipts and owner-host Redis operational evidence.
+
+Batch 62J-129 also introduced IP3S, a per-cycle delivery-quality score. Its 58/100 is not project completion and grants no indicator implementation credit. See `WORK_CYCLE_2026-11-22_BATCH62J129_GATE25_GATE36_IP3S.md` for the exact scoring rubric and Gate 36 evidence matrix.
