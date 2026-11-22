@@ -3011,6 +3011,29 @@ def test_real_tls_websocket_upgrade_origin_policy_and_application_heartbeat(tmp_
     """Exercise real TLS, the HTTP Upgrade, Origin enforcement, and text heartbeat."""
     settings = make_settings(cors_allowed_origins=("https://localhost",))
     application = _app_with_bars(settings=settings)
+    canonical_id = "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11"
+    application.state.instrument_entitlements.grant(
+        subject="firebase-user-456",
+        canonical_instrument_id=canonical_id,
+    )
+
+    class MultiUserVerifier:
+        def verify(self, token):
+            subjects = {
+                "valid-firebase-token": "firebase-user-123",
+                "user-b-token": "firebase-user-456",
+            }
+            subject = subjects.get(token)
+            if subject is None:
+                raise IdentityVerificationError("invalid token")
+            return VerifiedPrincipal(
+                subject=subject,
+                issuer="https://securetoken.google.com/test-project",
+                audience="test-project",
+                auth_time=1_798_000_000,
+            )
+
+    application.state.identity_verifier = MultiUserVerifier()
 
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     ca_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
@@ -3129,6 +3152,69 @@ def test_real_tls_websocket_upgrade_origin_policy_and_application_heartbeat(tmp_
                 await websocket.send("ping")
                 pong = json.loads(await asyncio.wait_for(websocket.recv(), timeout=5))
                 assert pong == {"type": "market_data.pong", "version": 1}
+
+            # Two distinct authenticated users share the real WSS service independently.
+            async with websockets.connect(
+                uri,
+                ssl=trusted_context,
+                origin="https://localhost",
+                open_timeout=5,
+                close_timeout=2,
+                ping_interval=None,
+            ) as surviving:
+                await surviving.send(json.dumps({
+                    "type": "auth",
+                    "token": "valid-firebase-token",
+                }))
+                assert json.loads(await asyncio.wait_for(surviving.recv(), timeout=5))["type"] == "market_data.status"
+                await surviving.send(json.dumps({
+                    "type": "market_data.subscribe",
+                    "version": 1,
+                    "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+                    "series": {
+                        "dataset": "GLBX.MDP3",
+                        "publisherId": 1,
+                        "instrumentId": 101,
+                        "rawSymbol": "ESZ6",
+                        "timeframe": "1s",
+                    },
+                }))
+                assert json.loads(await asyncio.wait_for(surviving.recv(), timeout=5))["type"] == "market_data.ohlcv.snapshot"
+
+                async with websockets.connect(
+                    uri,
+                    ssl=trusted_context,
+                    origin="https://localhost",
+                    open_timeout=5,
+                    close_timeout=2,
+                    ping_interval=None,
+                ) as departing:
+                    await departing.send(json.dumps({
+                        "type": "auth",
+                        "token": "user-b-token",
+                    }))
+                    assert json.loads(await asyncio.wait_for(departing.recv(), timeout=5))["type"] == "market_data.status"
+                    await departing.send(json.dumps({
+                        "type": "market_data.subscribe",
+                        "version": 1,
+                        "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+                        "series": {
+                            "dataset": "GLBX.MDP3",
+                            "publisherId": 1,
+                            "instrumentId": 101,
+                            "rawSymbol": "ESZ6",
+                            "timeframe": "1s",
+                        },
+                    }))
+                    assert json.loads(await asyncio.wait_for(departing.recv(), timeout=5))["type"] == "market_data.ohlcv.snapshot"
+                    assert application.state.ohlcv_stream_hub.subscriber_count == 2
+
+                assert application.state.ohlcv_stream_hub.subscriber_count == 1
+                await surviving.send("ping")
+                assert json.loads(await asyncio.wait_for(surviving.recv(), timeout=5)) == {
+                    "type": "market_data.pong",
+                    "version": 1,
+                }
 
             # A valid TLS connection with a disallowed browser Origin must not upgrade.
             try:
