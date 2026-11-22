@@ -1303,3 +1303,16 @@ WebSocket CI work, even when it verifies real two-process fan-out, does not coun
 ## Batch 62J-108 checkpoint — no indicator implementation changes (22 November 2026)
 
 A focused backend regression test was added to prevent future drift between the WebSocket ticket source contract and `backend/README.md`. It does not touch indicator formulas, data contracts, calculations, hooks, renderers, UI, or indicator tests. No indicator progress credit is awarded. Statuses remain SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD 12/26/9 🟨, Bollinger20,2 🟨, Shared Indicator Hook 🟨, Footprint 🟧, Heatmap 🟥 and Liquidation Maps 🟥. See `docs/WORK_CYCLE_2026-11-22_BATCH62J108_WEBSOCKET_CONTRACT_GUARD.md` for the full formula, first-valid-index and remaining-work matrix.
+
+
+## Batch 62J-109 — CI failure correction and exact-head verification (22 November 2026)
+
+- Active branch: `phase-2/market-data-foundation`; exact commit: `81b741946f1512fb264936e37406d7560f24456f`.
+- Corrected `backend/tests/test_websocket_documentation_contract.py`: the auth-frame assertion now compares against the already-lowercased README string, consistent with the case-insensitive endpoint/header/TTL assertions. The README content itself was correct; this was a test assertion normalization defect.
+- Exact-head Automated Tests [44973890901](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44973890901): **SUCCESS**. All workflow steps completed, including frontend unit tests/build, backend tests, backend dependency audit, container image build, shared Redis guard + persistent-volume smoke test, image scan/report, and bounded synthetic SQLite/metrics benchmarks. No failed steps.
+- Exact-head CodeQL [44973890847](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44973890847): **SUCCESS** for Python and JavaScript/TypeScript.
+- Exact-head Full Git History Secret Audit [44973890902](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44973890902): **SUCCESS**.
+- This closes the regression-test/CI issue only. It does not establish public HTTPS/WSS, production Redis host failover, authenticated snapshot transport/receipts, live Firebase-project E2E, or browser/Android WebView acceptance.
+- Gate 10 remains **0/10 formally closed**. Host/operator-only: Gates 8, 30, 34, 35, 39. Integration/acceptance: Gates 20, 25, 31, 36, 38. Stage 1 remains **30/40 = 75% provisional**; no overall project percentage without approved stage weights/denominators.
+- Indicator implementation unchanged: no formula, calculation, data contract, shared hook, renderer, chart UI or indicator test changed. No indicator progress credit. Full formula/index/prerequisite matrix remains below in this ledger and is not re-scored.
+- ZERO COST. No deployment, paid service, production credential, Vercel/Cloudflare operation, Termux/device operation, or `main` modification.

@@ -1330,3 +1330,16 @@ ZERO COST. No deployment, paid service, production credential, Termux/device act
 - Gate 20/25/36 production acceptance still requires real Firebase-project E2E, owner-host Redis TLS/ACL/persistence/failover/snapshot receipts, and public HTTPS/WSS plus browser/Android WebView acceptance.
 - CI result must be checked against this exact batch commit; no pass is claimed in advance.
 - ZERO COST. No deployment, Vercel/Cloudflare operation, paid service, production credential, Termux/device action, or `main` modification.
+
+
+## Batch 62J-109 — exact-head CI acceptance (22 November 2026)
+
+- Commit: `81b741946f1512fb264936e37406d7560f24456f` on `phase-2/market-data-foundation`.
+- Corrected one case-normalization inconsistency in `backend/tests/test_websocket_documentation_contract.py`; README contract itself was already correct.
+- Exact-head Automated Tests [44973890901](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44973890901): **SUCCESS**, all steps completed, no failures. Includes frontend tests/build, backend tests/dependency audit, container build, shared Redis persistent-volume smoke, image scan/report and synthetic SQLite/metrics benchmarks.
+- Exact-head CodeQL [44973890847](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44973890847): **SUCCESS** (Python + JavaScript/TypeScript). Full Git History Secret Audit [44973890902](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44973890902): **SUCCESS**.
+- Gate 10 remains **0/10 formally closed**. Host/operator-only Gates 8, 30, 34, 35, 39; integration/acceptance Gates 20, 25, 31, 36, 38.
+- Stage 1 remains **30/40 = 75% provisional**. Stages 2–6 and overall project percentage remain unscored without approved weights/denominators.
+- WebSocket production acceptance remains open: public HTTPS/WSS/proxy, owner-host Redis TLS/ACL/persistence/failover, authenticated snapshot transport/receipts, real Firebase E2E, browser and Android WebView acceptance. No production gate closed.
+- No indicator implementation changed. Full matrix unchanged: SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD 12/26/9 🟨, Bollinger20,2 🟨, Shared Indicator Hook 🟨, Footprint 🟧, Heatmap 🟥, Liquidation Maps 🟥. Formulas, warm-up indices, invariants and remaining tasks are in this ledger; no indicator progress credit.
+- ZERO COST. No deployment, paid service, production credential, Vercel/Cloudflare operation, Termux/device action or `main` modification.
