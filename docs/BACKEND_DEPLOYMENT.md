@@ -161,13 +161,53 @@ those controls on existing hardware or explicitly defer them.
 - Use `backend/app/backup_encryption.py` to encrypt backup artifacts before
   any off-host transfer. Keep the passphrase separately from both the source
   database and encrypted backup; see [BACKUP_ENCRYPTION.md](BACKUP_ENCRYPTION.md).
-- SQLite persistence does not provide a durable WebSocket event outbox or
-  replay cursor. After a disconnect or backend restart, clients still need a
-  fresh authenticated snapshot/resubscription. Sustained write-rate and
-  multi-process contention benchmarks are still pending.
+- `SQLiteOhlcvStore` commits normalized bar revisions and their durable
+  OHLCV outbox events in the same SQLite transaction. The outbox has a
+  monotonic global cursor, bounded retention, atomic snapshot/watermark reads,
+  global relay paging, and exact-series reconnect replay. A retention gap or
+  unavailable replay store must trigger explicit snapshot recovery; clients
+  must never silently skip a cursor.
+- This local durable outbox is not the same as a production multi-instance
+  data plane. The default source-mode WebSocket hub remains process-local, and
+  SQLite files must not be shared as a WAL database across arbitrary hosts.
+  Cross-instance delivery requires the separate publisher and gateway-replica
+  roles, independent Redis consumer groups, durable replica checkpoints, and
+  the owner-authenticated snapshot installer/receipt verification described
+  in `docs/ADR_WEBSOCKET_CROSS_INSTANCE_OUTBOX_RELAY.md` and the WebSocket
+  production-acceptance pack. Those runtime factories are owner-injected and
+  fail closed; environment variables alone do not activate them.
+- A durable local outbox is not an off-host backup or a guarantee against host
+  loss. Persistent-volume configuration, encrypted off-host backup, restore
+  drills, and production Redis persistence/failover remain separate gates.
+  Sustained write-rate and multi-process contention results must be measured
+  on the intended host before production capacity claims.
 - A successful container health check proves process liveness only. It does
   not prove provider connectivity, contract-definition availability, OHLCV
   completeness, or market-data freshness.
 - Redis must be reachable only over the owner's private network. Validate ACL
   command scope, TLS certificates, persistence, restart and failure behavior
   on the actual host before production acceptance.
+
+
+## WebSocket durability clarification — 2026-11-22
+
+A source-to-documentation audit corrected an obsolete statement that SQLite
+provided no durable WebSocket outbox or replay cursor. The current
+`SQLiteOhlcvStore` does persist an OHLCV event outbox and monotonic cursor
+atomically with accepted bar revisions, and the WebSocket route supports
+bounded exact-series replay from that source store. Snapshot bars and the
+source watermark also have an atomic SQLite read primitive.
+
+This correction does **not** mark production WebSocket acceptance complete.
+The normal source-mode hub remains process-local. Multi-instance operation
+requires the separately implemented source-publisher and gateway-replica
+runtime factories, trusted snapshot transfer/install, per-gateway Redis
+consumer groups, and matching installation receipts. Those callbacks and
+production host resources are not available by default and must remain
+owner-injected and fail closed.
+
+The repository/CI tests prove only their documented test topology. Public
+HTTPS/WSS, real Firebase token/entitlement E2E, owner-host Redis TLS/ACL and
+failover, production snapshot distribution, and real browser/Android WebView
+acceptance remain unverified. No host, account, credential, paid service, or
+deployment is introduced by this documentation correction.
