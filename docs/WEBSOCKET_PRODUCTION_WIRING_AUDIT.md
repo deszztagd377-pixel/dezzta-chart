@@ -1158,3 +1158,10 @@ Read-only review of `backend/app/ohlcv_redis_gateway_runtime.py`, `backend/app/o
 The verified installer callback still calls the store's snapshot verifier/installer; this is a trust boundary. No exploit is asserted. Persisting a digest would require a design decision covering checkpoint schema migration and the meaning/lifecycle of a snapshot-only digest after stream updates. Gate 25 remains OPEN pending this design decision plus authenticated owner-host transfer, independent gateway receipts and owner-host Redis operational evidence.
 
 Batch 62J-129 also introduced IP3S, a per-cycle delivery-quality score. Its 58/100 is not project completion and grants no indicator implementation credit. See `WORK_CYCLE_2026-11-22_BATCH62J129_GATE25_GATE36_IP3S.md` for the exact scoring rubric and Gate 36 evidence matrix.
+
+
+## Batch 62J-130 — Gateway snapshot digest anchoring and overall project progress (22 November 2026)
+
+The durable `ohlcv_replica_checkpoint` schema stores source ID, replica ID, applied cursor, snapshot generation, retention floor, bar-retention metadata and schema/protocol versions. It does **not** store snapshot SHA-256. The gateway installer return value is checked for 64-character lowercase-hex format and propagated; source/generation/cursor are compared with the durable checkpoint. Do not describe the installer digest as being compared with a digest in that checkpoint. The canonical snapshot exporter/verifier independently computes and validates SHA-256 over snapshot contents. Any persistent digest field requires an explicit decision about immutable installation provenance, stream-update lifecycle, schema migration and compatibility. No source edit was made.
+
+Overall project progress remains **NOT SCORED** because there is no approved six-stage weighting/denominator. Stage 1 is **30/40 = 75% provisional**, Gate 10 is **0/10 formally closed**, and Stages 2–6 are NOT SCORED. Batch IP3S is separate from project completion. Gate 25 and Gate 36 remain OPEN. See `WORK_CYCLE_2026-11-22_BATCH62J130_OVERALL_PROGRESS_WEBSOCKET_ACCEPTANCE.md`.
