@@ -2,7 +2,7 @@
 import { createElement } from 'react';
 import { act } from 'react-dom/test-utils';
 import { createRoot, type Root } from 'react-dom/client';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { MarketDataSnapshot, MarketSeriesIdentity } from './marketDataStore';
 import { marketDataSeriesStore } from './marketDataSeriesStore';
 import { useMarketDataSeriesSnapshot } from './useMarketDataSeriesSnapshot';
@@ -25,12 +25,19 @@ const bars = [
 
 const roots: Root[] = [];
 
+beforeEach(() => {
+  (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean })
+    .IS_REACT_ACT_ENVIRONMENT = true;
+});
+
 afterEach(() => {
   for (const root of roots.splice(0)) {
     act(() => root.unmount());
   }
   marketDataSeriesStore.reset(firstIdentity, 'unavailable', 'test cleanup');
   marketDataSeriesStore.reset(secondIdentity, 'unavailable', 'test cleanup');
+  (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean })
+    .IS_REACT_ACT_ENVIRONMENT = false;
 });
 
 describe('useMarketDataSeriesSnapshot', () => {
@@ -100,13 +107,16 @@ describe('useMarketDataSeriesSnapshot', () => {
     expect(container.textContent).toBe('ready:1');
   });
   it('isolates simultaneous React chart panels and preserves the remaining panel on unmount', () => {
+    marketDataSeriesStore.reset(firstIdentity, 'loading', 'isolated test start');
+    marketDataSeriesStore.reset(secondIdentity, 'loading', 'isolated test start');
     const container = document.createElement('div');
     const root = createRoot(container);
     roots.push(root);
 
     function Probe({ identity }: { identity: MarketSeriesIdentity }) {
       const snapshot = useMarketDataSeriesSnapshot(identity);
-      return createElement('span', null, `${identity.rawSymbol}:${snapshot.revision}:${snapshot.bars.length};`);
+      const latestClose = snapshot.bars[snapshot.bars.length - 1]?.close ?? '-';
+      return createElement('span', null, `${identity.rawSymbol}:${snapshot.status}:${latestClose};`);
     }
 
     act(() => root.render(createElement(
@@ -123,8 +133,8 @@ describe('useMarketDataSeriesSnapshot', () => {
       status: 'ready',
       bars,
     }));
-    expect(container.textContent).toContain('HOOK_A:1:1;');
-    expect(container.textContent).toContain('HOOK_B:0:0;');
+    expect(container.textContent).toContain('HOOK_A:ready:101;');
+    expect(container.textContent).toContain('HOOK_B:loading:-;');
 
     act(() => marketDataSeriesStore.publishSnapshot({
       identity: secondIdentity,
@@ -132,7 +142,7 @@ describe('useMarketDataSeriesSnapshot', () => {
       bars,
     }));
     expect(container.textContent).toContain('HOOK_A:1:1;');
-    expect(container.textContent).toContain('HOOK_B:1:1;');
+    expect(container.textContent).toContain('HOOK_B:ready:101;');
 
     act(() => root.render(createElement(
       'div',
@@ -146,7 +156,7 @@ describe('useMarketDataSeriesSnapshot', () => {
       identity: firstIdentity,
       bar: { ...bars[0], close: 101.5, high: 102, volume: 11 },
     }));
-    expect(container.textContent).toContain('HOOK_A:2:1;');
+    expect(container.textContent).toContain('HOOK_A:ready:101.5;');
     expect(container.textContent).not.toContain('HOOK_B:');
   });
 
