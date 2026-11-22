@@ -1,3 +1,80 @@
+# CURRENT PROJECT PROGRESS — Batch 62J-146 (22 November 2026)
+
+This is the latest project snapshot. Verify the live branch ref and exact-HEAD workflows before using this record as a new implementation baseline.
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Verified source/test HEAD before documentation-only Batch 62J-146:** `06a3c3c9e5b5ecd2ff4c8c29e0e472972c1c6e7e`  
+**Batch 62J-146 documentation commits:** ADR `e21fd8ea7e7d956a507044dee97ba4b179189f62`; indicator ledger `4a4932924cb80afd44925dc50af91a15aae9e74e`; this progress snapshot is the final documentation update in this batch.  
+**Main:** untouched.
+
+## Exact-HEAD source/test CI — verified SUCCESS
+
+All four workflows below completed successfully on exact source/test HEAD `06a3c3c9e5b5ecd2ff4c8c29e0e472972c1c6e7e`:
+- Automated Tests [45006546194](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45006546194): **SUCCESS**.
+- CodeQL [45006545959](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45006545959): **SUCCESS**.
+- Full Git History Secret Audit [45006545947](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45006545947): **SUCCESS**.
+- OCI ARM64 Image Readiness [45006545965](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45006545965): **SUCCESS**.
+
+The Automated Tests workflow completed frontend dependency audit, unit tests and build; Android host preflight/publisher tests; backend tests; isolated Redis TLS CA/hostname fixture; bounded synthetic SQLite outbox and metrics checks; backend container build/smoke; and image scan. These are repository CI and isolated synthetic tests, not public-host/device acceptance. The source/test commit changed only `backend/tests/test_api.py` to test HTTPS one-time WebSocket ticket issuance, ticket-authenticated real loopback WSS, renewal, and two-user disconnect isolation.
+
+**Documentation-head qualification:** Batch 62J-146 adds documentation commits after the green source/test HEAD. The final documentation HEAD triggers its own workflows; do not transfer the source/test SHA's green status to a later documentation SHA until those exact-HEAD runs complete.
+
+## Batch 62J-146 — on-demand market-data architecture
+
+Created [ADR_ON_DEMAND_MARKET_DATA_SUBSCRIPTIONS.md](ADR_ON_DEMAND_MARKET_DATA_SUBSCRIPTIONS.md).
+
+Decision:
+- On-demand subscription is primarily a **Stage 2 — Market Data Infrastructure** capability.
+- Stage 1 provides prerequisites only: verified identity/ticket, per-user isolation, entitlement, foreground/background lifecycle, safe disconnect and reconnect/snapshot/replay.
+- Catalogue/search/watchlist views must not start pair streams or polling.
+- Only chart surfaces actively viewed may subscribe to their exact canonical series.
+- Pair switch/close/background must release that user's subscription.
+- Equivalent subscribers should share one provider upstream where the provider contract supports it; reference counting stops it only after the final subscriber leaves.
+- One user's disconnect must not stop another user's stream or the independent backend.
+- Mobile data and host free-tier budgets are separate; heartbeat/auth/reconnect may still use some network data.
+- No claim of upstream deduplication or quota savings without direct tests.
+
+**Implementation status:** accepted requirement/design direction; end-to-end implementation and acceptance are NOT YET PROVEN. The existing real-WSS test proves TLS/Origin/ticket renewal and per-client disconnect isolation, not chart-driven subscription ownership or shared provider upstream.
+
+## Official stage progress
+
+| Stage | Progress | Status |
+|---|---:|---|
+| 1. Foundation, Security & Data Integrity | 30/40 = 75% provisional | 🟨 |
+| 2. Market Data Infrastructure | Not scored | ⬜ Not officially opened |
+| 3. Chart Engine & Timeframe | Not scored | ⬜ Not officially opened |
+| 4. Indicators & Analytics | Not scored | ⬜ Not officially opened |
+| 5. Professional UI & Interactive Tools | Not scored | ⬜ Not officially opened |
+| 6. Hardening, Validation & APK Release | Not scored | ⬜ Not officially opened |
+
+**Overall project: NOT SCORED.** Six-stage weights and total acceptance denominator are not approved. Do not calculate an aggregate percentage. Stage 1's provisional 75% is not overall completion.
+
+**Gate 10: 0/10 external criteria formally closed.** Open criteria: 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. Gate 25 (snapshot provenance/replica receipt and owner-host recovery), Gate 36 (public WSS/live Firebase/Android lifecycle), and Gate 38 (durable operational metrics/alerts/recovery) remain OPEN.
+
+## Complete indicator status
+
+| Indicator/component | Status | Verified scope |
+|---|---|---|
+| SMA20 | 🟨 | 20-close mean; first valid index 19 |
+| EMA20 | 🟨 | SMA-seeded EMA, alpha 2/21; first valid index 19 |
+| RSI14 Wilder | 🟨 | Wilder smoothing; first valid index 14 |
+| MACD12/26/9 | 🟨 | MACD index 25; signal/histogram index 33 |
+| Bollinger20,2 | 🟨 | 20-close mean ±2 population SD; first valid index 19 |
+| Shared Indicator Hook | 🟨 | Backend snapshot/aligned output; not fully chart-integrated |
+| Footprint | 🟧 | Synthetic educational accumulator only; not exchange-native bid/ask truth |
+| Heatmap | 🟥 | Not implemented |
+| Liquidation Maps | 🟥 | Not implemented |
+
+No indicator implementation changed in this batch. No indicator credit is awarded. Preserve warm-up nulls, candle-index alignment, prefix causality/no future repaint, invalid/gapped-bar rejection, stale-series clearing, and Footprint OFF standard candle spacing. Footprint/Heatmap visuals require user reference images and a reviewed blueprint. Full ledger: [INDICATOR_PROGRESS_LEDGER.md](INDICATOR_PROGRESS_LEDGER.md).
+
+## Hosting and cost status
+
+Cloudflare Workers + Durable Objects remains an architecture candidate only, not selected or deployed. Render Free remains a limited sleeping proof-of-concept candidate. OCI is not selected because card verification conflicts with the current constraint. No provider account, resource, deployment, payment method, production credential or paid service was created. Any provider account must be owned/managed by a parent or guardian.
+
+## ZERO COST and branch integrity
+
+No paid resource, provider signup, deployment, production credential, payment method, device/Termux operation or schema/runtime change was made in Batch 62J-146. Active branch remains `phase-2/market-data-foundation`; `main` remains untouched.
+
 # CURRENT PROJECT PROGRESS — Batch 62J-143 (22 November 2026)
 
 This snapshot supersedes earlier dated summaries below.
