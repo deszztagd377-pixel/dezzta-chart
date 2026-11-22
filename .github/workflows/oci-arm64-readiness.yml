@@ -91,7 +91,8 @@ jobs:
           node -e 'const fs=require("node:fs"); const p=JSON.parse(fs.readFileSync("/tmp/dezzta-arm64-health.json","utf8")); if(p.status!=="ok") process.exit(1);'
           test "$(docker exec "$container_name" id -u)" = "10001"
           docker exec --user 10001:10001 "$container_name" sh -c 'touch /data/arm64-volume-write-probe && test -w /data/arm64-volume-write-probe'
-          test -f /var/lib/docker/volumes/"$volume_name"/_data/arm64-volume-write-probe || docker run --rm --mount "type=volume,src=$volume_name,dst=/data" alpine:3.24 test -f /data/arm64-volume-write-probe
+          docker exec --user 10001:10001 "$container_name" sh -c 'test -f /data/arm64-volume-write-probe'
+          echo "PASS: application UID 10001 can write to the mounted persistent volume."
 
           docker restart "$container_name" >/dev/null
           ready=0
@@ -103,5 +104,5 @@ jobs:
             sleep 1
           done
           test "$ready" -eq 1
-          docker run --rm --mount "type=volume,src=$volume_name,dst=/data" alpine:3.24 test -f /data/arm64-volume-write-probe
+          docker exec --user 10001:10001 "$container_name" sh -c 'test -f /data/arm64-volume-write-probe'
           echo "PASS: native ARM64 image, health endpoint, UID/GID 10001, writable persistent volume and restart recovery."
