@@ -3132,3 +3132,40 @@ ZERO COST. No deployment, paid service, production credential, Termux/device act
 - Test-only password and CA remain ephemeral; no production secrets are added. Redis remains TLS-only and no public Redis port is exposed.
 - Exact-head CI is pending. Do not mark the batch accepted until Automated Tests, CodeQL, and Full Git History Secret Audit all complete successfully.
 - ZERO COST; no cloud resource, paid service, deployment, Termux/device operation, or `main` modification.
+
+
+## Batch 62J-126 — owner-host acceptance evidence boundary audit (22 November 2026)
+
+**Branch:** `phase-2/market-data-foundation`  
+**Parent HEAD:** `5b0cc02be04efbef3971aa313836eb171e877117`  
+**Exact-parent CI:** Automated Tests [44986957808](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44986957808) SUCCESS; CodeQL [44986957788](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44986957788) SUCCESS; Full Git History Secret Audit [44986957739](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44986957739) SUCCESS. The first two were polled to completed jobs; all three target `5b0cc02be04efbef3971aa313836eb171e877117`.
+
+### Additional owner-host evidence review
+
+- **Gate 30 — live backup/restore:** repository implementation includes SQLite Online Backup API, integrity and foreign-key checks, encrypted backup with ciphertext-integrity authentication, restore to a new database path rather than overwriting the active database, and hash/schema/row-count/domain validation. The restore drill can validate registry, entitlement, alert, coverage, OHLCV and outbox records. This is repository/test evidence only; no owner-host backup artifact or live production restore/readback has been supplied.
+- **Gate 31 — off-host backup/key custody:** encryption and fresh-path restore checks do not prove an independently controlled off-host destination, separate recovery-key custody, or successful recovery using that separately held key. Gate remains open.
+- **Gate 38 — observability:** current metrics are process-local and measured since process start. No evidence of a central retained dashboard, external notification route, or operator-facing disk-pressure dashboard was found in the reviewed implementation. Same-process counters and synthetic benchmarks do not establish cross-restart retention or production monitoring.
+- **Gate 39 — alert delivery:** observed operational alert sink is local logging. No evidence of remote delivery, named human acknowledgement, escalation receipt or a completed operator recovery drill. Keep lifecycle/logging tests separate from real notification acceptance.
+- **Android acceptance:** CI exercises host-side preflight and immutable preview-publisher contracts only. It does not launch an Android device/WebView or prove foreground/background, process death, network handover, reconnect/replay or duplicate suppression on a real device.
+- **Architecture build coverage:** the reviewed backend container workflow builds `linux/amd64`. No multi-platform Buildx manifest or ARM64 build/smoke evidence was established. ARM64 remains unverified; do not claim support based on the amd64 Trivy report.
+
+### WebSocket gate disposition
+
+These findings do not close any production gate. Gate 25 remains open for authenticated owner-host snapshot transfer, independently authenticated gateway receipts, byte/hash custody and exact generation/high-water alignment under real Redis persistence/restart/failover. Gate 36 remains open for verified public HTTPS/WSS, trusted TLS/reverse proxy, real Firebase and entitlement E2E, real browser/Android lifecycle tests, network-interruption recovery, replay/resnapshot/duplicate suppression and production operator evidence. Gate 38 and Gate 39 remain open for real retained dashboards/alerting and externally delivered, acknowledged/escalated alerts.
+
+**Gate 10: 0/10 formally closed. Stage 1: 30/40 = 75% provisional.** No Stage 2 transition. CI green is not owner-host production acceptance.
+
+### Safe next sequence
+
+1. Continue source/test audit of backup key lifecycle and alert/event boundaries; do not request or expose secrets.
+2. Define a zero-cost, local-only acceptance harness for restore and monitoring contracts if it can run entirely in CI without new external accounts or services.
+3. Keep real off-host recovery, public WSS, Firebase project and device acceptance as owner-operated gates; do not provision a host or create accounts.
+4. Review ARM64 feasibility from workflow and dependency constraints before changing CI. Do not add paid runners or services.
+
+### Indicator reconciliation
+
+No indicator source, tests, formulas, hook, renderer or chart UI changed. SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain 🟨 foundation; Footprint remains 🟧 synthetic/reference-gated; Heatmap and Liquidation Maps remain 🟥 unimplemented. No indicator progress credit or aggregate percentage is assigned. Preserve warm-up nulls, source-index alignment, no future-candle repaint, stale-series clearing and Footprint OFF standard candle spacing.
+
+### Cost and change boundary
+
+ZERO COST. Documentation-only; no runtime source, tests, workflows, deployment, cloud resource, domain, account, production credential, Android device action or Termux work. `main` untouched.

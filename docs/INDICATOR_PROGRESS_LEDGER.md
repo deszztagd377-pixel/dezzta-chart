@@ -1573,3 +1573,12 @@ A focused backend regression test was added to prevent future drift between the 
 **Shared invariants:** warm-up remains null, never zero; outputs align to source candle indices; no future-candle repaint; symbol/venue/dataset/chart/timeframe changes clear stale series; invalid bars and gaps are not silently converted to zero. Footprint OFF preserves standard candle spacing. No indicator completion credit is awarded by WebSocket CI, backend metrics fixes or documentation.
 
 No aggregate indicator percentage is published without approved per-study weights and a completion denominator. Stage 1 30/40 provisional is project-stage accounting, not indicator completion. Stage 4 visible indicators remain behind the approved stage gate. Do not begin Footprint or Heatmap visual implementation before the user supplies reference image(s) and the scoped blueprint is reviewed.
+
+
+## Batch 62J-126 reconciliation — WebSocket owner-host evidence and CI completion
+
+- Exact parent `5b0cc02be04efbef3971aa313836eb171e877117` has Automated Tests, CodeQL and Full Git History Secret Audit all SUCCESS (runs 44986957808, 44986957788 and 44986957739 respectively).
+- Additional audit confirms repository backup/restore validation is not owner-host recovery proof; encrypted off-host destination and independent recovery-key custody remain absent. Process-local metrics/local-log alerts do not prove central retained dashboards, external alert delivery, human acknowledgement or escalation. Android CI remains host-only, and backend container evidence is linux/amd64 only; ARM64 is unverified.
+- WebSocket Gate 25/36 remain open; Gate 38/39 remain open. Gate 10 remains 0/10 formally closed; Stage 1 remains 30/40 provisional. No production acceptance is inferred from CI.
+- Indicator statuses and requirements are unchanged. No source/test/formula/hook/renderer/UI changes and **zero indicator progress credit**. Six foundation studies/shared hook 🟨; Footprint 🟧 reference-gated; Heatmap and Liquidation Maps 🟥.
+- Documentation-only, ZERO COST; `main` untouched.
