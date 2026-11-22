@@ -1,0 +1,107 @@
+name: DEZZTA CHART - OCI ARM64 Image Readiness
+
+on:
+  push:
+    branches:
+      - 'phase-2/market-data-foundation'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: oci-arm64-readiness-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  arm64-backend:
+    name: Build and smoke-test native ARM64 backend
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+
+      - name: Verify native runner architecture
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = "aarch64"
+          docker info --format '{{.Architecture}}' | grep -Eiq 'aarch64|arm64'
+          echo "Native ARM64 runner verified."
+
+      - name: Build backend image for the native ARM64 architecture
+        run: |
+          set -euo pipefail
+          docker build --pull -f backend/Dockerfile -t dezzta-chart-backend:arm64-ci backend
+          image_arch="$(docker image inspect dezzta-chart-backend:arm64-ci --format '{{.Architecture}}')"
+          test "$image_arch" = "arm64"
+          echo "Backend image architecture: $image_arch"
+
+      - name: Smoke-test ARM64 backend, unprivileged runtime and persistent data volume
+        run: |
+          set -euo pipefail
+          container_name=dezzta-chart-arm64-smoke
+          volume_name=dezzta-chart-arm64-data
+          base_url=http://127.0.0.1:18000
+          cleanup() {
+            docker rm -f "$container_name" >/dev/null 2>&1 || true
+            docker volume rm -f "$volume_name" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          docker volume create "$volume_name" >/dev/null
+          docker run --detach --name "$container_name" \
+            --publish 127.0.0.1:18000:18000 \
+            --mount "type=volume,src=$volume_name,dst=/data" \
+            -e APP_ENV=development \
+            -e PORT=18000 \
+            -e INSTRUMENT_REGISTRY_DB_PATH=/data/dezzta-chart-arm64.sqlite3 \
+            -e OBSERVABILITY_METRICS_DB_PATH=/data/observability-metrics.sqlite3 \
+            -e CORS_ALLOWED_ORIGINS=http://localhost:5173 \
+            dezzta-chart-backend:arm64-ci >/dev/null
+
+          ready=0
+          for attempt in $(seq 1 40); do
+            if ! docker inspect "$container_name" >/dev/null 2>&1; then
+              echo "ARM64 backend container disappeared."
+              exit 1
+            fi
+            state="$(docker inspect --format '{{.State.Status}}' "$container_name")"
+            if [ "$state" != "running" ]; then
+              echo "ARM64 backend exited (state=$state)."
+              docker logs --tail 200 "$container_name" || true
+              exit 1
+            fi
+            if curl --silent --show-error --fail "$base_url/health" >/tmp/dezzta-arm64-health.json 2>/tmp/dezzta-arm64-health-error.txt; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then
+            cat /tmp/dezzta-arm64-health-error.txt || true
+            docker logs --tail 200 "$container_name" || true
+            exit 1
+          fi
+
+          node -e 'const fs=require("node:fs"); const p=JSON.parse(fs.readFileSync("/tmp/dezzta-arm64-health.json","utf8")); if(p.status!=="ok") process.exit(1);'
+          test "$(docker exec "$container_name" id -u)" = "10001"
+          docker exec --user 10001:10001 "$container_name" sh -c 'touch /data/arm64-volume-write-probe && test -w /data/arm64-volume-write-probe'
+          test -f /var/lib/docker/volumes/"$volume_name"/_data/arm64-volume-write-probe || docker run --rm --mount "type=volume,src=$volume_name,dst=/data" alpine:3.24 test -f /data/arm64-volume-write-probe
+
+          docker restart "$container_name" >/dev/null
+          ready=0
+          for attempt in $(seq 1 40); do
+            if curl --silent --show-error --fail "$base_url/health" >/dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          test "$ready" -eq 1
+          docker run --rm --mount "type=volume,src=$volume_name,dst=/data" alpine:3.24 test -f /data/arm64-volume-write-probe
+          echo "PASS: native ARM64 image, health endpoint, UID/GID 10001, writable persistent volume and restart recovery."
