@@ -17,7 +17,7 @@ A one-phone local backend remains a candidate only. It is not yet accepted becau
 2. The backend is a separate FastAPI/Python service. The CI container targets Alpine Linux; passing Linux container tests do not establish Android/Bionic compatibility.
 3. Production config requires Firebase project identity and a TLS Redis URL with non-empty ACL username/password. Redis shared guards intentionally fail closed. Plaintext Redis or an in-memory production fallback is prohibited.
 4. Backend requires `cryptography>=50,<51`. The previously reported Google Play Termux build has a repository-signature/keyring mismatch, and the device Python environment previously lacked the required cryptography module. No package operation is safe until signed repository metadata is trusted.
-5. `VITE_MARKET_DATA_API_BASE_URL` is public build-time frontend configuration, never a secret. HTTP and WebSocket clients must use the same approved backend origin; WSS derives from HTTPS and uses Firebase ID-token authentication.
+5. `VITE_MARKET_DATA_API_BASE_URL` is public build-time frontend configuration, never a secret. HTTP and WebSocket clients must use the same approved backend origin; WSS derives from HTTPS. In production, the Firebase ID token is sent only over HTTPS to obtain a short-lived, single-use WebSocket ticket; the WSS auth frame carries that ticket, not the Firebase token.
 6. SQLite CI tests do not prove Termux private-storage permissions, Android process recovery, or real on-device database durability.
 7. Market-data provider access remains disabled under ZERO COST. A successful backend handshake must not be represented as live exchange data without a verified provider source.
 

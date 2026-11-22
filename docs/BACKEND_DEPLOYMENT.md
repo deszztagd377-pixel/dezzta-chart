@@ -126,9 +126,11 @@ The client requests a fresh ticket over HTTPS every 45 seconds by default, then 
 A route present in source is not proof of deployed WSS availability or client
 end-to-end compatibility. Before production acceptance, verify the HTTPS/WSS
 reverse-proxy configuration, the deployed WebSocket handshake, and the actual
-web and Android client flow. A separate short-lived scoped WebSocket-ticket
-exchange is not implemented in this checkpoint; keep that design decision and
-its key lifecycle subject to an approved threat model before adding it.
+web and Android client flow. The production ticket exchange is implemented in the
+repository: the client obtains a purpose-bound, single-use ticket over HTTPS at
+`POST /v1/auth/websocket-ticket`, then sends that ticket in the first WSS auth
+frame. This source-level implementation is not proof of deployed WSS or live
+Firebase acceptance; those remain owner-host integration requirements.
 
 The `/v1/market-data/status` payload includes provider state, reconnect
 attempts, ingestion counters, queue depth, degraded reasons, persistence and
