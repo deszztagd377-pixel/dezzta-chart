@@ -170,6 +170,26 @@ describe('per-series shared OHLCV supervisor registry', () => {
     expect(marketDataSeriesStore.getSnapshot(es).status).toBe('unavailable');
   });
 
+  it('bounds concurrent canonical series and leaves existing owners intact at capacity', () => {
+    const registry = new OhlcvSeriesSupervisorRegistry(1);
+    const first = registry.acquire(makeOptions(es, new FakeSocket()), 'panel-es');
+
+    expect(registry.getCapacity()).toBe(1);
+    expect(registry.getSeriesCount()).toBe(1);
+    expect(() => registry.acquire(makeOptions(nq, new FakeSocket()), 'panel-nq'))
+      .toThrow(/capacity \(1\) is exhausted/);
+    expect(registry.getOwnerCount(es)).toBe(1);
+    expect(registry.getSeriesCount()).toBe(1);
+
+    first.release();
+    expect(registry.getSeriesCount()).toBe(0);
+  });
+
+  it('rejects invalid active-series capacities', () => {
+    expect(() => new OhlcvSeriesSupervisorRegistry(0)).toThrow(/positive safe integer/);
+    expect(() => new OhlcvSeriesSupervisorRegistry(1.5)).toThrow(/positive safe integer/);
+  });
+
   it('ignores stale panel cleanup after the same owner reacquires the series', () => {
     const registry = new OhlcvSeriesSupervisorRegistry();
     const socket = new FakeSocket();
