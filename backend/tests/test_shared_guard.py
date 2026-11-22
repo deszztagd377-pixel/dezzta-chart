@@ -403,6 +403,9 @@ def test_redis_websocket_ticket_lua_consume_is_single_use():
         try:
             await guard.start()
             ticket = await guard.issue_websocket_ticket(f"ticket-account-{uuid4().hex}")
+            ticket_key = f"dezzta:{{guard-ws}}:ticket:{guard._digest(ticket)}"
+            remaining_ttl_ms = await redis.pttl(ticket_key)
+            assert 0 < remaining_ttl_ms <= 90_000
             assert await guard.consume_websocket_ticket(ticket) is not None
             assert await guard.consume_websocket_ticket(ticket) is None
         finally:
