@@ -969,6 +969,39 @@ describe('OHLCV stream supervisor', () => {
     expect(supervisor.status).toBe('stopped');
   });
 
+  it('does not open a socket when stop occurs while ticket issuance is pending', async () => {
+    vi.useFakeTimers();
+    let resolveTicket!: (ticket: string) => void;
+    const ticketPromise = new Promise<string>((resolve) => {
+      resolveTicket = resolve;
+    });
+    const requestWebSocketTicket = vi.fn(() => ticketPromise);
+    const factory = vi.fn(() => new FakeSocket() as unknown as WebSocket);
+    const supervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken: async () => 'fresh-token',
+      requestWebSocketTicket,
+      webSocketFactory: factory,
+      minReconnectDelayMs: 10,
+      random: () => 0,
+    });
+
+    for (let index = 0; index < 8; index += 1) await Promise.resolve();
+    expect(requestWebSocketTicket).toHaveBeenCalledOnce();
+    expect(factory).not.toHaveBeenCalled();
+
+    supervisor.stop();
+    resolveTicket('late-ticket-abcdefghijklmnopqrstuvwxyz1234567890');
+    for (let index = 0; index < 8; index += 1) await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(1_000);
+
+    expect(factory).not.toHaveBeenCalled();
+    expect(requestWebSocketTicket).toHaveBeenCalledOnce();
+    expect(supervisor.status).toBe('stopped');
+  });
+
   it('does not reconnect after an explicit stop', async () => {
     vi.useFakeTimers();
     const factory = vi.fn(() => new FakeSocket() as unknown as WebSocket);
