@@ -27,6 +27,8 @@ export interface OhlcvStreamSupervisorOptions
   extends Omit<OhlcvStreamOptions, 'ticket' | 'getRenewalTicket' | 'token' | 'onSnapshot' | 'onUpdate' | 'onStatus' | 'onError' | 'onClose' | 'onCursor'> {
   /** Must return a fresh Firebase ID token; called again for every reconnect. */
   getIdToken: () => Promise<string>;
+  /** Enables independent keyed-store ownership without touching the legacy singleton snapshot. */
+  seriesScoped?: boolean;
   /** Bounds Firebase token acquisition for initial connect and ticket renewal. */
   identityTokenTimeoutMs?: number;
   requestWebSocketTicket?: (baseUrl: string, idToken: string) => Promise<string>;
@@ -50,15 +52,17 @@ function resetMarketDataStores(
   identity: MarketSeriesIdentity,
   status: Parameters<typeof resetMarketDataSnapshot>[1],
   detail: string | null,
+  seriesScoped = false,
 ): void {
-  resetMarketDataSnapshot(identity, status, detail);
+  if (!seriesScoped) resetMarketDataSnapshot(identity, status, detail);
   marketDataSeriesStore.reset(identity, status, detail);
 }
 
 function publishMarketDataStores(
   input: Parameters<typeof publishMarketDataSnapshot>[0],
+  seriesScoped = false,
 ): void {
-  publishMarketDataSnapshot(input);
+  if (!seriesScoped) publishMarketDataSnapshot(input);
   if (input.identity) {
     marketDataSeriesStore.publishSnapshot({
       identity: input.identity,
@@ -71,8 +75,9 @@ function publishMarketDataStores(
 
 function publishMarketDataUpdates(
   input: Parameters<typeof publishMarketDataUpdate>[0],
+  seriesScoped = false,
 ): void {
-  publishMarketDataUpdate(input);
+  if (!seriesScoped) publishMarketDataUpdate(input);
   marketDataSeriesStore.publishUpdate(input);
 }
 
@@ -106,8 +111,11 @@ export function startOhlcvStreamSupervisor(
   if (!Number.isFinite(identityTokenTimeoutMs) || identityTokenTimeoutMs <= 0 || identityTokenTimeoutMs > 60_000) {
     throw new Error('Firebase ID-token timeout must be positive and no greater than 60 seconds.');
   }
-  // A new series selection supersedes the previous owner of the shared store.
-  activeSupervisorStop?.();
+  const seriesScoped = options.seriesScoped === true;
+  // Legacy consumers retain the historical single-owner behavior. Series-scoped
+  // supervisors are independently owned by canonical series and never reset
+  // another series' chart state.
+  if (!seriesScoped) activeSupervisorStop?.();
 
   const pendingIdentityRequests = new Set<() => void>();
   const getFreshIdToken = (): Promise<string> => new Promise((resolve, reject) => {
@@ -193,6 +201,7 @@ export function startOhlcvStreamSupervisor(
           options.identity,
           'unavailable',
           'No valid Firebase ID token is available. Sign in again before reconnecting.',
+          seriesScoped,
         );
         setStatus('stopped');
         reportError(new Error('Identity provider returned an empty ID token.'));
@@ -221,6 +230,7 @@ export function startOhlcvStreamSupervisor(
               options.identity,
               'unavailable',
               snapshot.detail ?? 'The authenticated stream has no validated bars yet.',
+              seriesScoped,
             );
           } else {
             publishMarketDataStores({
@@ -228,7 +238,7 @@ export function startOhlcvStreamSupervisor(
               status: snapshot.state,
               bars: candles,
               detail: snapshot.detail,
-            });
+            }, seriesScoped);
           }
           attempt = 0;
           setStatus('subscribed');
@@ -236,9 +246,11 @@ export function startOhlcvStreamSupervisor(
         onUpdate: (_event, candle) => {
           if (stopped) return;
           if (_event.cursor !== undefined) resumeCursor = _event.cursor;
-          const current = getMarketDataSnapshot();
+          const current = seriesScoped
+            ? marketDataSeriesStore.peekSnapshot(options.identity)
+            : getMarketDataSnapshot();
           if (current.source === 'backend' && isSameMarketSeriesIdentity(current.identity, options.identity)) {
-            publishMarketDataUpdates({ identity: options.identity, bar: candle });
+            publishMarketDataUpdates({ identity: options.identity, bar: candle }, seriesScoped);
           } else {
             // A valid stream may produce its first bar after an empty snapshot.
             // Seed the store with that validated event rather than rejecting it.
@@ -247,7 +259,7 @@ export function startOhlcvStreamSupervisor(
               status: 'degraded',
               bars: [candle],
               detail: 'Streaming bars received; awaiting a complete snapshot window.',
-            });
+            }, seriesScoped);
           }
         },
         onStatus: (status) => {
@@ -291,7 +303,7 @@ export function startOhlcvStreamSupervisor(
                     ? 'The WebSocket Origin is not allowlisted by the backend. Check the configured frontend origin.'
                     : 'The account is not entitled to this instrument or its access was revoked.'
                   : 'The server rejected the subscription request. Check the selected instrument and timeframe.';
-            resetMarketDataStores(options.identity, 'unavailable', closeDetail);
+            resetMarketDataStores(options.identity, 'unavailable', closeDetail, seriesScoped);
             setStatus('stopped');
             reportError(new Error(
               code === 1008 ? 'Market-data WebSocket protocol policy rejected (1008).' :
@@ -315,6 +327,7 @@ export function startOhlcvStreamSupervisor(
             options.identity,
             'unavailable',
             'Firebase authentication was rejected. Sign in again before reconnecting.',
+            seriesScoped,
           );
           setStatus('stopped');
           reportError(new Error('Market-data WebSocket ticket authentication rejected (401).'));
@@ -332,7 +345,7 @@ export function startOhlcvStreamSupervisor(
     }
   };
 
-  resetMarketDataStores(options.identity, 'loading', 'Authenticating the OHLCV stream.');
+  resetMarketDataStores(options.identity, 'loading', 'Authenticating the OHLCV stream.', seriesScoped);
   void connect();
 
   const supervisor: OhlcvStreamSupervisor = {
@@ -347,7 +360,10 @@ export function startOhlcvStreamSupervisor(
       active?.close();
       // A superseded supervisor must never clear or overwrite the new
       // selection's shared snapshot when its cleanup runs later.
-      if (activeSupervisorStop === supervisor.stop) {
+      if (seriesScoped) {
+        resetMarketDataStores(options.identity, 'unavailable', 'OHLCV stream stopped.', true);
+        setStatus('stopped');
+      } else if (activeSupervisorStop === supervisor.stop) {
         activeSupervisorStop = null;
         resetMarketDataStores(options.identity, 'unavailable', 'OHLCV stream stopped.');
         setStatus('stopped');
@@ -359,6 +375,6 @@ export function startOhlcvStreamSupervisor(
       return currentStatus;
     },
   };
-  activeSupervisorStop = supervisor.stop;
+  if (!seriesScoped) activeSupervisorStop = supervisor.stop;
   return supervisor;
 }
