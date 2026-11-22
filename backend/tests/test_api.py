@@ -2922,3 +2922,50 @@ def test_websocket_metrics_middleware_is_wired_into_authenticated_application():
         assert completed["connections_active"] == 0
         assert completed["connections_completed"] == 1
         assert completed["connections_accepted"] == 1
+
+
+def test_closing_one_websocket_client_preserves_other_client_subscription() -> None:
+    """A mobile client's disconnect must never stop another user's live socket."""
+    application = _app_with_bars()
+
+    with TestClient(application) as client:
+        with client.websocket_connect("/ws/market-data") as surviving:
+            surviving.send_json({"type": "auth", "token": "valid-firebase-token"})
+            assert surviving.receive_json()["type"] == "market_data.status"
+            surviving.send_json({
+                "type": "market_data.subscribe",
+                "version": 1,
+                "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+                "series": {
+                    "dataset": "GLBX.MDP3",
+                    "publisherId": 1,
+                    "instrumentId": 101,
+                    "rawSymbol": "ESZ6",
+                    "timeframe": "1s",
+                },
+            })
+            assert surviving.receive_json()["type"] == "market_data.ohlcv.snapshot"
+            assert application.state.ohlcv_stream_hub.subscriber_count == 1
+
+            with client.websocket_connect("/ws/market-data") as closing:
+                closing.send_json({"type": "auth", "token": "valid-firebase-token"})
+                assert closing.receive_json()["type"] == "market_data.status"
+                closing.send_json({
+                    "type": "market_data.subscribe",
+                    "version": 1,
+                    "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+                    "series": {
+                        "dataset": "GLBX.MDP3",
+                        "publisherId": 1,
+                        "instrumentId": 101,
+                        "rawSymbol": "ESZ6",
+                        "timeframe": "1s",
+                    },
+                })
+                assert closing.receive_json()["type"] == "market_data.ohlcv.snapshot"
+                assert application.state.ohlcv_stream_hub.subscriber_count == 2
+
+            # Closing the second app instance removes only its own subscription.
+            assert application.state.ohlcv_stream_hub.subscriber_count == 1
+            surviving.send_text("ping")
+            assert surviving.receive_json()["type"] == "market_data.pong"
