@@ -1,5 +1,18 @@
 from collections import deque
 
+import asyncio
+import ipaddress
+import json
+import socket
+import ssl
+from datetime import datetime, timedelta, timezone
+
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+import uvicorn
+import websockets
+
 import hashlib
 from decimal import Decimal
 import pytest
@@ -2991,3 +3004,167 @@ def test_closing_one_websocket_client_preserves_other_client_subscription() -> N
             assert application.state.ohlcv_stream_hub.subscriber_count == 1
             surviving.send_text("ping")
             assert surviving.receive_json()["type"] == "market_data.pong"
+
+
+def test_real_tls_websocket_upgrade_origin_policy_and_application_heartbeat(tmp_path) -> None:
+    """Exercise real TLS, the HTTP Upgrade, Origin enforcement, and text heartbeat."""
+    settings = make_settings(cors_allowed_origins=("https://localhost",))
+    application = _app_with_bars(settings=settings)
+
+    now = datetime.now(timezone.utc)
+    ca_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    ca_name = x509.Name([x509.NameAttribute(x509.NameOID.COMMON_NAME, "DEZZTA ephemeral test CA")])
+    ca_certificate = (
+        x509.CertificateBuilder()
+        .subject_name(ca_name)
+        .issuer_name(ca_name)
+        .public_key(ca_key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before_utc(now - timedelta(minutes=1))
+        .not_valid_after_utc(now + timedelta(days=1))
+        .add_extension(x509.BasicConstraints(ca=True, path_length=0), critical=True)
+        .sign(ca_key, hashes.SHA256())
+    )
+
+    server_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    server_name = x509.Name([x509.NameAttribute(x509.NameOID.COMMON_NAME, "localhost")])
+    server_certificate = (
+        x509.CertificateBuilder()
+        .subject_name(server_name)
+        .issuer_name(ca_certificate.subject)
+        .public_key(server_key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before_utc(now - timedelta(minutes=1))
+        .not_valid_after_utc(now + timedelta(days=1))
+        .add_extension(
+            x509.SubjectAlternativeName([
+                x509.DNSName("localhost"),
+                x509.IPAddress(ipaddress.ip_address("127.0.0.1")),
+            ]),
+            critical=False,
+        )
+        .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
+        .add_extension(
+            x509.ExtendedKeyUsage([x509.oid.ExtendedKeyUsageOID.SERVER_AUTH]),
+            critical=False,
+        )
+        .sign(ca_key, hashes.SHA256())
+    )
+
+    ca_path = tmp_path / "test-ca.pem"
+    certificate_path = tmp_path / "server-cert.pem"
+    key_path = tmp_path / "server-key.pem"
+    ca_path.write_bytes(ca_certificate.public_bytes(serialization.Encoding.PEM))
+    certificate_path.write_bytes(server_certificate.public_bytes(serialization.Encoding.PEM))
+    key_path.write_bytes(server_key.private_bytes(
+        serialization.Encoding.PEM,
+        serialization.PrivateFormat.PKCS8,
+        serialization.NoEncryption(),
+    ))
+
+    listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    listener.bind(("127.0.0.1", 0))
+    listener.listen(16)
+    listener.setblocking(False)
+    port = listener.getsockname()[1]
+
+    server = uvicorn.Server(uvicorn.Config(
+        application,
+        host="127.0.0.1",
+        port=port,
+        lifespan="off",
+        log_level="critical",
+        access_log=False,
+        ws="websockets",
+        ssl_certfile=str(certificate_path),
+        ssl_keyfile=str(key_path),
+    ))
+
+    async def exercise_real_transport() -> None:
+        server_task = asyncio.create_task(server.serve(sockets=[listener]))
+        try:
+            for _ in range(500):
+                if server.started:
+                    break
+                if server_task.done():
+                    await server_task
+                await asyncio.sleep(0.01)
+            assert server.started, "Uvicorn TLS test server did not start"
+
+            uri = f"wss://127.0.0.1:{port}/ws/market-data"
+            trusted_context = ssl.create_default_context(cafile=str(ca_path))
+            async with websockets.connect(
+                uri,
+                ssl=trusted_context,
+                origin="https://localhost",
+                open_timeout=5,
+                close_timeout=2,
+                ping_interval=None,
+            ) as websocket:
+                await websocket.send(json.dumps({
+                    "type": "auth",
+                    "token": "valid-firebase-token",
+                }))
+                status = json.loads(await asyncio.wait_for(websocket.recv(), timeout=5))
+                assert status["type"] == "market_data.status"
+
+                await websocket.send(json.dumps({
+                    "type": "market_data.subscribe",
+                    "version": 1,
+                    "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+                    "series": {
+                        "dataset": "GLBX.MDP3",
+                        "publisherId": 1,
+                        "instrumentId": 101,
+                        "rawSymbol": "ESZ6",
+                        "timeframe": "1s",
+                    },
+                }))
+                snapshot = json.loads(await asyncio.wait_for(websocket.recv(), timeout=5))
+                assert snapshot["type"] == "market_data.ohlcv.snapshot"
+                assert snapshot["count"] == 4
+
+                await websocket.send("ping")
+                pong = json.loads(await asyncio.wait_for(websocket.recv(), timeout=5))
+                assert pong == {"type": "market_data.pong", "version": 1}
+
+            # A valid TLS connection with a disallowed browser Origin must not upgrade.
+            try:
+                async with websockets.connect(
+                    uri,
+                    ssl=trusted_context,
+                    origin="https://untrusted.example",
+                    open_timeout=5,
+                    close_timeout=2,
+                    ping_interval=None,
+                ):
+                    raise AssertionError("Disallowed Origin unexpectedly upgraded to WebSocket")
+            except Exception as error:
+                response = getattr(error, "response", None)
+                status_code = getattr(response, "status_code", None)
+                status_code = status_code or getattr(error, "status_code", None)
+                assert status_code == 403, f"Expected HTTP 403 for disallowed Origin, got {error!r}"
+
+            # The same endpoint must reject a client that does not trust its test CA.
+            try:
+                async with websockets.connect(
+                    uri,
+                    ssl=ssl.create_default_context(),
+                    origin="https://localhost",
+                    open_timeout=5,
+                    close_timeout=2,
+                    ping_interval=None,
+                ):
+                    raise AssertionError("Untrusted TLS certificate unexpectedly connected")
+            except ssl.SSLCertVerificationError:
+                pass
+        finally:
+            server.should_exit = True
+            if not server_task.done():
+                await asyncio.wait_for(server_task, timeout=10)
+            else:
+                await server_task
+            listener.close()
+
+    asyncio.run(exercise_real_transport())
