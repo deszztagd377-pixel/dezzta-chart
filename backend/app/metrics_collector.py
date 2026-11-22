@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import math
+import random
 import re
 import sqlite3
 import threading
@@ -20,6 +21,7 @@ MAX_SERIES = 900
 MAX_PAYLOAD_BYTES = 256 * 1024
 MAX_ROWS = 650000
 MAX_COUNTER = (1 << 53) - 1
+BEGIN_RETRY_ATTEMPTS = 16
 WORKER_ID = re.compile(r"^[0-9a-f]{32}$")
 
 
@@ -232,15 +234,18 @@ class SQLiteMetricsCollector:
             # SQLite has one writer at a time. With up to 16 ASGI workers,
             # retry lock acquisition before transaction work so bounded
             # contention does not discard a metrics interval.
-            for attempt in range(8):
+            for attempt in range(BEGIN_RETRY_ATTEMPTS):
                 try:
                     db.execute("BEGIN IMMEDIATE")
                     break
                 except sqlite3.OperationalError as exc:
-                    if "locked" not in str(exc).lower() or attempt == 7:
+                    if "locked" not in str(exc).lower() or attempt == BEGIN_RETRY_ATTEMPTS - 1:
                         raise
                     lock_retries += 1
-                    time.sleep(min(0.01 * (2 ** attempt), 0.25))
+                    # Jitter prevents synchronized workers from repeatedly
+                    # colliding on the same SQLite writer-lock schedule.
+                    backoff = min(0.01 * (2 ** min(attempt, 4)), 0.25)
+                    time.sleep(random.uniform(backoff * 0.5, backoff))
             lock_wait_ms = (time.perf_counter_ns() - lock_wait_started_ns) / 1_000_000
             transaction_started_ns = time.perf_counter_ns()
             db.execute("DELETE FROM metrics_retired_workers WHERE expires_at < ?", (stamp,))
