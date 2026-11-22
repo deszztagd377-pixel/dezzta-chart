@@ -1,3 +1,45 @@
+# CURRENT INDICATOR LEDGER — Batch 62J-146 (22 November 2026)
+
+Repository audit baseline: `06a3c3c9e5b5ecd2ff4c8c29e0e472972c1c6e7e` on `phase-2/market-data-foundation`.
+Documentation addition: `docs/ADR_ON_DEMAND_MARKET_DATA_SUBSCRIPTIONS.md`.
+No indicator formula, calculation kernel, shared hook, renderer, chart UI or indicator test source changed in this batch. On-demand market-data architecture documentation and WebSocket authentication tests earn **zero indicator implementation credit**.
+
+## Complete indicator status
+
+| Indicator/component | Status | Verified foundation | Remaining acceptance |
+|---|---|---|---|
+| SMA20 | 🟨 Foundation | 20-close arithmetic mean; first valid index 19 | Numeric edge cases, chart integration, identity invalidation, lifecycle and performance |
+| EMA20 | 🟨 Foundation | SMA-seeded EMA; alpha 2/21; first valid index 19 | Numeric edge cases, chart integration, identity invalidation, lifecycle and performance |
+| RSI14 Wilder | 🟨 Foundation | Wilder smoothing; first valid index 14 | Flat/monotonic/zero-loss edge cases, chart integration and lifecycle |
+| MACD12/26/9 | 🟨 Foundation | MACD first valid index 25; signal/histogram first valid index 33 | Numerical edge cases, chart integration, identity invalidation and lifecycle |
+| Bollinger20,2 | 🟨 Foundation | 20-close mean ±2 population standard deviations; first valid index 19 | Variance/flat-series edge cases, chart integration and lifecycle |
+| Shared Indicator Hook | 🟨 Foundation | Backend snapshot/aligned calculation output | Full chart integration, visible settings/legend/current values and stale-output clearing |
+| Footprint | 🟧 Prototype only | Synthetic educational accumulator; not exchange-native bid/ask truth | User reference image(s), reviewed blueprint, licensed bid/ask data contract, cluster renderer and acceptance |
+| Heatmap | 🟥 Not implemented | No accepted runtime/render implementation | User reference image(s), reviewed blueprint, validated depth/liquidity data contract and renderer |
+| Liquidation Maps | 🟥 Not implemented | No accepted runtime/render implementation | Defensible data provenance/contract, reviewed design, renderer and tests |
+
+## Mathematical and data-integrity invariants
+
+1. Warm-up outputs remain null, never fabricated zero.
+2. Every output remains aligned to the originating candle index.
+3. Prefix causality: appending future candles cannot alter earlier indicator outputs.
+4. Invalid, missing or gapped bars are never silently converted to zero.
+5. Stale outputs clear on symbol, venue, dataset, chart and timeframe identity changes.
+6. Calculation, rendering, interaction, lifecycle, accessibility and performance are separate acceptance dimensions.
+7. Footprint OFF preserves ordinary candle spacing; only explicit ON activates the dedicated spaced-cluster layout.
+8. Footprint and Heatmap visual implementation remains blocked until the user supplies reference image(s) and reviews the scoped blueprint.
+9. Aggregate indicator completion remains **NOT SCORED** because weights and denominator are unapproved.
+
+## Project accounting
+
+- Stage 1: 30/40 = 75% provisional.
+- Stage 2–6: NOT SCORED / not officially opened.
+- Gate 10: 0/10 external criteria formally closed.
+- Overall project: NOT SCORED; approved six-stage weights and denominator do not exist.
+- This cycle awards zero indicator implementation credit.
+
+---
+
 # CURRENT INDICATOR LEDGER — Batch 62J-143 (22 November 2026)
 
 No indicator formula, calculation kernel, shared hook, renderer, UI or indicator-specific test changed in Batch 62J-143. Google-only authentication UI and foreground WebSocket lifecycle work earns **zero indicator implementation credit**.
