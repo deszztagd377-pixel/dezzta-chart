@@ -38,17 +38,18 @@ describe('useMarketDataSeriesSnapshot', () => {
     const container = document.createElement('div');
     const root = createRoot(container);
     roots.push(root);
-    let observed: MarketDataSnapshot | null = null;
+    const observed: MarketDataSnapshot[] = [];
 
     function Probe() {
-      observed = useMarketDataSeriesSnapshot(null);
-      return createElement('span', null, observed.status);
+      const snapshot = useMarketDataSeriesSnapshot(null);
+      observed.push(snapshot);
+      return createElement('span', null, snapshot.status);
     }
 
     act(() => root.render(createElement(Probe)));
     expect(container.textContent).toBe('demo');
-    expect(observed?.identity).toBeNull();
-    expect(observed?.bars).toHaveLength(0);
+    expect(observed.at(-1)?.identity).toBeNull();
+    expect(observed.at(-1)?.bars).toHaveLength(0);
   });
 
   it('subscribes by canonical key and rerenders only for the selected series', () => {
