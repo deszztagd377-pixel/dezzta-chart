@@ -48,8 +48,8 @@ describe('useMarketDataSeriesSnapshot', () => {
 
     act(() => root.render(createElement(Probe)));
     expect(container.textContent).toBe('demo');
-    expect(observed.at(-1)?.identity).toBeNull();
-    expect(observed.at(-1)?.bars).toHaveLength(0);
+    expect(observed[observed.length - 1]?.identity).toBeNull();
+    expect(observed[observed.length - 1]?.bars).toHaveLength(0);
   });
 
   it('subscribes by canonical key and rerenders only for the selected series', () => {
