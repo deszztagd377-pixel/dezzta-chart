@@ -96,7 +96,7 @@ export class MarketDataSeriesLeaseRegistry {
   hasOwner(identity: MarketSeriesIdentity, ownerId: string): boolean {
     validateMarketSeriesIdentity(identity);
     if (typeof ownerId !== 'string' || ownerId.trim().length === 0) return false;
-    return this.entries.get(getMarketSeriesIdentityKey(identity))?.owners.has(ownerId) ?? false;
+    return this.entries.get(getMarketSeriesIdentityKey(identity))?.owners.has(ownerId.trim()) ?? false;
   }
 
   getSeriesCount(): number {
