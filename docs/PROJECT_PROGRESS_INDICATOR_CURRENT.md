@@ -1,3 +1,67 @@
+# CURRENT PROJECT PROGRESS — Batch 62J-148 (22 November 2026)
+
+**Target date corrected by project owner: 24 December 2026.** From 22 November, 32 calendar days remain after today through 24 December. This is a delivery target, not a guaranteed completion claim.
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Starting exact HEAD:** `1d8667fc5d6810bbde88b6a596214cdedc5fc80f`  
+**Test-coverage commit:** `79d88d9aa5261dde3f2e31d1e742d45f461e43c2`  
+**Main:** untouched.
+
+## Batch 62J-148 — indicator numerical regression coverage
+
+Runtime indicator formulas were not changed. Added two deterministic regression tests to `src/indicators/indicatorCalculations.test.ts`: (1) mixed up/down closes verify Wilder RSI period-2 output exactly as `[null, null, 50, 75, 37.5]`; (2) the shared multi-indicator entry point rejects a non-finite close at source index 7. These strengthen regression coverage but do not complete chart rendering, controls, panes or lifecycle acceptance. Exact-HEAD CI for the new test commit must be checked separately.
+
+## Latest prior exact-HEAD CI — `1d8667fc5d6810bbde88b6a596214cdedc5fc80f`
+
+- Automated Tests [45016825555](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45016825555): SUCCESS. Frontend tests/build, Android preflight and preview publisher tests, backend tests, isolated Redis TLS enforcement, synthetic SQLite outbox/metrics benchmarks, backend container build/smoke and image scan passed.
+- CodeQL [45016825571](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45016825571): SUCCESS for Python and JavaScript/TypeScript.
+- Full Git History Secret Audit [45016825575](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45016825575): SUCCESS.
+- OCI ARM64 Image Readiness [45016825580](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45016825580): SUCCESS; native ARM64 build and unprivileged/persistent-volume smoke passed.
+
+OCI qualification: CI image/build/runtime smoke evidence only, not an OCI tenancy, cloud deployment, public endpoint, TLS certificate or owner-host acceptance.
+
+## Stage and Gate accounting
+
+| Stage | Verified status |
+|---|---:|
+| 1. Foundation, Security & Data Integrity | 30/40 = 75% provisional 🟨 |
+| 2. Market Data Infrastructure | Not scored / not officially opened ⬜ |
+| 3. Chart Engine & Timeframe | Not scored ⬜ |
+| 4. Indicators & Analytics | Not scored ⬜ |
+| 5. Professional UI & Interactive Tools | Not scored ⬜ |
+| 6. Hardening, Validation & APK Release | Not scored ⬜ |
+
+**Overall project: NOT SCORED.** Approved stage weights and total denominator do not exist; do not fabricate a whole-project percentage.
+
+**Gate 10: 0/10 external criteria formally closed.** Green CI does not close owner-host, public-network, Android-device or production-provider gates. Open criteria include 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39.
+
+## Full indicator dashboard
+
+| Indicator / subsystem | Status | Verified foundation | Remaining acceptance |
+|---|---|---|---|
+| SMA20 | 🟨 Foundation | 20-close arithmetic mean; first valid index 19 | Overlay, toggle, legend/latest value, identity/lifecycle/render/performance tests |
+| EMA20 | 🟨 Foundation | SMA-seeded EMA; alpha 2/21; first valid index 19 | Overlay, toggle, legend/latest value, identity/lifecycle/render/performance tests |
+| RSI14 Wilder | 🟨 Foundation | Wilder smoothing; first valid index 14; mixed gain/loss recurrence test added | 0–100 pane, 30/70 guides, toggle/legend/latest value, identity/lifecycle/render tests |
+| MACD12/26/9 | 🟨 Foundation | MACD first valid index 25; signal/histogram first valid index 33 | Pane, lines, histogram, zero guide, toggle/legend and lifecycle/render tests |
+| Bollinger20,2 | 🟨 Foundation | 20-close mean ±2 population SD; first valid index 19 | Three-line overlay, toggle/values, identity/lifecycle/render/performance tests |
+| Shared Indicator Hook | 🟨 Foundation | Exact validated backend snapshot; null for demo/loading/unavailable/error | Hook tests, chart binding, stale clearing, render and identity lifecycle acceptance |
+| Footprint | 🟧 Prototype only | Synthetic educational accumulator; not exchange-native bid/ask truth | User reference image(s), reviewed blueprint, valid bid/ask source contract, cluster renderer and acceptance |
+| Heatmap | 🟥 Not implemented | No accepted runtime/render implementation | User reference image(s), validated order-book/depth/liquidity contract, blueprint, renderer and tests |
+| Liquidation Maps | 🟥 Not implemented | No accepted runtime/render implementation | Defensible data provenance/calculation contract, blueprint, renderer and tests |
+
+Indicator invariants: warm-up nulls; candle-index alignment; prefix causality/no future repaint; reject invalid/gapped data; clear stale output on identity changes. Footprint OFF keeps standard candle spacing; explicit ON alone enables spaced clusters. Footprint/Heatmap visuals remain gated on user references and reviewed blueprint. Aggregate indicator percentage remains NOT SCORED because study weights/denominator are not approved.
+
+## Stage 2 — mandatory On-demand Market Subscription
+
+Still OPEN and not implemented end-to-end. Frontend supervisor is singleton-owned; backend provider ingestion is process/configuration scoped; downstream WebSocket fan-out does not prove upstream demand pooling. Databento's fixed-symbol adapter is not a verified dynamic demand API and is not an approved recurring-$0 live source for the target CME futures feed. Do not add a disconnected reference counter.
+
+Required: approve recurring-$0 compatible feed and rights; verify provider API/version semantics; implement idempotent per-series ownership/reference counts; connect chart open/switch/close/background; prove two-user isolation and shared upstream lifecycle; preserve unsupported series as unavailable rather than substituting unlicensed data.
+
+## ZERO COST and release boundary
+
+No paid provider, account, credential, cloud resource, deployment, payment method, device/Termux operation or main-branch modification was introduced. OCI CI readiness is not cloud installation. A fully featured production platform cannot be guaranteed by 24 December while recurring-$0 data, external hosting and device acceptance remain unresolved.
+
+---
 # CURRENT PROJECT PROGRESS — Batch 62J-147 (22 November 2026)
 
 **Active branch:** `phase-2/market-data-foundation`  
