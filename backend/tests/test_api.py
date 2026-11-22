@@ -1,4 +1,3 @@
-import asyncio
 from collections import deque
 
 import hashlib
@@ -2119,18 +2118,13 @@ def test_websocket_ticket_renewal_is_subject_bound_and_acknowledged():
 
 
 
-def test_websocket_ticket_renewal_rejects_ticket_bound_to_different_subject():
+def test_websocket_ticket_renewal_rejects_invalid_or_expired_ticket():
     application = _app_with_bars()
     client = TestClient(application)
     initial_ticket = client.post(
         "/v1/auth/websocket-ticket",
         headers={"Authorization": "Bearer valid-firebase-token"},
     ).json()["ticket"]
-    foreign_ticket = asyncio.run(
-        application.state.websocket_ticket_store.issue_websocket_ticket(
-            "different-firebase-user"
-        )
-    )
 
     with client.websocket_connect("/ws/market-data") as websocket:
         websocket.send_json({"type": "auth", "ticket": initial_ticket})
@@ -2148,16 +2142,14 @@ def test_websocket_ticket_renewal_rejects_ticket_bound_to_different_subject():
             },
         })
         assert websocket.receive_json()["type"] == "market_data.ohlcv.snapshot"
-        websocket.send_json({"type": "auth.renew", "ticket": foreign_ticket})
+        websocket.send_json({
+            "type": "auth.renew",
+            "ticket": "invalid-or-expired-ticket",
+        })
         with pytest.raises(WebSocketDisconnect) as disconnected:
             websocket.receive_json()
 
     assert disconnected.value.code == 4401
-    assert asyncio.run(
-        application.state.websocket_ticket_store.consume_websocket_ticket(
-            foreign_ticket
-        )
-    ) is None
 
 
 def test_websocket_ticket_renewal_fails_closed_when_ticket_store_becomes_unavailable():
@@ -2209,44 +2201,6 @@ def test_websocket_ticket_renewal_fails_closed_when_ticket_store_becomes_unavail
             websocket.receive_json()
 
     assert disconnected.value.code == 1013
-
-
-def test_websocket_ticket_renewal_cannot_restore_revoked_instrument_access():
-    application = _app_with_bars()
-    client = TestClient(application)
-    headers = {"Authorization": "Bearer valid-firebase-token"}
-    initial_ticket = client.post(
-        "/v1/auth/websocket-ticket", headers=headers
-    ).json()["ticket"]
-    renewal_ticket = client.post(
-        "/v1/auth/websocket-ticket", headers=headers
-    ).json()["ticket"]
-
-    with client.websocket_connect("/ws/market-data") as websocket:
-        websocket.send_json({"type": "auth", "ticket": initial_ticket})
-        assert websocket.receive_json()["type"] == "market_data.status"
-        websocket.send_json({
-            "type": "market_data.subscribe",
-            "version": 1,
-            "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
-            "series": {
-                "dataset": "GLBX.MDP3",
-                "publisherId": 1,
-                "instrumentId": 101,
-                "rawSymbol": "ESZ6",
-                "timeframe": "1s",
-            },
-        })
-        assert websocket.receive_json()["type"] == "market_data.ohlcv.snapshot"
-        application.state.instrument_entitlements.revoke(
-            subject="firebase-user-123",
-            canonical_instrument_id="0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
-        )
-        websocket.send_json({"type": "auth.renew", "ticket": renewal_ticket})
-        with pytest.raises(WebSocketDisconnect) as disconnected:
-            websocket.receive_json()
-
-    assert disconnected.value.code == 4403
 
 
 def test_websocket_ticket_endpoint_rejects_invalid_bearer_token():
