@@ -1,3 +1,39 @@
+# CURRENT INDICATOR LEDGER — Batch 62J-143 (22 November 2026)
+
+No indicator formula, calculation kernel, shared hook, renderer, UI or indicator-specific test changed in Batch 62J-143. Google-only authentication UI and foreground WebSocket lifecycle work earns **zero indicator implementation credit**.
+
+| Indicator/component | Status | Verified foundation and remaining work |
+|---|---|---|
+| SMA20 | 🟨 Foundation | 20-close arithmetic mean; first valid index 19; numeric edge cases, chart integration, lifecycle and performance remain |
+| EMA20 | 🟨 Foundation | SMA-seeded EMA, alpha 2/21; first valid index 19; numeric edge cases, chart integration, lifecycle and performance remain |
+| RSI14 Wilder | 🟨 Foundation | Wilder smoothing; first valid index 14; flat/monotonic/zero-loss cases and chart integration remain |
+| MACD12/26/9 | 🟨 Foundation | MACD first valid index 25; signal/histogram first valid index 33; edge cases and chart integration remain |
+| Bollinger20,2 | 🟨 Foundation | 20-close mean ±2 population SD; first valid index 19; variance edge cases and chart integration remain |
+| Shared Indicator Hook | 🟨 Foundation | Backend snapshot/aligned calculation output; full chart integration and identity invalidation remain |
+| Footprint | 🟧 Prototype only | Synthetic educational accumulator, not exchange-native bid/ask truth; reference image(s) and reviewed blueprint required before visuals |
+| Heatmap | 🟥 Not implemented | Reference image(s), validated data contract and reviewed blueprint required before visuals |
+| Liquidation Maps | 🟥 Not implemented | No accepted implementation; data provenance, data contract and renderer remain |
+
+## Shared technical acceptance invariants
+
+1. Warm-up values remain null, never zero.
+2. Every output remains aligned to the originating candle index.
+3. Prefix causality: appending future candles cannot alter prior outputs.
+4. Invalid, missing or gapped bars are never silently converted to zero.
+5. Stale outputs clear on symbol, venue, dataset, chart and timeframe identity changes.
+6. Calculation, rendering, interaction, lifecycle and performance are separate acceptance dimensions.
+7. Footprint OFF preserves standard candle spacing; only explicit ON activates the dedicated spaced-cluster layout.
+8. Footprint and Heatmap visual implementation is blocked until user reference image(s) are supplied and the scoped blueprint is reviewed.
+9. Aggregate indicator completion remains **NOT SCORED** because weights and denominator are unapproved.
+
+## Project and acceptance context
+
+Stage 1 = 30/40 = 75% provisional. Stages 2–6 are NOT SCORED/not officially opened. Gate 10 = 0/10 external criteria formally closed. Overall project = NOT SCORED. Batch 62J-143 did not change indicator implementation. Exact-HEAD CI is pending on source HEAD `bd83d40bdf58262922462d67cde3da6c1f4a4387`; IPS35 remains pending.
+
+Full cycle: [WORK_CYCLE_2026-11-22_BATCH62J143_GOOGLE_ONLY_FOREGROUND_WEBSOCKET.md](WORK_CYCLE_2026-11-22_BATCH62J143_GOOGLE_ONLY_FOREGROUND_WEBSOCKET.md).
+
+---
+
 # CURRENT INDICATOR LEDGER — Batch 62J-142 (22 November 2026)
 
 This snapshot supersedes earlier dated summaries below.
