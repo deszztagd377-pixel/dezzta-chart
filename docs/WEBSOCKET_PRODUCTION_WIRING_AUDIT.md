@@ -1,4 +1,4 @@
-# WebSocket production wiring audit — Batch 62J-122
+# WebSocket production wiring audit — Batch 62J-123
 
 ## Batch 62J-122 — exact-head WebSocket CI, artifact and runtime-boundary audit (22 November 2026)
 
@@ -32,6 +32,506 @@ Compare from indicator implementation baseline 0074f1d0b0e421f32800294742f92d9bc
 Documentation-only update. No deployment, host, resource, provider, paid service, account or credential was created or used. No main-branch changes, no device/Termux work, and no runtime or test files modified. ZERO COST maintained.
 
 **Next safe sequence:** finish exact-head evidence review; design a zero-cost ARM64 build/smoke verification separately from amd64; retain the SQLite concurrency warning; and keep production gates open until owner-controlled evidence exists.
+---
+## Batch 62J-121 — exact-head WebSocket CI completion and indicator reconciliation (22 November 2026)
+
+**Verified branch:** `phase-2/market-data-foundation`  
+**Exact tested HEAD before this documentation update:** `524e78ff032f759d4475f3d396a58aa60f17b40b`  
+**Exact-head CI:** Automated Tests [run 44983903576](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44983903576) — **SUCCESS** (Test and Build job and all reported steps completed successfully); CodeQL [run 44983903708](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44983903708) — **SUCCESS**; Full Git History Secret Audit [run 44983903634](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44983903634) — **SUCCESS**.
+
+The Automated Tests job completed frontend dependency audit, frontend unit tests and build, production bundle secret scans, Android preview-host preflight, backend dependency audit and tests, isolated Redis TLS CA/hostname enforcement fixture, synthetic SQLite outbox and metrics collector benchmarks, backend container build, container smoke with shared Redis guard and persistent CI volume, Trivy scan/report export and upload, and final dependency-audit enforcement. Artifacts produced by this exact run: synthetic outbox benchmark [14739336684](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44983903576/artifacts/14739336684), synthetic metrics collector benchmark [14738972814](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44983903576/artifacts/14738972814), and container vulnerability report [14738408566](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44983903576/artifacts/14738408566). The report was generated and uploaded; this note does not claim a zero-vulnerability result because the current artifact contents were not independently inspected in this batch.
+
+**WebSocket source/test review:** the source-side publisher, per-gateway Redis Stream consumer, durable replica apply-before-ACK flow, snapshot/replay recovery and scoped single-use ticket/client transport remain present at the audited source baseline. The consumer design uses independent groups per gateway, pending-message reclaim, idempotent replica application and explicit resnapshot on stream-history gaps. The client rejects production non-HTTPS base URLs, uses WSS, exchanges Firebase credentials over HTTPS for a short-lived ticket, and validates snapshot watermarks and stream sequence. These are repository implementation facts; CI confirms covered automated paths, not production service behavior.
+
+**Production acceptance remains OPEN:** no verified public HTTPS/WSS hostname/certificate/reverse-proxy route; no real Firebase project token, revocation and entitlement evidence; no owner-host Redis TLS/ACL/rotation/persistence/failover evidence; no independently verified global snapshot digest and per-gateway installation receipts; and no real browser plus Android WebView lifecycle evidence. CI Redis and ephemeral runner volumes do not satisfy owner-host acceptance. Gate 10 remains **0/10 formally closed**. Stage 1 remains **30/40 = 75% provisional**. No stage transition is authorized.
+
+**Indicator exact-head reconciliation:** GitHub compare from indicator implementation baseline `0074f1d0b0e421f32800294742f92d9bc9c8a2c6` to `524e78ff032f759d4475f3d396a58aa60f17b40b` reports six commits and only documentation paths changed (13 documentation files; no indicator implementation, calculation, hook, renderer, chart UI or indicator-test source). Therefore this CI/documentation batch awards **zero indicator progress**. Current statuses remain: SMA20, EMA20, Wilder RSI14, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook — 🟨 foundation; Footprint — 🟧 simulated/reference-gated; Heatmap and Liquidation Maps — 🟥 not implemented. Keep the formula/warm-up definitions, candle identity and alignment rules, stale-series clearing, renderer/UI acceptance, and Footprint OFF standard-candle-spacing invariant unchanged. Footprint and Heatmap visual work remains blocked until user-provided reference images and a reviewed blueprint exist. No aggregate indicator percentage is assigned without an approved denominator and weights.
+
+**ZERO COST and scope:** documentation-only reconciliation. No runtime source, tests, workflows, formulas, renderer, UI or deployment configuration changed. No host, account, resource, endpoint or paid service was created; no credentials were requested; no device/Termux work occurred; `main` was not touched. No trial-credit or paid-service dependency is introduced.
+
+**Next sequence:** (1) preserve the green exact-head CI; (2) keep Gate 8/20/25/30/31/34/35/36/38/39 open until the listed owner-host/operator evidence is supplied; (3) pursue only zero-cost, non-provisioning checks until adult account-owner review and explicit authorization exist; (4) continue indicator implementation only within its existing approved scope and reference gates. Do not count CI, documentation or synthetic benchmarks as production acceptance.
+
+---
+
+## Batch 62J-120 — exact-head CI and artifact inspection (22 November 2026)
+
+**Tested HEAD:** `c6cd331c5f9293093418bda31f93960f5aed1600`. Automated Tests #1954, CodeQL and Full Git History Secret Audit all completed SUCCESS. The Trivy JSON artifact was inspected: zero reported vulnerabilities in the scanned Alpine OS and Python package groups for the `linux/amd64` CI image. Synthetic outbox replay passed; the 899-series metrics collector benchmark exposed increasing SQLite writer-lock retries under higher concurrency. These are CI-only measurements, not production SLOs. ARM64 remains unverified; public WSS, production Redis/Firebase and browser/Android E2E remain open. No indicator source or test changed; indicator statuses and Stage 1 accounting remain unchanged. Full evidence and limitations: [Batch 62J-120](WORK_CYCLE_2026-11-22_BATCH62J120_EXACT_HEAD_CI_ARTIFACT_AND_ACCEPTANCE_AUDIT.md).
+
+## Batch 62J-119 — WebSocket acceptance and indicator ledger exact-head reconciliation (22 November 2026)
+
+**Verified parent HEAD:** `6d5a05d611615972d5826002442a65e74c179750` on `phase-2/market-data-foundation`. This checkpoint was created only after all three workflows for that exact SHA completed successfully.
+
+**Exact-head CI:**
+- Automated Tests #1954 — [run 44982930281](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44982930281): **SUCCESS**. Frontend unit tests/build, backend tests, isolated Redis TLS/CA/hostname enforcement fixture, synthetic SQLite outbox and metrics benchmarks, backend container build, container smoke test using shared Redis guard and persistent volume, Trivy image scan/report export/upload, and dependency-audit enforcement all completed successfully.
+- CodeQL [run 44982930379](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44982930379): **SUCCESS**.
+- Full Git History Secret Audit [run 44982930324](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44982930324): **SUCCESS**.
+- Trivy report artifact: [container-vulnerability-reports](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44982930281/artifacts/14739265202). The workflow completed the configured HIGH/CRITICAL scan and uploaded the JSON report. Do not infer a zero-vulnerability result without reviewing the artifact contents.
+
+These results verify the repository workflow and its CI service topology only. The CI Redis instance, ephemeral runner volume, and container smoke are not the intended OCI host or production Redis service.
+
+**WebSocket repository evidence:** source-side publisher and gateway runtime factories, durable SQLite outbox, atomic snapshot/watermark primitives, Redis Streams publisher/consumer, per-gateway consumer groups, replica snapshot installation checks, fail-closed runtime construction, ticket authentication/renewal, reconnect/replay and client failure-matrix tests are present in the audited source. The latest CI validates the covered repository paths. The default FastAPI app intentionally does not invent owner-specific publisher/replica factories or trust snapshot receipts; those must be injected from a verified owner-controlled host setup.
+
+**Production acceptance remains OPEN:** no verified public HTTPS/WSS endpoint, production Firebase token/entitlement evidence, owner-host Redis TLS/ACL/persistence/rotation/failover, authenticated global snapshot manifest and per-gateway installation receipts, or real browser + Android WebView lifecycle evidence has been supplied. A successful CI container smoke cannot close those host/client gates.
+
+**ZERO COST boundary:** no OCI account or resource was created, no deployment or public endpoint was started, no paid resource or trial-credit dependency was introduced, no credentials were requested, no device/Termux operation occurred, and `main` was not touched. OCI remains a conditional candidate subject to actual Always Free eligibility and adult account-owner approval.
+
+**Indicator disposition — no source change and no progress credit:** the source-backed indicator audit baseline `0074f1d0b0e421f32800294742f92d9bc9c8a2c6` remains the calculation baseline. The comparison through parent HEAD `6d5a05d611615972d5826002442a65e74c179750` is documentation-only; no indicator formula, hook, chart renderer, UI, or indicator test source changed. SMA20, EMA20, Wilder RSI14, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain 🟨 foundation; Footprint remains 🟧 synthetic/reference-gated; Heatmap and Liquidation Maps remain 🟥 not implemented. Formula definitions, warm-up indices, numerical safeguards, data identity, stale-series invariants, UI acceptance and reference prerequisites remain in the canonical audit and ledger. Aggregate indicator percentage remains unscored without approved weights and denominator.
+
+**Project accounting:** Gate 10 remains **0/10 formally closed**. Stage 1 remains **30/40 = 75% provisional**. No stage transition or Stage 2 entry is authorized by this CI or documentation-only checkpoint. No progress is awarded from CI alone.
+
+**Next zero-cost sequence:** preserve the green exact-head CI; finish ARM64 build/configuration readiness without provisioning; have the adult account owner verify OCI eligibility, capacity and all possible charges; only then, with explicit authorization, consider an Always Free-only host. Collect actual host and client evidence for Gates 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. Close Gate 10 only after evidence review and operator sign-off.
+
+---
+
+## Batch 62J-117 — exact-head CI verification (22 November 2026)
+
+At exact branch HEAD e76b6cd6c8f7380e5a10a7d4707028fa7da78a02, Automated Tests [run #1952](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981803844), CodeQL [44981803808](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981803808), and Full Git History Secret Audit [44981803851](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981803851) all completed **SUCCESS**. The Automated Tests workflow reports all 61 steps successful, including frontend/backend tests, backend container build, isolated Redis TLS/CA/hostname fixture, persistent-volume Redis restart smoke, container scan/report and dependency audits. This verifies repository CI only; it does not close external production gates.
+
+The repository-side client matrix remains 17 WebSocket transport tests, 7 HTTPS ticket-exchange tests and 21 stream-supervisor tests. Real Firebase token/entitlement cases (Gate 20), owner-host Redis TLS/ACL/persistence/recovery and snapshot installation receipts (Gate 25), and public HTTPS/WSS reverse-proxy plus real browser/Android WebView lifecycle tests (Gate 36) remain open. No public host or endpoint is verified. Keep ZERO COST; no OCI provisioning, deployment, production credentials or main-branch changes.
+
+The indicator audit is unchanged because the comparison from its source/test baseline to this HEAD contains documentation-only changes. No indicator credit is awarded by this WebSocket CI pass. See the indicator audit and Batch 62J-117 reconciliation.
+
+---
+
+## Batch 62J-116 — current WebSocket acceptance evidence (22 November 2026)
+
+At baseline `a3febdb3f7d3dd233f1cfeb8e482e986e56348e1`, exact-head CI is green: Automated Tests [44981340874](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981340874), CodeQL [44981340863](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981340863), and Full Git History Secret Audit [44981341220](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981341220). Frontend 29 test files passed; backend 1,294 passed and 1 skipped; all 36 automated workflow steps completed, including container and CI Redis persistence smoke.
+
+The client suite includes 17 transport tests, 7 ticket-exchange tests, and 21 supervisor/reconnect tests. These prove the covered repository scenarios only. They do not prove public WSS, real Firebase project, owner-host Redis, global snapshot receipts, or browser/Android WebView acceptance. The current external evidence checklist is in [Batch 62J-116](WORK_CYCLE_2026-11-22_BATCH62J116_WEBSOCKET_ACCEPTANCE_RECONCILIATION.md).
+
+---
+
+## Batch 62J-94–96 — WebSocket data path unchanged (21 November 2026)
+
+Gate 38 SQLite tail-latency instrumentation, benchmark analysis and the rejected/reverted retry-jitter experiment did not modify WebSocket transport, authentication, ticket exchange, snapshot/replay, cursor ordering, publisher/replica lifecycle, Redis ACL behavior or market-data payloads.
+
+Exact source/test HEAD `2eb3181b21b7f2aa3a53c8c293ab6d27ec959b75` passed Automated Tests [44913778296](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44913778296), CodeQL [44913778266](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44913778266) and Full Git History Secret Audit [44913778270](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44913778270).
+
+WebSocket repository-side automated failure-matrix scope remains previously implemented and CI-verified. Production acceptance remains open pending verified global snapshot bytes and authenticated installation receipts for every required gateway; owner-host Redis TLS/ACL credentials, secret rotation, persistence/failover/retention; public HTTPS/WSS proxy and certificate renewal; and real browser plus Android WebView acceptance. No public production endpoint or production Redis host is available in this checkpoint.
+
+---
+
+## Batch 62J-87 — Gate 38 writer-lock correction; WebSocket unchanged (21 November 2026)
+
+The 16-worker SQLite benchmark exposed lock contention at `BEGIN IMMEDIATE`. Gate 38 now retries bounded writer-lock acquisition and records retry counts. No WebSocket transport, authentication, snapshot/replay, cursor, gateway or Redis code changed. Production WSS acceptance remains pending real owner-host and client evidence.
+
+---
+
+## Batch 62J-86 — telemetry bootstrap contention fix; WebSocket data path unchanged (21 November 2026)
+
+The Gate 38 benchmark exposed SQLite schema-initialization contention while separate collector instances opened the same local database. The collector now serializes schema initialization within each instance and retries bounded SQLite lock failures; the benchmark models separate collector instances per worker. The new exact-head CI is pending.
+
+No WebSocket publisher, gateway consumer, auth, replay, snapshot, cursor or market-data payload code changed. The WebSocket repository-side automated failure matrix remains previously verified for its defined scope; production acceptance still requires owner-host snapshot/Redis/TLS/proxy/browser/Android evidence.
+
+---
+
+## Batch 62J-85 — Gate 38 benchmark expansion; WebSocket scope unchanged (21 November 2026)
+
+The latest Gate 38 work expands the synthetic SQLite metrics benchmark from 12 to the full 899 declared logical series and adds a transaction write-rejection rollback/retry test. It does not modify WebSocket publisher, gateway consumer, replay, snapshot, authentication, cursor or payload code. Exact-head CI is pending; no pass is claimed yet.
+
+**WebSocket repository status:** the defined automated protocol/failure matrix remains implemented and previously CI-verified. **Production acceptance remains open** until the exact global snapshot bytes are SHA-256 verified and authenticated installation receipts are confirmed for every required gateway; owner-host dedicated Redis TLS/ACL, persistence/failover/retention and secret lifecycle are verified; public HTTPS/WSS proxy/certificate/renewal are operational; and real browser plus Android WebView acceptance is recorded. The default ASGI app remains opt-in for publisher/replica roles. No production host or endpoint is present in this checkpoint.
+
+---
+
+## Batch 62J-84 — Gate 38 SQLite failure-path and worker-load evidence (21 November 2026)
+
+- Exact source/test HEAD `92119a8dc05690e6492aab160662c9e36c839cad`: Automated Tests [44900892637](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44900892637) SUCCESS (35/35 steps; 1,265 backend tests), CodeQL [44900892567](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44900892567) SUCCESS, Full Git History Secret Audit [44900892606](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44900892606) SUCCESS.
+- Added tests for concurrent collector workers, busy-lock rollback/recovery and corrupt-database rejection. Added a local-only synthetic benchmark for 1/4/16 Python worker threads; CI artifact records latency and database/WAL/SHM size.
+- Initial low-cardinality benchmark used 12 logical series. At 16 workers/512 flushes, p99 was 78.978ms, retry count zero and peak total DB+WAL+SHM was 4,284,304 bytes. This is not full 899-series capacity evidence or an owner-host byte budget.
+- No WebSocket protocol, auth, replay, snapshot, market-data payload or Redis guard behavior changed. No public WSS or production acceptance is claimed.
+- Gate 38 remains 🟧 OPEN pending full-cardinality/process-level benchmark, disk-full/read-only/app-isolation tests and owner-host acceptance. Gate 10 remains 0/10 formally closed.
+- Indicator implementation is unchanged; no indicator progress credit is awarded. ZERO COST; no deploy, production credentials, Termux/device operation or `main` modification.
+
+---
+
+## Batch 62J-83 — Gate 38 telemetry hardening (21 November 2026)
+
+- Pre-change exact HEAD `b1e21f552182a720400cd9a2d276705834a41358`: Automated Tests 44898947136 SUCCESS (33/33 steps); CodeQL 44898947150 SUCCESS; Full Git History Secret Audit 44898947186 SUCCESS.
+- Collector hardening adds bounded stale-worker checkpoint eviction, seven-day retired-worker tombstones (4096 maximum) to reject a resumed evicted worker ID, seven-day read-side bucket filtering, explicit aggregate-row eviction counters, and worker timestamp monotonicity checks.
+- Added regression coverage for worker-generation saturation, tombstone rejection, 16-worker live limit, retention filtering, and timestamp regression. Exact-head CI for source commit `e98bf7acda841ae4045d258b6d3b2fe774205239` passed: Automated Tests 44899788672, CodeQL 44899788812 and Full Git History Secret Audit 44899788701. Host acceptance remains open.
+- WebSocket lifecycle accounting and transport semantics remain unchanged. The metrics collector is best-effort same-host telemetry only; production WSS remains unaccepted pending actual host/proxy/Redis/browser/Android evidence.
+- No deployment, paid provider, Termux, production credential or `main` operation.
+
+---
+
+
+
+## Batch 62J-82 — exact-head CI and capacity-model correction (21 November 2026)
+
+- Exact HEAD `c3577d7174ce5873502ebd8df7a57f27447a296b`: Automated Tests 44897164887 SUCCESS; CodeQL 44897164916 SUCCESS; Full Git History Secret Audit 44897164908 SUCCESS.
+- Automated Tests completed backend container build, Redis persistent-volume smoke, Trivy scan and vulnerability report export/upload, in addition to frontend/backend tests, SQLite outbox benchmark and dependency audits.
+- Gate 38 blueprint now explicitly states the nominal crash-loss window of up to one 15-second flush interval plus scheduler delay. Transactional checkpoints prevent replay of committed deltas but cannot recover unflushed in-memory increments. This is telemetry, not financial accounting.
+- Series capacity is bounded from source contracts: 127 method/route pairs × 6 status classes = 762 request series; 127 latency series; conservative total planning ceiling 900 series per 15-minute bucket. 672 buckets represent seven days. Aggregate planning bound 604,800 rows; 16 workers × 900 checkpoints = 14,400; plus 16 heartbeats. Initial logical-row ceiling: 650,000. SQLite byte cap remains benchmark-derived.
+- The 1,500x operation estimate is explicitly a comparison with hypothetical per-request persistence, not a measured improvement over current in-memory counters.
+- No runtime source changed. Gate 38 remains 🟧 OPEN pending explicit blueprint approval, implementation, exact-head CI, measured byte budget and owner-host/operator acceptance.
+- WebSocket send-confirmed lifecycle accounting remains unchanged and CI-verified. Production WSS acceptance still requires host-side snapshot/Redis/TLS/proxy/browser/Android evidence.
+- ZERO COST; no deployment, production credentials, Redis ACL change, Termux, main modification or paid provider.
+
+---
+## Batch 62J-81 — Gate 38 zero-cost collector design (21 November 2026)
+
+- Exact-head baseline 3eadda21f795abe5af195eedf0c81727d31f6436 rechecked: Automated Tests run 44895224507 SUCCESS; CodeQL run 44895224465 SUCCESS for JS/TS and Python; full Git-history secret audit run 44895224498 SUCCESS.
+- Current source still has bounded process-local request and WebSocket metrics. The protected endpoint remains token-gated; the WebSocket middleware records lifecycle metadata only.
+- The existing Redis client is coupled to shared security guards. It is not reused for telemetry because doing so couples monitoring availability to auth/rate-limit operations and could exceed its ACL scope.
+- The existing SQLite incident journal is not a time-series collector. The market-data registry database is not used for high-frequency metrics writes.
+- Added GATE38_METRICS_COLLECTOR_BLUEPRINT.md: same-host multi-worker aggregation using a dedicated SQLite metrics DB on a supported local persistent volume; 15-second snapshots; transactional deltas; 15-minute buckets; 90-second worker-heartbeat expiry; 7-day bounded retention; hard worker/cardinality/payload/row/disk limits.
+- Load estimate at 100 requests/s: 8,640,000 request-level write opportunities/day/worker versus 5,760 periodic flushes/day/worker, a 1,500x operation-count reduction. This is an estimate, not a benchmark.
+- This is a documentation/design checkpoint only. Source implementation requires explicit blueprint review under the project's major-implementation rule.
+- Gate 38 remains 🟧 OPEN pending implementation, tests, exact-head CI, host volume/access/retention/disk-pressure evidence and independent operator notification/recovery acceptance.
+- No indicator code changed and no indicator progress is awarded. Complete formulas, warm-up indices, remaining renderer work, and Footprint/Heatmap visual gates remain in INDICATOR_PROGRESS_LEDGER.md.
+- ZERO COST; no deployment, production credentials, Redis ACL change, main modification, Termux or device operation.
+
+---
+
+## Batch 62J-80 — send-confirmed WebSocket lifecycle metrics
+
+**Reviewed branch:** phase-2/market-data-foundation  
+**Change scope:** backend/app/observability.py and backend/tests/test_observability.py
+
+The observer now updates accepted-handshake and close-code metrics only after the downstream ASGI send call returns successfully. A failed send no longer produces false-positive acceptance/close telemetry. The middleware finally block still finalizes the connection, decrements the active count and records completion even when the application/transport raises.
+
+Regression cases cover failure at the accept frame and failure at the close frame after a successful accept. These cases assert active=0 and completed=1, with accepted and close-class counters reflecting only successful downstream sends.
+
+No WebSocket payload/protocol/auth/replay/snapshot behavior changed. Gate 38 remains 🟧 OPEN: metrics are process-local, not centrally aggregated or durably retained. The production acceptance boundary described below remains unchanged.
+
+---
+
+# WebSocket Production Wiring Audit
+
+**Audit date:** 21 November 2026  
+**Active branch:** `phase-2/market-data-foundation`  
+**Source checkpoint reviewed:** `da9b2ad025ac5c49f75c95dbdd5f516573107f87`  
+**Scope:** source SQLite outbox -> Redis Streams -> gateway replica -> authenticated WebSocket
+
+## Executive result
+
+The initial audit found that the repository contained substantial publisher and consumer primitives but lacked a source publisher lifecycle hook. Batch 62J-69 has since implemented that lifecycle hook and exact runtime-binding checks. The production data path is still not activated by the module-level default ASGI app and is not host-accepted; do not deploy this checkpoint as proof of live fan-out.
+
+The initial audit found two independent integration gaps:
+
+1. **Initial finding — source publisher lifecycle absent (superseded by Batch 62J-69).** `backend/app/ohlcv_redis_publisher.py` implements `SQLiteOhlcvPublisherCheckpoint`, `RedisOhlcvStreamAppender`, and `RedisOhlcvPublisher.publish_available()`. The publisher class explicitly documents that it is not connected to FastAPI startup. `backend/app/main.py` imports the gateway consumer worker but not the source publisher. Its `publish_persisted_bar()` reads the durable outbox event and calls only `stream_hub.publish()`; it does not append that event to Redis Streams.
+2. **Gateway runtime remains injection-only.** `create_app()` accepts an optional `replica_runtime_factory`; the module-level `app = create_app()` supplies none. Therefore the default ASGI entry point starts the provider/local-SQLite path, not the replica consumer path. A gateway host needs an explicit, verified factory and a preinstalled replica snapshot.
+
+These gaps are separate: wiring the source publisher does not automatically provision gateway snapshots or activate the replica runtime.
+
+## Existing verified components
+
+- Durable source OHLCV outbox with contiguous global cursors.
+- SQLite publisher checkpoint with lease owner/epoch fencing and compare-and-swap cursor advancement.
+- Redis appender with deterministic stream IDs (`<cursor>-0`) and exact-ID read-back after ambiguous XADD replies.
+- Bounded publisher batches and explicit fresh-snapshot requirement when source outbox retention overtakes the publisher cursor.
+- Atomic global snapshot export/verification and replica snapshot installation.
+- Independent per-gateway Redis consumer groups, apply-before-ACK, durable local SQLite replica checkpoint, replay, ownership lease and resnapshot-required handling.
+- Replica hydration and atomic snapshot-to-live subscription bridge.
+- FastAPI gateway worker startup validates snapshot hydration, ownership lease and Redis consumer-group readiness before accepting traffic.
+
+## Required implementation sequence
+
+### WS-PUB — remaining host-side activation
+
+The FastAPI lifecycle hook is implemented and CI-verified. Remaining activation requirements are owner-host tasks:
+
+- Inject a source-only `publisher_runtime_factory`; the default module-level app deliberately remains disabled.
+- Build the publisher against the exact `SQLiteOhlcvStore` instance supplied by FastAPI. Runtime startup rejects a different store, checkpoint, source ID, Redis client or stream key.
+- Require a pre-existing checkpoint or initialize it only from the exact global snapshot watermark already installed on every target gateway. Never infer or invent the cursor.
+- Use a dedicated least-privilege publisher ACL client and finite connect/socket timeouts; production must use `rediss://`.
+- Verify the owner-host durable volume, Redis ACL and snapshot generation before enabling the feature.
+- The sanitized lifecycle state is held in application state; it is not a public status route and does not expose credentials or exception messages.
+
+### WS-SNAP — snapshot generation coordination
+
+Do not initialize the publisher checkpoint from an arbitrary current cursor. The checkpoint watermark must match the exact global snapshot generation installed on every target gateway. Snapshot export, integrity verification, distribution, installation, generation activation, publisher checkpoint initialization/rebase and rollback need an explicit ordered operator workflow.
+
+### WS-GW — gateway runtime configuration
+
+Provide a host-injected gateway runtime factory that:
+- Opens a dedicated least-privilege Redis client.
+- Opens the persistent local replica SQLite path.
+- Requires a verified snapshot before constructing the consumer.
+- Uses the generation-scoped group and owner lease.
+- Closes resources safely on every startup-failure and shutdown path.
+
+Keep source publisher and gateway consumer as separate application roles unless a reviewed architecture explicitly proves a combined role safe.
+
+## Acceptance matrix
+
+| Test | Required evidence |
+|---|---|
+| Publisher bootstrap | Missing checkpoint fails closed; valid snapshot checkpoint starts |
+| Event relay | Source outbox cursor N becomes exactly Redis Stream ID N-0 |
+| Ambiguous XADD | Lost reply is resolved by exact-ID read-back without double append |
+| Redis outage | Source commit remains durable; publisher retries without advancing cursor |
+| Retention gap | Publisher enters resnapshot-required; no cursor is skipped |
+| Wake-up and backlog | New bars wake relay; process restart drains retained backlog |
+| Shutdown | Publisher task stops and dedicated Redis client closes |
+| Snapshot alignment | Publisher cursor equals the installed gateway snapshot watermark |
+| Two gateways | Both independent replica groups receive the same ordered source events |
+| Replay continuity | Restart/reconnect resumes from durable cursors without gaps or duplicate client delivery |
+| Host acceptance | Real TLS/ACL, persistent volumes, public WSS, browser and Android WebView verified |
+
+## Safety and cost constraints
+
+- No Vercel or Cloudflare deployment is required for repository-side implementation or CI.
+- No paid Redis service is assumed. Use only an already available, owner-controlled Redis endpoint; otherwise keep the relay disabled.
+- No production credentials, snapshot files or encryption keys belong in Git or chat.
+- Do not run a production host migration or alter persistent data as part of a code-only change.
+- Do not modify `main`.
+- Do not mark host-only gates green based on source tests or CI.
+
+## Current project accounting
+
+- Gate 10: 0/10 formally closed.
+- Gate 8: yellow host-verification-only; all other Gate 10 entries remain open.
+- Stage 1: 30/40 criteria = 300/400 ticks = 75% provisional.
+- Overall project and aggregate indicator percentages: unscored pending approved weights and denominators.
+- Indicator formulas/foundations remain unchanged by this audit. Existing indicator implementation status remains as documented in `PROJECT_PROGRESS_INDICATOR_CURRENT.md`.
+
+## Audit disposition
+
+**WebSocket repository primitives:** substantially implemented and CI-verified for the defined automated failure matrix.  
+**Source-to-Redis publisher lifecycle hook:** implemented and exact-head CI-verified; source runtime factory, snapshot watermark alignment, dedicated Redis ACL and host activation remain 🟨🟩 pending.  
+**Redis-to-gateway replica integration:** opt-in factory exists; default ASGI entry point is not wired.  
+**Production acceptance:** open; public WSS, production Redis TLS/ACL topology, snapshot distribution/rotation/rollback, browser and Android WebView acceptance remain unverified.  
+**Initial audit code changes:** none. Batch 62J-69 adds the subsequent FastAPI publisher lifecycle and runtime-binding validation.
+
+
+## Batch 62J-69 — source publisher lifecycle integration (21 November 2026)
+
+**Source change:** FastAPI now accepts a dedicated, owner-injected `publisher_runtime_factory` for the source application role. Lifespan validates that the publisher, dedicated Redis client and exact stream key agree; performs Redis PING before provider ingestion starts; runs bounded synchronous publisher batches through `asyncio.to_thread`; wakes on persisted-bar callbacks; and polls once per second to recover retained backlog after restart. Transient failures use bounded 1–30 second exponential backoff. A typed retention-gap exception transitions the worker to terminal `resnapshot_required` without advancing the checkpoint. Shutdown waits up to 15 seconds and closes the dedicated client only after the publisher task has stopped.
+
+**Role isolation:** one FastAPI app cannot be configured with both source publisher and gateway replica runtime factories. The module-level default app remains publisher-disabled unless its owner explicitly injects a source runtime factory. No Redis URL, credentials, snapshot cursor or snapshot artifact is inferred by application code.
+
+**Host gate:** the source runtime factory must construct `SQLiteOhlcvPublisherCheckpoint` against the durable source database, require an existing checkpoint or initialize it only from the exact global snapshot watermark already installed on every target gateway, and use a dedicated publisher ACL client with finite socket/connect timeouts. The code cannot prove remote snapshot installation; this remains an owner-host prerequisite. Publisher lifecycle wiring is therefore **🟨🟩 HOST-FACTORY / SNAPSHOT VERIFICATION PENDING**, not production-green. Do not enable the source publisher until snapshot and ACL preconditions are satisfied.
+
+**Verification boundary:** lifecycle contract tests cover Redis readiness, task startup, graceful client close, source/gateway role separation and runtime binding mismatch. The runtime also rejects a publisher bound to a different SQLite store or checkpoint/source ID. Exact-head CI on `6f49951c253a7e7b995b4bdd52eba8153edaef77` passed: Automated Tests [44866818528], CodeQL [44866818498] and Full Git History Secret Audit [44866818495] all SUCCESS; frontend 247/247, backend 1,241 passed, and all 33 workflow steps succeeded. Backend container build, Redis ACL/AOF + persistent-volume smoke, container scan and vulnerability-report export also succeeded. No deployment, live Redis connection, production host, Termux command, paid service, or `main` change was performed.
+
+
+
+## Batch 62J-70/71 — dedicated source runtime and production transport enforcement
+
+### Source publisher runtime (62J-70)
+
+Added `backend/app/ohlcv_redis_runtime.py`:
+- Separate dedicated publisher ACL URL; does not reuse the shared HTTP/WebSocket guard URL.
+- Production validation requires `rediss://`, dedicated ACL username/password and database 0.
+- Redis client uses 3-second connect timeout, 5-second socket timeout, 15-second health-check interval, TLS certificate-chain verification and hostname verification.
+- The durable publisher checkpoint must already exist. The factory never creates an arbitrary cursor.
+- Before creating a Redis client, an owner-injected snapshot verifier must prove exact source ID, stream key, generation and cursor equality between the global manifest and one installation receipt per required gateway.
+- Missing gateway receipts, duplicate/empty gateway identities, or any generation/cursor/source/stream mismatch fail closed.
+- Environment helper remains opt-in; default module-level ASGI app is not silently enabled.
+
+The publisher and gateway ACL command matrices now include `+ping` for their readiness checks. Other command permissions remain separated by role. Tests assert the exact allow-lists.
+
+### Production HTTPS/WSS enforcement (62J-71)
+
+- Production frontend builds reject a plaintext HTTP ticket endpoint before issuing the Firebase bearer request.
+- Production frontend builds reject a plaintext `ws://` market-data endpoint before creating the WebSocket.
+- HTTPS maps to WSS. Development mode retains its prior HTTP/WS behavior for local work.
+- Added frontend regressions for both rejected production plaintext paths.
+
+### Exact-head verification
+
+Source/test HEAD: `5575f5d820dd26d16a7170cb2c55e9c707c2afc1`.
+
+- Automated Tests [44868539276] — SUCCESS; frontend **249/249 across 29 files**, backend **1,246 passed**, all **33/33 workflow steps**.
+- CodeQL [44868539309] — SUCCESS.
+- Full Git History Secret Audit [44868539423] — SUCCESS.
+- Android APK Build (zero-cost CI) [44868539288] — SUCCESS. This confirms build output only, not installation or runtime acceptance on a physical Android device.
+- Frontend/backend dependency audits, backend container build, Redis shared-guard/persistent-volume smoke, container scan, vulnerability-report export and artifact upload — SUCCESS.
+
+### Production acceptance boundary
+
+Repository-side source publisher runtime construction and production transport guards are implemented and CI-verified. **Production WebSocket acceptance is not yet complete.** The remaining evidence requires owner-controlled runtime access:
+- Actual snapshot manifest and signed/controlled installation receipts for every target gateway.
+- Durable source SQLite path, checkpoint watermark and actual gateway replica volumes.
+- Live Redis TLS handshake, ACL enforcement, persistence, failover and private network restrictions.
+- Owner-host secret injection, rotation and rollback.
+- Gateway runtime factory configured on the target host.
+- Public HTTPS/WSS reverse proxy, hostname/certificate/renewal.
+- Browser end-to-end and actual Android WebView/device acceptance.
+
+The snapshot-verifier callback is a strict contract; the repository cannot probe the user's remote hosts. No host acceptance is inferred from CI. Gate 25 and Gate 36 remain 🟧 OPEN. Source publisher remains 🟨🟩 HOST VERIFICATION PENDING. Gate 8 remains 🟨 HOST VERIFICATION ONLY.
+
+### Indicator and project accounting
+
+No indicator formula, calculation, hook, renderer or chart UI changed. The complete indicator ledger remains in `PROJECT_PROGRESS_INDICATOR_CURRENT.md`:
+- SMA20 🟨, first valid candle index 19.
+- EMA20 🟨, SMA-seeded with alpha 2/21, first valid index 19.
+- RSI14 🟨, Wilder smoothing, first valid index 14.
+- MACD12/26/9 🟨, MACD index 25 and signal/histogram index 33.
+- Bollinger20,2 🟨, population standard deviation, first valid index 19.
+- Shared Indicator Hook 🟨.
+- Footprint 🟧 SIMULATED / GATED.
+- Heatmap 🟥 NOT IMPLEMENTED.
+- Liquidation Maps 🟥 NOT IMPLEMENTED.
+
+Gate 10 remains 0/10 formally closed; Stage 1 remains 30/40 = 75% provisional; Stages 2–6 and overall project percentage remain unscored. ZERO COST; no production deployment, paid service, Termux/device operation, Vercel/Cloudflare operation or `main` change.
+
+
+## Batch 62J-72 — snapshot artifact digest binding
+
+The source publisher runtime now requires the exact SHA-256 digest returned by the verified global snapshot manifest and requires every gateway installation receipt to bind to that same digest. The runtime rejects malformed/missing digests and any gateway receipt mismatch before creating the Redis client.
+
+The digest contract is grounded in the existing snapshot exporter/verifier:
+- `SQLiteOhlcvStore.export_global_snapshot()` writes a SHA-256 digest over the canonical header and every canonical bar record, and returns it with the snapshot generation, source ID and high-water cursor.
+- `SQLiteOhlcvStore.verify_global_snapshot()` recomputes the digest from the artifact and validates the manifest digest and row count.
+- The host verifier must invoke that verifier on the actual snapshot artifact and authenticate the installation receipt source. It then maps the export/verifier `generation_id`, `cursor`, and `sha256` into the runtime evidence contract (`snapshot_generation`, `snapshot_cursor`, `snapshot_sha256`); each receipt must contain the matching `snapshot_sha256`.
+
+This is stronger artifact identity binding, not proof of remote installation or receipt authenticity. No receipt-signing format or storage backend is invented by this change. Host-side verification remains external.
+
+Regression coverage now includes:
+- Missing publisher checkpoint fails before Redis client creation.
+- Gateway cursor mismatch fails before Redis client creation.
+- Gateway snapshot digest mismatch fails before Redis client creation.
+- Malformed manifest digest fails before Redis client creation.
+- Matching source, stream, generation, cursor and digest can construct the dedicated TLS client with certificate and hostname verification.
+
+**Gate status:** Gate 25 🟧 OPEN (live Redis TLS/ACL, persistence, failover and credential lifecycle remain unverified). Gate 36 🟧 OPEN (public HTTPS/WSS reverse proxy and browser/Android runtime acceptance remain unverified). Source publisher activation remains 🟨🟩 host-verification pending.
+
+
+## Batch 62J-74 — exact-head CI acceptance and Redis ACL least-privilege correction
+
+### Exact CI evidence
+
+The Automated Tests workflow completed successfully on head `3e3428910e3226f3d4365808f3a36a3138674231` (run [44874341856](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44874341856)). Backend pytest reported **1,249 passed in 57.10 seconds**. The new Redis ACL integration test and the existing full publisher/consumer ACL integration test both passed. CodeQL (run [44874341916](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44874341916)) and full Git-history secret audit (run [44874341885](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44874341885)) also succeeded.
+
+The existing CI Docker smoke additionally verified:
+- Redis ACL rejects unauthenticated access, wrong passwords and unrelated SET operations.
+- Redis AOF data and its ACL file survive a Redis container restart on a named volume.
+- The backend returns the expected fail-closed 503 during Redis outage and recovers after Redis returns.
+- Non-root application UID/GID, persistent-volume/database ownership, SQLite integrity and backend restart persistence.
+- HTTP rate-limit enforcement.
+- Backend container image scan and vulnerability-report export/upload succeeded.
+
+This is repository/CI simulation evidence, not production-host acceptance. The Redis AOF/volume smoke is for the shared guard service and does not prove production persistence/failover of the dedicated OHLCV relay stream.
+
+### Redis ACL correction — supersedes Batch 62J-73 SELECT claim
+
+The earlier Batch 62J-73 note incorrectly stated that redis-py needs `+select` when connecting to database 0. The existing real-Redis end-to-end ACL test used a `/0` URL without `+select` and passed. Database 0 is the Redis default; the client does not need a SELECT command to use it.
+
+Batch 62J-74 removes `+select` from both publisher and gateway command allow-lists. The new integration test explicitly verifies:
+- Both clients connect through the DB-0 URL and PING successfully.
+- Publisher/gateway allowed stream and lease operations work.
+- Explicit `SELECT 1` is rejected for both roles.
+- Publisher and gateway prohibited commands and out-of-scope key access remain rejected.
+
+This tightens least privilege. URL parsing still rejects non-zero database paths.
+
+### Production boundary and gates
+
+WebSocket E is complete for the defined automated repository failure matrix. Production acceptance still requires owner-controlled evidence for actual global snapshot artifact distribution and authenticated per-gateway receipts, production Redis TLS/ACL topology and secret rotation, dedicated OHLCV stream persistence/failover/retention, public HTTPS/WSS reverse proxy, browser and Android WebView runtime acceptance.
+
+Gate 8 remains 🟨🟩 host-verification-only. Gate 25 and Gate 36 remain 🟧 OPEN; Gates 20, 30, 31, 34, 35, 38 and 39 remain 🟧 OPEN. Gate 10 remains 0/10 formally closed. Stage 1 remains 30/40 = 75% provisional; overall project percentage remains unscored.
+
+See `PROJECT_PROGRESS_INDICATOR_CURRENT.md` for the complete indicator ledger and current accounting. ZERO COST; no deployment, production credentials, Termux, Vercel/Cloudflare operation or `main` modification.
+
+
+## Batch 62J-75 — exact-head CI confirmation and host/device acceptance boundary
+
+Exact-head CI for `f3264c7ee0db573b4ff999c558506c4efe3e59d5` completed successfully:
+- Automated Tests [44875028851](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44875028851) — SUCCESS; 1,249 backend tests passed in 49.05 seconds.
+- CodeQL [44875028870](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44875028870) — SUCCESS.
+- Full Git History Secret Audit [44875028765](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44875028765) — SUCCESS.
+- Redis ACL integration verified DB-0 operation with no `+select`; explicit `SELECT 1` is denied for publisher and gateway roles.
+- Backend container build, Redis shared-guard/AOF persistent-volume smoke, image vulnerability scan and report export/upload — SUCCESS.
+
+The ACL correction supersedes the Batch 62J-73 diagnosis: database 0 is the default in the redis-py client path used by this repository; granting `+select` was unnecessary and has been removed. This is a least-privilege improvement.
+
+### WebSocket acceptance disposition
+
+The repository-side automated WebSocket E/failure matrix is complete for its defined CI scope. The real-host production acceptance cannot be completed because this project currently has GitHub + CI only and no owner-controlled backend server. The CI Redis service and Docker smoke are ephemeral and do not create a public WSS endpoint.
+
+### Gate 10 host/device classification
+
+- 🟨🟩 Host/owner verification only: Gate 8 (secret injection/runtime exposure), Gate 30 (restore on actual owner-controlled database path), Gate 34 (actual persistent volume/restart/disk pressure), Gate 35 (real HTTPS certificate/proxy/renewal), Gate 39 (live operator visibility, acknowledgement/escalation and recovery).
+- 🟧 Additional integration still open: Gate 20 (real Firebase project and browser/Android auth/revocation), Gate 25 (owner-injected snapshot verifier/receipts and live dedicated Redis TLS/ACL topology), Gate 31 (off-host backup destination and independent key custody), Gate 36 (public WSS plus browser/Android WebView acceptance), Gate 38 (collector/dashboard/retention integration).
+
+Yellow-green is not acceptance or closure. Gate 10 remains 0/10 formally closed; only complete external evidence can turn a gate bright green.
+
+**Host verification is not an APK-only test.** It requires evidence from the actual server/provider/storage/operator environment. Opening the APK is a separate client acceptance step. For Gate 36, Android/browser testing should occur only after a real public HTTPS/WSS endpoint is available. No Termux or phone-side command is required at this stage.
+
+No production host, endpoint, TLS certificate, backup destination, Firebase project or credentials were fabricated or requested. ZERO COST; no deployment, no paid service, no `main` modification.
+
+
+## Batch 62J-76 — exact-head verification and adjacent Gate 31/38 boundaries
+
+Source/test HEAD 57b918feafd1b259b008b5efe1272199a29facff passed Automated Tests [44876347017](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44876347017), CodeQL [44876347037](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44876347037), Full Git History Secret Audit [44876347101](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44876347101), and Android debug APK build [44876347021](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44876347021). Frontend 252/252 tests across 29 files; backend 1,249 passed in 50.02 seconds. The Android artifact is a CI build only, not device acceptance.
+
+WebSocket repository/CI failure-matrix status remains complete for its defined automated scope. Production acceptance remains unavailable because no active backend host or public HTTPS/WSS endpoint exists. Do not infer production acceptance from the CI Redis service or container smoke.
+
+Gate 31 remains open: repository encryption is AES-256-GCM/PBKDF2-based, but there is no independently controlled off-host destination or separate recovery-key custody. Gate 38 remains open: HTTP metrics are bounded and process-local, incident records persist in local SQLite, but central collection/dashboard, cross-worker aggregation, metrics retention/rotation, WebSocket telemetry and independent operator notification remain absent. The new Gate 38 runbook documents these boundaries.
+
+Gate 10 remains 0/10 formally closed. Gates 8, 30, 34, 35 and 39 are host/owner-verification-only 🟨🟩; Gates 20, 25, 31, 36 and 38 remain 🟧. Stage 1 is 30/40 = 75% provisional; overall project remains unscored. ZERO COST; no host, credentials, deployment, Termux or device operation.
+
+
+## Batch 62J-77 — exact-head WebSocket/indicator acceptance checkpoint
+
+Source/test HEAD e6fd0dcb8d27be85b4fa32bc6b82a1495403e8e8 passed Automated Tests [44877470829](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44877470829), CodeQL [44877470826](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44877470826), Full Git History Secret Audit [44877470841](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44877470841), and Android debug APK build [44877470773](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44877470773). Frontend 253/253 tests across 29 files; backend 1,249 passed in 48.11 seconds. Backend container build, Redis shared-guard/persistent-volume smoke and Trivy scan/export all succeeded.
+
+SMA raw rolling-sum intermediate overflow was corrected using normalized window means; tests cover finite MAX_VALUE means and large cancellation. Full details are in docs/WORK_CYCLE_2026-11-21_BATCH62J77_NORMALIZED_SMA_AND_ACCEPTANCE.md and docs/INDICATOR_PROGRESS_LEDGER.md.
+
+Repository WebSocket automated scope remains complete. Production acceptance remains blocked by absent owner-controlled host/public HTTPS-WSS endpoint and missing real production Redis/snapshot receipts. Gate 10 remains 0/10 formally closed. Gates 8, 30, 34, 35, 39 are 🟨🟩 host/owner-verification-only; Gates 20, 25, 31, 36, 38 remain 🟧. Stage 1 is 75% provisional; overall project remains unscored. ZERO COST; no host, credentials, deployment, Termux or device operation.
+
+
+## Batch 62J-79 — WebSocket lifecycle metrics extension (21 November 2026)
+
+- `backend/app/observability.py` now includes `WebSocketMetrics` and `WebSocketMetricsMiddleware`, scoped only to `/ws/market-data`.
+- Captured fields: started, active, completed, accepted, peer disconnect count, five fixed close-code classes and cumulative duration. No payload/header/user data is read.
+- Existing bearer-protected `/internal/metrics` response now includes a `websocket` object alongside HTTP metrics. No new public route.
+- Tests cover accepted/closed lifecycle, peer disconnect and route isolation.
+- The new metrics are process-local and reset at process start. They are not central telemetry, durable retention or an operator dashboard. Gate 38 remains 🟧 OPEN.
+- Source/test HEAD: `2274f9adc5ac9907ea508800a2d962d9a7c14a84`. Frontend/backend tests and CodeQL analyses passed in the current run; remaining Automated Tests workflow steps were still running at documentation time. Full Git History Secret Audit passed. Exact links: [Automated Tests](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44894262277), [CodeQL](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44894262276), [Secret Audit](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44894262301).
+- No WebSocket protocol, auth, replay, snapshot or market-data payload contract was changed. No public WSS/production acceptance claim is made.
+
+
+## Batch 62J-88 — exact-head CI reconciliation (21 November 2026)
+
+Repository-side WebSocket failure-matrix scope remains complete. Exact-head Automated Tests at `8424e5eefeecbd06c6534bc34d166f4749ba4055` passed all 35 workflow steps, including 1,268 backend tests, backend container build, ephemeral Redis shared-guard/persistent-volume smoke and Trivy image scan/report export. CodeQL and Full Git History Secret Audit also passed. The process-level metrics and read-only collector additions do not alter WebSocket protocol, transport, auth, replay, cursor, gateway or Redis market-data path. Public WSS, production snapshot receipts, owner-host Redis TLS/ACL/persistence/failover and browser/Android WebView acceptance remain external host gates. Gate 36 remains 🟧 OPEN.
+
+
+## Batch 62J-92 — WebSocket acceptance reconciliation
+
+Exact HEAD `427e5952d2f209ae1f40405223d8d0a4c7d8408c` passed Automated Tests [44905839386](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905839386), CodeQL [44905839403](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905839403) and Full Git History Secret Audit [44905839442](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44905839442). Backend container build, ephemeral Redis shared-guard/persistent-volume smoke and Trivy scan/report also passed. The Gate 38 app-level isolation test confirmed that a failing metrics collector does not block authenticated WebSocket status delivery. No WebSocket protocol, transport, auth, replay, cursor, gateway or Redis market-data data-path change was made.
+
+This does not close Gate 36: public HTTPS/WSS reverse proxy, certificates, owner-host Redis TLS/ACL/persistence/failover, snapshot distribution/installation receipts and real browser/Android WebView acceptance remain host-gated.
+
+
+## Batch 62J-93 — WebSocket/Gate 38 exact-head reconciliation (21 November 2026)
+
+Exact source/test HEAD `a62e7423a5d36d3fdbc003e0e56d86c3a9e6ecbb` passed Automated Tests [44911391436](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44911391436), CodeQL [44911391400](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44911391400) and Full Git History Secret Audit [44911391397](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44911391397). Backend tests: 1,271 passed; frontend: 255/255. The new SQLite batch-read optimization affects only metrics aggregation. No WebSocket protocol, transport, authentication, replay, cursor, gateway, Redis market-data path or message payload changed. Gate 38 app-level isolation still proves the metrics collector can degrade without blocking authenticated WebSocket status.
+
+Gate 36 remains 🟧 OPEN for owner-host public HTTPS/WSS reverse proxy/certificate, production Redis TLS/ACL/persistence/failover, snapshot installation receipts and real browser/Android WebView acceptance.
+
+## Batch 62J-123 — exact-head SQLite concurrency fix, CI artifacts and acceptance reconciliation (22 November 2026)
+
+**Branch:** phase-2/market-data-foundation  
+**Exact tested source/test HEAD:** 589aceadd40b3b3e10e950566081101b2dd49003  
+**Automated Tests [run 44985059074](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44985059074): SUCCESS**; **CodeQL [run 44985059102](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44985059102): SUCCESS**; **Full Git History Secret Audit [run 44985059070](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44985059070): SUCCESS**. All three workflows target the exact tested HEAD. Automated Tests completed all 36 job steps with no failed steps.
+
+### CI and artifact evidence
+- Frontend unit tests/build, source and production-bundle credential scans, Android host preflight, backend dependency audit/tests, isolated Redis TLS CA/hostname fixture, synthetic SQLite outbox and metrics benchmarks, backend image build, shared-Redis/persistent-volume container smoke, Trivy scan/report export and dependency-audit enforcement all completed successfully.
+- Synthetic metrics artifact [14739815366](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44985059074/artifacts/14739815366): full 899-series envelope. One worker: 32/32 flushes, 0 retries, p95 flush 14.34 ms. Four threads: 128/128, 4 retries, p95 flush 46.92 ms. Sixteen simultaneous threads: 512/512, 187 retries, p95 flush 627.74 ms and writer-lock p95 572.23 ms. Four independent processes: 128/128, 3 retries, p95 flush 141.71 ms. Startup-staggered 16-worker case: 512/512, 26 retries, p95 flush 266.53 ms and writer-lock p95 250.93 ms. SQLite integrity reported ok for every case.
+- The benchmark confirms no lost flushes in these synthetic cases and exposes material same-file SQLite writer contention at higher concurrency. It is runner/filesystem-specific, uses synthetic operational counters, and is not production load, persistent-volume, multi-host or SLO evidence. Do not infer production capacity from it.
+- Synthetic outbox artifact [14739423041](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44985059074/artifacts/14739423041) is attached to this exact run; it remains local synthetic benchmark evidence, not live provider/WebSocket load acceptance.
+- Trivy artifact [14739224531](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44985059074/artifacts/14739224531) was independently inspected. Image dezzta-chart-backend:ci, Alpine 3.24.4, architecture amd64, digest sha256:5240158d55f11863aa41a49fbf4d00705d437519fcbdb0659164efc435ee58c0, size 571,352,064 bytes (~571.35 MB). The report contains 0 vulnerabilities in the scanned Alpine OS and Python package result groups. This is a point-in-time result for this exact amd64 image and scanner database, not a permanent guarantee, not a scan of every possible target, and not ARM64 evidence.
+- Backend and frontend exact-head CI success proves the repository's configured tests and CI service topology only. The CI Redis fixture and ephemeral runner volume do not constitute owner-host acceptance.
+
+### SQLite corrective change and remaining risk
+- Commit 529031d3a6ae0d07cfcd2f38a5d7e02fffd81063 adds bounded retry for lock-only errors while applying connection-local PRAGMA synchronous=NORMAL to fresh SQLite connections. Commit 589aceadd40b3b3e10e950566081101b2dd49003 adds a 16-independent-collector, eight-round repeated concurrent-flush regression test.
+- Exact-head backend tests and full CI pass. The prior fatal database-is-locked failure at connection PRAGMA setup was not reproduced in this run.
+- The benchmark still shows substantial contention at 16 simultaneous workers (187 retries). Keep the collector classified as bounded same-host best-effort telemetry; do not claim high-concurrency production readiness. A single-writer queue/aggregation redesign would be a separate scoped architecture change, not silently bundled into this fix.
+
+### WebSocket production acceptance disposition
+- Source/gateway separation, Redis Streams consumer/replay, generation-scoped leases, apply-before-ACK, pending reclaim, fail-closed ownership and snapshot/replay recovery remain repository implementation evidence. Owner-supplied source snapshot verification and gateway installation callbacks remain trust boundaries requiring independent authentication of snapshot bytes, SHA-256, generation, cursor and per-gateway receipts.
+- Gate 10 remains **0/10 formally closed**. Stage 1 remains **30/40 = 75% provisional**. No stage transition or Stage 2 entry is authorized by this CI result.
+- Still missing owner-controlled evidence: Gate 8 secret injection/permissions/rotation/log redaction; Gate 20 real Firebase signed-token and entitlement grant/revoke/renew E2E; Gate 25 owner-host Redis TLS/CA/hostname, ACL, persistence/restart/failover, secret rotation and authenticated global snapshot/receipt alignment; Gate 30 live DB backup/restore; Gate 31 encrypted off-host backup and independent recovery-key custody; Gate 34 persistent volume UID/GID 10001/restart/disk-pressure; Gate 35 public hostname/trusted TLS/renewal; Gate 36 public HTTPS ticket exchange/WSS proxy, browser and Android WebView lifecycle/replay/resnapshot/duplicate-suppression; Gate 38 real dashboards/retention/alerts/disk pressure; Gate 39 external alert delivery, human acknowledgement and escalation.
+- No public HTTPS/WSS endpoint, production Firebase project, owner-host Redis or production storage has been provisioned or verified. CI must not be used to close these gates.
+
+### Architecture and zero-cost constraints
+- Current workflow uses plain docker build on GitHub-hosted ubuntu-latest; Dockerfile base is python:3.12-alpine3.24. Exact artifact metadata is linux/amd64. ARM64 build and runtime smoke remain unverified; no multi-platform claim is made.
+- Keep Redis private with strict TLS CA/hostname verification and least-privilege ACLs. Keep HTTPS ticket exchange before WSS; Firebase ID tokens must not be put in WSS URLs or raw WebSocket auth frames. Preserve separate source publisher and gateway replica roles and exact global snapshot/watermark alignment.
+- ZERO COST: no deployment, host, account, resource, paid service, trial-credit dependency, production credential, Vercel/Cloudflare operation or device/Termux action. main remains untouched.
+
 ---
 ## Batch 62J-121 — exact-head WebSocket CI completion and indicator reconciliation (22 November 2026)
 

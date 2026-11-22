@@ -1441,3 +1441,51 @@ A focused backend regression test was added to prevent future drift between the 
 - Gate 10 remains **0/10 formally closed**. Host/operator-only: Gates 8, 30, 34, 35, 39. Integration/acceptance: Gates 20, 25, 31, 36, 38. Stage 1 remains **30/40 = 75% provisional**; no overall project percentage without approved stage weights/denominators.
 - Indicator implementation unchanged: no formula, calculation, data contract, shared hook, renderer, chart UI or indicator test changed. No indicator progress credit. Full formula/index/prerequisite matrix remains below in this ledger and is not re-scored.
 - ZERO COST. No deployment, paid service, production credential, Vercel/Cloudflare operation, Termux/device operation, or `main` modification.
+
+## Batch 62J-123 — exact-head SQLite concurrency fix, CI artifacts and acceptance reconciliation (22 November 2026)
+
+**Branch:** phase-2/market-data-foundation  
+**Exact tested source/test HEAD:** 589aceadd40b3b3e10e950566081101b2dd49003  
+**Automated Tests [run 44985059074](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44985059074): SUCCESS**; **CodeQL [run 44985059102](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44985059102): SUCCESS**; **Full Git History Secret Audit [run 44985059070](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44985059070): SUCCESS**. All three workflows target the exact tested HEAD. Automated Tests completed all 36 job steps with no failed steps.
+
+### CI and artifact evidence
+- Frontend unit tests/build, source and production-bundle credential scans, Android host preflight, backend dependency audit/tests, isolated Redis TLS CA/hostname fixture, synthetic SQLite outbox and metrics benchmarks, backend image build, shared-Redis/persistent-volume container smoke, Trivy scan/report export and dependency-audit enforcement all completed successfully.
+- Synthetic metrics artifact [14739815366](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44985059074/artifacts/14739815366): full 899-series envelope. One worker: 32/32 flushes, 0 retries, p95 flush 14.34 ms. Four threads: 128/128, 4 retries, p95 flush 46.92 ms. Sixteen simultaneous threads: 512/512, 187 retries, p95 flush 627.74 ms and writer-lock p95 572.23 ms. Four independent processes: 128/128, 3 retries, p95 flush 141.71 ms. Startup-staggered 16-worker case: 512/512, 26 retries, p95 flush 266.53 ms and writer-lock p95 250.93 ms. SQLite integrity reported ok for every case.
+- The benchmark confirms no lost flushes in these synthetic cases and exposes material same-file SQLite writer contention at higher concurrency. It is runner/filesystem-specific, uses synthetic operational counters, and is not production load, persistent-volume, multi-host or SLO evidence. Do not infer production capacity from it.
+- Synthetic outbox artifact [14739423041](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44985059074/artifacts/14739423041) is attached to this exact run; it remains local synthetic benchmark evidence, not live provider/WebSocket load acceptance.
+- Trivy artifact [14739224531](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44985059074/artifacts/14739224531) was independently inspected. Image dezzta-chart-backend:ci, Alpine 3.24.4, architecture amd64, digest sha256:5240158d55f11863aa41a49fbf4d00705d437519fcbdb0659164efc435ee58c0, size 571,352,064 bytes (~571.35 MB). The report contains 0 vulnerabilities in the scanned Alpine OS and Python package result groups. This is a point-in-time result for this exact amd64 image and scanner database, not a permanent guarantee, not a scan of every possible target, and not ARM64 evidence.
+- Backend and frontend exact-head CI success proves the repository's configured tests and CI service topology only. The CI Redis fixture and ephemeral runner volume do not constitute owner-host acceptance.
+
+### SQLite corrective change and remaining risk
+- Commit 529031d3a6ae0d07cfcd2f38a5d7e02fffd81063 adds bounded retry for lock-only errors while applying connection-local PRAGMA synchronous=NORMAL to fresh SQLite connections. Commit 589aceadd40b3b3e10e950566081101b2dd49003 adds a 16-independent-collector, eight-round repeated concurrent-flush regression test.
+- Exact-head backend tests and full CI pass. The prior fatal database-is-locked failure at connection PRAGMA setup was not reproduced in this run.
+- The benchmark still shows substantial contention at 16 simultaneous workers (187 retries). Keep the collector classified as bounded same-host best-effort telemetry; do not claim high-concurrency production readiness. A single-writer queue/aggregation redesign would be a separate scoped architecture change, not silently bundled into this fix.
+
+### WebSocket production acceptance disposition
+- Source/gateway separation, Redis Streams consumer/replay, generation-scoped leases, apply-before-ACK, pending reclaim, fail-closed ownership and snapshot/replay recovery remain repository implementation evidence. Owner-supplied source snapshot verification and gateway installation callbacks remain trust boundaries requiring independent authentication of snapshot bytes, SHA-256, generation, cursor and per-gateway receipts.
+- Gate 10 remains **0/10 formally closed**. Stage 1 remains **30/40 = 75% provisional**. No stage transition or Stage 2 entry is authorized by this CI result.
+- Still missing owner-controlled evidence: Gate 8 secret injection/permissions/rotation/log redaction; Gate 20 real Firebase signed-token and entitlement grant/revoke/renew E2E; Gate 25 owner-host Redis TLS/CA/hostname, ACL, persistence/restart/failover, secret rotation and authenticated global snapshot/receipt alignment; Gate 30 live DB backup/restore; Gate 31 encrypted off-host backup and independent recovery-key custody; Gate 34 persistent volume UID/GID 10001/restart/disk-pressure; Gate 35 public hostname/trusted TLS/renewal; Gate 36 public HTTPS ticket exchange/WSS proxy, browser and Android WebView lifecycle/replay/resnapshot/duplicate-suppression; Gate 38 real dashboards/retention/alerts/disk pressure; Gate 39 external alert delivery, human acknowledgement and escalation.
+- No public HTTPS/WSS endpoint, production Firebase project, owner-host Redis or production storage has been provisioned or verified. CI must not be used to close these gates.
+
+### Architecture and zero-cost constraints
+- Current workflow uses plain docker build on GitHub-hosted ubuntu-latest; Dockerfile base is python:3.12-alpine3.24. Exact artifact metadata is linux/amd64. ARM64 build and runtime smoke remain unverified; no multi-platform claim is made.
+- Keep Redis private with strict TLS CA/hostname verification and least-privilege ACLs. Keep HTTPS ticket exchange before WSS; Firebase ID tokens must not be put in WSS URLs or raw WebSocket auth frames. Preserve separate source publisher and gateway replica roles and exact global snapshot/watermark alignment.
+- ZERO COST: no deployment, host, account, resource, paid service, trial-credit dependency, production credential, Vercel/Cloudflare operation or device/Termux action. main remains untouched.
+
+### Exact current indicator matrix at source/test HEAD 589aceadd40b3b3e10e950566081101b2dd49003
+
+| Study / subsystem | Status | Calculation / first valid output | Remaining acceptance |
+|---|---|---|---|
+| SMA20 | 🟨 Foundation | Arithmetic mean of 20 closes; index 19 | Chart overlay, independent toggle, legend/latest value, stale clearing, renderer/lifecycle tests |
+| EMA20 | 🟨 Foundation | SMA-seeded EMA; alpha 2/21; index 19 | Overlay, toggle, legend/latest value, stale clearing, renderer/lifecycle tests |
+| RSI14 Wilder | 🟨 Foundation | Wilder-smoothed gains/losses over 14 close changes; index 14 | 0–100 pane, 30/70 guides, toggle, legend/latest value, stale clearing, renderer tests |
+| MACD12/26/9 | 🟨 Foundation | EMA12−EMA26; MACD index 25; signal/histogram index 33 | Pane, MACD/signal lines, histogram, zero guide, toggle, legend/latest values, stale clearing, renderer tests |
+| Bollinger20,2 | 🟨 Foundation | 20-close mean ± 2 × population SD; index 19 | Upper/middle/lower overlay, toggle, values, stale clearing, renderer tests |
+| Shared Indicator Hook | 🟨 Foundation | Validated candle-index-aligned snapshot | Chart identity/timeframe binding, loading/error lifecycle, stale clearing, per-series isolation and renderer integration |
+| Footprint | 🟧 Simulated/reference-gated | Offline synthetic accumulator only; not exchange-native bid/ask truth | User reference + reviewed blueprint, validated source contract, ON-only spaced clusters, readable bid/ask cells, OFF-layout regression, interaction/performance/lifecycle tests |
+| Heatmap | 🟥 Not implemented | No validated zero-cost source/data contract | User reference, source feasibility, data contract, reviewed blueprint, renderer, legend/scale/toggle/tests |
+| Liquidation Maps | 🟥 Not implemented | No validated source/formula contract | Zero-cost source feasibility, validated calculation/data contract, reference/blueprint, renderer, scale/legend/tests |
+
+**Shared invariants:** warm-up remains null, never zero; outputs align to source candle indices; no future-candle repaint; symbol/venue/dataset/chart/timeframe changes clear stale series; invalid bars and gaps are not silently converted to zero. Footprint OFF preserves standard candle spacing. No indicator completion credit is awarded by WebSocket CI, backend metrics fixes or documentation.
+
+No aggregate indicator percentage is published without approved per-study weights and a completion denominator. Stage 1 30/40 provisional is project-stage accounting, not indicator completion. Stage 4 visible indicators remain behind the approved stage gate. Do not begin Footprint or Heatmap visual implementation before the user supplies reference image(s) and the scoped blueprint is reviewed.
