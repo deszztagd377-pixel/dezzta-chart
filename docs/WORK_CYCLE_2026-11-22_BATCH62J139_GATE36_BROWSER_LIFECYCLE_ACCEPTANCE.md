@@ -1,0 +1,165 @@
+# Batch 62J-139 — Gate 36 browser lifecycle and WebSocket acceptance reconciliation
+
+Date: 22 November 2026  
+Branch: `phase-2/market-data-foundation`  
+Audited exact HEAD: `d473a533deaec58e1abb07a2f5a2a911f941dfed`  
+Scope: source/test audit, acceptance-gap isolation and project/indicator reconciliation. Documentation only; no runtime, schema or test source was changed.
+
+## 1. Exact-HEAD CI verification
+
+All three workflow runs below identify the same branch and exact commit `d473a533deaec58e1abb07a2f5a2a911f941dfed`:
+
+- Automated Tests [44993051427](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44993051427): **SUCCESS**.
+- CodeQL [44993051424](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44993051424): **SUCCESS** — Python and JavaScript/TypeScript analysis jobs both succeeded.
+- Full Git History Secret Audit [44993051426](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44993051426): **SUCCESS**.
+
+The latest branch commit query also resolved to the same SHA. This is repository CI evidence only; it does not prove a public WSS deployment, live Firebase project, owner-host Redis, or Android-device acceptance.
+
+## 2. Client WebSocket source audit
+
+Files inspected:
+- `src/services/ohlcvWebSocketClient.ts`
+- `src/services/ohlcvWebSocketClient.test.ts`
+- `src/services/ohlcvStreamSupervisor.ts`
+- `src/services/ohlcvStreamSupervisor.test.ts`
+- `src/services/ohlcvStreamLifecycle.ts`
+- `src/services/ohlcvStreamLifecycle.test.ts`
+- `src/services/ohlcvWebSocketTicket.ts`
+- `src/services/ohlcvWebSocketTicket.test.ts`
+- `docs/WEBSOCKET_AUTH_DESIGN.md`
+
+### Verified implemented behavior
+
+1. **Transport security:** production URL construction requires HTTPS input and converts it to WSS; embedded URL credentials are rejected before socket creation.
+2. **Ticket exchange:** Firebase ID token is sent over HTTPS POST to the normalized ticket endpoint; request uses `cache: no-store`, `credentials: omit`, `redirect: error`, and an abort deadline. Production rejects plaintext HTTP before fetch.
+3. **Ticket validation:** response requires a bounded ticket string, `purpose=market-data`, and the expected 90-second lifetime. A 401 remains distinguishable for terminal authentication handling.
+4. **WebSocket authentication:** the socket receives the short-lived ticket, not the Firebase ID token. Exact canonical instrument and series are sent in the subscription request.
+5. **Snapshot/replay boundary:** snapshot stream ID and watermark are validated. Resume cursors are decimal strings, preserving values beyond JavaScript's safe integer range. Replay completion is required before normal live subscription resumes.
+6. **Continuity:** sequence/cursor validation rejects protocol gaps rather than silently applying out-of-order updates. The supervisor reconnects using the last accepted cursor and preserves the last validated chart state while recovering.
+7. **Renewal and liveness:** the client renews its single-use ticket, requires an acknowledgement, and uses bounded heartbeat/pong handling. Timeout and send failures enter cleanup.
+8. **Failure isolation:** status, error and close observers are isolated so a throwing UI callback cannot prevent transport cleanup. The supervisor waits for the authoritative close event to avoid overlapping sockets.
+9. **Terminal policy:** authentication, authorization, malformed-subscription and protocol-policy closes are not retried unchanged. The 4403 Origin-vs-entitlement diagnostic correction remains in place.
+10. **Browser lifecycle policy helper:** `getOhlcvStreamLifecycle()` permits connection only when online and visible; offline takes precedence over hidden, and prerender/other non-visible states are treated as hidden.
+
+### Existing test evidence
+
+- WebSocket client tests exercise production plaintext rejection, authentication/subscription, snapshot/update, large durable cursor replay, renewal acknowledgement, heartbeat/error cleanup and invalid protocol cases.
+- Supervisor tests exercise token/ticket acquisition, reconnect and backoff, cursor replay, store preservation, sequence-gap recovery, terminal close classes, delayed/failed close handling, and observer exceptions.
+- Lifecycle helper tests cover active, offline, hidden, combined offline+hidden, and prerender states.
+- Ticket tests cover normalized HTTPS request options, 401 propagation, request/body timeout, malformed payloads, production HTTP rejection, missing token and credential-bearing URL rejection.
+
+These are automated unit/simulation tests. They are not equivalent to a real production browser behind the intended reverse proxy or a physical Android WebView under operating-system lifecycle changes.
+
+## 3. Gate 36 acceptance gap — precise separation
+
+**Gate 36 remains OPEN.** Repository-side behavior is stronger than the external acceptance evidence. The remaining work is not a reason to weaken authentication or add speculative ticket claims.
+
+| Acceptance item | Current evidence | Remaining proof |
+|---|---|---|
+| WSS transport policy | Production client rejects non-HTTPS base URL | Public hostname, valid certificate chain, reverse-proxy upgrade and timeout behavior |
+| Firebase token exchange | Injected verifier/client tests and HTTPS ticket flow | Real Firebase project with valid, expired, revoked and wrong-project tokens |
+| Ticket semantics | Subject + purpose, single-use, 90-second TTL; renewal acknowledgement | Owner/product threat-model decision on series/Origin binding; no automatic scope expansion |
+| Browser foreground/background | Lifecycle policy helper unit-tested | Browser event wiring and real tab hide/show, offline/online, sleep/wake acceptance |
+| Android WebView | Shared client code exists | Real app/WebView foreground/background, process death, network handover and resume tests |
+| Replay after interruption | Local socket and TCP fault-path CI evidence | Public-network interruption with duplicate/gap/resnapshot evidence |
+| Operations | CI logs and test assertions | Owner-host logs, alert delivery, operator runbook and recovery drill |
+
+### Acceptance sequence — no external service required for the first steps
+
+A. **Repository-only wiring audit**
+- Trace all call sites of the lifecycle policy and confirm whether visibility/online events actually stop the supervisor and restart it on return.
+- If no production call site exists, record that as an integration gap before changing behavior.
+- Add a focused integration test only after the owning component and teardown semantics are identified.
+
+B. **Browser integration test**
+- Verify one supervisor at a time.
+- Hide/offline must stop the active supervisor and clear timers/listeners.
+- Return visible+online must create one new supervisor and obtain a fresh ID token/ticket.
+- Resume must start from a durable accepted cursor or obtain a fresh snapshot; no stale socket may publish after teardown.
+- Exercise rapid hide/show and offline/online event ordering, including stop while token/ticket requests are pending.
+
+C. **Android acceptance**
+- Keep as a separate platform acceptance lane; browser helper tests cannot close it.
+- Use only an already available local test environment; no paid test device, service or deployment is required.
+- Do not ask the user to run commands or modify their phone as part of this repository cycle.
+
+D. **External production acceptance**
+- Requires an owner-controlled public endpoint, real Firebase project and operator access. This cycle does not create accounts, deploy services, provision resources or request credentials.
+
+## 4. Gate 25 and Gate 38 — parallel blockers retained
+
+- **Gate 25 OPEN:** durable immutable snapshot installation receipt and authenticated provenance remain unimplemented; source/generation/cursor checkpoint binding exists, but snapshot digest is not anchored to a durable immutable receipt. Owner trust model, key lifecycle, receipt retention and owner-host Redis restart/backup/failover remain unresolved.
+- **Gate 38 OPEN:** owner-host metrics persistence, disk pressure, restart/backup/retention, operator dashboard, alert delivery and recovery drill remain unproven.
+- Do not count a passing CI run as closure of any owner-host criterion.
+
+## 5. Technical indicator progress — full ledger
+
+No indicator runtime, calculation, test, hook, renderer or UI source changed in Batch 62J-139. No implementation credit is awarded.
+
+| Indicator/component | Status | Verified state / acceptance still required |
+|---|---|---|
+| SMA20 | 🟨 Foundation | 20-close arithmetic mean; first valid candle index 19; chart integration and full renderer acceptance remain |
+| EMA20 | 🟨 Foundation | SMA-seeded EMA, alpha = 2/21; first valid index 19; chart integration and full renderer acceptance remain |
+| RSI14 Wilder | 🟨 Foundation | Wilder smoothing foundation; first valid index 14; chart integration and numerical edge-case acceptance remain |
+| MACD12/26/9 | 🟨 Foundation | MACD first valid index 25; signal and histogram first valid index 33; chart integration remains |
+| Bollinger20,2 | 🟨 Foundation | 20-close mean ± 2 population standard deviations; first valid index 19; chart integration remains |
+| Shared Indicator Hook | 🟨 Foundation | Backend snapshot/aligned calculation output; not fully chart-integrated |
+| Footprint | 🟧 Prototype only | Synthetic educational accumulator; not exchange-native bid/ask truth; visual work waits for user reference image(s) and reviewed blueprint |
+| Heatmap | 🟥 Not implemented | Visual implementation waits for user reference image(s) and reviewed blueprint |
+| Liquidation Maps | 🟥 Not implemented | No implementation evidence |
+
+### Shared indicator acceptance invariants
+
+- Warm-up periods remain `null`; no fabricated early values.
+- Every result remains aligned to its originating candle index.
+- Prefix-causality: adding future candles must not alter earlier outputs.
+- Invalid, missing or gapped source bars must not be silently converted to zero.
+- Stale output must be cleared when symbol, venue, dataset, chart or timeframe identity changes.
+- Renderer integration, lifecycle cleanup and performance remain separate from calculation correctness.
+- Footprint OFF preserves standard candlestick layout and spacing. Only explicit Footprint ON enables the dedicated spaced cluster layout.
+- Footprint and Heatmap visual implementation must not begin before the user supplies reference image(s) and reviews the scoped blueprint.
+- No aggregate indicator percentage is published because indicator weights and a completion denominator have not been approved.
+
+## 6. Project-wide progress indicator
+
+Legend: 🟩 formally accepted/closed; 🟨 partially implemented or provisional; 🟧 prototype; 🟥 not implemented; ⬜ not scored/not officially opened.
+
+| Stage | Progress | Status |
+|---|---:|---|
+| 1. Foundation, Security & Data Integrity | 30/40 criteria = 75% | 🟨 Provisional; not all external acceptance closed |
+| 2. Market Data Infrastructure | Not scored | ⬜ Not officially opened |
+| 3. Chart Engine & Timeframe | Not scored | ⬜ Not officially opened |
+| 4. Indicators & Analytics | Not scored | ⬜ Not officially opened |
+| 5. Professional UI & Interactive Tools | Not scored | ⬜ Not officially opened |
+| 6. Hardening, Validation & APK Release | Not scored | ⬜ Not officially opened |
+
+**Overall project: NOT SCORED.** The approved six-stage weights and total acceptance denominator do not exist yet. Stage 1's 75% cannot be represented as an overall project percentage.
+
+**Gate 10: 0/10 external criteria formally closed.** This is the formal external-acceptance counter, not the number of internal tests.
+
+## 7. IP3S — Indicator Proses Peningkatan Proyek Signifikan
+
+IP3S measures the verified quality of this work cycle, not project completion.
+
+| Dimension | Score | Basis |
+|---|---:|---|
+| Verified engineering delta | 10/25 | Source-backed lifecycle/ticket/transport audit; no runtime or test source change |
+| Exact-HEAD CI evidence | 20/20 | All three workflows succeeded on the exact audited SHA |
+| Blocker isolation/reduction | 13/20 | Separates tested browser policy helper from unproven event wiring and real Android/public WSS acceptance |
+| Canonical documentation | 20/20 | Full Gate 36 matrix, Gate 25/38 boundaries, indicator ledger and stage status recorded |
+| ZERO COST and scope integrity | 15/15 | No paid resource, deployment, credentials, device work or main-branch change |
+| **IP3S total** | **78/100** | Cycle delivery score only; not project completion |
+
+## 8. Branch, cost and change integrity
+
+- Audited branch: `phase-2/market-data-foundation`.
+- Exact audited HEAD: `d473a533deaec58e1abb07a2f5a2a911f941dfed`.
+- `main` untouched.
+- Batch 62J-139 changes documentation only; no runtime/schema/test source modifications.
+- ZERO COST: no paid hosting, domain, market-data API, cloud resource, deployment, account creation or publication fee.
+- No production credentials, private keys or shared secrets requested or written.
+- No Android device or Termux operation performed.
+
+## 9. Next engineering unit
+
+The next source-backed, zero-cost unit is **A — repository-only lifecycle wiring audit**. It must establish the real owner component, event listeners, supervisor ownership and cleanup path before any code edit. If wiring is already complete, the next unit becomes focused integration-test coverage for rapid visibility/network transitions and stale-socket suppression. No speculative patch is authorized by this report.
