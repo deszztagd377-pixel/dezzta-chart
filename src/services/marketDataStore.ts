@@ -83,7 +83,7 @@ export function subscribeMarketData(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 
-function validateSeriesIdentity(identity: MarketSeriesIdentity): void {
+export function validateMarketSeriesIdentity(identity: MarketSeriesIdentity): void {
   if (
     typeof identity.dataset !== 'string' || !identity.dataset.trim() ||
     typeof identity.rawSymbol !== 'string' || !identity.rawSymbol.trim() ||
@@ -123,7 +123,7 @@ function validateSeriesIdentity(identity: MarketSeriesIdentity): void {
   }
 }
 
-function validateBars(bars: readonly ChartData[]): void {
+export function validateMarketDataBars(bars: readonly ChartData[]): void {
   let previousTimestamp = -Infinity;
   bars.forEach((bar, index) => {
     if (!Number.isSafeInteger(bar.timestamp) || bar.timestamp < 0) {
@@ -167,14 +167,14 @@ export function publishMarketDataSnapshot(input: {
   if (isBackendStatus && !input.identity) {
     throw new Error('Backend market data requires an exact series identity.');
   }
-  if (input.identity) validateSeriesIdentity(input.identity);
+  if (input.identity) validateMarketSeriesIdentity(input.identity);
   if (isBackendStatus && bars.length === 0) {
     throw new Error('Backend market data cannot be ready without validated bars.');
   }
   if (!isBackendStatus && bars.length > 0) {
     throw new Error('Non-ready market-data states cannot publish indicator bars.');
   }
-  if (isBackendStatus) validateBars(bars);
+  if (isBackendStatus) validateMarketDataBars(bars);
 
   const identity = input.identity ? Object.freeze({ ...input.identity }) : null;
   const immutableBars = Object.freeze(
@@ -209,7 +209,7 @@ export function publishMarketDataUpdate(input: {
   identity: MarketSeriesIdentity;
   bar: ChartData;
 }): void {
-  validateSeriesIdentity(input.identity);
+  validateMarketSeriesIdentity(input.identity);
   const current = currentSnapshot;
   if (
     current.source !== 'backend' ||
@@ -222,7 +222,7 @@ export function publishMarketDataUpdate(input: {
     throw new Error('Incremental market update does not match the active series identity.');
   }
 
-  validateBars([input.bar]);
+  validateMarketDataBars([input.bar]);
 
   const nextBars = [...current.bars];
   let low = 0;
@@ -239,7 +239,7 @@ export function publishMarketDataUpdate(input: {
     nextBars.splice(low, 0, input.bar);
   }
 
-  validateBars(nextBars);
+  validateMarketDataBars(nextBars);
   const immutableBars = Object.freeze(
     nextBars.map((bar) => Object.freeze({ ...bar })),
   );
