@@ -141,7 +141,7 @@ describe('useMarketDataSeriesSnapshot', () => {
       status: 'ready',
       bars,
     }));
-    expect(container.textContent).toContain('HOOK_A:1:1;');
+    expect(container.textContent).toContain('HOOK_A:ready:101;');
     expect(container.textContent).toContain('HOOK_B:ready:101;');
 
     act(() => root.render(createElement(
