@@ -140,6 +140,7 @@ def test_production_accepts_tls_redis_url_without_exposing_it_in_repr() -> None:
 
 def test_redis_tls_ca_bundle_path_is_loaded_and_must_be_absolute(monkeypatch) -> None:
     monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("CORS_ALLOWED_ORIGINS", "https://chart.example")
     monkeypatch.setenv("REDIS_URL", "rediss://guard-user:secret@redis.example:6380/0")
     monkeypatch.setenv("REDIS_TLS_CA_CERTS", "/run/certs/redis-private-ca.pem")
     monkeypatch.setenv("FIREBASE_PROJECT_ID", "dezzta-chart-prod")
