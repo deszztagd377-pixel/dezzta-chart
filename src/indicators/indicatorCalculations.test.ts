@@ -174,4 +174,26 @@ describe('shared indicator calculation engine', () => {
     expect(result[2].lower).toBeCloseTo(1 / 3, 14);
   });
 
+  it('matches the Wilder RSI seed and recursive smoothing on alternating gains and losses', () => {
+    // Period 2: seed averages are 0.5 gain / 0.5 loss (RSI 50).
+    // Wilder recurrence then produces 0.75 / 0.25 (RSI 75), followed by
+    // 0.375 / 0.625 (RSI 37.5). Values stay aligned to source candle indices.
+    expect(calculateRsi([1, 2, 1, 2, 1], 2)).toEqual([
+      null, null, 50, 75, 37.5,
+    ]);
+  });
+
+  it('rejects a non-finite close at the shared multi-indicator boundary', () => {
+    const bars = Array.from({ length: 24 }, (_, index) => ({
+      timestamp: index + 1,
+      open: 100,
+      high: 101,
+      low: 99,
+      close: index === 7 ? Number.NaN : 100,
+      volume: 1,
+    }));
+
+    expect(() => calculateIndicators(bars)).toThrow('Bar 7 has a non-finite close value.');
+  });
+
 });
