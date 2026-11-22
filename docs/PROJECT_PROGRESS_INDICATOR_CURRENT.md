@@ -3577,3 +3577,52 @@ No indicator source, calculation, test, hook, renderer or UI changed in Batch 62
 - IP3S Batch 62J-138: PENDING exact-HEAD CI; no numeric score until complete.
 
 ZERO COST. No paid hosting/API/domain, deployment, account creation, production credentials, device or Termux work. main untouched.
+
+
+---
+
+## Batch 62J-140 — WebSocket shutdown race hardening (22 November 2026)
+
+Source/test HEAD: `90fd29cbf7d98ee80ff6ba477bc4f016ec729fd5` on `phase-2/market-data-foundation`.
+
+A source-backed lifecycle defect was corrected in `src/services/ohlcvWebSocketClient.ts`: if ticket renewal rejected after an intentional connection close, the renewal catch path could still report a transport error. The catch branch now returns when connection state is no longer `subscribed`, preserving active-session 401 handling while suppressing false post-shutdown errors.
+
+Regression tests:
+- `src/services/ohlcvWebSocketClient.test.ts`: pending ticket-renewal rejection after intentional close does not invoke `onError`.
+- `src/services/ohlcvStreamSupervisor.test.ts`: late snapshot/update messages after supervisor stop cannot repopulate the market-data store.
+
+The Batch 62J-139 tests remain included: stop during pending ticket issuance, and rapid browser lifecycle transitions without overlapping supervisors.
+
+Changed source/test files in Batch 62J-140:
+- `src/services/ohlcvWebSocketClient.ts`
+- `src/services/ohlcvWebSocketClient.test.ts`
+- `src/services/ohlcvStreamSupervisor.test.ts`
+
+CI on source/test HEAD `90fd29cbf7d98ee80ff6ba477bc4f016ec729fd5` at the time of this record:
+- Automated Tests [44994083255](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44994083255): IN PROGRESS.
+- CodeQL [44994083173](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44994083173): IN PROGRESS.
+- Secret Audit [44994083185](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44994083185): SUCCESS.
+- Zero-cost Android debug APK [44994083097](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44994083097): IN PROGRESS.
+
+No new test is CI-accepted until Automated Tests completes successfully on the exact source/test commit. No final IPS35/IP3S score is assigned while CI is pending.
+
+WebSocket acceptance:
+- Gate 36 remains OPEN for public WSS, live Firebase project and physical Android WebView lifecycle/network acceptance.
+- Gate 25 remains OPEN for authenticated immutable snapshot installation receipts, key lifecycle and owner-host Redis durability.
+- Gate 38 remains OPEN for owner-host metrics persistence, backup/retention, alert and recovery acceptance.
+- Gate 10 remains 0/10 external criteria formally closed.
+
+Indicator ledger unchanged by this WebSocket fix:
+- SMA20 🟨 foundation, first valid index 19.
+- EMA20 🟨 SMA-seeded alpha 2/21, first valid index 19.
+- RSI14 Wilder 🟨 foundation, first valid index 14.
+- MACD12/26/9 🟨 MACD first valid index 25; signal/histogram index 33.
+- Bollinger20,2 🟨 20-close mean ±2 population SD, first valid index 19.
+- Shared Indicator Hook 🟨 backend snapshot/aligned output; not chart-integrated.
+- Footprint 🟧 synthetic educational accumulator only; wait for user reference images and reviewed blueprint.
+- Heatmap 🟥 not implemented; wait for user reference images and reviewed blueprint.
+- Liquidation Maps 🟥 not implemented.
+
+Stage 1 remains 30/40 = 75% provisional. Stages 2–6 remain NOT SCORED. Overall project remains NOT SCORED because stage weights and total acceptance denominator are not approved.
+
+ZERO COST preserved: no paid services, deployment, account creation, production secrets, device/Termux work, dependencies or schema changes. `main` untouched.

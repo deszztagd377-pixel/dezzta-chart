@@ -1903,3 +1903,36 @@ Gate 25 acceptance sequence is now ordered into four executable layers: (A) lega
 No indicator implementation changed: SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain 🟨 foundation; Footprint remains 🟧 synthetic prototype/reference-gated; Heatmap and Liquidation Maps remain 🟥 unimplemented. No implementation progress credit.
 
 Stage 1 remains 30/40 = 75% provisional; Stages 2–6 NOT SCORED/not officially opened; overall project NOT SCORED; Gate 10 0/10 external criteria formally closed. WebSocket Gates 25, 36 and 38 remain OPEN. IP3S Batch 62J-138 PENDING exact-HEAD CI; no numeric score until checks finish. ZERO COST; no paid services, deployment, credentials, device or Termux work; main untouched. See [Batch 62J-138](WORK_CYCLE_2026-11-22_BATCH62J138_GATE25_EXECUTABLE_ACCEPTANCE_SEQUENCE.md).
+
+
+---
+
+## Batch 62J-140 — WebSocket shutdown race hardening (22 November 2026)
+
+No indicator calculation or renderer source changed. This WebSocket cycle receives **zero indicator implementation credit**.
+
+| Indicator/component | Status | Verified state |
+|---|---|---|
+| SMA20 | 🟨 Foundation | 20-close arithmetic mean; first valid index 19 |
+| EMA20 | 🟨 Foundation | SMA-seeded EMA; alpha 2/21; first valid index 19 |
+| RSI14 Wilder | 🟨 Foundation | Wilder smoothing foundation; first valid index 14 |
+| MACD12/26/9 | 🟨 Foundation | MACD first valid index 25; signal/histogram first valid index 33 |
+| Bollinger20,2 | 🟨 Foundation | 20-close mean ±2 population standard deviations; first valid index 19 |
+| Shared Indicator Hook | 🟨 Foundation | Backend snapshot/aligned calculation output; not chart-integrated |
+| Footprint | 🟧 Prototype only | Synthetic educational accumulator; not exchange-native bid/ask truth |
+| Heatmap | 🟥 Not implemented | Reference image(s) and reviewed blueprint required before visual implementation |
+| Liquidation Maps | 🟥 Not implemented | No implementation evidence |
+
+Shared invariants: warm-up nulls; candle-index alignment; prefix causality/no future repaint; invalid/gapped bars never silently become zero; stale output cleared on symbol/venue/dataset/chart/timeframe changes. Footprint OFF preserves normal candle spacing; explicit ON alone switches to spaced cluster layout. Footprint and Heatmap visual implementation waits for user reference image(s) and reviewed blueprint.
+
+Project-wide stage indicator:
+- Stage 1 Foundation/Security/Data Integrity: 🟨 30/40 = 75% provisional.
+- Stage 2 Market Data Infrastructure: ⬜ NOT SCORED/not officially opened.
+- Stage 3 Chart Engine/Timeframe: ⬜ NOT SCORED/not officially opened.
+- Stage 4 Indicators/Analytics: ⬜ NOT SCORED/not officially opened.
+- Stage 5 Professional UI/Interactive Tools: ⬜ NOT SCORED/not officially opened.
+- Stage 6 Hardening/Validation/APK Release: ⬜ NOT SCORED/not officially opened.
+- Overall project: NOT SCORED until six-stage weights and denominator are approved.
+- Gate 10: 0/10 external criteria formally closed.
+
+IPS35/IP3S cycle score: PENDING exact-source-commit Automated Tests and CodeQL. Score dimensions: engineering delta 25; exact-commit automated/security CI 20; blocker isolation 20; canonical documentation 20; ZERO COST/scope integrity 15. No numeric score before CI acceptance.
