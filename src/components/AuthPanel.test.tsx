@@ -54,7 +54,7 @@ describe('Google-only AuthPanel', () => {
     expect(markup).not.toContain('OR USE EMAIL');
     expect(markup).not.toContain('type="email"');
     expect(markup).not.toContain('type="password"');
-    const actionButtons = [...markup.matchAll(/<button\\b[^>]*>/g)].map(([button]) => button);
+    const actionButtons = [...markup.matchAll(/<button\b[^>]*>/g)].map(([button]) => button);
     expect(actionButtons).toHaveLength(1);
     expect(actionButtons[0]).toContain('disabled=""');
   });
