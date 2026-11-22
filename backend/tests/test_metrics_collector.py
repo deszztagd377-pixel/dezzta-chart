@@ -426,3 +426,35 @@ def test_sixteen_independent_collector_instances_can_cold_boot_concurrently(tmp_
     assert snapshot["series"]["http.requests|GET|/health|2xx"] == worker_count
     with sqlite3.connect(path) as db:
         assert db.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+
+def test_sixteen_independent_collectors_retry_connection_pragma_during_repeated_flushes(tmp_path):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+
+    worker_count = 16
+    flushes_per_worker = 8
+    path = str(tmp_path / "concurrent-repeated-flush.sqlite3")
+    collectors = [SQLiteMetricsCollector(path) for _ in range(worker_count)]
+    barrier = Barrier(worker_count)
+
+    with ThreadPoolExecutor(max_workers=worker_count) as pool:
+        for sequence in range(1, flushes_per_worker + 1):
+            request, websocket = snapshots(sequence)
+
+            def flush_worker(index):
+                barrier.wait(timeout=5)
+                return collectors[index].flush(
+                    f"{index + 1:032x}", request, websocket,
+                    now=900 + sequence * 15 + index / 1000,
+                )
+
+            results = list(pool.map(flush_worker, range(worker_count)))
+            assert len(results) == worker_count
+            assert all(result["series"] == 12 for result in results)
+
+    snapshot = SQLiteMetricsCollector(path).snapshot(
+        now=900 + flushes_per_worker * 15 + 20,
+    )
+    assert snapshot["worker_count"] == worker_count
+    assert snapshot["series"]["http.requests|GET|/health|2xx"] == worker_count * flushes_per_worker
+    assert snapshot["series"]["websocket|connections_completed"] == worker_count * flushes_per_worker
