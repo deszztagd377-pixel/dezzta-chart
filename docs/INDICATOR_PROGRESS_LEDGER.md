@@ -1,3 +1,47 @@
+# CURRENT INDICATOR LEDGER — Batch 62J-148 (22 November 2026)
+
+**Branch:** `phase-2/market-data-foundation`  
+**Test source commit:** `79d88d9aa5261dde3f2e31d1e742d45f461e43c2`  
+**Runtime formula changes:** none. **Visual/UI implementation changes:** none.
+
+## New regression coverage
+
+`src/indicators/indicatorCalculations.test.ts` now verifies:
+1. Wilder RSI period-2 seed and recurrence on `[1, 2, 1, 2, 1]`, with exact aligned output `[null, null, 50, 75, 37.5]`.
+2. `calculateIndicators` rejects a non-finite close at source bar index 7 with the explicit error `Bar 7 has a non-finite close value.`
+
+These are test-coverage improvements only. They do not promote any study to chart-rendered or user-configurable status. Acceptance credit remains pending exact-HEAD CI.
+
+## Complete indicator status
+
+| Study / subsystem | Status | Mathematical / data foundation | Remaining work |
+|---|---|---|---|
+| SMA20 | 🟨 Foundation | 20-close arithmetic mean; first valid index 19 | Candlestick overlay, visibility toggle, legend/current value, identity/lifecycle/render/performance tests |
+| EMA20 | 🟨 Foundation | SMA seed; alpha 2/21; first valid index 19 | Overlay, toggle, legend/current value, identity/lifecycle/render/performance tests |
+| RSI14 Wilder | 🟨 Foundation | Initial 14-change mean; Wilder recurrence; first valid index 14; mixed gain/loss regression added | Dedicated 0–100 pane, 30/70 guides, toggle, legend/current value, lifecycle/render tests |
+| MACD12/26/9 | 🟨 Foundation | EMA12−EMA26; MACD first valid index 25; EMA9 signal/histogram first valid index 33 | Dedicated pane, MACD/signal lines, histogram, zero line, toggle/legend/latest values, lifecycle/render tests |
+| Bollinger20,2 | 🟨 Foundation | 20-close mean ±2 population standard deviations; first valid index 19 | Upper/middle/lower overlay, toggle, values, identity/lifecycle/render/performance tests |
+| Shared Indicator Hook | 🟨 Foundation | Exact market-data snapshot; null outside backend ready/degraded; aligned multi-study output | Hook tests, actual chart binding, stale-output clearing, settings/legend integration, identity/lifecycle acceptance |
+| Footprint | 🟧 Prototype only | Synthetic educational accumulator; not exchange-native bid/ask volume | User reference image(s), reviewed blueprint, verified bid/ask data, cluster layout and renderer |
+| Heatmap | 🟥 Not implemented | No accepted depth/liquidity renderer | User reference image(s), verified order-book/depth contract, blueprint, renderer and tests |
+| Liquidation Maps | 🟥 Not implemented | No accepted data/renderer contract | Defensible liquidation source/provenance, calculation methodology, blueprint, renderer and tests |
+
+## Shared mathematical and rendering invariants
+
+- Warm-up remains `null`, never zero.
+- Values remain aligned to the exact source candle index.
+- Prefix-causal: adding future candles cannot alter prior output.
+- Non-finite or invalid bars are rejected; gaps are not silently converted to zero.
+- Clear stale study outputs when symbol, venue, dataset, chart identity or timeframe changes.
+- No repaint using future candles.
+- Chart display, toggles, legends, values, lifecycle, accessibility and performance must each be tested.
+- Footprint OFF keeps ordinary candle spacing; explicit ON alone activates the spaced cluster layout.
+- Footprint/Heatmap visuals require user reference image(s) and scoped blueprint review.
+- No aggregate indicator completion percentage until per-study weights and denominator are approved.
+
+**Indicator completion:** NOT SCORED as an aggregate. Status colors are evidence states, not percentages.
+
+---
 
 ## Batch 62J-147 reconciliation — 22 November 2026
 
