@@ -1,3 +1,22 @@
+## Batch 62J-104 — five remaining Gate 10 tracks and exact-head CI acceptance (22 November 2026)
+
+- Audited source/test HEAD: `a18e963d4cd067fe22ec8d03c653418e003c7fde`.
+- Exact-head Automated Tests [44970436441](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44970436441): **SUCCESS**; frontend 255/255 across 29 files; backend **1,289 passed in 51.98 s**. The five new Batch 62J-103 tests are individually visible as PASSED in the workflow log.
+- Exact-head CodeQL [44970436417](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44970436417): **SUCCESS** (Python + JavaScript/TypeScript). Full Git History Secret Audit [44970436377](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44970436377): **SUCCESS**.
+- Automated Tests also passed frontend/backend dependency audits, frontend source/bundle secret scans, backend container build, shared Redis guard/persistent-volume smoke, configured container scan and report export.
+- Gate 20: repository identity/ticket/entitlement failure matrix verified; live Firebase signed-token E2E and threat-model owner review remain.
+- Gate 25: Redis TLS/ACL guards, atomic ticket/lease operations, exact ticket TTL/NX/digest semantics and CI shared Redis smoke verified; owner-host Redis TLS/ACL, snapshot receipt and persistent failover remain.
+- Gate 31: encrypted SQLite backup, AES-256-GCM/PBKDF2, fresh-path restore, content/schema hashes, wrong-key/tamper/truncation and full application restore drill tests verified; off-host copy, offline key custody and owner-host key-recovery restore remain.
+- Gate 36: WebSocket lifecycle/auth/replay/renewal and frontend client tests verified; public HTTPS/WSS, reverse proxy, live Redis, cross-instance and browser/Android WebView acceptance remain.
+- Gate 38: 899-series/900 cap, same-host SQLite collector, failure isolation and CI benchmark verified; owner-host volume/perimeter/token lifecycle/dashboard/notification/recovery drill remain. Latest synthetic 16-worker startup-staggered benchmark: 512/512 flushes, 899/899 series, 0 retries, SQLite integrity `ok`; peak DB+WAL+SHM 5,744,952 bytes; post-checkpoint 1,126,400 bytes. CI-runner only, not production SLO/host evidence.
+- Gate 10 remains **0/10 formally closed**. 🟨🟩 host/operator-only: Gates 8, 30, 34, 35, 39. 🟧 integration/acceptance: Gates 20, 25, 31, 36, 38.
+- Stage 1 remains **30/40 = 75% provisional**. Stages 2–6 and overall project percentage remain unscored without approved weights/denominators.
+- Indicator implementations unchanged; no indicator progress credit. Full current formulas, warm-up indices, prerequisites and remaining visible work are in `docs/INDICATOR_PROGRESS_LEDGER.md`.
+- Full five-track evidence and remaining acceptance requirements: `docs/WORK_CYCLE_2026-11-22_BATCH62J104_FIVE_REMAINING_GATES_EXACT_HEAD_AUDIT.md`.
+- ZERO COST. No deployment, paid service, production credential, Termux/device operation or `main` modification.
+
+---
+
 ## Batch 62J-103 — WebSocket ticket renewal failure matrix (22 November 2026)
 
 - Active branch: `phase-2/market-data-foundation`; final source/test HEAD: `a18e963d4cd067fe22ec8d03c653418e003c7fde`.
@@ -6,7 +25,7 @@
 - Three new shared-guard ticket tests: SHA-256 digest-only key with exact 90-second TTL and NX write; corrupt stored JSON is consumed and rejected; two concurrent in-memory consumers yield exactly one subject and one `None`.
 - Existing real-Redis single-use integration test now checks `PTTL`: remaining ticket TTL must be positive and no greater than 90,000 ms. Existing tests already covered cross-subject renewal rejection and entitlement revocation during renewal; duplicate candidate tests were removed rather than duplicating coverage.
 - No production source, WebSocket protocol, Firebase identity, Redis runtime or market-data code changed.
-- **CI acceptance remains pending/unverified for this exact HEAD.** The available GitHub combined-status lookup returned no status records, including for the previously documented green source HEAD. No Automated Tests, CodeQL or full-history secret-audit pass is claimed for this cycle.
+- **CI acceptance was subsequently verified for this exact source/test HEAD** by Batch 62J-104: Automated Tests [44970436441](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44970436441) SUCCESS (frontend 255/255; backend 1,289 passed), CodeQL [44970436417](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44970436417) SUCCESS, and Full Git History Secret Audit [44970436377](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44970436377) SUCCESS. All five new tests were individually PASSED.
 - Gate 20 repository evidence improved (renewal invalid-ticket and store-outage handling); Gate 25 improved (ticket TTL, digest key, NX and corrupt-payload behavior); Gate 36 improved (renewal transport failure closure). No gate is closed.
 - Gate 10 remains 0/10 formally closed. 🟨🟩 host/operator-only: Gates 8, 30, 34, 35, 39. 🟧 integration/acceptance: Gates 20, 25, 31, 36, 38.
 - Stage 1 remains 30/40 = 75% provisional. Stages 2–6 and overall project percentage remain unscored without approved weights/denominators.
