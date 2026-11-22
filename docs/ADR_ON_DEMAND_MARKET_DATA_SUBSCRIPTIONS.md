@@ -200,3 +200,36 @@ The complete requested behavior is **not yet implemented**. The gap is broader t
 
 No runtime implementation is made in this addendum because the provider-demand ownership contract, multi-chart support boundary and provider SDK subscription semantics must be resolved first. Do not weaken the existing persistence, replay, sequence, entitlement or lifecycle guarantees.
 
+
+
+## 12. Provider and recurring-zero-cost feasibility audit — Batch 62J-147 (22 November 2026)
+
+The source-level audit was extended to `backend/app/databento_sources.py`, `backend/app/provider.py`, `backend/requirements.txt`, `docs/FREE_MARKET_DATA_SOURCE_POLICY.md` and `docs/MARKET_DATA_SOURCE_INVENTORY_ZERO_COST.md`.
+
+### Verified findings
+
+1. `DatabentoLiveSource` currently creates a Live client, subscribes once to a constructor-supplied fixed tuple of raw symbols with schema `ohlcv-1s`, installs one callback, starts the client and waits for close. The adapter exposes `stop()`; it does not expose a repository-level dynamic add/remove-symbol or subscription-demand API.
+2. The adapter source explicitly states that the real Databento SDK call signatures and behavior have never been executed/verified in this repository. Its test substitutes a fake SDK object and verifies the expected method calls only. This is not live SDK compatibility evidence.
+3. `backend/requirements.txt` permits `databento>=0.88,<1`; it is a range, not a single reproducible SDK version pin.
+4. The existing provider configuration and startup lifecycle are process/configuration scoped. The live symbol tuple is configured before the client starts; it is not reconciled against active chart subscribers.
+5. The repository's zero-cost source policy explicitly excludes Databento from the recurring-$0 baseline: introductory credits are finite, historical use is metered, and live access requires a paid subscription plan. No production Databento credential or entitlement is configured.
+6. The candidate public feeds in the source inventory do not automatically substitute for the current CME futures target. Venue, asset, instrument, feed scope, freshness, display/redistribution rights and terms must match before any alternative is approved.
+
+### Architectural consequences
+
+- On-demand subscriptions reduce unnecessary data consumption; they do **not** convert a metered or paid upstream entitlement into a free feed.
+- The current Databento adapter cannot safely be assumed to support live dynamic subscribe/unsubscribe or multi-user shared upstream reference counting.
+- A local reference-count coordinator alone would be insufficient: it could count downstream demand while the provider continues ingesting a fixed symbol set.
+- A safe integration requires a provider capability contract that distinguishes (a) dynamic subscription, (b) multiplexed subscription, (c) restart-required symbol-set changes, and (d) unsupported behavior. The coordinator must use only a verified capability.
+- Before enabling any provider, the owner must approve a recurring-$0 data source with compatible target instruments and display/redistribution rights. If none qualifies, the correct behavior is unavailable/demo state, not silent use of Databento credits or a paid endpoint.
+
+### Required next verification gates
+
+1. Identify a deterministic exact Databento SDK version from a lockfile or approved pin, then validate its documented and actual dynamic subscription API in an isolated integration environment. No real key, production feed or paid usage is authorized by this step.
+2. If dynamic symbol changes are unsupported or require unsafe restart behavior, document a bounded restart/reconcile strategy and prove no event loss beyond the supported snapshot/replay contract.
+3. Evaluate recurring-$0 source alternatives against the actual product instrument universe. Do not map crypto spot symbols or US IEX equities to CME futures and call them equivalent.
+4. Add contract tests for capability declarations, concurrent acquire/release, duplicate acquire, unknown release, last-subscriber shutdown, reconnect reconciliation and provider failure. These tests must be connected to the real provider adapter before any Stage 2 acceptance credit.
+5. Only then implement and integrate the provider-demand coordinator and client multi-chart owner model.
+
+**Decision:** No runtime source change is made in this batch. This is a deliberate safety stop, not a claim of implementation. The Stage 2 On-demand requirement remains mandatory and open. The ZERO COST gate currently blocks enabling the existing Databento live source as a sustainable production baseline.
+
