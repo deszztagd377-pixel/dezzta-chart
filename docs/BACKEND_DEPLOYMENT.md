@@ -126,13 +126,23 @@ docker build -f backend/Dockerfile -t dezzta-chart-backend:local backend
 docker run --rm -p 8000:8000 \
   -e APP_ENV=production \
   -e REDIS_URL \
+  -e REDIS_TLS_CA_CERTS \
+  -e INSTRUMENT_REGISTRY_DB_PATH=/data/dezzta-chart.sqlite3 \
   -e FIREBASE_PROJECT_ID \
   -e CORS_ALLOWED_ORIGINS=https://dezzta-chart.vercel.app \
   -v dezzta-chart-data:/data \
   dezzta-chart-backend:local
 ```
 
-The API intentionally fails startup if the Redis connection cannot be
+For a private Redis certificate authority, mount its PEM CA bundle read-only
+inside the container and set `REDIS_TLS_CA_CERTS` to that absolute in-container
+path. The URL hostname must still match the certificate SAN; CA trust does not
+disable hostname verification. If the variable is empty, the operating-system
+CA trust store is used.
+
+The database path is explicitly set to `/data/dezzta-chart.sqlite3` so the
+SQLite stores use the mounted persistent volume rather than the container
+filesystem. The API intentionally fails startup if the Redis connection cannot be
 established. Do not replace this with a local in-memory limiter or use an
 unencrypted Redis URL in production. The named Docker volume above is local to
 the Docker host; it is not an off-host backup and must be included in the
