@@ -9,6 +9,7 @@ import hashlib
 import json
 import secrets
 import time
+from pathlib import Path
 
 from app.websocket_tickets import WEBSOCKET_TICKET_PURPOSE, WEBSOCKET_TICKET_TTL_SECONDS
 from typing import Any
@@ -120,7 +121,7 @@ class RedisSharedGuard:
             raise ValueError("A Redis URL or injected Redis client is required.")
         if redis_tls_ca_certs and (
             not isinstance(redis_tls_ca_certs, str)
-            or not __import__("pathlib").Path(redis_tls_ca_certs).is_absolute()
+            or not Path(redis_tls_ca_certs).is_absolute()
         ):
             raise ValueError("redis_tls_ca_certs must be an absolute CA bundle path.")
         if redis_tls_ca_certs and redis_url and not redis_url.lower().startswith("rediss://"):
