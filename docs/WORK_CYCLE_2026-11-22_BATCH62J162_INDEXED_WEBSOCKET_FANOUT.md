@@ -108,3 +108,11 @@ Indicator acceptance invariants:
 - Previously, the UUID and clock were evaluated separately inside the per-subscriber loop, giving different identifiers/timestamps to panels receiving the same logical publication.
 - The same-series multi-panel regression test now verifies identical event IDs and emission timestamps for both recipients.
 - This preserves durable `eventId` values when supplied by the outbox and generates one fallback ID per publication otherwise.
+
+
+## Indicator hook identity audit
+- Audited `src/indicators/useMarketIndicators.ts` after the chart's migration to the keyed per-series market-data store.
+- Found that the shared indicator hook still read the legacy global `useMarketDataSnapshot()`, so it could not reliably follow the selected canonical series after the multi-series chart migration.
+- Migrated the hook to `useMarketDataSeriesSnapshot(identity)`; identity is explicit and defaults to null, which safely produces no calculations when no chart series is selected.
+- Added hook-level tests for no-selection behavior, exact keyed snapshot calculation, simultaneous panel isolation, and stale-output clearing when a series becomes unavailable.
+- Indicator calculations and renderer UI were not changed. This advances shared-hook correctness only; SMA/EMA/RSI/MACD/Bollinger visual acceptance remains open.

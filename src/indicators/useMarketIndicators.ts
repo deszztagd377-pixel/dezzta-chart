@@ -1,13 +1,14 @@
 import { useMemo } from 'react';
 import { calculateIndicators } from './indicatorCalculations';
-import { useMarketDataSnapshot } from '../services/useMarketDataSnapshot';
+import type { MarketSeriesIdentity } from '../services/marketDataStore';
+import { useMarketDataSeriesSnapshot } from '../services/useMarketDataSeriesSnapshot';
 
 /**
- * Returns indicator series only for the exact validated backend snapshot.
- * DEMO, loading, unavailable, and error states intentionally produce null.
+ * Returns indicators only for the exact canonical series selected by the
+ * owning chart panel. Demo, loading, unavailable, and error states return null.
  */
-export function useMarketIndicators() {
-  const marketData = useMarketDataSnapshot();
+export function useMarketIndicators(identity: MarketSeriesIdentity | null = null) {
+  const marketData = useMarketDataSeriesSnapshot(identity);
   const indicators = useMemo(() => {
     if (
       marketData.source !== 'backend' ||
