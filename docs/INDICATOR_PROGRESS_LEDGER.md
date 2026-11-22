@@ -1,3 +1,25 @@
+## Batch 62J-103 checkpoint — indicator state unchanged (22 November 2026)
+
+WebSocket ticket renewal and Redis ticket-store tests are backend authentication/transport work. No indicator formula, calculation module, market-data indicator contract, shared indicator hook, chart renderer, chart UI, or indicator test changed. **No indicator progress credit is awarded.**
+
+Current complete indicator matrix and acceptance criteria:
+
+- **SMA20 🟨 Foundation** — arithmetic mean of the latest 20 closes; first valid candle index 19. Remaining: visible chart overlay, independent enable/disable toggle, legend/current value, stale-series clearing, renderer and lifecycle tests.
+- **EMA20 🟨 Foundation** — SMA-seeded EMA with α = 2/(20+1) = 2/21; first valid index 19. Remaining: visible overlay, toggle, legend/current value, stale clearing, renderer and lifecycle tests.
+- **RSI14 🟨 Foundation** — Wilder-smoothed average gains/losses over 14 close changes; first valid index 14. Remaining: dedicated 0–100 pane, 30/70 guides, toggle, legend/current value, stale clearing and renderer tests.
+- **MACD 12/26/9 🟨 Foundation** — EMA12 − EMA26; MACD first valid index 25, signal and histogram first valid index 33. Remaining: dedicated pane, MACD/signal lines, histogram, zero guide, toggle, legend/current values, stale clearing and renderer tests.
+- **Bollinger20,2 🟨 Foundation** — 20-close mean ± 2 × population standard deviation; first valid index 19. Remaining: upper/middle/lower visible overlay, toggle, displayed values, stale clearing and renderer tests.
+- **Shared Indicator Hook 🟨 Foundation** — validated candle-index-aligned indicator snapshot. Remaining: binding to chart identity/timeframe, loading/error lifecycle, stale clearing, per-series isolation and renderer integration.
+- **Footprint 🟧 Simulated/reference-gated** — current accumulator is simulated/educational, not exchange-native bid/ask truth. Before visual implementation: user-provided reference image and reviewed blueprint. Required behavior: OFF preserves ordinary candle spacing; explicit ON switches to spaced cluster layout with readable bid/ask cells. Remaining: validated source/data contract, cluster renderer, toggle, scale/interaction, performance and lifecycle acceptance.
+- **Heatmap 🟥 Not implemented** — requires zero-cost source feasibility, user reference image, validated data contract, reviewed blueprint, renderer, legend/scale, toggle and lifecycle tests.
+- **Liquidation Maps 🟥 Not implemented** — requires zero-cost source feasibility, validated calculation/data contract, user reference/blueprint, renderer, scale/legend, toggle and lifecycle tests. Do not fabricate liquidation levels from unavailable data.
+
+**Shared correctness invariants:** warm-up outputs remain null (never zero); every output aligns to the source candle index; no future-candle repaint; stale series clear on symbol, venue, dataset, chart or timeframe changes; calculation gaps and invalid source bars must not be silently converted into zero values. Footprint OFF must preserve standard candle layout. Visible indicator implementation remains behind the approved stage gate and the required reference/blueprint prerequisites.
+
+Aggregate indicator percentage remains unscored because approved weights and denominators do not exist.
+
+---
+
 ## Batch 62J-98 checkpoint — indicator state unchanged (21 November 2026)
 
 Gate 25 gateway runtime construction, WebSocket transport audit and Gate 38 observability benchmarking are backend infrastructure work. No indicator formula, calculation module, data contract, shared hook, chart renderer, chart UI or indicator test changed. **No indicator progress credit is awarded.**
