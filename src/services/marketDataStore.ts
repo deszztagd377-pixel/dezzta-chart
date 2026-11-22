@@ -14,6 +14,35 @@ export interface MarketSeriesIdentity {
   calendarVersion?: string;
 }
 
+/**
+ * Stable, collision-safe key for one canonical market-data series.
+ * Defaults are normalized so omitted and explicit default metadata identify
+ * the same series. Keep this helper as the single identity comparison contract
+ * for the store and every transport owner.
+ */
+export function getMarketSeriesIdentityKey(identity: MarketSeriesIdentity): string {
+  return JSON.stringify([
+    identity.provider ?? 'databento',
+    identity.seriesType ?? 'contract',
+    identity.dataset,
+    identity.publisherId,
+    identity.instrumentId,
+    identity.rawSymbol,
+    identity.timeframe,
+    identity.bucketPolicy ?? getBucketPolicyForTimeframe(identity.timeframe),
+    identity.calendarId ?? '',
+    identity.calendarVersion ?? '',
+  ]);
+}
+
+export function isSameMarketSeriesIdentity(
+  left: MarketSeriesIdentity | null,
+  right: MarketSeriesIdentity,
+): boolean {
+  return left !== null &&
+    getMarketSeriesIdentityKey(left) === getMarketSeriesIdentityKey(right);
+}
+
 export type MarketDataStatus =
   | 'demo'
   | 'loading'
@@ -165,18 +194,6 @@ export function publishMarketDataSnapshot(input: {
 }
 
 
-function sameIdentity(left: MarketSeriesIdentity, right: MarketSeriesIdentity): boolean {
-  return (left.provider ?? 'databento') === (right.provider ?? 'databento') &&
-    (left.seriesType ?? 'contract') === (right.seriesType ?? 'contract') &&
-    left.dataset === right.dataset &&
-    left.publisherId === right.publisherId &&
-    left.instrumentId === right.instrumentId &&
-    left.rawSymbol === right.rawSymbol &&
-    left.timeframe === right.timeframe &&
-    (left.bucketPolicy ?? getBucketPolicyForTimeframe(left.timeframe)) === (right.bucketPolicy ?? getBucketPolicyForTimeframe(right.timeframe)) &&
-    (left.calendarId ?? '') === (right.calendarId ?? '') &&
-    (left.calendarVersion ?? '') === (right.calendarVersion ?? '');
-}
 
 /**
  * Apply one already transport-validated backend candle revision to the shared
@@ -201,7 +218,7 @@ export function publishMarketDataUpdate(input: {
   ) {
     throw new Error('Incremental market updates require an active backend snapshot.');
   }
-  if (!sameIdentity(current.identity, input.identity)) {
+  if (!isSameMarketSeriesIdentity(current.identity, input.identity)) {
     throw new Error('Incremental market update does not match the active series identity.');
   }
 

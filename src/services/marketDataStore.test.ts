@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { MarketSeriesIdentity } from './marketDataStore';
 import {
+  getMarketSeriesIdentityKey,
+  isSameMarketSeriesIdentity,
   getMarketDataSnapshot,
   publishMarketDataSnapshot,
   publishMarketDataUpdate,
@@ -23,6 +25,25 @@ const bars = [
 afterEach(() => resetMarketDataSnapshot(null, 'demo', 'test reset'));
 
 describe('shared market data store', () => {
+  it('uses one normalized, collision-safe canonical key across store and stream ownership', () => {
+    const explicitDefaults = {
+      ...identity,
+      provider: 'databento',
+      seriesType: 'contract' as const,
+      bucketPolicy: 'UTC_LEGACY' as const,
+      calendarId: '',
+      calendarVersion: '',
+    };
+    expect(getMarketSeriesIdentityKey(identity)).toBe(getMarketSeriesIdentityKey(explicitDefaults));
+    expect(isSameMarketSeriesIdentity(identity, explicitDefaults)).toBe(true);
+    expect(isSameMarketSeriesIdentity(identity, { ...identity, instrumentId: 124 })).toBe(false);
+    expect(isSameMarketSeriesIdentity(identity, { ...identity, timeframe: '5m' })).toBe(false);
+
+    const delimiterLeft = { ...identity, dataset: 'A|B', rawSymbol: 'C' };
+    const delimiterRight = { ...identity, dataset: 'A', rawSymbol: 'B|C' };
+    expect(getMarketSeriesIdentityKey(delimiterLeft)).not.toBe(getMarketSeriesIdentityKey(delimiterRight));
+  });
+
   it('publishes immutable exact-series backend bars for subscribers', () => {
     let notifications = 0;
     const unsubscribe = subscribeMarketData(() => { notifications += 1; });

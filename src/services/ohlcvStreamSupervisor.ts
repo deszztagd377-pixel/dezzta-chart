@@ -1,5 +1,7 @@
-import type { MarketSeriesIdentity } from './marketDataStore';
-import { getBucketPolicyForTimeframe } from '../utils/ohlcvBucketPolicy';
+import {
+  isSameMarketSeriesIdentity,
+  type MarketSeriesIdentity,
+} from './marketDataStore';
 import {
   getMarketDataSnapshot,
   publishMarketDataSnapshot,
@@ -43,19 +45,6 @@ export interface OhlcvStreamSupervisor {
 // supervisor owner. Replacing a chart selection stops the previous owner first.
 let activeSupervisorStop: (() => void) | null = null;
 
-function sameIdentity(left: MarketSeriesIdentity | null, right: MarketSeriesIdentity): boolean {
-  return left !== null &&
-    (left.provider ?? 'databento') === (right.provider ?? 'databento') &&
-    (left.seriesType ?? 'contract') === (right.seriesType ?? 'contract') &&
-    left.dataset === right.dataset &&
-    left.publisherId === right.publisherId &&
-    left.instrumentId === right.instrumentId &&
-    left.rawSymbol === right.rawSymbol &&
-    left.timeframe === right.timeframe &&
-    (left.bucketPolicy ?? getBucketPolicyForTimeframe(left.timeframe)) === (right.bucketPolicy ?? getBucketPolicyForTimeframe(right.timeframe)) &&
-    (left.calendarId ?? '') === (right.calendarId ?? '') &&
-    (left.calendarVersion ?? '') === (right.calendarVersion ?? '');
-}
 
 /**
  * Owns the authenticated stream lifecycle and bridges validated events into
