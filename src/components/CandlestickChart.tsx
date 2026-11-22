@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import {
   createChart,
@@ -8,7 +8,7 @@ import type { CandlestickData, IChartApi } from 'lightweight-charts';
 import type { Timeframe } from '../types';
 import type { FuturesContractDto } from '../types/instrumentCatalogApi';
 import { demoCandles, getDemoCandleValidationErrors } from '../data/demoCandles';
-import { startOhlcvStreamSupervisor } from '../services/ohlcvStreamSupervisor';
+import { ohlcvSeriesSupervisorRegistry } from '../services/ohlcvSeriesSupervisorRegistry';
 import { getOhlcvStreamLifecycle } from '../services/ohlcvStreamLifecycle';
 import { resetMarketDataSnapshot, isSameMarketSeriesIdentity } from '../services/marketDataStore';
 import { marketDataSeriesStore } from '../services/marketDataSeriesStore';
@@ -34,6 +34,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
   marketDataApiBaseUrl,
 }) => {
   const { user, getIdToken } = useAuth();
+  const panelOwnerId = useId();
   const marketDataIdentity = useMemo(() => selectedContract ? ({
     dataset: selectedContract.dataset,
     publisherId: selectedContract.publisher_id,
@@ -272,7 +273,6 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       status: 'loading' | 'unavailable',
       detail: string,
     ) => {
-      resetMarketDataSnapshot(identity, status, detail);
       marketDataSeriesStore.reset(identity, status, detail);
     };
 
@@ -314,7 +314,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
     setMarketDataDetail(`Authenticating WebSocket stream for ${identity.rawSymbol} · ${timeframe}.`);
     resetSelectedSeries('loading', 'Waiting for an authenticated WebSocket snapshot.');
 
-    const supervisor = startOhlcvStreamSupervisor({
+    const lease = ohlcvSeriesSupervisorRegistry.acquire({
       baseUrl: marketDataApiBaseUrl,
       identity,
       canonicalInstrumentId: selectedContract.canonical_instrument_id,
@@ -346,9 +346,9 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
         setMarketDataStatus('error');
         setMarketDataDetail(error.message);
       },
-    });
+    }, panelOwnerId);
 
-    return () => supervisor.stop();
+    return () => lease.release();
   }, [
     isChartReady,
     marketDataApiBaseUrl,
