@@ -234,6 +234,47 @@ describe('keyed market-data series store', () => {
     expect(store.getSeriesCount()).toBe(2);
   });
 
+  it('bounds each series to its configured bar window and reuses unchanged frozen bars', () => {
+    const store = new MarketDataSeriesStore(2, 2);
+    const threeBars = [
+      bars[0],
+      bars[1],
+      { timestamp: 1_800_000_120, open: 102, high: 104, low: 101, close: 103, volume: 14 },
+    ];
+    store.publishSnapshot({ identity: nq, status: 'ready', bars: threeBars.slice(0, 2) });
+    const before = store.getSnapshot(nq);
+
+    store.publishUpdate({ identity: nq, bar: threeBars[2] });
+    const after = store.getSnapshot(nq);
+
+    expect(after.bars).toHaveLength(2);
+    expect(after.bars[0]).toBe(before.bars[1]);
+    expect(after.bars[1].timestamp).toBe(threeBars[2].timestamp);
+    expect(Object.isFrozen(after.bars[1])).toBe(true);
+    expect(after.lastChange.type).toBe('update');
+    if (after.lastChange.type === 'update') {
+      expect(after.lastChange.bar).toBe(after.bars[1]);
+    }
+
+    const stableSnapshot = store.getSnapshot(nq);
+    expect(() => store.publishUpdate({
+      identity: nq,
+      bar: { ...bars[0], timestamp: 1_799_999_940 },
+    })).toThrow(/older than the retained per-series bar window/);
+    expect(store.getSnapshot(nq)).toBe(stableSnapshot);
+  });
+
+  it('rejects snapshots larger than the configured per-series bar window', () => {
+    const store = new MarketDataSeriesStore(2, 1);
+    expect(() => store.publishSnapshot({ identity: nq, status: 'ready', bars })).toThrow(/retention limit/);
+    expect(store.hasSeries(nq)).toBe(false);
+  });
+
+  it('rejects per-series bar capacities above the server hard limit', () => {
+    expect(() => new MarketDataSeriesStore(2, 5_001)).toThrow(/between 1 and 5000/);
+    expect(new MarketDataSeriesStore(2, 2).getBarCapacity()).toBe(2);
+  });
+
   it('isolates listener failures so one panel cannot block another', () => {
     const store = new MarketDataSeriesStore();
     let healthyPanel = 0;
