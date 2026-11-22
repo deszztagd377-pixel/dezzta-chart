@@ -335,3 +335,105 @@ def test_decryption_rejects_symlink_destination_without_touching_target(
     if target_exists:
         assert target.read_bytes() == b"preserve-existing-target"
     assert list(tmp_path.glob(".restored.bin.*.encrypted-backup.tmp")) == []
+
+
+def test_encrypted_restore_round_trip_preserves_real_ohlcv_and_replay_outbox(tmp_path):
+    """Exercise the complete authenticated backup/restore chain on the real store."""
+    from decimal import Decimal
+
+    from app.ohlcv import OhlcvBar
+    from app.ohlcv_store import SQLiteOhlcvStore
+    from app.sqlite_backup import (
+        create_consistent_sqlite_backup,
+        restore_consistent_sqlite_backup,
+    )
+
+    source = tmp_path / "live" / "dezzta-chart.sqlite3"
+    snapshot = tmp_path / "snapshot" / "dezzta-chart.sqlite3"
+    encrypted = tmp_path / "off-host" / "dezzta-chart.sqlite3.enc"
+    authenticated_snapshot = tmp_path / "authenticated" / "dezzta-chart.sqlite3"
+    restored = tmp_path / "fresh-restore" / "dezzta-chart.sqlite3"
+
+    source.parent.mkdir(parents=True)
+    live_store = SQLiteOhlcvStore(str(source))
+    original = OhlcvBar(
+        provider="test-provider",
+        dataset="TEST.DATA",
+        publisher_id=1,
+        instrument_id=9001,
+        raw_symbol="ESZ6",
+        series_type="contract",
+        timeframe="1m",
+        ts_start_ns=60_000_000_000,
+        open=Decimal("100"),
+        high=Decimal("103"),
+        low=Decimal("99"),
+        close=Decimal("101.000000000000000001"),
+        volume=Decimal("12.500000000000000009"),
+        ts_event_ns=1_790_000_000_123_456_789,
+        ts_received_ns=1_790_000_000_123_456_799,
+        sequence=1,
+        sequence_origin="local",
+        origin="provider",
+        completeness="unknown",
+    )
+    assert live_store.apply(original) == "inserted"
+    assert live_store.outbox_high_water() == 1
+
+    # SQLite Online Backup -> AES-256-GCM artifact -> authenticated plaintext
+    # snapshot -> verified fresh-path SQLite restore.
+    create_consistent_sqlite_backup(source, snapshot)
+    encrypt_backup_file(snapshot, encrypted, PASSPHRASE)
+    assert encrypted.read_bytes() != snapshot.read_bytes()
+    decrypt_backup_file(encrypted, authenticated_snapshot, PASSPHRASE)
+    restore_consistent_sqlite_backup(authenticated_snapshot, restored)
+
+    recovered = SQLiteOhlcvStore(str(restored))
+    assert recovered.load_bars() == [original]
+    assert recovered.outbox_high_water() == 1
+
+    event = recovered.outbox_event_for_bar(original)
+    assert event is not None
+    cursor = int(event["cursor"])
+    assert cursor == 1
+    assert recovered.outbox_event_id(cursor) == event["eventId"]
+
+    replay = recovered.replay_outbox(
+        after_cursor=0,
+        provider=original.provider,
+        dataset=original.dataset,
+        publisher_id=original.publisher_id,
+        instrument_id=original.instrument_id,
+        series_type=original.series_type,
+        raw_symbol=original.raw_symbol,
+        timeframe=original.timeframe,
+        bucket_policy=original.bucket_policy,
+        limit=10,
+    )
+    assert replay["status"] == "ok"
+    assert [item["cursor"] for item in replay["events"]] == [1]
+    assert replay["next_cursor"] == 1
+    assert replay["high_water"] == 1
+
+    # Continue the sequence after restore to prove the recovered outbox is
+    # operational, not merely readable.
+    from dataclasses import replace
+
+    continued = replace(
+        original,
+        ts_start_ns=120_000_000_000,
+        open=Decimal("101"),
+        high=Decimal("104"),
+        low=Decimal("100"),
+        close=Decimal("102"),
+        volume=Decimal("13"),
+        ts_event_ns=original.ts_event_ns + 60_000_000_000,
+        ts_received_ns=original.ts_received_ns + 60_000_000_000,
+        sequence=2,
+    )
+    assert recovered.apply(continued) == "inserted"
+    assert recovered.outbox_high_water() == 2
+    assert recovered.load_bars() == [original, continued]
+    assert list(tmp_path.rglob("*.encrypted-backup.tmp")) == []
+    assert list(tmp_path.rglob("*.sqlite-backup.tmp")) == []
+    assert list(tmp_path.rglob("*.sqlite-restore.tmp")) == []
