@@ -31,10 +31,34 @@ export interface PublishSeriesSnapshotInput {
 export class MarketDataSeriesStore {
   private readonly entries = new Map<string, SeriesEntry>();
 
+  private readonly maxSeriesEntries: number;
+
+  constructor(maxSeriesEntries = 32) {
+    if (!Number.isSafeInteger(maxSeriesEntries) || maxSeriesEntries < 1) {
+      throw new Error('Market-data series store capacity must be a positive safe integer.');
+    }
+    this.maxSeriesEntries = maxSeriesEntries;
+  }
+
   private getEntry(identity: MarketSeriesIdentity): SeriesEntry {
     validateMarketSeriesIdentity(identity);
     const key = getMarketSeriesIdentityKey(identity);
     let entry = this.entries.get(key);
+    if (entry) {
+      // Map insertion order is the deterministic least-recently-used order.
+      this.entries.delete(key);
+      this.entries.set(key, entry);
+      return entry;
+    }
+
+    if (this.entries.size >= this.maxSeriesEntries) {
+      const evictable = [...this.entries.entries()].find(([, candidate]) => candidate.listeners.size === 0);
+      if (!evictable) {
+        throw new Error('Market-data series store capacity is exhausted by active chart subscribers.');
+      }
+      this.entries.delete(evictable[0]);
+    }
+
     if (!entry) {
       const frozenIdentity = Object.freeze({ ...identity });
       const snapshot: MarketDataSnapshot = Object.freeze({
@@ -140,6 +164,10 @@ export class MarketDataSeriesStore {
 
   getSeriesCount(): number {
     return this.entries.size;
+  }
+
+  getCapacity(): number {
+    return this.maxSeriesEntries;
   }
 
   getSubscriberCount(identity: MarketSeriesIdentity): number {
