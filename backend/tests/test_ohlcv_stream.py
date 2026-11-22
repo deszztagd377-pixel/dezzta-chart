@@ -396,8 +396,22 @@ def test_stream_hub_rejects_updates_when_any_series_identity_dimension_differs()
             replace(make_bar(1), provider="provider-b"),
             replace(make_bar(1), series_type="continuous"),
             replace(make_bar(1), bucket_policy="UTC_FIXED_V1"),
-            replace(make_bar(1), calendar_id="CME"),
-            replace(make_bar(1), calendar_version="2026a"),
+            # Exchange calendar metadata is valid only with the session policy
+            # and a session timeframe; keep these negative fixtures valid.
+            replace(
+                make_bar(0),
+                timeframe="1d",
+                bucket_policy="CME_SESSION_V1",
+                calendar_id="CME",
+                calendar_version="2026a",
+            ),
+            replace(
+                make_bar(0),
+                timeframe="1d",
+                bucket_policy="CME_SESSION_V1",
+                calendar_id="CME",
+                calendar_version="2026b",
+            ),
         ]
 
         for mismatched_bar in mismatches:
