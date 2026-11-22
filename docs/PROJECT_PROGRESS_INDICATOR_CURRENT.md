@@ -3,7 +3,8 @@
 **Target date corrected by project owner: 24 December 2026.** From 22 November, 32 calendar days remain after today through 24 December. This is a delivery target, not a guaranteed completion claim.
 
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest inspected HEAD at dashboard update:** `cb708c3e6357c59ef7a61fcb5fc5c304b014d62a`  
+**Latest fully CI-verified code/test HEAD:** `754e1d9edc270e110161662aad83b6fac4a792bc`  
+**WebSocket test correction commit:** `cb708c3e6357c59ef7a61fcb5fc5c304b014d62a`  
 **Batch 62J-148 test commit:** `79d88d9aa5261dde3f2e31d1e742d45f461e43c2`  
 **Batch 62J-149 WebSocket test commit:** `ed7f22a00b71223d0dd7ed280aadddd8a30cf6e1`  
 **Main:** untouched.
@@ -36,7 +37,15 @@ This is a downstream per-client fan-out regression test, not proof of upstream d
 
 ### Batch 62J-150 correction
 
-Test-only change at cb708c3e6357c59ef7a61fcb5fc5c304b014d62a: consume and verify subscriber A's first delivered event before unsubscribe, then verify no subsequent update is delivered to A while subscriber B continues. No production runtime code changed. New exact-HEAD CI is pending; previous parent results do not qualify the correction commit.
+Test-only change at cb708c3e6357c59ef7a61fcb5fc5c304b014d62a: consume and verify subscriber A's first delivered event before unsubscribe, then verify no subsequent update is delivered to A while subscriber B continues. No production runtime code changed.
+
+Correction verified on exact CI HEAD 754e1d9edc270e110161662aad83b6fac4a792bc:
+- Automated Tests [45018667056](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45018667056): SUCCESS — backend 1,298 passed, 1 skipped; frontend tests/build, Android preflight/publisher, SQLite benchmarks, dependency audits, backend container build/smoke and vulnerability scan succeeded.
+- CodeQL [45018667061](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45018667061): SUCCESS.
+- Full Git History Secret Audit [45018667128](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45018667128): SUCCESS.
+- OCI ARM64 [45018667069](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45018667069): SUCCESS.
+
+OCI qualification: image build/smoke only, not an OCI tenancy/VM deployment, public hostname, TLS/WSS endpoint or real Android acceptance.
 ## Stage and Gate accounting
 
 | Stage | Verified status |

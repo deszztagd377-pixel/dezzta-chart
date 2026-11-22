@@ -22,7 +22,13 @@ No production runtime code, queue semantics, API contract or provider behavior c
 
 At failing HEAD 041da77cb9ce95e083f8851614928d0de0994ad4: Automated Tests failed solely on the incorrect queue precondition; CodeQL Python and JavaScript/TypeScript succeeded; OCI native ARM64 image build and smoke test succeeded; Full Git-history Secret Audit succeeded.
 
-The correction commit cb708c3e6357c59ef7a61fcb5fc5c304b014d62a triggers new exact-HEAD CI. Earlier green results do not substitute for the new commit. Do not call the correction accepted until required workflows complete on the final branch HEAD.
+Correction test commit cb708c3e6357c59ef7a61fcb5fc5c304b014d62a was verified as an ancestor of exact CI HEAD 754e1d9edc270e110161662aad83b6fac4a792bc. All four workflows completed SUCCESS on that exact HEAD:
+- Automated Tests [45018667056](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45018667056): SUCCESS. Backend pytest: 1,298 passed, 1 skipped. Frontend unit tests/build, Android host preflight/publisher tests, frontend dependency audit, synthetic SQLite outbox and metrics benchmarks, backend dependency audit, backend image build, container smoke test and image vulnerability scan all succeeded. The container vulnerability report artifact was uploaded.
+- CodeQL [45018667061](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45018667061): SUCCESS for Python and JavaScript/TypeScript.
+- Full Git History Secret Audit [45018667128](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45018667128): SUCCESS.
+- OCI ARM64 [45018667069](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45018667069): SUCCESS; native ARM64 image build and unprivileged/persistent-volume smoke test passed.
+
+CI result applies to exact HEAD 754e1d9edc270e110161662aad83b6fac4a792bc. It is not an OCI VM deployment, public hostname, TLS/WSS endpoint or Android-device acceptance.
 
 ## Complete indicator progress — unchanged
 
@@ -60,3 +66,16 @@ This correction improves evidence for downstream per-client disconnect isolation
 ## ZERO COST and release boundary
 
 No paid service, provider, account, credential, cloud resource, deployment, payment method, device/Termux operation or main change. OCI CI remains image-build/smoke evidence, not an installed OCI VM, public hostname, TLS/WSS endpoint or production server. Target remains 24 December 2026; it is not a guaranteed delivery claim.
+## IP3S — significant work-cycle progress score
+
+**Batch 62J-150: 90/100.** This is a per-cycle delivery-quality score, not project completion.
+
+| Dimension | Score | Basis |
+|---|---:|---|
+| Verified engineering delta | 15/25 | Corrected and strengthened deterministic subscriber-isolation regression; no production runtime change |
+| Exact-HEAD tests/security CI | 20/20 | Automated Tests, CodeQL, Secret Audit and OCI ARM64 all succeeded on HEAD 754e1d9 |
+| Blocker reduction | 20/20 | Sole failing backend assertion was traced to an incorrect queued-message precondition, corrected, and backend suite passed |
+| Canonical documentation | 20/20 | Work-cycle report and full indicator/project dashboard reconciled |
+| Scope and ZERO COST integrity | 15/15 | Correct branch, no main changes, no paid resources or unapproved deployment |
+
+Total: 15 + 20 + 20 + 20 + 15 = 90/100. No Stage 2, indicator-rendering or external Gate 10 closure is inferred from this score.
