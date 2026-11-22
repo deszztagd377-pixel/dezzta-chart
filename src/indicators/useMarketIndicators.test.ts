@@ -117,6 +117,36 @@ describe('useMarketIndicators keyed series integration', () => {
     expect(marketDataSeriesStore.getSubscriberCount(secondIdentity)).toBe(1);
   });
 
+  it('shares one frozen calculation result across panels on the same snapshot revision', () => {
+    const container = document.createElement('div');
+    const root = createRoot(container);
+    roots.push(root);
+    const observed: Array<ReturnType<typeof useMarketIndicators>['indicators']> = [];
+
+    function Probe() {
+      const result = useMarketIndicators(firstIdentity);
+      observed.push(result.indicators);
+      return createElement('span', null, result.indicators ? 'calculated' : 'pending');
+    }
+
+    act(() => root.render(createElement(
+      'div',
+      null,
+      createElement(Probe),
+      createElement(Probe),
+    )));
+    act(() => marketDataSeriesStore.publishSnapshot({
+      identity: firstIdentity, status: 'ready', bars: makeBars(100),
+    }));
+
+    const computed = observed.filter((value) => value !== null);
+    expect(computed).toHaveLength(2);
+    expect(computed[0]).toBe(computed[1]);
+    expect(Object.isFrozen(computed[0])).toBe(true);
+    expect(Object.isFrozen(computed[0]?.sma20)).toBe(true);
+    expect(Object.isFrozen(computed[0]?.macd[0])).toBe(true);
+  });
+
   it('clears indicator output when the selected series becomes unavailable', () => {
     const container = document.createElement('div');
     const root = createRoot(container);

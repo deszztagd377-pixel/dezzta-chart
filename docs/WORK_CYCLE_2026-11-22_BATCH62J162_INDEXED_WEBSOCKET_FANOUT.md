@@ -116,3 +116,12 @@ Indicator acceptance invariants:
 - Migrated the hook to `useMarketDataSeriesSnapshot(identity)`; identity is explicit and defaults to null, which safely produces no calculations when no chart series is selected.
 - Added hook-level tests for no-selection behavior, exact keyed snapshot calculation, simultaneous panel isolation, and stale-output clearing when a series becomes unavailable.
 - Indicator calculations and renderer UI were not changed. This advances shared-hook correctness only; SMA/EMA/RSI/MACD/Bollinger visual acceptance remains open.
+
+
+## Shared indicator calculation reuse
+- Added a per-snapshot `WeakMap` cache to `useMarketIndicators`.
+- Panels subscribed to the same immutable canonical snapshot now reuse one indicator calculation result for that revision rather than independently recalculating SMA/EMA/RSI/MACD/Bollinger for every panel.
+- Cached arrays and nested MACD/Bollinger point objects are frozen to prevent one panel mutating data observed by another.
+- The cache is keyed by snapshot object identity; each new snapshot revision computes once, and obsolete revisions can be garbage-collected when no longer referenced.
+- Regression test verifies two same-series panels receive the exact same frozen calculation object.
+- Complexity expectation: for P panels sharing one series revision, calculation count changes from up to P complete calculations to 1 calculation per snapshot revision. This is a structural expectation, not a measured performance benchmark.
