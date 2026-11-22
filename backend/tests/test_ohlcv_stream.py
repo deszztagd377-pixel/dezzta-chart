@@ -242,6 +242,45 @@ def test_stream_hub_routes_same_series_by_provider_without_cross_talk() -> None:
     asyncio.run(scenario())
 
 
+def test_same_series_subscribers_are_isolated_when_one_disconnects() -> None:
+    async def scenario() -> None:
+        pipeline = OhlcvPipeline()
+        assert pipeline.apply(make_bar(0)) == "inserted"
+        hub = OhlcvStreamHub()
+        first, _, _ = hub.subscribe_snapshot(
+            pipeline, dataset="GLBX.MDP3", publisher_id=1, instrument_id=101,
+            raw_symbol="ESZ6", timeframe="1s", limit=100,
+        )
+        second, _, _ = hub.subscribe_snapshot(
+            pipeline, dataset="GLBX.MDP3", publisher_id=1, instrument_id=101,
+            raw_symbol="ESZ6", timeframe="1s", limit=100,
+        )
+        assert hub.subscriber_count == 2
+
+        first_update = make_bar(1)
+        assert pipeline.apply(first_update) == "inserted"
+        hub.publish(first_update)
+        assert first.queue.qsize() == 1
+        assert second.queue.qsize() == 1
+
+        hub.unsubscribe(first.stream_id)
+        assert hub.subscriber_count == 1
+        second.queue.get_nowait()
+
+        second_update = make_bar(2)
+        assert pipeline.apply(second_update) == "inserted"
+        hub.publish(second_update)
+        assert first.closed is True
+        assert first.queue.empty()
+        assert second.queue.qsize() == 1
+        event = second.queue.get_nowait()
+        assert event["bar"]["sequence"] == second_update.sequence
+
+        hub.unsubscribe(second.stream_id)
+        assert hub.subscriber_count == 0
+
+    asyncio.run(scenario())
+
 def test_replay_boundary_discards_covered_events_and_resequences_live_queue():
     async def scenario():
         pipeline = OhlcvPipeline()
