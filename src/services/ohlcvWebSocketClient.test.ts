@@ -255,6 +255,48 @@ describe('connectOhlcvStream', () => {
     connection.close();
   });
 
+  it('ignores a late ticket-renewal rejection after intentional connection close', async () => {
+    vi.useFakeTimers();
+    const socket = new FakeSocket();
+    let rejectRenewal!: (error: Error) => void;
+    const renewalPromise = new Promise<string>((_resolve, reject) => {
+      rejectRenewal = reject;
+    });
+    const getRenewalTicket = vi.fn(() => renewalPromise);
+    const onError = vi.fn();
+    const connection = connectOhlcvStream({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      ticket: 'ws-ticket-abcdefghijklmnopqrstuvwxyz1234567890',
+      getRenewalTicket,
+      ticketRenewalIntervalMs: 5_000,
+      heartbeatIntervalMs: 60_000,
+      heartbeatTimeoutMs: 10_000,
+      webSocketFactory: () => socket as unknown as WebSocket,
+      onSnapshot: vi.fn(),
+      onUpdate: vi.fn(),
+      onError,
+    });
+
+    socket.readyState = 1;
+    socket.emit('open', new Event('open'));
+    socket.message({ type: 'market_data.status', version: 1 });
+    socket.message(snapshot);
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(getRenewalTicket).toHaveBeenCalledOnce();
+
+    connection.close();
+    rejectRenewal(new Error('identity request cancelled during intentional shutdown'));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(connection.state).toBe('closed');
+    expect(socket.closed).toHaveLength(1);
+    expect(socket.closed[0].code).toBe(1000);
+    expect(onError).not.toHaveBeenCalled();
+  });
+
   it('sends a text ping heartbeat after subscription and accepts the server pong', () => {
     vi.useFakeTimers();
     const { socket, onError, connection } = setup();
