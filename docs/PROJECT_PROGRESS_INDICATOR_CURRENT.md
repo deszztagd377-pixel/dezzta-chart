@@ -1,5 +1,18 @@
 # CURRENT PROJECT PROGRESS — Batch 62J-146 (22 November 2026)
 
+## Batch 62J-146 source-audit addendum — on-demand gap confirmed
+
+Source review of `src/components/CandlestickChart.tsx`, `src/services/ohlcvStreamSupervisor.ts`, `src/services/ohlcvWebSocketClient.ts`, `backend/app/main.py`, `backend/app/provider.py` and `backend/app/ohlcv_stream.py` found:
+
+- The chart component starts one exact-series supervisor for the selected contract/timeframe and ties it to visibility/network lifecycle.
+- The frontend supervisor has a module-level singleton owner; a new chart selection stops the previous owner. This is not yet a multi-chart subscription manager.
+- The WebSocket client sends one exact-series subscribe after authentication and handles ticket renewal, heartbeat, replay and sequence validation.
+- The backend starts its configured `ProviderManager` during application lifespan in non-replica mode. Provider ingestion is process-scoped/configuration-scoped, not currently driven by active chart subscriber demand.
+- `OhlcvStreamHub` maintains bounded per-client subscriptions and fans accepted bars to matching exact-series subscribers. It is downstream fan-out, not provider upstream pooling or reference-counted upstream activation.
+
+**Result:** current code provides single-chart exact-series subscription and per-client fan-out foundations, but does not prove that unopened pairs consume zero upstream provider data or that equivalent users share one upstream connection. This is a confirmed Stage 2 gap. No runtime changes were made; provider-demand ownership, multi-chart support scope and upstream SDK subscription semantics need a dedicated implementation design and tests first.
+
+
 This is the latest project snapshot. Verify the live branch ref and exact-HEAD workflows before using this record as a new implementation baseline.
 
 **Active branch:** `phase-2/market-data-foundation`  
