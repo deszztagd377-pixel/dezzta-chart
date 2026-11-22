@@ -1,3 +1,17 @@
+## Batch 62J-116 — exact-head repository acceptance refresh (22 November 2026)
+
+The repository acceptance checkpoint has advanced from the earlier 81b7419 record to exact source/docs baseline `a3febdb3f7d3dd233f1cfeb8e482e986e56348e1`:
+
+- Automated Tests [44981340874](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981340874): **SUCCESS** (all 36 steps); frontend 29 test files passed; backend 1,294 passed, 1 skipped.
+- CodeQL [44981340863](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981340863): **SUCCESS**.
+- Full Git History Secret Audit [44981341220](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981341220): **SUCCESS**.
+- Container build, CI Redis TLS/ACL and persistent-volume smoke, image scan/report, and synthetic SQLite benchmarks completed successfully.
+- WebSocket client suite inventory: 17 transport tests, 7 ticket-exchange tests, 21 supervisor/reconnect tests. Backend server-side API/ticket/guard/stream/publisher/replica suites are included in the 1,294 passing tests.
+- This refresh confirms repository-side CI only. It does not close public WSS, production Firebase, owner-host Redis, gateway snapshot receipt, browser or Android WebView acceptance.
+- No runtime source changed in Batch 62J-116; no Gate 10 closure is claimed. Full detailed evidence and blockers are in [Batch 62J-116](WORK_CYCLE_2026-11-22_BATCH62J116_WEBSOCKET_ACCEPTANCE_RECONCILIATION.md).
+
+---
+
 # DEZZTA CHART — Batch 62J-105
 ## WebSocket final production-acceptance pack (zero-cost, no deployment)
 

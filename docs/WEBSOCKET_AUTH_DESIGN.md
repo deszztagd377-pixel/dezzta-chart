@@ -1,3 +1,16 @@
+## Current verified state — audited 2026-11-22 (Batch 62J-116)
+
+- Exact repository baseline: `a3febdb3f7d3dd233f1cfeb8e482e986e56348e1`.
+- Exact-head Automated Tests [44981340874](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981340874): **SUCCESS**; CodeQL [44981340863](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981340863): **SUCCESS**; Full Git History Secret Audit [44981341220](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981341220): **SUCCESS**.
+- Frontend: 29 test files passed; backend: 1,294 passed, 1 skipped. The automated workflow completed all 36 job steps, including backend image build, shared Redis TLS/ACL + persistent-volume smoke, image scan/report and synthetic SQLite benchmarks.
+- Client test inventory at this baseline: 17 WebSocket transport tests, 7 HTTPS ticket-exchange tests, and 21 supervisor lifecycle/reconnect tests. Backend API, ticket, shared-guard, stream, publisher/replica and Redis integration suites add server-side failure coverage.
+- Repository-side protocol and CI acceptance is current for the tested scenarios. It does **not** prove public WSS, real Firebase project behavior, owner-host Redis, gateway snapshot installation, browser production session, or Android WebView behavior.
+- No public HTTPS/WSS endpoint or production Firebase/Redis host is recorded. Gate 20/25/36 remain open; Gate 10 remains 0/10 formally closed.
+- Ticket scope remains verified subject + `market-data` purpose, single-use, 90-second TTL. It is not bound to a specific canonical series or Origin; series entitlement is separately checked before snapshot and on renewal. Origin is defense in depth, not authentication.
+- The full production evidence checklist is maintained in `docs/WORK_CYCLE_2026-11-22_BATCH62J105_WEBSOCKET_FINAL_ACCEPTANCE_PACK.md`; this section supersedes older CI checkpoint dates below.
+
+---
+
 # DEZZTA CHART — WebSocket client authentication design gate
 
 ## Current verified state — audited 2026-11-20

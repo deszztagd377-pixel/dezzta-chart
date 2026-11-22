@@ -1,3 +1,11 @@
+## Batch 62J-116 — current WebSocket acceptance evidence (22 November 2026)
+
+At baseline `a3febdb3f7d3dd233f1cfeb8e482e986e56348e1`, exact-head CI is green: Automated Tests [44981340874](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981340874), CodeQL [44981340863](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981340863), and Full Git History Secret Audit [44981341220](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981341220). Frontend 29 test files passed; backend 1,294 passed and 1 skipped; all 36 automated workflow steps completed, including container and CI Redis persistence smoke.
+
+The client suite includes 17 transport tests, 7 ticket-exchange tests, and 21 supervisor/reconnect tests. These prove the covered repository scenarios only. They do not prove public WSS, real Firebase project, owner-host Redis, global snapshot receipts, or browser/Android WebView acceptance. The current external evidence checklist is in [Batch 62J-116](WORK_CYCLE_2026-11-22_BATCH62J116_WEBSOCKET_ACCEPTANCE_RECONCILIATION.md).
+
+---
+
 ## Batch 62J-94–96 — WebSocket data path unchanged (21 November 2026)
 
 Gate 38 SQLite tail-latency instrumentation, benchmark analysis and the rejected/reverted retry-jitter experiment did not modify WebSocket transport, authentication, ticket exchange, snapshot/replay, cursor ordering, publisher/replica lifecycle, Redis ACL behavior or market-data payloads.

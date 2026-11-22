@@ -1,3 +1,17 @@
+## Exact-head repository acceptance checkpoint — 22 November 2026
+
+Latest audited baseline: `a3febdb3f7d3dd233f1cfeb8e482e986e56348e1`.
+
+- Automated Tests [44981340874](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981340874): SUCCESS; CodeQL [44981340863](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981340863): SUCCESS; Full Git History Secret Audit [44981341220](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44981341220): SUCCESS.
+- Frontend 29 test files passed; backend 1,294 passed and 1 skipped. All 36 automated job steps completed successfully, including backend container build, Redis TLS/ACL + persistent-volume smoke, image scan/report and synthetic SQLite benchmarks.
+- Client test inventory: 17 transport tests, 7 ticket-exchange tests, 21 supervisor lifecycle/reconnect tests. This is repository/CI evidence, not real-host acceptance.
+- Production WSS remains open pending public hostname/TLS/reverse-proxy validation, owner-host Redis TLS/ACL/persistence/failover, verified global snapshot installation receipts, real Firebase signed-token/revocation/entitlement E2E, and browser + Android WebView lifecycle acceptance.
+- No deployment, external host, production credentials, device session or paid service was used. Gate 10 remains 0/10 formally closed.
+
+The current acceptance reconciliation and external evidence checklist are recorded in [Batch 62J-116](WORK_CYCLE_2026-11-22_BATCH62J116_WEBSOCKET_ACCEPTANCE_RECONCILIATION.md).
+
+---
+
 # Stage 1 — WebSocket Reliability and Market-Data Integrity Blueprint
 
 Status: owner-approved blueprint (2026-11-10), updated 2026-11-20; durable SQLite outbox/replay and a subject/purpose-bound one-use WebSocket ticket flow are implemented in the active branch. Production WSS acceptance and ticket threat-model review remain open.
