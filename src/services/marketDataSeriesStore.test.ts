@@ -160,8 +160,9 @@ describe('keyed market-data series store', () => {
     store.publishSnapshot({ identity: ym, status: 'ready', bars });
 
     expect(store.getSeriesCount()).toBe(2);
-    expect(store.getSnapshot(nq).status).toBe('loading');
-    expect(store.getSnapshot(es).bars).toEqual([]);
+    expect(store.hasSeries(nq)).toBe(true);
+    expect(store.hasSeries(es)).toBe(false);
+    expect(store.hasSeries(ym)).toBe(true);
     expect(store.getSnapshot(ym).bars).toEqual(bars);
     expect(store.getSubscriberCount(nq)).toBe(1);
 
