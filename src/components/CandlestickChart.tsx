@@ -314,7 +314,9 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
     setMarketDataDetail(`Authenticating WebSocket stream for ${identity.rawSymbol} · ${timeframe}.`);
     resetSelectedSeries('loading', 'Waiting for an authenticated WebSocket snapshot.');
 
-    const lease = ohlcvSeriesSupervisorRegistry.acquire({
+    let releaseLease: (() => void) | null = null;
+    try {
+      const lease = ohlcvSeriesSupervisorRegistry.acquire({
       baseUrl: marketDataApiBaseUrl,
       identity,
       canonicalInstrumentId: selectedContract.canonical_instrument_id,
@@ -346,9 +348,17 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
         setMarketDataStatus('error');
         setMarketDataDetail(error.message);
       },
-    }, panelOwnerId);
+      }, panelOwnerId);
+      releaseLease = () => lease.release();
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : 'Unable to acquire the authenticated market-data stream.';
+      resetSelectedSeries('unavailable', detail);
+      setMarketDataStatus('error');
+      setMarketDataDetail(detail);
+      return;
+    }
 
-    return () => lease.release();
+    return () => releaseLease?.();
   }, [
     isChartReady,
     marketDataApiBaseUrl,
