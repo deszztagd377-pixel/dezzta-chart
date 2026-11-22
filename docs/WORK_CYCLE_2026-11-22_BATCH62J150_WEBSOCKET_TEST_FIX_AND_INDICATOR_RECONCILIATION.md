@@ -2,7 +2,7 @@
 
 Date: 22 November 2026
 Branch: phase-2/market-data-foundation
-Starting failing HEAD: f972e15d429328870047878c57e268af7c35d6f7
+Starting failing HEAD: 041da77cb9ce95e083f8851614928d0de0994ad4
 Test correction commit: cb708c3e6357c59ef7a61fcb5fc5c304b014d62a
 Cost: ZERO COST. main untouched.
 
@@ -20,7 +20,7 @@ No production runtime code, queue semantics, API contract or provider behavior c
 
 ## CI evidence and qualification
 
-At failing HEAD f972e15d429328870047878c57e268af7c35d6f7: Automated Tests failed solely on the incorrect queue precondition; CodeQL Python and JavaScript/TypeScript succeeded; OCI native ARM64 image build and smoke test succeeded; Full Git-history Secret Audit succeeded.
+At failing HEAD 041da77cb9ce95e083f8851614928d0de0994ad4: Automated Tests failed solely on the incorrect queue precondition; CodeQL Python and JavaScript/TypeScript succeeded; OCI native ARM64 image build and smoke test succeeded; Full Git-history Secret Audit succeeded.
 
 The correction commit cb708c3e6357c59ef7a61fcb5fc5c304b014d62a triggers new exact-HEAD CI. Earlier green results do not substitute for the new commit. Do not call the correction accepted until required workflows complete on the final branch HEAD.
 
