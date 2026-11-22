@@ -3012,7 +3012,7 @@ def test_real_tls_websocket_upgrade_origin_policy_and_application_heartbeat(tmp_
     settings = make_settings(cors_allowed_origins=("https://localhost",))
     application = _app_with_bars(settings=settings)
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     ca_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     ca_name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "DEZZTA ephemeral test CA")])
     ca_certificate = (
@@ -3021,8 +3021,8 @@ def test_real_tls_websocket_upgrade_origin_policy_and_application_heartbeat(tmp_
         .issuer_name(ca_name)
         .public_key(ca_key.public_key())
         .serial_number(x509.random_serial_number())
-        .not_valid_before_utc(now - timedelta(minutes=1))
-        .not_valid_after_utc(now + timedelta(days=1))
+        .not_valid_before(now - timedelta(minutes=1))
+        .not_valid_after(now + timedelta(days=1))
         .add_extension(x509.BasicConstraints(ca=True, path_length=0), critical=True)
         .sign(ca_key, hashes.SHA256())
     )
@@ -3035,8 +3035,8 @@ def test_real_tls_websocket_upgrade_origin_policy_and_application_heartbeat(tmp_
         .issuer_name(ca_certificate.subject)
         .public_key(server_key.public_key())
         .serial_number(x509.random_serial_number())
-        .not_valid_before_utc(now - timedelta(minutes=1))
-        .not_valid_after_utc(now + timedelta(days=1))
+        .not_valid_before(now - timedelta(minutes=1))
+        .not_valid_after(now + timedelta(days=1))
         .add_extension(
             x509.SubjectAlternativeName([
                 x509.DNSName("localhost"),
