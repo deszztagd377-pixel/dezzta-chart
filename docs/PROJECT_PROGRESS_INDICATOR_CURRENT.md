@@ -1370,3 +1370,15 @@ ZERO COST. No deployment, paid service, production credential, Termux/device act
 - No production source/configuration or runtime security behavior changes. TLS verification requirements and negative tests remain intact.
 - Acceptance status: pending a new exact-head CI run. No TLS pass is claimed until the fixture starts and all positive/negative tests pass.
 - Cost Rp0; no deployment, Termux/device work, paid services or `main` changes.
+
+
+---
+
+## Batch 62J-112 — separate TLS configuration rejection from plaintext handshake rejection (22 November 2026)
+
+- Parent: `59013f1d9a65e08aef6392f489aca3f3367da072`.
+- CI confirmed the Redis TLS-only container starts successfully after Batch 62J-111 permission correction.
+- The first real integration execution then failed because the test expected a network `ConnectionError` for plaintext Redis URL while also supplying a custom CA. Production guard correctly rejects that invalid configuration immediately with `ValueError` (`REDIS_TLS_CA_CERTS` requires `rediss://`), before any socket is opened.
+- Corrected the integration test to exercise the two distinct protections separately: (1) existing unit test asserts custom CA + plaintext URL is rejected at configuration time; (2) real integration test attempts plaintext against the TLS-only Redis listener without a custom CA and requires connection failure.
+- No production code or runtime security behavior changed. CI must rerun on the new exact commit before acceptance.
+- Gate 10 remains open; no public WSS or OCI deployment claim. ZERO COST, no Termux/device action, no paid resources, no `main` changes.

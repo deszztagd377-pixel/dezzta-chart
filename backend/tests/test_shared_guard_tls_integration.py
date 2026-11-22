@@ -66,6 +66,6 @@ def test_real_redis_tls_ca_hostname_acl_and_shared_guard_operations(tls_test_mat
 
         # The fixture has no plaintext Redis listener; no protocol downgrade is allowed.
         plaintext_url = url.replace("rediss://", "redis://", 1)
-        await assert_tls_rejected(plaintext_url, ca_path)
+        await assert_tls_rejected(plaintext_url, "")
 
     asyncio.run(run())
