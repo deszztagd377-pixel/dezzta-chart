@@ -192,6 +192,26 @@ describe('keyed market-data series store', () => {
     expect(new MarketDataSeriesStore(3).getCapacity()).toBe(3);
   });
 
+  it('does not evict a valid series when a rejected write targets an unknown series', () => {
+    const store = new MarketDataSeriesStore(1);
+    store.publishSnapshot({ identity: nq, status: 'ready', bars });
+
+    expect(() => store.publishSnapshot({
+      identity: es,
+      status: 'ready',
+      bars: [],
+    })).toThrow(/cannot be ready without validated bars/);
+    expect(() => store.publishUpdate({
+      identity: es,
+      bar: bars[0],
+    })).toThrow(/active backend snapshot/);
+
+    expect(store.hasSeries(nq)).toBe(true);
+    expect(store.hasSeries(es)).toBe(false);
+    expect(store.getSnapshot(nq).bars).toEqual(bars);
+    expect(store.getSeriesCount()).toBe(1);
+  });
+
   it('isolates listener failures so one panel cannot block another', () => {
     const store = new MarketDataSeriesStore();
     let healthyPanel = 0;
