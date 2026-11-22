@@ -1,3 +1,43 @@
+## Batch 62J-125 — WebSocket test-evidence mapping and production acceptance gap review (22 November 2026)
+
+**Branch:** phase-2/market-data-foundation  
+**Reviewed documentation/source baseline:** 4cb91f518b14cff2b6d7ee1af3c53ed836dd6b5d  
+**CI on this baseline:** Automated Tests run [44986546422](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44986546422), CodeQL [44986546414](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44986546414), and Full Git History Secret Audit [44986546413](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44986546413) all SUCCESS on exact SHA `4cb91f518b14cff2b6d7ee1af3c53ed836dd6b5d`.
+
+### New source/test evidence mapped
+
+- Redis ticket issuance stores only a SHA-256 digest-keyed ticket record with account subject and purpose, 90-second TTL and create-only `SET NX`. Lua consume performs GET+DEL atomically. Tests cover digest-keying, subject binding, exact TTL, malformed/corrupt/wrong-purpose rejection, one-use consume, Redis TTL/consume integration, and a multi-process ticket+account-lease test.
+- HTTPS ticket endpoint requires a verified principal and returns ticket, expiry and purpose. WebSocket handshake rejects disallowed non-empty Origin, consumes ticket before accepting its subject as principal, and applies separate exact-series/canonical-instrument entitlement authorization. Ticket does not itself bind the requested series or Origin; retain this as a threat-model review item.
+- Firebase verifier tests require revoked-token checking and validate subject/claims using test doubles. These are not live Firebase-project credential, revocation, entitlement grant/revoke/renew E2E tests.
+- Redis gateway tests verify snapshot installation precedes Redis client construction, installed source/generation/high-water cursor/hash match the durable local checkpoint, source mismatch fails before Redis construction, and production plaintext Redis is rejected. The callback is still owner-supplied; repository tests do not authenticate remote transfer receipts or prove independent gateway receipt custody.
+- Replay tests verify global cursor advancement across unrelated series, missing cursor/history-gap fail-closed behavior, fixed checkpoint watermark, retention expiry/cursor-ahead rejection, and bounded scan/event limits with resnapshot response.
+- Browser WebSocket tests cover ticket auth, exact-series subscribe, snapshot/update, durable cursor replay before live updates, renewal acknowledgement, heartbeat/error cleanup and reconnect supervisor recovery. These are simulated browser-socket tests, not public reverse-proxy or real browser/network deployment evidence.
+- Server source checks Origin allowlist, performs periodic entitlement recheck and Redis lease renewal, and closes fail-closed on Redis/lease failure. Backend tests cover Redis outage and lease renewal failure. CI Redis is ephemeral.
+- Android host preflight and immutable preview-publisher tests run in CI; they do not constitute Android device/WebView foreground-background, process-death, network handover or reconnect acceptance.
+
+### Acceptance status — unchanged
+
+Gate 25 remains OPEN pending owner-host snapshot transport authentication, independently authenticated per-gateway installation receipts, byte/hash custody and exact generation/high-water alignment under real Redis persistence/restart/failover.
+
+Gate 36 remains OPEN pending verified public HTTPS/WSS endpoint, reverse proxy/TLS, real Firebase project, browser and Android WebView lifecycle tests, reconnect/replay/resnapshot and duplicate suppression across real network interruption, plus operator logs/alerts. Subject/purpose ticket binding and separate series authorization remain as implemented; adding series/Origin into ticket claims is a threat-model decision requiring explicit design review, not an assumed code change.
+
+Gate 10 remains 0/10 formally closed. Stage 1 remains 30/40 = 75% provisional. CI/source tests do not close production owner-host gates.
+
+### Indicator reconciliation — no implementation credit
+
+No indicator implementation or test changed. Canonical statuses remain:
+- SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2, and Shared Indicator Hook: 🟨 foundation, not fully chart-integrated.
+- Footprint: 🟧 synthetic educational accumulator only; visual implementation waits for user reference image(s) and reviewed blueprint.
+- Heatmap and Liquidation Maps: 🟥 not implemented.
+
+Warm-up null semantics, source-index alignment, no future-candle repaint, stale-series clearing and Footprint OFF normal candle spacing remain requirements. No aggregate percentage is assigned without approved weights/denominator.
+
+### Cost and scope
+
+ZERO COST. No source changes, external services, paid hosting, domains, deployment, cloud resource, account, production credentials, Android device action or Termux work. `main` untouched. This batch is documentation-only.
+
+---
+
 ## Batch 62J-124 — exact-head CI, SQLite contention and WebSocket acceptance reconciliation (22 November 2026)
 
 **Branch:** phase-2/market-data-foundation  
