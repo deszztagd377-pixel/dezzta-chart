@@ -13,6 +13,16 @@ interface SeriesEntry {
   listeners: Set<() => void>;
 }
 
+const EMPTY_UNREGISTERED_SERIES_SNAPSHOT: MarketDataSnapshot = Object.freeze({
+  identity: null,
+  status: 'loading',
+  source: 'none',
+  bars: Object.freeze([]),
+  detail: 'The series has not been registered by a subscriber yet.',
+  revision: 0,
+  lastChange: Object.freeze({ type: 'snapshot' }),
+});
+
 export interface PublishSeriesSnapshotInput {
   identity: MarketSeriesIdentity;
   status: MarketDataStatus;
@@ -78,6 +88,17 @@ export class MarketDataSeriesStore {
 
   getSnapshot(identity: MarketSeriesIdentity): MarketDataSnapshot {
     return this.getEntry(identity).snapshot;
+  }
+
+  /**
+   * Pure read for React useSyncExternalStore. Unlike getSnapshot(), this does
+   * not create an entry or change LRU order during React render/consistency checks.
+   * subscribe() registers the entry after commit; React then rechecks the snapshot.
+   */
+  peekSnapshot(identity: MarketSeriesIdentity): MarketDataSnapshot {
+    validateMarketSeriesIdentity(identity);
+    return this.entries.get(getMarketSeriesIdentityKey(identity))?.snapshot
+      ?? EMPTY_UNREGISTERED_SERIES_SNAPSHOT;
   }
 
   subscribe(identity: MarketSeriesIdentity, listener: () => void): () => void {
