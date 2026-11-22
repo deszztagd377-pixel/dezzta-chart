@@ -1,16 +1,16 @@
 ## Batch 62J-103 — WebSocket ticket renewal failure matrix (22 November 2026)
 
-- Active branch: `phase-2/market-data-foundation`; source/test HEAD: `7ff83f6e31ac869e43e1ce36ec1e00b693837fcc`.
-- Test-only change set relative to documentation checkpoint `d45290b8b95e5bbe73e2a993cd3fdaf497a8afc3`: `backend/tests/test_api.py` +132 lines; `backend/tests/test_shared_guard.py` +44 lines; no deletions and no production source changes.
-- Added three WebSocket renewal boundary tests: renewal ticket bound to a different subject closes 4401; ticket-store outage during renewal closes 1013; a renewed ticket cannot restore revoked instrument entitlement and closes 4403.
-- Added three ticket-store tests: Redis ticket is written under a SHA-256 digest key with exact 90-second TTL and NX semantics; malformed stored payload is consumed and rejected; concurrent in-memory ticket consumption has exactly one winner.
-- Added the missing top-level asyncio test import and removed trailing whitespace. Final source/test HEAD is the branch head above.
-- The six tests strengthen Gate 20 ticket/authentication and Gate 36 WebSocket lifecycle evidence, and strengthen Gate 25 Redis ticket contract evidence. No gate is closed by these tests.
-- **CI acceptance is pending/unverified for this new exact HEAD.** The GitHub combined-status connector returned no status records for both this commit and the previously known green source commit, so no green CI claim is made for this cycle. Exact-head Automated Tests, CodeQL and full-history secret audit must be independently visible before acceptance.
-- WebSocket protocol/runtime source code is unchanged. This cycle adds failure-path tests only; production Firebase signed-token E2E, owner-host Redis TLS/ACL and snapshot receipts, public HTTPS/WSS, reverse proxy, browser/Android WebView acceptance remain external.
+- Active branch: `phase-2/market-data-foundation`; final source/test HEAD: `a18e963d4cd067fe22ec8d03c653418e003c7fde`.
+- Test-only change set relative to checkpoint `d45290b8b95e5bbe73e2a993cd3fdaf497a8afc3`: `backend/tests/test_api.py` +86 lines; `backend/tests/test_shared_guard.py` +47 lines; zero deletions in the final diff. Total +133 lines.
+- Two new FastAPI/WebSocket renewal tests: invalid/expired renewal ticket closes 4401; ticket-store/Redis outage during renewal closes 1013 without exposing internal error or credential text.
+- Three new shared-guard ticket tests: SHA-256 digest-only key with exact 90-second TTL and NX write; corrupt stored JSON is consumed and rejected; two concurrent in-memory consumers yield exactly one subject and one `None`.
+- Existing real-Redis single-use integration test now checks `PTTL`: remaining ticket TTL must be positive and no greater than 90,000 ms. Existing tests already covered cross-subject renewal rejection and entitlement revocation during renewal; duplicate candidate tests were removed rather than duplicating coverage.
+- No production source, WebSocket protocol, Firebase identity, Redis runtime or market-data code changed.
+- **CI acceptance remains pending/unverified for this exact HEAD.** The available GitHub combined-status lookup returned no status records, including for the previously documented green source HEAD. No Automated Tests, CodeQL or full-history secret-audit pass is claimed for this cycle.
+- Gate 20 repository evidence improved (renewal invalid-ticket and store-outage handling); Gate 25 improved (ticket TTL, digest key, NX and corrupt-payload behavior); Gate 36 improved (renewal transport failure closure). No gate is closed.
 - Gate 10 remains 0/10 formally closed. 🟨🟩 host/operator-only: Gates 8, 30, 34, 35, 39. 🟧 integration/acceptance: Gates 20, 25, 31, 36, 38.
 - Stage 1 remains 30/40 = 75% provisional. Stages 2–6 and overall project percentage remain unscored without approved weights/denominators.
-- No indicator source, formula, hook, renderer, chart UI or indicator test changed. No indicator progress credit is awarded; full indicator ledger remains below.
+- No indicator formula, calculation, data contract, shared hook, renderer, chart UI or indicator test changed. No indicator progress credit is awarded; see the full matrix in `docs/INDICATOR_PROGRESS_LEDGER.md`.
 - ZERO COST: no deployment, Vercel/Cloudflare operation, paid provider, production credential, Termux/device operation or `main` modification.
 
 ---
