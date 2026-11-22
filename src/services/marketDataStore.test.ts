@@ -30,14 +30,28 @@ describe('shared market data store', () => {
       ...identity,
       provider: 'databento',
       seriesType: 'contract' as const,
-      bucketPolicy: 'UTC_LEGACY' as const,
+      bucketPolicy: 'UTC_FIXED_V1' as const,
       calendarId: '',
       calendarVersion: '',
     };
     expect(getMarketSeriesIdentityKey(identity)).toBe(getMarketSeriesIdentityKey(explicitDefaults));
     expect(isSameMarketSeriesIdentity(identity, explicitDefaults)).toBe(true);
-    expect(isSameMarketSeriesIdentity(identity, { ...identity, instrumentId: 124 })).toBe(false);
-    expect(isSameMarketSeriesIdentity(identity, { ...identity, timeframe: '5m' })).toBe(false);
+    const distinctDimensions: MarketSeriesIdentity[] = [
+      { ...identity, provider: 'other-provider' },
+      { ...identity, seriesType: 'continuous' },
+      { ...identity, dataset: 'GLBX.MDP3.TEST' },
+      { ...identity, publisherId: 2 },
+      { ...identity, instrumentId: 124 },
+      { ...identity, rawSymbol: 'ESZ6' },
+      { ...identity, timeframe: '5m' },
+      { ...identity, bucketPolicy: 'UTC_LEGACY' },
+      { ...identity, calendarId: 'CME' },
+      { ...identity, calendarVersion: '2026a' },
+    ];
+    for (const distinctIdentity of distinctDimensions) {
+      expect(isSameMarketSeriesIdentity(identity, distinctIdentity)).toBe(false);
+      expect(getMarketSeriesIdentityKey(identity)).not.toBe(getMarketSeriesIdentityKey(distinctIdentity));
+    }
 
     const delimiterLeft = { ...identity, dataset: 'A|B', rawSymbol: 'C' };
     const delimiterRight = { ...identity, dataset: 'A', rawSymbol: 'B|C' };
