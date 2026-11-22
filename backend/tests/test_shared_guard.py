@@ -52,6 +52,7 @@ class FakeRedis:
         self.error = None
         self.closed = False
         self.ticket_values = {}
+        self.ticket_set_calls = []
 
     async def ping(self):
         if self.error:
@@ -61,6 +62,7 @@ class FakeRedis:
     async def set(self, key, value, *, ex, nx):
         if self.error:
             raise self.error
+        self.ticket_set_calls.append((key, value, ex, nx))
         if nx and key in self.ticket_values:
             return None
         self.ticket_values[key] = value
@@ -359,6 +361,31 @@ def test_websocket_ticket_is_digest_keyed_single_use_and_subject_bound():
     assert asyncio.run(guard.consume_websocket_ticket(ticket)) is None
 
 
+def test_websocket_ticket_storage_uses_digest_key_exact_ttl_and_create_only_write():
+    redis = FakeRedis()
+    guard = make_guard(redis)
+    ticket = asyncio.run(guard.issue_websocket_ticket("verified-account"))
+
+    assert len(redis.ticket_set_calls) == 1
+    key, raw_value, ttl, create_only = redis.ticket_set_calls[0]
+    assert key == f"dezzta:{{guard-ws}}:ticket:{guard._digest(ticket)}"
+    assert ticket not in key
+    assert ttl == 90
+    assert create_only is True
+    assert raw_value == '{"purpose":"market-data","subject":"verified-account"}'
+
+
+def test_websocket_ticket_rejects_corrupt_stored_payload_and_consumes_it():
+    redis = FakeRedis()
+    guard = make_guard(redis)
+    ticket = "T" * 43
+    key = f"dezzta:{{guard-ws}}:ticket:{guard._digest(ticket)}"
+    redis.ticket_values[key] = '{"subject":'
+    
+    assert asyncio.run(guard.consume_websocket_ticket(ticket)) is None
+    assert key not in redis.ticket_values
+
+
 def test_websocket_ticket_rejects_malformed_and_wrong_purpose():
     redis = FakeRedis()
     guard = make_guard(redis)
@@ -519,6 +546,23 @@ def test_in_memory_websocket_ticket_is_single_use_and_subject_bound():
     assert ticket not in repr(store._tickets)
     assert asyncio.run(store.consume_websocket_ticket(ticket)) == "verified-account"
     assert asyncio.run(store.consume_websocket_ticket(ticket)) is None
+
+
+def test_in_memory_websocket_ticket_concurrent_consume_has_exactly_one_winner():
+    from app.websocket_tickets import InMemoryWebSocketTicketStore
+
+    store = InMemoryWebSocketTicketStore()
+    ticket = asyncio.run(store.issue_websocket_ticket("verified-account"))
+
+    async def consume_twice():
+        return await asyncio.gather(
+            store.consume_websocket_ticket(ticket),
+            store.consume_websocket_ticket(ticket),
+        )
+
+    outcomes = asyncio.run(consume_twice())
+    assert outcomes.count("verified-account") == 1
+    assert outcomes.count(None) == 1
 
 
 def test_in_memory_websocket_ticket_expires_at_exact_ttl_boundary(monkeypatch):
