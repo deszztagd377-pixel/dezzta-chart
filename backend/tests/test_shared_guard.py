@@ -381,7 +381,7 @@ def test_websocket_ticket_rejects_corrupt_stored_payload_and_consumes_it():
     ticket = "T" * 43
     key = f"dezzta:{{guard-ws}}:ticket:{guard._digest(ticket)}"
     redis.ticket_values[key] = '{"subject":'
-    
+
     assert asyncio.run(guard.consume_websocket_ticket(ticket)) is None
     assert key not in redis.ticket_values
 
