@@ -184,6 +184,7 @@ def create_app(
             websocket_global_limit=config.websocket_connection_limit_global,
             websocket_per_account_limit=config.websocket_connection_limit_per_account,
             websocket_lease_seconds=config.websocket_lease_seconds,
+            redis_tls_ca_certs=config.redis_tls_ca_certs,
         )
     websocket_ticket_store = shared_guard if shared_guard is not None else InMemoryWebSocketTicketStore()
     max_ohlcv_response_bars = min(
