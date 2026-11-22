@@ -1,6 +1,8 @@
 import type { ChartData, Timeframe } from '../types';
 import { getBucketPolicyForTimeframe } from '../utils/ohlcvBucketPolicy';
 
+export const MAX_MARKET_DATA_BARS_PER_SERIES = 5_000;
+
 export interface MarketSeriesIdentity {
   provider?: string;
   seriesType?: 'contract' | 'continuous';
@@ -171,6 +173,9 @@ export function publishMarketDataSnapshot(input: {
   if (isBackendStatus && bars.length === 0) {
     throw new Error('Backend market data cannot be ready without validated bars.');
   }
+  if (bars.length > MAX_MARKET_DATA_BARS_PER_SERIES) {
+    throw new Error(`Market-data snapshot exceeds the ${MAX_MARKET_DATA_BARS_PER_SERIES}-bar retention limit.`);
+  }
   if (!isBackendStatus && bars.length > 0) {
     throw new Error('Non-ready market-data states cannot publish indicator bars.');
   }
@@ -233,21 +238,30 @@ export function publishMarketDataUpdate(input: {
     else high = middle;
   }
 
-  if (low < nextBars.length && nextBars[low].timestamp === input.bar.timestamp) {
-    nextBars[low] = input.bar;
+  const isReplacement = low < nextBars.length &&
+    nextBars[low].timestamp === input.bar.timestamp;
+  const immutableBar = Object.freeze({ ...input.bar });
+  if (isReplacement) {
+    nextBars[low] = immutableBar;
   } else {
-    nextBars.splice(low, 0, input.bar);
+    if (
+      nextBars.length >= MAX_MARKET_DATA_BARS_PER_SERIES &&
+      low === 0
+    ) {
+      throw new Error('Market-data update is older than the retained bar window.');
+    }
+    nextBars.splice(low, 0, immutableBar);
+    if (nextBars.length > MAX_MARKET_DATA_BARS_PER_SERIES) nextBars.shift();
   }
 
   validateMarketDataBars(nextBars);
-  const immutableBars = Object.freeze(
-    nextBars.map((bar) => Object.freeze({ ...bar })),
-  );
+  // Existing bars are already frozen; only the changed bar needs a new object.
+  const immutableBars = Object.freeze(nextBars);
   currentSnapshot = Object.freeze({
     ...current,
     bars: immutableBars,
     revision: current.revision + 1,
-    lastChange: Object.freeze({ type: 'update', bar: Object.freeze({ ...input.bar }) }),
+    lastChange: Object.freeze({ type: 'update', bar: immutableBar }),
   });
   emit();
 }
