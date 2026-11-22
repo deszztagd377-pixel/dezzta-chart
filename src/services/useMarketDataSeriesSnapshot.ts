@@ -35,7 +35,7 @@ export function useMarketDataSeriesSnapshot(
 
   const getSnapshot = useCallback(() => {
     if (!identity) return EMPTY_SERIES_SNAPSHOT;
-    return marketDataSeriesStore.getSnapshot(identity);
+    return marketDataSeriesStore.peekSnapshot(identity);
   }, [identityKey]);
 
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
