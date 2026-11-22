@@ -131,6 +131,12 @@ jobs:
           printf 'user default off\nuser dezzta_tls on >%s ~dezzta:{guard-http}:* ~dezzta:{guard-ws}:* +ping +eval +set +get +del +incr +expire +ttl +zremrangebyscore +zscore +zcard +zadd +pexpire +zrem\n' \
             "$redis_password" > "$tls_dir/users.acl"
           chmod 600 "$tls_dir/ca.key" "$tls_dir/server.key" "$tls_dir/wrong-ca.key" "$tls_dir/users.acl"
+          # Redis drops privileges to its image-defined redis account. Grant only that
+          # account access to the server key and ACL; keep private files mode 0600.
+          redis_uid="$(docker run --rm --entrypoint sh redis:7-alpine -c 'id -u redis')"
+          redis_gid="$(docker run --rm --entrypoint sh redis:7-alpine -c 'id -g redis')"
+          sudo chown "$redis_uid:$redis_gid" "$tls_dir/server.key" "$tls_dir/users.acl"
+          chmod 644 "$tls_dir/ca.crt" "$tls_dir/server.crt" "$tls_dir/wrong-ca.crt"
 
           docker run --detach --name dezzta-redis-tls-ci \
             --publish 127.0.0.1:6380:6380 \

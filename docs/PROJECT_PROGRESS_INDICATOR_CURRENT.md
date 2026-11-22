@@ -1358,3 +1358,15 @@ ZERO COST. No deployment, paid service, production credential, Termux/device act
 - No indicator progress credit. SMA20 🟨 (index 19); EMA20 🟨 (index 19); RSI14 🟨 (index 14); MACD12/26/9 🟨 (MACD index 25, signal/histogram 33); Bollinger20,2 🟨 (index 19); Shared Indicator Hook 🟨; Footprint 🟧 reference-gated; Heatmap 🟥 not implemented; Liquidation Maps 🟥 not implemented. Formulas, warm-up rules and remaining visual acceptance are documented in `docs/WORK_CYCLE_2026-11-22_BATCH62J110_REDIS_TLS_INTEGRATION.md`.
 - Gate 10 remains 0/10 formally closed; Gate 25 and Gate 36 remain 🟧 OPEN for owner-host/public endpoint evidence. Stage 1 remains 30/40 = 75% provisional; overall project percentage remains unscored.
 - Exact-head CI is required before declaring this batch accepted. ZERO COST; no deployment, paid services, Termux/device operation, Vercel/Cloudflare operation or `main` modification.
+
+
+---
+
+## Batch 62J-111 — Redis TLS fixture permission correction (22 November 2026)
+
+- Parent candidate: `fc13d6ed302c8eccd1fc4cf18102b2c50b66fd5c`.
+- Automated CI exposed a concrete fixture startup failure: Redis 7.4.12 runs under its unprivileged `redis` account and could not read the host-owned, mode-0600 `/tls/users.acl` file from the read-only bind mount.
+- Corrective change: derive UID/GID from the exact `redis:7-alpine` image at runtime; assign only the Redis server private key and ACL file to that account; retain mode 0600 for private files; make only public certificates readable to the runner/client. CA private key and wrong-CA private key remain unreadable to the container process and are not mounted for Redis use beyond the containing read-only directory.
+- No production source/configuration or runtime security behavior changes. TLS verification requirements and negative tests remain intact.
+- Acceptance status: pending a new exact-head CI run. No TLS pass is claimed until the fixture starts and all positive/negative tests pass.
+- Cost Rp0; no deployment, Termux/device work, paid services or `main` changes.
