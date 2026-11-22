@@ -3,7 +3,7 @@
 Date: 22 November 2026  
 Branch: `phase-2/market-data-foundation`  
 Audited exact HEAD: `d473a533deaec58e1abb07a2f5a2a911f941dfed`  
-Scope: source/test audit, acceptance-gap isolation and project/indicator reconciliation. Documentation only; no runtime, schema or test source was changed.
+Scope: source/test audit, two focused client regression tests, acceptance-gap isolation and project/indicator reconciliation. No runtime or schema code was changed.
 
 ## 1. Exact-HEAD CI verification
 
@@ -86,13 +86,22 @@ C. **Android acceptance**
 D. **External production acceptance**
 - Requires an owner-controlled public endpoint, real Firebase project and operator access. This cycle does not create accounts, deploy services, provision resources or request credentials.
 
-## 4. Gate 25 and Gate 38 — parallel blockers retained
+## 4. Test-only hardening added after the source audit
+
+Two regression tests were added on source/test commit `3cb7cb9b26be220e23314d9dad2f3ed31734baf4`:
+
+1. `src/services/ohlcvStreamSupervisor.test.ts` — `does not open a socket when stop occurs while ticket issuance is pending`. It holds the injected ticket request open, stops the supervisor, resolves the ticket late, and asserts that no WebSocket is created and no reconnect is scheduled.
+2. `src/components/CandlestickChart.lifecycle.test.tsx` — `coalesces rapid offline, hidden and return events without overlapping supervisors`. It exercises offline → hidden → online-while-hidden → visible, verifies one new supervisor only after both conditions are active, and verifies cleanup on unmount.
+
+These are test-only additions. No production runtime behavior was changed. The test commit's CI is the acceptance authority; until its exact-SHA Automated Tests and CodeQL complete successfully, these new tests remain pending and receive no CI pass credit.
+
+## 5. Gate 25 and Gate 38 — parallel blockers retained
 
 - **Gate 25 OPEN:** durable immutable snapshot installation receipt and authenticated provenance remain unimplemented; source/generation/cursor checkpoint binding exists, but snapshot digest is not anchored to a durable immutable receipt. Owner trust model, key lifecycle, receipt retention and owner-host Redis restart/backup/failover remain unresolved.
 - **Gate 38 OPEN:** owner-host metrics persistence, disk pressure, restart/backup/retention, operator dashboard, alert delivery and recovery drill remain unproven.
 - Do not count a passing CI run as closure of any owner-host criterion.
 
-## 5. Technical indicator progress — full ledger
+## 6. Technical indicator progress — full ledger
 
 No indicator runtime, calculation, test, hook, renderer or UI source changed in Batch 62J-139. No implementation credit is awarded.
 
@@ -120,7 +129,7 @@ No indicator runtime, calculation, test, hook, renderer or UI source changed in 
 - Footprint and Heatmap visual implementation must not begin before the user supplies reference image(s) and reviews the scoped blueprint.
 - No aggregate indicator percentage is published because indicator weights and a completion denominator have not been approved.
 
-## 6. Project-wide progress indicator
+## 7. Project-wide progress indicator
 
 Legend: 🟩 formally accepted/closed; 🟨 partially implemented or provisional; 🟧 prototype; 🟥 not implemented; ⬜ not scored/not officially opened.
 
@@ -137,9 +146,9 @@ Legend: 🟩 formally accepted/closed; 🟨 partially implemented or provisional
 
 **Gate 10: 0/10 external criteria formally closed.** This is the formal external-acceptance counter, not the number of internal tests.
 
-## 7. IP3S — Indicator Proses Peningkatan Proyek Signifikan
+## 8. IP3S — Indicator Proses Peningkatan Proyek Signifikan
 
-IP3S measures the verified quality of this work cycle, not project completion.
+IP3S measures the verified quality of this work cycle, not project completion. The score is **PENDING** until Automated Tests and CodeQL complete on the exact source/test commit; do not reuse the earlier 79/100 audit-only score as accepted delivery.
 
 | Dimension | Score | Basis |
 |---|---:|---|
@@ -150,16 +159,16 @@ IP3S measures the verified quality of this work cycle, not project completion.
 | ZERO COST and scope integrity | 15/15 | No paid resource, deployment, credentials, device work or main-branch change |
 | **IP3S total** | **79/100** | Cycle delivery score only; not project completion |
 
-## 8. Branch, cost and change integrity
+## 9. Branch, cost and change integrity
 
 - Audited branch: `phase-2/market-data-foundation`.
 - Exact audited HEAD: `d473a533deaec58e1abb07a2f5a2a911f941dfed`.
 - `main` untouched.
-- Batch 62J-139 changes documentation only; no runtime/schema/test source modifications.
+- Batch 62J-139 adds two test-only regressions and this documentation; no production runtime or schema changes.
 - ZERO COST: no paid hosting, domain, market-data API, cloud resource, deployment, account creation or publication fee.
 - No production credentials, private keys or shared secrets requested or written.
 - No Android device or Termux operation performed.
 
-## 9. Next engineering unit
+## 10. Next engineering unit
 
 The next source-backed, zero-cost unit is **B — lifecycle race-condition acceptance**: inspect and test stop-during-token-fetch, stop-during-ticket-request, rapid hide/show + offline/online ordering, and stale-socket callback suppression. The current browser event wiring and supervisor cleanup must be preserved. Android WebView and public WSS remain separate external acceptance lanes. No speculative patch is authorized by this report.
