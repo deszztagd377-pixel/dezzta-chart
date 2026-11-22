@@ -8,6 +8,7 @@ import {
   publishMarketDataUpdate,
   resetMarketDataSnapshot,
 } from './marketDataStore';
+import { marketDataSeriesStore } from './marketDataSeriesStore';
 import { requestOhlcvWebSocketTicket } from './ohlcvWebSocketTicket';
 import {
   connectOhlcvStream,
@@ -44,6 +45,36 @@ export interface OhlcvStreamSupervisor {
 // The market-data store is a singleton, so it must have exactly one active
 // supervisor owner. Replacing a chart selection stops the previous owner first.
 let activeSupervisorStop: (() => void) | null = null;
+
+function resetMarketDataStores(
+  identity: MarketSeriesIdentity,
+  status: Parameters<typeof resetMarketDataSnapshot>[1],
+  detail: string | null,
+): void {
+  resetMarketDataSnapshot(identity, status, detail);
+  marketDataSeriesStore.reset(identity, status, detail);
+}
+
+function publishMarketDataStores(
+  input: Parameters<typeof publishMarketDataSnapshot>[0],
+): void {
+  publishMarketDataSnapshot(input);
+  if (input.identity) {
+    marketDataSeriesStore.publishSnapshot({
+      identity: input.identity,
+      status: input.status,
+      bars: input.bars,
+      detail: input.detail,
+    });
+  }
+}
+
+function publishMarketDataUpdates(
+  input: Parameters<typeof publishMarketDataUpdate>[0],
+): void {
+  publishMarketDataUpdate(input);
+  marketDataSeriesStore.publishUpdate(input);
+}
 
 
 /**
@@ -158,7 +189,7 @@ export function startOhlcvStreamSupervisor(
         // transient transport failure. Retrying it forever only hammers the
         // identity provider; wait for a new session/supervisor instead.
         stopped = true;
-        resetMarketDataSnapshot(
+        resetMarketDataStores(
           options.identity,
           'unavailable',
           'No valid Firebase ID token is available. Sign in again before reconnecting.',
@@ -186,13 +217,13 @@ export function startOhlcvStreamSupervisor(
         onSnapshot: (snapshot, candles) => {
           if (stopped) return;
           if (snapshot.state === 'unavailable' || candles.length === 0) {
-            resetMarketDataSnapshot(
+            resetMarketDataStores(
               options.identity,
               'unavailable',
               snapshot.detail ?? 'The authenticated stream has no validated bars yet.',
             );
           } else {
-            publishMarketDataSnapshot({
+            publishMarketDataStores({
               identity: options.identity,
               status: snapshot.state,
               bars: candles,
@@ -207,11 +238,11 @@ export function startOhlcvStreamSupervisor(
           if (_event.cursor !== undefined) resumeCursor = _event.cursor;
           const current = getMarketDataSnapshot();
           if (current.source === 'backend' && isSameMarketSeriesIdentity(current.identity, options.identity)) {
-            publishMarketDataUpdate({ identity: options.identity, bar: candle });
+            publishMarketDataUpdates({ identity: options.identity, bar: candle });
           } else {
             // A valid stream may produce its first bar after an empty snapshot.
             // Seed the store with that validated event rather than rejecting it.
-            publishMarketDataSnapshot({
+            publishMarketDataStores({
               identity: options.identity,
               status: 'degraded',
               bars: [candle],
@@ -260,7 +291,7 @@ export function startOhlcvStreamSupervisor(
                     ? 'The WebSocket Origin is not allowlisted by the backend. Check the configured frontend origin.'
                     : 'The account is not entitled to this instrument or its access was revoked.'
                   : 'The server rejected the subscription request. Check the selected instrument and timeframe.';
-            resetMarketDataSnapshot(options.identity, 'unavailable', closeDetail);
+            resetMarketDataStores(options.identity, 'unavailable', closeDetail);
             setStatus('stopped');
             reportError(new Error(
               code === 1008 ? 'Market-data WebSocket protocol policy rejected (1008).' :
@@ -301,7 +332,7 @@ export function startOhlcvStreamSupervisor(
     }
   };
 
-  resetMarketDataSnapshot(options.identity, 'loading', 'Authenticating the OHLCV stream.');
+  resetMarketDataStores(options.identity, 'loading', 'Authenticating the OHLCV stream.');
   void connect();
 
   const supervisor: OhlcvStreamSupervisor = {
@@ -318,7 +349,7 @@ export function startOhlcvStreamSupervisor(
       // selection's shared snapshot when its cleanup runs later.
       if (activeSupervisorStop === supervisor.stop) {
         activeSupervisorStop = null;
-        resetMarketDataSnapshot(options.identity, 'unavailable', 'OHLCV stream stopped.');
+        resetMarketDataStores(options.identity, 'unavailable', 'OHLCV stream stopped.');
         setStatus('stopped');
       } else {
         currentStatus = 'stopped';
