@@ -1,3 +1,78 @@
+# CURRENT PROJECT PROGRESS — Batch 62J-147 (22 November 2026)
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Pre-cycle exact documentation HEAD:** `0004fd4bbc1a768079e9474aa0bbdd1b954cbc45`  
+**Batch 62J-147 commits:** ADR `85e262004444130cab7af09efae7ec995b8d7269`; indicator ledger `8ce4762ba9ebe5933757e0a7057b13ce2bb71908`; work-cycle report `96b0c2ea4bf05c07359ee00032cff2f598ad8d16`.  
+**This progress snapshot:** pending final documentation commit.  
+**Main:** untouched.
+
+## Batch 62J-147 — On-demand provider capability / ZERO COST audit
+
+New report: `docs/WORK_CYCLE_2026-11-22_BATCH62J147_ON_DEMAND_PROVIDER_ZERO_COST_AUDIT.md`.
+
+Confirmed:
+- The chart client currently has one singleton supervisor owner and exact-series WebSocket subscription; not yet a general multi-chart manager.
+- Backend `OhlcvStreamHub` fans out validated bars to per-client queues but is not a provider upstream demand pool.
+- `ProviderManager` starts configured provider ingestion with application lifecycle.
+- `DatabentoLiveSource` subscribes once to a fixed symbol tuple; no dynamic chart-demand API is wired.
+- The adapter labels real SDK signatures/behavior unverified; tests use a fake SDK.
+- Dependency range `databento>=0.88,<1` is not an exact SDK pin.
+- Repository ZERO COST policy excludes Databento from recurring-$0 live baseline; trial credits are finite and live requires paid entitlement.
+- Existing public data candidates are not automatically equivalent to the CME futures target and require feed/rights verification.
+
+**Decision:** no runtime code changed. A disconnected demand-counter helper would not stop fixed-symbol provider ingestion and would create false progress. Stage 2 On-demand remains mandatory and open. Need a recurring-$0 compatible data source or mark unsupported data unavailable; verify provider dynamic-subscription semantics before implementing the coordinator.
+
+## Exact-HEAD CI — pre-cycle HEAD `0004fd4bbc1a768079e9474aa0bbdd1b954cbc45`
+
+All four workflows completed SUCCESS:
+- Automated Tests [45016264628](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45016264628)
+- CodeQL [45016264675](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45016264675)
+- Full Git History Secret Audit [45016264627](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45016264627)
+- OCI ARM64 Image Readiness [45016264696](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45016264696)
+
+This CI result applies only to the exact pre-cycle HEAD above. The new Batch 62J-147 documentation commits trigger new runs; do not transfer the green status to the final documentation HEAD until all exact-HEAD workflows complete.
+
+## Stage allocation and project progress
+
+On-demand Market Data Subscription belongs primarily to **Stage 2 — Market Data Infrastructure**. Stage 1 provides authentication, session isolation, foreground/background lifecycle, safe disconnect and reconnect/snapshot/replay prerequisites. Do not award Stage 1 credit for Stage 2 upstream demand management.
+
+| Stage | Progress | Status |
+|---|---:|---|
+| 1. Foundation, Security & Data Integrity | 30/40 = 75% provisional | 🟨 |
+| 2. Market Data Infrastructure | Not scored | ⬜ Not officially opened |
+| 3. Chart Engine & Timeframe | Not scored | ⬜ |
+| 4. Indicators & Analytics | Not scored | ⬜ |
+| 5. Professional UI & Interactive Tools | Not scored | ⬜ |
+| 6. Hardening, Validation & APK Release | Not scored | ⬜ |
+
+Overall project: **NOT SCORED**. Stage weights and total denominator are not approved. Gate 10 remains **0/10 external criteria formally closed**. Open gates include 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. CI does not close owner-host/public-device acceptance gates.
+
+## Full indicator status
+
+| Indicator/component | Status | Verified foundation | Remaining acceptance |
+|---|---|---|---|
+| SMA20 | 🟨 | 20-close arithmetic mean; first index 19 | Overlay, toggle, legend/latest value, identity/lifecycle/render tests |
+| EMA20 | 🟨 | SMA-seeded EMA, alpha 2/21; first index 19 | Overlay, toggle, legend/latest value, identity/lifecycle/render tests |
+| RSI14 Wilder | 🟨 | Wilder smoothing; first index 14 | 0–100 pane, 30/70 guides, toggle/legend and render tests |
+| MACD12/26/9 | 🟨 | MACD index 25; signal/histogram index 33 | Pane, lines, histogram, zero guide, toggle/legend and render tests |
+| Bollinger20,2 | 🟨 | 20-close mean ±2 population SD; first index 19 | Three-line overlay, toggle/values and render tests |
+| Shared Indicator Hook | 🟨 | Exact backend snapshot/aligned calculation | Hook tests, chart binding, stale clearing and renderer |
+| Footprint | 🟧 | Synthetic educational accumulator only | User reference, reviewed blueprint, valid bid/ask source and cluster acceptance |
+| Heatmap | 🟥 | Not implemented | User reference, validated depth/liquidity contract, blueprint and renderer |
+| Liquidation Maps | 🟥 | Not implemented | Valid provenance/calculation contract, reviewed blueprint and renderer |
+
+No indicator code or tests changed in Batch 62J-147; zero indicator implementation credit. Preserve warm-up nulls, candle-index alignment, prefix causality/no future repaint, invalid/gapped-bar rejection, stale-output clearing and Footprint OFF standard candle spacing. Footprint/Heatmap visual implementation remains reference-gated. Full mathematical and visual acceptance audit: `docs/INDICATOR_PROGRESS_AUDIT_2026-11-22.md`.
+
+## Deadline realism
+
+Target: 31 December 2026. From 22 November there are 39 calendar days through year end. Full six-stage completion, public hosting, source licensing, real-device acceptance and all advanced indicators cannot be guaranteed within that window while the recurring-$0 data source remains unresolved. Prioritize a verified installable ZERO COST MVP; do not mislabel unsupported or unlicensed data as production-ready.
+
+## ZERO COST / integrity
+
+No paid provider, cloud resource, deployment, account, production credential, payment method, runtime code, schema, dependency or device/Termux action was added. No main-branch modification. Full cycle report: `docs/WORK_CYCLE_2026-11-22_BATCH62J147_ON_DEMAND_PROVIDER_ZERO_COST_AUDIT.md`.
+
+---
+
 # CURRENT PROJECT PROGRESS — Batch 62J-146 (22 November 2026)
 
 ## Batch 62J-146 source-audit addendum — on-demand gap confirmed
