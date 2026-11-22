@@ -13,6 +13,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
 import uvicorn
 import websockets
+import httpx
 
 import hashlib
 from decimal import Decimal
@@ -3007,8 +3008,8 @@ def test_closing_one_websocket_client_preserves_other_client_subscription() -> N
             assert surviving.receive_json()["type"] == "market_data.pong"
 
 
-def test_real_tls_websocket_upgrade_origin_policy_and_application_heartbeat(tmp_path) -> None:
-    """Exercise real TLS, the HTTP Upgrade, Origin enforcement, and text heartbeat."""
+def test_real_tls_websocket_upgrade_ticket_auth_origin_policy_and_multi_user_heartbeat(tmp_path) -> None:
+    """Exercise HTTPS ticket issuance, real WSS, Origin policy, and multi-user isolation."""
     settings = make_settings(cors_allowed_origins=("https://localhost",))
     application = _app_with_bars(settings=settings)
     canonical_id = "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11"
@@ -3118,6 +3119,31 @@ def test_real_tls_websocket_upgrade_origin_policy_and_application_heartbeat(tmp_
 
             uri = f"wss://127.0.0.1:{port}/ws/market-data"
             trusted_context = ssl.create_default_context(cafile=str(ca_path))
+
+            async def issue_ticket(token: str) -> str:
+                async with httpx.AsyncClient(
+                    verify=trusted_context,
+                    trust_env=False,
+                    timeout=5,
+                    base_url=f"https://127.0.0.1:{port}",
+                ) as http_client:
+                    response = await http_client.post(
+                        "/v1/auth/websocket-ticket",
+                        headers={
+                            "Authorization": f"Bearer {token}",
+                            "Origin": "https://localhost",
+                        },
+                    )
+                assert response.status_code == 200, response.text
+                assert response.headers["access-control-allow-origin"] == "https://localhost"
+                assert "no-store" in response.headers.get("cache-control", "").lower()
+                payload = response.json()
+                assert payload["expiresIn"] == 90
+                assert payload["purpose"] == "market-data"
+                assert isinstance(payload["ticket"], str) and len(payload["ticket"]) >= 40
+                return payload["ticket"]
+
+            initial_ticket = await issue_ticket("valid-firebase-token")
             async with websockets.connect(
                 uri,
                 ssl=trusted_context,
@@ -3128,7 +3154,7 @@ def test_real_tls_websocket_upgrade_origin_policy_and_application_heartbeat(tmp_
             ) as websocket:
                 await websocket.send(json.dumps({
                     "type": "auth",
-                    "token": "valid-firebase-token",
+                    "ticket": initial_ticket,
                 }))
                 status = json.loads(await asyncio.wait_for(websocket.recv(), timeout=5))
                 assert status["type"] == "market_data.status"
@@ -3149,6 +3175,14 @@ def test_real_tls_websocket_upgrade_origin_policy_and_application_heartbeat(tmp_
                 assert snapshot["type"] == "market_data.ohlcv.snapshot"
                 assert snapshot["count"] == 4
 
+                renewal_ticket = await issue_ticket("valid-firebase-token")
+                await websocket.send(json.dumps({
+                    "type": "auth.renew",
+                    "ticket": renewal_ticket,
+                }))
+                renewed = json.loads(await asyncio.wait_for(websocket.recv(), timeout=5))
+                assert renewed == {"type": "market_data.auth.renewed", "version": 1}
+
                 await websocket.send("ping")
                 pong = json.loads(await asyncio.wait_for(websocket.recv(), timeout=5))
                 assert pong == {"type": "market_data.pong", "version": 1}
@@ -3162,9 +3196,10 @@ def test_real_tls_websocket_upgrade_origin_policy_and_application_heartbeat(tmp_
                 close_timeout=2,
                 ping_interval=None,
             ) as surviving:
+                surviving_ticket = await issue_ticket("valid-firebase-token")
                 await surviving.send(json.dumps({
                     "type": "auth",
-                    "token": "valid-firebase-token",
+                    "ticket": surviving_ticket,
                 }))
                 assert json.loads(await asyncio.wait_for(surviving.recv(), timeout=5))["type"] == "market_data.status"
                 await surviving.send(json.dumps({
@@ -3189,9 +3224,10 @@ def test_real_tls_websocket_upgrade_origin_policy_and_application_heartbeat(tmp_
                     close_timeout=2,
                     ping_interval=None,
                 ) as departing:
+                    departing_ticket = await issue_ticket("user-b-token")
                     await departing.send(json.dumps({
                         "type": "auth",
-                        "token": "user-b-token",
+                        "ticket": departing_ticket,
                     }))
                     assert json.loads(await asyncio.wait_for(departing.recv(), timeout=5))["type"] == "market_data.status"
                     await departing.send(json.dumps({
