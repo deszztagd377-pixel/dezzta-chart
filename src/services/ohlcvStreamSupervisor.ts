@@ -206,7 +206,7 @@ export function startOhlcvStreamSupervisor(
           if (stopped) return;
           if (_event.cursor !== undefined) resumeCursor = _event.cursor;
           const current = getMarketDataSnapshot();
-          if (current.source === 'backend' && sameIdentity(current.identity, options.identity)) {
+          if (current.source === 'backend' && isSameMarketSeriesIdentity(current.identity, options.identity)) {
             publishMarketDataUpdate({ identity: options.identity, bar: candle });
           } else {
             // A valid stream may produce its first bar after an empty snapshot.
