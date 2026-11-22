@@ -289,3 +289,12 @@ These are not solved by adding a mock, hardcoding credentials, or enabling the r
 - Dedicated production Redis persistence/failover/secret rotation: **NOT ACCEPTED**.
 - Real browser and Android WebView acceptance: **NOT ACCEPTED**.
 - No source code was changed in this reconciliation. No production gate is closed by the documentation update.
+
+
+## 14. Batch 62J-107 — authentication documentation reconciliation (22 November 2026)
+
+A source-to-documentation check found that `backend/README.md` still claimed the one-use WebSocket-ticket exchange was not implemented and documented direct Firebase-token authentication as the current handshake. This was stale. The current source exposes `POST /v1/auth/websocket-ticket`, issues a purpose-bound 90-second ticket, consumes it on the WebSocket handshake, and permits direct-token WebSocket fallback only outside production. The repository includes ticket lifecycle and renewal failure-matrix tests.
+
+The README was corrected to describe the HTTP Bearer-token exchange and the one-use ticket frame, while explicitly preserving the production requirements for shared Redis-backed ticket storage. No runtime source, client source, tests, or indicator code changed. No CI run was triggered; prior CI evidence remains tied to its recorded source/test HEAD.
+
+This correction closes no production gate. Gate 20 still needs real Firebase-project token/revocation/entitlement E2E; Gate 25 still needs owner-host Redis TLS/ACL, persistent failover and verified snapshot distribution; Gate 36 still needs public HTTPS/WSS, reverse-proxy and browser/Android WebView acceptance. Full indicator matrix and exact progress remain in `docs/WORK_CYCLE_2026-11-22_BATCH62J107_WEBSOCKET_AUTH_DOC_RECONCILIATION.md` and `docs/INDICATOR_PROGRESS_LEDGER.md`.
