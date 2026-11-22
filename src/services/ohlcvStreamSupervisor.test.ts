@@ -117,6 +117,55 @@ describe('OHLCV stream supervisor', () => {
     expect(getMarketDataSnapshot().bars).toHaveLength(0);
   });
 
+  it('supersedes the previous supervisor on timeframe change without allowing stale callbacks to replace the new series', async () => {
+    const oldSocket = new FakeSocket();
+    const oldSupervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken: async () => 'fresh-id-token',
+      webSocketFactory: () => oldSocket as unknown as WebSocket,
+      random: () => 0,
+    });
+
+    await vi.waitFor(() => expect(oldSocket.listeners.has('open')).toBe(true));
+    oldSocket.readyState = 1;
+    oldSocket.emit('open', new Event('open'));
+    oldSocket.message({ type: 'market_data.status', version: 1 });
+    oldSocket.message(snapshot);
+    expect(oldSupervisor.status).toBe('subscribed');
+    expect(getMarketDataSnapshot().identity?.timeframe).toBe('1s');
+    expect(getMarketDataSnapshot().bars).toHaveLength(1);
+
+    const nextSocket = new FakeSocket();
+    const nextIdentity = { ...identity, timeframe: '1m' as const };
+    const nextSupervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity: nextIdentity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken: async () => 'fresh-id-token',
+      webSocketFactory: () => nextSocket as unknown as WebSocket,
+      random: () => 0,
+    });
+
+    expect(oldSupervisor.status).toBe('stopped');
+    expect(oldSocket.readyState).toBe(3);
+    expect(getMarketDataSnapshot().identity?.timeframe).toBe('1m');
+    expect(getMarketDataSnapshot().status).toBe('loading');
+    expect(getMarketDataSnapshot().bars).toHaveLength(0);
+
+    // Simulate a queued browser message from the old socket after replacement.
+    oldSocket.message(snapshot);
+    oldSupervisor.stop();
+    expect(getMarketDataSnapshot().identity?.timeframe).toBe('1m');
+    expect(getMarketDataSnapshot().status).toBe('loading');
+    expect(getMarketDataSnapshot().bars).toHaveLength(0);
+
+    await vi.waitFor(() => expect(nextSocket.listeners.has('open')).toBe(true));
+    nextSupervisor.stop();
+    expect(nextSupervisor.status).toBe('stopped');
+  });
+
   it('resumes from the last accepted cursor after a transport reconnect without clearing the chart', async () => {
     vi.useFakeTimers();
     const sockets: FakeSocket[] = [];
