@@ -1,3 +1,57 @@
+# CURRENT PROJECT PROGRESS — Batch 62J-142 (22 November 2026)
+
+This verified snapshot supersedes older dated summaries below.
+
+**Branch:** `phase-2/market-data-foundation`  
+**Starting HEAD:** `ad3fa4413cdc827d49e6ec05731f0cd90360c75d`  
+**Documentation update commit:** `ddc3d169359bab366fbcede6bee6dd64b1552181`  
+**Main:** untouched.
+
+## Exact-HEAD CI on starting HEAD
+
+- Automated Tests [45001169602](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45001169602): **SUCCESS**.
+- CodeQL [45001169566](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45001169566): **SUCCESS**.
+- Full Git History Secret Audit [45001169507](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45001169507): **SUCCESS**.
+- OCI ARM64 Image Readiness [45001169506](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45001169506): **SUCCESS**.
+
+These four workflows are green on the exact starting HEAD. The new documentation commit has triggered a new CI cycle and must not inherit those pass claims until its own exact-HEAD runs finish.
+
+## WebSocket / hosting assessment
+
+The supervisor ownership and delayed-callback regression changes are accepted by the starting-HEAD CI. OCI ARM64 readiness is CI-only, not an OCI deployment.
+
+Hosting decision:
+- Cloudflare Workers + SQLite-backed Durable Objects: strongest architecture candidate for stateful WebSocket coordination, but it is not a drop-in runtime for the existing Python/container backend. Provider signup/payment verification is **UNVERIFIED**; no account or deployment.
+- Render Free Web Service: supports WebSockets and Docker, but spins down after 15 minutes without inbound traffic, can take about one minute to wake, has ephemeral local filesystem, and its free Postgres expires after 30 days. Temporary POC only, not continuous authoritative market-data hosting.
+- OCI Always Free: blocked by required card-based identity verification for the current situation; no bypass or borrowed card.
+- No provider is assumed to offer Google-only signup. Any cloud account must be owned and managed by a parent/guardian.
+
+Detailed evaluation: [Batch 62J-142 work cycle](WORK_CYCLE_2026-11-22_BATCH62J142_ZERO_COST_WEBSOCKET_HOSTING_OPTIONS.md).
+
+## Stage and Gate progress
+
+| Stage | Progress | State |
+|---|---:|---|
+| 1. Foundation, Security & Data Integrity | 30/40 = 75% provisional | 🟨 Active |
+| 2. Market Data Infrastructure | Not scored | ⬜ Not officially opened |
+| 3. Chart Engine & Timeframe | Not scored | ⬜ Not officially opened |
+| 4. Indicators & Analytics | Not scored | ⬜ Not officially opened |
+| 5. Professional UI & Interactive Tools | Not scored | ⬜ Not officially opened |
+| 6. Hardening, Validation & APK Release | Not scored | ⬜ Not officially opened |
+
+**Gate 10: 0/10 external criteria formally closed.** Open tracks: 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39.  
+**Overall project: NOT SCORED** because stage weights and the total acceptance denominator are not approved.
+
+## Indicator status
+
+SMA20 🟨; EMA20 🟨; RSI14 Wilder 🟨; MACD12/26/9 🟨; Bollinger20,2 🟨; Shared Indicator Hook 🟨; Footprint 🟧 (synthetic educational prototype only); Heatmap 🟥; Liquidation Maps 🟥. No indicator code changed; no indicator implementation credit. Full details and mathematical invariants are in [INDICATOR_PROGRESS_LEDGER.md](INDICATOR_PROGRESS_LEDGER.md).
+
+**IPS35:** pending exact-HEAD CI on documentation commit `ddc3d169359bab366fbcede6bee6dd64b1552181`. No numeric score assigned.
+
+ZERO COST: no paid service, account, resource, deployment, production credential, payment method, device or Termux operation.
+
+---
+
 # CURRENT PROJECT PROGRESS — Batch 62J-141 (22 November 2026)
 
 This section is the latest verified snapshot and supersedes older dated entries below.
