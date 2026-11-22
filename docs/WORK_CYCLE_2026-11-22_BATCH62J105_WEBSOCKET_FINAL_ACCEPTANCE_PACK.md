@@ -237,3 +237,55 @@ Current indicator states:
 Shared invariants: warm-up values are null, never zero; candle-index alignment; no future-candle repaint; stale series cleared on identity/timeframe changes. Footprint OFF retains normal candle spacing; explicit ON alone enables spaced clusters.
 
 No overall project or aggregate indicator percentage is assigned without approved stage weights and denominators.
+
+## 11. Reconciliation against existing multi-process CI evidence (Batch 62J-25 / 62J-31)
+
+The following repository-side acceptance is **already implemented and CI-verified** and must not be misreported as missing:
+
+### Two independent ASGI gateways and live fan-out
+
+Batch 62J-25 runs two independent Uvicorn/FastAPI operating-system processes. Each process owns a separate replica SQLite database, Redis client and consumer identity while reading the same Redis 7 stream. Both real WebSocket clients authenticate and subscribe through `/ws/market-data`; one source event is appended once; both clients receive the same durable cursor and both replica checkpoints advance. The test also verifies cursor-0 snapshot delivery and cursor-0-to-1 reconnect replay through the actual route.
+
+### Dual-gateway Redis TCP interruption and snapshot-generation replacement
+
+Batch 62J-31 adds two repository/CI scenarios:
+
+- Each gateway's established Redis TCP path is independently severed and reconnect attempts are rejected during a controlled outage. Both paths are restored without restarting either ASGI process. Both clients receive cursor 1 and both durable replica checkpoints converge to cursor 1.
+- Two independently identified replica databases install the same verified snapshot generation at cursor 2. New generation-scoped consumer processes apply cursor 3 on both replicas. Old pending entries remain isolated in the old groups; new groups have no pending entries.
+
+These tests establish cross-process fan-out, reconnect/replay, controlled TCP-path recovery, and coordinated snapshot-generation behavior **inside the defined CI topology**.
+
+They do **not** establish a Redis server shutdown/failover, public-host network recovery, production snapshot distribution, real production TLS/ACL rotation, Android WebView acceptance, or public WSS readiness.
+
+### Redis ACL and persistence evidence boundary
+
+The CI Redis 7 integration tests exercise separate least-privilege publisher/gateway ACL identities, allowed and denied command/key scopes, consumer-group operations, leases, publish/consume/replay and DB-0 restrictions. The container smoke also verifies AOF/ACL-file persistence for the shared guard Redis service across container restart.
+
+Do not conflate that shared-guard Redis smoke with the dedicated OHLCV relay's production persistence/failover acceptance. The latter remains host-bound.
+
+## 12. Runtime activation boundary — exact reason production cannot be declared complete
+
+The repository has fail-closed builders:
+- `build_source_publisher_runtime_factory()` in `backend/app/ohlcv_redis_runtime.py`;
+- `build_gateway_replica_runtime_factory()` in `backend/app/ohlcv_redis_gateway_runtime.py`.
+
+They validate distinct publisher/gateway ACL identities, production `rediss://`, snapshot source/generation/cursor/SHA-256 evidence, and gateway installation metadata. The source builder additionally requires matching installation receipts from every required gateway before creating the Redis publisher client.
+
+The FastAPI app accepts these as explicit owner-injected `publisher_runtime_factory` and `replica_runtime_factory` dependencies. They are intentionally **not silently activated by environment variables alone**: the owner must provide an authenticated snapshot verifier/installer and prove that every gateway has installed the same authoritative snapshot. No generic code path can safely invent that trust relationship.
+
+Therefore the exact production activation blockers are:
+1. No owner-controlled authenticated snapshot transport/installer and receipt authority is available in this repository checkpoint.
+2. No production publisher/gateway Redis host, DNS name, TLS chain, ACL credentials or rotation evidence is available here.
+3. No intended public HTTPS/WSS hostname and reverse-proxy endpoint is available for end-to-end acceptance.
+4. No physical Android WebView session against that public endpoint has been performed.
+
+These are not solved by adding a mock, hardcoding credentials, or enabling the relay with an unverified environment flag. Such a change would weaken the fail-closed design.
+
+## 13. Current disposition after reconciliation
+
+- Repository-side multi-process fan-out and controlled TCP recovery: **PASS for the documented CI scenarios**.
+- Repository-side publisher/gateway runtime factories and snapshot receipt validation: **IMPLEMENTED; owner callback and host activation still required**.
+- Public WSS / TLS / proxy / certificate renewal: **NOT ACCEPTED**.
+- Dedicated production Redis persistence/failover/secret rotation: **NOT ACCEPTED**.
+- Real browser and Android WebView acceptance: **NOT ACCEPTED**.
+- No source code was changed in this reconciliation. No production gate is closed by the documentation update.
