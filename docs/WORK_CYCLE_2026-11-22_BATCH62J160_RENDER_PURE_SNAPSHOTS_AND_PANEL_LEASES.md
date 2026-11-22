@@ -2,7 +2,7 @@
 
 Date: 22 November 2026  
 Branch: `phase-2/market-data-foundation`  
-Code HEAD before this report: `3cd0d9035a6ceb1b88db5dcf01126acb00e64c67`  
+Code HEAD before this report: `dfb607a294d2297c14ea6f86d7f51b1d01dd2759`  
 Delivery target: 24 December 2026  
 Cost boundary: ZERO COST  
 `main`: untouched
@@ -78,7 +78,27 @@ Contract:
 
 **Important boundary:** the registry is not yet connected to `startOhlcvStreamSupervisor`. It is a tested ownership primitive only. No provider connection or upstream demand is started or stopped by this class.
 
-### 4. Documentation correction
+### 4. Bounded per-series history and lower-allocation live updates
+
+Files:
+- `src/services/marketDataStore.ts`
+- `src/services/marketDataSeriesStore.ts`
+- `src/services/marketDataStore.test.ts`
+- `src/services/marketDataSeriesStore.test.ts`
+
+The backend enforces `MAX_OHLCV_RESPONSE_BARS = 5,000`, and the frontend snapshot client accepts no more than 5,000 bars. Both frontend stores now enforce the same hard ceiling:
+- Default maximum: 5,000 bars per canonical series.
+- Configurable store instances may use a lower positive limit, but cannot exceed 5,000.
+- Oversized snapshots fail closed before mutating the existing store.
+- New live bars retain the newest bounded window by evicting the oldest bar.
+- A late update older than the retained window is rejected rather than silently reinserted and immediately discarded.
+- Unchanged frozen bar objects are structurally shared across revisions; only the revised/new bar is cloned and frozen. This avoids cloning every candle object on each live update.
+
+The series-count cache remains capped at 32 by default. Combined default bound: at most 32 cached series × 5,000 bars per series, with active subscriber pinning. This is a deterministic object-count bound, not a measured RAM guarantee.
+
+Regression coverage verifies 5,000-bar retention in the legacy store, configurable smaller windows in the keyed store, rejection of oversized snapshots, rejection of too-old corrections, and object-reference reuse for unchanged bars.
+
+### 5. Documentation correction
 
 Updated `docs/WORK_CYCLE_2026-11-22_BATCH62J159_KEYED_SERIES_STORE.md` to reflect the existing chart binding accurately:
 - `CandlestickChart` already reads keyed snapshots through `useMarketDataSeriesSnapshot`.
@@ -89,9 +109,10 @@ Updated `docs/WORK_CYCLE_2026-11-22_BATCH62J159_KEYED_SERIES_STORE.md` to reflec
 
 ## Regression/test coverage
 
-- Keyed series store: 14 focused tests after the render-pure read test.
+- Keyed series store: 17 focused tests, including pure reads and bounded-window behavior.
+- Legacy shared store: 13 tests, including the 5,000-bar hard limit.
 - React keyed snapshot hook: 3 tests, including two simultaneous panels.
-- Panel lease registry: 6 tests.
+- Panel lease registry: 7 tests, including normalized owner IDs.
 - Existing supervisor test suite remains in place for its current single-owner behavior.
 
 A prior Automated Tests run failed because the newly added React test assumed `revision` always started at one. The store correctly retains monotonically increasing revisions after reset. The test was corrected to assert canonical status and candle values instead. No production code change was made to falsify or reset revision history.
@@ -106,6 +127,13 @@ A prior Automated Tests run failed because the newly added React test assumed `r
 - `11dfc45a490f79a926808b14f5917190dbad1a5d` — finalize status/value assertions in multi-panel test.
 - `39f616915f6f3e4fdd35f9ca61bc35fcfb3373b3` — add generation-safe panel lease registry.
 - `3cd0d9035a6ceb1b88db5dcf01126acb00e64c67` — add lease-registry regression tests.
+- `5a82e2b969ba5e22342331f1efd6f38a3f6e608d` — normalize panel owner IDs.
+- `c920babddd2cb81e1714ee6e0c8ff8163742d5e0` — normalize owner presence lookup.
+- `050efdaf79560c4abd5b7dbd55013bc7f49868ad` — test owner-ID normalization.
+- `f6ad76c09b1829a736f571b7dfc639cbb97a8856` — cap legacy history and reuse frozen bars.
+- `0771a88bfff0cc40f19109a53916076a998f837b` — cap keyed history and reuse frozen bars.
+- `b8a653b31a06b9ff08a987790f1f282decf2e811` — test keyed history retention and structural sharing.
+- `dfb607a294d2297c14ea6f86d7f51b1d01dd2759` — test legacy 5,000-bar retention.
 
 ## WebSocket and multi-chart status
 
@@ -117,6 +145,8 @@ A prior Automated Tests run failed because the newly added React test assumed `r
 - Subscriber disconnect cleanup.
 - Frontend ten-dimension canonical identity.
 - Keyed immutable per-series store with bounded 32-series LRU.
+- Each series retains at most 5,000 bars by default, matching the backend hard response ceiling.
+- Live revisions structurally share unchanged frozen bars instead of recloning the full history.
 - Active chart listeners pin their cache entry.
 - React hook reads the selected canonical series.
 - React panel isolation test coverage.
@@ -133,7 +163,7 @@ A prior Automated Tests run failed because the newly added React test assumed `r
 8. Resolve the legacy global-store compatibility path before enabling concurrent streams.
 9. Verify dynamic upstream provider subscription and exact SDK add/remove behavior.
 10. Establish a recurring ZERO COST source with exact CME coverage and app display/redistribution rights.
-11. Define per-series bar-window retention; the current 32-entry cache bounds series count, not bars per series.
+11. Verify the 5,000-bar retention bound against real-device memory and rendering profiles before increasing either cache dimension.
 12. Complete public hostname, reverse proxy, WSS certificate, live Firebase and real Android lifecycle/network acceptance.
 
 No paid provider, key, account, deployment, VM, or cloud resource was introduced.
@@ -187,6 +217,6 @@ No indicator formula or renderer changed in this cycle. Indicator formula/render
 
 The previous exact HEAD `f6e648f571f33de3b522169d537e0e7538584a68` had Automated Tests, CodeQL, OCI ARM64 and Secret Audit all successful.
 
-The code HEAD `3cd0d9035a6ceb1b88db5dcf01126acb00e64c67` has new verification runs in progress at report creation. Do not infer success from earlier commits. Recheck all required workflows on the latest exact HEAD before marking this cycle verified.
+The code HEAD `dfb607a294d2297c14ea6f86d7f51b1d01dd2759` has new verification runs pending/in progress at report creation. Do not infer success from earlier commits. Recheck all required workflows on the latest exact HEAD before marking this cycle verified.
 
 Delivery target remains 24 December 2026. ZERO COST remains a hard constraint.
