@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import type { MarketSeriesIdentity } from './marketDataStore';
 import {
   getMarketSeriesIdentityKey,
+  MAX_MARKET_DATA_BARS_PER_SERIES,
   isSameMarketSeriesIdentity,
   getMarketDataSnapshot,
   publishMarketDataSnapshot,
@@ -188,6 +189,58 @@ describe('shared market data store', () => {
       bar: { ...bars[1], low: 105 },
     })).toThrow(/OHLCV boundaries/);
     expect(getMarketDataSnapshot()).toBe(before);
+  });
+
+  it('bounds legacy live history at the backend hard limit and structurally shares unchanged bars', () => {
+    const largeBars = Array.from({ length: MAX_MARKET_DATA_BARS_PER_SERIES }, (_, index) => ({
+      timestamp: 1_800_000_000 + index * 60,
+      open: 100,
+      high: 102,
+      low: 99,
+      close: 101,
+      volume: 10,
+    }));
+    publishMarketDataSnapshot({ identity, status: 'ready', bars: largeBars });
+    const before = getMarketDataSnapshot();
+    const incoming = {
+      timestamp: 1_800_000_000 + MAX_MARKET_DATA_BARS_PER_SERIES * 60,
+      open: 101,
+      high: 103,
+      low: 100,
+      close: 102,
+      volume: 11,
+    };
+
+    publishMarketDataUpdate({ identity, bar: incoming });
+    const after = getMarketDataSnapshot();
+    expect(after.bars).toHaveLength(MAX_MARKET_DATA_BARS_PER_SERIES);
+    expect(after.bars[0]).toBe(before.bars[1]);
+    expect(after.bars[after.bars.length - 1].timestamp).toBe(incoming.timestamp);
+    expect(Object.isFrozen(after.bars[after.bars.length - 1])).toBe(true);
+    expect(after.lastChange.type).toBe('update');
+    if (after.lastChange.type === 'update') {
+      expect(after.lastChange.bar).toBe(after.bars[after.bars.length - 1]);
+    }
+
+    const stable = getMarketDataSnapshot();
+    expect(() => publishMarketDataUpdate({
+      identity,
+      bar: { ...bars[0], timestamp: stable.bars[0].timestamp - 60 },
+    })).toThrow(/older than the retained bar window/);
+    expect(getMarketDataSnapshot()).toBe(stable);
+  });
+
+  it('rejects legacy snapshots larger than the server hard limit', () => {
+    const oversized = Array.from({ length: MAX_MARKET_DATA_BARS_PER_SERIES + 1 }, (_, index) => ({
+      timestamp: 1_800_000_000 + index * 60,
+      open: 100,
+      high: 102,
+      low: 99,
+      close: 101,
+      volume: 10,
+    }));
+    expect(() => publishMarketDataSnapshot({ identity, status: 'ready', bars: oversized })).toThrow(/retention limit/);
+    expect(getMarketDataSnapshot().identity).toBeNull();
   });
 
   it('increments revision and notifies subscribers on each publication', () => {
