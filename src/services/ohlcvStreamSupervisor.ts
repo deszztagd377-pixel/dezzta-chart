@@ -254,22 +254,25 @@ export function startOhlcvStreamSupervisor(
             stopped = true;
             if (reconnectTimer !== null) clearTimeout(reconnectTimer);
             reconnectTimer = null;
-            resetMarketDataSnapshot(
-              options.identity,
-              'unavailable',
-              code === 1008
-                ? 'The server rejected the WebSocket protocol policy. Check client protocol and ping rate before reconnecting.'
-                : code === 4401
-                  ? 'Firebase authentication was rejected. Sign in again to restore access.'
-                  : code === 4403
-                    ? 'The account is not entitled to this instrument or its access was revoked.'
-                    : 'The server rejected the subscription request. Check the selected instrument and timeframe.',
-            );
+            const originRejected = code === 4403 && /origin not allowed/i.test(reason);
+            const closeDetail = code === 1008
+              ? 'The server rejected the WebSocket protocol policy. Check client protocol and ping rate before reconnecting.'
+              : code === 4401
+                ? 'Firebase authentication was rejected. Sign in again to restore access.'
+                : code === 4403
+                  ? originRejected
+                    ? 'The WebSocket Origin is not allowlisted by the backend. Check the configured frontend origin.'
+                    : 'The account is not entitled to this instrument or its access was revoked.'
+                  : 'The server rejected the subscription request. Check the selected instrument and timeframe.';
+            resetMarketDataSnapshot(options.identity, 'unavailable', closeDetail);
             setStatus('stopped');
             reportError(new Error(
               code === 1008 ? 'Market-data WebSocket protocol policy rejected (1008).' :
               code === 4401 ? 'Market-data authentication rejected (4401).' :
-              code === 4403 ? 'Market-data entitlement denied (4403).' :
+              code === 4403
+                ? originRejected
+                  ? 'Market-data WebSocket Origin rejected (4403).'
+                  : 'Market-data entitlement denied (4403).' :
               'Market-data subscription rejected (4400).',
             ));
             return;

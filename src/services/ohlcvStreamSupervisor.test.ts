@@ -716,7 +716,7 @@ describe('OHLCV stream supervisor', () => {
     supervisor.stop();
   });
 
-  it('does not retry after the server rejects authentication or entitlement', async () => {
+  it('does not retry after entitlement denial and reports the correct cause', async () => {
     vi.useFakeTimers();
     const sockets: FakeSocket[] = [];
     const factory = vi.fn(() => {
@@ -724,12 +724,14 @@ describe('OHLCV stream supervisor', () => {
       sockets.push(socket);
       return socket as unknown as WebSocket;
     });
+    const onError = vi.fn();
     const supervisor = startOhlcvStreamSupervisor({
       baseUrl: 'https://market.example.test',
       identity,
       canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
       getIdToken: async () => 'fresh-token',
       webSocketFactory: factory,
+      onError,
       minReconnectDelayMs: 10,
       random: () => 0,
     });
@@ -739,6 +741,36 @@ describe('OHLCV stream supervisor', () => {
     await vi.runOnlyPendingTimersAsync();
     expect(factory).toHaveBeenCalledOnce();
     expect(getMarketDataSnapshot().status).toBe('unavailable');
+    expect(getMarketDataSnapshot().detail).toMatch(/not entitled|access was revoked/i);
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringMatching(/entitlement denied/i) }));
+  });
+
+  it('does not misreport an Origin rejection as an entitlement failure', async () => {
+    vi.useFakeTimers();
+    const sockets: FakeSocket[] = [];
+    const factory = vi.fn(() => {
+      const socket = new FakeSocket();
+      sockets.push(socket);
+      return socket as unknown as WebSocket;
+    });
+    const onError = vi.fn();
+    const supervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken: async () => 'fresh-token',
+      webSocketFactory: factory,
+      onError,
+      minReconnectDelayMs: 10,
+      random: () => 0,
+    });
+    await vi.waitFor(() => expect(sockets).toHaveLength(1));
+    sockets[0].serverClose(4403, 'Origin not allowed');
+    expect(supervisor.status).toBe('stopped');
+    expect(getMarketDataSnapshot().detail).toMatch(/Origin is not allowlisted/i);
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringMatching(/Origin rejected/i) }));
+    await vi.runOnlyPendingTimersAsync();
+    expect(factory).toHaveBeenCalledOnce();
   });
 
   it('does not retry after a server protocol-policy close (1008)', async () => {
