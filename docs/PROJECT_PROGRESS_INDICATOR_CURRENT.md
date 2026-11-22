@@ -3169,3 +3169,30 @@ No indicator source, tests, formulas, hook, renderer or chart UI changed. SMA20,
 ### Cost and change boundary
 
 ZERO COST. Documentation-only; no runtime source, tests, workflows, deployment, cloud resource, domain, account, production credential, Android device action or Termux work. `main` untouched.
+
+## Batch 62J-127 — operator escalation and notification-boundary audit (22 November 2026)
+
+**Parent:** b7d0482ff8fa5906c006460583ad3b175f4c282c  
+**Exact-parent CI:** Automated Tests [44987388625](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44987388625) SUCCESS; CodeQL [44987388511](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44987388511) SUCCESS; Full Git History Secret Audit [44987388505](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44987388505) SUCCESS.
+
+### Corrected notification and operator-response boundary
+
+- **User price-alert push is implemented as a distinct path:** owner-scoped FCM registration and fan-out use the durable price-alert trigger outbox. Device tokens are encrypted at rest with AES-256-GCM and owner/installation associated data; startup requires an owner-injected 32-byte key from a protected absolute-path regular file with group/other permissions denied. Production sender initialization uses Firebase Admin Application Default Credentials (ADC). Delivery is at-least-once, not exactly-once; Android event-ID deduplication remains required. These are code-path/test findings, not proof of successful delivery to the owner's live Firebase project or real devices.
+- **Operational incident response is separate:** LocalAlertReporter writes sanitized local logs and an optional persistent SQLite incident journal. The journal deduplicates active fingerprints, retains resolved rows for 30 days, bounds capacity, and supports open/acknowledged/resolved state. Acknowledgement currently records the generic actor "operator", not a verified individual operator identity.
+- **Escalation exists but is not notification delivery:** the application runs an escalation loop every 15 seconds and escalate_due advances up to three levels; the loop emits a local structured log event. It does not send an email, SMS, FCM operator push, webhook or paging event. Thus no external receipt, human acknowledgement or escalation chain is proven.
+- **Internal operator endpoints exist:** incident list/acknowledge/resolve routes are gated by an injected bearer token. Their presence does not constitute an operator dashboard, authenticated individual attribution, remote alert delivery or an on-call response drill.
+- **Metrics nuance:** /internal/metrics exposes process-local HTTP/WebSocket counters and can additionally include a same-host SQLite collector aggregation. The collector is bounded, uses 15-minute buckets and 7-day retention, and is best-effort local telemetry. There is no verified central dashboard, independent off-host metrics retention, external alert sink or operator paging integration. The separate alert-delivery status endpoint explicitly reports process-local-since-start scope.
+
+### Acceptance implications
+
+- Gate 20 still requires real Firebase project token validation/revocation and entitlement grant/revoke/renew E2E. The code's ADC initialization and test doubles do not close it.
+- Gate 38 remains open for owner-host operational visibility, retained dashboard, disk-pressure behavior and monitoring across restart/failure.
+- Gate 39 remains open for a real externally delivered operator alert, verified recipient, human acknowledgement, escalation receipt and documented response drill. Local escalation log entries are not external alerts.
+- Gate 8 remains open for owner-host secret injection, permissions, rotation and log-redaction acceptance, including the FCM key and runtime ADC identity. A protected file loader is a source control, not owner-host evidence.
+- Gate 10 remains **0/10 formally closed**; Stage 1 remains **30/40 = 75% provisional**. No Stage 2 transition.
+
+### Scope and indicator reconciliation
+
+No WebSocket runtime code, FCM runtime code, operator routes, tests or workflows changed. No indicator implementation, formula, hook, renderer, UI or tests changed. SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain 🟨 foundation; Footprint 🟧 synthetic/reference-gated; Heatmap and Liquidation Maps 🟥 unimplemented. No indicator progress credit or aggregate percentage. Preserve warm-up nulls, source-index alignment, no future-candle repaint, stale-series clearing and Footprint OFF standard candle spacing.
+
+ZERO COST; documentation-only; main untouched.

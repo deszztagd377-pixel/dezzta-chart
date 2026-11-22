@@ -1582,3 +1582,7 @@ No aggregate indicator percentage is published without approved per-study weight
 - WebSocket Gate 25/36 remain open; Gate 38/39 remain open. Gate 10 remains 0/10 formally closed; Stage 1 remains 30/40 provisional. No production acceptance is inferred from CI.
 - Indicator statuses and requirements are unchanged. No source/test/formula/hook/renderer/UI changes and **zero indicator progress credit**. Six foundation studies/shared hook 🟨; Footprint 🟧 reference-gated; Heatmap and Liquidation Maps 🟥.
 - Documentation-only, ZERO COST; `main` untouched.
+
+## Batch 62J-127 — WebSocket acceptance reconciliation
+
+Exact-parent CI for b7d0482ff8fa5906c006460583ad3b175f4c282c: Automated Tests, CodeQL and Full Git History Secret Audit all SUCCESS (runs 44987388625, 44987388511 and 44987388505). Operational-response audit distinguishes implemented user price-alert FCM delivery from local operator incident escalation: FCM uses owner-scoped encrypted device tokens and runtime ADC, while operator escalation currently writes local logs; no external operator paging/receipt is proven. Same-host SQLite metrics aggregation exists (15-minute buckets, 7-day retention) alongside process-local counters, but no central dashboard/off-host monitoring proof exists. Gates 8, 20, 38 and 39 remain open. Gate 10 is 0/10; Stage 1 is 30/40 provisional. Indicator statuses are unchanged and receive zero progress credit; six foundations/shared hook 🟨, Footprint 🟧 reference-gated, Heatmap/Liquidation Maps 🟥. Documentation-only, ZERO COST.
