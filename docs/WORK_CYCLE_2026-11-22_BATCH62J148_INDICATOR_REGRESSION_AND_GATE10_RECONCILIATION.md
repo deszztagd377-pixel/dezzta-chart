@@ -87,3 +87,15 @@ The requested target is **24 December 2026**. From 22 November, 32 calendar days
 - No changes to `main`.
 - One test-source file changed; progress dashboard and indicator ledger updated; this report added.
 - Exact final CI remains pending until queried on the final documentation HEAD.
+## 10. Official market-data source due diligence — recurring ZERO COST
+
+Reviewed official CME Group and Databento material on 22 November 2026:
+
+- CME real-time Futures & Options WebSocket API is a monthly subscription/order product with onboarding, not a verified free feed: [CME API ordering](https://www.cmegroup.com/tools-information/webhelp/data-services-portal/Content/Ordering-CME-Group-Market-Data-APIs.html).
+- CME public delayed quotes are at least 10 minutes delayed, but the public webpage does not itself grant an application API or redistribution right: [CME delayed quotes](https://www.cmegroup.com/market-data/browse-data/delayed-quotes.html).
+- CME's delayed Website Information REST API requires OAuth entitlement and an active Public Website (Delayed) Redistribution license; the last-trade endpoint is an hourly snapshot at minute 15, not a continuous stream: [CME REST API onboarding and availability](https://cmegroupclientsite.atlassian.net/wiki/spaces/EPICSANDBOX/pages/1892122625/Distribution+Trades+and+Settlements+REST+API).
+- Databento's $125 signup credits are not a sustainable live-data entitlement; its pricing page describes the usage-based tier as historical-only, Standard live access at $199/month and Plus at $1,750/month with external distribution: [Databento pricing](https://databento.com/pricing/).
+- Databento's live-data guide confirms qualifying subscription plans and potential venue license fees: [Databento live-data guide](https://www.databento.tech/docs/portal/live-data).
+
+Decision: no recurring-$0 source with verified exact CME instrument coverage and application redistribution rights has been approved. This is a bounded research result, not a universal claim that all free data is impossible. Do not scrape the public delayed quote page or use personal web display as an API. Unsupported CME instruments remain explicitly unavailable/demo until a compliant feed is verified.
+
