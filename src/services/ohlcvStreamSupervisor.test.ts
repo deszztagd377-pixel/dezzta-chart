@@ -170,7 +170,14 @@ describe('OHLCV stream supervisor', () => {
     oldSocket.message(snapshot);
     oldSocket.completeClose();
     expect(getMarketDataSnapshot().identity?.timeframe).toBe('1m');
-    expect(getMarketDataSnapshot().bars).toEqual([nextBar]);
+    expect(getMarketDataSnapshot().bars).toEqual([{
+      timestamp: 1793577600,
+      open: 6000.125,
+      high: 6001.25,
+      low: 5999.875,
+      close: 6000.75,
+      volume: 12,
+    }]);
 
     nextSupervisor.stop();
     expect(nextSupervisor.status).toBe('stopped');
