@@ -1,6 +1,7 @@
 import type { ChartData } from '../types';
 import {
   getMarketSeriesIdentityKey,
+  MAX_MARKET_DATA_BARS_PER_SERIES,
   validateMarketDataBars,
   validateMarketSeriesIdentity,
   type MarketDataSnapshot,
@@ -43,11 +44,21 @@ export class MarketDataSeriesStore {
 
   private readonly maxSeriesEntries: number;
 
-  constructor(maxSeriesEntries = 32) {
+  private readonly maxBarsPerSeries: number;
+
+  constructor(maxSeriesEntries = 32, maxBarsPerSeries = MAX_MARKET_DATA_BARS_PER_SERIES) {
     if (!Number.isSafeInteger(maxSeriesEntries) || maxSeriesEntries < 1) {
       throw new Error('Market-data series store capacity must be a positive safe integer.');
     }
+    if (
+      !Number.isSafeInteger(maxBarsPerSeries) ||
+      maxBarsPerSeries < 1 ||
+      maxBarsPerSeries > MAX_MARKET_DATA_BARS_PER_SERIES
+    ) {
+      throw new Error(`Per-series bar capacity must be between 1 and ${MAX_MARKET_DATA_BARS_PER_SERIES}.`);
+    }
     this.maxSeriesEntries = maxSeriesEntries;
+    this.maxBarsPerSeries = maxBarsPerSeries;
   }
 
   private getEntry(identity: MarketSeriesIdentity): SeriesEntry {
@@ -120,6 +131,9 @@ export class MarketDataSeriesStore {
     if (backendState && bars.length === 0) {
       throw new Error('Backend market data cannot be ready without validated bars.');
     }
+    if (bars.length > this.maxBarsPerSeries) {
+      throw new Error(`Market-data snapshot exceeds the ${this.maxBarsPerSeries}-bar per-series retention limit.`);
+    }
     if (!backendState && bars.length > 0) {
       throw new Error('Non-ready market-data states cannot publish indicator bars.');
     }
@@ -169,20 +183,28 @@ export class MarketDataSeriesStore {
       else high = middle;
     }
 
-    if (low < nextBars.length && nextBars[low].timestamp === input.bar.timestamp) {
-      nextBars[low] = input.bar;
+    const isReplacement = low < nextBars.length &&
+      nextBars[low].timestamp === input.bar.timestamp;
+    const immutableBar = Object.freeze({ ...input.bar });
+    if (isReplacement) {
+      nextBars[low] = immutableBar;
     } else {
-      nextBars.splice(low, 0, input.bar);
+      if (nextBars.length >= this.maxBarsPerSeries && low === 0) {
+        throw new Error('Market-data update is older than the retained per-series bar window.');
+      }
+      nextBars.splice(low, 0, immutableBar);
+      if (nextBars.length > this.maxBarsPerSeries) nextBars.shift();
     }
     validateMarketDataBars(nextBars);
 
     entry.snapshot = Object.freeze({
       ...current,
-      bars: Object.freeze(nextBars.map((bar) => Object.freeze({ ...bar }))),
+      // Existing bars are already frozen; reuse their object references.
+      bars: Object.freeze(nextBars),
       revision: current.revision + 1,
       lastChange: Object.freeze({
         type: 'update',
-        bar: Object.freeze({ ...input.bar }),
+        bar: immutableBar,
       }),
     });
     this.emit(entry);
@@ -203,6 +225,10 @@ export class MarketDataSeriesStore {
 
   getCapacity(): number {
     return this.maxSeriesEntries;
+  }
+
+  getBarCapacity(): number {
+    return this.maxBarsPerSeries;
   }
 
   getSubscriberCount(identity: MarketSeriesIdentity): number {
