@@ -212,6 +212,27 @@ describe('CandlestickChart WebSocket browser lifecycle integration', () => {
     expect(stopHandles[1]).toHaveBeenCalledOnce();
   });
 
+  it('pauses on pagehide and creates a fresh supervisor on pageshow', () => {
+    renderChart();
+    expect(mocks.startSupervisor).toHaveBeenCalledTimes(1);
+
+    act(() => window.dispatchEvent(new Event('pagehide')));
+    expect(stopHandles[0]).toHaveBeenCalledOnce();
+    expect(getMarketDataSnapshot().status).toBe('unavailable');
+    expect(getMarketDataSnapshot().detail).toContain('background');
+
+    setBrowserLifecycle(true, 'visible');
+    act(() => window.dispatchEvent(new Event('pageshow')));
+    expect(mocks.startSupervisor).toHaveBeenCalledTimes(2);
+    expect(stopHandles[1]).not.toHaveBeenCalled();
+
+    act(() => {
+      root?.unmount();
+      root = null;
+    });
+    expect(stopHandles[1]).toHaveBeenCalledOnce();
+  });
+
   it('does not create a supervisor when initially hidden', () => {
     setBrowserLifecycle(true, 'hidden');
     renderChart();
