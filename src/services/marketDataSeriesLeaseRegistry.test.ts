@@ -93,6 +93,22 @@ describe('per-series chart-panel lease registry', () => {
     esLease.release();
   });
 
+  it('normalizes whitespace around owner IDs to prevent duplicate panel ownership', () => {
+    const registry = new MarketDataSeriesLeaseRegistry();
+    const lease = registry.acquire(nq, '  panel-a  ');
+
+    expect(lease.ownerId).toBe('panel-a');
+    expect(registry.hasOwner(nq, ' panel-a ')).toBe(true);
+    expect(registry.getOwnerCount(nq)).toBe(1);
+
+    const replacement = registry.acquire(nq, 'panel-a');
+    expect(registry.getOwnerCount(nq)).toBe(1);
+    lease.release();
+    expect(registry.getOwnerCount(nq)).toBe(1);
+    replacement.release();
+    expect(registry.getSeriesCount()).toBe(0);
+  });
+
   it('rejects blank owner IDs and invalid series identities', () => {
     const registry = new MarketDataSeriesLeaseRegistry();
     expect(() => registry.acquire(nq, '  ')).toThrow(/owner ID/);
