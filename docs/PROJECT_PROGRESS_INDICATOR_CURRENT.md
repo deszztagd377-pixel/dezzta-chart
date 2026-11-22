@@ -1309,3 +1309,14 @@ Stage 1 remains **30/40 = 75% provisional**. Stages 2–6 and overall project pe
 No indicator source, formula, data contract, hook, renderer, chart UI or indicator test changed. No indicator progress credit is awarded. The full formula, warm-up, status and remaining-work matrix is recorded in `docs/INDICATOR_PROGRESS_LEDGER.md`; statuses remain SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, Shared Indicator Hook 🟨, Footprint 🟧, Heatmap 🟥 and Liquidation Maps 🟥. Warm-up nulls, candle-index alignment, no future-candle repaint and stale-series clearing remain mandatory.
 
 ZERO COST. No deployment, paid service, production credential, Termux/device action, Vercel/Cloudflare operation or `main` modification.
+
+
+## Batch 62J-107 — WebSocket ticket documentation and indicator reconciliation (22 November 2026)
+
+- Corrected stale `backend/README.md`: production clients exchange Firebase Bearer ID tokens at `POST /v1/auth/websocket-ticket`, then authenticate WebSocket using the purpose-bound single-use ticket (90-second TTL). Direct Firebase-token frame authentication is non-production only.
+- Source, client, test and indicator implementation unchanged; no CI run for this documentation-only batch. Existing CI evidence remains tied to its previously recorded source/test HEAD.
+- Gate 20/25/36 production acceptance remains open: real Firebase-project E2E; owner-host shared Redis TLS/ACL, snapshot receipts and failover; public HTTPS/WSS, reverse proxy, browser and Android WebView.
+- Gate 10 remains 0/10 formally closed: 🟨🟩 host/operator-only Gates 8, 30, 34, 35, 39; 🟧 integration/acceptance Gates 20, 25, 31, 36, 38.
+- Stage 1 remains 30/40 = 75% provisional. Stages 2–6 and overall project percentage remain unscored without approved weights/denominators.
+- Indicator matrix unchanged; no progress credit: SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, Shared Indicator Hook 🟨, Footprint 🟧, Heatmap 🟥, Liquidation Maps 🟥. Full formulas, first-valid indices, invariants and remaining work are documented in `docs/WORK_CYCLE_2026-11-22_BATCH62J107_WEBSOCKET_AUTH_DOC_RECONCILIATION.md` and `docs/INDICATOR_PROGRESS_LEDGER.md`.
+- ZERO COST; no deployment, Vercel/Cloudflare operation, paid service, production credential, Termux/device action, or `main` modification.
