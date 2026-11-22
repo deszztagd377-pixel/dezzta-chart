@@ -1,10 +1,11 @@
-# CURRENT PROJECT PROGRESS — Batch 62J-148 (22 November 2026)
+# CURRENT PROJECT PROGRESS — Batch 62J-149 (22 November 2026)
 
 **Target date corrected by project owner: 24 December 2026.** From 22 November, 32 calendar days remain after today through 24 December. This is a delivery target, not a guaranteed completion claim.
 
 **Active branch:** `phase-2/market-data-foundation`  
-**Starting exact HEAD:** `1d8667fc5d6810bbde88b6a596214cdedc5fc80f`  
-**Test-coverage commit:** `79d88d9aa5261dde3f2e31d1e742d45f461e43c2`  
+**Latest inspected HEAD:** `f972e15d429328870047878c57e268af7c35d6f7`  
+**Batch 62J-148 test commit:** `79d88d9aa5261dde3f2e31d1e742d45f461e43c2`  
+**Batch 62J-149 WebSocket test commit:** `ed7f22a00b71223d0dd7ed280aadddd8a30cf6e1`  
 **Main:** untouched.
 
 ## Batch 62J-148 — indicator numerical regression coverage
@@ -19,6 +20,19 @@ Runtime indicator formulas were not changed. Added two deterministic regression 
 - OCI ARM64 Image Readiness [45016825580](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45016825580): SUCCESS; native ARM64 build and unprivileged/persistent-volume smoke passed.
 
 OCI qualification: CI image/build/runtime smoke evidence only, not an OCI tenancy, cloud deployment, public endpoint, TLS certificate or owner-host acceptance.
+
+## Batch 62J-149 — WebSocket subscriber isolation
+
+Added `backend/tests/test_ohlcv_stream.py::test_same_series_subscribers_are_isolated_when_one_disconnects`. Two clients subscribe to the same exact series; both receive the first update; after client A unsubscribes, client B continues receiving the next update; A remains closed and receives no more events. Subscriber count is verified across 2 → 1 → 0.
+
+This is a downstream per-client fan-out regression test, not proof of upstream dynamic provider subscription or reference counting. The existing real WSS multi-user test also covers client disconnect isolation at the API boundary. Exact-HEAD CI is pending.
+
+### Exact-HEAD CI — `f972e15d429328870047878c57e268af7c35d6f7`
+
+- Secret Audit [45018090708](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45018090708): SUCCESS.
+- Automated Tests [45018090728](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45018090728): IN PROGRESS at last poll.
+- CodeQL [45018090755](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45018090755): IN PROGRESS at last poll.
+- OCI ARM64 [45018090784](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45018090784): IN PROGRESS at last poll.
 
 ## Stage and Gate accounting
 
