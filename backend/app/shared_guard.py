@@ -113,10 +113,18 @@ class RedisSharedGuard:
         websocket_global_limit: int = 500,
         websocket_per_account_limit: int = 5,
         websocket_lease_seconds: int = 45,
+        redis_tls_ca_certs: str = "",
         redis_client: Any | None = None,
     ) -> None:
         if not redis_url and redis_client is None:
             raise ValueError("A Redis URL or injected Redis client is required.")
+        if redis_tls_ca_certs and (
+            not isinstance(redis_tls_ca_certs, str)
+            or not __import__("pathlib").Path(redis_tls_ca_certs).is_absolute()
+        ):
+            raise ValueError("redis_tls_ca_certs must be an absolute CA bundle path.")
+        if redis_tls_ca_certs and redis_url and not redis_url.lower().startswith("rediss://"):
+            raise ValueError("A custom Redis CA bundle requires a rediss:// URL.")
         limits = (
             http_per_client_per_minute,
             http_global_per_minute,
@@ -154,6 +162,8 @@ class RedisSharedGuard:
                     ssl_cert_reqs="required",
                     ssl_check_hostname=True,
                 )
+                if redis_tls_ca_certs:
+                    redis_options["ssl_ca_certs"] = redis_tls_ca_certs
             redis_client = Redis.from_url(redis_url, **redis_options)
         self._redis = redis_client
 
