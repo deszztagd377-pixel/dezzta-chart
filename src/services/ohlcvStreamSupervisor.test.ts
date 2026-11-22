@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getMarketDataSnapshot, resetMarketDataSnapshot } from './marketDataStore';
+import { marketDataSeriesStore } from './marketDataSeriesStore';
 import { startOhlcvStreamSupervisor } from './ohlcvStreamSupervisor';
 
 class FakeSocket {
@@ -82,6 +83,8 @@ afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
   resetMarketDataSnapshot(null, 'demo', 'test reset');
+  marketDataSeriesStore.reset(identity, 'unavailable', 'test reset');
+  marketDataSeriesStore.reset({ ...identity, timeframe: '1m' }, 'unavailable', 'test reset');
 });
 
 describe('OHLCV stream supervisor', () => {
@@ -112,9 +115,13 @@ describe('OHLCV stream supervisor', () => {
     expect(supervisor.status).toBe('subscribed');
     expect(getMarketDataSnapshot().source).toBe('backend');
     expect(getMarketDataSnapshot().bars).toHaveLength(1);
+    expect(marketDataSeriesStore.getSnapshot(identity).source).toBe('backend');
+    expect(marketDataSeriesStore.getSnapshot(identity).bars).toHaveLength(1);
     supervisor.stop();
     expect(supervisor.status).toBe('stopped');
     expect(getMarketDataSnapshot().bars).toHaveLength(0);
+    expect(marketDataSeriesStore.getSnapshot(identity).status).toBe('unavailable');
+    expect(marketDataSeriesStore.getSnapshot(identity).bars).toHaveLength(0);
   });
 
   it('supersedes the previous supervisor on timeframe change without allowing stale callbacks to replace the new series', async () => {
@@ -164,6 +171,7 @@ describe('OHLCV stream supervisor', () => {
     nextSocket.message({ ...snapshot, bars: [nextBar] });
     expect(getMarketDataSnapshot().identity?.timeframe).toBe('1m');
     expect(getMarketDataSnapshot().bars).toHaveLength(1);
+    expect(marketDataSeriesStore.getSnapshot(nextIdentity).bars).toHaveLength(1);
 
     // Both a queued data message and a delayed native close from the old socket
     // must be harmless after the replacement has published its own snapshot.
@@ -178,6 +186,7 @@ describe('OHLCV stream supervisor', () => {
       close: 6000.75,
       volume: 12,
     }]);
+    expect(marketDataSeriesStore.getSnapshot(nextIdentity).bars).toHaveLength(1);
 
     nextSupervisor.stop();
     expect(nextSupervisor.status).toBe('stopped');
