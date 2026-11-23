@@ -86,7 +86,15 @@ The Worker continues to label every fixture as `synthetic_only_not_market_data`.
 | Concurrent duplicate cursor submission | 0 | 1 |
 | **Total** | **6** | **2** |
 
-The suite now defines ten runtime cases. **The four new cases are pending exact-HEAD CI until the Automated Tests workflow reports success.** Do not award accepted-test credit before that result.
+The suite now defines ten runtime cases. **The four new cases are pending exact-HEAD CI until the Automated Tests workflow reports success.**
+
+### First exact-head regression run and correction
+
+The first combined CI run on source/test HEAD `f7f8d04933fb6554c1952f237ef6135ba22362af` ran all ten cases: **9 passed, 1 failed**. The sole failure was the new authenticated-socket/auth-alarm test harness. Successful authentication correctly removes the unauthenticated-socket alarm; the test then tried to force an alarm without leaving an unauthenticated socket to keep one scheduled, so the runtime helper correctly reported that no alarm ran.
+
+The test setup has been corrected in commit `aaa638a1db0277118484d5c65992cec54f19cb1d`: it now creates one authenticated and one unauthenticated socket on the same series, expires both test attachment timestamps, and runs the already-scheduled authentication alarm. Acceptance requires the unauthenticated socket to close with 4408 while the authenticated socket remains open and answers a ping. No production runtime code changed. The corrected exact-HEAD CI result is pending.
+
+ **The four new cases are pending exact-HEAD CI until the Automated Tests workflow reports success.** Do not award accepted-test credit before that result.
 
 ## 8. Indicator and project progress impact
 
