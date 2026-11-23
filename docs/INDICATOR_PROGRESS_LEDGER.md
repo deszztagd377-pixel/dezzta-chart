@@ -1,8 +1,8 @@
 # Latest indicator checkpoint — 23 November 2026
 
 **Branch:** `phase-2/market-data-foundation`  
-**Latest source/test HEAD:** `d2057e9997b50cb6aab04258fd90de37d35a6816` — ready/degraded versus demo/error trust-state coverage and immutable-revision recalculation regression with relative revision and floating-point tolerance assertions. Exact-HEAD CI pending.  
-**Last exact-HEAD CI-confirmed checkpoint:** `008edd4c5750e1f59645273ddcacd37e232fec44` — four workflows SUCCESS.  
+**Latest source/test HEAD:** `d2057e9997b50cb6aab04258fd90de37d35a6816`.  
+**Exact-HEAD CI:** all four workflows SUCCESS on `4a87b90e08da04cd22faf74d578a5ce2f2734c15`; frontend 315/315 across 34 files.  
 **Indicator formula/renderer/UI changes:** none. Two hook regressions improve acceptance evidence only.
 
 | Indicator / subsystem | Status | Verified foundation | Remaining acceptance |
