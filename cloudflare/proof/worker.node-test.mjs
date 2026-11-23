@@ -413,7 +413,7 @@ test("unauthenticated socket alarm schedules the earliest deadline and expires o
   const coordinator = new SeriesCoordinatorDO({ storage, getWebSockets: () => sockets }, {});
 
   await coordinator.scheduleUnauthenticatedSocketAlarm();
-  assert.equal(storage.alarmAt, pending.attachment.connectedAt + 15_000);
+  assert.equal(storage.alarmAt, expired.attachment.connectedAt + 15_000);
 
   await coordinator.alarm();
   assert.equal(expired.closed[0].code, 4408);
