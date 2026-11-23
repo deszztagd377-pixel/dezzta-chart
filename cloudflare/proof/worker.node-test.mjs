@@ -492,3 +492,36 @@ test("health response includes local CORS only for the allow-listed origin", asy
   const response = await worker.fetch(request("/health"), makeEnv());
   assert.equal(response.headers.get("Access-Control-Allow-Origin"), "http://localhost:3000");
 });
+
+test("fan-out isolates a failed socket send and counts only successful deliveries", async () => {
+  const storage = new MemoryStorage();
+  await storage.put("sequence:" + SERIES, 50);
+  const failing = new MemorySocket({
+    authorized: true, seriesKey: SERIES, subject: "synthetic-proof-subject",
+    connectedAt: Date.now(), snapshotWatermark: 50,
+  });
+  failing.send = () => { throw new Error("simulated slow/closed consumer"); };
+  const healthy = new MemorySocket({
+    authorized: true, seriesKey: SERIES, subject: "synthetic-proof-subject",
+    connectedAt: Date.now(), snapshotWatermark: 50,
+  });
+  const coordinator = new SeriesCoordinatorDO({
+    storage,
+    getWebSockets: () => [failing, healthy],
+  }, {});
+
+  const response = await coordinator.fetch(new Request("https://series.internal/internal/emit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ seriesKey: SERIES, sequence: "51" }),
+  }));
+
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).delivered, 1);
+  assert.deepEqual(failing.closed, [{
+    code: 1011,
+    reason: "Synthetic fan-out failed",
+  }]);
+  assert.equal(healthy.sent.length, 1);
+  assert.equal(healthy.sent[0].sequence, "51");
+});
