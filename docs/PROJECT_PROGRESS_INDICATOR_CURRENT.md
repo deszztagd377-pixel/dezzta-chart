@@ -4677,3 +4677,7 @@ Indicator invariants remain warm-up null, exact index alignment, prefix causalit
 
 ### Batch 62J-179 verification note
 The root package manifest/lockfile currently contain no Wrangler or Miniflare dependency, so a pinned local Cloudflare runtime smoke remains an explicit toolchain task rather than an assumed pass. The existing push workflow is configured for this branch and runs Node syntax plus the synthetic Worker test file. The available connector returned no combined status entries or workflow-run records for the current commits; because its workflow-run helper filters to pull-request-triggered runs, push-run completion remains **unverified**, not declared absent or successful. See the Batch 62J-179 work-cycle record for the full verification boundary.
+
+
+### Batch 62J-180 — CI failure repaired
+The push CI failure at `2591e6071ba966114895256e51aa3fb99ea8001f` was isolated to a syntax error in the malformed-attachment regression test: its callback contained `await` but was not declared `async`. The callback is now asynchronous in commit `ae9a6368f824e4c2fac2b1c9d18ad2fba9fc41ca`. This is a test-harness correction, not a production Worker logic change. A fresh push-triggered CI run must confirm the fix. Indicator implementation/progress remains unchanged; see the indicator ledger for the complete mathematical contract.
