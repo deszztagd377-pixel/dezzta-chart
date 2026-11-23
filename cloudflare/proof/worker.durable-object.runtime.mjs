@@ -321,20 +321,26 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
   });
   it("does not expire an authenticated socket when the authentication alarm runs", async () => {
     const client = await connectAuthenticated(SERIES_ALARM);
+    // A pending unauthenticated socket keeps the authentication alarm scheduled.
+    const unauthenticatedSocket = await openSocket(SERIES_ALARM);
     const stub = coordinatorStub(SERIES_ALARM);
 
     await runInDurableObject(stub, async (_instance, state) => {
-      const [serverSocket] = state.getWebSockets();
-      const attachment = serverSocket.deserializeAttachment();
-      expect(attachment.authorized).toBe(true);
-      serverSocket.serializeAttachment({
-        ...attachment,
-        connectedAt: Date.now() - proofLimits.unauthenticatedSocketTtlMs - 1,
-      });
-      await state.storage.setAlarm(Date.now());
+      const sockets = state.getWebSockets();
+      expect(sockets).toHaveLength(2);
+      for (const serverSocket of sockets) {
+        const attachment = serverSocket.deserializeAttachment();
+        serverSocket.serializeAttachment({
+          ...attachment,
+          connectedAt: Date.now() - proofLimits.unauthenticatedSocketTtlMs - 1,
+        });
+      }
     });
 
+    const unauthenticatedClose = nextClose(unauthenticatedSocket);
     expect(await runDurableObjectAlarm(stub)).toBe(true);
+    expect((await unauthenticatedClose).code).toBe(4408);
+
     const pongPromise = nextJsonMessage(client.socket);
     client.socket.send(JSON.stringify({ type: "ping" }));
     expect(await pongPromise).toMatchObject({ type: "pong", version: 1 });
