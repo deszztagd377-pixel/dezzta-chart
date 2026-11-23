@@ -142,6 +142,7 @@ test("synthetic snapshot is bounded to 50 bars and has monotonic cursors", () =>
 
 test("ticket is series-bound, purpose-bound, expires, and is single-use under concurrency", async () => {
   const storage = new MemoryStorage();
+  await initializeSequenceWatermark(storage, SERIES);
   const now = 1_800_000_000_000;
   const issued = await issueTicket(storage, SERIES, "synthetic-proof-subject", now);
   assert.equal(issued.expiresAt, now + 90_000);
@@ -171,6 +172,7 @@ test("pending ticket capacity is enforced atomically under concurrent issuance",
 
 test("ticket rejects a different series and expired tickets are consumed", async () => {
   const storage = new MemoryStorage();
+  await initializeSequenceWatermark(storage, SERIES);
   const now = 1_800_000_000_000;
   const issued = await issueTicket(storage, SERIES, "synthetic-proof-subject", now);
   assert.equal(await consumeTicket(storage, issued.ticket, "synthetic:DEMO:ETHUSD:1m", now + 1), null);
@@ -289,6 +291,7 @@ test("snapshot watermark initialization cannot rewind a concurrent first update"
 
 test("Durable Object consumes one-time ticket and sends an aligned synthetic snapshot", async () => {
   const storage = new MemoryStorage();
+  await initializeSequenceWatermark(storage, SERIES);
   const issued = await issueTicket(storage, SERIES, "synthetic-proof-subject");
   const socket = new MemorySocket({
     authorized: false,
@@ -443,6 +446,7 @@ test("authorized sockets do not retain an unauthenticated-session alarm", async 
 
 test("authentication after the connection deadline is rejected without consuming its ticket", async () => {
   const storage = new MemoryStorage();
+  await initializeSequenceWatermark(storage, SERIES);
   const issued = await issueTicket(storage, SERIES, "synthetic-proof-subject");
   const socket = new MemorySocket({
     authorized: false, seriesKey: SERIES, subject: null,
