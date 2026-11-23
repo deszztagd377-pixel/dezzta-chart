@@ -208,6 +208,23 @@ async function readSmallJson(request) {
   }
 }
 
+/**
+ * Initialize the snapshot cursor without racing the first live synthetic event.
+ * The read and conditional write share the same transaction as sequence updates.
+ */
+export async function initializeSequenceWatermark(storage, seriesKey) {
+  if (!isValidSyntheticSeriesKey(seriesKey)) throw new TypeError("Invalid synthetic series identity.");
+  const sequenceKey = "sequence:" + seriesKey;
+  return storage.transaction(async (transaction) => {
+    const current = await transaction.get(sequenceKey);
+    if (current === undefined) {
+      await transaction.put(sequenceKey, SNAPSHOT_WATERMARK);
+      return SNAPSHOT_WATERMARK;
+    }
+    return current;
+  });
+}
+
 export async function acceptNextSequence(storage, seriesKey, sequence) {
   if (!isValidSyntheticSeriesKey(seriesKey) || !Number.isSafeInteger(sequence) || sequence < SNAPSHOT_WATERMARK + 1) {
     return false;
@@ -241,9 +258,7 @@ export class SeriesCoordinatorDO {
         return jsonResponse({ error: "invalid_series" }, 400);
       }
       try {
-        const sequenceKey = "sequence:" + body.seriesKey;
-        const current = await this.ctx.storage.get(sequenceKey);
-        if (current === undefined) await this.ctx.storage.put(sequenceKey, SNAPSHOT_WATERMARK);
+        await initializeSequenceWatermark(this.ctx.storage, body.seriesKey);
         const issued = await issueTicket(
           this.ctx.storage,
           body.seriesKey,
