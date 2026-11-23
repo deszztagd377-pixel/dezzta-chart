@@ -2519,3 +2519,8 @@ Full technical record: `docs/WORK_CYCLE_2026-11-23_BATCH62J178_WEBSOCKET_AUTH_TI
 No indicator code or visual implementation was changed in Batch 62J-179. Core invariants remain warm-up null, exact candle-index alignment, prefix causality/no future leakage, invalid/gap rejection, stale-output clearing on identity/timeframe changes, and separate calculation/render/interaction/lifecycle/accessibility/performance acceptance. Footprint OFF preserves standard candle spacing; ON alone enables spaced clusters. Indicator aggregate remains **NOT SCORED**.
 
 Batch 62J-179 addressed two adjacent WebSocket safeguards only: constructor resilience when closing malformed restored sockets throws, and complete attachment validation before synthetic fan-out. Full technical record: `docs/WORK_CYCLE_2026-11-23_BATCH62J179_WEBSOCKET_RESTORED_SOCKET_HARDENING.md`.
+
+
+### Batch 62J-180 — CI regression correction
+
+The latest CI failure on `2591e6071ba966114895256e51aa3fb99ea8001f` was traced to a malformed test callback: an `await` appeared inside a synchronous test function. Fixed by marking the test callback `async`, committed as `ae9a6368f824e4c2fac2b1c9d18ad2fba9fc41ca`. This changes test syntax only; indicator implementation and mathematical foundations are unchanged. Re-run status is pending verification. All indicator statuses and invariants listed above remain unchanged.
