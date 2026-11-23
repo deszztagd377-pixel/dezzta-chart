@@ -155,7 +155,9 @@ class RedisOhlcvGatewayWorker:
                     backoff = min(self.max_backoff_seconds, backoff * 2)
         finally:
             with self._lock:
-                if self._state != "resnapshot_required":
+                # Preserve terminal failure states for readiness/operations
+                # diagnostics. A lost lease is not an ordinary clean stop.
+                if self._state not in {"resnapshot_required", "ownership_lost"}:
                     self._state = "stopped"
 
     def stop(self, *, timeout_seconds: float = 3.0) -> bool:

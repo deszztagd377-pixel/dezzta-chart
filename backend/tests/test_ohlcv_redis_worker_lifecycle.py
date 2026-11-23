@@ -5,6 +5,7 @@ import time
 
 import pytest
 
+from app.ohlcv_redis_lease import RedisOhlcvConsumerLeaseLost
 from app.ohlcv_redis_consumer import ReplicaResnapshotRequired
 from app.ohlcv_redis_worker import RedisOhlcvGatewayWorker
 
@@ -105,3 +106,27 @@ def test_worker_resnapshot_required_is_terminal_until_rebuilt():
     assert wait_until(lambda: worker.state["thread_alive"] is False)
     with pytest.raises(RuntimeError, match="verified replica snapshot"):
         worker.start()
+
+
+def test_worker_preserves_ownership_lost_terminal_state_after_thread_exit():
+    class LostLease:
+        def start_heartbeat(self):
+            return None
+
+        def assert_owned(self):
+            raise RedisOhlcvConsumerLeaseLost("ownership no longer belongs to this process")
+
+        def stop_heartbeat(self):
+            return True
+
+    worker = RedisOhlcvGatewayWorker(
+        FakeConsumer(lambda: {"status": "idle"}),
+        FakeDispatcher(),
+        ownership_lease=LostLease(),
+    )
+    worker.start()
+    assert wait_until(lambda: worker.state["thread_alive"] is False)
+    assert worker.state["state"] == "ownership_lost"
+    assert worker.state["last_error_type"] == "RedisOhlcvConsumerLeaseLost"
+    assert worker.stop(timeout_seconds=0.5) is True
+    assert worker.state["state"] == "ownership_lost"
