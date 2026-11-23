@@ -1236,13 +1236,24 @@ def create_app(
                 timestamp_ns=time.time_ns(),
             )
             canonical_id = None
+            session_calendar_id = None
+            session_calendar_version = None
             if mapping is not None and mapping.raw_symbol == contract["raw_symbol"]:
                 instrument = instrument_registry.get_instrument(mapping.canonical_id)
                 if instrument is not None and instrument.is_active:
                     canonical_id = instrument.canonical_id
+                    session_calendar_id = instrument.session_calendar_id
+                    if session_calendar_id:
+                        loaded_calendar = application.state.session_calendar_registry.get(
+                            session_calendar_id
+                        )
+                        if loaded_calendar is not None:
+                            session_calendar_version = loaded_calendar.version
             enriched_contracts.append({
                 **contract,
                 "canonical_instrument_id": canonical_id,
+                "session_calendar_id": session_calendar_id,
+                "session_calendar_version": session_calendar_version,
             })
 
         snapshot["contracts"] = enriched_contracts
