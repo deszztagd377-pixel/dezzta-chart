@@ -258,4 +258,58 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     const closed = await closedPromise;
     expect(closed.code).toBe(4408);
   });
+  it("binds tickets to one exact series without consuming them on a wrong-series attempt", async () => {
+    const ticket = await issueTicket(SERIES_A);
+    const wrongSeriesSocket = await openSocket(SERIES_B);
+    const rejectedPromise = nextClose(wrongSeriesSocket);
+    wrongSeriesSocket.send(JSON.stringify({ type: "auth", ticket }));
+
+    const rejected = await rejectedPromise;
+    expect(rejected.code).toBe(4401);
+
+    const validClient = await connectAuthenticated(SERIES_A, ticket);
+    expect(validClient.snapshot).toMatchObject({
+      type: "market_data.snapshot",
+      streamId: `synthetic:${SERIES_A}`,
+      watermarkCursor: "50",
+    });
+  });
+
+  it("rejects duplicate and skipped cursors without fan-out, then accepts the next contiguous cursor", async () => {
+    const seriesKey = "synthetic:DEMO:SEQUENCE:1m";
+    const client = await connectAuthenticated(seriesKey);
+
+    const first = await emit(seriesKey, 51);
+    expect(first.status).toBe(200);
+    expect(first.payload).toMatchObject({ accepted: true, sequence: "51", delivered: 1 });
+    expect(await nextJsonMessage(client.socket)).toMatchObject({
+      type: "market_data.update",
+      sequence: "51",
+    });
+
+    const duplicate = await emit(seriesKey, 51);
+    expect(duplicate.status).toBe(409);
+    expect(duplicate.payload).toMatchObject({ error: "sequence_conflict" });
+
+    const skipped = await emit(seriesKey, 53);
+    expect(skipped.status).toBe(409);
+    expect(skipped.payload).toMatchObject({ error: "sequence_conflict" });
+
+    await expect(nextJsonMessage(client.socket, 150)).rejects.toThrow(
+      "Timed out waiting for a Durable Object WebSocket message.",
+    );
+
+    const nextContiguous = await emit(seriesKey, 52);
+    expect(nextContiguous.status).toBe(200);
+    expect(nextContiguous.payload).toMatchObject({
+      accepted: true,
+      sequence: "52",
+      delivered: 1,
+    });
+    expect(await nextJsonMessage(client.socket)).toMatchObject({
+      type: "market_data.update",
+      sequence: "52",
+    });
+  });
+
 });
