@@ -16,7 +16,7 @@ import { useMarketDataSeriesSnapshot } from '../services/useMarketDataSeriesSnap
 import { toCandlestickSeriesData } from '../utils/candlestickSeriesData';
 import { buildChartOptions } from '../utils/chartOptions';
 import { getMeasurableChartSize } from '../utils/chartViewport';
-import { getBucketPolicyForTimeframe } from '../utils/ohlcvBucketPolicy';
+import { getBucketIdentityForTimeframe } from '../utils/ohlcvBucketPolicy';
 
 interface CandlestickChartProps {
   timeframe: Timeframe;
@@ -35,16 +35,22 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
 }) => {
   const { user, getIdToken } = useAuth();
   const panelOwnerId = useId();
-  const marketDataIdentity = useMemo(() => selectedContract ? ({
-    dataset: selectedContract.dataset,
-    publisherId: selectedContract.publisher_id,
-    instrumentId: selectedContract.instrument_id,
-    rawSymbol: selectedContract.raw_symbol,
-    timeframe,
-    bucketPolicy: getBucketPolicyForTimeframe(timeframe),
-    calendarId: '',
-    calendarVersion: '',
-  }) : null, [selectedContract, timeframe]);
+  const marketDataIdentity = useMemo(() => {
+    if (!selectedContract) return null;
+    const bucketIdentity = getBucketIdentityForTimeframe(
+      timeframe,
+      selectedContract.session_calendar_id,
+      selectedContract.session_calendar_version,
+    );
+    return {
+      dataset: selectedContract.dataset,
+      publisherId: selectedContract.publisher_id,
+      instrumentId: selectedContract.instrument_id,
+      rawSymbol: selectedContract.raw_symbol,
+      timeframe,
+      ...bucketIdentity,
+    };
+  }, [selectedContract, timeframe]);
   const marketDataSnapshot = useMarketDataSeriesSnapshot(marketDataIdentity);
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
