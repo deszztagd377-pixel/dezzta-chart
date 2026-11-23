@@ -355,17 +355,33 @@ test("Durable Object closes malformed serialized attachment state during restora
     authorized: true, seriesKey: SERIES, subject: "wrong-subject",
     connectedAt: Date.now(), snapshotWatermark: 50,
   });
+  const unreadable = new MemorySocket({
+    authorized: false, seriesKey: SERIES, subject: null, connectedAt: Date.now(),
+  });
+  unreadable.deserializeAttachment = () => { throw new Error("corrupt attachment"); };
   const valid = new MemorySocket({
     authorized: true, seriesKey: SERIES, subject: "synthetic-proof-subject",
     connectedAt: Date.now(), snapshotWatermark: 50,
   });
   new SeriesCoordinatorDO({
     storage: new MemoryStorage(),
-    getWebSockets: () => [invalidSeries, invalidSubject, valid],
+    getWebSockets: () => [invalidSeries, invalidSubject, unreadable, valid],
   }, {});
   assert.equal(invalidSeries.closed[0].code, 4401);
   assert.equal(invalidSubject.closed[0].code, 4401);
+  assert.equal(unreadable.closed[0].code, 4401);
   assert.equal(valid.closed.length, 0);
+
+  const messageUnreadable = new MemorySocket({
+    authorized: false, seriesKey: SERIES, subject: null, connectedAt: Date.now(),
+  });
+  messageUnreadable.deserializeAttachment = () => { throw new Error("corrupt attachment"); };
+  const coordinator = new SeriesCoordinatorDO({
+    storage: new MemoryStorage(),
+    getWebSockets: () => [],
+  }, {});
+  await coordinator.webSocketMessage(messageUnreadable, JSON.stringify({ type: "auth", ticket: "x" }));
+  assert.equal(messageUnreadable.closed[0].code, 4401);
 });
 
 test("health response includes local CORS only for the allow-listed origin", async () => {
