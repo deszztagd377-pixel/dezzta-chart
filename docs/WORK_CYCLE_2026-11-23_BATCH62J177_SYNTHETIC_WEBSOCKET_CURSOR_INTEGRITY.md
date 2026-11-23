@@ -3,7 +3,7 @@
 
 **Date:** 23 November 2026  
 **Branch:** `phase-2/market-data-foundation`  
-**Code/test HEAD:** `c017f9ff3cc7c46b9813efe7728106d47cd8e3ac`  
+**Code/test HEAD:** `a16818e10997c07d68a2e14929ba193b09ce0a8f`  
 **Scope:** isolated synthetic-only Worker / Durable Object proof  
 **Protected branch:** `main` untouched  
 **ZERO COST:** preserved  
@@ -32,8 +32,9 @@ This was a real storage-ordering defect in the synthetic proof, not a production
 
 ### Regression coverage
 - Added a race regression covering both operation orderings: initialization before first update, and first update before initialization.
+- Added Durable Object method-level tests for one-time ticket consumption, snapshot delivery, exact-series fan-out, contiguous event rejection and serialized attachment restoration.
 - Extended sequence-gate tests for values above the supported maximum, unsafe integers and a corrupted stored cursor.
-- Synthetic proof suite now contains **17 Node tests** (previously 16).
+- Synthetic proof suite now contains **20 Node tests** (previously 16).
 - Tests remain separate from Vitest discovery and use Node's built-in test runner; no package dependency was added.
 
 ## 3. Files changed in the engineering batch
@@ -50,7 +51,9 @@ No indicator formula, chart renderer, frontend, FastAPI runtime, Redis productio
 - Atomic watermark helper and ticket-path integration: `20814331ed03717e74cdf5514c02cd169df02ef6`
 - Race regression test: `e26eb094e016f5b174b39c5ad261984ce9fe1380`
 - Stored cursor and sequence-bound hardening: `dd9ee442240a0aa3d3a03d12b4b28b79d8181056`
-- Corrupt/out-of-range cursor regression assertions and current code/test HEAD: `c017f9ff3cc7c46b9813efe7728106d47cd8e3ac`
+- Corrupt/out-of-range cursor regression assertions: `c017f9ff3cc7c46b9813efe7728106d47cd8e3ac`
+- Strict serialized attachment validation: `b3945b7f5bad1cd0484a9f053be49fe2a4815aa9`
+- Ticket/snapshot/fan-out/restore test coverage and current code/test HEAD: `a16818e10997c07d68a2e14929ba193b09ce0a8f`
 
 The exact-HEAD automated test, CodeQL, secret-history and OCI workflows must complete against the current code/test SHA before this batch receives CI acceptance credit.
 
