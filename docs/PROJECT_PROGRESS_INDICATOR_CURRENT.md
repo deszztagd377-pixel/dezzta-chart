@@ -1,5 +1,21 @@
 # Latest verified checkpoint — 23 November 2026
 
+**Current documentation HEAD before this ledger refresh:** `a9e8329893ee8bb435b6cff9fdd74cdb11b18696`  
+**Latest source/test HEAD:** `420e4b34b2e52828440f1c2f4b1ab0ab97be681f` (two new concurrent Durable Object regressions added; exact-HEAD CI pending).  
+**Last exact-HEAD CI-confirmed documentation checkpoint:** `008edd4c5750e1f59645273ddcacd37e232fec44` — four workflows completed SUCCESS: Automated Tests, Full Git History Secret Audit, CodeQL, OCI ARM64 readiness.  
+**Protected branch `main`:** unchanged.  
+**Latest batch:** 62J-184 — concurrent ticket-consumption and cursor-serialization tests; eight Durable Object runtime cases are now defined, six were previously CI-verified, and two await exact-HEAD verification.
+
+**Project score:** overall NOT SCORED (weighted denominator not approved). Stage 1: 30/40 = 75% provisional. Stage 2: not scored; provider-demand, recurring-zero-cost data entitlement, public WSS and production identity remain unresolved. Stages 3–6 remain not scored.
+
+**Indicator status:** unchanged by Batch 62J-184; no formula, hook, chart binding, renderer, pane, settings, or indicator test changed. See the complete ledger below.
+
+**Delivery target:** 24 December 2026 (planning target, not guaranteed).
+
+---
+
+# Latest verified checkpoint — 23 November 2026
+
 **Verified HEAD:** `307e3691da93e6ae4660e9501f325da80adfc933`  
 **Active branch:** `phase-2/market-data-foundation`  
 **Protected branch `main`:** unchanged  
