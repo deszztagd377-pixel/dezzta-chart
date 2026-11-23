@@ -1,3 +1,41 @@
+# CURRENT INDICATOR LEDGER — Batch 62J-177 (23 November 2026)
+
+**Branch:** `phase-2/market-data-foundation`  
+**Latest code/test HEAD:** `a16818e10997c07d68a2e14929ba193b09ce0a8f`  
+**Indicator source/formula changes:** none. **Indicator renderer/UI changes:** none.  
+**Reason for reconciliation:** synthetic-only WebSocket cursor integrity work does not earn indicator implementation credit.
+
+## Current complete indicator status
+
+| Study / subsystem | Status | Mathematical/data foundation | Remaining acceptance |
+|---|---|---|---|
+| SMA20 | 🟨 Foundation | Arithmetic mean of 20 closes; first valid index 19 | Candlestick overlay, visibility toggle, legend/current value, identity/lifecycle/render/performance tests |
+| EMA20 | 🟨 Foundation | SMA-seeded EMA; alpha 2/21; first valid index 19 | Overlay, toggle, legend/current value, identity/lifecycle/render/performance tests |
+| RSI14 Wilder | 🟨 Foundation | Initial mean of 14 close-to-close changes; Wilder recurrence; first valid index 14 | Dedicated 0–100 pane, 30/70 guides, toggle, legend/current value, lifecycle/render tests |
+| MACD12/26/9 | 🟨 Foundation | EMA12−EMA26; MACD first valid index 25; EMA9 signal/histogram first valid index 33 | Dedicated pane, MACD/signal lines, histogram, zero line, toggle/legend/latest values, lifecycle/render tests |
+| Bollinger20,2 | 🟨 Foundation | 20-close mean ±2 population standard deviations; first valid index 19 | Upper/middle/lower overlay, toggle, values, identity/lifecycle/render/performance tests |
+| Shared Indicator Hook | 🟨 Foundation | Exact-snapshot aligned multi-study output; null outside backend ready/degraded | Hook tests, chart binding, stale-output clearing, settings/legend integration, identity/lifecycle acceptance |
+| Footprint | 🟧 Synthetic prototype only | Educational synthetic accumulator; not exchange-native bid/ask volume | User visual reference(s), reviewed blueprint, verified data contract, cluster layout and renderer |
+| Heatmap | 🟥 Not implemented | No accepted depth/liquidity renderer | User visual reference(s), reviewed blueprint, validated data contract, renderer and tests |
+| Liquidation Maps | 🟥 Not implemented | No accepted runtime/render/data contract | Defensible provenance/methodology, reviewed blueprint, renderer and tests |
+
+## Mathematical and rendering invariants
+
+1. Warm-up outputs remain `null`, never zero.
+2. Every output remains aligned to the exact source-candle index.
+3. Prefix causality: appending future candles cannot change any prior output.
+4. Invalid/non-finite bars and gaps are not silently converted to zero.
+5. Stale outputs clear when symbol, venue, dataset, chart identity or timeframe changes.
+6. No future-candle leakage or repainting.
+7. Calculation, rendering, interaction, lifecycle, accessibility and performance are separate acceptance dimensions.
+8. Footprint OFF preserves ordinary candle spacing; only explicit ON activates the dedicated spaced-cluster layout.
+9. Footprint and Heatmap visual implementation remains blocked until the user supplies reference image(s) and reviews a scoped blueprint.
+10. Aggregate indicator completion remains **NOT SCORED** because per-study weights and denominator are not approved.
+
+**Batch 62J-177 decision:** all indicator statuses remain unchanged. No percentage or implementation credit is awarded from WebSocket cursor hardening. Full technical cycle evidence: `docs/WORK_CYCLE_2026-11-23_BATCH62J177_SYNTHETIC_WEBSOCKET_CURSOR_INTEGRITY.md`.
+
+---
+
 # CURRENT INDICATOR LEDGER — Batch 62J-148 (22 November 2026)
 
 **Branch:** `phase-2/market-data-foundation`  
