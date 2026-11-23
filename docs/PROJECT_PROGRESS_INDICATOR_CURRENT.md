@@ -4563,3 +4563,65 @@ This is local proof/test-double evidence. It is not an actual Cloudflare runtime
 7. Production authentication, public WSS and Android acceptance remain external gates; no real market-data provider or transaction service is connected.
 
 **Decision:** the cursor race and attachment-validation gaps are addressed in source/tests. Stage and project percentages remain unchanged pending verified acceptance evidence.
+
+
+---
+
+## Batch 62J-178 — WebSocket unauthenticated-session lifecycle (23 November 2026)
+
+**Branch:** `phase-2/market-data-foundation`  
+**Latest code/test HEAD:** `264b54fbb87b96133d13dd7f82089bde4cd9d47f`  
+**Main:** untouched. **ZERO COST:** preserved.  
+**CI for this exact code/test HEAD:** no completed status was returned; pending verification.  
+**Real Cloudflare runtime acceptance:** pending.
+
+### Significant progress
+- Unauthenticated WebSocket sessions now have a fixed 15-second deadline.
+- Durable Object storage alarms schedule the earliest pending deadline.
+- Expired unauthenticated sockets close with code 4408.
+- Alarm processing preserves later pending sessions and removes the alarm when no unauthenticated session remains.
+- Expired authentication attempts are rejected before ticket consumption and checked again after asynchronous ticket consumption.
+- Three new regression tests cover alarm expiry/scheduling, authorized-socket alarm cleanup and expired authentication without ticket consumption.
+- Synthetic Node proof suite now declares **23 tests**, up from 20. CI execution has not yet been confirmed for the current code/test HEAD.
+
+### Full indicator dashboard — unchanged
+| Indicator | Status | Foundation | Remaining work |
+|---|---|---|---|
+| SMA20 | 🟨 | 20-close arithmetic mean; first valid index 19 | Overlay, toggle, legend/latest value, lifecycle/render/performance tests |
+| EMA20 | 🟨 | SMA seed; alpha 2/21; first valid index 19 | Overlay, toggle, legend/latest value, lifecycle/render/performance tests |
+| RSI14 Wilder | 🟨 | Initial 14-change mean; Wilder recurrence; first valid index 14 | 0–100 pane, 30/70 guides, toggle, legend/latest value |
+| MACD12/26/9 | 🟨 | EMA12−EMA26; first valid index 25; signal/histogram index 33 | Dedicated pane, lines, histogram, zero line, toggle/legend/latest values |
+| Bollinger20,2 | 🟨 | 20-close mean ±2 population standard deviations; first valid index 19 | Three-line overlay, toggle, latest values, lifecycle/render/performance tests |
+| Shared Indicator Hook | 🟨 | Exact-snapshot aligned multi-study output | Hook tests, chart binding, stale-output clearing, settings/legend integration |
+| Footprint | 🟧 | Synthetic prototype only | User reference image(s), blueprint review, verified data contract and renderer |
+| Heatmap | 🟥 | Not implemented | User reference image(s), blueprint review, data contract and renderer |
+| Liquidation Maps | 🟥 | Not implemented | Methodology/provenance, blueprint, data contract and renderer |
+
+Indicator invariants remain: warm-up null, exact candle-index alignment, prefix causality, invalid/gap rejection, stale-output clearing on identity/timeframe changes, no future-candle leakage, and separate calculation/render/lifecycle/accessibility/performance acceptance. Footprint OFF preserves normal candle spacing; ON alone enables spaced clusters. Footprint/Heatmap visuals wait for user references and blueprint review. Indicator aggregate remains **NOT SCORED**.
+
+### Project progress indicators
+- Stage 1 Foundation, Security & Data Integrity: 🟨 **30/40 = 75% provisional**, unchanged.
+- Stage 2 Market Data Infrastructure: 🟦 **Synthetic-only proof increment; NOT SCORED** until local runtime acceptance.
+- Stage 3 Chart Engine & Timeframe: ⬜ **NOT SCORED**.
+- Stage 4 Indicators & Analytics: ⬜ **NOT SCORED**.
+- Stage 5 Professional UI & Interactive Tools: ⬜ **NOT SCORED**.
+- Stage 6 Hardening, Validation & APK Release: ⬜ **NOT SCORED**.
+- Gate 10 external acceptance: 🟥 **0/10 formally closed**.
+- Gate 25 snapshot/replica custody: 🟧 **OPEN**.
+- Gate 36 public WSS/Firebase/Android lifecycle: 🟥 **OPEN**.
+- Gate 38 owner-host telemetry persistence/restore/operations: 🟧 **OPEN**.
+- Gate 39 operational alert acknowledgement/recovery: 🟥 **OPEN**.
+- Overall project: **NOT SCORED**; approved weighted denominator remains unavailable.
+- Target: **24 December 2026**, planning target only.
+
+### Remaining WebSocket acceptance queue
+1. Pinned local Wrangler/Miniflare runtime smoke; no hosted deployment.
+2. Actual WebSocketPair handshake and one-time ticket consumption.
+3. Runtime same-series fan-out and cross-series isolation.
+4. Hibernation/eviction and attachment restoration.
+5. Alarm expiry and close-code verification in runtime.
+6. Slow-consumer/backpressure tests using documented runtime support.
+7. Snapshot-to-live cursor continuity and bounded durable replay.
+8. Production authentication, public WSS and Android acceptance remain external gates.
+
+**Decision:** unauthenticated-session retention is addressed in synthetic source and test coverage. CI and real runtime acceptance remain pending; project/indicator percentages do not increase from this batch.
