@@ -192,3 +192,45 @@ def test_gateway_runtime_rejects_callback_digest_not_bound_to_durable_checkpoint
     with pytest.raises(RuntimeError, match="does not match"):
         factory()
     assert clients == []
+
+
+
+@pytest.mark.parametrize(
+    ("checkpoint_change", "expected_fragment"),
+    [
+        ({"replica_id": "forged-replica"}, "does not match"),
+        ({"schema_version": 999}, "does not match"),
+        ({"protocol_version": 999}, "does not match"),
+        ({"retention_floor": -1}, "does not match"),
+        ({"bar_retention": {}}, "does not match"),
+    ],
+)
+def test_gateway_runtime_rejects_inconsistent_checkpoint_before_redis_creation(
+    tmp_path, checkpoint_change, expected_fragment,
+):
+    snapshot_path, metadata = _source_snapshot(tmp_path)
+    clients = []
+
+    def installer_with_corrupt_checkpoint(store):
+        installed = store.install_global_snapshot(
+            str(snapshot_path),
+            expected_source_id=metadata["source_id"],
+        )
+        checkpoint = store.checkpoint()
+        checkpoint.update(checkpoint_change)
+        store.checkpoint = lambda: checkpoint
+        return installed
+
+    factory = build_gateway_replica_runtime_factory(
+        redis_url="rediss://gateway:secret@redis.example:6380/0",
+        database_path=str(tmp_path / "gateway-inconsistent-checkpoint.sqlite"),
+        expected_source_id=metadata["source_id"],
+        consumer_name="gateway-process-1",
+        snapshot_installer=installer_with_corrupt_checkpoint,
+        production=True,
+        redis_client_factory=lambda url, **options: clients.append(url),
+    )
+
+    with pytest.raises(RuntimeError, match=expected_fragment):
+        factory()
+    assert clients == []

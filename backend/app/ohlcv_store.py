@@ -1153,6 +1153,10 @@ class SQLiteOhlcvStore:
 
 _REPLICA_PROTOCOL_VERSION = 3
 _REPLICA_SCHEMA_VERSION = 4
+
+# Public compatibility contract for gateway/runtime checkpoint validation.
+REPLICA_PROTOCOL_VERSION = _REPLICA_PROTOCOL_VERSION
+REPLICA_SCHEMA_VERSION = _REPLICA_SCHEMA_VERSION
 _SNAPSHOT_BAR_FIELDS = frozenset((
     "provider", "dataset", "publisher_id", "instrument_id", "series_type",
     "timeframe", "ts_start_ns", "raw_symbol", "open", "high", "low", "close",

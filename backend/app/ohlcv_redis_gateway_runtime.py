@@ -17,7 +17,12 @@ from app.ohlcv_redis_config import (
     _parse_acl_url,
 )
 from app.ohlcv_redis_consumer import RedisOhlcvReplicaConsumer
-from app.ohlcv_store import SQLiteOhlcvReplicaStore
+from app.ohlcv import MIN_RETENTION, SUPPORTED_TIMEFRAMES
+from app.ohlcv_store import (
+    REPLICA_PROTOCOL_VERSION,
+    REPLICA_SCHEMA_VERSION,
+    SQLiteOhlcvReplicaStore,
+)
 
 
 def build_gateway_replica_runtime_factory(
@@ -82,6 +87,11 @@ def build_gateway_replica_runtime_factory(
             generation = install.get("generation_id")
             cursor = install.get("high_water")
             digest = install.get("sha256")
+            replica_id = checkpoint.get("replica_id")
+            retention_floor = checkpoint.get("retention_floor")
+            bar_retention = checkpoint.get("bar_retention")
+            schema_version = checkpoint.get("schema_version")
+            protocol_version = checkpoint.get("protocol_version")
             if (
                 install.get("source_id") != expected_source_id
                 or not isinstance(generation, str) or not generation.strip()
@@ -92,6 +102,20 @@ def build_gateway_replica_runtime_factory(
                 or checkpoint.get("snapshot_generation") != generation
                 or checkpoint.get("applied_cursor") != cursor
                 or checkpoint.get("snapshot_sha256") != digest
+                or not isinstance(replica_id, str) or not replica_id.strip()
+                or replica_id != replica_store.replica_id()
+                or type(schema_version) is not int
+                or schema_version != REPLICA_SCHEMA_VERSION
+                or type(protocol_version) is not int
+                or protocol_version != REPLICA_PROTOCOL_VERSION
+                or type(retention_floor) is not int
+                or not 0 <= retention_floor <= cursor
+                or not isinstance(bar_retention, dict)
+                or set(bar_retention) != set(SUPPORTED_TIMEFRAMES)
+                or any(
+                    type(cap) is not int or cap < MIN_RETENTION[timeframe]
+                    for timeframe, cap in bar_retention.items()
+                )
             ):
                 raise RuntimeError("Installed gateway snapshot metadata does not match its durable checkpoint.")
 

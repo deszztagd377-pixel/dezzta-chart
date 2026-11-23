@@ -4249,3 +4249,53 @@ ZERO COST. No paid service, deployment, credentials, physical device or publicat
 - Overall project: NOT SCORED; approved stage weights and denominator are unavailable.
 
 ZERO COST. No paid service, deployment, credentials, physical device or publication fee. `main` untouched.
+
+
+---
+
+# Batch 62J-170 — Gateway checkpoint contract hardening (23 November 2026)
+
+**Base HEAD:** `56f9fb3e034f837fa3cc59f75de9960b46b5f09f` on `phase-2/market-data-foundation`.  
+**Scope:** Gate 25 local replica startup validation; no indicator/UI/provider/deployment change.
+
+The gateway runtime now validates the durable checkpoint's replica identity against the replica identity table, exact schema/protocol compatibility, retention-floor range, and complete per-timeframe retention map before constructing a Redis client. Five parameterized regression cases assert that malformed checkpoint state is rejected before Redis client creation. Existing source/generation/cursor/digest checks remain.
+
+**Changed files:** `backend/app/ohlcv_store.py`, `backend/app/ohlcv_redis_gateway_runtime.py`, `backend/tests/test_ohlcv_redis_gateway_runtime.py`, `docs/WORK_CYCLE_2026-11-23_BATCH62J170_GATEWAY_CHECKPOINT_CONTRACT.md`, `docs/INDICATOR_PROGRESS_LEDGER.md`, `docs/PROJECT_PROGRESS_INDICATOR_CURRENT.md`.
+
+## Progress dashboard
+
+| Area | Verified progress | Status |
+|---|---:|---|
+| Stage 1 — Foundation, Security & Data Integrity | 30/40 = 75% provisional | 🟨 |
+| Stage 2 — Market Data Infrastructure | Not scored / not officially opened | ⬜ |
+| Stage 3 — Chart Engine & Timeframe | Not scored / not officially opened | ⬜ |
+| Stage 4 — Indicators & Analytics | Not scored / not officially opened | ⬜ |
+| Stage 5 — Professional UI & Interactive Tools | Not scored / not officially opened | ⬜ |
+| Stage 6 — Hardening, Validation & APK Release | Not scored / not officially opened | ⬜ |
+| Gate 10 external acceptance | 0/10 formally closed | 🟥 |
+| Gate 25 — authenticated snapshot/replica trust | OPEN; local validation improved, cross-host receipts and key lifecycle remain | 🟧 |
+| Gate 36 — production WSS/Firebase/device | OPEN; public endpoint, real Firebase, reverse proxy and Android WebView evidence remain | 🟥 |
+| Gate 38 — metrics durability/operations | OPEN; owner-host persistence, backup, retention, alerts and recovery remain | 🟥 |
+| Overall project | NOT SCORED; weights and denominator not approved | ⬜ |
+
+**Significant verified engineering delta:** the gateway now rejects five additional classes of inconsistent durable checkpoint before opening Redis. This is a local safety improvement, not external gate closure.
+
+## Indicator dashboard — no status promotion
+
+| Indicator | Status | Foundation | Remaining |
+|---|---|---|---|
+| SMA20 | 🟨 | 20-close mean; index 19 | Overlay, toggle, legend/value, lifecycle/render/performance |
+| EMA20 | 🟨 | SMA seed, alpha 2/21; index 19 | Overlay, toggle, legend/value, lifecycle/render/performance |
+| RSI14 Wilder | 🟨 | Wilder smoothing; index 14 | Pane, 30/70 guides, toggle, legend/value, lifecycle/render |
+| MACD12/26/9 | 🟨 | MACD index 25; signal/histogram index 33 | Pane, lines, histogram, zero guide, controls and lifecycle |
+| Bollinger20,2 | 🟨 | Mean ±2 population SD; index 19 | Three-line overlay, controls, values, lifecycle/render |
+| Shared Indicator Hook | 🟨 | Backend aligned snapshot output | Hook tests, chart binding, stale clearing, settings/legend |
+| Footprint | 🟧 | Synthetic prototype only | User references, reviewed blueprint, verified bid/ask contract, cluster renderer |
+| Heatmap | 🟥 | Not implemented | User references, depth contract, reviewed blueprint, renderer |
+| Liquidation Maps | 🟥 | Not implemented | Data provenance, calculation contract, blueprint, renderer |
+
+No aggregate indicator percentage is reported without approved weights/denominator. Footprint/Heatmap references remain mandatory before visual implementation.
+
+## ZERO COST and external acceptance boundary
+
+No paid hosting, provider feed, subscription, domain, deployment, account, production credential, publication fee, or physical-device operation was introduced. OCI CI readiness is not an actual OCI deployment. Public production WSS/Firebase/Android acceptance and owner-host Redis/metrics durability remain unproven. Target remains **24 December 2026**, not a guaranteed completion claim. `main` untouched.

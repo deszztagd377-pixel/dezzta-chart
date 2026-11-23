@@ -2308,3 +2308,37 @@ No indicator formula, numeric kernel, hook, chart binding, renderer, UI or indic
 | Liquidation Maps | 🟥 Not implemented | Defensible data provenance/calculation contract and reviewed implementation required |
 
 Invariants: warm-up nulls; exact candle alignment; prefix causality/no future repaint; reject invalid/gapped data; clear stale outputs on identity changes. Footprint OFF preserves standard candle spacing; explicit ON alone activates spaced clusters. Aggregate indicator progress remains NOT SCORED without approved weights and denominator.
+
+
+---
+
+## Batch 62J-170 reconciliation — 23 November 2026
+
+No indicator source, calculation, numerical test, shared hook, chart binding, renderer, toggle, legend, or pane changed in this backend Gate 25 batch. **Indicator implementation credit: zero.** The complete indicator states remain:
+
+| Indicator / subsystem | Status | Verified foundation | Remaining acceptance |
+|---|---|---|---|
+| SMA20 | 🟨 Foundation | 20-close arithmetic mean; first valid index 19 | Candlestick overlay, visibility toggle, legend/latest value, identity invalidation, lifecycle, render and performance tests |
+| EMA20 | 🟨 Foundation | SMA-seeded EMA; alpha 2/21; first valid index 19 | Overlay, toggle, legend/latest value, identity invalidation, lifecycle, render and performance tests |
+| RSI14 Wilder | 🟨 Foundation | Initial 14-change mean and Wilder recurrence; first valid index 14 | Dedicated 0–100 pane, 30/70 guides, toggle, legend/latest value, lifecycle and render tests |
+| MACD12/26/9 | 🟨 Foundation | MACD first valid index 25; EMA9 signal/histogram first valid index 33 | Dedicated pane, MACD/signal lines, histogram, zero guide, toggle, legend/latest values, lifecycle and render tests |
+| Bollinger20,2 | 🟨 Foundation | 20-close mean ±2 population SD; first valid index 19 | Upper/middle/lower overlay, toggle, values, identity invalidation, lifecycle, render and performance tests |
+| Shared Indicator Hook | 🟨 Foundation | Backend snapshot and aligned multi-study calculation output | Hook tests, actual chart binding, stale-output clearing, settings/legend integration, identity/lifecycle acceptance |
+| Footprint | 🟧 Prototype only | Synthetic educational accumulator; not exchange-native bid/ask truth | User reference image(s), reviewed blueprint, verified bid/ask source contract, spaced cluster renderer and acceptance |
+| Heatmap | 🟥 Not implemented | No accepted depth/liquidity renderer | User reference image(s), validated depth/liquidity contract, reviewed blueprint, renderer and tests |
+| Liquidation Maps | 🟥 Not implemented | No accepted runtime/render implementation | Defensible data provenance and calculation contract, reviewed blueprint, renderer and tests |
+
+### Invariants and visual gates
+
+- Warm-up outputs remain null, never fabricated zero.
+- Values remain aligned to the exact source candle index.
+- Prefix-causal: adding future candles cannot alter earlier output.
+- Invalid/non-finite/gapped bars are rejected, not converted to zero.
+- Stale outputs clear on symbol, venue, dataset, chart identity, or timeframe changes.
+- No future-candle repaint.
+- Calculation, rendering, interaction, lifecycle, accessibility, and performance are separate acceptance dimensions.
+- Footprint OFF preserves ordinary candle spacing; explicit ON alone activates spaced clusters.
+- Footprint and Heatmap visual implementation remains blocked until user reference image(s) are supplied and the scoped blueprint is reviewed.
+- Aggregate indicator completion remains NOT SCORED because study weights and denominator are not approved.
+
+This backend batch changes none of the above states. Indicator status colors are evidence states, not completion percentages.
