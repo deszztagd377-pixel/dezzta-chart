@@ -7,6 +7,7 @@ import worker, {
   createSyntheticBars,
   isValidSyntheticSeriesKey,
   issueTicket,
+  initializeSequenceWatermark,
   parseSequence,
   proofLimits,
 } from "./worker.mjs";
@@ -232,6 +233,30 @@ test("series sequence gate rejects gaps, duplicates, and accepts only the next c
   assert.equal(await acceptNextSequence(storage, SERIES, 51), false);
   assert.equal(await acceptNextSequence(storage, SERIES, 52), true);
   assert.equal(await storage.get("sequence:" + SERIES), 52);
+});
+
+test("snapshot watermark initialization cannot rewind a concurrent first update", async () => {
+  const initializeFirst = new MemoryStorage();
+  const [watermark, accepted] = await Promise.all([
+    initializeSequenceWatermark(initializeFirst, SERIES),
+    acceptNextSequence(initializeFirst, SERIES, 51),
+  ]);
+  assert.equal(watermark, 50);
+  assert.equal(accepted, true);
+  assert.equal(await initializeFirst.get("sequence:" + SERIES), 51);
+
+  const updateFirst = new MemoryStorage();
+  const [acceptedBeforeInit, existingWatermark] = await Promise.all([
+    acceptNextSequence(updateFirst, SERIES, 51),
+    initializeSequenceWatermark(updateFirst, SERIES),
+  ]);
+  assert.equal(acceptedBeforeInit, true);
+  assert.equal(existingWatermark, 51);
+  assert.equal(await updateFirst.get("sequence:" + SERIES), 51);
+  await assert.rejects(
+    initializeSequenceWatermark(updateFirst, "BTCUSD"),
+    TypeError,
+  );
 });
 
 test("health response includes local CORS only for the allow-listed origin", async () => {
