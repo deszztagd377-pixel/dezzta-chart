@@ -232,7 +232,14 @@ test("series sequence gate rejects gaps, duplicates, and accepts only the next c
   assert.equal(await acceptNextSequence(storage, SERIES, 51), true);
   assert.equal(await acceptNextSequence(storage, SERIES, 51), false);
   assert.equal(await acceptNextSequence(storage, SERIES, 52), true);
+  assert.equal(await acceptNextSequence(storage, SERIES, 1_000_000_001), false);
+  assert.equal(await acceptNextSequence(storage, SERIES, Number.MAX_SAFE_INTEGER), false);
   assert.equal(await storage.get("sequence:" + SERIES), 52);
+
+  const corrupt = new MemoryStorage();
+  await corrupt.put("sequence:" + SERIES, "52");
+  assert.equal(await acceptNextSequence(corrupt, SERIES, 53), false);
+  await assert.rejects(initializeSequenceWatermark(corrupt, SERIES), /watermark is invalid/);
 });
 
 test("snapshot watermark initialization cannot rewind a concurrent first update", async () => {
