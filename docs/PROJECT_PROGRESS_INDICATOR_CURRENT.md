@@ -1,5 +1,21 @@
 # Latest verified checkpoint — 23 November 2026
 
+**Current documentation HEAD before this refresh:** `e89136cdb87eb9d71ee22070864d8f2935f8fbce`  
+**Latest source/test HEAD:** `89c68c5d953c485c381e48cffb723eb69629e1ae` — Batch 62J-184 adds four concurrent-ticket, concurrent-cursor, multi-socket hibernation, and authenticated-alarm regressions; exact-HEAD CI pending.  
+**Last exact-HEAD CI-confirmed checkpoint:** `008edd4c5750e1f59645273ddcacd37e232fec44` — four workflows completed SUCCESS: Automated Tests, Full Git History Secret Audit, CodeQL, OCI ARM64 readiness.  
+**Protected branch `main`:** unchanged.  
+**Latest batch:** 62J-184 — ten Durable Object runtime cases defined; six were previously CI-verified and four await exact-HEAD verification.
+
+**Project score:** overall NOT SCORED (weighted denominator not approved). Stage 1: 30/40 = 75% provisional. Stage 2: not scored; provider-demand, recurring-zero-cost data entitlement, public WSS and production identity remain unresolved. Stages 3–6 remain not scored.
+
+**Indicator status:** unchanged by Batch 62J-184; no formula, hook, chart binding, renderer, pane, settings, or indicator test changed. See the complete ledger below.
+
+**Delivery target:** 24 December 2026 (planning target, not guaranteed).
+
+---
+
+# Latest verified checkpoint — 23 November 2026
+
 **Current documentation HEAD before this ledger refresh:** `a9e8329893ee8bb435b6cff9fdd74cdb11b18696`  
 **Latest source/test HEAD:** `420e4b34b2e52828440f1c2f4b1ab0ab97be681f` (two new concurrent Durable Object regressions added; exact-HEAD CI pending).  
 **Last exact-HEAD CI-confirmed documentation checkpoint:** `008edd4c5750e1f59645273ddcacd37e232fec44` — four workflows completed SUCCESS: Automated Tests, Full Git History Secret Audit, CodeQL, OCI ARM64 readiness.  
