@@ -71,6 +71,35 @@ describe('parseOhlcvSnapshot', () => {
     expect(() => parseOhlcvSnapshot(payload)).toThrow(/boundaries/);
   });
 
+  it('accepts CME session bars only with a supported timeframe and exact calendar identity', () => {
+    const cmeBar = {
+      ...baseBar,
+      timeframe: '1d',
+      bucketPolicy: 'CME_SESSION_V1',
+      calendarId: 'CME_EQUITY_INDEX',
+      calendarVersion: '2026.11.1',
+    };
+    const snapshot = parseOhlcvSnapshot(makeSnapshot({ bars: [cmeBar] }));
+    const cmeIdentity = {
+      ...identity,
+      timeframe: '1d' as const,
+      bucketPolicy: 'CME_SESSION_V1' as const,
+      calendarId: 'CME_EQUITY_INDEX',
+      calendarVersion: '2026.11.1',
+    };
+    expect(toChartCandles(snapshot, cmeIdentity)).toHaveLength(1);
+    expect(toChartCandles(snapshot, {
+      ...cmeIdentity,
+      calendarVersion: '2026.11.2',
+    })).toHaveLength(0);
+    expect(() => parseOhlcvSnapshot(makeSnapshot({
+      bars: [{ ...cmeBar, timeframe: '1h' }],
+    }))).toThrow(/outside supported session timeframes/);
+    expect(() => parseOhlcvSnapshot(makeSnapshot({
+      bars: [{ ...cmeBar, calendarVersion: '' }],
+    }))).toThrow(/requires calendarId and calendarVersion/);
+  });
+
   it('checks OHLC boundaries without rounding high-precision decimals', () => {
     const payload = makeSnapshot({
       bars: [{
