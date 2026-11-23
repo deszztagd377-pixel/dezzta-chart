@@ -4505,7 +4505,7 @@ No deployment, Cloudflare account, billing activation, payment method, domain, p
 ## Batch 62J-177 — latest project and indicator reconciliation (23 November 2026)
 
 **Branch:** `phase-2/market-data-foundation`  
-**Latest code/test HEAD at this reconciliation:** `a16818e10997c07d68a2e14929ba193b09ce0a8f`  
+**Latest code/test HEAD at this reconciliation:** `b752d6ca4b2317e8a7ab9f71e2bc23ff937eb4aa`  
 **Main:** untouched. **ZERO COST:** preserved.  
 **Exact-HEAD CI:** pending; no CI success is claimed for this new code/test HEAD yet.
 
@@ -4515,7 +4515,7 @@ The isolated synthetic-only Worker/DO proof received:
 - Atomic snapshot watermark initialization to prevent a concurrent first event from rewinding cursor 51 back to 50.
 - Fail-closed validation of persisted cursor values and incoming sequence bounds [51, 1,000,000,000].
 - Strict serialized WebSocket attachment validation on constructor restoration and message handling.
-- Regression coverage for both initialization/update orderings, corrupt/out-of-range cursors, one-time ticket consumption, snapshot delivery, exact-series fan-out, contiguous event sequencing and malformed attachment restoration.
+- Regression coverage for both initialization/update orderings, corrupt/out-of-range cursors, one-time ticket consumption, snapshot delivery, exact-series fan-out, contiguous event sequencing, malformed attachment restoration and attachment-deserialization exceptions.
 - Synthetic Node proof suite increased from 16 to **20 tests**. No new dependency or hosted resource was added.
 
 This is local proof/test-double evidence. It is not an actual Cloudflare runtime, browser WebSocket, production authentication or deployed WSS acceptance.
