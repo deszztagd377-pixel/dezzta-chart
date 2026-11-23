@@ -40,6 +40,11 @@ __pycache__/
 .venv/
 venv/
 
+# Cloudflare local development secrets (never commit)
+cloudflare/.dev.vars
+cloudflare/.dev.vars.*
+!cloudflare/.dev.vars.example
+
 # Local persistent backend state (never commit runtime databases)
 data/
 backend/data/
