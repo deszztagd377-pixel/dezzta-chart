@@ -3,7 +3,7 @@
 
 **Date:** 23 November 2026  
 **Branch:** `phase-2/market-data-foundation`  
-**Code/test HEAD:** `783811ccef97c0494203ad13a9f790b791a5e962`  
+**Code/test HEAD:** `f9a6242c83c065799d1ed02f8c8870d8c9ef5ffe`  
 **Previous approved architecture blueprint:** Batch 62J-175  
 **Scope:** Phase A/B synthetic-only proof, no production cutover  
 **Protected branch:** `main` untouched  
@@ -24,7 +24,7 @@ No Cloudflare account, billing setting, payment method, domain, DNS record, prod
 | `cloudflare/proof/worker.mjs` | Added | Synthetic-only Worker routes, series Durable Object, deterministic OHLCV, hashed ticket helpers and sequence gate |
 | `cloudflare/proof/worker.node-test.mjs` | Added | Node-only regression suite, deliberately outside Vitest's discovery pattern |
 | `cloudflare/wrangler.jsonc` | Added | Isolated local Wrangler configuration, SQLite-backed DO migration and synthetic-only mode |
-| `.github/workflows/ci.yml` | Modified | Runs syntax check, 15 Node proof tests and Wrangler JSONC parse validation after dependency setup |
+| `.github/workflows/ci.yml` | Modified | Runs syntax check, 16 Node proof tests and Wrangler JSONC parse validation after dependency setup |
 | `.gitignore` | Modified | Ignores `cloudflare/.dev.vars` and local secret variants |
 
 No frontend source, indicator formula, chart renderer, backend FastAPI runtime, Redis guard, production configuration or market-data provider adapter was changed.
@@ -65,6 +65,7 @@ Snapshot size is capped at 50 bars. Snapshot watermark is cursor `50`; the first
 - Ticket is bound to one canonical series key.
 - Consumption uses a storage transaction so concurrent duplicate use has one winner.
 - A wrong-series attempt is rejected without consuming the still-valid ticket.
+- Pending-ticket capacity (256) is enforced inside the same storage transaction as pruning and insertion, preventing concurrent issuance from exceeding the cap.
 - Expired tickets are deleted when consumed; expired pending tickets are pruned on issuance.
 
 This is a synthetic proof identity model, not Firebase authentication parity. It must not be connected to real user accounts.
@@ -89,10 +90,10 @@ Important: the Node tests validate the pure ticket/sequence helpers and Worker H
 
 ### Synthetic proof tests
 
-Exact code/test HEAD `783811ccef97c0494203ad13a9f790b791a5e962`:
+Exact code/test HEAD `f9a6242c83c065799d1ed02f8c8870d8c9ef5ffe`:
 - Node syntax check: PASS.
 - Wrangler JSONC parse: PASS.
-- Synthetic proof Node tests: **15 passed, 0 failed**.
+- Synthetic proof Node tests: **16 passed, 0 failed**.
 - Vitest discovery no longer includes the Node-only proof suite.
 - Frontend Vitest: **306 passed across 34 files**.
 - Frontend dependency audit: **0 vulnerabilities**.
@@ -112,10 +113,10 @@ The one skipped backend pytest case is the shared-guard TLS integration test, wh
 | Workflow | Run ID | Result |
 |---|---:|---|
 | Automated Tests | 45167249268 | SUCCESS |
-| CodeQL Python | 45167249876 | SUCCESS |
-| CodeQL JavaScript/TypeScript | 45167249876 | SUCCESS |
-| Full Git History Secret Audit | 45167250254 | SUCCESS |
-| OCI ARM64 Image Readiness | 45167249525 | SUCCESS |
+| CodeQL Python | 45168168621 | SUCCESS |
+| CodeQL JavaScript/TypeScript | 45168168621 | SUCCESS |
+| Full Git History Secret Audit | 45168168356 | SUCCESS |
+| OCI ARM64 Image Readiness | 45168168447 | SUCCESS |
 
 All listed runs target the exact code/test HEAD above. The ARM64 job built and smoke-tested the native ARM64 backend image. The automated workflow completed 37 successful steps with no failed step.
 
