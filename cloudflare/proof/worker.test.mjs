@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import worker, {
+  acceptNextSequence,
   consumeTicket,
   createSyntheticBar,
   createSyntheticBars,
@@ -136,7 +137,7 @@ test("ticket rejects a different series and expired tickets are consumed", async
   const now = 1_800_000_000_000;
   const issued = await issueTicket(storage, SERIES, "synthetic-proof-subject", now);
   assert.equal(await consumeTicket(storage, issued.ticket, "synthetic:DEMO:ETHUSD:1m", now + 1), null);
-  assert.equal(await consumeTicket(storage, issued.ticket, SERIES, now + 1), null);
+  assert.ok(await consumeTicket(storage, issued.ticket, SERIES, now + 1));
 
   const expired = await issueTicket(storage, SERIES, "synthetic-proof-subject", now);
   assert.equal(await consumeTicket(storage, expired.ticket, SERIES, now + 90_000), null);
@@ -208,17 +209,14 @@ test("ticket endpoint validates series before calling the coordinator", async ()
   assert.equal((await response.json()).error, "invalid_series");
 });
 
-test("proof emitter rejects gaps and malformed sequence before dispatch", async () => {
-  const response = await worker.fetch(
-    request("/__proof/emit", {
-      method: "POST",
-      token: TOKEN,
-      body: { seriesKey: SERIES, sequence: "52" },
-    }),
-    makeEnv(),
-  );
-  assert.equal(response.status, 200);
-  assert.equal((await response.json()).sequence, "51");
+test("series sequence gate rejects gaps, duplicates, and accepts only the next cursor", async () => {
+  const storage = new MemoryStorage();
+  await storage.put("sequence:" + SERIES, 50);
+  assert.equal(await acceptNextSequence(storage, SERIES, 52), false);
+  assert.equal(await acceptNextSequence(storage, SERIES, 51), true);
+  assert.equal(await acceptNextSequence(storage, SERIES, 51), false);
+  assert.equal(await acceptNextSequence(storage, SERIES, 52), true);
+  assert.equal(await storage.get("sequence:" + SERIES), 52);
 });
 
 test("health response includes local CORS only for the allow-listed origin", async () => {
