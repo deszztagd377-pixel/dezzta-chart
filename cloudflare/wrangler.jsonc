@@ -1,0 +1,26 @@
+{
+  "$schema": "https://developers.cloudflare.com/workers/wrangler/config-schema.json",
+  "name": "dezzta-chart-synthetic-proof",
+  "main": "proof/worker.mjs",
+  "compatibility_date": "2026-11-23",
+  "workers_dev": false,
+  "preview_urls": false,
+  "vars": {
+    "PROOF_MODE": "synthetic-only",
+    "PROOF_ALLOWED_ORIGINS": "http://localhost:3000,http://127.0.0.1:3000"
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "SERIES_COORDINATOR",
+        "class_name": "SeriesCoordinatorDO"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["SeriesCoordinatorDO"]
+    }
+  ]
+}
