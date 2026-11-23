@@ -2500,3 +2500,22 @@ All statuses remain unchanged:
 The WebSocket timeout change does not increase indicator progress. Keep warm-up values null, exact index alignment, prefix causality, invalid/gap rejection, stale-output clearing, and no future-candle leakage. Footprint OFF retains ordinary candle spacing; Footprint ON alone enables spaced clusters. Footprint/Heatmap visuals remain blocked pending user reference images and blueprint review. Aggregate indicator completion remains **NOT SCORED**.
 
 Full technical record: `docs/WORK_CYCLE_2026-11-23_BATCH62J178_WEBSOCKET_AUTH_TIMEOUT.md`.
+
+
+---
+
+## Batch 62J-179 — 23 November 2026: WebSocket hardening impact
+
+- SMA20 🟨 Foundation — unchanged; 20-close mean, first valid index 19.
+- EMA20 🟨 Foundation — unchanged; SMA seed, alpha 2/21, first valid index 19.
+- RSI14 Wilder 🟨 Foundation — unchanged; initial 14-change average and Wilder recurrence, first valid index 14.
+- MACD 12/26/9 🟨 Foundation — unchanged; EMA12−EMA26, first MACD index 25, signal/histogram index 33.
+- Bollinger20,2 🟨 Foundation — unchanged; 20-close mean ±2 population standard deviations, first valid index 19.
+- Shared Indicator Hook 🟨 Foundation — unchanged; exact-snapshot alignment foundation only.
+- Footprint 🟧 Synthetic prototype only — unchanged; user reference image(s) and scoped blueprint review remain mandatory before visual implementation.
+- Heatmap 🟥 Not implemented — unchanged; user reference image(s) and scoped blueprint review remain mandatory.
+- Liquidation Maps 🟥 Not implemented — unchanged; methodology/provenance and blueprint remain outstanding.
+
+No indicator code or visual implementation was changed in Batch 62J-179. Core invariants remain warm-up null, exact candle-index alignment, prefix causality/no future leakage, invalid/gap rejection, stale-output clearing on identity/timeframe changes, and separate calculation/render/interaction/lifecycle/accessibility/performance acceptance. Footprint OFF preserves standard candle spacing; ON alone enables spaced clusters. Indicator aggregate remains **NOT SCORED**.
+
+Batch 62J-179 addressed two adjacent WebSocket safeguards only: constructor resilience when closing malformed restored sockets throws, and complete attachment validation before synthetic fan-out. Full technical record: `docs/WORK_CYCLE_2026-11-23_BATCH62J179_WEBSOCKET_RESTORED_SOCKET_HARDENING.md`.
