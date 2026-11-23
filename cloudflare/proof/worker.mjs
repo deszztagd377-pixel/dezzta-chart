@@ -10,6 +10,7 @@ const PROTOCOL_VERSION = 1;
 const TICKET_TTL_MS = 90_000;
 const MAX_TICKET_COUNT = 256;
 const MAX_CONNECTIONS_PER_SERIES = 64;
+const UNAUTHENTICATED_SOCKET_TTL_MS = 15_000;
 const MAX_REQUEST_BYTES = 2_048;
 const SNAPSHOT_BARS = 50;
 const SNAPSHOT_WATERMARK = SNAPSHOT_BARS;
@@ -287,6 +288,52 @@ export class SeriesCoordinatorDO {
     }
   }
 
+  async scheduleUnauthenticatedSocketAlarm() {
+    let nextDeadline = Number.POSITIVE_INFINITY;
+    for (const socket of this.ctx.getWebSockets()) {
+      const attachment = readSocketAttachment(socket);
+      if (!isValidSocketAttachment(attachment)) {
+        try { socket.close(4401, "Invalid connection state"); } catch { /* already closed */ }
+        continue;
+      }
+      if (!attachment.authorized) {
+        nextDeadline = Math.min(
+          nextDeadline,
+          attachment.connectedAt + UNAUTHENTICATED_SOCKET_TTL_MS,
+        );
+      }
+    }
+    if (Number.isFinite(nextDeadline)) {
+      await this.ctx.storage.setAlarm(nextDeadline);
+    } else {
+      await this.ctx.storage.deleteAlarm();
+    }
+  }
+
+  async alarm() {
+    const now = Date.now();
+    let nextDeadline = Number.POSITIVE_INFINITY;
+    for (const socket of this.ctx.getWebSockets()) {
+      const attachment = readSocketAttachment(socket);
+      if (!isValidSocketAttachment(attachment)) {
+        try { socket.close(4401, "Invalid connection state"); } catch { /* already closed */ }
+        continue;
+      }
+      if (attachment.authorized) continue;
+      const deadline = attachment.connectedAt + UNAUTHENTICATED_SOCKET_TTL_MS;
+      if (deadline <= now) {
+        try { socket.close(4408, "Authentication timeout"); } catch { /* already closed */ }
+      } else {
+        nextDeadline = Math.min(nextDeadline, deadline);
+      }
+    }
+    if (Number.isFinite(nextDeadline)) {
+      await this.ctx.storage.setAlarm(nextDeadline);
+    } else {
+      await this.ctx.storage.deleteAlarm();
+    }
+  }
+
   async fetch(request) {
     const url = new URL(request.url);
     if (url.pathname === "/internal/ticket" && request.method === "POST") {
@@ -328,6 +375,7 @@ export class SeriesCoordinatorDO {
         subject: null,
         connectedAt: Date.now(),
       });
+      await this.scheduleUnauthenticatedSocketAlarm();
       return new Response(null, { status: 101, webSocket: client });
     }
 
@@ -395,6 +443,10 @@ export class SeriesCoordinatorDO {
         socket.close(4401, "Single-use ticket required");
         return;
       }
+      if (Date.now() >= attachment.connectedAt + UNAUTHENTICATED_SOCKET_TTL_MS) {
+        socket.close(4408, "Authentication timeout");
+        return;
+      }
       const record = await consumeTicket(
         this.ctx.storage,
         payload.ticket,
@@ -411,7 +463,12 @@ export class SeriesCoordinatorDO {
         subject: record.subject,
         snapshotWatermark: SNAPSHOT_WATERMARK,
       };
+      if (Date.now() >= attachment.connectedAt + UNAUTHENTICATED_SOCKET_TTL_MS) {
+        socket.close(4408, "Authentication timeout");
+        return;
+      }
       socket.serializeAttachment(authorized);
+      await this.scheduleUnauthenticatedSocketAlarm();
       socket.send(JSON.stringify({
         type: "market_data.snapshot",
         version: PROTOCOL_VERSION,
