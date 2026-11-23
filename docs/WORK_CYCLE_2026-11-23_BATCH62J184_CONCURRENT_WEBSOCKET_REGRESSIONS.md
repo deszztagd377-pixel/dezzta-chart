@@ -15,7 +15,7 @@ The starting documentation HEAD had four exact-commit workflows completed succes
 - CodeQL Security Analysis: [45183609148](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45183609148) — SUCCESS.
 - OCI ARM64 Image Readiness: [45183609312](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45183609312) — SUCCESS.
 
-The automated workflow's Durable Object runtime suite previously contained six verified tests. This cycle adds two concurrency-focused regressions. The baseline is not confused with the new test commits; new exact-HEAD CI is required.
+The automated workflow's Durable Object runtime suite previously contained six verified tests. This cycle adds four concurrency/lifecycle regressions. The baseline is not confused with the new test commits; new exact-HEAD CI is required.
 
 ## 2. Regression A — atomic single-use ticket under concurrent authentication
 
@@ -44,13 +44,35 @@ Scenario:
 
 This verifies that competing writes cannot both advance the same cursor or fan out a duplicate. It supplements the existing sequential duplicate/gap test.
 
-## 4. Scope and non-claims
+## 4. Regression C — multi-socket hibernation restoration
 
-Only `cloudflare/proof/worker.durable-object.runtime.mjs` changes in the source/test scope. No production FastAPI route, Databento adapter, provider credential, market-data source, Android app, indicator calculation, chart renderer, or hosting configuration changes.
+**Test:** `restores every authenticated socket attachment after Durable Object eviction`
+
+- Open two authenticated sockets on one synthetic series.
+- Evict the Durable Object instance.
+- Restore the instance and require both serialized attachments to remain valid and bound to the same series/subject/watermark.
+- Send independent ping frames and require both sockets to receive pong responses.
+
+This extends the single-socket hibernation proof to multiple live owners and verifies neither connection is silently lost during instance eviction.
+
+## 5. Regression D — authenticated socket versus authentication timeout alarm
+
+**Test:** `does not expire an authenticated socket when the authentication alarm runs`
+
+- Authenticate a socket successfully.
+- Move only its test attachment's connection timestamp beyond the unauthenticated timeout.
+- Schedule and execute the real Durable Object alarm.
+- Require the authenticated connection to remain open and answer a subsequent ping.
+
+This guards the lifecycle boundary: the authentication alarm must expire unauthenticated sockets only, never a valid authenticated session.
+
+## 6. Scope and non-claims
+
+Only `cloudflare/proof/worker.durable-object.runtime.mjs` changes in the source/test scope. The file now has four added runtime regressions over the previously verified six-case suite. No production FastAPI route, Databento adapter, provider credential, market-data source, Android app, indicator calculation, chart renderer, or hosting configuration changes.
 
 The Worker continues to label every fixture as `synthetic_only_not_market_data`. The proof does not establish public WSS, live Firebase, real exchange data, provider subscription pooling, multi-host storage, or Android network handover.
 
-## 5. Test accounting and CI gate
+## 7. Test accounting and CI gate
 
 | Runtime behavior | Previous verified cases | Added in this cycle |
 |---|---:|---:|
@@ -64,9 +86,9 @@ The Worker continues to label every fixture as `synthetic_only_not_market_data`.
 | Concurrent duplicate cursor submission | 0 | 1 |
 | **Total** | **6** | **2** |
 
-The suite now defines eight runtime cases. **The two new cases are pending exact-HEAD CI until the Automated Tests workflow reports success.** Do not award accepted-test credit before that result.
+The suite now defines ten runtime cases. **The four new cases are pending exact-HEAD CI until the Automated Tests workflow reports success.** Do not award accepted-test credit before that result.
 
-## 6. Indicator and project progress impact
+## 8. Indicator and project progress impact
 
 No indicator source, formula, numeric kernel, hook, chart binding, renderer, pane, setting, legend, or indicator-specific test changed. Indicator implementation credit for this batch is **zero**.
 
@@ -91,6 +113,6 @@ Project accounting remains unchanged:
 - Overall project: **NOT SCORED**; no approved weighted denominator exists.
 - Delivery target: **24 December 2026**, planning target only.
 
-## 7. Next engineering boundary
+## 9. Next engineering boundary
 
 The provider-demand gap must not be papered over with a disconnected reference counter. The current source audit still finds process/configuration-scoped provider startup and a fixed-symbol Databento adapter; recurring-zero-cost data rights and provider subscribe/unsubscribe semantics are not verified. Continue with contract/source research and isolated tests until a valid provider capability and reviewed implementation scope exist. Do not enable a paid provider or production deployment.
