@@ -147,6 +147,52 @@ describe('useMarketIndicators keyed series integration', () => {
     expect(Object.isFrozen(computed[0]?.macd[0])).toBe(true);
   });
 
+  it('keeps degraded backend indicators but clears demo and error snapshots', () => {
+    const container = document.createElement('div');
+    const root = createRoot(container);
+    roots.push(root);
+
+    function Probe() {
+      const result = useMarketIndicators(firstIdentity);
+      return createElement('span', null, [
+        result.status,
+        result.source,
+        result.indicators ? 'calculated' : 'empty',
+      ].join(':'));
+    }
+
+    act(() => root.render(createElement(Probe)));
+
+    act(() => marketDataSeriesStore.publishSnapshot({
+      identity: firstIdentity,
+      status: 'ready',
+      bars: makeBars(100),
+    }));
+    expect(container.textContent).toBe('ready:backend:calculated');
+
+    act(() => marketDataSeriesStore.publishSnapshot({
+      identity: firstIdentity,
+      status: 'degraded',
+      bars: makeBars(100),
+      detail: 'Synthetic test degradation state.',
+    }));
+    expect(container.textContent).toBe('degraded:backend:calculated');
+
+    act(() => marketDataSeriesStore.publishSnapshot({
+      identity: firstIdentity,
+      status: 'demo',
+      detail: 'Demo data is not an accepted indicator source.',
+    }));
+    expect(container.textContent).toBe('demo:demo:empty');
+
+    act(() => marketDataSeriesStore.publishSnapshot({
+      identity: firstIdentity,
+      status: 'error',
+      detail: 'Backend series is unavailable.',
+    }));
+    expect(container.textContent).toBe('error:none:empty');
+  });
+
   it('clears indicator output when the selected series becomes unavailable', () => {
     const container = document.createElement('div');
     const root = createRoot(container);
