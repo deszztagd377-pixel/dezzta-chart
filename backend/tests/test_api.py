@@ -296,6 +296,7 @@ def test_instrument_catalog_exposes_only_registered_canonical_identity() -> None
             canonical_id=canonical_id, asset_class="future", instrument_type="future",
             symbol="ESZ6", venue="XCME", expiration_date="2026-12-18",
             settlement_currency="USD", contract_multiplier="50", tick_size="0.25",
+            session_calendar_id="CME_EQUITY_INDEX",
         ),
         ProviderInstrumentMapping(
             provider="databento", dataset="GLBX.MDP3", publisher_id=1,
@@ -308,6 +309,8 @@ def test_instrument_catalog_exposes_only_registered_canonical_identity() -> None
     assert response.status_code == 200
     contract = response.json()["contracts"][0]
     assert contract["canonical_instrument_id"] == canonical_id
+    assert contract["session_calendar_id"] == "CME_EQUITY_INDEX"
+    assert contract["session_calendar_version"] == "test-only-2024.01"
 
     # A provider definition without a durable active registry mapping must not
     # receive a fabricated identity.
@@ -323,7 +326,10 @@ def test_instrument_catalog_exposes_only_registered_canonical_identity() -> None
         "ts_event": 1_790_000_000_000_000_000,
     }])
     unmapped = TestClient(unmapped_app).get("/v1/instruments?root=ES")
-    assert unmapped.json()["contracts"][0]["canonical_instrument_id"] is None
+    unmapped_contract = unmapped.json()["contracts"][0]
+    assert unmapped_contract["canonical_instrument_id"] is None
+    assert unmapped_contract["session_calendar_id"] is None
+    assert unmapped_contract["session_calendar_version"] is None
 
 
 def test_instrument_catalog_can_be_filtered_by_supported_root() -> None:
