@@ -451,7 +451,7 @@ test("authentication after the connection deadline is rejected without consuming
   assert.ok(await consumeTicket(storage, issued.ticket, SERIES));
 });
 
-test("Durable Object closes malformed serialized attachment state during restoration", () => {
+test("Durable Object closes malformed serialized attachment state during restoration", async () => {
   const invalidSeries = new MemorySocket({
     authorized: false, seriesKey: "BTCUSD", subject: null, connectedAt: Date.now(),
   });
