@@ -221,17 +221,29 @@ export async function initializeSequenceWatermark(storage, seriesKey) {
       await transaction.put(sequenceKey, SNAPSHOT_WATERMARK);
       return SNAPSHOT_WATERMARK;
     }
+    if (!Number.isSafeInteger(current) || current < SNAPSHOT_WATERMARK || current > 1_000_000_000) {
+      throw new Error("Stored synthetic sequence watermark is invalid.");
+    }
     return current;
   });
 }
 
 export async function acceptNextSequence(storage, seriesKey, sequence) {
-  if (!isValidSyntheticSeriesKey(seriesKey) || !Number.isSafeInteger(sequence) || sequence < SNAPSHOT_WATERMARK + 1) {
+  if (
+    !isValidSyntheticSeriesKey(seriesKey) ||
+    !Number.isSafeInteger(sequence) ||
+    sequence < SNAPSHOT_WATERMARK + 1 ||
+    sequence > 1_000_000_000
+  ) {
     return false;
   }
   const sequenceKey = "sequence:" + seriesKey;
   return storage.transaction(async (transaction) => {
     const current = await transaction.get(sequenceKey);
+    if (
+      current !== undefined &&
+      (!Number.isSafeInteger(current) || current < SNAPSHOT_WATERMARK || current > 1_000_000_000)
+    ) return false;
     const expected = (current === undefined ? SNAPSHOT_WATERMARK : current) + 1;
     if (sequence !== expected) return false;
     await transaction.put(sequenceKey, sequence);
