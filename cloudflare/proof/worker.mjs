@@ -606,6 +606,7 @@ export const proofLimits = Object.freeze({
   ticketTtlMs: TICKET_TTL_MS,
   maxPendingTickets: MAX_TICKET_COUNT,
   maxConnectionsPerSeries: MAX_CONNECTIONS_PER_SERIES,
+  unauthenticatedSocketTtlMs: UNAUTHENTICATED_SOCKET_TTL_MS,
   maxRequestBytes: MAX_REQUEST_BYTES,
   snapshotBars: SNAPSHOT_BARS,
 });
