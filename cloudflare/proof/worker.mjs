@@ -143,7 +143,6 @@ export async function consumeTicket(storage, ticket, expectedSeriesKey, now = Da
     const key = "ticket:" + digest;
     const record = await transaction.get(key);
     if (!record) return null;
-    await transaction.delete(key);
     if (record.expiresAt <= now) {
       await transaction.delete(key);
       return null;
