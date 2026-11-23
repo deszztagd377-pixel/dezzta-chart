@@ -112,3 +112,8 @@ No project-wide percentage is fabricated. No Stage 1 ticks, Gate 10 closures, St
 ## 8. Follow-up test-harness correction
 
 The first CI execution on the initial 62J-183 commit reported 5/6 runtime tests passing. The exact-series ticket-binding test passed. The cursor test's first and final event listeners were initially attached after awaiting the emit HTTP response, which left a timing window where the WebSocket message could be dispatched before the listener existed. The test has been corrected to create the message promise before each accepted emit. This is a deterministic ordering correction only; it does not alter Worker/DO runtime behavior, remove assertions, or suppress the failure. Re-run exact-head CI before accepting the two added cases.
+
+
+## 9. CI runtime compatibility correction
+
+The first exact-head run exposed an environment mismatch in the existing CI configuration: the Worker/DO test lane installed Miniflare versions requiring Node.js >=22.0.0 and >=22.12.0, while the shared CI job was pinned to Node.js 20.20.2. npm reported EBADENGINE warnings. Although the test process started, running a Cloudflare runtime dependency on an unsupported Node major is not an acceptable reproducibility baseline. The CI Node setup is therefore advanced to Node.js 22 for the shared frontend/Worker test job. This is a CI toolchain-only change; it does not alter production application runtime or dependencies. The corrected exact-head workflow must verify frontend tests/build and the Cloudflare runtime under Node 22.
