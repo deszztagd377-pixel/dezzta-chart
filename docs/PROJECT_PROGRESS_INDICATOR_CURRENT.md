@@ -1,14 +1,19 @@
 # Latest verified checkpoint — 23 November 2026
 
 **Branch:** `phase-2/market-data-foundation`  
-**Current documentation checkpoint before this refresh:** `8353a22a60583dcc04799f0595232b39bf50985c`  
-**Latest source/test HEAD:** `d2057e9997b50cb6aab04258fd90de37d35a6816` — four Durable Object concurrency/lifecycle regressions and two indicator-hook regressions; the latter now compare snapshot revisions relatively and use floating-point tolerance. Exact-HEAD CI pending.  
-**Last exact-HEAD CI-confirmed checkpoint:** `008edd4c5750e1f59645273ddcacd37e232fec44` — Automated Tests, Full Git History Secret Audit, CodeQL and OCI ARM64 workflows all SUCCESS.  
+**Current documentation checkpoint before this refresh:** `1121f227db79174361125f7f8ce5f4e0e17baee8`  
+**Latest source/test HEAD:** `d2057e9997b50cb6aab04258fd90de37d35a6816`.  
+**Exact-HEAD verification:** four workflows SUCCESS on `4a87b90e08da04cd22faf74d578a5ce2f2734c15`:
+- Automated Tests [45199096612](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45199096612)
+- Full Git History Secret Audit [45199096630](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45199096630)
+- CodeQL [45199096621](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45199096621)
+- OCI ARM64 Image Readiness [45199096646](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45199096646)
+
 **Protected branch `main`:** unchanged.
 
-**Latest CI triage:** the ten-case Durable Object runtime suite passed 10/10. Frontend tests reached 314/315; the new snapshot-revision regression first needed a relative revision baseline, then a numeric tolerance for IEEE-754 output. Both test-only corrections are committed. No production runtime or indicator formula changed; final exact-HEAD CI is pending.
+**Accepted verification totals:** frontend 315/315 across 34 files; backend 1,347 passed / 1 skipped / 6 non-failing warnings; synthetic Worker Node 25/25; Miniflare/workerd 1/1; Durable Object runtime 10/10. Frontend production build, credential scans, backend dependency audit, container build/smoke/image scan and Redis TLS/AOF CI fixture passed.
 
-**Latest work:** indicator hook coverage explicitly checks ready/degraded versus demo/error trust states and recalculation after a live immutable snapshot revision. No provider, public WSS, paid service, or order-execution feature was enabled.
+**Latest engineering work:** Batch 62J-184 adds four Durable Object concurrency/lifecycle regressions; Batches 62J-185/186 add two indicator-hook trust/revision regressions. The four new Durable Object cases and both hook regressions are now CI-verified. No production provider, public WSS, paid service, or order-execution feature was enabled.
 
 **Project score:** overall **NOT SCORED** (approved weighted denominator unavailable). Official current stage: Stage 1, 30/40 = 75% provisional 🟨. Stage 2 is not officially opened/scored; provider-demand lifecycle, recurring-zero-cost data entitlement, public WSS and production identity remain unresolved. Stages 3–6: not scored. Gate 10: 0/10 external criteria formally closed 🟥.
 
