@@ -132,6 +132,21 @@ test("ticket is series-bound, purpose-bound, expires, and is single-use under co
   assert.equal(await consumeTicket(storage, issued.ticket, SERIES, now + 2), null);
 });
 
+test("pending ticket capacity is enforced atomically under concurrent issuance", async () => {
+  const storage = new MemoryStorage();
+  const now = 1_800_000_000_000;
+  const attempts = Array.from(
+    { length: proofLimits.maxPendingTickets + 8 },
+    () => issueTicket(storage, SERIES, "synthetic-proof-subject", now),
+  );
+  const results = await Promise.allSettled(attempts);
+  const fulfilled = results.filter((result) => result.status === "fulfilled");
+  const rejected = results.filter((result) => result.status === "rejected");
+  assert.equal(fulfilled.length, proofLimits.maxPendingTickets);
+  assert.equal(rejected.length, 8);
+  assert.equal((await storage.list({ prefix: "ticket:", limit: 300 })).size, proofLimits.maxPendingTickets);
+});
+
 test("ticket rejects a different series and expired tickets are consumed", async () => {
   const storage = new MemoryStorage();
   const now = 1_800_000_000_000;
