@@ -1,25 +1,25 @@
 # Latest indicator checkpoint — 23 November 2026
 
 **Branch:** `phase-2/market-data-foundation`  
-**Latest source/test HEAD:** `d37420a4151322a19d388c45bc1398d169fab69c` — Batch 62J-185 adds one hook trust-boundary regression; Batch 62J-184 adds four synthetic Durable Object concurrency/lifecycle regressions. Exact-HEAD CI pending.  
+**Latest source/test HEAD:** `f7f8d04933fb6554c1952f237ef6135ba22362af` — Batch 62J-185 covers ready/degraded versus demo/error trust states; Batch 62J-186 covers recalculation after a live immutable snapshot revision. Exact-HEAD CI pending.  
 **Last exact-HEAD CI-confirmed checkpoint:** `008edd4c5750e1f59645273ddcacd37e232fec44` — four workflows SUCCESS.  
-**Indicator formula/renderer/UI changes:** none in these batches. Batch 62J-185 improves hook acceptance coverage only.
+**Indicator formula/renderer/UI changes:** none in Batches 62J-184/185/186. Batches 185/186 add explicit Shared Indicator Hook regression evidence only.
 
 | Indicator / subsystem | Status | Verified foundation | Remaining acceptance |
 |---|---|---|---|
-| SMA20 | 🟨 Foundation | 20-close arithmetic mean; first valid index 19 | Candlestick overlay, toggle, legend/latest value, identity/lifecycle/render/performance tests |
+| SMA20 | 🟨 Foundation | 20-close arithmetic mean; first valid index 19; rolling result recalculated after a new immutable snapshot revision | Candlestick overlay, toggle, legend/latest value, identity/lifecycle/render/performance tests |
 | EMA20 | 🟨 Foundation | SMA-seeded EMA; alpha 2/21; first valid index 19 | Overlay, toggle, legend/latest value, identity/lifecycle/render/performance tests |
 | RSI14 Wilder | 🟨 Foundation | Initial 14-change mean and Wilder recurrence; first valid index 14 | Dedicated 0–100 pane, 30/70 guides, toggle, legend/latest value, lifecycle/render tests |
 | MACD12/26/9 | 🟨 Foundation | MACD first valid index 25; signal/histogram first valid index 33 | Dedicated pane, MACD/signal lines, histogram, zero guide, toggle, legend/latest values, lifecycle/render tests |
 | Bollinger20,2 | 🟨 Foundation | 20-close mean ±2 population SD; first valid index 19 | Upper/middle/lower overlay, toggle, values, identity/lifecycle/render/performance tests |
-| Shared Indicator Hook | 🟨 Foundation | Exact backend snapshot; aligned multi-study output; frozen result shared by panels on same snapshot; explicit ready/degraded accepted and demo/error suppressed | Actual chart binding, stale clearing across all identity changes, settings/legend integration, lifecycle/accessibility/performance acceptance |
+| Shared Indicator Hook | 🟨 Foundation | Exact backend snapshot; aligned multi-study output; frozen result shared by panels on same snapshot; ready/degraded accepted, demo/error suppressed; immutable revision recalculation regression | Actual chart binding, stale clearing across all identity changes, settings/legend integration, lifecycle/accessibility/performance acceptance |
 | Footprint | 🟧 Prototype only | Synthetic educational accumulator; not exchange-native bid/ask truth | User reference image(s), reviewed blueprint, verified bid/ask source contract, spaced cluster renderer and acceptance |
 | Heatmap | 🟥 Not implemented | No accepted depth/liquidity renderer | User reference image(s), validated depth/liquidity contract, reviewed blueprint, renderer and tests |
 | Liquidation Maps | 🟥 Not implemented | No accepted runtime/render implementation | Defensible data provenance/calculation contract, reviewed blueprint, renderer and tests |
 
 **Mandatory invariants:** warm-up outputs remain null; exact source-candle index alignment; prefix causality/no future repaint; reject invalid/non-finite/gapped input; clear stale output on symbol, venue, dataset, chart identity, or timeframe changes. Footprint OFF preserves ordinary candle spacing; explicit ON alone enables spaced clusters. Footprint and Heatmap visual implementation remains blocked until the owner supplies reference image(s) and reviews the scoped blueprint.
 
-**Aggregate indicator progress:** **NOT SCORED**. Study weights and a denominator have not been approved; no combined indicator percentage is invented.
+**Aggregate indicator progress:** **NOT SCORED**. Study weights and denominator have not been approved; no combined percentage is invented.
 
 ---
 
