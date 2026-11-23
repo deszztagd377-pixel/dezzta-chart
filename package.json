@@ -8,7 +8,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:cloudflare-runtime": "npm install --no-save --package-lock=false miniflare@4.20260730.0 && node --test cloudflare/proof/worker.miniflare-test.mjs",
-    "test:cloudflare-durable-objects": "npm install --no-save --package-lock=false @cloudflare/vitest-plugin@1.9.0 && vitest run --config vitest.cloudflare.config.ts"
+    "test:cloudflare-durable-objects": "npm install --no-save --package-lock=false @cloudflare/vitest-plugin@1.9.0 && vitest run --config vitest.cloudflare.config.mts"
   },
   "dependencies": {
     "firebase": "^11.10.0",

@@ -151,13 +151,21 @@ async function emit(seriesKey, sequence) {
 }
 
 afterEach(async () => {
+  const closePromises = [];
   for (const socket of openSockets) {
-    try {
-      socket.close(1000, "Cloudflare Durable Object test teardown");
-    } catch {
-      // The test may already have closed this socket.
+    if (socket.readyState === 1 || socket.readyState === 2) {
+      const closed = nextClose(socket, 1_000).catch(() => undefined);
+      if (socket.readyState === 1) {
+        try {
+          socket.close(1000, "Cloudflare Durable Object test teardown");
+        } catch {
+          // The runtime may already be closing this socket.
+        }
+      }
+      closePromises.push(closed);
     }
   }
+  await Promise.all(closePromises);
   openSockets.clear();
   await reset();
 });
