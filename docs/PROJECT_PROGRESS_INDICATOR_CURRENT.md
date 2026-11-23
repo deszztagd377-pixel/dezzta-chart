@@ -4685,3 +4685,8 @@ The push CI failure at `2591e6071ba966114895256e51aa3fb99ea8001f` was isolated t
 
 ### Batch 62J-180 — alarm test expectation corrected
 The first test-harness syntax issue was corrected, allowing all 25 synthetic Worker tests to execute. CI then exposed one incorrect expected value in the alarm test: it expected the pending socket's deadline even though another unauthenticated socket had an earlier, already-overdue deadline. The production scheduler intentionally selects the earliest deadline. The assertion now checks the overdue deadline first, then verifies the pending deadline after alarm processing. Commit: `b0cc4682156e65ce94f8f4203899f3e7baee3070`. This correction changes only the test assertion; no project or indicator score is increased until the new CI run completes.
+
+
+### Batch 62J-180 — final CI verified
+
+Latest corrected checkpoint `07186190e98a4e9418664990a1a84acbc6fb3e13` is green across all configured workflows: Automated Tests `45173027719`, Full Git History Secret Audit `45173027724`, CodeQL `45173027753`, and OCI ARM64 Image Readiness `45173027840`. Synthetic Worker tests: **25/25 passed**. Frontend unit tests/build and backend tests/container smoke checks also succeeded. This confirms the test-harness fixes and existing project CI scope, but does not replace a local Cloudflare runtime WebSocket acceptance test. Project stage scores, indicator status and overall NOT SCORED decision remain unchanged.

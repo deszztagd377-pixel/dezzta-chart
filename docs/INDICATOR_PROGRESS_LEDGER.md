@@ -2529,3 +2529,8 @@ The latest CI failure on `2591e6071ba966114895256e51aa3fb99ea8001f` was traced t
 ### Batch 62J-180 — alarm assertion follow-up
 
 The async test callback correction allowed all 25 cases to execute. CI then reported 24/25: the alarm test expected the pending socket deadline even though the expired socket had an earlier deadline. The implementation's earliest-deadline scheduling was correct; the assertion was wrong. The test now expects the expired socket's deadline before alarm processing, then verifies rescheduling to the pending deadline afterward. Fix commit: `b0cc4682156e65ce94f8f4203899f3e7baee3070`. Indicator code and statuses remain unchanged.
+
+
+### Batch 62J-180 — final CI result
+
+The corrected branch checkpoint `07186190e98a4e9418664990a1a84acbc6fb3e13` completed successfully. Synthetic Worker test step: **25 passed, 0 failed**. Frontend unit tests/build, backend tests, backend container smoke test, dependency audits, secret-history audit, CodeQL (JavaScript/TypeScript and Python), and OCI ARM64 readiness all succeeded. This CI result validates the existing indicator ledger documentation only; no indicator calculation or renderer implementation changed in this batch. Indicator statuses and invariants remain unchanged.

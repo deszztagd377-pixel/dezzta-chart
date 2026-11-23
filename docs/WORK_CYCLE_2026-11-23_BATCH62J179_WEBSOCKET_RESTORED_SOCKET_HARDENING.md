@@ -152,3 +152,15 @@ The next CI run executed all 25 test cases after the async-callback syntax corre
 Correction committed as `b0cc4682156e65ce94f8f4203899f3e7baee3070`: the initial alarm assertion now expects the expired socket's earlier deadline. The subsequent assertions still verify that the alarm handler closes that overdue socket and reschedules the pending socket's deadline. This aligns the test with the intended earliest-deadline algorithm; no Worker production code was changed for this test correction.
 
 A fresh push-triggered run is required to establish the final result. The previous run's 24/25 result is historical evidence only, not a pass.
+
+
+## 11. Final CI verification — green
+
+The corrected push at documentation HEAD `07186190e98a4e9418664990a1a84acbc6fb3e13` completed all configured checks successfully:
+
+- Automated Tests run `45173027719`: SUCCESS. The isolated synthetic Worker step executed all 25 test cases; 25 passed, 0 failed. Frontend unit tests and build succeeded. Backend tests, dependency audit, container build/smoke test and container scan completed successfully.
+- Full Git History Secret Audit run `45173027724`: SUCCESS.
+- CodeQL Security Analysis run `45173027753`: SUCCESS for JavaScript/TypeScript and Python.
+- OCI ARM64 Image Readiness run `45173027840`: SUCCESS.
+
+This is CI evidence for commit `07186190e98a4e9418664990a1a84acbc6fb3e13`. It does not constitute a real Cloudflare local runtime WebSocket test. The next separate gate remains a pinned, zero-cost local Wrangler/workerd integration test; no deployment or live provider is in scope.
