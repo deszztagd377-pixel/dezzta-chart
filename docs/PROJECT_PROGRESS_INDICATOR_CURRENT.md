@@ -1,12 +1,12 @@
 # Latest verified checkpoint — 23 November 2026
 
 **Branch:** `phase-2/market-data-foundation`  
-**Current documentation checkpoint before cleanup:** `7f40b5a0faf826d09b4505fcf365f0435598a4bf`  
-**Latest source/test HEAD:** `d37420a4151322a19d388c45bc1398d169fab69c` — four new Durable Object regressions plus one indicator-hook trust-boundary regression; exact-HEAD CI pending.  
+**Current documentation checkpoint before this refresh:** `68caac48bac59f92d868241eda53df5f845f4a23`  
+**Latest source/test HEAD:** `f7f8d04933fb6554c1952f237ef6135ba22362af` — Batch 62J-184 adds four Durable Object concurrency/lifecycle regressions; Batch 62J-185 adds the indicator hook ready/degraded/demo/error trust-boundary regression; Batch 62J-186 adds immutable snapshot revision recalculation coverage. Exact-HEAD CI pending.  
 **Last exact-HEAD CI-confirmed checkpoint:** `008edd4c5750e1f59645273ddcacd37e232fec44` — Automated Tests, Full Git History Secret Audit, CodeQL and OCI ARM64 workflows all SUCCESS.  
 **Protected branch `main`:** unchanged.
 
-**Latest work:** Batch 62J-184 adds four runtime tests: concurrent single-use ticket race, concurrent duplicate cursor serialization, multi-socket hibernation restoration, and authenticated-socket/auth-alarm isolation. Batch 62J-185 adds one hook regression proving degraded backend data remains eligible while demo/error data clears indicator output. The runtime suite now defines ten cases; six were previously verified, four are pending exact-HEAD CI.
+**Latest work:** ten Durable Object runtime cases are defined (six previously verified, four new cases pending exact-HEAD CI). Indicator hook coverage now explicitly tests backend trust-state transitions and recalculation after a live immutable snapshot revision. No production provider, public WSS or paid service has been enabled.
 
 **Project score:** overall **NOT SCORED** (approved weighted denominator unavailable). Stage 1: 30/40 = 75% provisional 🟨. Stage 2: not scored; provider-demand lifecycle, recurring-zero-cost data entitlement, public WSS and production identity remain unresolved. Stages 3–6: not scored. Gate 10: 0/10 external criteria formally closed 🟥.
 
