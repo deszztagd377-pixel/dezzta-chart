@@ -8,8 +8,8 @@ subscribers.
 """
 from __future__ import annotations
 
-from decimal import Decimal
 import re
+from decimal import Decimal
 from typing import Any
 
 from app.ohlcv import OhlcvBar, OhlcvPipeline
@@ -22,7 +22,7 @@ class ReplicaPipelineDivergence(RuntimeError):
 
 
 _UNSIGNED_INTEGER_STRING = re.compile(r"^[0-9]+$")
-_DECIMAL_STRING = re.compile(r"^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$")
+_DECIMAL_STRING = re.compile(r"^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$")
 
 
 def _parse_nanosecond_string(value: Any, field: str) -> int:
