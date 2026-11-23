@@ -4673,3 +4673,7 @@ Indicator invariants remain: warm-up null, exact candle-index alignment, prefix 
 Indicator invariants remain warm-up null, exact index alignment, prefix causality/no future leakage, invalid/gap rejection, stale-output clearing on identity/timeframe changes, and separate calculation/render/interaction/lifecycle/accessibility/performance acceptance. Footprint OFF preserves standard candle spacing; ON alone enables spaced clusters. Indicator aggregate remains **NOT SCORED**.
 
 **Decision:** Batch 62J-179 closes two source-level WebSocket defensive gaps. It does not change indicator readiness, stage scores, Gate 10, or overall project score. CI exact-head and real local runtime results must be independently verified before any acceptance status changes.
+
+
+### Batch 62J-179 verification note
+The root package manifest/lockfile currently contain no Wrangler or Miniflare dependency, so a pinned local Cloudflare runtime smoke remains an explicit toolchain task rather than an assumed pass. The existing push workflow is configured for this branch and runs Node syntax plus the synthetic Worker test file. The available connector returned no combined status entries or workflow-run records for the current commits; because its workflow-run helper filters to pull-request-triggered runs, push-run completion remains **unverified**, not declared absent or successful. See the Batch 62J-179 work-cycle record for the full verification boundary.
