@@ -4201,3 +4201,19 @@ ZERO COST preserved. No paid services, cloud account, hosting, domain, external 
 - Overall project: NOT SCORED; stage weights and denominator are not approved.
 
 ZERO COST. No paid services or external resources. `main` untouched.
+
+
+---
+
+## Batch 62J-167 — project progress reconciliation (23 November 2026)
+
+
+- Stage 1: 30/40 = 75% provisional 🟨.
+- Stages 2–6: NOT SCORED / not officially opened ⬜.
+- Gate 10: 0/10 external acceptance criteria formally closed 🟥.
+- Gate 25: OPEN 🟧 — local digest binding and receipt-set validation strengthened; authenticated cross-host receipt/key lifecycle still outstanding.
+- Gate 36: OPEN 🟥 — public production WSS, real Firebase, reverse proxy and physical Android WebView acceptance remain.
+- Gate 38: OPEN 🟥 — owner-host metrics persistence, backup/retention, alert and recovery acceptance remain.
+- Overall project: NOT SCORED; approved stage weights and denominator are not available.
+
+ZERO COST. No paid service, deployment, external credential, device operation or publication fee. `main` untouched.

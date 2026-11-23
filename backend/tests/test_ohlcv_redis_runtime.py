@@ -167,3 +167,69 @@ def test_environment_factory_is_opt_in_and_production_requires_tls():
                 "OHLCV_REDIS_PUBLISH_URL": "redis://publisher:secret@redis.example:6379/0",
             },
         )
+
+
+@pytest.mark.parametrize("receipt_set_error", ["missing", "unexpected", "duplicate_required"])
+def test_factory_rejects_incomplete_or_ambiguous_gateway_receipt_set(
+    tmp_path, receipt_set_error,
+):
+    store = make_store(tmp_path)
+    checkpoint = SQLiteOhlcvPublisherCheckpoint(store)
+    checkpoint.initialize_from_snapshot(0, now_ms=1000)
+    created = []
+
+    def invalid_receipt_set(source, state):
+        evidence = snapshot_evidence(source, state)
+        if receipt_set_error == "missing":
+            evidence["gateway_installations"].pop("gateway-b")
+        elif receipt_set_error == "unexpected":
+            evidence["gateway_installations"]["gateway-c"] = dict(
+                evidence["gateway_installations"]["gateway-a"]
+            )
+        else:
+            evidence["required_gateway_ids"].append("gateway-a")
+        return evidence
+
+    factory = build_source_publisher_runtime_factory(
+        redis_url="rediss://publisher:secret@redis.example:6380/0",
+        owner="source-host-01", production=True,
+        snapshot_verifier=invalid_receipt_set,
+        redis_client_factory=lambda *args, **kwargs: created.append(True),
+    )
+
+    with pytest.raises(RuntimeError, match="Every required gateway"):
+        factory(store)
+    assert created == []
+
+
+@pytest.mark.parametrize(
+    ("field", "invalid_value"),
+    [
+        ("source_id", "different-source"),
+        ("stream_key", "different:stream"),
+        ("snapshot_generation", "different-generation"),
+    ],
+)
+def test_factory_rejects_gateway_receipt_identity_mismatch_before_redis_creation(
+    tmp_path, field, invalid_value,
+):
+    store = make_store(tmp_path)
+    checkpoint = SQLiteOhlcvPublisherCheckpoint(store)
+    checkpoint.initialize_from_snapshot(0, now_ms=1000)
+    created = []
+
+    def invalid_receipt_identity(source, state):
+        evidence = snapshot_evidence(source, state)
+        evidence["gateway_installations"]["gateway-b"][field] = invalid_value
+        return evidence
+
+    factory = build_source_publisher_runtime_factory(
+        redis_url="rediss://publisher:secret@redis.example:6380/0",
+        owner="source-host-01", production=True,
+        snapshot_verifier=invalid_receipt_identity,
+        redis_client_factory=lambda *args, **kwargs: created.append(True),
+    )
+
+    with pytest.raises(RuntimeError, match="gateway snapshot receipt"):
+        factory(store)
+    assert created == []
