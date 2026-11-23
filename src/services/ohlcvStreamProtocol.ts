@@ -10,7 +10,7 @@ export interface OhlcvStreamSeriesIdentity {
   instrumentId: number;
   rawSymbol: string;
   timeframe: OhlcvTimeframe;
-  bucketPolicy?: 'UTC_LEGACY' | 'UTC_FIXED_V1';
+  bucketPolicy?: 'UTC_LEGACY' | 'UTC_FIXED_V1' | 'CME_SESSION_V1';
   calendarId?: string;
   calendarVersion?: string;
 }
@@ -102,9 +102,19 @@ export function parseOhlcvStreamUpdate(payload: unknown): OhlcvStreamUpdateMessa
     !isPositiveSafeInteger(series.instrumentId) ||
     !isNonEmptyString(series.rawSymbol) ||
     !isNonEmptyString(series.timeframe) ||
-    (series.bucketPolicy !== undefined && !['UTC_LEGACY', 'UTC_FIXED_V1'].includes(String(series.bucketPolicy))) ||
-    (series.calendarId !== undefined && series.calendarId !== '') ||
-    (series.calendarVersion !== undefined && series.calendarVersion !== '')
+    (series.bucketPolicy !== undefined &&
+      !['UTC_LEGACY', 'UTC_FIXED_V1', 'CME_SESSION_V1'].includes(String(series.bucketPolicy))) ||
+    (series.calendarId !== undefined && typeof series.calendarId !== 'string') ||
+    (series.calendarVersion !== undefined && typeof series.calendarVersion !== 'string') ||
+    (series.bucketPolicy === 'CME_SESSION_V1' && (
+      !['1d', '1w', '1M', '3M'].includes(String(series.timeframe)) ||
+      !isNonEmptyString(series.calendarId) ||
+      !isNonEmptyString(series.calendarVersion)
+    )) ||
+    (series.bucketPolicy !== 'CME_SESSION_V1' && (
+      (series.calendarId !== undefined && series.calendarId !== '') ||
+      (series.calendarVersion !== undefined && series.calendarVersion !== '')
+    ))
   ) {
     throw new Error('OHLCV stream series identity is invalid.');
   }
