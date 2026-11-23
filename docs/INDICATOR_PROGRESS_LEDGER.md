@@ -1,7 +1,7 @@
 # CURRENT INDICATOR LEDGER — Batch 62J-177 (23 November 2026)
 
 **Branch:** `phase-2/market-data-foundation`  
-**Latest code/test HEAD:** `b752d6ca4b2317e8a7ab9f71e2bc23ff937eb4aa`  
+**Latest code/test HEAD:** `264b54fbb87b96133d13dd7f82089bde4cd9d47f`  
 **Indicator source/formula changes:** none. **Indicator renderer/UI changes:** none.  
 **Reason for reconciliation:** synthetic-only WebSocket cursor integrity work does not earn indicator implementation credit.
 
@@ -2479,3 +2479,24 @@ This infrastructure batch does not alter any indicator formula, warm-up rule, so
 **Global invariants remain mandatory:** warm-up values stay null; no future-candle leakage/repainting; invalid/gapped data rejected; stale output cleared on identity changes; Footprint OFF preserves ordinary candle spacing; Footprint ON alone activates the dedicated spaced cluster layout. Footprint and Heatmap visual implementation remain blocked until the owner supplies references and reviews the blueprint.
 
 **Credit decision:** WebSocket/Worker infrastructure progress is not indicator progress. No status promotion or percentage increase is permitted from Batch 62J-176.
+
+
+## Batch 62J-178 — 23 November 2026: WebSocket authentication timeout reconciliation
+
+**Latest code/test HEAD:** `264b54fbb87b96133d13dd7f82089bde4cd9d47f`  
+**Indicator calculation/renderer/UI modifications:** none. **Indicator credit:** zero.
+
+All statuses remain unchanged:
+- SMA20 🟨 Foundation
+- EMA20 🟨 Foundation
+- RSI14 Wilder 🟨 Foundation
+- MACD12/26/9 🟨 Foundation
+- Bollinger20,2 🟨 Foundation
+- Shared Indicator Hook 🟨 Foundation
+- Footprint 🟧 Synthetic prototype only
+- Heatmap 🟥 Not implemented
+- Liquidation Maps 🟥 Not implemented
+
+The WebSocket timeout change does not increase indicator progress. Keep warm-up values null, exact index alignment, prefix causality, invalid/gap rejection, stale-output clearing, and no future-candle leakage. Footprint OFF retains ordinary candle spacing; Footprint ON alone enables spaced clusters. Footprint/Heatmap visuals remain blocked pending user reference images and blueprint review. Aggregate indicator completion remains **NOT SCORED**.
+
+Full technical record: `docs/WORK_CYCLE_2026-11-23_BATCH62J178_WEBSOCKET_AUTH_TIMEOUT.md`.
