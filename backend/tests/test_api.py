@@ -2452,6 +2452,75 @@ def test_replica_runtime_hydrates_before_worker_and_serves_replica_snapshot(tmp_
     assert redis_client.closed is True
 
 
+def test_replica_shutdown_logs_unconfirmed_lease_release_and_closes_redis(
+    tmp_path, caplog,
+):
+    source = SQLiteOhlcvStore(str(tmp_path / "lease-release-source.sqlite3"))
+    snapshot_path = tmp_path / "lease-release-snapshot.jsonl"
+    source.export_global_snapshot(str(snapshot_path))
+    replica = SQLiteOhlcvReplicaStore(str(tmp_path / "lease-release-replica.sqlite3"))
+    replica.install_global_snapshot(
+        str(snapshot_path), expected_source_id=source.source_id(),
+    )
+
+    class FakeRedis:
+        closed = False
+        def __init__(self):
+            self.values = {}
+        def set(self, key, value, nx=False, px=None):
+            if nx and key in self.values:
+                return False
+            self.values[key] = value
+            return True
+        def eval(self, script, numkeys, key, token, *args):
+            if self.values.get(key) != token:
+                return 0
+            if "PEXPIRE" in script:
+                return 1
+            if "DEL" in script:
+                return 0
+            return 1
+        def close(self):
+            self.closed = True
+
+    class IdleConsumer:
+        def __init__(self, redis_client, store):
+            self.redis = redis_client
+            self.replica_store = store
+            self.stream_key = "test:ohlcv:stream"
+            self.block_ms = None
+            self.on_event_applied = None
+            self.group_name = "test:replica:lease-release:generation-1"
+        def ensure_group(self):
+            return True
+        def consume_once(self):
+            return {"status": "idle"}
+
+    redis_client = FakeRedis()
+    consumer = IdleConsumer(redis_client, replica)
+    application = create_app(
+        make_settings(),
+        replica_runtime_factory=lambda: {
+            "replica_store": replica,
+            "consumer": consumer,
+            "redis_client": redis_client,
+            "stream_key": "test:ohlcv:stream",
+        },
+    )
+
+    with caplog.at_level("WARNING", logger="dezzta.websocket_replica"):
+        with TestClient(application):
+            assert application.state.ohlcv_replica_worker is not None
+
+    assert redis_client.closed is True
+    assert any(
+        "lease release was not confirmed" in record.getMessage()
+        and "TTL expiry is the fallback" in record.getMessage()
+        for record in caplog.records
+        if record.name == "dezzta.websocket_replica"
+    )
+
+
 def test_replica_runtime_fails_closed_without_verified_snapshot(tmp_path):
     replica = SQLiteOhlcvReplicaStore(str(tmp_path / "empty-replica.sqlite3"))
 

@@ -2264,3 +2264,25 @@ No indicator formula, numeric kernel, shared hook, chart binding, renderer, UI o
 | Liquidation Maps | 🟥 Not implemented | Defensible data provenance/contract and reviewed implementation required |
 
 Preserve warm-up nulls, exact candle alignment, prefix causality/no future repaint, invalid/gapped-data rejection, stale-output clearing, and Footprint OFF standard candle spacing. Aggregate indicator progress remains NOT SCORED without approved weights and denominator.
+
+
+---
+
+## Batch 62J-168 — indicator reconciliation (23 November 2026)
+
+
+No indicator formula, kernel, hook, chart binding, renderer, UI, or indicator-specific test changed. Indicator implementation credit: **0**.
+
+| Indicator | Status | Foundation / remaining acceptance |
+|---|---|---|
+| SMA20 | 🟨 Foundation | 20-close mean; first valid index 19; overlay/toggle/legend/lifecycle remain |
+| EMA20 | 🟨 Foundation | SMA seed, alpha 2/21; first valid index 19; overlay/toggle/legend/lifecycle remain |
+| RSI14 Wilder | 🟨 Foundation | Wilder smoothing; first valid index 14; pane, 30/70 guides and lifecycle remain |
+| MACD12/26/9 | 🟨 Foundation | MACD index 25; signal/histogram index 33; pane/lines/histogram/zero guide remain |
+| Bollinger20,2 | 🟨 Foundation | Mean ±2 population SD; first valid index 19; three-line overlay/toggle/value/lifecycle remain |
+| Shared Indicator Hook | 🟨 Foundation | Validated aligned backend output; chart binding, stale clearing and settings/legend remain |
+| Footprint | 🟧 Prototype only | Synthetic accumulator; user reference, reviewed blueprint and valid bid/ask contract required |
+| Heatmap | 🟥 Not implemented | User reference, reviewed blueprint and validated depth/liquidity contract required |
+| Liquidation Maps | 🟥 Not implemented | Defensible data provenance/calculation contract and reviewed implementation required |
+
+Invariants: warm-up nulls; exact candle alignment; prefix causality/no future repaint; reject invalid/gapped data; clear stale outputs on identity changes. Footprint OFF preserves standard candle spacing; explicit ON alone activates spaced clusters. Aggregate indicator progress remains NOT SCORED without approved weights and denominator.

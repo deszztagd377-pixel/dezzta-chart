@@ -621,37 +621,46 @@ def create_app(
                     logging.getLogger("dezzta.metrics").warning("Metrics flush loop exceeded shutdown deadline.")
             if worker_task is not None:
                 await worker_task
+            async def release_replica_lease_safely() -> None:
+                if ownership_lease is None:
+                    return
+                try:
+                    released = await asyncio.to_thread(ownership_lease.release)
+                except Exception:
+                    released = False
+                if not released:
+                    logging.getLogger("dezzta.websocket_replica").warning(
+                        "Replica ownership lease release was not confirmed; Redis TTL expiry is the fallback."
+                    )
+
+            async def close_replica_redis_client_safely() -> None:
+                close_client = getattr(replica_redis_client, "close", None)
+                if not callable(close_client):
+                    return
+                try:
+                    if inspect.iscoroutinefunction(close_client):
+                        await close_client()
+                    else:
+                        await asyncio.to_thread(close_client)
+                except Exception:
+                    logging.getLogger("dezzta.websocket_replica").exception(
+                        "Replica Redis client close failed."
+                    )
+
             if replica_worker is not None:
                 stopped = await replica_worker.stop_async(timeout_seconds=3.0)
                 if stopped:
-                    if ownership_lease is not None:
-                        await asyncio.to_thread(ownership_lease.release)
-                    close_client = getattr(replica_redis_client, "close", None)
-                    if callable(close_client):
-                        try:
-                            if inspect.iscoroutinefunction(close_client):
-                                await close_client()
-                            else:
-                                await asyncio.to_thread(close_client)
-                        except Exception:
-                            logging.getLogger("dezzta.websocket_replica").exception(
-                                "Replica Redis client close failed."
-                            )
+                    await release_replica_lease_safely()
+                    await close_replica_redis_client_safely()
                 else:
                     logging.getLogger("dezzta.websocket_replica").error(
                         "Replica worker did not stop within the shutdown deadline; Redis client left open."
                     )
                 replica_worker = None
                 application.state.ohlcv_replica_worker = None
-            elif replica_redis_client is not None:
-                if ownership_lease is not None:
-                    await asyncio.to_thread(ownership_lease.release)
-                close_client = getattr(replica_redis_client, "close", None)
-                if callable(close_client):
-                    if inspect.iscoroutinefunction(close_client):
-                        await close_client()
-                    else:
-                        await asyncio.to_thread(close_client)
+            elif replica_redis_client is not None or ownership_lease is not None:
+                await release_replica_lease_safely()
+                await close_replica_redis_client_safely()
             if publisher_task is not None:
                 done, _ = await asyncio.wait({publisher_task}, timeout=15.0)
                 if publisher_task in done:
