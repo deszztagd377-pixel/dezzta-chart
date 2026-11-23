@@ -1,14 +1,16 @@
 # Latest verified checkpoint — 23 November 2026
 
 **Branch:** `phase-2/market-data-foundation`  
-**Current documentation checkpoint before this refresh:** `68caac48bac59f92d868241eda53df5f845f4a23`  
-**Latest source/test HEAD:** `f7f8d04933fb6554c1952f237ef6135ba22362af` — Batch 62J-184 adds four Durable Object concurrency/lifecycle regressions; Batch 62J-185 adds the indicator hook ready/degraded/demo/error trust-boundary regression; Batch 62J-186 adds immutable snapshot revision recalculation coverage. Exact-HEAD CI pending.  
+**Current documentation checkpoint before this refresh:** `3bf798f56aab37a745eabf428dece2ee246417bd`  
+**Latest source/test HEAD:** `aaa638a1db0277118484d5c65992cec54f19cb1d` — Batch 62J-184 adds four Durable Object concurrency/lifecycle regressions; Batches 62J-185/186 add two indicator-hook trust/revision regressions. Exact-HEAD CI for the corrected tests is pending.  
 **Last exact-HEAD CI-confirmed checkpoint:** `008edd4c5750e1f59645273ddcacd37e232fec44` — Automated Tests, Full Git History Secret Audit, CodeQL and OCI ARM64 workflows all SUCCESS.  
 **Protected branch `main`:** unchanged.
 
-**Latest work:** ten Durable Object runtime cases are defined (six previously verified, four new cases pending exact-HEAD CI). Indicator hook coverage now explicitly tests backend trust-state transitions and recalculation after a live immutable snapshot revision. No production provider, public WSS or paid service has been enabled.
+**Latest CI triage:** first run of the ten-case Durable Object suite produced 9/10 pass. The only failure was a test setup that attempted to run an authentication alarm after authentication had correctly deleted it. The test is corrected to keep one unauthenticated socket active while checking that an authenticated socket survives. No production runtime code changed.
 
-**Project score:** overall **NOT SCORED** (approved weighted denominator unavailable). Stage 1: 30/40 = 75% provisional 🟨. Stage 2: not scored; provider-demand lifecycle, recurring-zero-cost data entitlement, public WSS and production identity remain unresolved. Stages 3–6: not scored. Gate 10: 0/10 external criteria formally closed 🟥.
+**Latest work:** ten Durable Object runtime cases are defined; two indicator-hook regressions explicitly cover ready/degraded versus demo/error trust states and recalculation after a live immutable snapshot revision. New test acceptance remains pending exact-HEAD CI.
+
+**Project score:** overall **NOT SCORED** (approved weighted denominator unavailable). Official current stage: Stage 1, 30/40 = 75% provisional 🟨. Stage 2 is not officially opened/scored; provider-demand lifecycle, recurring-zero-cost data entitlement, public WSS and production identity remain unresolved. Stages 3–6: not scored. Gate 10: 0/10 external criteria formally closed 🟥.
 
 **Delivery target:** 24 December 2026 (planning target, not guaranteed).
 
