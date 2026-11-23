@@ -4498,3 +4498,68 @@ No indicator calculation, hook, chart binding, pane, renderer, UI setting or ind
 No deployment, Cloudflare account, billing activation, payment method, domain, production credential, provider key, or live market-data connection was used. No paid service or package dependency was added. Target date remains **24 December 2026**, not a guaranteed completion claim.
 
 **Batch 62J-176 decision:** meaningful isolated synthetic infrastructure increment; Stage 2 remains unscored and production acceptance remains open. No project-wide or indicator percentage is increased from this batch.
+
+
+---
+
+## Batch 62J-177 — latest project and indicator reconciliation (23 November 2026)
+
+**Branch:** `phase-2/market-data-foundation`  
+**Latest code/test HEAD at this reconciliation:** `a16818e10997c07d68a2e14929ba193b09ce0a8f`  
+**Main:** untouched. **ZERO COST:** preserved.  
+**Exact-HEAD CI:** pending; no CI success is claimed for this new code/test HEAD yet.
+
+### Significant engineering progress
+
+The isolated synthetic-only Worker/DO proof received:
+- Atomic snapshot watermark initialization to prevent a concurrent first event from rewinding cursor 51 back to 50.
+- Fail-closed validation of persisted cursor values and incoming sequence bounds [51, 1,000,000,000].
+- Strict serialized WebSocket attachment validation on constructor restoration and message handling.
+- Regression coverage for both initialization/update orderings, corrupt/out-of-range cursors, one-time ticket consumption, snapshot delivery, exact-series fan-out, contiguous event sequencing and malformed attachment restoration.
+- Synthetic Node proof suite increased from 16 to **20 tests**. No new dependency or hosted resource was added.
+
+This is local proof/test-double evidence. It is not an actual Cloudflare runtime, browser WebSocket, production authentication or deployed WSS acceptance.
+
+### Full indicator dashboard
+
+| Indicator / subsystem | Status | Foundation | Remaining work |
+|---|---|---|---|
+| SMA20 | 🟨 Foundation | 20-close arithmetic mean; first valid index 19 | Chart overlay, toggle, legend/current value, identity/lifecycle/render/performance tests |
+| EMA20 | 🟨 Foundation | SMA seed; alpha 2/21; first valid index 19 | Overlay, toggle, legend/current value, identity/lifecycle/render/performance tests |
+| RSI14 Wilder | 🟨 Foundation | Initial 14-change mean; Wilder recurrence; first valid index 14 | Dedicated 0–100 pane, 30/70 guides, toggle, legend/current value, lifecycle/render tests |
+| MACD12/26/9 | 🟨 Foundation | EMA12−EMA26; MACD first valid index 25; signal/histogram first valid index 33 | Dedicated pane, lines, histogram, zero line, toggle/legend/latest values, lifecycle/render tests |
+| Bollinger20,2 | 🟨 Foundation | 20-close mean ±2 population standard deviations; first valid index 19 | Upper/middle/lower overlay, toggle, values, identity/lifecycle/render/performance tests |
+| Shared Indicator Hook | 🟨 Foundation | Exact-snapshot aligned multi-study output | Hook tests, chart binding, stale-output clearing, settings/legend integration, identity/lifecycle acceptance |
+| Footprint | 🟧 Synthetic prototype only | Educational synthetic accumulator, not exchange-native volume | User reference image(s), reviewed blueprint, verified data contract, cluster layout and renderer |
+| Heatmap | 🟥 Not implemented | No accepted depth/liquidity renderer | User reference image(s), reviewed blueprint, validated data contract, renderer and tests |
+| Liquidation Maps | 🟥 Not implemented | No accepted runtime/render/data contract | Defensible provenance/methodology, reviewed blueprint, renderer and tests |
+
+**Indicator invariants:** warm-up `null`; exact source-index alignment; prefix causality; reject invalid/gapped data; clear stale output on identity/timeframe changes; no future-candle leakage; test calculation/rendering/lifecycle/accessibility/performance separately; Footprint OFF keeps normal candle spacing; Footprint/Heatmap visuals require user reference images and blueprint review. Aggregate indicator completion remains **NOT SCORED**.
+
+### Project-wide progress indicators
+
+- Stage 1 Foundation, Security & Data Integrity: 🟨 **30/40 = 75% provisional**, unchanged.
+- Stage 2 Market Data Infrastructure: 🟨 synthetic-only proof hardened; **NOT SCORED** until real local runtime integration and its acceptance tests are complete.
+- Stage 3 Chart Engine & Timeframe: ⬜ **NOT SCORED**.
+- Stage 4 Indicators & Analytics: ⬜ **NOT SCORED**.
+- Stage 5 Professional UI & Interactive Tools: ⬜ **NOT SCORED**.
+- Stage 6 Hardening, Validation & APK Release: ⬜ **NOT SCORED**.
+- Gate 10 external acceptance: 🟥 **0/10 formally closed**.
+- Gate 25 snapshot/replica custody: 🟧 **OPEN**.
+- Gate 36 public WSS/Firebase/Android network lifecycle: 🟥 **OPEN**.
+- Gate 38 owner-host telemetry persistence/restore/operations: 🟧 **OPEN**.
+- Gate 39 operational alert acknowledgement/recovery: 🟥 **OPEN**.
+- Overall project: **NOT SCORED**; approved stage weights and denominator remain unavailable.
+- Target date: **24 December 2026**, planning target only.
+
+### Remaining WebSocket work, ordered by dependency
+
+1. Pinned local Wrangler runtime smoke with hosted deployment disabled.
+2. Actual Durable Object WebSocketPair handshake and one-time ticket consumption.
+3. Real-runtime same-series two-client fan-out and cross-series isolation.
+4. Hibernation/eviction and serialized attachment restoration.
+5. Unauthenticated socket cleanup/timeout and slow-consumer behavior.
+6. Snapshot-to-live cursor continuity and bounded durable replay.
+7. Production authentication, public WSS and Android acceptance remain external gates; no real market-data provider or transaction service is connected.
+
+**Decision:** the cursor race and attachment-validation gaps are addressed in source/tests. Stage and project percentages remain unchanged pending verified acceptance evidence.
