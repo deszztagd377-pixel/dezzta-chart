@@ -1,9 +1,10 @@
-# CURRENT PROJECT PROGRESS — Batch 62J-173 (23 November 2026)
+# CURRENT PROJECT PROGRESS — Batch 62J-182 (23 November 2026)
 
 **Target date corrected by project owner: 24 December 2026.** This is a delivery target, not a guaranteed completion claim.
 
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest fully CI-verified code/test HEAD:** `a9d001885b0b524bc33427add30584e1984680bf`  
+**Latest fully CI-verified code/test HEAD:** `07186190e98a4e9418664990a1a84acbc6fb3e13`  
+**Latest implementation checkpoint (exact-HEAD CI not yet verified):** `af3746fc39ac75a842a0199ad09304b008f19107`  
 **WebSocket test correction commit:** `cb708c3e6357c59ef7a61fcb5fc5c304b014d62a`  
 **Batch 62J-148 test commit:** `79d88d9aa5261dde3f2e31d1e742d45f461e43c2`  
 **Batch 62J-149 WebSocket test commit:** `ed7f22a00b71223d0dd7ed280aadddd8a30cf6e1`  
@@ -4690,3 +4691,14 @@ The first test-harness syntax issue was corrected, allowing all 25 synthetic Wor
 ### Batch 62J-180 — final CI verified
 
 Latest corrected checkpoint `07186190e98a4e9418664990a1a84acbc6fb3e13` is green across all configured workflows: Automated Tests `45173027719`, Full Git History Secret Audit `45173027724`, CodeQL `45173027753`, and OCI ARM64 Image Readiness `45173027840`. Synthetic Worker tests: **25/25 passed**. Frontend unit tests/build and backend tests/container smoke checks also succeeded. This confirms the test-harness fixes and existing project CI scope, but does not replace a local Cloudflare runtime WebSocket acceptance test. Project stage scores, indicator status and overall NOT SCORED decision remain unchanged.
+
+
+---
+
+## Batch 62J-181/182 — CME session identity frontend integration (23 November 2026)
+
+The frontend now accepts the backend's versioned `CME_SESSION_V1` identity for `1d`, `1w`, `1M`, and `3M` only when both the canonical calendar ID and exact loaded version are present. REST parsing, market-data identity validation, keyed store isolation, and WebSocket event validation use the same rules. The instrument catalog now exposes the canonical instrument's session calendar and only a uniquely loaded release version. `CandlestickChart` selects the CME policy only when the exact release is available; incomplete metadata falls back to the existing UTC policy. Regression coverage was added across backend catalog, frontend parser/store/protocol, bucket selection, and chart lifecycle.
+
+Implementation checkpoint: `af3746fc39ac75a842a0199ad09304b008f19107`. Exact-HEAD CI is **NOT YET VERIFIED**. Previous verified CI checkpoint remains `07186190e98a4e9418664990a1a84acbc6fb3e13`; its green result must not be transferred to this new implementation. Full technical record: `docs/WORK_CYCLE_2026-11-23_BATCH62J181_CME_SESSION_FRONTEND_INTEGRATION.md`.
+
+No indicator formula, calculation hook, renderer, or visual UI changed. All indicator statuses and project scores remain unchanged. The calendar fixture `test-only-2024.01` is synthetic-only and is not an official CME schedule.
