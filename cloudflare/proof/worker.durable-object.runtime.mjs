@@ -283,20 +283,12 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       state.getWebSockets().map((socket) => socket.deserializeAttachment())
     ));
     expect(attachments).toHaveLength(2);
-    expect(attachments).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        authorized: true,
-        seriesKey: SERIES_HIBERNATE,
-        subject: "synthetic-proof-subject",
-        snapshotWatermark: 50,
-      }),
-      expect.objectContaining({
-        authorized: true,
-        seriesKey: SERIES_HIBERNATE,
-        subject: "synthetic-proof-subject",
-        snapshotWatermark: 50,
-      }),
-    ]));
+    expect(attachments.every((attachment) => (
+      attachment.authorized === true &&
+      attachment.seriesKey === SERIES_HIBERNATE &&
+      attachment.subject === "synthetic-proof-subject" &&
+      attachment.snapshotWatermark === 50
+    ))).toBe(true);
 
     const firstPong = nextJsonMessage(first.socket);
     const secondPong = nextJsonMessage(second.socket);
