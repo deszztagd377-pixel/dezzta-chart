@@ -4417,7 +4417,7 @@ ZERO COST preserved. OCI readiness is not deployment. No paid provider, hosting,
 ## Batch 62J-176 — synthetic-only Worker/DO proof (23 November 2026)
 
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest code/test HEAD with exact-HEAD CI:** `783811ccef97c0494203ad13a9f790b791a5e962`  
+**Latest code/test HEAD with exact-HEAD CI:** `f9a6242c83c065799d1ed02f8c8870d8c9ef5ffe`  
 **Documentation commits after code/test HEAD:** Batch 62J-176 report and indicator/dashboard reconciliation only; no runtime source changed after the verified code/test HEAD.  
 **Main:** untouched.
 
@@ -4432,24 +4432,24 @@ An isolated synthetic-only Cloudflare Worker + per-series Durable Object proof w
 - Authorized same-series synthetic fan-out; no provider socket, polling loop, timer or alarm.
 - Local Wrangler configuration with workers.dev and preview URLs disabled.
 - Local secret files ignored by Git.
-- 15 Node proof tests, separate from Vitest discovery.
+- 16 Node proof tests, separate from Vitest discovery.
 
 **Proof limitation:** the Node suite tests pure ticket/sequence behavior and Worker request boundary. It does not execute a real Cloudflare Durable Object runtime, WebSocketPair handshake, forced hibernation/rehydration, or Android/browser end-to-end session. No Wrangler runtime smoke or deployment occurred. This proof is not production-ready and is not wired into the FastAPI backend or the main app.
 
 ### Exact-HEAD verification
 
-For code/test HEAD `783811ccef97c0494203ad13a9f790b791a5e962`:
+For code/test HEAD `f9a6242c83c065799d1ed02f8c8870d8c9ef5ffe`:
 
-- Automated Tests [45167249268](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45167249268): SUCCESS.
+- Automated Tests [45168168543](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45167249268): SUCCESS.
   - Synthetic proof tests: 15 passed, 0 failed.
   - Frontend: 306 passed across 34 test files.
   - Backend: 1,347 passed, 1 skipped, 6 warnings.
   - npm audit: 0 vulnerabilities.
   - pip-audit: no known vulnerabilities.
   - Dedicated Redis TLS fixture, synthetic SQLite outbox benchmark, metrics benchmark, backend container build/smoke and HIGH/CRITICAL image scan passed.
-- CodeQL [45167249876](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45167249876): SUCCESS for Python and JavaScript/TypeScript.
-- Full Git History Secret Audit [45167250254](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45167250254): SUCCESS.
-- OCI ARM64 Image Readiness [45167249525](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45167249525): SUCCESS.
+- CodeQL [45168168621](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45167249876): SUCCESS for Python and JavaScript/TypeScript.
+- Full Git History Secret Audit [45168168356](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45167250254): SUCCESS.
+- OCI ARM64 Image Readiness [45168168447](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45167249525): SUCCESS.
 
 The skipped backend pytest TLS integration case is run separately by the dedicated isolated Redis TLS fixture step. The CI results are not a deployed Worker or production WSS acceptance.
 
