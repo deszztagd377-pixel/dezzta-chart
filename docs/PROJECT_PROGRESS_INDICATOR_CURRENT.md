@@ -1,14 +1,14 @@
 # Latest verified checkpoint — 23 November 2026
 
 **Branch:** `phase-2/market-data-foundation`  
-**Current documentation checkpoint before this refresh:** `3bf798f56aab37a745eabf428dece2ee246417bd`  
-**Latest source/test HEAD:** `aaa638a1db0277118484d5c65992cec54f19cb1d` — Batch 62J-184 adds four Durable Object concurrency/lifecycle regressions; Batches 62J-185/186 add two indicator-hook trust/revision regressions. Exact-HEAD CI for the corrected tests is pending.  
+**Current documentation checkpoint before this refresh:** `b048d31b80ffd11b5e183c51cf909230a22fee16`  
+**Latest source/test HEAD:** `70d14ab5a73027f489ebb37fa96025c174617902` — four new Durable Object regressions, two indicator-hook regressions, and a correction to the relative revision assertion. Exact-HEAD CI pending.  
 **Last exact-HEAD CI-confirmed checkpoint:** `008edd4c5750e1f59645273ddcacd37e232fec44` — Automated Tests, Full Git History Secret Audit, CodeQL and OCI ARM64 workflows all SUCCESS.  
 **Protected branch `main`:** unchanged.
 
-**Latest CI triage:** first run of the ten-case Durable Object suite produced 9/10 pass. The only failure was a test setup that attempted to run an authentication alarm after authentication had correctly deleted it. The test is corrected to keep one unauthenticated socket active while checking that an authenticated socket survives. No production runtime code changed.
+**Latest CI triage:** the corrected ten-case Durable Object runtime suite passed 10/10. The frontend suite then reported 314/315; its sole failure was a test assumption that snapshot revision always starts at 1. The test now captures the actual baseline revision and asserts a +1 transition with the expected rolling SMA. No production runtime or indicator formula changed.
 
-**Latest work:** ten Durable Object runtime cases are defined; two indicator-hook regressions explicitly cover ready/degraded versus demo/error trust states and recalculation after a live immutable snapshot revision. New test acceptance remains pending exact-HEAD CI.
+**Latest work:** indicator hook coverage explicitly checks ready/degraded versus demo/error trust states and recalculation after a live immutable snapshot revision. New exact-HEAD CI remains pending.
 
 **Project score:** overall **NOT SCORED** (approved weighted denominator unavailable). Official current stage: Stage 1, 30/40 = 75% provisional 🟨. Stage 2 is not officially opened/scored; provider-demand lifecycle, recurring-zero-cost data entitlement, public WSS and production identity remain unresolved. Stages 3–6: not scored. Gate 10: 0/10 external criteria formally closed 🟥.
 
