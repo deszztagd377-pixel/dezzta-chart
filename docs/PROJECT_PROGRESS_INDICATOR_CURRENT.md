@@ -4625,3 +4625,51 @@ Indicator invariants remain: warm-up null, exact candle-index alignment, prefix 
 8. Production authentication, public WSS and Android acceptance remain external gates.
 
 **Decision:** unauthenticated-session retention is addressed in synthetic source and test coverage. CI and real runtime acceptance remain pending; project/indicator percentages do not increase from this batch.
+
+
+---
+
+## Batch 62J-179 — WebSocket restored-socket validation (23 November 2026)
+
+**Branch:** `phase-2/market-data-foundation`  
+**Worker commit:** `90a9a05cd5a9b105608ebba27f0d80b1ed3efa3e`  
+**Regression-test commit:** `253faf401a03e6441a3842f1403aae82835d8118`  
+**Work-cycle documentation:** `docs/WORK_CYCLE_2026-11-23_BATCH62J179_WEBSOCKET_RESTORED_SOCKET_HARDENING.md`  
+**Main:** untouched. **ZERO COST:** preserved.
+
+### Significant progress
+- Constructor restoration now tolerates a malformed/closed socket whose `close()` throws; valid restored sockets continue through initialization.
+- Synthetic fan-out validates the complete serialized attachment before a socket can be treated as an authorized recipient.
+- Send-failure cleanup is defensive and cannot escape the fan-out loop merely because `close()` also throws.
+- Two regression test definitions added. Synthetic Node proof suite now declares 25 cases; execution/pass status is not asserted by the definition count.
+- Runtime acceptance remains open; no public deployment or paid service was used.
+
+### Project progress indicators — unchanged
+- Stage 1 Foundation, Security & Data Integrity: 🟨 **30/40 = 75% provisional**.
+- Stage 2 Market Data Infrastructure: 🟦 **Synthetic-only proof increment; NOT SCORED** until local runtime acceptance.
+- Stage 3 Chart Engine & Timeframe: ⬜ **NOT SCORED**.
+- Stage 4 Indicators & Analytics: ⬜ **NOT SCORED**.
+- Stage 5 Professional UI & Interactive Tools: ⬜ **NOT SCORED**.
+- Stage 6 Hardening, Validation & APK Release: ⬜ **NOT SCORED**.
+- Gate 10 external acceptance: 🟥 **0/10 formally closed**.
+- Gate 25 snapshot/replica custody: 🟧 **OPEN**.
+- Gate 36 public WSS/Firebase/Android lifecycle: 🟥 **OPEN**.
+- Gate 38 owner-host telemetry persistence/restore/operations: 🟧 **OPEN**.
+- Gate 39 operational alert acknowledgement/recovery: 🟥 **OPEN**.
+- Overall project: **NOT SCORED**; approved weighted denominator remains undefined.
+- Target date: **24 December 2026**, planning target only.
+
+### Full indicator ledger — unchanged
+- SMA20 🟨 Foundation; 20-close mean, first valid index 19.
+- EMA20 🟨 Foundation; SMA seed, alpha 2/21, first valid index 19.
+- RSI14 Wilder 🟨 Foundation; initial 14-change average, Wilder recurrence, first valid index 14.
+- MACD 12/26/9 🟨 Foundation; EMA12−EMA26, first MACD index 25, signal/histogram index 33.
+- Bollinger20,2 🟨 Foundation; 20-close mean ±2 population standard deviations, first valid index 19.
+- Shared Indicator Hook 🟨 Foundation; exact-snapshot alignment foundation only.
+- Footprint 🟧 Synthetic prototype only; visual work waits for user reference image(s) and blueprint review.
+- Heatmap 🟥 Not implemented; visual work waits for user reference image(s) and blueprint review.
+- Liquidation Maps 🟥 Not implemented; methodology/provenance and blueprint outstanding.
+
+Indicator invariants remain warm-up null, exact index alignment, prefix causality/no future leakage, invalid/gap rejection, stale-output clearing on identity/timeframe changes, and separate calculation/render/interaction/lifecycle/accessibility/performance acceptance. Footprint OFF preserves standard candle spacing; ON alone enables spaced clusters. Indicator aggregate remains **NOT SCORED**.
+
+**Decision:** Batch 62J-179 closes two source-level WebSocket defensive gaps. It does not change indicator readiness, stage scores, Gate 10, or overall project score. CI exact-head and real local runtime results must be independently verified before any acceptance status changes.
