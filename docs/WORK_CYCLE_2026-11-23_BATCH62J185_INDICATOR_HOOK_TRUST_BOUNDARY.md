@@ -44,7 +44,7 @@ The added test improves acceptance evidence for the Shared Indicator Hook; it do
 
 ## 4. CI acceptance
 
-The exact source/test commit is `d37420a4151322a19d388c45bc1398d169fab69c`. The final documentation commit for this batch must receive exact-HEAD CI. Until then, this regression is **implemented but pending CI**, not accepted.
+The source/test commit is `d37420a4151322a19d388c45bc1398d169fab69c`. The regression passed in exact-head [Automated Tests run 45199096612](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45199096612): frontend 315/315 across 34 files. It is accepted as hook regression coverage; no formula or UI completion credit is awarded.
 
 ## 5. Project status impact
 
