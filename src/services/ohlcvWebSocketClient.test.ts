@@ -254,8 +254,8 @@ describe('connectOhlcvStream', () => {
       version: 1,
       streamId: 'stream-a',
       fromCursor: '6',
-      throughCursor: '8',
-      count: 2,
+      throughCursor: '7',
+      count: 1,
     });
     socket.message({
       type: 'market_data.ohlcv.resnapshot_required',
