@@ -284,7 +284,9 @@ export class SeriesCoordinatorDO {
     // Hibernation-safe connection state is restored from serialized attachments.
     for (const socket of this.ctx.getWebSockets()) {
       const attachment = readSocketAttachment(socket);
-      if (!isValidSocketAttachment(attachment)) socket.close(4401, "Invalid connection state");
+      if (!isValidSocketAttachment(attachment)) {
+        try { socket.close(4401, "Invalid connection state"); } catch { /* already closed */ }
+      }
     }
   }
 
@@ -400,12 +402,16 @@ export class SeriesCoordinatorDO {
       let delivered = 0;
       for (const socket of this.ctx.getWebSockets()) {
         const attachment = readSocketAttachment(socket);
-        if (attachment?.authorized && attachment.seriesKey === body.seriesKey) {
+        if (!isValidSocketAttachment(attachment)) {
+          try { socket.close(4401, "Invalid connection state"); } catch { /* already closed */ }
+          continue;
+        }
+        if (attachment.authorized && attachment.seriesKey === body.seriesKey) {
           try {
             socket.send(JSON.stringify(event));
             delivered += 1;
           } catch {
-            socket.close(1011, "Synthetic fan-out failed");
+            try { socket.close(1011, "Synthetic fan-out failed"); } catch { /* already closed */ }
           }
         }
       }
