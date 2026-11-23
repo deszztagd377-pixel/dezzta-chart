@@ -6,7 +6,7 @@
  * never in the ingestion or transport layer.
  */
 
-export type OhlcvBucketPolicy = 'UTC_LEGACY' | 'UTC_FIXED_V1';
+export type OhlcvBucketPolicy = 'UTC_LEGACY' | 'UTC_FIXED_V1' | 'CME_SESSION_V1';
 export const DEFAULT_OHLCV_BUCKET_POLICY: OhlcvBucketPolicy = 'UTC_LEGACY';
 
 export type OhlcvTimeframe =
