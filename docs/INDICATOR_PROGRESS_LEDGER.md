@@ -2414,3 +2414,30 @@ No indicator source, formula, numeric kernel, hook, chart binding, renderer, pan
 | Liquidation Maps | 🟥 Not implemented | No accepted runtime/render implementation | Defensible data provenance and calculation contract, reviewed blueprint, renderer and tests |
 
 Invariants: warm-up nulls; exact source-index alignment; prefix causality/no future repaint; invalid/gapped-data rejection; stale-output clearing on identity changes; Footprint OFF preserves standard candle spacing. Footprint/Heatmap visuals remain gated on user reference images and blueprint review. Aggregate indicator progress remains NOT SCORED without approved weights and denominator.
+
+
+---
+
+## Batch 62J-176 — synthetic Worker/DO proof reconciliation (23 November 2026)
+
+**Code/test HEAD:** `783811ccef97c0494203ad13a9f790b791a5e962`  
+**Infrastructure proof:** isolated synthetic-only Cloudflare Worker/Series Durable Object source, 15 passing Node tests, exact-HEAD Automated Tests + CodeQL + secret audit + OCI ARM64 readiness all successful.  
+**Indicator implementation delta:** none.
+
+This infrastructure batch does not alter any indicator formula, warm-up rule, source-index alignment, calculation hook, chart binding, overlay, pane, renderer, legend, setting, or indicator-specific regression test. Therefore all existing indicator acceptance statuses remain unchanged; no indicator implementation credit is awarded.
+
+| Indicator / subsystem | Current status | Existing foundation | Remaining acceptance |
+|---|---|---|---|
+| SMA20 | 🟨 Foundation | 20-close arithmetic mean; first valid index 19 | Chart overlay, toggle, legend/latest value, identity invalidation, lifecycle and render/performance tests |
+| EMA20 | 🟨 Foundation | SMA-seeded EMA; alpha 2/21; first valid index 19 | Chart overlay, toggle, legend/latest value, identity invalidation, lifecycle and render/performance tests |
+| RSI14 Wilder | 🟨 Foundation | Initial 14-change mean and Wilder recurrence; first valid index 14 | Dedicated 0–100 pane, 30/70 guides, toggle, legend/latest value and lifecycle/render tests |
+| MACD 12/26/9 | 🟨 Foundation | MACD first valid index 25; signal/histogram first valid index 33 | Dedicated pane, lines/histogram/zero guide, toggle, legend/latest values and lifecycle/render tests |
+| Bollinger20,2 | 🟨 Foundation | 20-close mean ±2 population SD; first valid index 19 | Upper/middle/lower overlay, toggle, values, identity invalidation and lifecycle/render tests |
+| Shared Indicator Hook | 🟨 Foundation | Snapshot-backed aligned multi-study calculation | Hook tests, actual chart binding, stale-output clearing, settings/legend and lifecycle acceptance |
+| Footprint | 🟧 Prototype only | Synthetic educational accumulator; not exchange-native bid/ask truth | Owner visual reference, reviewed blueprint, verified bid/ask data contract, spaced cluster renderer and acceptance |
+| Heatmap | 🟥 Not implemented | No accepted depth/liquidity renderer | Owner visual reference, validated depth/liquidity contract, reviewed blueprint, renderer and tests |
+| Liquidation Maps | 🟥 Not implemented | No accepted runtime/render implementation | Defensible provenance/calculation contract, reviewed blueprint, renderer and tests |
+
+**Global invariants remain mandatory:** warm-up values stay null; no future-candle leakage/repainting; invalid/gapped data rejected; stale output cleared on identity changes; Footprint OFF preserves ordinary candle spacing; Footprint ON alone activates the dedicated spaced cluster layout. Footprint and Heatmap visual implementation remain blocked until the owner supplies references and reviews the blueprint.
+
+**Credit decision:** WebSocket/Worker infrastructure progress is not indicator progress. No status promotion or percentage increase is permitted from Batch 62J-176.
