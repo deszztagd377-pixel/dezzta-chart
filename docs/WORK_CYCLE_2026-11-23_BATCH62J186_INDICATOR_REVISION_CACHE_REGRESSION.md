@@ -15,9 +15,9 @@ The indicator hook caches one frozen calculation result per immutable `MarketDat
 
 **Test:** `recalculates from a new immutable snapshot revision after a live bar update`
 
-- Publish a 40-bar backend snapshot and verify revision 1 / SMA20 latest value 130.5.
+- Publish a 40-bar backend snapshot and capture its current revision; verify SMA20 latest value is 130.5 within numeric tolerance.
 - Publish one valid, chronologically later bar through `MarketDataSeriesStore.publishUpdate()`.
-- Verify the hook observes revision 2 and the new 20-bar rolling mean is 134.5.
+- Verify the hook observes exactly one revision increment and the new 20-bar rolling mean is 134.5 within numeric tolerance.
 
 The expected calculation is independently transparent: the update replaces the oldest value in the rolling 20-bar window with the new close. This proves the hook does not keep returning the old cached result after an immutable snapshot revision.
 
@@ -65,4 +65,15 @@ The first combined run on documentation HEAD `6c5e951fc36b204b12e4e4506cdd2870f3
 
 The test now reads its initial revision dynamically and asserts that the next immutable snapshot revision equals the captured value plus one, while checking the rolling SMA changes to 134.5. Correction commit: `70d14ab5a73027f489ebb37fa96025c174617902`. No indicator formula or store implementation changed. Corrected exact-HEAD CI is pending.
 
-A second exact-head run on the corrected relative-revision test reached the expected revision increment but exposed ordinary IEEE-754 representation: the computed mean was `134.49999999999997`, not the exact decimal string `134.5`. The assertion now parses the numeric output and uses a 10-decimal-place tolerance with `toBeCloseTo`, while keeping the revision increment exact. Correction commit: `d2057e9997b50cb6aab04258fd90de37d35a6816`. No production formula was rounded or changed. Final exact-HEAD CI is pending.
+A second exact-head run on the corrected relative-revision test reached the expected revision increment but exposed ordinary IEEE-754 representation: the computed mean was `134.49999999999997`, not the exact decimal string `134.5`. The assertion now parses the numeric output and uses a 10-decimal-place tolerance with `toBeCloseTo`, while keeping the revision increment exact. Correction commit: `d2057e9997b50cb6aab04258fd90de37d35a6816`. No production formula was rounded or changed. The final exact-head workflow set below passed.
+
+## 7. Final exact-HEAD CI acceptance — 23 November 2026
+
+Verified exact documentation/test HEAD: `4a87b90e08da04cd22faf74d578a5ce2f2734c15`.
+
+- Automated Tests [45199096612](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45199096612): **SUCCESS** — frontend 315/315 across 34 files; backend 1,347 passed / 1 skipped / 6 warnings; synthetic Worker 25/25; Miniflare/workerd 1/1; Durable Object runtime 10/10.
+- Full Git History Secret Audit [45199096630](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45199096630): **SUCCESS**.
+- CodeQL [45199096621](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45199096621): **SUCCESS**.
+- OCI ARM64 Image Readiness [45199096646](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45199096646): **SUCCESS**.
+
+The regression is accepted as calculation-hook test coverage only. No visible indicator rendering or production market-data acceptance is implied.
