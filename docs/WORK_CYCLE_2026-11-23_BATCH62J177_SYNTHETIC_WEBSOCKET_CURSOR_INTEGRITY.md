@@ -3,7 +3,7 @@
 
 **Date:** 23 November 2026  
 **Branch:** `phase-2/market-data-foundation`  
-**Code/test HEAD:** `a16818e10997c07d68a2e14929ba193b09ce0a8f`  
+**Code/test HEAD:** `b752d6ca4b2317e8a7ab9f71e2bc23ff937eb4aa`  
 **Scope:** isolated synthetic-only Worker / Durable Object proof  
 **Protected branch:** `main` untouched  
 **ZERO COST:** preserved  
@@ -53,7 +53,9 @@ No indicator formula, chart renderer, frontend, FastAPI runtime, Redis productio
 - Stored cursor and sequence-bound hardening: `dd9ee442240a0aa3d3a03d12b4b28b79d8181056`
 - Corrupt/out-of-range cursor regression assertions: `c017f9ff3cc7c46b9813efe7728106d47cd8e3ac`
 - Strict serialized attachment validation: `b3945b7f5bad1cd0484a9f053be49fe2a4815aa9`
-- Ticket/snapshot/fan-out/restore test coverage and current code/test HEAD: `a16818e10997c07d68a2e14929ba193b09ce0a8f`
+- Ticket/snapshot/fan-out/restore test coverage: `a16818e10997c07d68a2e14929ba193b09ce0a8f`
+- Fail-closed attachment deserialization helper: `e575c0fa0398265ab293077529dd33856802411c`
+- Unreadable-attachment constructor/message regression assertions and current code/test HEAD: `b752d6ca4b2317e8a7ab9f71e2bc23ff937eb4aa`
 
 The exact-HEAD automated test, CodeQL, secret-history and OCI workflows must complete against the current code/test SHA before this batch receives CI acceptance credit.
 
