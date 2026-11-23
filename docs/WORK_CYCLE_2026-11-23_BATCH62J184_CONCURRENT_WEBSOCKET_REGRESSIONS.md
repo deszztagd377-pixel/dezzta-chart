@@ -88,13 +88,13 @@ The Worker continues to label every fixture as `synthetic_only_not_market_data`.
 | Authenticated socket / auth alarm isolation | 0 | 1 |
 | **Total** | **6** | **4** |
 
-The suite now defines ten runtime cases. **The four new cases are pending exact-HEAD CI until the Automated Tests workflow reports success.**
+The suite now defines ten runtime cases. **All ten passed** on exact verified HEAD `4a87b90e08da04cd22faf74d578a5ce2f2734c15` in [Automated Tests run 45199096612](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45199096612). The four new cases are accepted as regression coverage.
 
 ### First exact-head regression run and correction
 
 The first combined CI run on source/test HEAD `f7f8d04933fb6554c1952f237ef6135ba22362af` ran all ten cases: **9 passed, 1 failed**. The sole failure was the new authenticated-socket/auth-alarm test harness. Successful authentication correctly removes the unauthenticated-socket alarm; the test then tried to force an alarm without leaving an unauthenticated socket to keep one scheduled, so the runtime helper correctly reported that no alarm ran.
 
-The test setup has been corrected in commit `aaa638a1db0277118484d5c65992cec54f19cb1d`: it now creates one authenticated and one unauthenticated socket on the same series, expires both test attachment timestamps, and runs the already-scheduled authentication alarm. Acceptance requires the unauthenticated socket to close with 4408 while the authenticated socket remains open and answers a ping. No production runtime code changed. The corrected exact-HEAD CI result is pending.
+The test setup has been corrected in commit `aaa638a1db0277118484d5c65992cec54f19cb1d`: it now creates one authenticated and one unauthenticated socket on the same series, expires both test attachment timestamps, and runs the already-scheduled authentication alarm. Acceptance requires the unauthenticated socket to close with 4408 while the authenticated socket remains open and answers a ping. No production runtime code changed. The corrected exact-HEAD CI result is **SUCCESS**: all ten Durable Object runtime tests passed in run [45199096612](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45199096612).
 
 Do not award accepted-test credit before exact-HEAD CI succeeds.
 
@@ -126,3 +126,13 @@ Project accounting remains unchanged:
 ## 9. Next engineering boundary
 
 The provider-demand gap must not be papered over with a disconnected reference counter. The current source audit still finds process/configuration-scoped provider startup and a fixed-symbol Databento adapter; recurring-zero-cost data rights and provider subscribe/unsubscribe semantics are not verified. Continue with contract/source research and isolated tests until a valid provider capability and reviewed implementation scope exist. Do not enable a paid provider or production deployment.
+
+### Final exact-HEAD workflow evidence — 23 November 2026
+
+Verified documentation/source checkpoint: `4a87b90e08da04cd22faf74d578a5ce2f2734c15`.
+
+- [Automated Tests — 45199096612](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45199096612): **SUCCESS**; Durable Object runtime 10/10, Node synthetic Worker 25/25, Miniflare/workerd 1/1.
+- [Full Git History Secret Audit — 45199096630](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45199096630): **SUCCESS**.
+- [CodeQL Security Analysis — 45199096621](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45199096621): **SUCCESS** for Python and JavaScript/TypeScript.
+- [OCI ARM64 Image Readiness — 45199096646](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45199096646): **SUCCESS**.
+
