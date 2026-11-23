@@ -112,13 +112,13 @@ The one skipped backend pytest case is the shared-guard TLS integration test, wh
 
 | Workflow | Run ID | Result |
 |---|---:|---|
-| Automated Tests | 45167249268 | SUCCESS |
+| Automated Tests | 45168168543 | SUCCESS |
 | CodeQL Python | 45168168621 | SUCCESS |
 | CodeQL JavaScript/TypeScript | 45168168621 | SUCCESS |
 | Full Git History Secret Audit | 45168168356 | SUCCESS |
 | OCI ARM64 Image Readiness | 45168168447 | SUCCESS |
 
-All listed runs target the exact code/test HEAD above. The ARM64 job built and smoke-tested the native ARM64 backend image. The automated workflow completed 37 successful steps with no failed step.
+All listed runs target the exact code/test HEAD above. The ARM64 job built and smoke-tested the native ARM64 backend image. The automated workflow completed successfully with no failed step.
 
 These are CI and container-smoke results. They do not prove a deployed Worker, a public WSS hostname, production authentication, a production data provider, or Android-device end-to-end acceptance.
 
@@ -181,7 +181,7 @@ No indicator implementation credit is awarded from WebSocket/Worker work.
 - Stages 3–6: unchanged and not officially scored.
 - Gate 10: **0/10 external acceptance criteria closed**.
 - Overall project: **NOT SCORED**; no approved weighted denominator is available.
-- Significant progress: isolated synthetic Worker/DO source plus 15 passing tests and exact-HEAD CI success. This is a meaningful engineering increment, not production WebSocket completion.
+- Significant progress: isolated synthetic Worker/DO source plus 16 passing tests and exact-HEAD CI success. This is a meaningful engineering increment, not production WebSocket completion.
 
 Target remains **24 December 2026**, a target and not a guaranteed delivery date.
 
