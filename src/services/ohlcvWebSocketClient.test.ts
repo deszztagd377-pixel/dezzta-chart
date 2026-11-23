@@ -227,6 +227,71 @@ describe('connectOhlcvStream', () => {
   });
 
 
+  it('abandons an incomplete replay and accepts the server-directed replacement snapshot', () => {
+    const socket = new FakeSocket();
+    const onSnapshot = vi.fn();
+    const onCursor = vi.fn();
+    const onError = vi.fn();
+    const connection = connectOhlcvStream({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      ticket: 'ws-ticket-abcdefghijklmnopqrstuvwxyz1234567890',
+      resumeCursor: '6',
+      getRenewalTicket: async () => 'renewed-ticket-abcdefghijklmnopqrstuvwxyz1234567890',
+      webSocketFactory: () => socket as unknown as WebSocket,
+      onSnapshot,
+      onUpdate: vi.fn(),
+      onCursor,
+      onError,
+    });
+
+    socket.readyState = 1;
+    socket.emit('open', new Event('open'));
+    socket.message({ type: 'market_data.status', version: 1 });
+    socket.message({
+      type: 'market_data.ohlcv.replay_started',
+      version: 1,
+      streamId: 'stream-a',
+      fromCursor: '6',
+      throughCursor: '8',
+      count: 2,
+    });
+    socket.message({
+      type: 'market_data.ohlcv.resnapshot_required',
+      version: 1,
+      reason: 'cursor_expired',
+      snapshotCursor: '7',
+    });
+
+    expect(connection.state).toBe('authenticated');
+    socket.message({ ...snapshot, cursor: '7' });
+
+    expect(connection.state).toBe('subscribed');
+    expect(onSnapshot).toHaveBeenCalledOnce();
+    expect(onCursor).toHaveBeenLastCalledWith('7');
+    expect(onError).not.toHaveBeenCalled();
+    expect(socket.closed).toHaveLength(0);
+    connection.close();
+  });
+
+  it('rejects malformed server-directed resnapshot instructions', () => {
+    const { socket, onError, connection } = setup();
+    socket.readyState = 1;
+    socket.emit('open', new Event('open'));
+    socket.message({ type: 'market_data.status', version: 1 });
+    socket.message({
+      type: 'market_data.ohlcv.resnapshot_required',
+      version: 1,
+      reason: 'cursor_expired',
+      snapshotCursor: 'not-a-cursor',
+    });
+
+    expect(connection.state).toBe('closed');
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError.mock.calls[0][0].message).toMatch(/resnapshot instruction is invalid/i);
+  });
+
   it('renews its single-use ticket and waits for server acknowledgement', async () => {
     vi.useFakeTimers();
     const socket = new FakeSocket();
