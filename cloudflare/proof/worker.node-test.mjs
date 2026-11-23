@@ -134,6 +134,7 @@ test("synthetic snapshot is bounded to 50 bars and has monotonic cursors", () =>
   assert.throws(() => createSyntheticBars(SERIES, 51), RangeError);
   assert.equal(proofLimits.snapshotBars, 50);
   assert.equal(proofLimits.ticketTtlMs, 90_000);
+  assert.equal(proofLimits.unauthenticatedSocketTtlMs, 15_000);
 });
 
 test("ticket is series-bound, purpose-bound, expires, and is single-use under concurrency", async () => {
