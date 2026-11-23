@@ -4410,3 +4410,91 @@ Batch 62J-172 corrected final source/test HEAD `a9d001885b0b524bc33427add30584e1
 SMA20 🟨 Foundation; EMA20 🟨 Foundation; RSI14 Wilder 🟨 Foundation; MACD12/26/9 🟨 Foundation; Bollinger20,2 🟨 Foundation; Shared Indicator Hook 🟨 Foundation; Footprint 🟧 synthetic prototype; Heatmap 🟥 not implemented; Liquidation Maps 🟥 not implemented. Detailed formulas, first-valid indices, invariants and remaining acceptance are maintained in `docs/INDICATOR_PROGRESS_LEDGER.md`.
 
 ZERO COST preserved. OCI readiness is not deployment. No paid provider, hosting, domain, production credential, publication fee or physical-device action. `main` untouched. Target remains **24 December 2026**.
+
+
+---
+
+## Batch 62J-176 — synthetic-only Worker/DO proof (23 November 2026)
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Latest code/test HEAD with exact-HEAD CI:** `783811ccef97c0494203ad13a9f790b791a5e962`  
+**Documentation commits after code/test HEAD:** Batch 62J-176 report and indicator/dashboard reconciliation only; no runtime source changed after the verified code/test HEAD.  
+**Main:** untouched.
+
+### Significant engineering progress
+
+An isolated synthetic-only Cloudflare Worker + per-series Durable Object proof was added:
+- Worker health, synthetic status and bounded 50-bar OHLCV snapshot endpoints.
+- Local proof-token gate, allow-listed local Origin, bounded JSON requests.
+- Hashed, purpose-bound, series-bound single-use ticket with 90-second expiry.
+- Durable sequence gate with contiguous cursor enforcement.
+- Hibernation API acceptance and serialized WebSocket attachment code.
+- Authorized same-series synthetic fan-out; no provider socket, polling loop, timer or alarm.
+- Local Wrangler configuration with workers.dev and preview URLs disabled.
+- Local secret files ignored by Git.
+- 15 Node proof tests, separate from Vitest discovery.
+
+**Proof limitation:** the Node suite tests pure ticket/sequence behavior and Worker request boundary. It does not execute a real Cloudflare Durable Object runtime, WebSocketPair handshake, forced hibernation/rehydration, or Android/browser end-to-end session. No Wrangler runtime smoke or deployment occurred. This proof is not production-ready and is not wired into the FastAPI backend or the main app.
+
+### Exact-HEAD verification
+
+For code/test HEAD `783811ccef97c0494203ad13a9f790b791a5e962`:
+
+- Automated Tests [45167249268](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45167249268): SUCCESS.
+  - Synthetic proof tests: 15 passed, 0 failed.
+  - Frontend: 306 passed across 34 test files.
+  - Backend: 1,347 passed, 1 skipped, 6 warnings.
+  - npm audit: 0 vulnerabilities.
+  - pip-audit: no known vulnerabilities.
+  - Dedicated Redis TLS fixture, synthetic SQLite outbox benchmark, metrics benchmark, backend container build/smoke and HIGH/CRITICAL image scan passed.
+- CodeQL [45167249876](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45167249876): SUCCESS for Python and JavaScript/TypeScript.
+- Full Git History Secret Audit [45167250254](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45167250254): SUCCESS.
+- OCI ARM64 Image Readiness [45167249525](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45167249525): SUCCESS.
+
+The skipped backend pytest TLS integration case is run separately by the dedicated isolated Redis TLS fixture step. The CI results are not a deployed Worker or production WSS acceptance.
+
+### Stage and gate indicators — no speculative score increase
+
+| Project area | Current indicator | Decision |
+|---|---|---|
+| Stage 1 — Foundation, Security & Data Integrity | 🟨 30/40 = 75% provisional | Unchanged |
+| Stage 2 — Market Data Infrastructure | 🟨 Synthetic proof source/test added; not scored | Runtime integration, auth parity, replay, provider demand and external host acceptance still open |
+| Stage 3 — Chart Engine & Timeframe | ⬜ Not scored | Unchanged |
+| Stage 4 — Indicators & Analytics | ⬜ Not scored | Unchanged |
+| Stage 5 — Professional UI & Interactive Tools | ⬜ Not scored | Unchanged |
+| Stage 6 — Hardening, Validation & APK Release | ⬜ Not scored | Unchanged |
+| Gate 10 external acceptance | 🟥 0/10 closed | Unchanged |
+| Overall project | NOT SCORED | No approved weighted denominator |
+
+### Indicator status — unchanged
+
+- SMA20: 🟨 Foundation.
+- EMA20: 🟨 Foundation.
+- RSI14 Wilder: 🟨 Foundation.
+- MACD 12/26/9: 🟨 Foundation.
+- Bollinger20,2: 🟨 Foundation.
+- Shared Indicator Hook: 🟨 Foundation.
+- Footprint: 🟧 Synthetic prototype only.
+- Heatmap: 🟥 Not implemented.
+- Liquidation Maps: 🟥 Not implemented.
+
+No indicator calculation, hook, chart binding, pane, renderer, UI setting or indicator-specific test changed. No indicator credit is awarded.
+
+### Remaining red gates
+
+1. Real local Wrangler/Miniflare runtime smoke and pinned toolchain review.
+2. Actual DO WebSocket handshake and ticket consumption.
+3. Two-client same-series fan-out and two-series isolation.
+4. Forced hibernation/rehydration and attachment restoration.
+5. Unauthenticated socket capacity timeout/cleanup and slow-consumer tests.
+6. Snapshot-to-live cursor continuity and durable replay.
+7. Firebase production auth parity.
+8. Public HTTPS/WSS and Android-device acceptance.
+9. Provider-side demand coordination and recurring-$0 lawful provider source.
+10. Production persistence, backup and restore acceptance.
+
+### Zero-cost and target-date controls
+
+No deployment, Cloudflare account, billing activation, payment method, domain, production credential, provider key, or live market-data connection was used. No paid service or package dependency was added. Target date remains **24 December 2026**, not a guaranteed completion claim.
+
+**Batch 62J-176 decision:** meaningful isolated synthetic infrastructure increment; Stage 2 remains unscored and production acceptance remains open. No project-wide or indicator percentage is increased from this batch.
