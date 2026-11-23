@@ -143,3 +143,12 @@ The push-triggered CI run for HEAD `2591e6071ba966114895256e51aa3fb99ea8001f` wa
 Correction committed as `ae9a6368f824e4c2fac2b1c9d18ad2fba9fc41ca`: the test callback is now declared `async`. This preserves the test behavior and correctly awaits the asynchronous WebSocket message handler. The fix is a test-harness syntax correction, not a production Worker behavior change.
 
 The push to the fix commit triggers a new CI run. Its result must be checked separately; no pass is claimed at this point. The earlier successful secret-history, OCI ARM64 and CodeQL runs remain valid only for their recorded commit. Frontend/backend steps in the failed run were skipped because the synthetic proof step failed first.
+
+
+## 10. Second CI run — assertion expectation corrected
+
+The next CI run executed all 25 test cases after the async-callback syntax correction. It reported 24 passing and one failing assertion in the alarm scheduling regression. The implementation correctly schedules the **earliest** unauthenticated deadline, including an already-overdue socket. The test incorrectly expected the later pending socket deadline before the alarm handler had processed the overdue socket.
+
+Correction committed as `b0cc4682156e65ce94f8f4203899f3e7baee3070`: the initial alarm assertion now expects the expired socket's earlier deadline. The subsequent assertions still verify that the alarm handler closes that overdue socket and reschedules the pending socket's deadline. This aligns the test with the intended earliest-deadline algorithm; no Worker production code was changed for this test correction.
+
+A fresh push-triggered run is required to establish the final result. The previous run's 24/25 result is historical evidence only, not a pass.
