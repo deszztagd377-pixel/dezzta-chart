@@ -111,8 +111,22 @@ describe('keyed market-data series store', () => {
     }
     expect(store.getSnapshot(nq).bars).toEqual(bars);
     expect(store.getSeriesCount()).toBe(9);
-    expect(() => store.getSnapshot({ ...nq, calendarId: 'CME' })).toThrow(/session-aware bucket policy/);
-    expect(() => store.getSnapshot({ ...nq, calendarVersion: '2026a' })).toThrow(/session-aware bucket policy/);
+    expect(() => store.getSnapshot({ ...nq, calendarId: 'CME' })).toThrow(/UTC bucket policies/);
+    expect(() => store.getSnapshot({ ...nq, calendarVersion: '2026a' })).toThrow(/UTC bucket policies/);
+
+    const cmeIdentity = {
+      ...nq,
+      timeframe: '1d' as const,
+      bucketPolicy: 'CME_SESSION_V1' as const,
+      calendarId: 'CME_EQUITY_INDEX',
+      calendarVersion: '2026.11.1',
+    };
+    store.publishSnapshot({ identity: cmeIdentity, status: 'ready', bars });
+    expect(store.getSnapshot(cmeIdentity).bars).toEqual(bars);
+    expect(store.getSnapshot({
+      ...cmeIdentity,
+      calendarVersion: '2026.11.2',
+    }).bars).toHaveLength(0);
   });
 
   it('does not expose mutable snapshot, bar, or identity references', () => {
