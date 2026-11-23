@@ -74,7 +74,7 @@ jobs:
       - name: Test isolated synthetic Cloudflare Worker proof
         run: |
           node --check cloudflare/proof/worker.mjs
-          node --test cloudflare/proof/worker.test.mjs
+          node --test cloudflare/proof/worker.node-test.mjs
           node -e 'JSON.parse(require("node:fs").readFileSync("cloudflare/wrangler.jsonc", "utf8")); console.log("Wrangler JSONC configuration syntax: PASS")'
 
 
