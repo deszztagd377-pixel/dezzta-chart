@@ -14,7 +14,7 @@ export interface OhlcvSeriesIdentity {
   instrumentId: number;
   rawSymbol: string;
   timeframe: Timeframe;
-  bucketPolicy?: 'UTC_LEGACY' | 'UTC_FIXED_V1';
+  bucketPolicy?: 'UTC_LEGACY' | 'UTC_FIXED_V1' | 'CME_SESSION_V1';
   calendarId?: string;
   calendarVersion?: string;
 }
@@ -89,12 +89,25 @@ function validateBar(value: unknown, index: number): OhlcvBarDto {
   if (!TIMEFRAMES.includes(value.timeframe as OhlcvTimeframe)) {
     throw new Error(`OHLCV bar ${index} has an unsupported timeframe.`);
   }
-  if (value.bucketPolicy !== undefined && !['UTC_LEGACY', 'UTC_FIXED_V1'].includes(String(value.bucketPolicy))) {
+  if (value.bucketPolicy !== undefined &&
+      !['UTC_LEGACY', 'UTC_FIXED_V1', 'CME_SESSION_V1'].includes(String(value.bucketPolicy))) {
     throw new Error(`OHLCV bar ${index} has an unsupported bucketPolicy.`);
   }
-  if ((value.calendarId !== undefined && value.calendarId !== '') ||
-      (value.calendarVersion !== undefined && value.calendarVersion !== '')) {
-    throw new Error(`OHLCV bar ${index} has unsupported calendar identity.`);
+  const bucketPolicy = value.bucketPolicy ?? getBucketPolicyForTimeframe(value.timeframe as OhlcvTimeframe);
+  const calendarId = value.calendarId ?? '';
+  const calendarVersion = value.calendarVersion ?? '';
+  if (typeof calendarId !== 'string' || typeof calendarVersion !== 'string') {
+    throw new Error(`OHLCV bar ${index} has invalid calendar identity.`);
+  }
+  if (bucketPolicy === 'CME_SESSION_V1') {
+    if (!['1d', '1w', '1M', '3M'].includes(String(value.timeframe))) {
+      throw new Error(`OHLCV bar ${index} uses CME_SESSION_V1 outside supported session timeframes.`);
+    }
+    if (!calendarId.trim() || !calendarVersion.trim()) {
+      throw new Error(`OHLCV bar ${index} requires calendarId and calendarVersion for CME_SESSION_V1.`);
+    }
+  } else if (calendarId.trim() || calendarVersion.trim()) {
+    throw new Error(`OHLCV bar ${index} has calendar identity without CME_SESSION_V1.`);
   }
   if (!isNanosecondString(value.tsStartNs) ||
       !isNanosecondString(value.tsEventNs) ||
