@@ -48,7 +48,7 @@ This proves the synthetic sequence gate rejects duplicates and gaps without broa
 | Duplicate / gap cursor rejection | 0 | 1 | 1 |
 | **Total** | **4** | **2** | **6** |
 
-These are test definitions. The two new tests are **not marked passed until the exact-head CI runtime step completes**.
+These are test definitions. The initial exact-head run found a race in the new cursor test harness: the test installed its message listener after awaiting the emit response, so a fast runtime delivery could precede listener registration. The source WebSocket sequence gate did not fail; the test harness timed out waiting for an already-dispatched message. The follow-up correction installs each expected-message listener before the corresponding emit request. The negative assertion for rejected duplicate/gap events remains intact. The two new tests are **not marked passed until the corrected exact-head CI runtime step completes**.
 
 ## 4. Scope and safety boundaries
 
@@ -107,3 +107,8 @@ Indicator invariants remain mandatory: warm-up is null, outputs align to source-
 **Owner target:** 24 December 2026 — planning target, not a guaranteed completion date.
 
 No project-wide percentage is fabricated. No Stage 1 ticks, Gate 10 closures, Stage 2 production acceptance, or indicator completion credit is awarded solely for adding these tests. The two added tests receive acceptance credit only after exact-head CI passes.
+
+
+## 8. Follow-up test-harness correction
+
+The first CI execution on the initial 62J-183 commit reported 5/6 runtime tests passing. The exact-series ticket-binding test passed. The cursor test's first and final event listeners were initially attached after awaiting the emit HTTP response, which left a timing window where the WebSocket message could be dispatched before the listener existed. The test has been corrected to create the message promise before each accepted emit. This is a deterministic ordering correction only; it does not alter Worker/DO runtime behavior, remove assertions, or suppress the failure. Re-run exact-head CI before accepting the two added cases.

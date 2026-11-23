@@ -279,10 +279,11 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     const seriesKey = "synthetic:DEMO:SEQUENCE:1m";
     const client = await connectAuthenticated(seriesKey);
 
+    const firstUpdatePromise = nextJsonMessage(client.socket);
     const first = await emit(seriesKey, 51);
     expect(first.status).toBe(200);
     expect(first.payload).toMatchObject({ accepted: true, sequence: "51", delivered: 1 });
-    expect(await nextJsonMessage(client.socket)).toMatchObject({
+    expect(await firstUpdatePromise).toMatchObject({
       type: "market_data.update",
       sequence: "51",
     });
@@ -299,6 +300,7 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       "Timed out waiting for a Durable Object WebSocket message.",
     );
 
+    const nextUpdatePromise = nextJsonMessage(client.socket);
     const nextContiguous = await emit(seriesKey, 52);
     expect(nextContiguous.status).toBe(200);
     expect(nextContiguous.payload).toMatchObject({
@@ -306,7 +308,7 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       sequence: "52",
       delivered: 1,
     });
-    expect(await nextJsonMessage(client.socket)).toMatchObject({
+    expect(await nextUpdatePromise).toMatchObject({
       type: "market_data.update",
       sequence: "52",
     });
