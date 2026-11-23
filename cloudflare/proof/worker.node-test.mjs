@@ -20,7 +20,11 @@ class MemoryStorage {
   constructor() {
     this.values = new Map();
     this.tail = Promise.resolve();
+    this.alarmAt = null;
   }
+  async setAlarm(timestamp) { this.alarmAt = timestamp; }
+  async getAlarm() { return this.alarmAt; }
+  async deleteAlarm() { this.alarmAt = null; }
   async get(key) { return this.values.get(key); }
   async put(key, value) { this.values.set(key, structuredClone(value)); }
   async delete(key) { return this.values.delete(key); }
@@ -345,6 +349,61 @@ test("Durable Object synthetic fan-out is exact-series only and sequence-contigu
     body: JSON.stringify({ seriesKey: SERIES, sequence: "53" }),
   }));
   assert.equal(gap.status, 409);
+});
+
+test("unauthenticated socket alarm schedules the earliest deadline and expires only overdue sockets", async () => {
+  const now = Date.now();
+  const storage = new MemoryStorage();
+  const expired = new MemorySocket({
+    authorized: false, seriesKey: SERIES, subject: null, connectedAt: now - 20_000,
+  });
+  const pending = new MemorySocket({
+    authorized: false, seriesKey: SERIES, subject: null, connectedAt: now - 5_000,
+  });
+  const authorized = new MemorySocket({
+    authorized: true, seriesKey: SERIES, subject: "synthetic-proof-subject",
+    connectedAt: now - 30_000, snapshotWatermark: 50,
+  });
+  const sockets = [expired, pending, authorized];
+  const coordinator = new SeriesCoordinatorDO({ storage, getWebSockets: () => sockets }, {});
+
+  await coordinator.scheduleUnauthenticatedSocketAlarm();
+  assert.equal(storage.alarmAt, pending.attachment.connectedAt + 15_000);
+
+  await coordinator.alarm();
+  assert.equal(expired.closed[0].code, 4408);
+  assert.equal(pending.closed.length, 0);
+  assert.equal(authorized.closed.length, 0);
+  assert.equal(storage.alarmAt, pending.attachment.connectedAt + 15_000);
+
+  pending.attachment.connectedAt = now - 20_000;
+  await coordinator.alarm();
+  assert.equal(pending.closed[0].code, 4408);
+  assert.equal(storage.alarmAt, null);
+});
+
+test("authorized sockets do not retain an unauthenticated-session alarm", async () => {
+  const storage = new MemoryStorage();
+  const socket = new MemorySocket({
+    authorized: true, seriesKey: SERIES, subject: "synthetic-proof-subject",
+    connectedAt: Date.now() - 60_000, snapshotWatermark: 50,
+  });
+  const coordinator = new SeriesCoordinatorDO({ storage, getWebSockets: () => [socket] }, {});
+  await coordinator.scheduleUnauthenticatedSocketAlarm();
+  assert.equal(storage.alarmAt, null);
+});
+
+test("authentication after the connection deadline is rejected without consuming its ticket", async () => {
+  const storage = new MemoryStorage();
+  const issued = await issueTicket(storage, SERIES, "synthetic-proof-subject");
+  const socket = new MemorySocket({
+    authorized: false, seriesKey: SERIES, subject: null,
+    connectedAt: Date.now() - 20_000,
+  });
+  const coordinator = new SeriesCoordinatorDO({ storage, getWebSockets: () => [socket] }, {});
+  await coordinator.webSocketMessage(socket, JSON.stringify({ type: "auth", ticket: issued.ticket }));
+  assert.equal(socket.closed[0].code, 4408);
+  assert.ok(await consumeTicket(storage, issued.ticket, SERIES));
 });
 
 test("Durable Object closes malformed serialized attachment state during restoration", () => {
