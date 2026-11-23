@@ -1,9 +1,9 @@
 # Latest indicator checkpoint — 23 November 2026
 
 **Branch:** `phase-2/market-data-foundation`  
-**Latest source/test HEAD:** `f7f8d04933fb6554c1952f237ef6135ba22362af` — Batch 62J-185 covers ready/degraded versus demo/error trust states; Batch 62J-186 covers recalculation after a live immutable snapshot revision. Exact-HEAD CI pending.  
+**Latest source/test HEAD:** `aaa638a1db0277118484d5c65992cec54f19cb1d` — Batches 62J-185/186 add trust-boundary and immutable-revision hook tests; the combined exact-HEAD CI is pending after correction of one unrelated Durable Object test-harness failure.  
 **Last exact-HEAD CI-confirmed checkpoint:** `008edd4c5750e1f59645273ddcacd37e232fec44` — four workflows SUCCESS.  
-**Indicator formula/renderer/UI changes:** none in Batches 62J-184/185/186. Batches 185/186 add explicit Shared Indicator Hook regression evidence only.
+**Indicator formula/renderer/UI changes:** none. The two new indicator tests improve hook acceptance evidence only.
 
 | Indicator / subsystem | Status | Verified foundation | Remaining acceptance |
 |---|---|---|---|
