@@ -144,12 +144,16 @@ export async function consumeTicket(storage, ticket, expectedSeriesKey, now = Da
     const record = await transaction.get(key);
     if (!record) return null;
     await transaction.delete(key);
+    if (record.expiresAt <= now) {
+      await transaction.delete(key);
+      return null;
+    }
     if (
-      record.expiresAt <= now ||
       record.purpose !== TICKET_PURPOSE ||
       record.seriesKey !== expectedSeriesKey ||
       record.subject !== "synthetic-proof-subject"
     ) return null;
+    await transaction.delete(key);
     return record;
   });
 }
@@ -200,6 +204,20 @@ async function readSmallJson(request) {
   } catch {
     return null;
   }
+}
+
+export async function acceptNextSequence(storage, seriesKey, sequence) {
+  if (!isValidSyntheticSeriesKey(seriesKey) || !Number.isSafeInteger(sequence) || sequence < SNAPSHOT_WATERMARK + 1) {
+    return false;
+  }
+  const sequenceKey = "sequence:" + seriesKey;
+  return storage.transaction(async (transaction) => {
+    const current = await transaction.get(sequenceKey);
+    const expected = (current === undefined ? SNAPSHOT_WATERMARK : current) + 1;
+    if (sequence !== expected) return false;
+    await transaction.put(sequenceKey, sequence);
+    return true;
+  });
 }
 
 export class SeriesCoordinatorDO {
@@ -266,14 +284,7 @@ export class SeriesCoordinatorDO {
         return jsonResponse({ error: "invalid_event" }, 400);
       }
 
-      const sequenceKey = "sequence:" + body.seriesKey;
-      const accepted = await this.ctx.storage.transaction(async (transaction) => {
-        const current = await transaction.get(sequenceKey);
-        const expected = (current === undefined ? SNAPSHOT_WATERMARK : current) + 1;
-        if (sequence !== expected) return false;
-        await transaction.put(sequenceKey, sequence);
-        return true;
-      });
+      const accepted = await acceptNextSequence(this.ctx.storage, body.seriesKey, sequence);
       if (!accepted) return jsonResponse({ error: "sequence_conflict" }, 409);
 
       const event = {
