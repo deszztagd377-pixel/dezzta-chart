@@ -166,3 +166,29 @@ def test_gateway_environment_factory_is_opt_in_and_requires_host_evidence():
                 "OHLCV_REDIS_GATEWAY_CONSUMER_NAME": "gateway-1",
             },
         )
+
+
+def test_gateway_runtime_rejects_callback_digest_not_bound_to_durable_checkpoint(tmp_path):
+    snapshot_path, metadata = _source_snapshot(tmp_path)
+    clients = []
+
+    def installer_with_forged_digest(store):
+        installed = store.install_global_snapshot(
+            str(snapshot_path),
+            expected_source_id=metadata["source_id"],
+        )
+        return {**installed, "sha256": "0" * 64}
+
+    factory = build_gateway_replica_runtime_factory(
+        redis_url="rediss://gateway:secret@redis.example:6380/0",
+        database_path=str(tmp_path / "gateway-forged-digest.sqlite"),
+        expected_source_id=metadata["source_id"],
+        consumer_name="gateway-process-1",
+        snapshot_installer=installer_with_forged_digest,
+        production=True,
+        redis_client_factory=lambda url, **options: clients.append(url),
+    )
+
+    with pytest.raises(RuntimeError, match="does not match"):
+        factory()
+    assert clients == []

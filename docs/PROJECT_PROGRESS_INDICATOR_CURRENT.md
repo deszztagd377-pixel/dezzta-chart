@@ -4168,3 +4168,20 @@ Change scope: Redis replica worker lifecycle; no indicator formulas, calculation
 **Exact-HEAD CI:** pending after commit. The predecessor Batch 62J-163 exact HEAD passed Automated Tests, CodeQL, OCI ARM64 image readiness, and full Git-history secret audit. OCI readiness is not an actual cloud deployment.
 
 **Project accounting:** Stage 1 remains 30/40 = 75% provisional; Stages 2–6 remain NOT SCORED; Gate 10 remains 0/10 external criteria formally closed; overall project remains NOT SCORED. No indicator implementation credit is awarded by this backend lifecycle change. Preserve the detailed indicator ledger and its reference-image/blueprint gates. ZERO COST preserved; `main` untouched.
+
+
+---
+
+## Batch 62J-165 — overall project progress reconciliation (23 November 2026)
+
+
+- Stage 1 Foundation, Security & Data Integrity: **30/40 = 75% provisional** 🟨.
+- Stages 2–6: **NOT SCORED / not officially opened** ⬜.
+- Gate 10: **0/10 external acceptance criteria formally closed** 🟥.
+- WebSocket Gate 25: **OPEN** 🟧 — local durable digest binding strengthened; authenticated cross-host receipt/key lifecycle still outstanding.
+- WebSocket Gate 36: **OPEN** 🟥 — public production WSS, real Firebase project, reverse-proxy and physical Android WebView/network acceptance remain outstanding.
+- WebSocket Gate 38: **OPEN** 🟥 — owner-host metrics persistence, backup/retention, alerting and recovery acceptance remain outstanding.
+- Overall project: **NOT SCORED**; six-stage weights and total denominator are not approved.
+- Significant verified engineering delta: snapshot digest is now intended to be durably bound to the installed checkpoint, and callback mismatch is rejected before Redis startup. This is not Gate 25 closure.
+
+ZERO COST preserved. No paid services, cloud account, hosting, domain, external market-data entitlement, device operation, or publication fee. `main` untouched.

@@ -847,8 +847,9 @@ def test_replica_installs_global_snapshot_atomically_without_outbox_echo(tmp_pat
         "snapshot_generation": exported["generation_id"],
         "retention_floor": exported["retention_floor"],
         "bar_retention": source.retention,
-        "schema_version": 3,
+        "schema_version": 4,
         "protocol_version": 3,
+        "snapshot_sha256": exported["sha256"],
     }
     # Imported bars are read-model state, never new source outbox events.
     assert replica.outbox_high_water() == 0
@@ -860,6 +861,8 @@ def test_replica_installs_global_snapshot_atomically_without_outbox_echo(tmp_pat
     restarted = SQLiteOhlcvReplicaStore(replica_path)
     assert restarted.replica_id() == replica_id
     assert restarted.checkpoint() == replica.checkpoint()
+    assert restarted.checkpoint()["snapshot_sha256"] == exported["sha256"]
+    assert restarted.load_snapshot()["checkpoint"]["snapshot_sha256"] == exported["sha256"]
     assert restarted.load_bars() == [legacy, cme]
 
 
@@ -1208,3 +1211,31 @@ def test_replica_event_apply_requires_current_checkpoint_protocol(tmp_path):
         replica.apply_replica_event(event, source_id=source.source_id())
     assert replica.checkpoint()["applied_cursor"] == 1
     assert replica.load_bars() == [make_bar()]
+
+
+def test_replica_checkpoint_migrates_legacy_digest_as_unattested_until_reinstall(tmp_path):
+    import sqlite3
+
+    source = SQLiteOhlcvStore(str(tmp_path / "legacy-digest-source.sqlite3"))
+    assert source.apply(make_bar()) == "inserted"
+    snapshot_path = tmp_path / "legacy-digest.snapshot.jsonl"
+    metadata = source.export_global_snapshot(str(snapshot_path))
+    replica_path = str(tmp_path / "legacy-digest-replica.sqlite3")
+    replica = SQLiteOhlcvReplicaStore(replica_path)
+    replica.install_global_snapshot(str(snapshot_path))
+
+    # Simulate a pre-digest checkpoint schema. Migration must not invent
+    # provenance for an older snapshot that never stored its digest.
+    with sqlite3.connect(replica_path) as db:
+        db.execute(
+            "ALTER TABLE ohlcv_replica_checkpoint DROP COLUMN snapshot_sha256"
+        )
+
+    migrated = SQLiteOhlcvReplicaStore(replica_path)
+    assert migrated.checkpoint()["snapshot_sha256"] is None
+    assert migrated.load_snapshot()["checkpoint"]["snapshot_sha256"] is None
+
+    # Reinstalling a verified snapshot upgrades the legacy checkpoint with
+    # the actual digest in the same transaction as its bars and watermark.
+    migrated.install_global_snapshot(str(snapshot_path))
+    assert migrated.checkpoint()["snapshot_sha256"] == metadata["sha256"]

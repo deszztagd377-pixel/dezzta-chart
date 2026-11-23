@@ -91,6 +91,7 @@ def build_gateway_replica_runtime_factory(
                 or checkpoint.get("source_id") != expected_source_id
                 or checkpoint.get("snapshot_generation") != generation
                 or checkpoint.get("applied_cursor") != cursor
+                or checkpoint.get("snapshot_sha256") != digest
             ):
                 raise RuntimeError("Installed gateway snapshot metadata does not match its durable checkpoint.")
 

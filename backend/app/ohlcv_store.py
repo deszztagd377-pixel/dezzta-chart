@@ -1152,7 +1152,7 @@ class SQLiteOhlcvStore:
             db.close()
 
 _REPLICA_PROTOCOL_VERSION = 3
-_REPLICA_SCHEMA_VERSION = 3
+_REPLICA_SCHEMA_VERSION = 4
 _SNAPSHOT_BAR_FIELDS = frozenset((
     "provider", "dataset", "publisher_id", "instrument_id", "series_type",
     "timeframe", "ts_start_ns", "raw_symbol", "open", "high", "low", "close",
@@ -1224,7 +1224,8 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                     retention_floor INTEGER NOT NULL CHECK(retention_floor >= 0),
                     bar_retention_json TEXT NOT NULL DEFAULT '{}',
                     schema_version INTEGER NOT NULL,
-                    protocol_version INTEGER NOT NULL
+                    protocol_version INTEGER NOT NULL,
+                    snapshot_sha256 TEXT
                 )"""
             )
             checkpoint_columns = {
@@ -1236,6 +1237,11 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                 db.execute(
                     "ALTER TABLE ohlcv_replica_checkpoint "
                     "ADD COLUMN bar_retention_json TEXT NOT NULL DEFAULT '{}'"
+                )
+            if "snapshot_sha256" not in checkpoint_columns:
+                db.execute(
+                    "ALTER TABLE ohlcv_replica_checkpoint "
+                    "ADD COLUMN snapshot_sha256 TEXT"
                 )
             db.execute(
                 """CREATE TABLE IF NOT EXISTS ohlcv_replica_applied_events (
@@ -1356,7 +1362,8 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
         try:
             row = db.execute(
                 """SELECT source_id,replica_id,applied_cursor,snapshot_generation,
-                    retention_floor,bar_retention_json,schema_version,protocol_version
+                    retention_floor,bar_retention_json,schema_version,protocol_version,
+                    snapshot_sha256
                 FROM ohlcv_replica_checkpoint LIMIT 1"""
             ).fetchone()
             if row is None:
@@ -1370,6 +1377,10 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                 "bar_retention": json.loads(row["bar_retention_json"]),
                 "schema_version": int(row["schema_version"]),
                 "protocol_version": int(row["protocol_version"]),
+                "snapshot_sha256": (
+                    None if row["snapshot_sha256"] is None
+                    else str(row["snapshot_sha256"])
+                ),
             }
         finally:
             db.close()
@@ -1388,7 +1399,8 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
             db.execute("BEGIN")
             row = db.execute(
                 """SELECT source_id,replica_id,applied_cursor,snapshot_generation,
-                    retention_floor,bar_retention_json,schema_version,protocol_version
+                    retention_floor,bar_retention_json,schema_version,protocol_version,
+                    snapshot_sha256
                 FROM ohlcv_replica_checkpoint LIMIT 1"""
             ).fetchone()
             if row is None:
@@ -1408,6 +1420,10 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                 "bar_retention": json.loads(row["bar_retention_json"]),
                 "schema_version": int(row["schema_version"]),
                 "protocol_version": int(row["protocol_version"]),
+                "snapshot_sha256": (
+                    None if row["snapshot_sha256"] is None
+                    else str(row["snapshot_sha256"])
+                ),
             }
             result = {
                 "checkpoint": checkpoint,
@@ -1897,8 +1913,9 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
             db.execute(
                 """INSERT INTO ohlcv_replica_checkpoint(
                     source_id,replica_id,applied_cursor,snapshot_generation,
-                    retention_floor,bar_retention_json,schema_version,protocol_version
-                ) VALUES (?,?,?,?,?,?,?,?)
+                    retention_floor,bar_retention_json,schema_version,protocol_version,
+                    snapshot_sha256
+                ) VALUES (?,?,?,?,?,?,?,?,?)
                 ON CONFLICT(source_id) DO UPDATE SET
                     replica_id=excluded.replica_id,
                     applied_cursor=excluded.applied_cursor,
@@ -1906,12 +1923,14 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                     retention_floor=excluded.retention_floor,
                     bar_retention_json=excluded.bar_retention_json,
                     schema_version=excluded.schema_version,
-                    protocol_version=excluded.protocol_version""",
+                    protocol_version=excluded.protocol_version,
+                    snapshot_sha256=excluded.snapshot_sha256""",
                 (
                     source_id, replica_id, int(metadata["high_water"]),
                     str(metadata["generation_id"]), int(metadata["retention_floor"]),
                     json.dumps(metadata["bar_retention"], sort_keys=True, separators=(",", ":")),
                     _REPLICA_SCHEMA_VERSION, _REPLICA_PROTOCOL_VERSION,
+                    str(metadata["sha256"]),
                 ),
             )
             db.execute("COMMIT")
