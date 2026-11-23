@@ -129,3 +129,17 @@ No indicator completion percentage is inferred from the WebSocket changes. Indic
 - The current root `package.json` and `package-lock.json` do not include Wrangler or Miniflare. Therefore, no local Cloudflare runtime smoke was improvised with an unpinned/transient dependency in this batch.
 - The available GitHub connector returned empty combined-status arrays and no workflow-run records for the code/test commit and latest documentation HEAD. Its workflow-run helper is PR-triggered only, so this is **not proof that the push workflow did not start**; exact-head completion cannot be verified through the available connector.
 - The correct next verification is to inspect the actual push-triggered CI run/checks and, separately, establish a pinned zero-cost local runtime toolchain before claiming Cloudflare runtime acceptance.
+
+
+## 9. CI failure diagnosis and correction
+
+The push-triggered CI run for HEAD `2591e6071ba966114895256e51aa3fb99ea8001f` was inspected directly. The failure was isolated to the Node proof test file, before any test case could execute:
+
+- Failing step: `Test isolated synthetic Cloudflare Worker proof`.
+- Runtime: Node.js 20.20.2.
+- Syntax diagnostic: `SyntaxError: Unexpected reserved word` at the `await coordinator.webSocketMessage(...)` call in the test named `Durable Object closes malformed serialized attachment state during restoration`.
+- Root cause: that test callback was declared synchronous while containing an `await` expression.
+
+Correction committed as `ae9a6368f824e4c2fac2b1c9d18ad2fba9fc41ca`: the test callback is now declared `async`. This preserves the test behavior and correctly awaits the asynchronous WebSocket message handler. The fix is a test-harness syntax correction, not a production Worker behavior change.
+
+The push to the fix commit triggers a new CI run. Its result must be checked separately; no pass is claimed at this point. The earlier successful secret-history, OCI ARM64 and CodeQL runs remain valid only for their recorded commit. Frontend/backend steps in the failed run were skipped because the synthetic proof step failed first.
