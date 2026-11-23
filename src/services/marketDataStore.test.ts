@@ -150,6 +150,22 @@ describe('shared market data store', () => {
     expect(getMarketDataSnapshot().identity?.bucketPolicy).toBe('UTC_FIXED_V1');
   });
 
+  it('accepts versioned CME session identities only for daily-or-higher buckets', () => {
+    const cmeIdentity: MarketSeriesIdentity = {
+      ...identity,
+      timeframe: '1d',
+      bucketPolicy: 'CME_SESSION_V1',
+      calendarId: 'CME_EQUITY_INDEX',
+      calendarVersion: '2026.11.1',
+    };
+    publishMarketDataSnapshot({ identity: cmeIdentity, status: 'ready', bars });
+    expect(getMarketDataSnapshot().identity).toEqual(cmeIdentity);
+
+    const nextRelease = { ...cmeIdentity, calendarVersion: '2026.11.2' };
+    expect(isSameMarketSeriesIdentity(cmeIdentity, nextRelease)).toBe(false);
+    expect(getMarketSeriesIdentityKey(cmeIdentity)).not.toBe(getMarketSeriesIdentityKey(nextRelease));
+  });
+
   it('rejects unsupported or malformed series identity metadata without mutating state', () => {
     const invalidIdentities = [
       { ...identity, calendarId: 'CME', calendarVersion: '2026a' },
@@ -177,7 +193,7 @@ describe('shared market data store', () => {
         calendarVersion: '2026a',
       },
       bar: bars[0],
-    })).toThrow(/session-aware bucket policy/);
+    })).toThrow(/UTC bucket policies/);
     expect(getMarketDataSnapshot()).toBe(before);
   });
 
