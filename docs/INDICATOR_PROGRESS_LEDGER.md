@@ -2220,3 +2220,25 @@ No indicator formula, numeric kernel, shared hook, chart binding, renderer, UI, 
 | Liquidation Maps | 🟥 Not implemented | No accepted data/renderer contract | Defensible provenance/calculation contract, reviewed blueprint, renderer/tests |
 
 Shared invariants: warm-up nulls; exact candle-index alignment; prefix causality/no future repaint; reject invalid/gapped data; clear stale outputs on identity changes. Footprint OFF preserves standard candle spacing; explicit ON alone activates spaced clusters. Footprint/Heatmap visual work remains gated on user references and reviewed blueprint. Aggregate indicator progress remains NOT SCORED because approved weights and denominator do not exist.
+
+
+---
+
+## Batch 62J-166 — indicator reconciliation (23 November 2026)
+
+
+No indicator code, formula, hook, renderer, UI, or test changed. Indicator progress credit: **0**.
+
+| Indicator / subsystem | Status | Foundation / next acceptance |
+|---|---|---|
+| SMA20 | 🟨 Foundation | 20-close mean; first valid index 19; chart overlay/toggle/legend/lifecycle remain |
+| EMA20 | 🟨 Foundation | SMA-seeded, alpha 2/21; first valid index 19; chart overlay/toggle/legend/lifecycle remain |
+| RSI14 Wilder | 🟨 Foundation | Wilder smoothing; first valid index 14; 0–100 pane, 30/70 guides and lifecycle remain |
+| MACD12/26/9 | 🟨 Foundation | MACD index 25; signal/histogram index 33; pane/lines/histogram/zero guide remain |
+| Bollinger20,2 | 🟨 Foundation | 20-close mean ±2 population SD; first valid index 19; overlay/toggle/value/lifecycle remain |
+| Shared Indicator Hook | 🟨 Foundation | Validated backend output; chart binding, stale clearing and settings/legend remain |
+| Footprint | 🟧 Prototype only | Synthetic accumulator; user reference + reviewed blueprint + valid bid/ask contract required |
+| Heatmap | 🟥 Not implemented | User reference + reviewed blueprint + validated depth contract required |
+| Liquidation Maps | 🟥 Not implemented | Defensible data provenance/contract and reviewed implementation required |
+
+Preserve warm-up nulls, exact candle alignment, prefix causality/no future repaint, invalid/gapped-data rejection, stale-output clearing, and Footprint OFF normal candle spacing. Aggregate indicator progress remains NOT SCORED without approved weights and denominator.

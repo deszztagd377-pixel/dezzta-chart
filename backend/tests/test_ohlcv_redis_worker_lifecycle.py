@@ -183,3 +183,45 @@ def test_worker_start_preserves_ownership_lost_when_lease_start_fails():
     assert worker.state["state"] == "ownership_lost"
     assert worker.state["last_error_type"] == "RedisOhlcvConsumerLeaseLost"
     assert worker.state["thread_alive"] is False
+
+
+def test_worker_start_stops_heartbeat_when_consumer_thread_cannot_start(monkeypatch):
+    from app import ohlcv_redis_worker as worker_module
+
+    lease_calls = []
+
+    class RecordingLease:
+        def start_heartbeat(self):
+            lease_calls.append("start")
+
+        def stop_heartbeat(self):
+            lease_calls.append("stop")
+
+    class FailingThread:
+        def __init__(self, *args, **kwargs):
+            self.target = kwargs.get("target")
+
+        def start(self):
+            raise RuntimeError("consumer thread could not start")
+
+        def is_alive(self):
+            return False
+
+    monkeypatch.setattr(worker_module.threading, "Thread", FailingThread)
+    worker = RedisOhlcvGatewayWorker(
+        FakeConsumer(lambda: {"status": "idle"}),
+        FakeDispatcher(),
+        ownership_lease=RecordingLease(),
+    )
+
+    with pytest.raises(RuntimeError, match="consumer thread could not start"):
+        worker.start()
+
+    assert lease_calls == ["start", "stop"]
+    assert worker.state == {
+        "state": "stopped",
+        "last_error_type": "RuntimeError",
+        "last_result_status": None,
+        "thread_alive": False,
+    }
+    assert worker._stop_event.is_set()

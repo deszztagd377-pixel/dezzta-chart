@@ -4185,3 +4185,19 @@ Change scope: Redis replica worker lifecycle; no indicator formulas, calculation
 - Significant verified engineering delta: snapshot digest is now intended to be durably bound to the installed checkpoint, and callback mismatch is rejected before Redis startup. This is not Gate 25 closure.
 
 ZERO COST preserved. No paid services, cloud account, hosting, domain, external market-data entitlement, device operation, or publication fee. `main` untouched.
+
+
+---
+
+## Batch 62J-166 — project progress reconciliation (23 November 2026)
+
+
+- Stage 1: 30/40 = 75% provisional 🟨.
+- Stages 2–6: NOT SCORED / not officially opened ⬜.
+- Gate 10: 0/10 external acceptance criteria formally closed 🟥.
+- Gate 25: OPEN 🟧 — local digest binding improved by Batch 165; cross-host authenticated receipt and key lifecycle remain.
+- Gate 36: OPEN 🟥 — public production WSS, real Firebase, reverse proxy and physical Android WebView acceptance remain.
+- Gate 38: OPEN 🟥 — owner-host metrics persistence, backup/retention, alert and recovery acceptance remain.
+- Overall project: NOT SCORED; stage weights and denominator are not approved.
+
+ZERO COST. No paid services or external resources. `main` untouched.
