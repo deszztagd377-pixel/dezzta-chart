@@ -1,9 +1,9 @@
-# CURRENT PROJECT PROGRESS — Batch 62J-150 (22 November 2026)
+# CURRENT PROJECT PROGRESS — Batch 62J-171 (23 November 2026)
 
-**Target date corrected by project owner: 24 December 2026.** From 22 November, 32 calendar days remain after today through 24 December. This is a delivery target, not a guaranteed completion claim.
+**Target date corrected by project owner: 24 December 2026.** This is a delivery target, not a guaranteed completion claim.
 
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest fully CI-verified code/test HEAD:** `754e1d9edc270e110161662aad83b6fac4a792bc`  
+**Latest fully CI-verified code/test HEAD before Batch 62J-171:** `0d1ef247aa68fd0946293b91f76e3af3fd608086`  
 **WebSocket test correction commit:** `cb708c3e6357c59ef7a61fcb5fc5c304b014d62a`  
 **Batch 62J-148 test commit:** `79d88d9aa5261dde3f2e31d1e742d45f461e43c2`  
 **Batch 62J-149 WebSocket test commit:** `ed7f22a00b71223d0dd7ed280aadddd8a30cf6e1`  
@@ -4299,3 +4299,47 @@ No aggregate indicator percentage is reported without approved weights/denominat
 ## ZERO COST and external acceptance boundary
 
 No paid hosting, provider feed, subscription, domain, deployment, account, production credential, publication fee, or physical-device operation was introduced. OCI CI readiness is not an actual OCI deployment. Public production WSS/Firebase/Android acceptance and owner-host Redis/metrics durability remain unproven. Target remains **24 December 2026**, not a guaranteed completion claim. `main` untouched.
+
+
+---
+
+# Batch 62J-171 — Gate 38 metrics timestamp contract hardening (23 November 2026)
+
+**Base HEAD:** `0d1ef247aa68fd0946293b91f76e3af3fd608086` on `phase-2/market-data-foundation`.  
+**Scope:** local metrics collector validation; no market-data provider, WebSocket wire protocol, indicator formula, UI, or deployment change.
+
+Both metrics collector entry points previously converted caller-supplied timestamps directly with `float()`. This accepted booleans and numeric strings, potentially shifting bucket selection, stale-worker visibility and retention cutoffs. A shared validator now accepts only finite non-negative integer/float epoch seconds, rejects bool/string/NaN/infinity/negative values, and preserves `None` as system time. Validation occurs before opening SQLite. The flush return annotation now accurately includes floating-point timing measurements.
+
+Regression coverage adds 14 cases (7 invalid values × 2 entry points) and asserts malformed input raises `invalid_timestamp` without creating the database file.
+
+## Current progress and acceptance
+
+- Stage 1 Foundation, Security & Data Integrity: **30/40 = 75% provisional** 🟨.
+- Stages 2–6: **NOT SCORED / not officially opened** ⬜.
+- Gate 10: **0/10 external criteria formally closed** 🟥.
+- Gate 25: **OPEN** 🟧 — local snapshot/checkpoint validation improved; authenticated cross-host receipt/key lifecycle and owner-host Redis acceptance remain.
+- Gate 36: **OPEN** 🟥 — public production WSS, real Firebase, reverse proxy/certificate lifecycle and physical Android WebView/network acceptance remain.
+- Gate 38: **OPEN** 🟧 — local metrics collector validation improved; owner-host persistent volume, backup/restore, retention operations, external alert delivery and recovery drill remain.
+- Gate 39: **OPEN** 🟥 — alert acknowledgement and operational recovery acceptance remain.
+- Overall project: **NOT SCORED**; approved stage weights and denominator are unavailable.
+- Significant verified engineering delta: malformed metrics timestamps are now rejected before any SQLite I/O; 14 regression cases added. This is a local reliability improvement, not external Gate 38 closure.
+
+## Complete indicator dashboard
+
+| Indicator / subsystem | Status | Foundation | Remaining acceptance |
+|---|---|---|---|
+| SMA20 | 🟨 | 20-close mean; first valid index 19 | Overlay, toggle, legend/value, identity invalidation, lifecycle/render/performance |
+| EMA20 | 🟨 | SMA seed, alpha 2/21; first valid index 19 | Overlay, toggle, legend/value, identity invalidation, lifecycle/render/performance |
+| RSI14 Wilder | 🟨 | Wilder seed/recurrence; first valid index 14 | 0–100 pane, 30/70 guides, toggle, legend/value, lifecycle/render |
+| MACD12/26/9 | 🟨 | MACD index 25; signal/histogram index 33 | Pane, lines, histogram, zero guide, toggle, legend/values, lifecycle/render |
+| Bollinger20,2 | 🟨 | Mean ±2 population SD; first valid index 19 | Three-line overlay, toggle, values, identity invalidation, lifecycle/render/performance |
+| Shared Indicator Hook | 🟨 | Backend aligned multi-study snapshot | Hook tests, chart binding, stale clearing, settings/legend, identity/lifecycle |
+| Footprint | 🟧 | Synthetic educational prototype only | User reference, reviewed blueprint, verified bid/ask contract, spaced-cluster renderer and acceptance |
+| Heatmap | 🟥 | Not implemented | User reference, depth/liquidity contract, reviewed blueprint, renderer and tests |
+| Liquidation Maps | 🟥 | Not implemented | Defensible data provenance/calculation contract, blueprint, renderer and tests |
+
+Invariants: warm-up nulls; exact candle alignment; prefix causality/no future repaint; reject invalid/gapped data; clear stale output on identity changes. Footprint OFF keeps standard candle spacing; explicit ON alone enables spaced clusters. Footprint/Heatmap visuals remain gated on user reference images and blueprint review. Aggregate indicator percentage remains NOT SCORED without approved weights/denominator.
+
+## ZERO COST / branch integrity
+
+No paid hosting, provider feed, subscription, domain, deployment, production credential, publication fee, or physical-device action. OCI CI readiness is not deployment. `main` untouched. Target remains **24 December 2026**.

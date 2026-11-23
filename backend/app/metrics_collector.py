@@ -24,6 +24,19 @@ MAX_COUNTER = (1 << 53) - 1
 BEGIN_RETRY_ATTEMPTS = 16
 WORKER_ID = re.compile(r"^[0-9a-f]{32}$")
 
+def _validated_timestamp(value: float | None) -> float:
+    """Accept finite, non-negative numeric epoch seconds; reject bools/strings."""
+    if value is None:
+        stamp = time.time()
+    elif isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise MetricsCollectorError("invalid_timestamp")
+    else:
+        stamp = float(value)
+    if not math.isfinite(stamp) or stamp < 0:
+        raise MetricsCollectorError("invalid_timestamp")
+    return stamp
+
+
 
 class MetricsCollectorError(RuntimeError):
     """Sanitized collector failure."""
@@ -215,12 +228,10 @@ class SQLiteMetricsCollector:
             return min(current + delta, MAX_COUNTER)
         return min(current + delta, 86400000.0 * MAX_COUNTER)
 
-    def flush(self, worker_id: str, request_snapshot: dict[str, Any], websocket_snapshot: dict[str, Any], *, now: float | None = None) -> dict[str, int]:
+    def flush(self, worker_id: str, request_snapshot: dict[str, Any], websocket_snapshot: dict[str, Any], *, now: float | None = None) -> dict[str, int | float]:
         if not isinstance(worker_id, str) or not WORKER_ID.fullmatch(worker_id):
             raise MetricsCollectorError("invalid_worker_id")
-        stamp = time.time() if now is None else float(now)
-        if not math.isfinite(stamp) or stamp < 0:
-            raise MetricsCollectorError("invalid_timestamp")
+        stamp = _validated_timestamp(now)
         values, active = self._flatten(request_snapshot, websocket_snapshot)
         encoded = json.dumps(values, separators=(",", ":"), sort_keys=True, allow_nan=False)
         if len(encoded.encode("utf-8")) > MAX_PAYLOAD_BYTES:
@@ -347,9 +358,7 @@ class SQLiteMetricsCollector:
             db.close()
 
     def snapshot(self, *, now: float | None = None) -> dict[str, Any]:
-        stamp = time.time() if now is None else float(now)
-        if not math.isfinite(stamp) or stamp < 0:
-            raise MetricsCollectorError("invalid_timestamp")
+        stamp = _validated_timestamp(now)
         cutoff_bucket = int((stamp - RETENTION_SECONDS) // BUCKET_SECONDS) * BUCKET_SECONDS
         db = self._connect()
         try:

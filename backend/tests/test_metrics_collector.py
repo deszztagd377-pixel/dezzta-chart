@@ -21,6 +21,24 @@ def snapshots(count=0, active=0):
     return request, websocket
 
 
+@pytest.mark.parametrize("invalid_now", [True, False, "900", "nan", float("nan"), float("inf"), -1])
+@pytest.mark.parametrize("operation", ["flush", "snapshot"])
+def test_metrics_collector_rejects_non_numeric_or_invalid_timestamps_before_io(
+    tmp_path, invalid_now, operation,
+):
+    database = tmp_path / "metrics.sqlite3"
+    collector = SQLiteMetricsCollector(str(database))
+    request, websocket = snapshots(1)
+
+    with pytest.raises(MetricsCollectorError, match="invalid_timestamp"):
+        if operation == "flush":
+            collector.flush(uuid.uuid4().hex, request, websocket, now=invalid_now)
+        else:
+            collector.snapshot(now=invalid_now)
+
+    assert not database.exists()
+
+
 def test_combines_workers_and_repeated_snapshots_are_idempotent(tmp_path):
     collector = SQLiteMetricsCollector(str(tmp_path / "metrics.sqlite3"))
     a, b = uuid.uuid4().hex, uuid.uuid4().hex
