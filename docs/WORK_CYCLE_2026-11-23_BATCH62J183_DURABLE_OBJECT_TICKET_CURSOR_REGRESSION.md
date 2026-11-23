@@ -122,3 +122,8 @@ The first exact-head run exposed an environment mismatch in the existing CI conf
 ## 10. npm installer stability correction
 
 After moving the CI job to supported Node.js 22.23.5, npm 10.9.9 failed during the pinned Miniflare install with an internal Arborist error: `Cannot read properties of null (reading 'edgesOut')`. This occurred before the runtime test process started and is an installer/toolchain failure, not a Worker test failure. The CI job now pins npm to 10.8.2, the npm version used by the prior working Node 20 test lane, while retaining Node 22 to satisfy Miniflare's engine requirement. This makes the Node and npm toolchain versions explicit. Exact-head CI must confirm the combined toolchain before acceptance.
+
+
+## 11. Miniflare install resolution follow-up
+
+The Node 22 / npm 10.8.2 retry still hit npm Arborist's internal `edgesOut` null-reference during the temporary Miniflare install, before the Miniflare test runner started. The runtime-test install now uses npm's legacy peer-dependency resolution for this isolated, no-save test-only package installation. The normal lockfile-based `npm ci` and `npm audit` remain unchanged and run before this step; this flag does not modify the committed dependency lockfile or production dependencies. The next exact-head run must verify whether this isolates the installer issue. If it does not, inspect the npm debug trace and use an isolated install directory rather than suppressing the runtime test.
