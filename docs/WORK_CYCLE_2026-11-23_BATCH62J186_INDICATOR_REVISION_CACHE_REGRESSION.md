@@ -58,3 +58,9 @@ No stage score changes:
 - Delivery target: **24 December 2026**, planning target only.
 
 Preserve warm-up nulls, exact source-index alignment, prefix causality/no future repaint, invalid/gapped data rejection and stale-output clearing on identity changes.
+
+## 6. First exact-head CI result and test correction
+
+The first combined run on documentation HEAD `6c5e951fc36b204b12e4e4506cdd2870f33aec94` verified the Durable Object suite at **10/10 passed**. The frontend suite reported **314 passed / 1 failed** across 34 files. The sole failure was this new regression's assumption that a series revision counter always begins at 1. The keyed store correctly retains/increments revisions across test cleanup, so the observed initial revision was 4 while the indicator value was still correct at 130.5.
+
+The test now reads its initial revision dynamically and asserts that the next immutable snapshot revision equals the captured value plus one, while checking the rolling SMA changes to 134.5. Correction commit: `70d14ab5a73027f489ebb37fa96025c174617902`. No indicator formula or store implementation changed. Corrected exact-HEAD CI is pending.
