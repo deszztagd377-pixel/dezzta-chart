@@ -92,6 +92,34 @@ describe('parseOhlcvStreamUpdate', () => {
     expect(() => event({ series: fixedSeries, bar: legacyBar })).toThrow(/does not match/i);
   });
 
+  it('accepts versioned CME session identity only for supported higher timeframes', () => {
+    const cmeSeries = {
+      ...series,
+      timeframe: '1d',
+      bucketPolicy: 'CME_SESSION_V1',
+      calendarId: 'CME_EQUITY_INDEX',
+      calendarVersion: '2026.11.1',
+    };
+    const cmeBar = {
+      ...bar,
+      timeframe: '1d',
+      bucketPolicy: 'CME_SESSION_V1',
+      calendarId: 'CME_EQUITY_INDEX',
+      calendarVersion: '2026.11.1',
+    };
+    const parsed = event({ series: cmeSeries, bar: cmeBar });
+    expect(parsed.series.bucketPolicy).toBe('CME_SESSION_V1');
+    expect(parsed.series.calendarVersion).toBe('2026.11.1');
+    expect(() => event({
+      series: { ...cmeSeries, calendarVersion: '2026.11.2' },
+      bar: cmeBar,
+    })).toThrow(/does not match/i);
+    expect(() => event({
+      series: { ...cmeSeries, timeframe: '1h' },
+      bar: { ...cmeBar, timeframe: '1h' },
+    })).toThrow(/series identity is invalid/i);
+  });
+
   it('rejects provider or series-type mismatches between stream identity and bar', () => {
     expect(() => event({ series: { ...series, provider: 'other-provider' } })).toThrow(/does not match/i);
     expect(() => event({ series: { ...series, seriesType: 'continuous' } })).toThrow(/does not match/i);
