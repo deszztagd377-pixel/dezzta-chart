@@ -3,7 +3,9 @@
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Timeframe } from '../types';
 import type { FuturesContractDto } from '../types/instrumentCatalogApi';
+import type { MarketSeriesIdentity } from '../services/marketDataStore';
 
 const mocks = vi.hoisted(() => ({
   createChart: vi.fn(),
@@ -27,7 +29,7 @@ vi.mock('../services/ohlcvSeriesSupervisorRegistry', () => ({
 
 import CandlestickChart from './CandlestickChart';
 import { marketDataSeriesStore } from '../services/marketDataSeriesStore';
-import { getBucketPolicyForTimeframe } from '../utils/ohlcvBucketPolicy';
+import { getBucketIdentityForTimeframe } from '../utils/ohlcvBucketPolicy';
 
 const selectedContract: FuturesContractDto = {
   root: 'ES',
@@ -51,9 +53,7 @@ const marketDataIdentity = {
   instrumentId: selectedContract.instrument_id,
   rawSymbol: selectedContract.raw_symbol,
   timeframe: '1m' as const,
-  bucketPolicy: getBucketPolicyForTimeframe('1m'),
-  calendarId: '',
-  calendarVersion: '',
+  ...getBucketIdentityForTimeframe('1m'),
 };
 
 
@@ -79,14 +79,17 @@ function setBrowserLifecycle(online: boolean, visibility: DocumentVisibilityStat
   });
 }
 
-function renderChart() {
+function renderChart(
+  contract: FuturesContractDto = selectedContract,
+  timeframe: Timeframe = '1m',
+) {
   if (!root) throw new Error('React root is not initialized.');
   act(() => {
     root?.render(
       <CandlestickChart
-        timeframe="1m"
+        timeframe={timeframe}
         showGrid
-        selectedContract={selectedContract}
+        selectedContract={contract}
         marketDataApiBaseUrl="https://market-data.example.test"
       />,
     );
@@ -129,7 +132,7 @@ beforeEach(() => {
     remove: vi.fn(),
   };
   mocks.createChart.mockReturnValue(chartApi);
-  mocks.acquireSupervisor.mockImplementation((options: { identity: typeof marketDataIdentity }) => {
+  mocks.acquireSupervisor.mockImplementation((options: { identity: MarketSeriesIdentity }) => {
     const release = vi.fn(() => marketDataSeriesStore.reset(options.identity, 'unavailable', 'Stream paused by browser lifecycle.'));
     stopHandles.push(release);
     marketDataSeriesStore.reset(options.identity, 'loading', 'Connecting in lifecycle test.');
@@ -151,6 +154,38 @@ afterEach(() => {
 });
 
 describe('CandlestickChart WebSocket browser lifecycle integration', () => {
+  it('uses a loaded CME calendar release only for daily-or-higher chart series', () => {
+    const cmeContract: FuturesContractDto = {
+      ...selectedContract,
+      session_calendar_id: 'CME_EQUITY_INDEX',
+      session_calendar_version: 'test-only-2024.01',
+    };
+    renderChart(cmeContract, '1d');
+
+    expect(mocks.acquireSupervisor).toHaveBeenCalledTimes(1);
+    expect(mocks.acquireSupervisor.mock.calls[0][0].identity).toMatchObject({
+      timeframe: '1d',
+      bucketPolicy: 'CME_SESSION_V1',
+      calendarId: 'CME_EQUITY_INDEX',
+      calendarVersion: 'test-only-2024.01',
+    });
+  });
+
+  it('does not enable CME session buckets until a calendar release version is loaded', () => {
+    const pendingCalendarContract: FuturesContractDto = {
+      ...selectedContract,
+      session_calendar_id: 'CME_EQUITY_INDEX',
+      session_calendar_version: null,
+    };
+    renderChart(pendingCalendarContract, '1d');
+
+    expect(mocks.acquireSupervisor.mock.calls[0][0].identity).toMatchObject({
+      timeframe: '1d',
+      bucketPolicy: 'UTC_LEGACY',
+      calendarId: '',
+      calendarVersion: '',
+    });
+  });
   it('stops offline, recreates on return online, pauses hidden, and cleans up on unmount', () => {
     renderChart();
     expect(mocks.acquireSupervisor).toHaveBeenCalledTimes(1);
