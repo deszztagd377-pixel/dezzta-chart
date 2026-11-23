@@ -5,7 +5,10 @@ import time
 
 import pytest
 
-from app.ohlcv_redis_lease import RedisOhlcvConsumerLeaseLost
+from app.ohlcv_redis_lease import (
+    RedisOhlcvConsumerLeaseLost,
+    RedisOhlcvConsumerLeaseUnavailable,
+)
 from app.ohlcv_redis_consumer import ReplicaResnapshotRequired
 from app.ohlcv_redis_worker import RedisOhlcvGatewayWorker
 
@@ -130,3 +133,53 @@ def test_worker_preserves_ownership_lost_terminal_state_after_thread_exit():
     assert worker.state["last_error_type"] == "RedisOhlcvConsumerLeaseLost"
     assert worker.stop(timeout_seconds=0.5) is True
     assert worker.state["state"] == "ownership_lost"
+
+
+def test_worker_start_rolls_back_state_when_lease_heartbeat_cannot_start():
+    consumed = []
+
+    class UnavailableLease:
+        def start_heartbeat(self):
+            raise RedisOhlcvConsumerLeaseUnavailable("Redis is temporarily unavailable")
+
+        def stop_heartbeat(self):
+            raise AssertionError("Heartbeat cleanup must not run before it starts")
+
+    worker = RedisOhlcvGatewayWorker(
+        FakeConsumer(lambda: consumed.append(True) or {"status": "idle"}),
+        FakeDispatcher(),
+        ownership_lease=UnavailableLease(),
+    )
+
+    with pytest.raises(RedisOhlcvConsumerLeaseUnavailable):
+        worker.start()
+
+    assert worker.state == {
+        "state": "stopped",
+        "last_error_type": "RedisOhlcvConsumerLeaseUnavailable",
+        "last_result_status": None,
+        "thread_alive": False,
+    }
+    assert consumed == []
+
+
+def test_worker_start_preserves_ownership_lost_when_lease_start_fails():
+    class LostLease:
+        def start_heartbeat(self):
+            raise RedisOhlcvConsumerLeaseLost("lease token was replaced")
+
+        def stop_heartbeat(self):
+            return True
+
+    worker = RedisOhlcvGatewayWorker(
+        FakeConsumer(lambda: {"status": "idle"}),
+        FakeDispatcher(),
+        ownership_lease=LostLease(),
+    )
+
+    with pytest.raises(RedisOhlcvConsumerLeaseLost):
+        worker.start()
+
+    assert worker.state["state"] == "ownership_lost"
+    assert worker.state["last_error_type"] == "RedisOhlcvConsumerLeaseLost"
+    assert worker.state["thread_alive"] is False

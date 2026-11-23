@@ -2175,3 +2175,26 @@ No indicator calculation, numeric kernel, shared hook, renderer, chart UI or ind
 Shared invariants remain: warm-up nulls; exact source-index alignment; prefix causality/no future-candle repaint; invalid/missing/gapped bars never silently become zero; stale-output clearing on symbol/venue/dataset/chart/timeframe changes; calculation/rendering/interaction/lifecycle/accessibility/performance are separate acceptance dimensions. Footprint OFF preserves ordinary candle spacing; explicit ON alone enables spaced clusters. Footprint/Heatmap visual work remains blocked pending user reference image(s) and reviewed blueprint. Aggregate indicator completion remains NOT SCORED because weights and denominator are unapproved.
 
 See Batch 62J-145 work-cycle report. No progress percentage or color status changed for any indicator.
+
+
+---
+
+## Batch 62J-164 reconciliation — 23 November 2026
+
+No indicator calculation, formula, shared hook, chart binding, renderer, UI, or indicator-specific test was changed. This backend WebSocket lifecycle correction earns **zero indicator implementation credit**.
+
+| Indicator / subsystem | Status | Verified foundation | Remaining acceptance |
+|---|---|---|---|
+| SMA20 | 🟨 Foundation | 20-close arithmetic mean; first valid index 19 | Chart overlay, toggle, legend/latest value, identity/lifecycle/render/performance acceptance |
+| EMA20 | 🟨 Foundation | SMA seed; alpha 2/21; first valid index 19 | Chart overlay, toggle, legend/latest value, identity/lifecycle/render/performance acceptance |
+| RSI14 Wilder | 🟨 Foundation | Wilder smoothing; first valid index 14 | Dedicated 0–100 pane, 30/70 guides, toggle/legend/value, identity/lifecycle/render acceptance |
+| MACD12/26/9 | 🟨 Foundation | MACD first valid index 25; signal/histogram first valid index 33 | Dedicated pane, lines, histogram, zero guide, toggle/legend/value, lifecycle/render acceptance |
+| Bollinger20,2 | 🟨 Foundation | 20-close mean ±2 population SD; first valid index 19 | Three-line overlay, toggle/values, identity/lifecycle/render/performance acceptance |
+| Shared Indicator Hook | 🟨 Foundation | Validated backend snapshot and aligned calculation output | Hook tests, actual chart binding, stale clearing, settings/legend and identity lifecycle acceptance |
+| Footprint | 🟧 Prototype only | Synthetic educational accumulator; not exchange-native bid/ask truth | User reference image(s), reviewed blueprint, valid bid/ask source contract, cluster renderer and acceptance |
+| Heatmap | 🟥 Not implemented | No accepted depth/liquidity renderer | User reference image(s), validated depth/liquidity contract, reviewed blueprint, renderer and tests |
+| Liquidation Maps | 🟥 Not implemented | No accepted data/renderer contract | Defensible provenance/calculation contract, reviewed blueprint, renderer and tests |
+
+Invariants remain: warm-up nulls; exact candle-index alignment; prefix causality/no future repaint; reject invalid/gapped data; clear stale outputs on identity changes. Footprint OFF preserves standard candle spacing; explicit ON alone activates spaced clusters. Footprint/Heatmap visual work remains gated on user references and reviewed blueprint.
+
+Indicator aggregate: **NOT SCORED** (no approved weights/denominator). Stage 1: 30/40 = 75% provisional. Stages 2–6: NOT SCORED/not officially opened. Gate 10: 0/10 external criteria formally closed. Overall project: NOT SCORED. CI for Batch 62J-164: pending exact HEAD. ZERO COST and main-branch protection remain in force.

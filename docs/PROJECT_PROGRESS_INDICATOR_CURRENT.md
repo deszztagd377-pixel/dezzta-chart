@@ -4149,3 +4149,22 @@ The test creates two subscribers for the same exact series, verifies both receiv
 
 This proves downstream per-client fan-out isolation only. It does **not** prove dynamic upstream provider subscribe/unsubscribe, shared upstream reference counting, or the mandatory on-demand market subscription feature. Exact-HEAD CI for this new commit is pending.
 
+
+
+---
+
+# Batch 62J-164 — Transactional Redis worker startup (23 November 2026)
+
+Source baseline: `36447981ae4d8c3535a47c391c5140f72abe6ac2` on `phase-2/market-data-foundation`.  
+Change scope: Redis replica worker lifecycle; no indicator formulas, calculations, hooks, renderers, UI, provider contracts, or deployment changes.
+
+**Finding:** `RedisOhlcvGatewayWorker.start()` previously changed state to `starting` before lease-heartbeat initialization. A startup exception could leave a phantom `starting` state; a later thread-start failure could also leave an orphaned heartbeat.
+
+**Correction:** startup is now transactional. On exception it signals stop, best-effort stops a heartbeat that had started, clears the thread reference, records the exception type, and restores `stopped` or preserves terminal `ownership_lost`. Two regression tests cover temporary Redis/lease unavailability and lost ownership before the consumer thread starts.
+
+**Changed source/test:** `backend/app/ohlcv_redis_worker.py`; `backend/tests/test_ohlcv_redis_worker_lifecycle.py`.  
+**New work-cycle report:** `docs/WORK_CYCLE_2026-11-23_BATCH62J164_TRANSACTIONAL_WORKER_STARTUP.md`.
+
+**Exact-HEAD CI:** pending after commit. The predecessor Batch 62J-163 exact HEAD passed Automated Tests, CodeQL, OCI ARM64 image readiness, and full Git-history secret audit. OCI readiness is not an actual cloud deployment.
+
+**Project accounting:** Stage 1 remains 30/40 = 75% provisional; Stages 2–6 remain NOT SCORED; Gate 10 remains 0/10 external criteria formally closed; overall project remains NOT SCORED. No indicator implementation credit is awarded by this backend lifecycle change. Preserve the detailed indicator ledger and its reference-image/blueprint gates. ZERO COST preserved; `main` untouched.

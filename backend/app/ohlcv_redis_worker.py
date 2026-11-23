@@ -106,14 +106,36 @@ class RedisOhlcvGatewayWorker:
             self._state = "starting"
             self._last_error_type = None
             self._last_result_status = None
-            if self.ownership_lease is not None:
-                self.ownership_lease.start_heartbeat()
-            self._thread = threading.Thread(
-                target=self._run,
-                name="dezzta-ohlcv-redis-consumer",
-                daemon=True,
-            )
-            self._thread.start()
+            heartbeat_started = False
+            try:
+                if self.ownership_lease is not None:
+                    self.ownership_lease.start_heartbeat()
+                    heartbeat_started = True
+                thread = threading.Thread(
+                    target=self._run,
+                    name="dezzta-ohlcv-redis-consumer",
+                    daemon=True,
+                )
+                thread.start()
+                self._thread = thread
+            except Exception as exc:
+                # Startup is transactional: never leave a phantom "starting"
+                # worker or a lease heartbeat running without its consumer.
+                self._stop_event.set()
+                if heartbeat_started and self.ownership_lease is not None:
+                    try:
+                        self.ownership_lease.stop_heartbeat()
+                    except Exception:
+                        pass
+                from app.ohlcv_redis_lease import RedisOhlcvConsumerLeaseLost
+                self._thread = None
+                self._state = (
+                    "ownership_lost"
+                    if isinstance(exc, RedisOhlcvConsumerLeaseLost)
+                    else "stopped"
+                )
+                self._last_error_type = type(exc).__name__
+                raise
 
     def _run(self) -> None:
         from app.ohlcv_redis_consumer import ReplicaResnapshotRequired
