@@ -59,10 +59,10 @@ This extends the single-socket hibernation proof to multiple live owners and ver
 
 **Test:** `does not expire an authenticated socket when the authentication alarm runs`
 
-- Authenticate a socket successfully.
-- Move only its test attachment's connection timestamp beyond the unauthenticated timeout.
-- Schedule and execute the real Durable Object alarm.
-- Require the authenticated connection to remain open and answer a subsequent ping.
+- Authenticate one socket and open a second unauthenticated socket on the same series so the real authentication alarm remains scheduled.
+- Move both test attachment timestamps beyond the unauthenticated timeout.
+- Execute the scheduled Durable Object alarm.
+- Require the unauthenticated socket to close with 4408 while the authenticated connection remains open and answers a subsequent ping.
 
 This guards the lifecycle boundary: the authentication alarm must expire unauthenticated sockets only, never a valid authenticated session.
 
@@ -84,7 +84,9 @@ The Worker continues to label every fixture as `synthetic_only_not_market_data`.
 | Sequential duplicate/gap cursor handling | 1 | 0 |
 | Concurrent ticket consumption | 0 | 1 |
 | Concurrent duplicate cursor submission | 0 | 1 |
-| **Total** | **6** | **2** |
+| Multi-socket hibernation restoration | 0 | 1 |
+| Authenticated socket / auth alarm isolation | 0 | 1 |
+| **Total** | **6** | **4** |
 
 The suite now defines ten runtime cases. **The four new cases are pending exact-HEAD CI until the Automated Tests workflow reports success.**
 
@@ -94,7 +96,7 @@ The first combined CI run on source/test HEAD `f7f8d04933fb6554c1952f237ef6135ba
 
 The test setup has been corrected in commit `aaa638a1db0277118484d5c65992cec54f19cb1d`: it now creates one authenticated and one unauthenticated socket on the same series, expires both test attachment timestamps, and runs the already-scheduled authentication alarm. Acceptance requires the unauthenticated socket to close with 4408 while the authenticated socket remains open and answers a ping. No production runtime code changed. The corrected exact-HEAD CI result is pending.
 
- **The four new cases are pending exact-HEAD CI until the Automated Tests workflow reports success.** Do not award accepted-test credit before that result.
+Do not award accepted-test credit before exact-HEAD CI succeeds.
 
 ## 8. Indicator and project progress impact
 
