@@ -127,3 +127,8 @@ After moving the CI job to supported Node.js 22.23.5, npm 10.9.9 failed during t
 ## 11. Miniflare install resolution follow-up
 
 The Node 22 / npm 10.8.2 retry still hit npm Arborist's internal `edgesOut` null-reference during the temporary Miniflare install, before the Miniflare test runner started. The runtime-test install now uses npm's legacy peer-dependency resolution for this isolated, no-save test-only package installation. The normal lockfile-based `npm ci` and `npm audit` remain unchanged and run before this step; this flag does not modify the committed dependency lockfile or production dependencies. The next exact-head run must verify whether this isolates the installer issue. If it does not, inspect the npm debug trace and use an isolated install directory rather than suppressing the runtime test.
+
+
+## 12. Durable Object plugin install follow-up
+
+With the runtime-only Miniflare install fixed by `--legacy-peer-deps`, the subsequent `@cloudflare/vitest-plugin@1.9.0` installation still hit the same npm Arborist `edgesOut` internal error. The local workerd smoke test itself passed (1/1). The Durable Object runtime test command now uses the same isolated no-save legacy peer-resolution flag as the Miniflare test command. This does not change the committed lockfile, production dependency graph, or test assertions. Exact-head CI must verify all six Durable Object runtime tests before acceptance.
