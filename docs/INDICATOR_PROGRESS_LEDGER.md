@@ -1,3 +1,22 @@
+# Latest verified checkpoint — 23 November 2026
+
+**Verified HEAD:** `307e3691da93e6ae4660e9501f325da80adfc933`  
+**Active branch:** `phase-2/market-data-foundation`  
+**Protected branch `main`:** unchanged  
+**Exact-head CI:** 5/5 workflows SUCCESS (Automated Tests, Full Git History Secret Audit, CodeQL, OCI ARM64 readiness, zero-cost Android APK build).
+
+**Verification totals:** frontend 313/313 across 34 files; backend 1,347 passed / 1 skipped; synthetic Worker Node suite 25/25; Miniflare workerd proof 1/1; Durable Object runtime 6/6. Frontend production build, credential scans, Redis TLS fixture, SQLite outbox/metrics benchmarks, backend container build/smoke/image scan, and debug APK build all passed.
+
+**Project score:** overall NOT SCORED (weighted denominator not approved). Stage 1: 30/40 = 75% provisional. Stage 2: not scored; local synthetic runtime proof does not establish a production market-data provider or public WebSocket service. Stages 3–6 remain not scored.
+
+**Indicator ledger:** SMA20, EMA20, RSI14, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain at foundation status. Footprint remains synthetic prototype only. Heatmap and Liquidation Maps remain unimplemented. No indicator visual or formula work was performed in this WebSocket batch.
+
+**Remaining red gates:** production provider demand/ref-count lifecycle; public TLS/WSS and Firebase production identity; owner-host Redis/SQLite persistent-volume, backup/restore, disk-pressure and operator acceptance; Android background/process-death/network-handover acceptance; Gate 10 remains 0/10 formally closed. No production deployment or paid service introduced.
+
+**Delivery target:** 24 December 2026 (planning target, not guaranteed).
+
+---
+
 # CURRENT INDICATOR LEDGER — Batch 62J-177 (23 November 2026)
 
 **Branch:** `phase-2/market-data-foundation`  

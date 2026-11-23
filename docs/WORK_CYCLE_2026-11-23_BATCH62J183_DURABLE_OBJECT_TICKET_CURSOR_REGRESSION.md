@@ -132,3 +132,52 @@ The Node 22 / npm 10.8.2 retry still hit npm Arborist's internal `edgesOut` null
 ## 12. Durable Object plugin install follow-up
 
 With the runtime-only Miniflare install fixed by `--legacy-peer-deps`, the subsequent `@cloudflare/vitest-plugin@1.9.0` installation still hit the same npm Arborist `edgesOut` internal error. The local workerd smoke test itself passed (1/1). The Durable Object runtime test command now uses the same isolated no-save legacy peer-resolution flag as the Miniflare test command. This does not change the committed lockfile, production dependency graph, or test assertions. Exact-head CI must verify all six Durable Object runtime tests before acceptance.
+
+
+## 13. Exact-head CI acceptance — 23 November 2026
+
+**Verified source/test HEAD:** `307e3691da93e6ae4660e9501f325da80adfc933`  
+**Branch:** `phase-2/market-data-foundation`  
+**CI result:** **5/5 workflows SUCCESS** on this exact commit.
+
+| Workflow | Result |
+|---|---|
+| Automated Tests #45182330357 | 🟢 PASS |
+| Full Git History Secret Audit #45182330297 | 🟢 PASS |
+| CodeQL Security Analysis #45182330249 | 🟢 PASS |
+| OCI ARM64 Image Readiness #45182330303 | 🟢 PASS |
+| Android APK Build (zero-cost CI) #45182330311 | 🟢 PASS |
+
+### Test totals and gates
+
+- Frontend: **313 passed across 34 test files**.
+- Backend: **1,347 passed, 1 skipped**, 6 non-failing warnings, 48.09 seconds.
+- The one skipped backend TLS integration test reported that its in-process fixture was not configured; the separate isolated Redis TLS CA/hostname enforcement CI step passed. Do not conflate these two tests.
+- Node synthetic Worker contract suite: **25/25 passed**.
+- Miniflare real workerd Worker proof: **1/1 passed**.
+- Cloudflare Durable Object Vitest suite: **6/6 passed**.
+- Frontend source credential scan: **88 files checked, PASS**.
+- Production bundle credential scan: **5 files checked, PASS**.
+- Frontend production build: PASS.
+- Backend dependency audit: PASS.
+- Backend image build, shared-Redis guard/persistent-volume smoke test, image vulnerability scan and vulnerability report export/upload: PASS.
+- Android debug APK assembly, checksum/integrity validation and short-lived CI artifact upload: PASS. No store publication or production deployment.
+
+### Synthetic benchmark evidence
+
+**SQLite OHLCV outbox:** 1,000 synthetic bars inserted and replayed; two concurrent same-process reader threads each replayed all 1,000 events. Concurrent replay page latency: p95 1.307836 ms, p99 1.604634 ms (3,623 samples). The separate four-page replay latency sample reported p95/p99 2.509918 ms. This is a single-process synthetic SQLite benchmark, not a production WebSocket/provider/host benchmark.
+
+**SQLite metrics collector:** all 899 logical series were verified for 1, 4 and 16 worker cases, 32 flushes per worker, with SQLite integrity `ok`. The benchmark exposes a material concurrency distinction:
+- Synchronized 16-worker start: 512 successful flushes, 87 bounded retries, flush p95 447.268917 ms and p99 588.82115 ms.
+- Production-like 0–14 second startup phase staggering: 512 successful flushes, **0 retries**, flush p95 25.332109 ms and p99 114.521392 ms.
+- Four separate OS processes: 128 successful flushes, 1 retry, flush p95 110.910501 ms and p99 267.797051 ms.
+
+The production lifespan does apply a worker-ID-derived startup phase delay over 0–14 seconds. The synchronized case remains a worst-case stress signal; the staggered case demonstrates the intended same-host startup behavior. This is not multi-host evidence, and Gate 38 remains open for owner-host storage/restore/disk-pressure and operations acceptance.
+
+### CI toolchain
+
+Node.js 22.23.5 and npm 10.8.2 are used for the Cloudflare runtime test lane. Miniflare and Cloudflare Vitest plugin test-only installations use isolated no-save dependency resolution. The final plugin install audited 254 packages with 0 vulnerabilities. The committed application lockfile audit also passed with 0 vulnerabilities.
+
+### Final acceptance boundary
+
+The six Durable Object runtime tests are now verified, not merely defined. This closes the local synthetic Worker/DO runtime proof for this batch only. It does **not** close production provider subscription lifecycle, public TLS/WSS, Firebase production identity, owner-host Redis/SQLite custody, multi-host behavior, Android background/network handover, or Gate 10 external acceptance. Overall project progress remains **NOT SCORED** because no approved weighted denominator exists. Stage 1 remains 30/40 = 75% provisional; Stage 2 remains not scored. Indicator status and formulas are unchanged.
