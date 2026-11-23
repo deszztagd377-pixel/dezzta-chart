@@ -270,6 +270,44 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     expect(await pongPromise).toMatchObject({ type: "pong", version: 1 });
   });
 
+  it("restores every authenticated socket attachment after Durable Object eviction", async () => {
+    const [first, second] = await Promise.all([
+      connectAuthenticated(SERIES_HIBERNATE),
+      connectAuthenticated(SERIES_HIBERNATE),
+    ]);
+    const stub = coordinatorStub(SERIES_HIBERNATE);
+
+    await evictDurableObject(stub);
+
+    const attachments = await runInDurableObject(stub, async (_instance, state) => (
+      state.getWebSockets().map((socket) => socket.deserializeAttachment())
+    ));
+    expect(attachments).toHaveLength(2);
+    expect(attachments).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        authorized: true,
+        seriesKey: SERIES_HIBERNATE,
+        subject: "synthetic-proof-subject",
+        snapshotWatermark: 50,
+      }),
+      expect.objectContaining({
+        authorized: true,
+        seriesKey: SERIES_HIBERNATE,
+        subject: "synthetic-proof-subject",
+        snapshotWatermark: 50,
+      }),
+    ]));
+
+    const firstPong = nextJsonMessage(first.socket);
+    const secondPong = nextJsonMessage(second.socket);
+    first.socket.send(JSON.stringify({ type: "ping" }));
+    second.socket.send(JSON.stringify({ type: "ping" }));
+    expect(await Promise.all([firstPong, secondPong])).toEqual([
+      { type: "pong", version: 1 },
+      { type: "pong", version: 1 },
+    ]);
+  });
+
   it("runs the real Durable Object alarm and closes an expired unauthenticated socket", async () => {
     const socket = await openSocket(SERIES_ALARM);
     const stub = coordinatorStub(SERIES_ALARM);
