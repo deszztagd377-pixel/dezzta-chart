@@ -160,6 +160,23 @@ export async function consumeTicket(storage, ticket, expectedSeriesKey, now = Da
   });
 }
 
+function isValidSocketAttachment(attachment) {
+  if (
+    !attachment ||
+    typeof attachment !== "object" ||
+    !isValidSyntheticSeriesKey(attachment.seriesKey) ||
+    typeof attachment.authorized !== "boolean" ||
+    !Number.isSafeInteger(attachment.connectedAt) ||
+    attachment.connectedAt < 0
+  ) return false;
+
+  if (attachment.authorized) {
+    return attachment.subject === "synthetic-proof-subject" &&
+      attachment.snapshotWatermark === SNAPSHOT_WATERMARK;
+  }
+  return attachment.subject === null;
+}
+
 function jsonResponse(payload, status = 200, headers = {}) {
   return new Response(JSON.stringify(payload), {
     status,
@@ -258,7 +275,7 @@ export class SeriesCoordinatorDO {
     // Hibernation-safe connection state is restored from serialized attachments.
     for (const socket of this.ctx.getWebSockets()) {
       const attachment = socket.deserializeAttachment();
-      if (!attachment || typeof attachment.seriesKey !== "string") socket.close(4401, "Invalid connection state");
+      if (!isValidSocketAttachment(attachment)) socket.close(4401, "Invalid connection state");
     }
   }
 
@@ -360,7 +377,7 @@ export class SeriesCoordinatorDO {
     }
 
     const attachment = socket.deserializeAttachment();
-    if (!attachment || !isValidSyntheticSeriesKey(attachment.seriesKey)) {
+    if (!isValidSocketAttachment(attachment)) {
       socket.close(4401, "Connection state unavailable");
       return;
     }
