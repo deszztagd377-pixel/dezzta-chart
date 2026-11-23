@@ -2420,8 +2420,8 @@ Invariants: warm-up nulls; exact source-index alignment; prefix causality/no fut
 
 ## Batch 62J-176 — synthetic Worker/DO proof reconciliation (23 November 2026)
 
-**Code/test HEAD:** `783811ccef97c0494203ad13a9f790b791a5e962`  
-**Infrastructure proof:** isolated synthetic-only Cloudflare Worker/Series Durable Object source, 15 passing Node tests, exact-HEAD Automated Tests + CodeQL + secret audit + OCI ARM64 readiness all successful.  
+**Code/test HEAD:** `f9a6242c83c065799d1ed02f8c8870d8c9ef5ffe`  
+**Infrastructure proof:** isolated synthetic-only Cloudflare Worker/Series Durable Object source, 16 passing Node tests, exact-HEAD Automated Tests + CodeQL + secret audit + OCI ARM64 readiness all successful.  
 **Indicator implementation delta:** none.
 
 This infrastructure batch does not alter any indicator formula, warm-up rule, source-index alignment, calculation hook, chart binding, overlay, pane, renderer, legend, setting, or indicator-specific regression test. Therefore all existing indicator acceptance statuses remain unchanged; no indicator implementation credit is awarded.
