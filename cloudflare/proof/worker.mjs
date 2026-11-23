@@ -111,21 +111,24 @@ export async function issueTicket(storage, seriesKey, subject, now = Date.now())
     throw new TypeError("Only the synthetic proof subject is accepted.");
   }
 
-  const existing = await storage.list({ prefix: "ticket:", limit: MAX_TICKET_COUNT + 1 });
-  for (const [key, record] of existing) {
-    if (!record || record.expiresAt <= now) await storage.delete(key);
-  }
-  const remaining = await storage.list({ prefix: "ticket:", limit: MAX_TICKET_COUNT + 1 });
-  if (remaining.size >= MAX_TICKET_COUNT) throw new Error("Synthetic proof ticket capacity reached.");
-
   const ticket = randomTicket();
   const digest = await sha256Hex(ticket);
   const expiresAt = now + TICKET_TTL_MS;
-  await storage.put("ticket:" + digest, {
-    subject,
-    purpose: TICKET_PURPOSE,
-    seriesKey,
-    expiresAt,
+  await storage.transaction(async (transaction) => {
+    const existing = await transaction.list({ prefix: "ticket:", limit: MAX_TICKET_COUNT + 1 });
+    for (const [key, record] of existing) {
+      if (!record || record.expiresAt <= now) await transaction.delete(key);
+    }
+    const remaining = await transaction.list({ prefix: "ticket:", limit: MAX_TICKET_COUNT + 1 });
+    if (remaining.size >= MAX_TICKET_COUNT) {
+      throw new Error("Synthetic proof ticket capacity reached.");
+    }
+    await transaction.put("ticket:" + digest, {
+      subject,
+      purpose: TICKET_PURPOSE,
+      seriesKey,
+      expiresAt,
+    });
   });
   return { ticket, expiresAt };
 }
