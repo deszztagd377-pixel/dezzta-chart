@@ -4681,3 +4681,7 @@ The root package manifest/lockfile currently contain no Wrangler or Miniflare de
 
 ### Batch 62J-180 — CI failure repaired
 The push CI failure at `2591e6071ba966114895256e51aa3fb99ea8001f` was isolated to a syntax error in the malformed-attachment regression test: its callback contained `await` but was not declared `async`. The callback is now asynchronous in commit `ae9a6368f824e4c2fac2b1c9d18ad2fba9fc41ca`. This is a test-harness correction, not a production Worker logic change. A fresh push-triggered CI run must confirm the fix. Indicator implementation/progress remains unchanged; see the indicator ledger for the complete mathematical contract.
+
+
+### Batch 62J-180 — alarm test expectation corrected
+The first test-harness syntax issue was corrected, allowing all 25 synthetic Worker tests to execute. CI then exposed one incorrect expected value in the alarm test: it expected the pending socket's deadline even though another unauthenticated socket had an earlier, already-overdue deadline. The production scheduler intentionally selects the earliest deadline. The assertion now checks the overdue deadline first, then verifies the pending deadline after alarm processing. Commit: `b0cc4682156e65ce94f8f4203899f3e7baee3070`. This correction changes only the test assertion; no project or indicator score is increased until the new CI run completes.
