@@ -1,9 +1,9 @@
-# CURRENT PROJECT PROGRESS — Batch 62J-171 (23 November 2026)
+# CURRENT PROJECT PROGRESS — Batch 62J-172 (23 November 2026)
 
 **Target date corrected by project owner: 24 December 2026.** This is a delivery target, not a guaranteed completion claim.
 
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest fully CI-verified code/test HEAD before Batch 62J-171:** `0d1ef247aa68fd0946293b91f76e3af3fd608086`  
+**Latest fully CI-verified code/test HEAD before Batch 62J-172:** `d5cd1418a3a0b449d503803da6527bd3a4c982bc`  
 **WebSocket test correction commit:** `cb708c3e6357c59ef7a61fcb5fc5c304b014d62a`  
 **Batch 62J-148 test commit:** `79d88d9aa5261dde3f2e31d1e742d45f461e43c2`  
 **Batch 62J-149 WebSocket test commit:** `ed7f22a00b71223d0dd7ed280aadddd8a30cf6e1`  
@@ -4343,3 +4343,37 @@ Invariants: warm-up nulls; exact candle alignment; prefix causality/no future re
 ## ZERO COST / branch integrity
 
 No paid hosting, provider feed, subscription, domain, deployment, production credential, publication fee, or physical-device action. OCI CI readiness is not deployment. `main` untouched. Target remains **24 December 2026**.
+
+
+---
+
+# Batch 62J-172 — WebSocket replica relay wire-format hardening (23 November 2026)
+
+**Base HEAD:** `d5cd1418a3a0b449d503803da6527bd3a4c982bc` on `phase-2/market-data-foundation`.  
+**Scope:** Gate 25/36 local replica-to-WebSocket event validation; ZERO COST.
+
+Source audit found that `_bar_from_event()` used permissive `int()` and `Decimal()` coercions for untrusted event JSON. The frontend snapshot/stream parser already requires decimal-string timestamps and canonical decimal-string OHLCV values. The backend relay now enforces the same wire representation before constructing an `OhlcvBar`:
+
+- Nanosecond fields must be unsigned ASCII decimal strings; optional provider-output timestamp may remain null.
+- OHLCV prices and volume must match the canonical decimal-string grammar; numeric JSON values, booleans, exponent notation, NaN and non-canonical decimal forms are rejected.
+- New regression matrix covers malformed timestamp and decimal fields, plus a valid provider-output timestamp.
+
+Batch 62J-171 exact-HEAD CI was fully successful: Automated Tests [45161627257](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45161627257), CodeQL [45161627265](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45161627265), Secret Audit [45161627305](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45161627305), and OCI ARM64 readiness [45161627212](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45161627212) all SUCCESS. Backend tests: 1,336 passed, 1 skipped, 6 warnings; frontend tests: 306 passed.
+
+## Project status
+
+- Stage 1: **30/40 = 75% provisional** 🟨.
+- Stages 2–6: **NOT SCORED / not officially opened** ⬜.
+- Gate 10: **0/10 external criteria formally closed** 🟥.
+- Gate 25: **OPEN** 🟧 — local checkpoint and relay validation improved; authenticated cross-host immutable receipt/key lifecycle and owner-host Redis acceptance remain.
+- Gate 36: **OPEN** 🟥 — local relay contract improved; public production WSS, real Firebase, reverse proxy/certificate lifecycle and Android WebView/network acceptance remain.
+- Gate 38: **OPEN** 🟧 — local metrics collector hardened; owner-host persistence, backup/restore, retention operations, external alert delivery and recovery drill remain.
+- Gate 39: **OPEN** 🟥 — alert acknowledgement and operational recovery acceptance remain.
+- Overall project: **NOT SCORED**; approved stage weights and denominator unavailable.
+- Significant verified engineering delta: backend replica relay now rejects malformed timestamp/decimal representations consistently with frontend protocol parsing. This does not establish a public production endpoint or external gate closure.
+
+## Complete indicator status
+
+SMA20 🟨 Foundation; EMA20 🟨 Foundation; RSI14 Wilder 🟨 Foundation; MACD12/26/9 🟨 Foundation; Bollinger20,2 🟨 Foundation; Shared Indicator Hook 🟨 Foundation; Footprint 🟧 synthetic prototype; Heatmap 🟥 not implemented; Liquidation Maps 🟥 not implemented. Full formulas, first-valid indices, invariants and remaining acceptance are recorded in `docs/INDICATOR_PROGRESS_LEDGER.md`.
+
+ZERO COST. No paid hosting, market-data entitlement, subscription, domain, deployment, production credential, publication fee or physical-device action. `main` untouched. Target remains **24 December 2026**.

@@ -276,6 +276,66 @@ def test_forward_rejects_event_series_that_disagrees_with_bar_payload():
         _bar_from_event(event)
 
 
+
+@pytest.mark.parametrize(
+    ("field", "invalid_value"),
+    [
+        ("tsStartNs", 100),
+        ("tsStartNs", True),
+        ("tsEventNs", "-1"),
+        ("tsReceivedNs", "1.0"),
+        ("tsProviderOutNs", "١٢"),
+    ],
+)
+def test_forward_rejects_noncanonical_nanosecond_fields(tmp_path, field, invalid_value):
+    source = SQLiteOhlcvStore(str(tmp_path / "source.sqlite3"))
+    assert source.apply(make_bar(0)) == "inserted"
+    event = source.read_outbox_batch(after_cursor=0, limit=1)["events"][0]
+    event["bar"][field] = invalid_value
+
+    with pytest.raises(ValueError, match=field):
+        forward_replica_event(event, OhlcvPipeline(), OhlcvStreamHub())
+
+
+@pytest.mark.parametrize(
+    ("field", "invalid_value"),
+    [
+        ("open", 100),
+        ("high", True),
+        ("low", "1e3"),
+        ("close", "NaN"),
+        ("volume", "01"),
+    ],
+)
+def test_forward_rejects_noncanonical_decimal_fields(tmp_path, field, invalid_value):
+    source = SQLiteOhlcvStore(str(tmp_path / "source.sqlite3"))
+    assert source.apply(make_bar(0)) == "inserted"
+    event = source.read_outbox_batch(after_cursor=0, limit=1)["events"][0]
+    event["bar"][field] = invalid_value
+
+    with pytest.raises(ValueError, match=field):
+        forward_replica_event(event, OhlcvPipeline(), OhlcvStreamHub())
+
+
+def test_forward_accepts_decimal_string_provider_output_timestamp(tmp_path):
+    source = SQLiteOhlcvStore(str(tmp_path / "source.sqlite3"))
+    bar = make_bar(0)
+    bar = OhlcvBar(
+        provider=bar.provider, dataset=bar.dataset, publisher_id=bar.publisher_id,
+        instrument_id=bar.instrument_id, series_type=bar.series_type,
+        timeframe=bar.timeframe, ts_start_ns=bar.ts_start_ns,
+        raw_symbol=bar.raw_symbol, open=bar.open, high=bar.high, low=bar.low,
+        close=bar.close, volume=bar.volume, ts_event_ns=bar.ts_event_ns,
+        ts_received_ns=bar.ts_received_ns, sequence=bar.sequence,
+        sequence_origin=bar.sequence_origin, origin=bar.origin,
+        completeness=bar.completeness, ts_provider_out_ns=120,
+    )
+    assert source.apply(bar) == "inserted"
+    event = source.read_outbox_batch(after_cursor=0, limit=1)["events"][0]
+    assert event["bar"]["tsProviderOutNs"] == "120"
+    assert forward_replica_event(event, OhlcvPipeline(), OhlcvStreamHub()) == "inserted"
+
+
 def test_hydration_reads_bars_and_checkpoint_from_one_atomic_snapshot(tmp_path):
     source = SQLiteOhlcvStore(str(tmp_path / "source.sqlite3"))
     assert source.apply(make_bar(0)) == "inserted"

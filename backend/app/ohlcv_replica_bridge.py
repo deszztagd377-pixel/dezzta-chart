@@ -9,6 +9,7 @@ subscribers.
 from __future__ import annotations
 
 from decimal import Decimal
+import re
 from typing import Any
 
 from app.ohlcv import OhlcvBar, OhlcvPipeline
@@ -18,6 +19,24 @@ from app.ohlcv_stream import OhlcvStreamHub
 
 class ReplicaPipelineDivergence(RuntimeError):
     """The durable replica event cannot be represented in the live pipeline."""
+
+
+_UNSIGNED_INTEGER_STRING = re.compile(r"^[0-9]+$")
+_DECIMAL_STRING = re.compile(r"^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$")
+
+
+def _parse_nanosecond_string(value: Any, field: str) -> int:
+    """Parse the protocol's unsigned decimal-string nanosecond representation."""
+    if not isinstance(value, str) or not _UNSIGNED_INTEGER_STRING.fullmatch(value):
+        raise ValueError(f"{field} must be an unsigned nanosecond decimal string.")
+    return int(value)
+
+
+def _parse_decimal_string(value: Any, field: str) -> Decimal:
+    """Parse a canonical decimal-string field without float/int coercion."""
+    if not isinstance(value, str) or not _DECIMAL_STRING.fullmatch(value):
+        raise ValueError(f"{field} must be a canonical decimal string.")
+    return Decimal(value)
 
 
 def hydrate_replica_pipeline(
@@ -175,22 +194,22 @@ def _bar_from_event(event: dict[str, Any]) -> OhlcvBar:
         instrument_id=payload["instrumentId"],
         series_type=payload["seriesType"],
         timeframe=payload["timeframe"],
-        ts_start_ns=int(payload["tsStartNs"]),
+        ts_start_ns=_parse_nanosecond_string(payload["tsStartNs"], "tsStartNs"),
         raw_symbol=payload["rawSymbol"],
-        open=Decimal(payload["open"]),
-        high=Decimal(payload["high"]),
-        low=Decimal(payload["low"]),
-        close=Decimal(payload["close"]),
-        volume=Decimal(payload["volume"]),
-        ts_event_ns=int(payload["tsEventNs"]),
-        ts_received_ns=int(payload["tsReceivedNs"]),
+        open=_parse_decimal_string(payload["open"], "open"),
+        high=_parse_decimal_string(payload["high"], "high"),
+        low=_parse_decimal_string(payload["low"], "low"),
+        close=_parse_decimal_string(payload["close"], "close"),
+        volume=_parse_decimal_string(payload["volume"], "volume"),
+        ts_event_ns=_parse_nanosecond_string(payload["tsEventNs"], "tsEventNs"),
+        ts_received_ns=_parse_nanosecond_string(payload["tsReceivedNs"], "tsReceivedNs"),
         sequence=payload["sequence"],
         sequence_origin=payload["sequenceOrigin"],
         origin=payload["origin"],
         completeness=payload["completeness"],
         ts_provider_out_ns=(
             None if payload["tsProviderOutNs"] is None
-            else int(payload["tsProviderOutNs"])
+            else _parse_nanosecond_string(payload["tsProviderOutNs"], "tsProviderOutNs")
         ),
         bucket_policy=payload["bucketPolicy"],
         calendar_id=payload["calendarId"],

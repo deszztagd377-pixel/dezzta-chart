@@ -46,3 +46,16 @@ Every case must raise `MetricsCollectorError("invalid_timestamp")` before a data
 ## Acceptance boundary
 
 Automated Tests, CodeQL, Full Git History Secret Audit and OCI ARM64 image readiness must pass on the exact final commit. OCI readiness is CI evidence only, not a cloud deployment. No paid service, cloud account, production credential, domain, deployment, external provider entitlement, or device action is introduced. `main` remains untouched. Target date remains **24 December 2026**, not a guaranteed completion claim.
+
+
+## Exact-HEAD CI result — Batch 62J-171
+
+Final code/test HEAD: `d5cd1418a3a0b449d503803da6527bd3a4c982bc`.
+
+- Automated Tests [45161627257](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45161627257): **SUCCESS** — frontend 306 passed; backend 1,336 passed, 1 skipped, 6 warnings; Redis TLS fixture, SQLite outbox/metrics benchmarks, backend container build/smoke, dependency audit and image scan completed successfully.
+- CodeQL [45161627265](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45161627265): **SUCCESS** for Python and JavaScript/TypeScript.
+- Full Git History Secret Audit [45161627305](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45161627305): **SUCCESS**.
+- OCI ARM64 Image Readiness [45161627212](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45161627212): **SUCCESS** — native ARM64 image build and unprivileged/persistent-volume smoke passed.
+- Backend dependency audit: no known vulnerabilities found. Container HIGH/CRITICAL scan step completed successfully.
+
+These results apply only to the exact SHA above. CI readiness does not equal cloud deployment or owner-host Gate 38 acceptance.

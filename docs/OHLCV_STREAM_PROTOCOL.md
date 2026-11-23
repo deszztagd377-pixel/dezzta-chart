@@ -75,6 +75,10 @@ with different scopes and must never be substituted for one another.
 
 When callers omit `bucketPolicy`, REST and WebSocket boundaries derive it from the timeframe: intraday intervals use `UTC_FIXED_V1`; daily and larger intervals use `UTC_LEGACY`. Explicit supported policies remain available to address a distinct historical series. Frontend request construction, snapshot filtering, stream validation, and store identity comparisons follow the same timeframe rule. This prevents valid intraday bars from being hidden by an implicit legacy-policy filter.
 
+## Backend replica relay validation
+
+The replica-to-pipeline bridge treats Redis/outbox event JSON as untrusted input. Nanosecond fields (`tsStartNs`, `tsEventNs`, `tsReceivedNs`, and optional `tsProviderOutNs`) must be unsigned ASCII decimal strings; prices and volume must use the same canonical decimal-string grammar as the frontend snapshot parser. Numeric JSON values, booleans, signed/fractional nanosecond strings, exponent notation, non-finite decimal tokens, and non-canonical leading-zero decimal values are rejected before the event reaches the in-memory pipeline.
+
 ## Validation and ordering
 
 The frontend parser reuses the existing snapshot bar validator. It therefore
