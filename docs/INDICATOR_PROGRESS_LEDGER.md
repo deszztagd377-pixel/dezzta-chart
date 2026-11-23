@@ -1,7 +1,7 @@
 # CURRENT INDICATOR LEDGER — Batch 62J-177 (23 November 2026)
 
 **Branch:** `phase-2/market-data-foundation`  
-**Latest code/test HEAD:** `a16818e10997c07d68a2e14929ba193b09ce0a8f`  
+**Latest code/test HEAD:** `b752d6ca4b2317e8a7ab9f71e2bc23ff937eb4aa`  
 **Indicator source/formula changes:** none. **Indicator renderer/UI changes:** none.  
 **Reason for reconciliation:** synthetic-only WebSocket cursor integrity work does not earn indicator implementation credit.
 
