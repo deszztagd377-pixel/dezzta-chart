@@ -218,6 +218,37 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     expect(closed.code).toBe(4401);
   });
 
+  it("allows exactly one winner when two sockets race to consume the same ticket", async () => {
+    const ticket = await issueTicket(SERIES_REPLAY);
+    const firstSocket = await openSocket(SERIES_REPLAY);
+    const secondSocket = await openSocket(SERIES_REPLAY);
+
+    // Install both observers before sending either authentication frame so a
+    // fast Durable Object response cannot escape the test harness.
+    const observe = (socket) => nextJsonMessage(socket).then(
+      (message) => ({ kind: "message", message }),
+      (error) => ({ kind: "closed", error }),
+    );
+    const firstOutcome = observe(firstSocket);
+    const secondOutcome = observe(secondSocket);
+
+    firstSocket.send(JSON.stringify({ type: "auth", ticket }));
+    secondSocket.send(JSON.stringify({ type: "auth", ticket }));
+
+    const outcomes = await Promise.all([firstOutcome, secondOutcome]);
+    const accepted = outcomes.filter((outcome) => outcome.kind === "message");
+    const rejected = outcomes.filter((outcome) => outcome.kind === "closed");
+
+    expect(accepted).toHaveLength(1);
+    expect(accepted[0].message).toMatchObject({
+      type: "market_data.snapshot",
+      streamId: `synthetic:${SERIES_REPLAY}`,
+      watermarkCursor: "50",
+    });
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0].error.message).toMatch(/WebSocket closed before the expected message/);
+  });
+
   it("restores serialized socket identity and resumes messages after DO eviction", async () => {
     const client = await connectAuthenticated(SERIES_HIBERNATE);
     const stub = coordinatorStub(SERIES_HIBERNATE);
