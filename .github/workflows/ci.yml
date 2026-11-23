@@ -63,6 +63,9 @@ jobs:
         with:
           node-version: 22
 
+      - name: Pin npm to stable Arborist version
+        run: npm install --global npm@10.8.2
+
       - name: Install frontend dependencies
         run: npm ci
 

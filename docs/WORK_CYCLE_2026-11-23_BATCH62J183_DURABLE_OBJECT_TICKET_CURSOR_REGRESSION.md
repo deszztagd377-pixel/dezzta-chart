@@ -117,3 +117,8 @@ The first CI execution on the initial 62J-183 commit reported 5/6 runtime tests 
 ## 9. CI runtime compatibility correction
 
 The first exact-head run exposed an environment mismatch in the existing CI configuration: the Worker/DO test lane installed Miniflare versions requiring Node.js >=22.0.0 and >=22.12.0, while the shared CI job was pinned to Node.js 20.20.2. npm reported EBADENGINE warnings. Although the test process started, running a Cloudflare runtime dependency on an unsupported Node major is not an acceptable reproducibility baseline. The CI Node setup is therefore advanced to Node.js 22 for the shared frontend/Worker test job. This is a CI toolchain-only change; it does not alter production application runtime or dependencies. The corrected exact-head workflow must verify frontend tests/build and the Cloudflare runtime under Node 22.
+
+
+## 10. npm installer stability correction
+
+After moving the CI job to supported Node.js 22.23.5, npm 10.9.9 failed during the pinned Miniflare install with an internal Arborist error: `Cannot read properties of null (reading 'edgesOut')`. This occurred before the runtime test process started and is an installer/toolchain failure, not a Worker test failure. The CI job now pins npm to 10.8.2, the npm version used by the prior working Node 20 test lane, while retaining Node 22 to satisfy Miniflare's engine requirement. This makes the Node and npm toolchain versions explicit. Exact-head CI must confirm the combined toolchain before acceptance.
