@@ -80,6 +80,9 @@ jobs:
       - name: Test synthetic Worker in pinned local workerd runtime
         run: npm run test:cloudflare-runtime
 
+      - name: Test Durable Object hibernation, alarms and per-series isolation
+        run: npm run test:cloudflare-durable-objects
+
 
       - name: Run frontend unit tests
         run: npm test
