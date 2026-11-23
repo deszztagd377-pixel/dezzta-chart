@@ -2524,3 +2524,8 @@ Batch 62J-179 addressed two adjacent WebSocket safeguards only: constructor resi
 ### Batch 62J-180 — CI regression correction
 
 The latest CI failure on `2591e6071ba966114895256e51aa3fb99ea8001f` was traced to a malformed test callback: an `await` appeared inside a synchronous test function. Fixed by marking the test callback `async`, committed as `ae9a6368f824e4c2fac2b1c9d18ad2fba9fc41ca`. This changes test syntax only; indicator implementation and mathematical foundations are unchanged. Re-run status is pending verification. All indicator statuses and invariants listed above remain unchanged.
+
+
+### Batch 62J-180 — alarm assertion follow-up
+
+The async test callback correction allowed all 25 cases to execute. CI then reported 24/25: the alarm test expected the pending socket deadline even though the expired socket had an earlier deadline. The implementation's earliest-deadline scheduling was correct; the assertion was wrong. The test now expects the expired socket's deadline before alarm processing, then verifies rescheduling to the pending deadline afterward. Fix commit: `b0cc4682156e65ce94f8f4203899f3e7baee3070`. Indicator code and statuses remain unchanged.
