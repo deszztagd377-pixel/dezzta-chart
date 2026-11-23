@@ -103,6 +103,84 @@ def make_consumer(
     )
 
 
+class _PendingScanRedis:
+    def __init__(self, autoclaim_responses):
+        self.autoclaim_responses = list(autoclaim_responses)
+        self.autoclaim_calls = []
+        self.read_calls = []
+        self.ack_calls = []
+
+    def xgroup_create(self, stream, group, id, mkstream):
+        return True
+
+    def xreadgroup(self, group, consumer, streams, **kwargs):
+        cursor = next(iter(streams.values()))
+        self.read_calls.append(cursor)
+        return []
+
+    def xautoclaim(
+        self, stream, group, consumer, min_idle_ms, *, start_id, count,
+    ):
+        self.autoclaim_calls.append(start_id)
+        return self.autoclaim_responses.pop(0)
+
+    def xack(self, *args):
+        self.ack_calls.append(args)
+        return 1
+
+
+def test_consumer_requires_snapshot_when_xautoclaim_reports_deleted_pending_entry(
+    tmp_path,
+):
+    source = SQLiteOhlcvStore(str(tmp_path / "deleted-pending-source.sqlite3"))
+    snapshot_path = tmp_path / "deleted-pending-snapshot.jsonl"
+    make_snapshot(source, snapshot_path)
+    replica = make_replica(
+        source, snapshot_path, tmp_path / "deleted-pending-replica.sqlite3",
+    )
+    redis = _PendingScanRedis([("0-0", [], ["1-0"])])
+    consumer = make_consumer(
+        redis, replica, "test:deleted-pending", "gateway-deleted-pending",
+    )
+
+    with pytest.raises(ReplicaResnapshotRequired, match="pending stream entries were deleted"):
+        consumer.consume_once()
+
+    assert redis.autoclaim_calls == ["0-0"]
+    assert redis.read_calls == ["0"]
+    assert redis.ack_calls == []
+    assert replica.checkpoint()["applied_cursor"] == 0
+
+
+def test_consumer_finishes_xautoclaim_scan_before_reading_new_stream_entries(
+    tmp_path,
+):
+    source = SQLiteOhlcvStore(str(tmp_path / "pending-scan-source.sqlite3"))
+    snapshot_path = tmp_path / "pending-scan-snapshot.jsonl"
+    make_snapshot(source, snapshot_path)
+    replica = make_replica(
+        source, snapshot_path, tmp_path / "pending-scan-replica.sqlite3",
+    )
+    redis = _PendingScanRedis([
+        ("5-0", [], []),
+        ("0-0", [], []),
+    ])
+    consumer = make_consumer(
+        redis, replica, "test:pending-scan", "gateway-pending-scan",
+    )
+
+    first = consumer.consume_once()
+    assert first["status"] == "pending_scan"
+    assert redis.autoclaim_calls == ["0-0"]
+    assert redis.read_calls == ["0"]
+
+    second = consumer.consume_once()
+    assert second["status"] == "idle"
+    assert redis.autoclaim_calls == ["0-0", "5-0"]
+    assert redis.read_calls == ["0", "0", ">"]
+    assert redis.ack_calls == []
+
+
 def test_real_redis_consumer_applies_durably_then_acknowledges(tmp_path):
     redis, stream_key = real_redis()
     source = SQLiteOhlcvStore(str(tmp_path / "source.sqlite3"))
