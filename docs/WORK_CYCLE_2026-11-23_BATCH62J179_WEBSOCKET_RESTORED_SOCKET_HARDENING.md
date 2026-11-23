@@ -122,3 +122,10 @@ No indicator completion percentage is inferred from the WebSocket changes. Indic
 **Significant progress in this batch:** malformed socket state can no longer abort restoration merely because close throws; fan-out now enforces the full attachment contract before delivery. This closes two narrow source-level gaps but does not justify raising stage or project percentages.
 
 **Target date:** 24 December 2026 — planning target, not a completion guarantee.
+
+## 8. Toolchain and CI verification boundary
+
+- The existing CI workflow is configured for pushes to `phase-2/market-data-foundation` and runs `node --check` plus `node --test cloudflare/proof/worker.node-test.mjs`.
+- The current root `package.json` and `package-lock.json` do not include Wrangler or Miniflare. Therefore, no local Cloudflare runtime smoke was improvised with an unpinned/transient dependency in this batch.
+- The available GitHub connector returned empty combined-status arrays and no workflow-run records for the code/test commit and latest documentation HEAD. Its workflow-run helper is PR-triggered only, so this is **not proof that the push workflow did not start**; exact-head completion cannot be verified through the available connector.
+- The correct next verification is to inspect the actual push-triggered CI run/checks and, separately, establish a pinned zero-cost local runtime toolchain before claiming Cloudflare runtime acceptance.
