@@ -63,12 +63,6 @@ jobs:
         with:
           node-version: 20
 
-      - name: Test isolated synthetic Cloudflare Worker proof
-        run: |
-          node --check cloudflare/proof/worker.mjs
-          node --test cloudflare/proof/worker.test.mjs
-          node -e 'JSON.parse(require("node:fs").readFileSync("cloudflare/wrangler.jsonc", "utf8")); console.log("Wrangler JSONC configuration syntax: PASS")'
-
       - name: Install frontend dependencies
         run: npm ci
 
@@ -76,6 +70,13 @@ jobs:
         id: frontend_dependency_audit
         continue-on-error: true
         run: npm audit --audit-level=high
+
+      - name: Test isolated synthetic Cloudflare Worker proof
+        run: |
+          node --check cloudflare/proof/worker.mjs
+          node --test cloudflare/proof/worker.test.mjs
+          node -e 'JSON.parse(require("node:fs").readFileSync("cloudflare/wrangler.jsonc", "utf8")); console.log("Wrangler JSONC configuration syntax: PASS")'
+
 
       - name: Run frontend unit tests
         run: npm test
