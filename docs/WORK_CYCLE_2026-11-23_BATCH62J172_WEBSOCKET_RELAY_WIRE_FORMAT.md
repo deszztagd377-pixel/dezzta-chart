@@ -38,3 +38,16 @@ These results do not apply to this new commit; Batch 62J-172 requires its own ex
 ## Acceptance boundary
 
 This is local wire-format consistency hardening. It does not prove public WSS, Firebase production authentication, reverse proxy/certificate lifecycle, Android WebView behavior, upstream dynamic subscription pooling, provider rights, or Gate 25/36 closure. No indicator implementation credit is awarded. `main` untouched.
+
+
+## Exact-HEAD CI result — Batch 62J-172
+
+Corrected final code/test HEAD: `a9d001885b0b524bc33427add30584e1984680bf`.
+
+- Automated Tests [45162694296](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45162694296): **SUCCESS** — frontend 306 passed; backend 1,347 passed, 1 skipped, 6 warnings; Redis TLS fixture, outbox/metrics benchmarks, backend container build/smoke, dependency audit and image scan completed successfully.
+- CodeQL [45162694141](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45162694141): **SUCCESS** for Python and JavaScript/TypeScript.
+- Full Git History Secret Audit [45162694099](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45162694099): **SUCCESS**.
+- OCI ARM64 Image Readiness [45162694385](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45162694385): **SUCCESS** — native ARM64 image build and unprivileged/persistent-volume smoke passed.
+- Backend dependency audit: no known vulnerabilities found. Container HIGH/CRITICAL scan step completed successfully.
+
+All four workflows apply to the exact corrected SHA above. This remains CI readiness, not cloud deployment or public WSS/owner-host acceptance.

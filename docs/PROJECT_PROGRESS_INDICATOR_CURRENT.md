@@ -1,9 +1,9 @@
-# CURRENT PROJECT PROGRESS — Batch 62J-172 (23 November 2026)
+# CURRENT PROJECT PROGRESS — Batch 62J-173 (23 November 2026)
 
 **Target date corrected by project owner: 24 December 2026.** This is a delivery target, not a guaranteed completion claim.
 
 **Active branch:** `phase-2/market-data-foundation`  
-**Latest fully CI-verified code/test HEAD before Batch 62J-172:** `d5cd1418a3a0b449d503803da6527bd3a4c982bc`  
+**Latest fully CI-verified code/test HEAD:** `a9d001885b0b524bc33427add30584e1984680bf`  
 **WebSocket test correction commit:** `cb708c3e6357c59ef7a61fcb5fc5c304b014d62a`  
 **Batch 62J-148 test commit:** `79d88d9aa5261dde3f2e31d1e742d45f461e43c2`  
 **Batch 62J-149 WebSocket test commit:** `ed7f22a00b71223d0dd7ed280aadddd8a30cf6e1`  
@@ -4377,3 +4377,36 @@ Batch 62J-171 exact-HEAD CI was fully successful: Automated Tests [45161627257](
 SMA20 🟨 Foundation; EMA20 🟨 Foundation; RSI14 Wilder 🟨 Foundation; MACD12/26/9 🟨 Foundation; Bollinger20,2 🟨 Foundation; Shared Indicator Hook 🟨 Foundation; Footprint 🟧 synthetic prototype; Heatmap 🟥 not implemented; Liquidation Maps 🟥 not implemented. Full formulas, first-valid indices, invariants and remaining acceptance are recorded in `docs/INDICATOR_PROGRESS_LEDGER.md`.
 
 ZERO COST. No paid hosting, market-data entitlement, subscription, domain, deployment, production credential, publication fee or physical-device action. `main` untouched. Target remains **24 December 2026**.
+
+
+---
+
+# Batch 62J-173 — CI acceptance and project reconciliation (23 November 2026)
+
+Batch 62J-172 corrected final source/test HEAD `a9d001885b0b524bc33427add30584e1984680bf` passed all four exact-HEAD workflows:
+
+- Automated Tests [45162694296](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45162694296): **SUCCESS** — 1,347 backend tests passed, 1 skipped, 6 warnings; 306 frontend tests passed; Redis TLS, SQLite outbox/metrics benchmarks, backend container smoke, dependency audit and image scan passed.
+- CodeQL [45162694141](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45162694141): **SUCCESS**.
+- Full Git History Secret Audit [45162694099](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45162694099): **SUCCESS**.
+- OCI ARM64 Image Readiness [45162694385](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45162694385): **SUCCESS**.
+
+## Project indicators
+
+- Stage 1 Foundation, Security & Data Integrity: **30/40 = 75% provisional** 🟨.
+- Stage 2 Market Data Infrastructure: **NOT SCORED / not officially opened** ⬜.
+- Stage 3 Chart Engine & Timeframe: **NOT SCORED / not officially opened** ⬜.
+- Stage 4 Indicators & Analytics: **NOT SCORED / not officially opened** ⬜.
+- Stage 5 Professional UI & Interactive Tools: **NOT SCORED / not officially opened** ⬜.
+- Stage 6 Hardening, Validation & APK Release: **NOT SCORED / not officially opened** ⬜.
+- Gate 10: **0/10 external acceptance criteria formally closed** 🟥.
+- Gate 25: **OPEN** 🟧 — local checkpoint/relay contract stronger; cross-host authenticated receipt/key lifecycle and owner-host Redis acceptance remain.
+- Gate 36: **OPEN** 🟥 — public WSS, real Firebase, reverse proxy/certificate lifecycle and Android WebView/network acceptance remain.
+- Gate 38: **OPEN** 🟧 — local metrics timestamp contract hardened; owner-host persistence, backup/restore, retention operations, external alerts and recovery drill remain.
+- Gate 39: **OPEN** 🟥 — alert acknowledgement and operational recovery acceptance remain.
+- Overall project: **NOT SCORED**; approved weights and denominator remain unavailable.
+
+## Complete indicator dashboard
+
+SMA20 🟨 Foundation; EMA20 🟨 Foundation; RSI14 Wilder 🟨 Foundation; MACD12/26/9 🟨 Foundation; Bollinger20,2 🟨 Foundation; Shared Indicator Hook 🟨 Foundation; Footprint 🟧 synthetic prototype; Heatmap 🟥 not implemented; Liquidation Maps 🟥 not implemented. Detailed formulas, first-valid indices, invariants and remaining acceptance are maintained in `docs/INDICATOR_PROGRESS_LEDGER.md`.
+
+ZERO COST preserved. OCI readiness is not deployment. No paid provider, hosting, domain, production credential, publication fee or physical-device action. `main` untouched. Target remains **24 December 2026**.
