@@ -306,6 +306,45 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     });
   });
 
+  it("serializes concurrent duplicate cursor submissions before fan-out", async () => {
+    const seriesKey = "synthetic:DEMO:CONCURRENT:1m";
+    const client = await connectAuthenticated(seriesKey);
+    const updatePromise = nextJsonMessage(client.socket);
+
+    const results = await Promise.all([
+      emit(seriesKey, 51),
+      emit(seriesKey, 51),
+    ]);
+    const accepted = results.filter((result) => result.status === 200);
+    const rejected = results.filter((result) => result.status === 409);
+
+    expect(accepted).toHaveLength(1);
+    expect(accepted[0].payload).toMatchObject({
+      accepted: true,
+      sequence: "51",
+      delivered: 1,
+    });
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0].payload).toMatchObject({ error: "sequence_conflict" });
+    expect(await updatePromise).toMatchObject({
+      type: "market_data.update",
+      sequence: "51",
+    });
+
+    const nextUpdatePromise = nextJsonMessage(client.socket);
+    const contiguous = await emit(seriesKey, 52);
+    expect(contiguous.status).toBe(200);
+    expect(contiguous.payload).toMatchObject({
+      accepted: true,
+      sequence: "52",
+      delivered: 1,
+    });
+    expect(await nextUpdatePromise).toMatchObject({
+      type: "market_data.update",
+      sequence: "52",
+    });
+  });
+
   it("rejects duplicate and skipped cursors without fan-out, then accepts the next contiguous cursor", async () => {
     const seriesKey = "synthetic:DEMO:SEQUENCE:1m";
     const client = await connectAuthenticated(seriesKey);
