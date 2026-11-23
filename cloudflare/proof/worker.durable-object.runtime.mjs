@@ -206,6 +206,44 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     expect(otherSeries.socket.readyState).toBe(1);
   });
 
+  it("anchors the snapshot at the latest cursor before accepting subsequent live updates", async () => {
+    const ticket = await issueTicket(SERIES_A);
+    const beforeAuthentication = await emit(SERIES_A, 51);
+    expect(beforeAuthentication.status).toBe(200);
+    expect(beforeAuthentication.payload).toMatchObject({
+      accepted: true,
+      sequence: "51",
+      delivered: 0,
+    });
+
+    const socket = await openSocket(SERIES_A);
+    const snapshotPromise = nextJsonMessage(socket);
+    socket.send(JSON.stringify({ type: "auth", ticket }));
+    const snapshot = await snapshotPromise;
+
+    expect(snapshot).toMatchObject({
+      type: "market_data.snapshot",
+      watermarkCursor: "51",
+      dataSource: "synthetic_only_not_market_data",
+    });
+    expect(snapshot.bars).toHaveLength(50);
+    expect(snapshot.bars[0].sequence).toBe("2");
+    expect(snapshot.bars.at(-1).sequence).toBe("51");
+
+    const nextUpdatePromise = nextJsonMessage(socket);
+    const next = await emit(SERIES_A, 52);
+    expect(next.status).toBe(200);
+    expect(next.payload).toMatchObject({
+      accepted: true,
+      sequence: "52",
+      delivered: 1,
+    });
+    expect(await nextUpdatePromise).toMatchObject({
+      type: "market_data.update",
+      sequence: "52",
+    });
+  });
+
   it("consumes a WebSocket ticket once in Durable Object storage", async () => {
     const ticket = await issueTicket(SERIES_REPLAY);
     await connectAuthenticated(SERIES_REPLAY, ticket);

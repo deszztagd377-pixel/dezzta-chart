@@ -132,6 +132,9 @@ test("synthetic snapshot is bounded to 50 bars and has monotonic cursors", () =>
   assert.equal(bars.length, 50);
   assert.deepEqual(bars.map((bar) => bar.sequence), Array.from({ length: 50 }, (_, i) => String(i + 1)));
   assert.throws(() => createSyntheticBars(SERIES, 51), RangeError);
+  const latestBars = createSyntheticBars(SERIES, 50, 51);
+  assert.equal(latestBars[0].sequence, "2");
+  assert.equal(latestBars.at(-1).sequence, "51");
   assert.equal(proofLimits.snapshotBars, 50);
   assert.equal(proofLimits.ticketTtlMs, 90_000);
   assert.equal(proofLimits.unauthenticatedSocketTtlMs, 15_000);
@@ -524,4 +527,50 @@ test("fan-out isolates a failed socket send and counts only successful deliverie
   }]);
   assert.equal(healthy.sent.length, 1);
   assert.equal(healthy.sent[0].sequence, "51");
+});
+
+
+test("snapshot captures the current cursor and next live update follows its watermark", async () => {
+  const storage = new MemoryStorage();
+  await initializeSequenceWatermark(storage, SERIES);
+  const issued = await issueTicket(storage, SERIES, "synthetic-proof-subject");
+  const socket = new MemorySocket({
+    authorized: false,
+    seriesKey: SERIES,
+    subject: null,
+    connectedAt: Date.now(),
+  });
+  const coordinator = new SeriesCoordinatorDO({
+    storage,
+    getWebSockets: () => [socket],
+  }, {});
+
+  const beforeAuthentication = await coordinator.fetch(new Request("https://series.internal/internal/emit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ seriesKey: SERIES, sequence: "51" }),
+  }));
+  assert.equal(beforeAuthentication.status, 200);
+  assert.equal((await beforeAuthentication.json()).delivered, 0);
+
+  await coordinator.webSocketMessage(socket, JSON.stringify({
+    type: "auth",
+    ticket: issued.ticket,
+  }));
+  assert.equal(socket.attachment.snapshotWatermark, 51);
+  assert.equal(socket.sent[0].type, "market_data.snapshot");
+  assert.equal(socket.sent[0].watermarkCursor, "51");
+  assert.equal(socket.sent[0].bars.length, 50);
+  assert.equal(socket.sent[0].bars[0].sequence, "2");
+  assert.equal(socket.sent[0].bars.at(-1).sequence, "51");
+
+  const afterSnapshot = await coordinator.fetch(new Request("https://series.internal/internal/emit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ seriesKey: SERIES, sequence: "52" }),
+  }));
+  assert.equal(afterSnapshot.status, 200);
+  assert.equal((await afterSnapshot.json()).delivered, 1);
+  assert.equal(socket.sent[1].type, "market_data.update");
+  assert.equal(socket.sent[1].sequence, "52");
 });

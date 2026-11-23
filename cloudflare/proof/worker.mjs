@@ -77,11 +77,18 @@ export function createSyntheticBar(seriesKey, sequence) {
   };
 }
 
-export function createSyntheticBars(seriesKey, count = SNAPSHOT_BARS) {
-  if (!Number.isSafeInteger(count) || count < 1 || count > SNAPSHOT_BARS) {
-    throw new RangeError("Synthetic snapshot size must be between 1 and 50 bars.");
+export function createSyntheticBars(seriesKey, count = SNAPSHOT_BARS, throughSequence = count) {
+  if (
+    !Number.isSafeInteger(count) || count < 1 || count > SNAPSHOT_BARS ||
+    !Number.isSafeInteger(throughSequence) || throughSequence < count ||
+    throughSequence > 1_000_000_000
+  ) {
+    throw new RangeError("Synthetic snapshot size or watermark is outside the supported range.");
   }
-  return Array.from({ length: count }, (_, index) => createSyntheticBar(seriesKey, index + 1));
+  const firstSequence = throughSequence - count + 1;
+  return Array.from({ length: count }, (_, index) => (
+    createSyntheticBar(seriesKey, firstSequence + index)
+  ));
 }
 
 export function constantTimeEqual(left, right) {
@@ -156,8 +163,14 @@ export async function consumeTicket(storage, ticket, expectedSeriesKey, now = Da
       record.seriesKey !== expectedSeriesKey ||
       record.subject !== "synthetic-proof-subject"
     ) return null;
+    const snapshotWatermark = await transaction.get("sequence:" + expectedSeriesKey);
+    if (
+      !Number.isSafeInteger(snapshotWatermark) ||
+      snapshotWatermark < SNAPSHOT_WATERMARK ||
+      snapshotWatermark > 1_000_000_000
+    ) return null;
     await transaction.delete(key);
-    return record;
+    return { ...record, snapshotWatermark };
   });
 }
 
@@ -181,7 +194,9 @@ function isValidSocketAttachment(attachment) {
 
   if (attachment.authorized) {
     return attachment.subject === "synthetic-proof-subject" &&
-      attachment.snapshotWatermark === SNAPSHOT_WATERMARK;
+      Number.isSafeInteger(attachment.snapshotWatermark) &&
+      attachment.snapshotWatermark >= SNAPSHOT_WATERMARK &&
+      attachment.snapshotWatermark <= 1_000_000_000;
   }
   return attachment.subject === null;
 }
@@ -463,27 +478,30 @@ export class SeriesCoordinatorDO {
         return;
       }
 
+      const snapshotWatermark = record.snapshotWatermark;
       const authorized = {
         ...attachment,
         authorized: true,
         subject: record.subject,
-        snapshotWatermark: SNAPSHOT_WATERMARK,
+        snapshotWatermark,
       };
       if (Date.now() >= attachment.connectedAt + UNAUTHENTICATED_SOCKET_TTL_MS) {
         socket.close(4408, "Authentication timeout");
         return;
       }
       socket.serializeAttachment(authorized);
-      await this.scheduleUnauthenticatedSocketAlarm();
+      // Send the snapshot synchronously before the next await. This establishes
+      // the snapshot/live boundary: subsequent updates are delivered after it.
       socket.send(JSON.stringify({
         type: "market_data.snapshot",
         version: PROTOCOL_VERSION,
         streamId: "synthetic:" + attachment.seriesKey,
         snapshotGeneration: "synthetic-v1",
-        watermarkCursor: String(SNAPSHOT_WATERMARK),
-        bars: createSyntheticBars(attachment.seriesKey, SNAPSHOT_BARS),
+        watermarkCursor: String(snapshotWatermark),
+        bars: createSyntheticBars(attachment.seriesKey, SNAPSHOT_BARS, snapshotWatermark),
         dataSource: "synthetic_only_not_market_data",
       }));
+      await this.scheduleUnauthenticatedSocketAlarm();
       return;
     }
 
