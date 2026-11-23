@@ -10,6 +10,7 @@ import worker, {
   initializeSequenceWatermark,
   parseSequence,
   proofLimits,
+  SeriesCoordinatorDO,
 } from "./worker.mjs";
 
 const SERIES = "synthetic:DEMO:BTCUSD:1m";
@@ -37,6 +38,18 @@ class MemoryStorage {
       release();
     }
   }
+}
+
+class MemorySocket {
+  constructor(attachment) {
+    this.attachment = structuredClone(attachment);
+    this.sent = [];
+    this.closed = [];
+  }
+  deserializeAttachment() { return structuredClone(this.attachment); }
+  serializeAttachment(attachment) { this.attachment = structuredClone(attachment); }
+  send(message) { this.sent.push(JSON.parse(message)); }
+  close(code, reason) { this.closed.push({ code, reason }); }
 }
 
 function request(path, { method = "GET", token, body, origin = "http://localhost:3000" } = {}) {
@@ -264,6 +277,95 @@ test("snapshot watermark initialization cannot rewind a concurrent first update"
     initializeSequenceWatermark(updateFirst, "BTCUSD"),
     TypeError,
   );
+});
+
+test("Durable Object consumes one-time ticket and sends an aligned synthetic snapshot", async () => {
+  const storage = new MemoryStorage();
+  const issued = await issueTicket(storage, SERIES, "synthetic-proof-subject");
+  const socket = new MemorySocket({
+    authorized: false,
+    seriesKey: SERIES,
+    subject: null,
+    connectedAt: Date.now(),
+  });
+  const ctx = { storage, getWebSockets: () => [socket] };
+  const coordinator = new SeriesCoordinatorDO(ctx, {});
+
+  await coordinator.webSocketMessage(socket, JSON.stringify({ type: "auth", ticket: issued.ticket }));
+  assert.equal(socket.closed.length, 0);
+  assert.equal(socket.attachment.authorized, true);
+  assert.equal(socket.attachment.snapshotWatermark, 50);
+  assert.equal(socket.sent.length, 1);
+  assert.equal(socket.sent[0].type, "market_data.snapshot");
+  assert.equal(socket.sent[0].watermarkCursor, "50");
+  assert.equal(socket.sent[0].bars.length, 50);
+
+  const replaySocket = new MemorySocket({
+    authorized: false,
+    seriesKey: SERIES,
+    subject: null,
+    connectedAt: Date.now(),
+  });
+  await coordinator.webSocketMessage(replaySocket, JSON.stringify({ type: "auth", ticket: issued.ticket }));
+  assert.equal(replaySocket.closed[0].code, 4401);
+});
+
+test("Durable Object synthetic fan-out is exact-series only and sequence-contiguous", async () => {
+  const otherSeries = "synthetic:DEMO:ETHUSD:1m";
+  const storage = new MemoryStorage();
+  await storage.put("sequence:" + SERIES, 50);
+  const sameA = new MemorySocket({
+    authorized: true, seriesKey: SERIES, subject: "synthetic-proof-subject",
+    connectedAt: Date.now(), snapshotWatermark: 50,
+  });
+  const sameB = new MemorySocket({
+    authorized: true, seriesKey: SERIES, subject: "synthetic-proof-subject",
+    connectedAt: Date.now(), snapshotWatermark: 50,
+  });
+  const other = new MemorySocket({
+    authorized: true, seriesKey: otherSeries, subject: "synthetic-proof-subject",
+    connectedAt: Date.now(), snapshotWatermark: 50,
+  });
+  const sockets = [sameA, sameB, other];
+  const coordinator = new SeriesCoordinatorDO({ storage, getWebSockets: () => sockets }, {});
+  const response = await coordinator.fetch(new Request("https://series.internal/internal/emit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ seriesKey: SERIES, sequence: "51" }),
+  }));
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).delivered, 2);
+  assert.equal(sameA.sent[0].sequence, "51");
+  assert.equal(sameB.sent[0].sequence, "51");
+  assert.equal(other.sent.length, 0);
+
+  const gap = await coordinator.fetch(new Request("https://series.internal/internal/emit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ seriesKey: SERIES, sequence: "53" }),
+  }));
+  assert.equal(gap.status, 409);
+});
+
+test("Durable Object closes malformed serialized attachment state during restoration", () => {
+  const invalidSeries = new MemorySocket({
+    authorized: false, seriesKey: "BTCUSD", subject: null, connectedAt: Date.now(),
+  });
+  const invalidSubject = new MemorySocket({
+    authorized: true, seriesKey: SERIES, subject: "wrong-subject",
+    connectedAt: Date.now(), snapshotWatermark: 50,
+  });
+  const valid = new MemorySocket({
+    authorized: true, seriesKey: SERIES, subject: "synthetic-proof-subject",
+    connectedAt: Date.now(), snapshotWatermark: 50,
+  });
+  new SeriesCoordinatorDO({
+    storage: new MemoryStorage(),
+    getWebSockets: () => [invalidSeries, invalidSubject, valid],
+  }, {});
+  assert.equal(invalidSeries.closed[0].code, 4401);
+  assert.equal(invalidSubject.closed[0].code, 4401);
+  assert.equal(valid.closed.length, 0);
 });
 
 test("health response includes local CORS only for the allow-listed origin", async () => {
