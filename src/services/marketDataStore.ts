@@ -11,7 +11,7 @@ export interface MarketSeriesIdentity {
   instrumentId: number;
   rawSymbol: string;
   timeframe: Timeframe;
-  bucketPolicy?: 'UTC_LEGACY' | 'UTC_FIXED_V1';
+  bucketPolicy?: 'UTC_LEGACY' | 'UTC_FIXED_V1' | 'CME_SESSION_V1';
   calendarId?: string;
   calendarVersion?: string;
 }
@@ -107,21 +107,28 @@ export function validateMarketSeriesIdentity(identity: MarketSeriesIdentity): vo
   // so malformed runtime values cannot bypass the supported-timeframe guard.
   const defaultBucketPolicy = getBucketPolicyForTimeframe(identity.timeframe);
   const bucketPolicy = identity.bucketPolicy ?? defaultBucketPolicy;
-  if (bucketPolicy !== 'UTC_LEGACY' && bucketPolicy !== 'UTC_FIXED_V1') {
+  if (
+    bucketPolicy !== 'UTC_LEGACY' &&
+    bucketPolicy !== 'UTC_FIXED_V1' &&
+    bucketPolicy !== 'CME_SESSION_V1'
+  ) {
     throw new Error('Market data bucket policy is unsupported by the frontend.');
   }
 
   const calendarId = identity.calendarId ?? '';
   const calendarVersion = identity.calendarVersion ?? '';
-  if (
-    typeof calendarId !== 'string' ||
-    typeof calendarVersion !== 'string' ||
-    calendarId.trim() ||
-    calendarVersion.trim()
-  ) {
-    throw new Error(
-      'Exchange calendar metadata cannot be used until a session-aware bucket policy is supported.',
-    );
+  if (typeof calendarId !== 'string' || typeof calendarVersion !== 'string') {
+    throw new Error('Market data calendar identity must contain strings.');
+  }
+  if (bucketPolicy === 'CME_SESSION_V1') {
+    if (!['1d', '1w', '1M', '3M'].includes(identity.timeframe)) {
+      throw new Error('CME_SESSION_V1 supports only 1d, 1w, 1M, and 3M timeframes.');
+    }
+    if (!calendarId.trim() || !calendarVersion.trim()) {
+      throw new Error('CME_SESSION_V1 requires non-empty calendarId and calendarVersion.');
+    }
+  } else if (calendarId.trim() || calendarVersion.trim()) {
+    throw new Error('UTC bucket policies must not carry exchange calendar metadata.');
   }
 }
 
