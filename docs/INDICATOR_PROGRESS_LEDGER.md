@@ -2534,3 +2534,22 @@ The async test callback correction allowed all 25 cases to execute. CI then repo
 ### Batch 62J-180 — final CI result
 
 The corrected branch checkpoint `07186190e98a4e9418664990a1a84acbc6fb3e13` completed successfully. Synthetic Worker test step: **25 passed, 0 failed**. Frontend unit tests/build, backend tests, backend container smoke test, dependency audits, secret-history audit, CodeQL (JavaScript/TypeScript and Python), and OCI ARM64 readiness all succeeded. This CI result validates the existing indicator ledger documentation only; no indicator calculation or renderer implementation changed in this batch. Indicator statuses and invariants remain unchanged.
+
+
+---
+
+## Batch 62J-181/182 — CME session identity frontend integration (23 November 2026)
+
+Market-data infrastructure work only. No indicator calculation, warm-up rule, index alignment, chart renderer, pane, overlay, setting, legend, or indicator-specific test was changed. Therefore indicator statuses and credit remain unchanged:
+
+- SMA20 🟨 Foundation
+- EMA20 🟨 Foundation
+- RSI14 Wilder 🟨 Foundation
+- MACD12/26/9 🟨 Foundation
+- Bollinger20,2 🟨 Foundation
+- Shared Indicator Hook 🟨 Foundation
+- Footprint 🟧 Synthetic prototype only
+- Heatmap 🟥 Not implemented
+- Liquidation Maps 🟥 Not implemented
+
+The frontend now validates and preserves exact `CME_SESSION_V1` calendar identity for 1D/1W/1M/3M only when both calendar ID and a uniquely loaded version are supplied. This does not increase indicator progress. Aggregate indicator completion remains **NOT SCORED**.
