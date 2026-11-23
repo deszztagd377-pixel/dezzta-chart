@@ -352,6 +352,50 @@ test("Durable Object synthetic fan-out is exact-series only and sequence-contigu
   assert.equal(gap.status, 409);
 });
 
+test("constructor tolerates an already-closed malformed restored socket", () => {
+  const malformed = new MemorySocket({
+    authorized: true, seriesKey: SERIES, subject: "invalid-subject",
+    connectedAt: Date.now(), snapshotWatermark: 50,
+  });
+  malformed.close = () => { throw new Error("socket already closed"); };
+  const valid = new MemorySocket({
+    authorized: true, seriesKey: SERIES, subject: "synthetic-proof-subject",
+    connectedAt: Date.now(), snapshotWatermark: 50,
+  });
+  assert.doesNotThrow(() => new SeriesCoordinatorDO({
+    storage: new MemoryStorage(),
+    getWebSockets: () => [malformed, valid],
+  }, {}));
+  assert.equal(valid.closed.length, 0);
+});
+
+test("synthetic fan-out rejects malformed authorization attachments", async () => {
+  const storage = new MemoryStorage();
+  await storage.put("sequence:" + SERIES, 50);
+  const valid = new MemorySocket({
+    authorized: true, seriesKey: SERIES, subject: "synthetic-proof-subject",
+    connectedAt: Date.now(), snapshotWatermark: 50,
+  });
+  const malformed = new MemorySocket({
+    authorized: true, seriesKey: SERIES, subject: "invalid-subject",
+    connectedAt: Date.now(), snapshotWatermark: 50,
+  });
+  const coordinator = new SeriesCoordinatorDO({
+    storage,
+    getWebSockets: () => [valid, malformed],
+  }, {});
+  const response = await coordinator.fetch(new Request("https://series.internal/internal/emit", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ seriesKey: SERIES, sequence: "51" }),
+  }));
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).delivered, 1);
+  assert.equal(valid.sent.length, 1);
+  assert.equal(malformed.sent.length, 0);
+  assert.equal(malformed.closed[0].code, 4401);
+});
+
 test("unauthenticated socket alarm schedules the earliest deadline and expires only overdue sockets", async () => {
   const now = Date.now();
   const storage = new MemoryStorage();
