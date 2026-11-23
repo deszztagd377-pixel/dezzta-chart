@@ -21,6 +21,9 @@ export interface FuturesContractDto {
   series_type: 'contract';
   /** Null until an exact active provider mapping exists in the durable registry. */
   canonical_instrument_id: string | null;
+  /** Canonical session calendar; version is null unless exactly one pinned release is loaded. */
+  session_calendar_id?: string | null;
+  session_calendar_version?: string | null;
 }
 
 export interface InstrumentCatalogResponse {
