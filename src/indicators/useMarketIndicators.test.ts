@@ -86,6 +86,39 @@ describe('useMarketIndicators keyed series integration', () => {
     expect(marketDataSeriesStore.getSubscriberCount(firstIdentity)).toBe(1);
   });
 
+  it('recalculates from a new immutable snapshot revision after a live bar update', () => {
+    const container = document.createElement('div');
+    const root = createRoot(container);
+    roots.push(root);
+
+    function Probe() {
+      const result = useMarketIndicators(firstIdentity);
+      const latestSma = result.indicators?.sma20.slice(-1)[0] ?? 'empty';
+      return createElement('span', null, `${result.revision}:${latestSma}`);
+    }
+
+    act(() => root.render(createElement(Probe)));
+    act(() => marketDataSeriesStore.publishSnapshot({
+      identity: firstIdentity,
+      status: 'ready',
+      bars: makeBars(100),
+    }));
+    expect(container.textContent).toBe('1:130.5');
+
+    act(() => marketDataSeriesStore.publishUpdate({
+      identity: firstIdentity,
+      bar: {
+        timestamp: 1_800_002_400,
+        open: 200,
+        high: 202,
+        low: 199,
+        close: 201,
+        volume: 1,
+      },
+    }));
+    expect(container.textContent).toBe('2:134.5');
+  });
+
   it('keeps simultaneous panel calculations isolated by canonical series', () => {
     const container = document.createElement('div');
     const root = createRoot(container);
