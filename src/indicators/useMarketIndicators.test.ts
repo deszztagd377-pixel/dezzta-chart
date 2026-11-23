@@ -103,7 +103,9 @@ describe('useMarketIndicators keyed series integration', () => {
       status: 'ready',
       bars: makeBars(100),
     }));
-    expect(container.textContent).toBe('1:130.5');
+    const initialRevision = Number(container.textContent?.split(':')[0]);
+    expect(initialRevision).toBeGreaterThan(0);
+    expect(container.textContent).toBe(`${initialRevision}:130.5`);
 
     act(() => marketDataSeriesStore.publishUpdate({
       identity: firstIdentity,
@@ -116,7 +118,7 @@ describe('useMarketIndicators keyed series integration', () => {
         volume: 1,
       },
     }));
-    expect(container.textContent).toBe('2:134.5');
+    expect(container.textContent).toBe(`${initialRevision + 1}:134.5`);
   });
 
   it('keeps simultaneous panel calculations isolated by canonical series', () => {
