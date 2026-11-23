@@ -15,7 +15,7 @@ export default defineConfig({
     }),
   ],
   test: {
-    include: ["cloudflare/proof/worker.durable-object.test.mjs"],
+    include: ["cloudflare/proof/worker.durable-object.runtime.mjs"],
     testTimeout: 15_000,
     hookTimeout: 15_000,
     fileParallelism: false,
