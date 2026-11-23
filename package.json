@@ -27,6 +27,9 @@
     "jsdom": "26.1.0"
   },
   "overrides": {
-    "@grpc/grpc-js": "^1.14.7"
+    "@grpc/grpc-js": "^1.14.7",
+    "miniflare": {
+      "undici": "7.30.1"
+    }
   }
 }
