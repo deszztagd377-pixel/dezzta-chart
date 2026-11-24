@@ -170,6 +170,28 @@ describe('per-series shared OHLCV supervisor registry', () => {
     expect(marketDataSeriesStore.getSnapshot(es).status).toBe('unavailable');
   });
 
+  it('rejects conflicting endpoint or canonical mapping for an already-owned series', () => {
+    const registry = new OhlcvSeriesSupervisorRegistry();
+    const socket = new FakeSocket();
+    const first = registry.acquire(makeOptions(es, socket), 'panel-a');
+
+    expect(() => registry.acquire({
+      ...makeOptions(es, new FakeSocket()),
+      canonicalInstrumentId: '33333333-3333-4333-8333-333333333333',
+    }, 'panel-b')).toThrow(/different transport endpoint or canonical instrument mapping/);
+
+    expect(() => registry.acquire({
+      ...makeOptions(es, new FakeSocket()),
+      baseUrl: 'https://other-market.example.test',
+    }, 'panel-c')).toThrow(/different transport endpoint or canonical instrument mapping/);
+
+    expect(registry.getSeriesCount()).toBe(1);
+    expect(registry.getOwnerCount(es)).toBe(1);
+    expect(socket.readyState).toBe(0);
+    first.release();
+    expect(registry.getSeriesCount()).toBe(0);
+  });
+
   it('bounds concurrent canonical series and leaves existing owners intact at capacity', () => {
     const registry = new OhlcvSeriesSupervisorRegistry(1);
     const first = registry.acquire(makeOptions(es, new FakeSocket()), 'panel-es');
