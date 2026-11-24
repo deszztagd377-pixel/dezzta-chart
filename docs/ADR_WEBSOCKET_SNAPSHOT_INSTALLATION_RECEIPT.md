@@ -8,7 +8,7 @@ Cost constraint: ZERO COST; owner-operated storage and cryptographic trust mater
 
 The gateway snapshot installer returns source ID, generation ID, high-water cursor and SHA-256. Runtime validates the digest format and checks source/generation/cursor against the durable SQLite replica checkpoint before constructing the Redis client. The installation path re-reads and validates snapshot content during the transactional install.
 
-The mutable replica checkpoint records the current replication position and metadata, but does not persist the snapshot SHA-256. The returned digest is propagated as runtime evidence and is not anchored to a durable immutable installation record. A digest proves content identity only when compared to a trusted digest; by itself it does not authenticate who supplied the snapshot.
+**Superseded historical wording:** the mutable replica checkpoint DOES persist `snapshot_sha256` in the current branch. The current implementation binds the recomputed snapshot digest to the mutable checkpoint in the same SQLite transaction as snapshot installation, and runtime verifies callback metadata against that durable checkpoint before Redis client construction. What remains absent is a separate append-only immutable receipt per generation and authenticated owner-host custody/provenance. A digest proves content identity only when compared to a trusted digest; by itself it does not authenticate who supplied the snapshot.
 
 ## Decision direction
 
