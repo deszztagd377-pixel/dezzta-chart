@@ -1,3 +1,24 @@
+## Owner Footprint visual reference intake — Batch 62J-206 (24 November 2026)
+
+**Owner reference images received:** 2/2 and saved in the persistent Reference Images collection as:
+- `Footprint Indicator Reference 1`
+- `Footprint Indicator Reference 2`
+
+Both images show a dark footprint chart: green positive and red negative bid/ask-style volume cells aligned to price levels; numeric volume labels; horizontal bars whose lengths communicate relative magnitude; candle-adjacent volume ladders; highlighted price rows; and separated candle clusters. A violet accent is also visible in the supplied references; its semantic meaning is intentionally unspecified pending owner review.
+
+**Visual contract captured from the supplied references (draft, not implementation authorization):**
+1. Preserve the existing ordinary candlestick layout and ordinary candle spacing whenever Footprint is OFF.
+2. Only explicit Footprint ON may activate a dedicated footprint/cluster layout with additional horizontal space between candles and adjacent price-level volume cells.
+3. Render price-level rows in a vertically aligned ladder, with readable numeric labels and proportional horizontal volume bars.
+4. Use distinct positive/negative visual treatment (reference green/red), retain dark panel styling, and preserve highlighted price-row treatment.
+5. Do not infer the meaning of violet marks, highlighted rows, or any market statistic from appearance alone. Their data semantics require a separately reviewed contract.
+6. Keep all displayed footprint values explicitly SIMULATED until a validated exchange-native bid/ask source and classification contract exist. The current educational aggregation engine is not evidence of real order-flow data.
+7. The two images are visual references only; they do not establish a data provider, aggressor classification, tick size, aggregation interval, POC/VAH/VAL semantics, or trading interpretation.
+
+**Gate and roadmap boundary:** Owner references are now supplied, so the prior missing-reference prerequisite is cleared. The existing indicator/Footprint visual implementation remains parked: official project stage is still Stage 1, and the existing Stage 4/Footprint blueprint review and approval gates remain in force. No visual implementation, chart-layout change, dependency, provider, paid service, or production claim is authorized by this intake. The next allowed action is preparation of a scoped Footprint blueprint for owner review when its roadmap gate is reached.
+
+**Progress accounting:** reference intake/documentation only; no indicator implementation credit; no Stage 1 acceptance tick; indicator aggregate remains NOT SCORED. ZERO COST; `main` untouched.
+
 ## Latest indicator checkpoint — Batch 62J-204 (24 November 2026)
 
 **Source/test checkpoint:** `b71bf86c31fadd2895a2b4f18991b6742847e1a1`  
