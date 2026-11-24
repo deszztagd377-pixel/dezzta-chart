@@ -2797,3 +2797,27 @@ Market-data infrastructure work only. No indicator calculation, warm-up rule, in
 - Liquidation Maps 🟥 Not implemented
 
 The frontend now validates and preserves exact `CME_SESSION_V1` calendar identity for 1D/1W/1M/3M only when both calendar ID and a uniquely loaded version are supplied. This does not increase indicator progress. Aggregate indicator completion remains **NOT SCORED**.
+
+
+---
+
+## Batch 62J-209 — checkpoint reconciliation and indicator evidence (24 November 2026)
+
+This entry records documentation and evidence status only. No indicator runtime, calculation, renderer, chart layout, or test implementation changed.
+
+### Reference custody
+- Original user-provided images `Footprint Indicator Reference 1` and `Footprint Indicator Reference 2` are recorded in ChatGPT Saved Reference Images.
+- The Git repository contains the reference descriptions and acceptance requirements, not the original binary images. Do not claim the binaries are committed to Git.
+- At Stage 4, supply the actual saved image assets to the implementation agent as visual inputs. Do not substitute generic/generated examples.
+
+### Status by indicator
+- SMA 20, EMA 20, RSI 14 Wilder, MACD 12/26/9, Bollinger 20,2, Shared Indicator Hook: 🟨 calculation/shared-hook foundation only; visible chart integration and acceptance remain outstanding.
+- Footprint PRO 2GD: 🟧 synthetic/offline prototype and reference requirements recorded; real bid/ask provenance, reviewed blueprint, and dedicated renderer remain outstanding.
+- Heatmap: 🟥 not implemented; owner visual reference and depth/liquidity data contract outstanding.
+- Liquidation Maps: 🟥 not implemented; methodology, data provenance, and owner visual reference outstanding.
+- Volume Profile / Complete Volume Profile: tier classification is recorded; implementation status must be established from code/tests before claiming completion.
+
+### Accounting rules
+- Named calculation/shared-hook test count previously recorded: 17 calculation cases + 7 hook cases = 24 named cases. This is not a count of visible indicators or full chart integrations.
+- No aggregate indicator completion percentage is published because an approved weighted denominator is absent.
+- No indicator progress credit is added in this batch.
