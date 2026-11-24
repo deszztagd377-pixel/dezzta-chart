@@ -93,7 +93,23 @@ test('ignores unrelated npm ls diagnostics when the Undici tree is resolved', as
   });
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /undici_instances=2/);
-  assert.match(result.stdout, /Non-Undici npm ls diagnostics ignored/);
+  assert.match(result.stdout, /Scoped npm ls diagnostics/);
+});
+
+test('accepts the pinned resolved Undici override when npm labels it extraneous', async () => {
+  const result = await runReporter(cleanAudit, {
+    error: 'ELSPROBLEMS',
+    problems: ['extraneous: undici@7.30.1 /workspace/node_modules/undici'],
+    dependencies: {
+      miniflare: {
+        version: '4.20260730.0',
+        dependencies: { undici: { version: '7.30.1' } },
+      },
+      undici: { version: '7.30.1' },
+    },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /undici_instances=2/);
 });
 
 test('fails closed when no resolved Undici package is present', async () => {
