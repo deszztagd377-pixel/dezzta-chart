@@ -76,7 +76,7 @@ test('blocks an npm dependency tree with unresolved Undici problems', async () =
     dependencies: { undici: { version: '7.30.1' } },
   });
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /Undici-specific problems/);
+  assert.match(result.stderr, /missing\/invalid Undici dependencies/);
 });
 
 test('ignores unrelated npm ls diagnostics when the Undici tree is resolved', async () => {
