@@ -632,3 +632,44 @@ def test_replay_live_handoff_deduplicates_both_sides_of_fixed_watermark():
         assert subscription.queue.empty()
 
     asyncio.run(scenario())
+
+
+
+def test_replay_live_handoff_rejects_malformed_or_non_monotonic_queued_cursors():
+    from app.ohlcv_stream import OhlcvStreamResnapshotRequired
+
+    for queued_cursors in (("not-a-cursor",), ("43", "42")):
+        pipeline = OhlcvPipeline()
+        assert pipeline.apply(make_bar(0)) == "inserted"
+        hub = OhlcvStreamHub(queue_capacity=2)
+        subscription, _, _ = hub.subscribe_snapshot(
+            pipeline,
+            dataset="GLBX.MDP3",
+            publisher_id=1,
+            instrument_id=101,
+            raw_symbol="ESZ6",
+            timeframe="1s",
+            limit=100,
+            durable_cursor=41,
+        )
+        for index, cursor in enumerate(queued_cursors):
+            subscription.queue.put_nowait({
+                "cursor": cursor,
+                "streamId": subscription.stream_id,
+                "sequence": index + 1,
+            })
+
+        try:
+            hub.merge_replay_boundary(subscription, [], replay_end_cursor=41)
+        except OhlcvStreamResnapshotRequired:
+            assert subscription.overflowed is True
+        else:
+            raise AssertionError(
+                f"malformed queued cursors {queued_cursors!r} must require resnapshot"
+            )
+
+        # A rejected merge is never a successful live handoff.
+        assert subscription.watermark == 0
+        assert subscription.durable_cursor == 41
+        hub.unsubscribe(subscription.stream_id)
+
