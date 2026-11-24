@@ -79,6 +79,20 @@ Footprint OFF keeps ordinary candle spacing; explicit ON alone switches to space
 | Aggregate indicators | No approved indicator denominator/weights | ⚪ NOT SCORED |
 | IP3S | No approved formula applied | ⚪ NOT SCORED |
 
+
+
+
+### Batch 62J-231 — exact-HEAD CI closure (24 November 2026)
+
+The correction commit 1b7096566030f7c7775958c1fb60fbe628a3b7f1 has now completed all four required workflows successfully:
+
+- Automated Tests [45435451481](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45435451481) — SUCCESS, 41/41 steps.
+- CodeQL [45435451743](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45435451743) — SUCCESS, Python 8/8 and JavaScript/TypeScript 8/8 steps.
+- OCI ARM64 [45435451497](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45435451497) — SUCCESS, 7/7 steps.
+- Full Git History Secret Audit [45435451477](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45435451477) — SUCCESS, 6/6 steps.
+
+Backend test log confirms **1,393 passed, 1 skipped, 6 warnings in 61.36s**. The one skip is the separately configured Redis TLS integration fixture. All three new Gate 25 signing-key loader regression tests explicitly passed. This is repository CI evidence only; it does not close owner-host Gate 25 or production WebSocket acceptance.
+
 ### 5. Execution controls
 
 - Exact-head CI must run for this correction SHA: Automated Tests, CodeQL, OCI ARM64, Full Git History Secret Audit.

@@ -1,3 +1,18 @@
+# Latest verified checkpoint — Batch 62J-231 (24 November 2026)
+
+**Active branch:** phase-2/market-data-foundation  
+**Exact code/test HEAD:** 1b7096566030f7c7775958c1fb60fbe628a3b7f1  
+**Latest code/test batch:** Batch 62J-230 added three explicit Gate 25 private-key loader regression tests: POSIX symlink rejection, non-regular path rejection and 64 KiB size-bound rejection.  
+**Exact-HEAD CI:** 4/4 required workflows terminal SUCCESS on this exact SHA. Automated Tests 41/41 steps; CodeQL Python 8/8 + JavaScript/TypeScript 8/8; OCI ARM64 7/7; Full Git History Secret Audit 6/6. Backend pytest summary: 1,393 passed, 1 skipped, 6 warnings in 61.36 seconds. The single skip is the separately configured Redis TLS integration fixture; it is not one of the three new key-loader tests. All three new key-loader tests explicitly PASSED.  
+**Security source/test:** backend/app/snapshot_attestation.py; backend/tests/test_snapshot_attestation.py. The source uses a verified no-follow descriptor on POSIX, requires a regular file and effective-service-user ownership, rejects group/world permissions and caps PEM input at 64 KiB.  
+**Gate 25:** repository-side Ed25519 verification, immutable receipt and private-key file boundary have verified foundations. Real owner-host key custody, authenticated remote snapshot transfer, every gateway's persisted receipt retrieval, restart re-verification and durable per-gateway high-water ACK remain 🟥 OPEN.  
+**Gate 36 / production WebSocket:** public HTTPS/WSS, reverse proxy/TLS, production runtime, Firebase production sign-in/entitlement/revocation E2E and real browser/Android lifecycle plus production multi-instance acceptance remain 🟥 OPEN. Redis destructive retention remains 🟧 BLOCKED until every safety prerequisite is proven.  
+**Indicators:** 28 focused indicator declarations = 21 calculation + 7 shared-hook. SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook 🟨 foundation only; Footprint PRO 2GD 🟧 synthetic/reference-gated; Volume Profile variants, Heatmap and Liquidation Maps 🟥 incomplete/not integrated. Aggregate indicator completion ⚪ NOT SCORED.  
+**Project progress:** Stage 1 30/40 = 75% provisional 🟨 (inherited baseline); Stage 2 🟦 active / NOT SCORED; Stage 3 ⬜ NOT SCORED; Stage 4 🟪 gated; Stage 5 ⬜ NOT SCORED; Stage 6 ⬜ NOT SCORED; Gate 10 0/10 formally closed 🟥; overall project ⚪ NOT SCORED; IP3S ⚪ NOT SCORED.  
+**Cost/deployment:** ZERO COST; main untouched; no Vercel deployment; delivery target approximately 24 December 2026 (planning target only).
+
+---
+
 # Latest verified correction — 24 November 2026 (Batch 62J-230)
 
 **Active branch:** phase-2/market-data-foundation  

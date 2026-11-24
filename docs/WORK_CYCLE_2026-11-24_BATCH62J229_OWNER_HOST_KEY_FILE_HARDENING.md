@@ -7,6 +7,10 @@
 **Scope:** source-host private-key file loading and regression coverage; no key material or production credentials used.  
 **Cost:** ZERO COST • main untouched • no Vercel deployment.
 
+### Correction note — Batch 62J-230
+
+The three intended regression test functions were not present in this batch's initial test-file commit; post-CI diff inspection found that only the import had landed. Batch 62J-230 added the three functions, and Batch 62J-231 records their exact-HEAD CI success. The original source hardening remains as described below.
+
 ### 1. Finding and risk boundary
 
 The previous loader checked path permissions with Path.stat() and then separately read the path. That left a symlink-following and path-replacement window between metadata validation and reading. It also did not explicitly require a regular file or bound the amount of PEM input read.
@@ -106,3 +110,16 @@ No deployment, Vercel commit/deploy, main update, paid service, new dependency, 
 6. Keep chart indicator UI behind the formal stage gate and reviewed blueprint.
 
 **Batch result:** source and regression test prepared; external Gate 25 acceptance remains open; no indicator/stage progress percentage awarded.
+
+
+
+### Batch 62J-231 — exact-HEAD CI closure (24 November 2026)
+
+The correction commit 1b7096566030f7c7775958c1fb60fbe628a3b7f1 has now completed all four required workflows successfully:
+
+- Automated Tests [45435451481](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45435451481) — SUCCESS, 41/41 steps.
+- CodeQL [45435451743](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45435451743) — SUCCESS, Python 8/8 and JavaScript/TypeScript 8/8 steps.
+- OCI ARM64 [45435451497](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45435451497) — SUCCESS, 7/7 steps.
+- Full Git History Secret Audit [45435451477](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45435451477) — SUCCESS, 6/6 steps.
+
+Backend test log confirms **1,393 passed, 1 skipped, 6 warnings in 61.36s**. The one skip is the separately configured Redis TLS integration fixture. All three new Gate 25 signing-key loader regression tests explicitly passed. This is repository CI evidence only; it does not close owner-host Gate 25 or production WebSocket acceptance.
