@@ -23,7 +23,7 @@ No failed workflow or failed step was reported for this exact SHA.
 ## 2. Automated Tests — extracted results
 
 - Backend pytest: **1,359 passed, 1 skipped, 6 warnings** in 58.30 seconds.
-- Skipped test: tests/test_shared_guard_tls_integration.py:22; the isolated Redis TLS CI fixture was not configured. This is an explicit coverage gap, not a passing TLS integration test.
+- The general backend pytest invocation reports one skip for tests/test_shared_guard_tls_integration.py:22 because its TLS environment variables are intentionally scoped to a preceding dedicated workflow step. That dedicated step **did execute the same test successfully** (1 passed in 0.10s) against a TLS-only Redis listener, validating trusted CA + DNS hostname, wrong-hostname rejection, untrusted-CA rejection, plaintext downgrade rejection, ACL operations, and AOF/ACL survival across container restart. Therefore Redis TLS integration is covered by the dedicated CI fixture; the later generic-suite skip is expected and is not an unresolved TLS gap.
 - Frontend unit tests: **320 passed across 34 test files**.
 - Cloudflare synthetic Durable Object runtime proof: **11 passed**.
 - Frontend dependency audit: **0 vulnerabilities**.
@@ -134,7 +134,7 @@ The indicator aggregate is **NOT SCORED**. The calculation foundation and user-f
 ## 6. Next work sequence
 
 1. Define the Redis stream retention-floor and trim protocol as a separate least-privilege controller. Do not give XTRIM to publisher or gateway identities. Add crash/retry, concurrent replay and real Redis trim-boundary tests before enabling trim.
-2. Resolve the skipped Redis TLS CI fixture or explicitly retain its skip with a documented reason; do not call TLS integration green until the fixture executes.
+2. Keep the dedicated Redis TLS fixture and its separate test invocation intact. The general-suite skip is expected because the TLS variables are scoped to the dedicated step; retain this distinction in future CI reports.
 3. Produce a production-host WSS acceptance path only if the existing zero-cost hosting/network plan supports durable shared state, certificates and required runtime behavior without new charges. Otherwise keep production integrations disabled and record a no-go.
 4. Reconcile owner-host criteria 8, 25, 30, 31, 34, 35, 38 and 39 with actual target-host evidence; do not substitute CI for owner hardware.
 5. Complete public authenticated WSS/Firebase/Android acceptance for criteria 20 and 36 only after the zero-cost configuration is verified.
