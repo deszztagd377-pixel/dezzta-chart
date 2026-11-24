@@ -165,7 +165,6 @@ describe('connectOhlcvStream', () => {
     const onSnapshot = vi.fn();
     const onUpdate = vi.fn();
     const onCursor = vi.fn();
-    const onResnapshotRequired = vi.fn();
     const onError = vi.fn();
     const connection = connectOhlcvStream({
       baseUrl: 'https://market.example.test',
@@ -232,6 +231,7 @@ describe('connectOhlcvStream', () => {
     const socket = new FakeSocket();
     const onSnapshot = vi.fn();
     const onCursor = vi.fn();
+    const onResnapshotRequired = vi.fn();
     const onError = vi.fn();
     const connection = connectOhlcvStream({
       baseUrl: 'https://market.example.test',
