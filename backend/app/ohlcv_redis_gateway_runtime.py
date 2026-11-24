@@ -101,8 +101,8 @@ def build_gateway_replica_runtime_factory(
             if not isinstance(checkpoint, dict):
                 raise RuntimeError("Gateway replica snapshot checkpoint is missing.")
             receipt = replica_store.snapshot_receipt(
-                expected_source_id,
-                str(checkpoint.get("replica_id") or ""),
+                str(install.get("source_id") or ""),
+                replica_store.replica_id(),
                 str(install.get("generation_id") or ""),
             )
             if receipt is None:
@@ -128,7 +128,7 @@ def build_gateway_replica_runtime_factory(
                         "Persisted gateway snapshot receipt attestation is invalid."
                     ) from exc
                 if (
-                    receipt["authenticated_source_id"] != expected_source_id
+                    receipt["authenticated_source_id"] != receipt["source_id"]
                     or receipt["key_id"] != verified_key_id
                 ):
                     raise RuntimeError(
