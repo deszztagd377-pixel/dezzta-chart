@@ -17,6 +17,8 @@ export interface OhlcvStreamOptions {
   ticketRenewalIntervalMs?: number;
   resumeCursor?: string;
   onCursor?: (cursor: string) => void;
+  /** Clears the reconnect cursor when the server requires a fresh snapshot. */
+  onResnapshotRequired?: (snapshotCursor: string) => void;
   onSnapshot: (snapshot: OhlcvSnapshotMessage, candles: ChartData[]) => void;
   onUpdate: (event: OhlcvStreamUpdateMessage, candle: ChartData) => void;
   onStatus?: (status: 'connecting' | 'authenticated' | 'subscribed' | 'closed') => void;
@@ -319,6 +321,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
         replayReceivedCount = 0;
         replayEndCursor = null;
         expectedResnapshotCursor = value.snapshotCursor;
+        options.onResnapshotRequired?.(value.snapshotCursor);
         return;
       }
 

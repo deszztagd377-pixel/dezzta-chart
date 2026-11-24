@@ -24,7 +24,7 @@ export type OhlcvSupervisorStatus =
   | 'stopped';
 
 export interface OhlcvStreamSupervisorOptions
-  extends Omit<OhlcvStreamOptions, 'ticket' | 'getRenewalTicket' | 'token' | 'onSnapshot' | 'onUpdate' | 'onStatus' | 'onError' | 'onClose' | 'onCursor'> {
+  extends Omit<OhlcvStreamOptions, 'ticket' | 'getRenewalTicket' | 'token' | 'onSnapshot' | 'onUpdate' | 'onStatus' | 'onError' | 'onClose' | 'onCursor' | 'onResnapshotRequired'> {
   /** Must return a fresh Firebase ID token; called again for every reconnect. */
   getIdToken: () => Promise<string>;
   /** Enables independent keyed-store ownership without touching the legacy singleton snapshot. */
@@ -222,6 +222,12 @@ export function startOhlcvStreamSupervisor(
         resumeCursor,
         onCursor: (cursor) => {
           resumeCursor = cursor;
+        },
+        onResnapshotRequired: () => {
+          // A failed replay/live handoff must not retry from the same stale
+          // cursor. The next connection requests a full snapshot; its cursor
+          // becomes the new resume point only after client validation.
+          resumeCursor = undefined;
         },
         onSnapshot: (snapshot, candles) => {
           if (stopped) return;

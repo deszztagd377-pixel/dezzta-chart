@@ -165,6 +165,7 @@ describe('connectOhlcvStream', () => {
     const onSnapshot = vi.fn();
     const onUpdate = vi.fn();
     const onCursor = vi.fn();
+    const onResnapshotRequired = vi.fn();
     const onError = vi.fn();
     const connection = connectOhlcvStream({
       baseUrl: 'https://market.example.test',
@@ -243,6 +244,7 @@ describe('connectOhlcvStream', () => {
       onSnapshot,
       onUpdate: vi.fn(),
       onCursor,
+      onResnapshotRequired,
       onError,
     });
 
@@ -265,6 +267,8 @@ describe('connectOhlcvStream', () => {
     });
 
     expect(connection.state).toBe('authenticated');
+    expect(onResnapshotRequired).toHaveBeenCalledOnce();
+    expect(onResnapshotRequired).toHaveBeenCalledWith('7');
     socket.message({ ...snapshot, cursor: '7' });
 
     expect(connection.state).toBe('subscribed');

@@ -265,6 +265,75 @@ describe('OHLCV stream supervisor', () => {
     supervisor.stop();
   });
 
+  it('drops a stale resume cursor after server-directed resnapshot and adopts only the new snapshot cursor', async () => {
+    vi.useFakeTimers();
+    const sockets: FakeSocket[] = [];
+    const supervisor = startOhlcvStreamSupervisor({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      getIdToken: async () => 'fresh-token',
+      webSocketFactory: () => {
+        const socket = new FakeSocket();
+        sockets.push(socket);
+        return socket as unknown as WebSocket;
+      },
+      minReconnectDelayMs: 100,
+      maxReconnectDelayMs: 400,
+      random: () => 0,
+    });
+
+    await vi.waitFor(() => expect(sockets).toHaveLength(1));
+    sockets[0].readyState = 1;
+    sockets[0].emit('open', new Event('open'));
+    sockets[0].message({ type: 'market_data.status', version: 1 });
+    sockets[0].message(snapshot);
+
+    sockets[0].serverClose(1006, 'network interrupted');
+    await vi.advanceTimersByTimeAsync(50);
+    await vi.waitFor(() => expect(sockets).toHaveLength(2));
+    sockets[1].readyState = 1;
+    sockets[1].emit('open', new Event('open'));
+    sockets[1].message({ type: 'market_data.status', version: 1 });
+    expect(JSON.parse(sockets[1].sent[1])).toMatchObject({
+      type: 'market_data.subscribe',
+      cursor: '100',
+    });
+
+    sockets[1].message({
+      type: 'market_data.ohlcv.resnapshot_required',
+      version: 1,
+      reason: 'live_queue_handoff_failed',
+      snapshotCursor: '105',
+    });
+    sockets[1].serverClose(1013, 'Resnapshot required');
+
+    await vi.advanceTimersByTimeAsync(50);
+    await vi.waitFor(() => expect(sockets).toHaveLength(3));
+    sockets[2].readyState = 1;
+    sockets[2].emit('open', new Event('open'));
+    sockets[2].message({ type: 'market_data.status', version: 1 });
+    const freshSubscribe = JSON.parse(sockets[2].sent[1]);
+    expect(freshSubscribe.type).toBe('market_data.subscribe');
+    expect(freshSubscribe).not.toHaveProperty('cursor');
+
+    sockets[2].message({ ...snapshot, streamId: 'stream-fresh', cursor: '105' });
+    expect(supervisor.status).toBe('subscribed');
+
+    sockets[2].serverClose(1006, 'fresh snapshot connection interrupted');
+    await vi.advanceTimersByTimeAsync(50);
+    await vi.waitFor(() => expect(sockets).toHaveLength(4));
+    sockets[3].readyState = 1;
+    sockets[3].emit('open', new Event('open'));
+    sockets[3].message({ type: 'market_data.status', version: 1 });
+    expect(JSON.parse(sockets[3].sent[1])).toMatchObject({
+      type: 'market_data.subscribe',
+      cursor: '105',
+    });
+
+    supervisor.stop();
+  });
+
   it('resets reconnect backoff after a cursor replay recovers the stream', async () => {
     vi.useFakeTimers();
     const sockets: FakeSocket[] = [];
