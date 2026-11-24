@@ -1,4 +1,14 @@
-# Latest branch update — 24 November 2026 (Batch 62J-219)
+# Latest branch update — 24 November 2026 (Batch 62J-220)
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Previous exact-head CI:** `1f3305c3fc2f39059ff8bc9cdb581edb534831e1` — CodeQL, OCI ARM64 and Full Git History Secret Audit SUCCESS; Automated Tests FAILED only because a regression assertion expected stale diagnostic wording. All 11 reporter tests ran: 10 passed, 1 failed on assertion text; reporter behavior correctly rejected the missing Undici fixture and tolerated the extraneous override fixture.  
+**Batch 62J-220 code/test correction:** `3f73c40b130657c8e05369008a08dc065fa3d36d` aligns the test assertion with the current reporter's `missing/invalid Undici dependencies` diagnostic. No production logic changed.  
+**Latest work-cycle documentation:** [Batch 62J-220](WORK_CYCLE_2026-11-24_BATCH62J220_REPORTER_ASSERTION_FIX.md).  
+**Current exact-head CI:** pending for the new final documentation HEAD; do not infer success from earlier workflows.  
+**Stage 1:** 30/40 criteria = 75% provisional. **Stage 2:** active. **Gate 25:** owner-host key custody, real signed transfer, remote receipt custody and multi-gateway acknowledgement remain open. **Redis destructive retention:** blocked.  
+**Indicators:** no implementation changes in Batches 217–220; no indicator completion credit. **Overall project and aggregate indicator completion:** NOT SCORED. **ZERO COST**; `main` untouched; Vercel deployment deferred. **Target:** approximately 24 December 2026 (planning target only).
+
+---
 
 **Active branch:** `phase-2/market-data-foundation`  
 **Previous remediation HEAD:** `1130c53b5d9f95def9b455985b9a28445431c61b` — exact-head CI completed 3/4 SUCCESS, Automated Tests FAILED.  
