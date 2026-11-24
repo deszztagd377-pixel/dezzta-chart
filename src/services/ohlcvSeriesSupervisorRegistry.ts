@@ -17,6 +17,8 @@ interface OwnerCallbacks {
 
 interface SeriesEntry {
   identity: Readonly<MarketSeriesIdentity>;
+  baseUrl: string;
+  canonicalInstrumentId: string;
   supervisor: OhlcvStreamSupervisor;
   nextGeneration: number;
   owners: Map<string, { generation: number; callbacks: OwnerCallbacks }>;
@@ -55,6 +57,15 @@ export class OhlcvSeriesSupervisorRegistry {
     const key = getMarketSeriesIdentityKey(options.identity);
     let entry = this.entries.get(key);
 
+    if (entry && (
+      entry.baseUrl !== options.baseUrl ||
+      entry.canonicalInstrumentId !== options.canonicalInstrumentId
+    )) {
+      throw new Error(
+        'OHLCV series identity is already owned by a different transport endpoint or canonical instrument mapping.',
+      );
+    }
+
     if (!entry && this.entries.size >= this.maxActiveSeries) {
       throw new Error(`OHLCV active-series capacity (${this.maxActiveSeries}) is exhausted.`);
     }
@@ -78,6 +89,8 @@ export class OhlcvSeriesSupervisorRegistry {
       });
       entry = {
         identity: Object.freeze({ ...options.identity }),
+        baseUrl: options.baseUrl,
+        canonicalInstrumentId: options.canonicalInstrumentId,
         supervisor,
         nextGeneration: 0,
         owners,
