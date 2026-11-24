@@ -98,6 +98,16 @@ if (blockingAdvisories > 0) {
 
 if (dependencyTreePath) {
   const tree = readJson(dependencyTreePath, 'npm dependency tree');
+  if (!tree || typeof tree !== 'object' || Array.isArray(tree)) {
+    throw new Error('Invalid npm dependency tree JSON: expected an object.');
+  }
+  if (tree.error || (Array.isArray(tree.problems) && tree.problems.length > 0)) {
+    console.error('[temporary test dependency tree] BLOCKED: npm ls reported dependency-tree problems.');
+    process.exitCode = 1;
+  }
+  if (!tree.dependencies || typeof tree.dependencies !== 'object' || Array.isArray(tree.dependencies)) {
+    throw new Error('Invalid npm dependency tree JSON: root dependencies are missing.');
+  }
   let undiciCount = 0;
   function visit(node, parentPath = '') {
     for (const [name, dependency] of Object.entries(node?.dependencies ?? {})) {
