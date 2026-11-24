@@ -4865,3 +4865,30 @@ The frontend now accepts the backend's versioned `CME_SESSION_V1` identity for `
 Implementation checkpoint: `af3746fc39ac75a842a0199ad09304b008f19107`. Exact-HEAD CI is **NOT YET VERIFIED**. Previous verified CI checkpoint remains `07186190e98a4e9418664990a1a84acbc6fb3e13`; its green result must not be transferred to this new implementation. Full technical record: `docs/WORK_CYCLE_2026-11-23_BATCH62J181_CME_SESSION_FRONTEND_INTEGRATION.md`.
 
 No indicator formula, calculation hook, renderer, or visual UI changed. All indicator statuses and project scores remain unchanged. The calendar fixture `test-only-2024.01` is synthetic-only and is not an official CME schedule.
+
+
+---
+
+## Batch 62J-209 — project checkpoint reconciliation (24 November 2026)
+
+### Verified repository facts
+- Active working branch remains `phase-2/market-data-foundation`; `main` is not a target for this work.
+- Gate 25 ADR accurately distinguishes a digest stored in the mutable SQLite checkpoint from an immutable, append-only per-generation receipt.
+- Batch 62J-208 Gate 25 blueprint and indicator reconciliation reports are readable from the active branch.
+- The blueprint is design-only and requires owner review before schema/runtime changes.
+- The two Footprint source images remain in ChatGPT Saved Reference Images; they are not binary assets in this repository.
+
+### CI evidence limitation
+The GitHub combined commit-status endpoint returned an empty status list for the two Batch 62J-208 documentation commits. The workflow-run helper available to this audit filters to pull-request-triggered runs only and returned no runs for the inspected commit. Therefore CI state for these exact documentation commits is **UNVERIFIED**, not SUCCESS and not FAILED. No prior green result is transferred to these commits.
+
+A separate recent repository commit on the default branch reported a Vercel status failure whose target URL identifies a build-rate-limit/plan-upgrade page. That is not evidence of a WebSocket test failure and must not be conflated with the active feature branch's CI. No paid upgrade is authorized; ZERO COST remains mandatory.
+
+### Progress accounting
+- Stage 1: previously recorded 30/40 = 75% provisional; this audit does not independently revalidate all 40 criteria, so retain as **previously recorded / not re-audited**.
+- Gate 25: 🟥 OPEN.
+- WebSocket end-to-end completion: 🟥 NOT COMPLETE / NOT VERIFIED.
+- Indicator calculation foundations: 🟨.
+- Footprint visual implementation: 🟧 gated.
+- Heatmap and Liquidation Maps: 🟥.
+- Overall project and aggregate indicator percentage: NOT SCORED; denominator/weights are not approved.
+- No runtime code, schema, tests, dependencies, deployment, or paid service changed in this batch.
