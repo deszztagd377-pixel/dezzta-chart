@@ -6,6 +6,18 @@
 **Exact-head CI:** Automated Tests [45321594594](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594594) SUCCESS (1/1 job, 40/40 steps) • CodeQL [45321594526](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594526) SUCCESS (2/2 jobs) • OCI ARM64 [45321594556](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594556) SUCCESS • Secret Audit [45321594499](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594499) SUCCESS. All four exact `head_sha` values match `b71bf86c31fadd2895a2b4f18991b6742847e1a1`.  
 **Cost:** ZERO COST • **main:** untouched • **delivery target:** approximately 24 December 2026 (planning target only)
 
+## Latest verified documentation checkpoint — Batch 62J-207 (24 November 2026)
+
+**Branch:** `phase-2/market-data-foundation`  
+**Pre-batch HEAD:** `cc79e292c84fb10261dc4b8bd1fc5c91786144ce`  
+**Latest code/test checkpoint:** `b71bf86c31fadd2895a2b4f18991b6742847e1a1` (no application source changed in Batches 62J-203 through 62J-207).  
+**Documentation change:** corrected the stale opening context in `ADR_WEBSOCKET_SNAPSHOT_INSTALLATION_RECEIPT.md`: the current mutable SQLite replica checkpoint does persist `snapshot_sha256`; the missing acceptance item is a separate immutable per-generation receipt with authenticated owner-host custody/provenance.  
+**No source, tests, dependencies, credentials, provider configuration, hosting, or deployment changed.** ZERO COST; `main` untouched.
+
+Exact-head CI for documentation HEAD `54b0f9c982335fb1efeffc6a32ec762259154bf5` must be read back independently before this documentation commit is considered verified. The previous HEAD `cc79e292c84fb10261dc4b8bd1fc5c91786144ce` has 4/4 workflows SUCCESS (Automated Tests, CodeQL, OCI ARM64, Full Git History Secret Audit).
+
+Stage 1 remains 30/40 criteria (300/400 ticks, 75% provisional); Gate 10 remains 0/10 formally closed. Overall project and aggregate indicator progress remain NOT SCORED. WebSocket Gate 25 remains OPEN. No implementation credit is awarded for documentation-only work.
+
 ## Latest documentation maintenance — Batch 62J-205
 
 The focused indicator ledger and test inventory were reconciled in [Batch 62J-204](WORK_CYCLE_2026-11-24_BATCH62J204_INDICATOR_LEDGER_RECONCILIATION.md). Batch 62J-205 corrects the Gate 25 snapshot digest/receipt distinction; the source/test checkpoint remains `b71bf86c31fadd2895a2b4f18991b6742847e1a1`; no indicator implementation code changed.
