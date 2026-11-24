@@ -2834,3 +2834,21 @@ This entry records documentation and evidence status only. No indicator runtime,
 - Named calculation/shared-hook test count previously recorded: 17 calculation cases + 7 hook cases = 24 named cases. This is not a count of visible indicators or full chart integrations.
 - No aggregate indicator completion percentage is published because an approved weighted denominator is absent.
 - No indicator progress credit is added in this batch.
+
+
+---
+
+## Batch 62J-215 — indicator status carry-forward (24 November 2026)
+
+The exact-HEAD implementation through `fa8dca9abdb0f7b9aef8c10025346eb8c35023ab` did not modify indicator calculation, shared-hook, or chart-renderer source. Focused test inventory remains 17 calculation cases + 7 shared-hook cases = 24 named cases; these are not 24 completed indicators. `CandlestickChart.tsx` still imports neither `useMarketIndicators` nor `calculateIndicators` and continues to render one ordinary candlestick series.
+
+- SMA20, EMA20, Wilder RSI14, MACD12/26/9, Bollinger20,2: 🟦 calculation foundations only; visible chart integration remains outstanding.
+- Shared Indicator Hook: 🟦 exact-snapshot/cache foundation; visible chart integration remains outstanding.
+- Volume Profile (Mid Tier): 🟥 no production implementation verified.
+- Complete Volume Profile (Exclusive Pro): 🟥 no complete implementation verified.
+- Compact movable-range Volume Profile Tool: 🟥 requirement only; separate from Complete Volume Profile.
+- Footprint PRO 2GD: 🟧 synthetic/offline prototype; exact saved owner references and ON-only spaced cluster behavior remain mandatory.
+- Heatmap: 🟥 no accepted depth/liquidity engine or renderer.
+- Liquidation Maps: 🟥 no defensible production methodology/provenance or renderer.
+
+Low Tier inventory (15 studies) and Mid Tier additional inventory (~10 studies) remain incomplete owner decisions. Aggregate indicator completion remains NOT SCORED. General CI, backend test counts, and security scans award no indicator progress credit. See [Batch 62J-215 project reconciliation](WORK_CYCLE_2026-11-24_BATCH62J215_GATE25_EXACT_HEAD_CI_AND_INDICATOR_RECONCILIATION.md) and [Batch 62J-212 full indicator matrix](INDICATOR_PROGRESS_2026-11-24_BATCH62J212.md).

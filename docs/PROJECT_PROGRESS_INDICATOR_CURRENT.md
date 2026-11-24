@@ -4892,3 +4892,14 @@ A separate recent repository commit on the default branch reported a Vercel stat
 - Heatmap and Liquidation Maps: 🟥.
 - Overall project and aggregate indicator percentage: NOT SCORED; denominator/weights are not approved.
 - No runtime code, schema, tests, dependencies, deployment, or paid service changed in this batch.
+
+
+---
+
+## Batch 62J-215 — exact-head CI, Gate 25, and progress reconciliation (24 November 2026)
+
+The latest verified active-branch HEAD is `fa8dca9abdb0f7b9aef8c10025346eb8c35023ab`. All four exact-HEAD workflows passed: Automated Tests & Build #45388986844, CodeQL #45388986763, OCI ARM64 #45388986768, and Full Git History Secret Audit #45388986726. The exact-HEAD API read-back found no queued or in-progress workflow. Detailed test counts, Gate 25 acceptance boundaries, indicator dashboard, stage accounting, and the remaining temporary Miniflare audit warning are recorded in [Batch 62J-215](WORK_CYCLE_2026-11-24_BATCH62J215_GATE25_EXACT_HEAD_CI_AND_INDICATOR_RECONCILIATION.md).
+
+Gate 25 repository foundations now include immutable per-generation receipts, atomic installation, owner-pinned Ed25519 snapshot signatures, production fail-closed gateway verification, persisted receipt re-verification, and legacy unauthenticated receipt preservation. Owner-host private-key custody, real signed transfer, remote gateway receipt custody, multi-gateway acknowledgements, production WSS/Firebase/Android, and monitoring remain open. Redis destructive retention remains blocked.
+
+Stage 1 remains 30/40 = 75% provisional, not re-audited in this cycle. Stage 2 remains active. Aggregate indicators and overall project progress remain NOT SCORED. Vercel deployment remains deferred; ZERO COST and `main` isolation are preserved.

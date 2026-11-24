@@ -1543,11 +1543,12 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
             db.close()
 
     def snapshot_receipts(self) -> list[dict[str, object]]:
-        """Return immutable per-generation content receipts in install order.
+        """Return immutable per-generation receipts in install order.
 
-        CONTENT_ONLY_UNAUTHENTICATED is intentionally not an authenticity
-        claim. A receipt is not production trust evidence until Gate 25's
-        owner-controlled signer/transport verification is implemented.
+        CONTENT_ONLY_UNAUTHENTICATED is not an authenticity claim.
+        OWNER_SIGNATURE_VERIFIED rows contain an Ed25519 attestation checked
+        against the configured owner-pinned keyring during installation.
+        Real source-host key custody and transfer acceptance remain external.
         """
         db = self._connect()
         try:
