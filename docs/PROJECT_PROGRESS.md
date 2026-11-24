@@ -1,3 +1,18 @@
+# Latest verified update — 24 November 2026 (Batch 62J-229)
+
+**Active branch:** phase-2/market-data-foundation  
+**Parent HEAD:** 79f93831bd08d1468b8954d2782970309326d46d  
+**Current batch:** hardened owner-host Ed25519 private-key file loading; exact-head CI for the resulting commit must be checked independently.  
+**Source/test:** backend/app/snapshot_attestation.py; backend/tests/test_snapshot_attestation.py.  
+**Security delta:** key loading now uses a no-follow file descriptor on POSIX, verifies a regular file and service-user ownership, enforces owner-only permissions, and caps PEM input at 64 KiB. Regression coverage rejects symlinks, non-regular paths and oversized files.  
+**Gate 25:** repository-side key-file boundary hardened; real owner-host custody, authenticated remote transfer, each gateway's persisted receipt retrieval, restart re-verification and durable per-gateway high-water ACK remain 🟥 OPEN. This patch does not close Gate 25.  
+**WebSocket:** Gate 25 🟥 OPEN; Gate 36 public HTTPS/WSS and production runtime 🟥 OPEN; Firebase production sign-in/entitlement/revocation E2E 🟥 OPEN; real browser/Android lifecycle and production multi-instance acceptance 🟥 OPEN. Redis destructive retention remains 🟧 BLOCKED pending every safety prerequisite.  
+**Indicator ledger:** 21 calculation tests + 7 shared-hook tests = 28 focused named test declarations. SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain 🟨 foundation-only; Footprint PRO 2GD 🟧 synthetic/reference-gated; Volume Profile, Complete Volume Profile, movable-range VP, Heatmap and Liquidation Maps 🟥 incomplete/not integrated. Aggregate indicator completion remains ⚪ NOT SCORED.  
+**Project meters:** Stage 1 = 30/40 criteria = 75% provisional 🟨 (inherited baseline; not rescored by this patch); Stage 2 🟦 active / NOT SCORED; Stage 3 ⬜ NOT SCORED; Stage 4 🟪 gated pending stage gate and reviewed blueprint; Stage 5 ⬜ NOT SCORED; Stage 6 ⬜ NOT SCORED; Gate 10 = 0/10 formally closed 🟥; overall project ⚪ NOT SCORED; IP3S/significant progress ⚪ NOT SCORED.  
+**Cost/deployment:** ZERO COST; main untouched; no Vercel deployment; delivery target approximately 24 December 2026 (planning target only).
+
+---
+
 # Latest verified work — 24 November 2026 (Batch 62J-223)
 
 **Active branch:** `phase-2/market-data-foundation`  

@@ -1,5 +1,6 @@
 import base64
 import hashlib
+import os
 from decimal import Decimal
 
 import pytest

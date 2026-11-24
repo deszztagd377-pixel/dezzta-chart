@@ -10,6 +10,7 @@ import binascii
 import json
 import os
 import re
+import stat
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -144,16 +145,50 @@ def verify_snapshot_attestation(
 
 
 def load_ed25519_private_key(path: str) -> Ed25519PrivateKey:
-    """Load a PEM Ed25519 private key from an owner-only source-host file."""
+    """Load a bounded PEM key through a no-follow, verified file descriptor."""
     if not isinstance(path, str) or not path.strip():
         raise ValueError("Snapshot signing key path is required.")
     key_path = Path(path).expanduser()
-    if os.name == "posix" and key_path.stat().st_mode & 0o077:
-        raise ValueError("Snapshot private key file permissions must be owner-only (0600).")
-    key = serialization.load_pem_private_key(
-        key_path.read_bytes(),
-        password=None,
-    )
+    flags = os.O_RDONLY
+    if hasattr(os, "O_CLOEXEC"):
+        flags |= os.O_CLOEXEC
+    if os.name == "posix":
+        no_follow = getattr(os, "O_NOFOLLOW", None)
+        if no_follow is None:
+            raise ValueError(
+                "Snapshot private key loading requires no-follow file support."
+            )
+        flags |= no_follow
+
+    try:
+        descriptor = os.open(key_path, flags)
+    except OSError as exc:
+        raise ValueError(
+            "Snapshot private key file cannot be opened safely."
+        ) from exc
+
+    pem_bytes = b""
+    try:
+        file_info = os.fstat(descriptor)
+        if not stat.S_ISREG(file_info.st_mode):
+            raise ValueError("Snapshot private key path must reference a regular file.")
+        if os.name == "posix":
+            if file_info.st_uid != os.geteuid():
+                raise ValueError("Snapshot private key file must be owned by the service user.")
+            if stat.S_IMODE(file_info.st_mode) & 0o077:
+                raise ValueError(
+                    "Snapshot private key file permissions must be owner-only (0600)."
+                )
+        with os.fdopen(descriptor, "rb") as key_file:
+            descriptor = -1
+            pem_bytes = key_file.read(65_537)
+        if len(pem_bytes) > 65_536:
+            raise ValueError("Snapshot private key file exceeds the 64 KiB size limit.")
+    finally:
+        if descriptor >= 0:
+            os.close(descriptor)
+
+    key = serialization.load_pem_private_key(pem_bytes, password=None)
     if not isinstance(key, Ed25519PrivateKey):
         raise ValueError("Snapshot signing key file must contain an Ed25519 private key.")
     return key

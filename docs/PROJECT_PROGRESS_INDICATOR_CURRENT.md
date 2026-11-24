@@ -1,3 +1,44 @@
+# Latest indicator reconciliation — Batch 62J-229 (24 November 2026)
+
+**Focused suite inventory:** 28 named test declarations = 21 calculation-engine + 7 shared-hook tests. The count is a source inventory, not a count of completed indicators or a completion percentage. CI is the pass/fail authority.  
+**Visible chart integration:** no indicator is yet accepted as a visible chart feature. Calculation/data foundations remain separate from chart renderer, toggle, legend, accessibility, lifecycle and multi-panel acceptance.
+
+| Indicator / subsystem | Calculation/data foundation | Visible chart integration | Status |
+|---|---|---|---|
+| SMA20 | 20-close arithmetic mean; first valid index 19 | Overlay, toggle, legend/latest value and lifecycle absent | 🟨 Foundation |
+| EMA20 | SMA-seeded EMA; alpha 2/21; first valid index 19 | Overlay, toggle, legend/latest value and lifecycle absent | 🟨 Foundation |
+| RSI14 Wilder | 14-change seed and Wilder recurrence; first valid index 14 | 0–100 pane and 30/70 guides absent | 🟨 Foundation |
+| MACD12/26/9 | EMA12−EMA26; EMA9 signal; histogram identity; MACD index 25, signal/histogram index 33 | Pane, lines, histogram and zero guide absent | 🟨 Foundation |
+| Bollinger20,2 | 20-close mean ± 2 population standard deviations; first valid index 19 | Three-line overlay, fill, toggle and latest values absent | 🟨 Foundation |
+| Shared Indicator Hook | Keyed immutable snapshot, shared cache, trust gating and stale-output clearing | Not integrated into CandlestickChart | 🟨 Foundation |
+| Footprint PRO 2GD | Synthetic/offline accumulator only; not exchange-native bid/ask truth | Renderer gated; two owner reference images recorded | 🟧 Gated |
+| Volume Profile | Complete production calculation not verified | Not integrated | 🟥 Open |
+| Complete Volume Profile | Complete production calculation not verified | Not integrated | 🟥 Open |
+| Movable-range VP Tool | Range-selection/calculation lifecycle not verified | Not integrated | 🟥 Open |
+| Heatmap | Accepted depth/liquidity engine not verified | Not integrated; reference/data contract gate remains | 🟥 Open |
+| Liquidation Maps | Accepted methodology/provenance not verified | Not integrated | 🟥 Open |
+
+**Footprint invariant:** OFF preserves ordinary candlestick layout and normal spacing. Explicit ON alone activates the dedicated spaced-candle/cluster layout. Do not begin visual implementation before the required stage gate, scoped blueprint and user review. Heatmap also remains reference-gated.
+
+**Aggregate indicator completion: ⚪ NOT SCORED.** No approved denominator or weights exist. The 28 test declarations cannot be converted into a percent.
+---
+
+
+# Latest verified update — 24 November 2026 (Batch 62J-229)
+
+**Active branch:** phase-2/market-data-foundation  
+**Parent HEAD:** 79f93831bd08d1468b8954d2782970309326d46d  
+**Current batch:** hardened owner-host Ed25519 private-key file loading; exact-head CI for the resulting commit must be checked independently.  
+**Source/test:** backend/app/snapshot_attestation.py; backend/tests/test_snapshot_attestation.py.  
+**Security delta:** key loading now uses a no-follow file descriptor on POSIX, verifies a regular file and service-user ownership, enforces owner-only permissions, and caps PEM input at 64 KiB. Regression coverage rejects symlinks, non-regular paths and oversized files.  
+**Gate 25:** repository-side key-file boundary hardened; real owner-host custody, authenticated remote transfer, each gateway's persisted receipt retrieval, restart re-verification and durable per-gateway high-water ACK remain 🟥 OPEN. This patch does not close Gate 25.  
+**WebSocket:** Gate 25 🟥 OPEN; Gate 36 public HTTPS/WSS and production runtime 🟥 OPEN; Firebase production sign-in/entitlement/revocation E2E 🟥 OPEN; real browser/Android lifecycle and production multi-instance acceptance 🟥 OPEN. Redis destructive retention remains 🟧 BLOCKED pending every safety prerequisite.  
+**Indicator ledger:** 21 calculation tests + 7 shared-hook tests = 28 focused named test declarations. SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain 🟨 foundation-only; Footprint PRO 2GD 🟧 synthetic/reference-gated; Volume Profile, Complete Volume Profile, movable-range VP, Heatmap and Liquidation Maps 🟥 incomplete/not integrated. Aggregate indicator completion remains ⚪ NOT SCORED.  
+**Project meters:** Stage 1 = 30/40 criteria = 75% provisional 🟨 (inherited baseline; not rescored by this patch); Stage 2 🟦 active / NOT SCORED; Stage 3 ⬜ NOT SCORED; Stage 4 🟪 gated pending stage gate and reviewed blueprint; Stage 5 ⬜ NOT SCORED; Stage 6 ⬜ NOT SCORED; Gate 10 = 0/10 formally closed 🟥; overall project ⚪ NOT SCORED; IP3S/significant progress ⚪ NOT SCORED.  
+**Cost/deployment:** ZERO COST; main untouched; no Vercel deployment; delivery target approximately 24 December 2026 (planning target only).
+
+---
+
 # Latest verified work — 24 November 2026 (Batch 62J-223)
 
 **Active branch:** `phase-2/market-data-foundation`  
