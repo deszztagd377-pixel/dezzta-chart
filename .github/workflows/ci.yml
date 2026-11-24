@@ -80,6 +80,9 @@ jobs:
           node --test cloudflare/proof/worker.node-test.mjs
           node -e 'JSON.parse(require("node:fs").readFileSync("cloudflare/wrangler.jsonc", "utf8")); console.log("Wrangler JSONC configuration syntax: PASS")'
 
+      - name: Test temporary dependency audit reporter fail-closed behavior
+        run: node --test scripts/report-npm-audit.node-test.mjs
+
       - name: Test synthetic Worker in pinned local workerd runtime
         run: npm run test:cloudflare-runtime
 
