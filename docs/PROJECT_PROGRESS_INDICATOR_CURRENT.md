@@ -1,3 +1,51 @@
+# Latest verified checkpoint — 24 November 2026 (Batch 62J-199)
+
+**Branch:** `phase-2/market-data-foundation`  
+**Latest verified source/test HEAD:** `23bf2da93ec8b4c935d2898a993f4d1c80ce9a7d`.  
+**Latest documentation HEAD:** `3e6572658ab47836023d44e70efc02f704639ca2`.  
+**Work-cycle report:** [Batch 62J-199 Redis ACL and indicator audit](WORK_CYCLE_2026-11-24_BATCH62J199_REDIS_ACL_DESTRUCTIVE_BOUNDARY_AND_INDICATOR_AUDIT.md).  
+**Master progress:** [PROJECT MASTER PROGRESS — 24 November 2026](PROJECT_MASTER_PROGRESS_2026-11-24.md).
+
+### Exact-head CI — terminal 4/4 SUCCESS
+
+Source/test HEAD `23bf2da93ec8b4c935d2898a993f4d1c80ce9a7d`:
+- Automated Tests [45313574302](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45313574302): SUCCESS — 1,359 backend passed, 1 skipped, 6 non-failing warnings; frontend 320/320 across 34 files; real Redis ACL negative test passed; dedicated Redis TLS fixture passed; npm audit 0 vulnerabilities; pip-audit no known vulnerabilities; container smoke passed.
+- CodeQL [45313574375](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45313574375): SUCCESS.
+- Full Git History Secret Audit [45313574338](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45313574338): SUCCESS.
+- OCI ARM64 Image Readiness [45313574445](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45313574445): SUCCESS.
+
+Documentation HEAD `3e6572658ab47836023d44e70efc02f704639ca2` also completed all four configured workflows terminal SUCCESS:
+- Automated Tests [45314631606](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45314631606).
+- CodeQL [45314631694](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45314631694).
+- Full Git History Secret Audit [45314631725](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45314631725).
+- OCI ARM64 Image Readiness [45314631523](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45314631523).
+
+### Significant engineering delta
+
+Batch 62J-199 added real Redis ACL integration assertions denying publisher/gateway `XTRIM` and `XDEL`, and denying gateway `XGROUP DESTROY`. The updated integration test passed against the ephemeral CI Redis instance. No production runtime code or ACL grant changed.
+
+Redis Stream retention remains **NOT IMPLEMENTED**. The SQLite source outbox remains bounded at 100,000 events with transactional retention-floor advancement. A safe Redis trim requires a durable authoritative gateway inventory, explicit retirement semantics, authenticated snapshot receipts, gateway floor coordination, PEL policy and crash-safe intent/commit/trim/reconcile tests. Publisher and gateway identities must not receive destructive permissions.
+
+### Current project accounting
+
+- Official stage: Stage 1 — Foundation, Security & Data Integrity.
+- Stage 1: **30/40 criteria = 75% provisional** 🟨.
+- Gate 10: **0/10 formally closed** 🟥.
+- Still open: **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39**.
+- Stages 2–6: NOT SCORED / not officially opened.
+- Overall project: **NOT SCORED**; no approved weighted denominator.
+- Aggregate indicator progress: **NOT SCORED**; no approved indicator denominator.
+- ZERO COST. `main` untouched.
+- Delivery target: approximately **24 December 2026**, planning target only.
+
+### Complete indicator status
+
+SMA20 🟨 foundation (first valid index 19); EMA20 🟨 SMA-seeded, alpha 2/21 (index 19); RSI14 Wilder 🟨 (index 14); MACD12/26/9 🟨 (MACD index 25, signal/histogram index 33); Bollinger20,2 🟨 (20-close mean ± 2 population SD, index 19); Shared Indicator Hook 🟨 (identity-bound validated backend snapshot, not chart-integrated); Footprint 🟧 synthetic educational accumulator only; Heatmap 🟥 not implemented; Liquidation Maps 🟥 not implemented.
+
+Calculation tests cover warm-up nulls, source-index alignment, prefix causality, numerical edge cases, immutable snapshot revisions, canonical-series isolation and trust-state suppression. Visible overlays/panes/toggles/legends remain absent because the chart still renders only its candlestick series. Keep indicator UI parked until Stage 4. Footprint OFF retains standard candle spacing; Footprint ON alone may use the dedicated spaced cluster layout. Footprint and Heatmap visual implementation waits for owner references and scoped blueprint review.
+
+---
+
 # Latest verified checkpoint — 24 November 2026 (Batch 62J-190)
 
 **Branch:** `phase-2/market-data-foundation`  

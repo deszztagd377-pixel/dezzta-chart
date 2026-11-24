@@ -1,3 +1,36 @@
+# Latest indicator checkpoint — 24 November 2026 (Batch 62J-199)
+
+**Branch:** `phase-2/market-data-foundation`  
+**Verified source/test HEAD:** `23bf2da93ec8b4c935d2898a993f4d1c80ce9a7d`.  
+**Documentation HEAD:** `3e6572658ab47836023d44e70efc02f704639ca2`; its exact-head CI also completed 4/4 SUCCESS.  
+**Batch report:** [Batch 62J-199](WORK_CYCLE_2026-11-24_BATCH62J199_REDIS_ACL_DESTRUCTIVE_BOUNDARY_AND_INDICATOR_AUDIT.md).  
+**Indicator implementation delta:** none. Batch 62J-199 hardens Redis destructive-command ACL regression tests and updates evidence documentation only; it changes no indicator formula, numeric kernel, shared hook calculation, chart binding, renderer, pane, toggle, legend or indicator-specific test. **Indicator credit: zero.**
+
+| Indicator / subsystem | Status | Verified foundation | First valid index | Remaining acceptance |
+|---|---|---|---:|---|
+| SMA20 | 🟨 Foundation | Arithmetic mean of the latest 20 closes | 19 | Candlestick overlay, toggle, legend/latest value, identity clearing, lifecycle, render/performance |
+| EMA20 | 🟨 Foundation | SMA-seeded EMA; multiplier 2/21 | 19 | Overlay, toggle, legend/latest value, identity clearing, lifecycle, render/performance |
+| RSI14 Wilder | 🟨 Foundation | Initial 14-change average then Wilder-smoothed gain/loss recurrence | 14 | 0–100 pane, 30/70 guides, toggle, legend/latest value, lifecycle/render |
+| MACD12/26/9 | 🟨 Foundation | EMA12 − EMA26; EMA9 signal; histogram = MACD − signal | MACD 25; signal/histogram 33 | Pane, lines, histogram, zero guide, toggle, legend/latest values, lifecycle/render |
+| Bollinger20,2 | 🟨 Foundation | 20-close mean ± 2 population standard deviations | 19 | Upper/middle/lower overlay, toggle, latest values, identity clearing, lifecycle, render/performance |
+| Shared Indicator Hook | 🟨 Foundation | Immutable canonical-series snapshot; shared calculation cache per snapshot revision; backend trust-state gate | Per study | Actual chart binding, stale clearing on identity/timeframe changes, settings, legend, accessibility and performance |
+| Footprint | 🟧 Synthetic prototype only | Educational synthetic accumulator; not exchange-native bid/ask truth | N/A | Owner reference image, reviewed blueprint, verified bid/ask contract, spaced-cluster renderer and acceptance |
+| Heatmap | 🟥 Not implemented | No accepted depth/liquidity renderer | N/A | Owner reference image, validated depth contract, reviewed blueprint, renderer and tests |
+| Liquidation Maps | 🟥 Not implemented | No accepted calculation/runtime renderer | N/A | Defensible data provenance/calculation contract, blueprint, renderer and tests |
+
+**Test evidence on the verified source/test HEAD:**
+- `indicatorCalculations.test.ts`: 17 tests — warm-up alignment, SMA/EMA, Wilder RSI, MACD warm-up, population deviation, timeframe alignment, invalid/non-finite input, prefix causality and numerical stability.
+- `useMarketIndicators.test.ts`: 7 tests — backend-only data, exact keyed snapshots, immutable revision recalculation, canonical-series isolation, shared frozen results, degraded/demo/error trust states and unavailable clearing.
+- Full frontend CI: 320 tests passed across 34 files.
+- Full backend CI: 1,359 passed, 1 skipped, 6 non-failing warnings.
+- The visible `CandlestickChart` still creates only the candlestick series; the shared indicator hook is not yet connected to overlays or oscillator panes.
+
+**Invariants:** warm-up stays null; output aligns to source candle indexes/timestamps; prefix causality prevents future-candle repaint; invalid/gapped input is rejected; stale values clear on identity/timeframe changes. Footprint OFF preserves ordinary candle spacing; only explicit ON enables the spaced cluster layout. Footprint/Heatmap visuals remain blocked on owner reference images and scoped blueprint review.
+
+**Aggregate indicator progress: NOT SCORED.** No approved per-study weights or acceptance denominator exist. Visible indicator work remains parked for official Stage 4.
+
+---
+
 # Latest indicator checkpoint — 24 November 2026 (Batch 62J-190)
 
 **Branch:** `phase-2/market-data-foundation`  
