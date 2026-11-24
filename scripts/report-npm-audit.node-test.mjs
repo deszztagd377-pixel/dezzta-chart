@@ -62,7 +62,7 @@ test('blocks CRITICAL advisories', async () => {
 test('blocks npm audit transport or registry errors', async () => {
   const result = await runReporter({ ...cleanAudit, error: { code: 'ENETWORK', summary: 'registry unavailable' } });
   assert.notEqual(result.status, 0);
-  assert.match(result.stdout, /registry unavailable/);
+  assert.match(result.stderr, /registry unavailable/);
 });
 
 test('fails closed when the audit summary is missing', async () => {
