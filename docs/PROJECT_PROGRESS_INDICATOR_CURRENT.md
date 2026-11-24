@@ -1,4 +1,16 @@
-# Latest branch update — 24 November 2026 (Batch 62J-217)
+# Latest branch update — 24 November 2026 (Batch 62J-218)
+
+**Active branch:** `phase-2/market-data-foundation`  
+**CI-triage base HEAD:** `e8fa80256d23bd19e18d84cab4320bf5c425a0f6`  
+**Latest remediation code commit:** `0f5e391d521a9385f2ec4abcd515dcd5a54d4684` (scoped Undici diagnostics).  
+**Latest test commit:** `5f261d17dbc3e671cf3b4090bd2d98ccc2ff9c85` (regression coverage).  
+**Latest work-cycle documentation commit:** `f2cfa37a06f6bcd99f6a6d9da1224d93cb1bb253` — [Batch 62J-218](WORK_CYCLE_2026-11-24_BATCH62J218_EXACT_HEAD_CI_TRIAGE.md).  
+**Batch 62J-217 exact-head CI:** 3/4 workflows SUCCESS and Automated Tests FAILED on exact HEAD `e8fa80256d23bd19e18d84cab4320bf5c425a0f6`. CodeQL, OCI ARM64 and Full Git History Secret Audit succeeded. Automated Tests failed at the temporary Miniflare dependency check because the reporter treated unrelated `npm ls` diagnostics as fatal, although two Undici 7.30.1 instances were present; the Worker node suite passed 27/27 and reporter tests passed 8/8.  
+**Batch 62J-218 remediation:** reporter now fails on Undici-specific dependency problems, malformed tree data, or zero resolved Undici instances; unrelated npm diagnostics are logged and tolerated for this scoped check. Tests cover relevant and unrelated npm diagnostics. This remediation is committed but **pending exact-head CI**; no success is claimed.  
+**Stage 1:** 30/40 criteria = 75% provisional. **Stage 2:** active. **Gate 25:** owner-host key custody, signed transfer, remote receipt custody and multi-gateway acknowledgement remain open. **Redis destructive retention:** blocked.  
+**Indicators:** no indicator implementation changes; prior foundations/prototype statuses remain. Visible chart integration and user-facing acceptance remain open. **Overall project and aggregate indicator completion:** NOT SCORED. **ZERO COST**; `main` untouched; Vercel deployment deferred. **Target:** approximately 24 December 2026 (planning target only).
+
+---
 
 **Active branch:** `phase-2/market-data-foundation`  
 **Latest implementation/test HEAD:** `f8997b59ae5f644a3680cdd9001cdc2b24a98803`  
