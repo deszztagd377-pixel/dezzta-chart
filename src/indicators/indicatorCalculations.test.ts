@@ -196,4 +196,82 @@ describe('shared indicator calculation engine', () => {
     expect(() => calculateIndicators(bars)).toThrow('Bar 7 has a non-finite close value.');
   });
 
+
+  it('keeps RSI bounded and finite across a deterministic mixed market path', () => {
+    const values = Array.from({ length: 160 }, (_, index) => (
+      250 + index * 0.13 + Math.sin(index / 4) * 3 + Math.cos(index / 11) * 1.7
+    ));
+    const result = calculateRsi(values, 14);
+
+    expect(result.slice(0, 14)).toEqual(Array(14).fill(null));
+    for (const value of result.slice(14)) {
+      expect(value).not.toBeNull();
+      expect(Number.isFinite(value)).toBe(true);
+      expect(value!).toBeGreaterThanOrEqual(0);
+      expect(value!).toBeLessThanOrEqual(100);
+    }
+  });
+
+  it('preserves the MACD histogram identity at every initialized source index', () => {
+    const values = Array.from({ length: 96 }, (_, index) => (
+      100 + index * 0.21 + Math.sin(index / 5) * 4
+    ));
+    const result = calculateMacd(values);
+
+    for (const point of result) {
+      if (point.macd === null || point.signal === null) {
+        expect(point.histogram).toBeNull();
+        continue;
+      }
+      expect(point.histogram).toBeCloseTo(point.macd - point.signal, 12);
+    }
+  });
+
+  it('keeps Bollinger width translation-invariant and bands symmetric around the mean', () => {
+    const values = Array.from({ length: 48 }, (_, index) => (
+      80 + index * 0.7 + Math.sin(index / 2) * 2
+    ));
+    const shifted = values.map((value) => value + 10_000);
+    const original = calculateBollingerBands(values, 20, 2);
+    const translated = calculateBollingerBands(shifted, 20, 2);
+
+    for (let index = 19; index < values.length; index += 1) {
+      const point = original[index];
+      const shiftedPoint = translated[index];
+      expect(point.upper! + point.lower!).toBeCloseTo(2 * point.middle!, 10);
+      expect(shiftedPoint.middle! - point.middle!).toBeCloseTo(10_000, 10);
+      expect(shiftedPoint.upper! - shiftedPoint.middle!).toBeCloseTo(
+        point.upper! - point.middle!, 9,
+      );
+      expect(shiftedPoint.middle! - shiftedPoint.lower!).toBeCloseTo(
+        point.middle! - point.lower!, 9,
+      );
+    }
+  });
+
+  it('keeps every study in warm-up state when history is shorter than its slowest period', () => {
+    const bars = Array.from({ length: 19 }, (_, index) => {
+      const close = 50 + index;
+      return {
+        timestamp: index + 1,
+        open: close,
+        high: close + 1,
+        low: close - 1,
+        close,
+        volume: 1,
+      };
+    });
+    const result = calculateIndicators(bars);
+
+    expect(result.sma20).toEqual(Array(19).fill(null));
+    expect(result.ema20).toEqual(Array(19).fill(null));
+    expect(result.rsi14.slice(0, 14)).toEqual(Array(14).fill(null));
+    expect(result.macd.every((point) => (
+      point.macd === null && point.signal === null && point.histogram === null
+    ))).toBe(true);
+    expect(result.bollinger20.every((point) => (
+      point.middle === null && point.upper === null && point.lower === null
+    ))).toBe(true);
+  });
+
 });
