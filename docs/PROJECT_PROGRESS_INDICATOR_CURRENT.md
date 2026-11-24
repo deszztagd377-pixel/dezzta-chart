@@ -1,3 +1,18 @@
+# Latest verified checkpoint — 24 November 2026 (Batch 62J-188)
+
+**Branch:** `phase-2/market-data-foundation`  
+**Latest exact-HEAD source/test commit:** `22c9ab4a0e97383520670a9af42a2f9ef35f6d62`.  
+**Batch report:** [WORK_CYCLE_2026-11-24_BATCH62J188_WEBSOCKET_RESNAPSHOT_CURSOR_INTEGRITY.md](WORK_CYCLE_2026-11-24_BATCH62J188_WEBSOCKET_RESNAPSHOT_CURSOR_INTEGRITY.md).  
+**Exact-HEAD CI:** Automated Tests [45301177675](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45301177675) SUCCESS (frontend 319/319 across 34 files; backend 1,347 passed / 1 skipped / 6 warnings); CodeQL [45301177661](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45301177661) SUCCESS; OCI ARM64 [45301177705](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45301177705) SUCCESS; Android APK [45301177667](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45301177667) SUCCESS; Secret Audit [45301177685](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45301177685) SUCCESS.
+
+**WebSocket Batch 62J-188:** client now requires the replacement snapshot cursor to exactly match the server's `snapshotCursor`; mismatched and missing cursor regression tests pass. Runtime fix commit `af9020ba6bbc98110a237b18caac9920570cf1ed`; regression-test commit `22c9ab4a0e97383520670a9af42a2f9ef35f6d62`.
+
+**Android debug APK:** artifact ID `14878467608`; SHA-256 `24491a9022b769f60db771a29c1b2b061a9d2b37a39186af0f4dc56300e500c2`. [Artifact](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45301177667/artifacts/14878467608). CI build only, not real-device/release acceptance.
+
+**main:** untouched. **Stage 1:** 30/40 = 75% provisional 🟨. **Stages 2–6:** not scored. **Gate 10:** 0/10 external criteria formally closed 🟥. **Overall:** NOT SCORED; weighted denominator unavailable. **Delivery target:** 24 December 2026, planning target only. **Cost:** ZERO COST.
+
+---
+
 # Latest verified checkpoint — 24 November 2026 (Batch 62J-187)
 
 **Branch:** `phase-2/market-data-foundation`  
