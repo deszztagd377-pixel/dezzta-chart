@@ -421,6 +421,37 @@ def test_replay_boundary_discards_covered_events_and_resequences_live_queue():
     asyncio.run(scenario())
 
 
+def test_replay_boundary_rejects_checkpoint_older_than_snapshot_cursor():
+    pipeline = OhlcvPipeline()
+    assert pipeline.apply(make_bar(0)) == "inserted"
+    hub = OhlcvStreamHub()
+    subscription, _, _ = hub.subscribe_snapshot(
+        pipeline, dataset="GLBX.MDP3", publisher_id=1, instrument_id=101,
+        raw_symbol="ESZ6", timeframe="1s", limit=100, durable_cursor=41,
+    )
+
+    # Live publication may advance durable_cursor while replay is in flight;
+    # snapshot_cursor must remain the immutable floor from initial registration.
+    live_bar = make_bar(1)
+    assert pipeline.apply(live_bar) == "inserted"
+    hub.publish(live_bar, durable_cursor=43, durable_event_id="event-43")
+    assert subscription.snapshot_cursor == 41
+    assert subscription.durable_cursor == 43
+    assert subscription.queue.qsize() == 1
+
+    from app.ohlcv_stream import OhlcvStreamResnapshotRequired
+    try:
+        hub.merge_replay_boundary(subscription, [], replay_end_cursor=40)
+    except OhlcvStreamResnapshotRequired as exc:
+        assert "predates" in str(exc)
+    else:
+        raise AssertionError("replay checkpoint older than snapshot cursor must require resnapshot")
+
+    # Fail-closed validation must happen before draining the live queue.
+    assert subscription.queue.qsize() == 1
+    assert subscription.queue.get_nowait()["cursor"] == "43"
+
+
 def test_replay_boundary_fails_closed_on_overflow_or_wrong_series():
     async def scenario():
         pipeline = OhlcvPipeline()

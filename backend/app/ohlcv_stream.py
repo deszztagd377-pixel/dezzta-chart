@@ -28,6 +28,9 @@ class OhlcvStreamSubscription:
     queue: asyncio.Queue[dict[str, Any]]
     watermark: int = 0
     durable_cursor: int = 0
+    # Immutable cursor represented by the snapshot at subscription creation.
+    # durable_cursor advances as live events are queued during replay.
+    snapshot_cursor: int = 0
     overflowed: bool = False
     closed: bool = False
 
@@ -113,6 +116,7 @@ class OhlcvStreamHub:
             identity=identity,
             queue=asyncio.Queue(maxsize=self._queue_capacity),
             durable_cursor=durable_cursor,
+            snapshot_cursor=durable_cursor,
         )
         self._register(subscription)
         return subscription, bars, total
@@ -284,6 +288,10 @@ class OhlcvStreamHub:
             raise TypeError("replay_events must be a list")
         if type(replay_end_cursor) is not int or replay_end_cursor < 0:
             raise ValueError("replay_end_cursor must be a non-negative integer")
+        if replay_end_cursor < subscription.snapshot_cursor:
+            raise OhlcvStreamResnapshotRequired(
+                "replay checkpoint predates the subscription snapshot cursor"
+            )
 
         expected_series = {
             "provider": subscription.identity[0],
