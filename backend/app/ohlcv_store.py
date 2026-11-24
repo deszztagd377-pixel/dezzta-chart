@@ -15,6 +15,11 @@ import sqlite3
 import uuid
 from typing import Mapping
 
+from app.snapshot_attestation import (
+    sign_snapshot_attestation,
+    validate_trusted_public_keys,
+    verify_snapshot_attestation,
+)
 from app.ohlcv import (
     DEFAULT_RETENTION,
     MIN_RETENTION,
@@ -938,6 +943,7 @@ class SQLiteOhlcvStore:
 
     def export_global_snapshot(
         self, destination_path: str, *, batch_size: int = 500,
+        signing_key: object | None = None, signing_key_id: str | None = None,
     ) -> dict[str, object]:
         """Export every retained series from one read view to an atomic JSONL file.
 
@@ -1021,11 +1027,28 @@ class SQLiteOhlcvStore:
                         output.write(encoded.decode("utf-8") + "\n")
                         digest.update(encoded + b"\n")
                         row_count += 1
+                snapshot_metadata = {
+                    "source_id": str(identity["identity_value"]),
+                    "generation_id": generation_id,
+                    "high_water": high_water,
+                    "retention_floor": retention_floor,
+                    "bar_retention": header["bar_retention"],
+                    "row_count": row_count,
+                    "sha256": digest.hexdigest(),
+                    "format_version": 2,
+                }
+                attestation = sign_snapshot_attestation(
+                    snapshot_metadata,
+                    key_id=signing_key_id,
+                    private_key=signing_key,
+                )
                 manifest = {
                     "record": "manifest",
                     "row_count": row_count,
                     "sha256": digest.hexdigest(),
                 }
+                if attestation is not None:
+                    manifest["attestation"] = attestation
                 output.write(json.dumps(
                     manifest, sort_keys=True, separators=(",", ":")
                 ) + "\n")
@@ -1045,6 +1068,9 @@ class SQLiteOhlcvStore:
                 "row_count": row_count,
                 "sha256": digest.hexdigest(),
                 "format_version": 2,
+                "attestation": attestation,
+                "signature_status": "SIGNED" if attestation is not None else "UNSIGNED",
+                "key_id": None if attestation is None else attestation["key_id"],
             }
         except Exception:
             if source.in_transaction:
@@ -1058,10 +1084,20 @@ class SQLiteOhlcvStore:
             source.close()
 
     @staticmethod
-    def verify_global_snapshot(snapshot_path: str) -> dict[str, object]:
-        """Stream-verify a global snapshot's envelope, row count and SHA-256."""
+    def verify_global_snapshot(
+        snapshot_path: str,
+        *,
+        trusted_public_keys: Mapping[str, str] | None = None,
+        require_authentication: bool = False,
+    ) -> dict[str, object]:
+        """Verify snapshot content and, when configured, its owner Ed25519 signature."""
         if not isinstance(snapshot_path, str) or not snapshot_path.strip():
             raise ValueError("snapshot_path is required.")
+        if type(require_authentication) is not bool:
+            raise ValueError("require_authentication must be a boolean.")
+        trusted_keys = validate_trusted_public_keys(trusted_public_keys)
+        if require_authentication and not trusted_keys:
+            raise ValueError("Authenticated snapshot verification requires trusted public keys.")
         digest = hashlib.sha256()
         row_count = 0
         header: dict[str, object] | None = None
@@ -1129,7 +1165,7 @@ class SQLiteOhlcvStore:
             or manifest["sha256"] != digest.hexdigest()
         ):
             raise ValueError("Snapshot manifest does not match its contents.")
-        return {
+        metadata: dict[str, object] = {
             "source_id": header["source_id"],
             "generation_id": header["generation_id"],
             "cursor": header["high_water"],
@@ -1140,6 +1176,20 @@ class SQLiteOhlcvStore:
             "sha256": digest.hexdigest(),
             "format_version": 2,
         }
+        attestation = manifest.get("attestation")
+        if attestation is not None and trusted_keys:
+            key_id = verify_snapshot_attestation(
+                metadata, attestation, trusted_public_keys,
+            )
+            metadata["verification_state"] = "OWNER_SIGNATURE_VERIFIED"
+            metadata["key_id"] = key_id
+        elif require_authentication:
+            raise ValueError("Snapshot does not contain a trusted owner signature.")
+        else:
+            metadata["verification_state"] = "CONTENT_ONLY_UNAUTHENTICATED"
+            metadata["key_id"] = None
+        metadata["attestation"] = attestation
+        return metadata
 
     def stats(self) -> dict[str, int]:
         db = self._connect()
@@ -1197,7 +1247,16 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
         *,
         retention: Mapping[str, int] | None = None,
         busy_timeout_ms: int = 10_000,
+        trusted_snapshot_keys: Mapping[str, str] | None = None,
+        require_authenticated_snapshots: bool = False,
     ) -> None:
+        if type(require_authenticated_snapshots) is not bool:
+            raise ValueError("require_authenticated_snapshots must be a boolean.")
+        self.trusted_snapshot_keys = dict(trusted_snapshot_keys or {})
+        validate_trusted_public_keys(self.trusted_snapshot_keys)
+        self.require_authenticated_snapshots = require_authenticated_snapshots
+        if self.require_authenticated_snapshots and not self.trusted_snapshot_keys:
+            raise ValueError("Authenticated snapshots require at least one trusted public key.")
         super().__init__(
             database_path, retention=retention, busy_timeout_ms=busy_timeout_ms,
         )
@@ -1254,9 +1313,22 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                     payload_sha256 TEXT NOT NULL
                 )"""
             )
-            # Content-integrity receipts are append-only and deliberately do
-            # not claim source authentication. Historical checkpoints without
-            # a matching row remain LEGACY_UNATTESTED.
+            receipt_table = db.execute(
+                "SELECT sql FROM sqlite_master WHERE type='table' "
+                "AND name='ohlcv_replica_snapshot_receipts'"
+            ).fetchone()
+            if receipt_table is not None:
+                receipt_sql = str(receipt_table["sql"] or "")
+                if (
+                    "CONTENT_ONLY_UNAUTHENTICATED" in receipt_sql
+                    and "OWNER_SIGNATURE_VERIFIED" not in receipt_sql
+                ):
+                    db.execute("DROP TRIGGER IF EXISTS ohlcv_replica_snapshot_receipts_no_update")
+                    db.execute("DROP TRIGGER IF EXISTS ohlcv_replica_snapshot_receipts_no_delete")
+                    db.execute(
+                        "ALTER TABLE ohlcv_replica_snapshot_receipts "
+                        "RENAME TO ohlcv_replica_snapshot_receipts_v1"
+                    )
             db.execute(
                 """CREATE TABLE IF NOT EXISTS ohlcv_replica_snapshot_receipts (
                     source_id TEXT NOT NULL,
@@ -1268,8 +1340,14 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                     manifest_format_version INTEGER NOT NULL
                         CHECK(manifest_format_version >= 1),
                     row_count INTEGER NOT NULL CHECK(row_count >= 0),
-                    verification_state TEXT NOT NULL
-                        CHECK(verification_state = 'CONTENT_ONLY_UNAUTHENTICATED'),
+                    retention_floor INTEGER NOT NULL DEFAULT 0 CHECK(retention_floor >= 0),
+                    bar_retention_json TEXT NOT NULL DEFAULT '{}',
+                    verification_state TEXT NOT NULL CHECK(
+                        verification_state IN (
+                            'CONTENT_ONLY_UNAUTHENTICATED',
+                            'OWNER_SIGNATURE_VERIFIED'
+                        )
+                    ),
                     authenticated_source_id TEXT,
                     key_id TEXT,
                     attestation BLOB,
@@ -1278,6 +1356,41 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                     PRIMARY KEY(source_id, replica_id, generation_id)
                 )"""
             )
+            legacy_receipts = db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' "
+                "AND name='ohlcv_replica_snapshot_receipts_v1'"
+            ).fetchone()
+            if legacy_receipts is not None:
+                db.execute(
+                    """INSERT INTO ohlcv_replica_snapshot_receipts(
+                        source_id,replica_id,generation_id,high_water_cursor,
+                        canonical_sha256,manifest_format_version,row_count,
+                        verification_state,authenticated_source_id,key_id,
+                        attestation,installed_at_utc,installer_protocol_version
+                    )
+                    SELECT source_id,replica_id,generation_id,high_water_cursor,
+                        canonical_sha256,manifest_format_version,row_count,
+                        verification_state,authenticated_source_id,key_id,
+                        attestation,installed_at_utc,installer_protocol_version
+                    FROM ohlcv_replica_snapshot_receipts_v1"""
+                )
+                db.execute("DROP TABLE ohlcv_replica_snapshot_receipts_v1")
+            receipt_columns = {
+                row["name"] for row in db.execute(
+                    "PRAGMA table_info(ohlcv_replica_snapshot_receipts)"
+                )
+            }
+            if "retention_floor" not in receipt_columns:
+                db.execute(
+                    "ALTER TABLE ohlcv_replica_snapshot_receipts "
+                    "ADD COLUMN retention_floor INTEGER NOT NULL DEFAULT 0 "
+                    "CHECK(retention_floor >= 0)"
+                )
+            if "bar_retention_json" not in receipt_columns:
+                db.execute(
+                    "ALTER TABLE ohlcv_replica_snapshot_receipts "
+                    "ADD COLUMN bar_retention_json TEXT NOT NULL DEFAULT '{}'"
+                )
             db.execute(
                 """CREATE TRIGGER IF NOT EXISTS
                 ohlcv_replica_snapshot_receipts_no_update
@@ -1441,8 +1554,9 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
             rows = db.execute(
                 """SELECT source_id,replica_id,generation_id,high_water_cursor,
                     canonical_sha256,manifest_format_version,row_count,
-                    verification_state,authenticated_source_id,key_id,
-                    attestation,installed_at_utc,installer_protocol_version
+                    retention_floor,bar_retention_json,verification_state,
+                    authenticated_source_id,key_id,attestation,installed_at_utc,
+                    installer_protocol_version
                 FROM ohlcv_replica_snapshot_receipts
                 ORDER BY installed_at_utc, source_id, replica_id, generation_id"""
             ).fetchall()
@@ -1455,6 +1569,8 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                     "canonical_sha256": str(row["canonical_sha256"]),
                     "manifest_format_version": int(row["manifest_format_version"]),
                     "row_count": int(row["row_count"]),
+                    "retention_floor": int(row["retention_floor"]),
+                    "bar_retention": json.loads(row["bar_retention_json"]),
                     "verification_state": str(row["verification_state"]),
                     "authenticated_source_id": row["authenticated_source_id"],
                     "key_id": row["key_id"],
@@ -1464,6 +1580,49 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                 }
                 for row in rows
             ]
+        finally:
+            db.close()
+
+    def snapshot_receipt(
+        self, source_id: str, replica_id: str, generation_id: str,
+    ) -> dict[str, object] | None:
+        """Fetch one immutable receipt by its complete identity."""
+        if any(
+            not isinstance(value, str) or not value.strip()
+            for value in (source_id, replica_id, generation_id)
+        ):
+            raise ValueError("Snapshot receipt identity fields are required.")
+        db = self._connect()
+        try:
+            row = db.execute(
+                """SELECT source_id,replica_id,generation_id,high_water_cursor,
+                    canonical_sha256,manifest_format_version,row_count,
+                    retention_floor,bar_retention_json,verification_state,
+                    authenticated_source_id,key_id,attestation,installed_at_utc,
+                    installer_protocol_version
+                FROM ohlcv_replica_snapshot_receipts
+                WHERE source_id=? AND replica_id=? AND generation_id=?""",
+                (source_id, replica_id, generation_id),
+            ).fetchone()
+            if row is None:
+                return None
+            return {
+                "source_id": str(row["source_id"]),
+                "replica_id": str(row["replica_id"]),
+                "generation_id": str(row["generation_id"]),
+                "high_water_cursor": int(row["high_water_cursor"]),
+                "canonical_sha256": str(row["canonical_sha256"]),
+                "manifest_format_version": int(row["manifest_format_version"]),
+                "row_count": int(row["row_count"]),
+                "retention_floor": int(row["retention_floor"]),
+                "bar_retention": json.loads(row["bar_retention_json"]),
+                "verification_state": str(row["verification_state"]),
+                "authenticated_source_id": row["authenticated_source_id"],
+                "key_id": row["key_id"],
+                "attestation": row["attestation"],
+                "installed_at_utc": str(row["installed_at_utc"]),
+                "installer_protocol_version": int(row["installer_protocol_version"]),
+            }
         finally:
             db.close()
 
@@ -1858,7 +2017,11 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
         ):
             raise ValueError("expected_source_id must be a non-empty string.")
 
-        metadata = SQLiteOhlcvStore.verify_global_snapshot(snapshot_path)
+        metadata = SQLiteOhlcvStore.verify_global_snapshot(
+            snapshot_path,
+            trusted_public_keys=self.trusted_snapshot_keys,
+            require_authentication=self.require_authenticated_snapshots,
+        )
         source_id = str(metadata["source_id"])
         if expected_source_id is not None and source_id != expected_source_id:
             raise ValueError("Snapshot source identity does not match the configured source.")
@@ -1987,6 +2150,7 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                 or manifest["row_count"] != inserted
                 or not isinstance(manifest.get("sha256"), str)
                 or manifest["sha256"] != digest.hexdigest()
+                or manifest.get("attestation") != metadata.get("attestation")
                 or digest.hexdigest() != metadata["sha256"]
                 or inserted != metadata["row_count"]
             ):
@@ -1995,7 +2159,8 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
             receipt_identity = (source_id, replica_id, str(metadata["generation_id"]))
             existing_receipt = db.execute(
                 """SELECT high_water_cursor,canonical_sha256,row_count,
-                    manifest_format_version
+                    manifest_format_version,retention_floor,
+                    bar_retention_json,verification_state,key_id,attestation
                 FROM ohlcv_replica_snapshot_receipts
                 WHERE source_id=? AND replica_id=? AND generation_id=?""",
                 receipt_identity,
@@ -2006,6 +2171,16 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                     or str(existing_receipt["canonical_sha256"]) != str(metadata["sha256"])
                     or int(existing_receipt["row_count"]) != int(metadata["row_count"])
                     or int(existing_receipt["manifest_format_version"]) != int(metadata["format_version"])
+                    or str(existing_receipt["verification_state"]) != str(metadata["verification_state"])
+                    or int(existing_receipt["retention_floor"]) != int(metadata["retention_floor"])
+                    or json.loads(existing_receipt["bar_retention_json"]) != metadata["bar_retention"]
+                    or existing_receipt["key_id"] != metadata.get("key_id")
+                    or existing_receipt["attestation"] != (
+                        None if metadata.get("attestation") is None
+                        else json.dumps(
+                            metadata["attestation"], sort_keys=True, separators=(",", ":")
+                        ).encode("utf-8")
+                    )
                 ):
                     raise ValueError(
                         "Snapshot generation conflicts with its immutable installation receipt."
@@ -2015,14 +2190,21 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                     """INSERT INTO ohlcv_replica_snapshot_receipts(
                         source_id,replica_id,generation_id,high_water_cursor,
                         canonical_sha256,manifest_format_version,row_count,
-                        verification_state,authenticated_source_id,key_id,
-                        attestation,installer_protocol_version
-                    ) VALUES (?,?,?,?,?,?,?,
-                        'CONTENT_ONLY_UNAUTHENTICATED',NULL,NULL,NULL,?)""",
+                        retention_floor,bar_retention_json,verification_state,
+                        authenticated_source_id,key_id,attestation,installer_protocol_version
+                    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                     (
                         source_id, replica_id, str(metadata["generation_id"]),
                         int(metadata["high_water"]), str(metadata["sha256"]),
                         int(metadata["format_version"]), int(metadata["row_count"]),
+                        int(metadata["retention_floor"]),
+                        json.dumps(metadata["bar_retention"], sort_keys=True, separators=(",", ":")),
+                        str(metadata["verification_state"]),
+                        source_id if metadata["verification_state"] == "OWNER_SIGNATURE_VERIFIED" else None,
+                        metadata.get("key_id"),
+                        None if metadata.get("attestation") is None else json.dumps(
+                            metadata["attestation"], sort_keys=True, separators=(",", ":")
+                        ).encode("utf-8"),
                         _REPLICA_PROTOCOL_VERSION,
                     ),
                 )
@@ -2062,6 +2244,7 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
             **metadata,
             "replica_id": replica_id,
             "installed_rows": inserted,
-            "receipt_verification_state": "CONTENT_ONLY_UNAUTHENTICATED",
+            "receipt_verification_state": metadata["verification_state"],
+            "receipt_key_id": metadata.get("key_id"),
             "status": "installed",
         }

@@ -151,6 +151,52 @@ delivery only: server restart, process loss, and reconnect require a fresh
 snapshot. No provider connection or live feed is implied by a successful
 WebSocket subscription.
 
+## Authenticated gateway snapshot installation
+
+Production gateway startup requires an owner-pinned Ed25519 public-key
+allow-list in `OHLCV_SNAPSHOT_TRUSTED_KEYS_JSON`. The authoritative source
+host signs the snapshot manifest after the canonical content digest is
+computed. The signature binds source ID, generation ID, high-water cursor,
+retention floor, bar-retention policy, row count, snapshot format version,
+and SHA-256 digest. The gateway verifies the signature before committing the
+immutable receipt and before constructing a Redis client.
+
+Generate the keypair on the authoritative source host, outside the repository
+and container build context:
+
+```bash
+python scripts/generate_snapshot_signing_key.py --directory /etc/dezzta/snapshot-signing-keys
+```
+
+The private PEM is created with owner-only permissions (0600) and is never
+printed. Configure `OHLCV_SNAPSHOT_SIGNING_KEY_FILE` and
+`OHLCV_SNAPSHOT_SIGNING_KEY_ID` only on the source host. A snapshot export
+callback loads the key using
+`load_snapshot_signing_key_from_environment()`, then passes the returned
+`signing_key` and `signing_key_id` to `export_global_snapshot()`.
+
+Configure the gateway with the matching public key in
+`OHLCV_SNAPSHOT_TRUSTED_KEYS_JSON`, for example:
+
+```json
+{"0123456789abcdef":"BASE64_RAW_ED25519_PUBLIC_KEY"}
+```
+
+Multiple key IDs may be present during planned rotation. Add the new public
+key to every gateway before switching the source signer; remove the old key
+from active trust only after all required gateways accept the new key. Keep
+historical public keys in owner-controlled audit storage. A compromised key
+must be removed from active trust immediately and requires a newly signed
+snapshot. Never copy private key material into this repository or expose it
+in logs, receipts, tickets, browser bundles, or chat.
+
+Development snapshots may remain content-only. Production gateway startup
+rejects missing, unsigned, unknown-key, altered, or invalidly signed snapshots
+before Redis client creation. CI uses ephemeral test keys; it does not
+provision owner-host keys or prove a real owner-host transfer. Gate 25 remains
+open until source-host private-key custody, gateway public-key configuration,
+and real transfer acceptance are independently verified.
+
 ## Tests
 
 ```bash

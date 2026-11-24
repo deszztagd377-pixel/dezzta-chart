@@ -31,10 +31,16 @@ def test_snapshot_install_persists_content_only_receipt_atomically(tmp_path):
     assert receipt["high_water_cursor"] == metadata["high_water"]
     assert receipt["canonical_sha256"] == metadata["sha256"]
     assert receipt["row_count"] == metadata["row_count"]
+    assert receipt["retention_floor"] == metadata["retention_floor"]
+    assert receipt["bar_retention"] == metadata["bar_retention"]
     assert receipt["verification_state"] == "CONTENT_ONLY_UNAUTHENTICATED"
     assert receipt["authenticated_source_id"] is None
     assert receipt["key_id"] is None
     assert receipt["attestation"] is None
+    assert replica.snapshot_receipt(
+        receipt["source_id"], receipt["replica_id"], receipt["generation_id"]
+    ) == receipt
+    assert replica.snapshot_receipt("missing", receipt["replica_id"], "missing") is None
     assert installed["receipt_verification_state"] == "CONTENT_ONLY_UNAUTHENTICATED"
     assert replica.checkpoint()["snapshot_sha256"] == receipt["canonical_sha256"]
 

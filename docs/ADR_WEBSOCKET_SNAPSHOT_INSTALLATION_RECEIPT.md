@@ -1,3 +1,13 @@
+# Batch 62J-213 implementation update — 24 November 2026
+
+The implementation now uses an owner-pinned Ed25519 manifest signature. The signature binds source ID, generation ID, high-water cursor, retention floor, bar-retention policy, row count, format version, and canonical SHA-256 digest. Production gateway startup requires a non-empty trusted public-key map and rejects unsigned/unknown/invalid signatures before Redis construction. The immutable local receipt stores the verified source identity, key ID, signature envelope, digest, replica identity, cursor, retention floor, and bar-retention policy. Gateway startup re-verifies the persisted receipt signature before Redis construction.
+
+Existing content-only receipts remain explicitly unauthenticated during additive schema migration. The source host private key is generated/protected outside Git and the container build context; only public keys are configured on gateways. CI uses ephemeral test keys and does not prove owner-host key custody or real snapshot transfer. Gate 25 remains OPEN until owner-host provisioning, real transfer, restart re-verification, remote receipt custody, and multi-gateway high-water acceptance are verified. Redis destructive retention remains blocked.
+
+Detailed trust and key lifecycle: [GATE25_ED25519_SNAPSHOT_AUTHENTICATION.md](GATE25_ED25519_SNAPSHOT_AUTHENTICATION.md).
+
+---
+
 # ADR — Immutable WebSocket Snapshot Installation Receipt
 Status: PROPOSED — design only; no runtime/schema change authorized by this ADR alone.
 Date: 22 November 2026

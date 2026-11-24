@@ -126,3 +126,12 @@ This blueprint must receive owner review before any schema/runtime implementatio
 - Aggregate indicator progress: NOT SCORED.
 - `main`: untouched.
 - Cost: ZERO COST.
+
+
+## Batch 62J-213 — selected authentication trust model
+
+The owner approved implementation based on this blueprint. The selected zero-cost trust model is Ed25519 signed snapshot manifests with an owner-pinned gateway public-key allow-list. The signature covers source ID, generation ID, high-water cursor, retention floor, bar-retention policy, row count, format version, and canonical SHA-256 digest. Source private keys remain on the authoritative source host with mode 0600; gateways receive only base64 raw public keys through `OHLCV_SNAPSHOT_TRUSTED_KEYS_JSON`.
+
+Production gateway runtime now fails closed when the trust allow-list is absent or a snapshot is unsigned, signed by an unknown key, altered, or invalidly signed. The immutable receipt persists the signature envelope and the signed retention metadata, and gateway startup re-verifies that persisted signature before Redis client construction. Existing content-only receipts remain unauthenticated and are preserved as such by schema migration. Key rotation supports overlapping old/new public keys; a new signer must create a new snapshot generation rather than rewriting an existing immutable generation.
+
+Implementation and operational configuration are documented in [GATE25_ED25519_SNAPSHOT_AUTHENTICATION.md](GATE25_ED25519_SNAPSHOT_AUTHENTICATION.md). Repository CI uses ephemeral keys only. Owner-host private-key custody, real signed transfer, remote receipt custody, multi-gateway high-water acknowledgements, and production WSS/Firebase/Android acceptance remain open. Redis destructive retention remains blocked.
