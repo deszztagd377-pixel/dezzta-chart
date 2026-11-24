@@ -5,7 +5,9 @@ import pytest
 from app.ohlcv_redis_config import (
     DEFAULT_OHLCV_STREAM_KEY,
     GATEWAY_ACL_COMMANDS,
+    GATEWAY_LEASE_ACL_COMMANDS,
     PUBLISHER_ACL_COMMANDS,
+    gateway_lease_acl_selector,
     OhlcvRedisRelayConfig,
 )
 
@@ -29,7 +31,10 @@ def test_enabled_relay_requires_two_distinct_acl_identities():
     assert PUBLISHER_ACL_COMMANDS == ("+ping", "+xadd", "+xrange")
     assert GATEWAY_ACL_COMMANDS == (
         "+ping", "+xgroup|create", "+xautoclaim", "+xreadgroup", "+xack", "+xrange",
-        "+set", "+eval", "+get", "+pexpire", "+del",
+    )
+    assert GATEWAY_LEASE_ACL_COMMANDS == ("+set", "+eval", "+get", "+pexpire", "+del")
+    assert gateway_lease_acl_selector("dezzta:ohlcv:gateway-lease:abc123") == (
+        "(+set +eval +get +pexpire +del ~dezzta:ohlcv:gateway-lease:abc123)"
     )
     assert "publish-secret" not in repr(config)
     assert "gateway-secret" not in repr(config)
@@ -88,3 +93,9 @@ def test_relay_rejects_nonzero_database_to_avoid_select_acl():
 def test_relay_enabled_flag_rejects_ambiguous_boolean():
     with pytest.raises(ValueError, match="must be a boolean"):
         OhlcvRedisRelayConfig.from_environment({"OHLCV_REDIS_ENABLED": "sometimes"})
+
+
+@pytest.mark.parametrize("lease_key", ["", "bad key", "bad:*", "bad)key"])
+def test_gateway_lease_acl_selector_rejects_non_literal_keys(lease_key):
+    with pytest.raises(ValueError, match="exact literal Redis key"):
+        gateway_lease_acl_selector(lease_key)

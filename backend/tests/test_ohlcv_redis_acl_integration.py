@@ -6,7 +6,11 @@ import uuid
 
 import pytest
 
-from app.ohlcv_redis_config import GATEWAY_ACL_COMMANDS, PUBLISHER_ACL_COMMANDS
+from app.ohlcv_redis_config import (
+    GATEWAY_ACL_COMMANDS,
+    PUBLISHER_ACL_COMMANDS,
+    gateway_lease_acl_selector,
+)
 
 
 def test_real_redis_publisher_and_gateway_acl_roles_are_least_privilege():
@@ -40,8 +44,9 @@ def test_real_redis_publisher_and_gateway_acl_roles_are_least_privilege():
         )
         admin.execute_command(
             "ACL", "SETUSER", gateway_user, "reset", "on",
-            f">{gateway_password}", f"~{stream_key}", f"~{lease_key}",
+            f">{gateway_password}", f"~{stream_key}",
             *GATEWAY_ACL_COMMANDS,
+            gateway_lease_acl_selector(lease_key),
         )
 
         # redis-py treats database 0 as the default and does not need SELECT.
@@ -106,6 +111,15 @@ def test_real_redis_publisher_and_gateway_acl_roles_are_least_privilege():
             gateway.execute_command("XDEL", stream_key, "1-0")
         with pytest.raises(redis_module.exceptions.ResponseError):
             gateway.execute_command("XGROUP", "DESTROY", stream_key, group_name)
+        # Lease-only commands must not be usable against the stream key.
+        with pytest.raises(redis_module.exceptions.ResponseError):
+            gateway.set(stream_key, "overwrite-stream")
+        with pytest.raises(redis_module.exceptions.ResponseError):
+            gateway.delete(stream_key)
+        with pytest.raises(redis_module.exceptions.ResponseError):
+            gateway.pexpire(stream_key, 1_000)
+        with pytest.raises(redis_module.exceptions.ResponseError):
+            gateway.eval("return redis.call('DEL', KEYS[1])", 1, stream_key)
         with pytest.raises(redis_module.exceptions.ResponseError):
             gateway.set(f"{lease_key}:outside-scope", "forbidden")
 

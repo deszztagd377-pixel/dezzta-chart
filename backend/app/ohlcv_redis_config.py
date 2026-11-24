@@ -7,6 +7,7 @@ until snapshot transport and owner-controlled ACL credentials are ready.
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass, field
 from typing import Mapping
 from urllib.parse import unquote, urlsplit
@@ -15,18 +16,26 @@ from urllib.parse import unquote, urlsplit
 DEFAULT_OHLCV_STREAM_KEY = "dezzta:market-data:ohlcv:v1"
 PUBLISHER_ACL_COMMANDS = ("+ping", "+xadd", "+xrange")
 GATEWAY_ACL_COMMANDS = (
+    # Root permissions are limited to the stream key.
     "+ping",
     "+xgroup|create",
     "+xautoclaim",
     "+xreadgroup",
     "+xack",
     "+xrange",
-    "+set",
-    "+eval",
-    "+get",
-    "+pexpire",
-    "+del",
 )
+GATEWAY_LEASE_ACL_COMMANDS = ("+set", "+eval", "+get", "+pexpire", "+del")
+
+
+def gateway_lease_acl_selector(lease_key: str) -> str:
+    """Build a Redis 7 ACL selector that confines lease commands to one key."""
+    if (
+        not isinstance(lease_key, str)
+        or re.fullmatch(r"[A-Za-z0-9:_-]{1,256}", lease_key) is None
+    ):
+        raise ValueError("lease_key must be an exact literal Redis key.")
+    commands = " ".join(GATEWAY_LEASE_ACL_COMMANDS)
+    return "(" + commands + " ~" + lease_key + ")"
 
 
 def _parse_bool(value: str, *, name: str) -> bool:
