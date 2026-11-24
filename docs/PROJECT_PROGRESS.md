@@ -2828,3 +2828,16 @@ Do not extrapolate Stage 1's provisional 75% to total project completion. No Sta
 6. Keep indicator UI work behind Stage 4 and its approved blueprint/review.
 
 **Constraints:** ZERO COST; active branch only; `main` untouched; no Vercel deployment; target remains approximately 24 December 2026 as a planning target, not a guarantee.
+
+
+---
+
+## Batch 62J-226 — indicator test-count correction (24 November 2026)
+
+A fresh declaration-level audit of the current branch source supersedes the earlier current-count statements in this document. Counting each `it(...)` declaration in the two focused suites gives:
+
+- `src/indicators/indicatorCalculations.test.ts`: **21 named tests**.
+- `src/indicators/useMarketIndicators.test.ts`: **7 named tests**.
+- **Current focused indicator total: 28 named tests (21 + 7).**
+
+This is a source declaration count, not a claim that 28 indicators are implemented or that all 28 passed independently. Exact-head Automated Tests workflow is the pass/fail authority. Older batch entries recording 17 + 7 = 24 are retained as historical counts at their respective earlier source revisions and must not be read as the current count. Indicator aggregate completion remains NOT SCORED; no visual-integration credit is awarded. The calculations and hook remain foundations until chart binding, controls, pane/overlay rendering, identity/lifecycle clearing and render-level acceptance are complete.
