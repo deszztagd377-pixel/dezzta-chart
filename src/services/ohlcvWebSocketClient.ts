@@ -115,6 +115,9 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
   let replayExpectedCount: number | null = null;
   let replayReceivedCount = 0;
   let replayEndCursor: string | null = null;
+  // A server-directed fallback snapshot must be anchored to the exact durable
+  // cursor advertised by resnapshot_required; never accept a different watermark.
+  let expectedResnapshotCursor: string | null = null;
   let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   let pongTimer: ReturnType<typeof setTimeout> | null = null;
   let ticketRenewalTimer: ReturnType<typeof setTimeout> | null = null;
@@ -308,13 +311,14 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
       }
 
       if (value.type === 'market_data.ohlcv.resnapshot_required' && state === 'authenticated') {
-        if (typeof value.reason !== 'string' || typeof value.snapshotCursor !== 'string' ||
-            !/^\d+$/.test(value.snapshotCursor)) {
+        if (typeof value.reason !== 'string' || value.reason.trim().length === 0 ||
+            typeof value.snapshotCursor !== 'string' || !/^\d+$/.test(value.snapshotCursor)) {
           throw new Error('OHLCV resnapshot instruction is invalid.');
         }
         replayExpectedCount = null;
         replayReceivedCount = 0;
         replayEndCursor = null;
+        expectedResnapshotCursor = value.snapshotCursor;
         return;
       }
 
@@ -382,6 +386,10 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
       if (value.type === 'market_data.ohlcv.snapshot' && state === 'authenticated') {
         const parsed = snapshotFromSocket(value);
         if (replayExpectedCount !== null) throw new Error('Snapshot arrived before replay completed.');
+        if (expectedResnapshotCursor !== null && parsed.cursor !== expectedResnapshotCursor) {
+          throw new Error('OHLCV replacement snapshot cursor does not match the server resnapshot watermark.');
+        }
+        expectedResnapshotCursor = null;
         const candles = toChartCandles(parsed.snapshot, options.identity);
         if (parsed.cursor !== undefined) options.onCursor?.(parsed.cursor);
         guard = new OhlcvStreamSequenceGuard(
