@@ -41,6 +41,14 @@ for (const [name, finding] of Object.entries(vulnerabilities)) {
 
 if (audit.error) {
   console.log(`[temporary test dependency audit] npm audit error: ${audit.error.summary ?? audit.error.code ?? 'unspecified'}`);
+  process.exitCode = 1;
+}
+const blockingAdvisories = Number(summary.critical ?? 0) + Number(summary.high ?? 0);
+if (blockingAdvisories > 0) {
+  console.error(
+    `[temporary test dependency audit] BLOCKED: ${blockingAdvisories} HIGH/CRITICAL advisories remain.`,
+  );
+  process.exitCode = 1;
 }
 
 if (dependencyTreePath) {

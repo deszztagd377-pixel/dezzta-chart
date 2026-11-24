@@ -2852,3 +2852,8 @@ The exact-HEAD implementation through `fa8dca9abdb0f7b9aef8c10025346eb8c35023ab`
 - Liquidation Maps: 🟥 no defensible production methodology/provenance or renderer.
 
 Low Tier inventory (15 studies) and Mid Tier additional inventory (~10 studies) remain incomplete owner decisions. Aggregate indicator completion remains NOT SCORED. General CI, backend test counts, and security scans award no indicator progress credit. See [Batch 62J-215 project reconciliation](WORK_CYCLE_2026-11-24_BATCH62J215_GATE25_EXACT_HEAD_CI_AND_INDICATOR_RECONCILIATION.md) and [Batch 62J-212 full indicator matrix](INDICATOR_PROGRESS_2026-11-24_BATCH62J212.md).
+
+
+## Batch 62J-216 — indicator carry-forward (24 November 2026)
+
+No indicator calculation, hook, or chart renderer source changed. Focused test inventory remains 17 calculation cases + 7 shared-hook cases = 24 named cases, not 24 completed indicators. SMA20, EMA20, Wilder RSI14, MACD12/26/9, Bollinger20,2, and the shared hook remain 🟦 foundations only. Footprint PRO 2GD remains 🟧 synthetic/offline prototype; Volume Profile, Complete Volume Profile, compact movable-range Volume Profile Tool, Heatmap, and Liquidation Maps remain 🟥. Low Tier and Mid Tier final inventories remain incomplete owner decisions. Aggregate indicator completion remains NOT SCORED. See [Batch 62J-216](WORK_CYCLE_2026-11-24_BATCH62J216_TRANSIENT_NPM_AUDIT_HARDENING.md).

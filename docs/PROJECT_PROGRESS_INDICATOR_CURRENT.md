@@ -4903,3 +4903,10 @@ The latest verified active-branch HEAD is `fa8dca9abdb0f7b9aef8c10025346eb8c3502
 Gate 25 repository foundations now include immutable per-generation receipts, atomic installation, owner-pinned Ed25519 snapshot signatures, production fail-closed gateway verification, persisted receipt re-verification, and legacy unauthenticated receipt preservation. Owner-host private-key custody, real signed transfer, remote gateway receipt custody, multi-gateway acknowledgements, production WSS/Firebase/Android, and monitoring remain open. Redis destructive retention remains blocked.
 
 Stage 1 remains 30/40 = 75% provisional, not re-audited in this cycle. Stage 2 remains active. Aggregate indicators and overall project progress remain NOT SCORED. Vercel deployment remains deferred; ZERO COST and `main` isolation are preserved.
+
+
+## Batch 62J-216 — temporary test dependency audit gate (24 November 2026)
+
+Base HEAD `ebb64137442a14b185a7c4483bcd424267dfd482` passed Automated Tests, CodeQL, OCI ARM64, Full Git History Secret Audit, and Android debug APK CI (all 5 successful). The temporary Miniflare install printed an install-time `2 high` summary, but the explicit post-install npm audit JSON reported 0 total advisories and both Undici instances were `7.30.1`. Batch 62J-216 removes the redundant install-time audit with `--no-audit`, preserves the explicit post-install audit, and makes HIGH/CRITICAL findings or audit errors fail the diagnostic gate. Full detail: [Batch 62J-216](WORK_CYCLE_2026-11-24_BATCH62J216_TRANSIENT_NPM_AUDIT_HARDENING.md).
+
+Indicator source is unchanged: 17 calculation tests + 7 shared-hook tests; visible chart integration remains outstanding. Stage 1 is still 30/40 = 75% provisional; Stage 2 active; aggregate indicators and overall project remain NOT SCORED. ZERO COST, main isolation, and Vercel deferral remain in force.
