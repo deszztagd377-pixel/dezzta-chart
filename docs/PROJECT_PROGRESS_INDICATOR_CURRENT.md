@@ -1,14 +1,14 @@
-# Latest verified checkpoint — 24 November 2026 (Batch 62J-201)
+# Latest verified checkpoint — 24 November 2026 (Batch 62J-204)
 
 **Branch:** `phase-2/market-data-foundation`  
 **Exact code/test HEAD:** `b71bf86c31fadd2895a2b4f18991b6742847e1a1`  
-**Documentation base HEAD for Batch 62J-202:** `1e5aac317c5714fbe554f0daf380c9dad53a27e4`  
+**Documentation parent HEAD for Batch 62J-204:** `4eef1fe3547d70257a39e00e9d4f49934dc3db2a`  
 **Exact-head CI:** Automated Tests [45321594594](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594594) SUCCESS (1/1 job, 40/40 steps) • CodeQL [45321594526](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594526) SUCCESS (2/2 jobs) • OCI ARM64 [45321594556](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594556) SUCCESS • Secret Audit [45321594499](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594499) SUCCESS. All four exact `head_sha` values match `b71bf86c31fadd2895a2b4f18991b6742847e1a1`.  
 **Cost:** ZERO COST • **main:** untouched • **delivery target:** approximately 24 December 2026 (planning target only)
 
-## Latest documentation maintenance — Batch 62J-202
+## Latest documentation maintenance — Batch 62J-204
 
-The duplicate current indicator/accounting block was removed; historical checkpoints remain preserved. See [Batch 62J-202](WORK_CYCLE_2026-11-24_BATCH62J202_INDICATOR_LEDGER_DEDUPLICATION_AND_STATUS_SYNC.md). Code/test evidence remains on the separately identified Batch 62J-201 source HEAD.
+The focused indicator ledger and test inventory were reconciled in [Batch 62J-204](WORK_CYCLE_2026-11-24_BATCH62J204_INDICATOR_LEDGER_RECONCILIATION.md). The source/test checkpoint remains `b71bf86c31fadd2895a2b4f18991b6742847e1a1`; no indicator implementation code changed.
 
 ## Latest documentation and WebSocket audit — Batch 62J-203
 
@@ -24,7 +24,7 @@ Still externally unaccepted: public owner-host WSS/TLS and proxy behavior; real 
 
 No code, tests, dependencies, credentials, hosting, deployment, or provider activation changed in this audit. Cost remains ZERO; `main` remains untouched. Stage 1 stays 30/40 criteria (300/400 ticks, 75% provisional); Gate 10 stays 0/10 closed; overall project and aggregate indicator progress remain NOT SCORED.
 
-## Batch 62J-201 — Redis 7 ACL selector fix## Batch 62J-201 — Redis 7 ACL selector fix
+## Batch 62J-201 — Redis 7 ACL selector fix
 
 Gateway stream-consumer permissions now remain at the root ACL scope for the stream key. Lease lifecycle commands `SET`, `EVAL`, `GET`, `PEXPIRE`, `DEL` are isolated in a Redis 7 ACL selector restricted to one exact literal lease key. The real Redis integration test denies gateway SET/DEL/PEXPIRE/EVAL against the stream key while allowing lease acquisition, renewal and token-fenced release. Out-of-scope keys, publisher lease access, XTRIM/XDEL/XGROUP DESTROY and database switching remain denied.
 

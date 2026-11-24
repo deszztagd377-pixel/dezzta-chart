@@ -1,11 +1,80 @@
-# CURRENT AUDITED CHECKPOINT — 24 NOVEMBER 2026 (BATCH 62J-201)
+# CURRENT AUDITED CHECKPOINT — 24 NOVEMBER 2026 (BATCH 62J-204)
 
 **Active branch:** `phase-2/market-data-foundation`  
 **Exact code/test HEAD:** `b71bf86c31fadd2895a2b4f18991b6742847e1a1`  
-**Documentation base HEAD:** `1e5aac317c5714fbe554f0daf380c9dad53a27e4`  
-**Latest documentation maintenance:** [Batch 62J-202](docs/WORK_CYCLE_2026-11-24_BATCH62J202_INDICATOR_LEDGER_DEDUPLICATION_AND_STATUS_SYNC.md)  
+**Documentation parent HEAD for Batch 62J-204:** `4eef1fe3547d70257a39e00e9d4f49934dc3db2a`  
+**Latest documentation maintenance:** [Batch 62J-204](docs/WORK_CYCLE_2026-11-24_BATCH62J204_INDICATOR_LEDGER_RECONCILIATION.md)  
 **Exact-head CI:** Automated Tests [45321594594](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594594) SUCCESS (1/1 job, 40/40 steps) • CodeQL [45321594526](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594526) SUCCESS (2/2 jobs) • OCI ARM64 [45321594556](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594556) SUCCESS • Secret Audit [45321594499](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594499) SUCCESS. All four exact `head_sha` values match `b71bf86c31fadd2895a2b4f18991b6742847e1a1`.  
 **Cost:** ZERO COST • **main:** untouched • **delivery target:** approximately 24 December 2026 (planning target only)
+
+## Latest indicator audit — Batch 62J-204 (24 November 2026)
+
+**Source/test checkpoint:** `b71bf86c31fadd2895a2b4f18991b6742847e1a1`  
+**Documentation parent:** `4eef1fe3547d70257a39e00e9d4f49934dc3db2a`  
+**Indicator code delta:** none. This batch reconciles the current source, exact test inventory, visible chart integration state, and progress records; it does not award implementation credit.
+
+The two indicator-specific suites contain **24 named tests**: 17 calculation-engine tests and 7 shared-hook tests. The count was obtained from the current `it()` declarations in `src/indicators/indicatorCalculations.test.ts` and `src/indicators/useMarketIndicators.test.ts`. It is a focused indicator-suite count, not the total frontend test count and not proof that production chart acceptance has passed.
+
+| Study / subsystem | Verified calculation or data foundation | First valid source index | Visible chart acceptance | Status |
+|---|---|---:|---|---|
+| SMA 20 | Rolling 20-close arithmetic mean with overflow-resistant normalized summation | 19 | Overlay, toggle, legend/latest value, identity clearing and lifecycle not integrated | 🟨 Foundation |
+| EMA 20 | SMA-seeded EMA; multiplier `2/21` | 19 | Overlay, toggle, legend/latest value, identity clearing and lifecycle not integrated | 🟨 Foundation |
+| RSI 14 (Wilder) | Seed from first 14 close-to-close changes, then Wilder recurrence; explicit flat/rising/falling edge handling | 14 | Dedicated 0–100 pane, 30/70 guides, toggle and legend not integrated | 🟨 Foundation |
+| MACD 12/26/9 | EMA12 − EMA26; EMA9 signal; histogram = MACD − signal | MACD 25; signal/histogram 33 | Dedicated pane, lines, histogram, zero guide, toggle and legend not integrated | 🟨 Foundation |
+| Bollinger 20,2 | 20-close mean ± 2 population standard deviations | 19 | Upper/middle/lower bands, fill, toggle and latest values not integrated | 🟨 Foundation |
+| Shared indicator hook | Exact keyed immutable backend snapshot; shared WeakMap calculation cache per snapshot object; non-backend/untrusted states suppress output | Per study | Hook is not imported or called by `CandlestickChart.tsx` | 🟨 Foundation |
+| Footprint | Deterministic synthetic/offline aggregation fixtures only; not exchange-native bid/ask truth | N/A | Visual work requires owner reference image(s) and reviewed blueprint; OFF keeps normal candles, ON alone uses spaced clusters | 🟧 Gated |
+| Heatmap | No accepted depth/liquidity renderer verified | N/A | Not implemented; owner reference and validated depth contract required | 🟥 Open |
+| Liquidation Maps | No accepted calculation/runtime renderer verified | N/A | Not implemented; data provenance and reviewed blueprint required | 🟥 Open |
+
+### Exact indicator test inventory
+
+**Calculation engine — 17 tests**
+1. SMA/EMA source alignment and warm-up nulls.
+2. Wilder RSI flat and rising edge cases.
+3. MACD signal warm-up separation.
+4. Bollinger population standard deviation.
+5. Shared multi-indicator calculation entry point.
+6. All shared calculations across supported chart timeframes.
+7. Invalid periods and non-finite values.
+8. Prefix causality (future candles cannot change earlier outputs).
+9. Falling-only RSI and period-one moving averages.
+10. Fail-closed handling of infinite results from finite extreme inputs.
+11. RSI stability for very large finite gain/loss magnitudes.
+12. Overflow-resistant representable SMA means.
+13. Finite Bollinger deviation for large same-sign prices.
+14. Preservation of small residuals between large cancelling SMA inputs.
+15. Preservation of small residuals in the Bollinger middle band.
+16. Wilder RSI seed and recursive smoothing on alternating gains/losses.
+17. Rejection of non-finite close values at the shared calculation boundary.
+
+**Shared hook — 7 tests**
+1. No indicator output without a selected backend series.
+2. Calculation from the exact selected keyed snapshot.
+3. Recalculation from a new immutable snapshot revision after a live update.
+4. Isolation of simultaneous panels by canonical series.
+5. One frozen calculation result shared across panels on the same snapshot revision.
+6. Degraded backend data retained while demo/error snapshots are suppressed.
+7. Indicator output cleared when the selected series becomes unavailable.
+
+### Numerical and lifecycle invariants verified in source/tests
+
+- Outputs preserve source-candle indexing; warm-up slots remain `null`.
+- SMA20/EMA20/Bollinger20 first become valid at index 19; RSI14 at index 14; MACD line at index 25 and signal/histogram at index 33.
+- Prefix-causality tests compare every study's prefix output with the corresponding prefix of the full series.
+- Invalid periods and non-finite input are rejected; numerical kernels include large-magnitude/cancellation regression cases.
+- The hook calculates only for exact canonical-series snapshots in backend `ready` or `degraded` state; demo/loading/unavailable/error states do not expose indicator output.
+- Immutable snapshot identity is used for shared calculation caching; calculated arrays/points are frozen before publication.
+
+### Integration boundary — still red
+
+`CandlestickChart.tsx` currently imports `useMarketDataSeriesSnapshot`, not `useMarketIndicators`, and creates a single `CandlestickSeries`. Consequently, none of SMA/EMA/RSI/MACD/Bollinger is yet a visible, user-toggleable chart feature. No progress credit is awarded for UI integration, accessibility, settings persistence, multi-panel rendering, resize/lifecycle behavior, or production performance until implemented and tested.
+
+Footprint and Heatmap visual work remain gated on owner-provided reference images and a scoped blueprint review. No speculative indicator UI, new dependency, paid provider, hosting, or deployment is introduced in this batch.
+
+**Indicator aggregate progress: NOT SCORED.** There is no approved per-study weighting or acceptance denominator. The 24 focused tests are evidence of calculation/hook foundations, not a completion percentage.
+
+
 
 ## Latest documentation and WebSocket audit — Batch 62J-203
 
@@ -21,7 +90,7 @@ Still externally unaccepted: public owner-host WSS/TLS and proxy behavior; real 
 
 No code, tests, dependencies, credentials, hosting, deployment, or provider activation changed in this audit. Cost remains ZERO; `main` remains untouched. Stage 1 stays 30/40 criteria (300/400 ticks, 75% provisional); Gate 10 stays 0/10 closed; overall project and aggregate indicator progress remain NOT SCORED.
 
-## Batch 62J-201 — Redis 7 ACL selector fix## Batch 62J-201 — Redis 7 ACL selector fix
+## Batch 62J-201 — Redis 7 ACL selector fix
 
 Gateway stream-consumer permissions now remain at the root ACL scope for the stream key. Lease lifecycle commands `SET`, `EVAL`, `GET`, `PEXPIRE`, `DEL` are isolated in a Redis 7 ACL selector restricted to one exact literal lease key. The real Redis integration test denies gateway SET/DEL/PEXPIRE/EVAL against the stream key while allowing lease acquisition, renewal and token-fenced release. Out-of-scope keys, publisher lease access, XTRIM/XDEL/XGROUP DESTROY and database switching remain denied.
 

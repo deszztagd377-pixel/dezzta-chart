@@ -1,4 +1,74 @@
-# Latest indicator checkpoint — 24 November 2026 (Batch 62J-199)
+## Latest indicator checkpoint — Batch 62J-204 (24 November 2026)
+
+**Source/test checkpoint:** `b71bf86c31fadd2895a2b4f18991b6742847e1a1`  
+**Documentation parent:** `4eef1fe3547d70257a39e00e9d4f49934dc3db2a`  
+**Indicator code delta:** none. This batch reconciles the current source, exact test inventory, visible chart integration state, and progress records; it does not award implementation credit.
+
+The two indicator-specific suites contain **24 named tests**: 17 calculation-engine tests and 7 shared-hook tests. The count was obtained from the current `it()` declarations in `src/indicators/indicatorCalculations.test.ts` and `src/indicators/useMarketIndicators.test.ts`. It is a focused indicator-suite count, not the total frontend test count and not proof that production chart acceptance has passed.
+
+| Study / subsystem | Verified calculation or data foundation | First valid source index | Visible chart acceptance | Status |
+|---|---|---:|---|---|
+| SMA 20 | Rolling 20-close arithmetic mean with overflow-resistant normalized summation | 19 | Overlay, toggle, legend/latest value, identity clearing and lifecycle not integrated | 🟨 Foundation |
+| EMA 20 | SMA-seeded EMA; multiplier `2/21` | 19 | Overlay, toggle, legend/latest value, identity clearing and lifecycle not integrated | 🟨 Foundation |
+| RSI 14 (Wilder) | Seed from first 14 close-to-close changes, then Wilder recurrence; explicit flat/rising/falling edge handling | 14 | Dedicated 0–100 pane, 30/70 guides, toggle and legend not integrated | 🟨 Foundation |
+| MACD 12/26/9 | EMA12 − EMA26; EMA9 signal; histogram = MACD − signal | MACD 25; signal/histogram 33 | Dedicated pane, lines, histogram, zero guide, toggle and legend not integrated | 🟨 Foundation |
+| Bollinger 20,2 | 20-close mean ± 2 population standard deviations | 19 | Upper/middle/lower bands, fill, toggle and latest values not integrated | 🟨 Foundation |
+| Shared indicator hook | Exact keyed immutable backend snapshot; shared WeakMap calculation cache per snapshot object; non-backend/untrusted states suppress output | Per study | Hook is not imported or called by `CandlestickChart.tsx` | 🟨 Foundation |
+| Footprint | Deterministic synthetic/offline aggregation fixtures only; not exchange-native bid/ask truth | N/A | Visual work requires owner reference image(s) and reviewed blueprint; OFF keeps normal candles, ON alone uses spaced clusters | 🟧 Gated |
+| Heatmap | No accepted depth/liquidity renderer verified | N/A | Not implemented; owner reference and validated depth contract required | 🟥 Open |
+| Liquidation Maps | No accepted calculation/runtime renderer verified | N/A | Not implemented; data provenance and reviewed blueprint required | 🟥 Open |
+
+### Exact indicator test inventory
+
+**Calculation engine — 17 tests**
+1. SMA/EMA source alignment and warm-up nulls.
+2. Wilder RSI flat and rising edge cases.
+3. MACD signal warm-up separation.
+4. Bollinger population standard deviation.
+5. Shared multi-indicator calculation entry point.
+6. All shared calculations across supported chart timeframes.
+7. Invalid periods and non-finite values.
+8. Prefix causality (future candles cannot change earlier outputs).
+9. Falling-only RSI and period-one moving averages.
+10. Fail-closed handling of infinite results from finite extreme inputs.
+11. RSI stability for very large finite gain/loss magnitudes.
+12. Overflow-resistant representable SMA means.
+13. Finite Bollinger deviation for large same-sign prices.
+14. Preservation of small residuals between large cancelling SMA inputs.
+15. Preservation of small residuals in the Bollinger middle band.
+16. Wilder RSI seed and recursive smoothing on alternating gains/losses.
+17. Rejection of non-finite close values at the shared calculation boundary.
+
+**Shared hook — 7 tests**
+1. No indicator output without a selected backend series.
+2. Calculation from the exact selected keyed snapshot.
+3. Recalculation from a new immutable snapshot revision after a live update.
+4. Isolation of simultaneous panels by canonical series.
+5. One frozen calculation result shared across panels on the same snapshot revision.
+6. Degraded backend data retained while demo/error snapshots are suppressed.
+7. Indicator output cleared when the selected series becomes unavailable.
+
+### Numerical and lifecycle invariants verified in source/tests
+
+- Outputs preserve source-candle indexing; warm-up slots remain `null`.
+- SMA20/EMA20/Bollinger20 first become valid at index 19; RSI14 at index 14; MACD line at index 25 and signal/histogram at index 33.
+- Prefix-causality tests compare every study's prefix output with the corresponding prefix of the full series.
+- Invalid periods and non-finite input are rejected; numerical kernels include large-magnitude/cancellation regression cases.
+- The hook calculates only for exact canonical-series snapshots in backend `ready` or `degraded` state; demo/loading/unavailable/error states do not expose indicator output.
+- Immutable snapshot identity is used for shared calculation caching; calculated arrays/points are frozen before publication.
+
+### Integration boundary — still red
+
+`CandlestickChart.tsx` currently imports `useMarketDataSeriesSnapshot`, not `useMarketIndicators`, and creates a single `CandlestickSeries`. Consequently, none of SMA/EMA/RSI/MACD/Bollinger is yet a visible, user-toggleable chart feature. No progress credit is awarded for UI integration, accessibility, settings persistence, multi-panel rendering, resize/lifecycle behavior, or production performance until implemented and tested.
+
+Footprint and Heatmap visual work remain gated on owner-provided reference images and a scoped blueprint review. No speculative indicator UI, new dependency, paid provider, hosting, or deployment is introduced in this batch.
+
+**Indicator aggregate progress: NOT SCORED.** There is no approved per-study weighting or acceptance denominator. The 24 focused tests are evidence of calculation/hook foundations, not a completion percentage.
+
+
+---
+
+# Historical indicator checkpoint — 24 November 2026 (Batch 62J-199)
 
 **Branch:** `phase-2/market-data-foundation`  
 **Verified source/test HEAD:** `23bf2da93ec8b4c935d2898a993f4d1c80ce9a7d`.  
