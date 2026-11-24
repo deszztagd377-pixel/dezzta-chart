@@ -1,4 +1,18 @@
-# Latest verified checkpoint — 24 November 2026 (Batch 62J-205)
+# Latest branch update — 24 November 2026 (Batch 62J-217)
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Latest implementation/test HEAD:** `f8997b59ae5f644a3680cdd9001cdc2b24a98803`  
+**Latest documentation report commit:** `6468ed8e4e5ba6a853b6a705d28a1c5817366e35` — [Batch 62J-217](WORK_CYCLE_2026-11-24_BATCH62J217_TEMPORARY_AUDIT_FAIL_CLOSED.md).  
+**Batch 62J-217:** temporary dependency audit reporter now validates audit summary consistency and individual HIGH/CRITICAL findings; rejects missing/malformed audit metadata, audit errors, and incomplete npm dependency-tree output. Eight regression cases are included and wired into Automated Tests. Isolated local reproduction: 8/8 passed; Node syntax checks passed.  
+**Exact-head CI:** combined status for implementation HEAD `f8997b59ae5f644a3680cdd9001cdc2b24a98803` returned no status entries; the available workflow-run helper only exposes pull-request-triggered runs and returned none. Exact-head CI is **UNVERIFIED**, not SUCCESS or FAILED. The report commit is documentation-only and does not inherit prior CI results.  
+**Previous CI baseline:** Batch 62J-216 records five successful workflows on base HEAD `ebb64137442a14b185a7c4483bcd424267dfd482`; this does not verify Batch 62J-217.  
+**Stage 1:** 30/40 criteria = 75% provisional, not independently re-audited. **Stage 2:** active. **Gate 25:** repository foundations implemented; owner-host key custody, real signed transfer, remote receipt custody and multi-gateway acknowledgement remain open. **Redis destructive retention:** blocked.  
+**Indicators:** no implementation changes in Batch 62J-217. SMA/EMA/RSI/MACD/Bollinger and shared hook remain calculation/data foundations; Footprint remains gated synthetic prototype; Volume Profile, Heatmap and Liquidation Maps remain open. Visible chart integration remains outstanding.  
+**Overall project and aggregate indicator completion:** NOT SCORED; approved denominators/weights are unavailable. **ZERO COST.** `main` untouched. Vercel deployment deferred. **Target:** approximately 24 December 2026 (planning target only).
+
+---
+
+## Historical verified checkpoint — 24 November 2026 (Batch 62J-205)
 
 **Branch:** `phase-2/market-data-foundation`  
 **Exact code/test HEAD:** `b71bf86c31fadd2895a2b4f18991b6742847e1a1`  
