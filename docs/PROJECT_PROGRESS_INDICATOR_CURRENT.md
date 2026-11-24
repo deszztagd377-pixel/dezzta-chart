@@ -1,4 +1,14 @@
-# Latest branch update — 24 November 2026 (Batch 62J-220)
+# Latest branch update — 24 November 2026 (Batch 62J-221)
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Last fully verified CI HEAD:** `0fa0b17b7f436e5c41e87599ae8f993da8b67a7a` — all four required workflows SUCCESS: Automated Tests [45406917673](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45406917673), CodeQL [45406917414](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45406917414), OCI ARM64 [45406917429](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45406917429), Full Git History Secret Audit [45406917428](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45406917428). All exact `head_sha` values match.  
+**Batch 62J-221 implementation:** gateway evidence now exports authenticated source identity; source publisher requires every gateway receipt to be `OWNER_SIGNATURE_VERIFIED`, bind the authoritative source, carry a unique durable replica ID and valid key ID, match the exact stream/generation/cursor/SHA-256, and use the same signer key ID across all required gateways. Invalid evidence is rejected before source Redis client construction.  
+**Batch 62J-221 changed files:** `backend/app/ohlcv_redis_gateway_runtime.py`, `backend/app/ohlcv_redis_runtime.py`, `backend/tests/test_ohlcv_redis_gateway_runtime.py`, `backend/tests/test_ohlcv_redis_runtime.py`.  
+**Work-cycle:** [Batch 62J-221](WORK_CYCLE_2026-11-24_BATCH62J221_OWNER_AUTHENTICATED_GATEWAY_RECEIPTS.md). **Exact-head CI for Batch 221 final documentation HEAD is pending; do not claim success until all four workflows complete.**  
+**Stage 1:** 30/40 criteria = 75% provisional. **Stage 2:** active. **Gate 25:** source-side receipt contract strengthened; real owner-host callback transport/authentication, key custody, real transfer and multi-gateway receipt persistence remain OPEN. **Redis destructive retention:** BLOCKED.  
+**Indicators:** no indicator implementation changes; no completion credit. **Overall project and aggregate indicator completion:** NOT SCORED. **ZERO COST**; `main` untouched; Vercel deployment deferred. **Target:** approximately 24 December 2026 (planning target only).
+
+---
 
 **Active branch:** `phase-2/market-data-foundation`  
 **Previous exact-head CI:** `1f3305c3fc2f39059ff8bc9cdb581edb534831e1` — CodeQL, OCI ARM64 and Full Git History Secret Audit SUCCESS; Automated Tests FAILED only because a regression assertion expected stale diagnostic wording. All 11 reporter tests ran: 10 passed, 1 failed on assertion text; reporter behavior correctly rejected the missing Undici fixture and tolerated the extraneous override fixture.  
