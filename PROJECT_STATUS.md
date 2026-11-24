@@ -1,9 +1,9 @@
-# CURRENT AUDITED CHECKPOINT — 24 NOVEMBER 2026 (BATCH 62J-204)
+# CURRENT AUDITED CHECKPOINT — 24 NOVEMBER 2026 (BATCH 62J-205)
 
 **Active branch:** `phase-2/market-data-foundation`  
 **Exact code/test HEAD:** `b71bf86c31fadd2895a2b4f18991b6742847e1a1`  
 **Documentation parent HEAD for Batch 62J-204:** `4eef1fe3547d70257a39e00e9d4f49934dc3db2a`  
-**Latest documentation maintenance:** [Batch 62J-204](docs/WORK_CYCLE_2026-11-24_BATCH62J204_INDICATOR_LEDGER_RECONCILIATION.md)  
+**Latest documentation maintenance:** [Batch 62J-205](docs/WORK_CYCLE_2026-11-24_BATCH62J205_GATE25_SNAPSHOT_DIGEST_EVIDENCE_CORRECTION.md)  
 **Exact-head CI:** Automated Tests [45321594594](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594594) SUCCESS (1/1 job, 40/40 steps) • CodeQL [45321594526](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594526) SUCCESS (2/2 jobs) • OCI ARM64 [45321594556](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594556) SUCCESS • Secret Audit [45321594499](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594499) SUCCESS. All four exact `head_sha` values match `b71bf86c31fadd2895a2b4f18991b6742847e1a1`.  
 **Cost:** ZERO COST • **main:** untouched • **delivery target:** approximately 24 December 2026 (planning target only)
 
@@ -75,6 +75,10 @@ Footprint and Heatmap visual work remain gated on owner-provided reference image
 **Indicator aggregate progress: NOT SCORED.** There is no approved per-study weighting or acceptance denominator. The 24 focused tests are evidence of calculation/hook foundations, not a completion percentage.
 
 
+
+## Latest Gate 25 snapshot-digest correction — Batch 62J-205
+
+Current replica source persists the snapshot SHA-256 in the mutable checkpoint in the same transaction as installed bars and checkpoint replacement. Gateway startup verifies callback digest against that checkpoint before Redis construction. This is not an immutable per-generation installation receipt and does not authenticate owner-host receipt custody; Gate 25 remains OPEN. See [Batch 62J-205](docs/WORK_CYCLE_2026-11-24_BATCH62J205_GATE25_SNAPSHOT_DIGEST_EVIDENCE_CORRECTION.md) and the corrected [snapshot receipt ADR](docs/ADR_WEBSOCKET_SNAPSHOT_INSTALLATION_RECEIPT.md).
 
 ## Latest documentation and WebSocket audit — Batch 62J-203
 

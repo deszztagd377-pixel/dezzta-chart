@@ -1,4 +1,4 @@
-# Latest verified checkpoint — 24 November 2026 (Batch 62J-204)
+# Latest verified checkpoint — 24 November 2026 (Batch 62J-205)
 
 **Branch:** `phase-2/market-data-foundation`  
 **Exact code/test HEAD:** `b71bf86c31fadd2895a2b4f18991b6742847e1a1`  
@@ -6,9 +6,9 @@
 **Exact-head CI:** Automated Tests [45321594594](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594594) SUCCESS (1/1 job, 40/40 steps) • CodeQL [45321594526](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594526) SUCCESS (2/2 jobs) • OCI ARM64 [45321594556](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594556) SUCCESS • Secret Audit [45321594499](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594499) SUCCESS. All four exact `head_sha` values match `b71bf86c31fadd2895a2b4f18991b6742847e1a1`.  
 **Cost:** ZERO COST • **main:** untouched • **delivery target:** approximately 24 December 2026 (planning target only)
 
-## Latest documentation maintenance — Batch 62J-204
+## Latest documentation maintenance — Batch 62J-205
 
-The focused indicator ledger and test inventory were reconciled in [Batch 62J-204](WORK_CYCLE_2026-11-24_BATCH62J204_INDICATOR_LEDGER_RECONCILIATION.md). The source/test checkpoint remains `b71bf86c31fadd2895a2b4f18991b6742847e1a1`; no indicator implementation code changed.
+The focused indicator ledger and test inventory were reconciled in [Batch 62J-204](WORK_CYCLE_2026-11-24_BATCH62J204_INDICATOR_LEDGER_RECONCILIATION.md). Batch 62J-205 corrects the Gate 25 snapshot digest/receipt distinction; the source/test checkpoint remains `b71bf86c31fadd2895a2b4f18991b6742847e1a1`; no indicator implementation code changed.
 
 ## Latest documentation and WebSocket audit — Batch 62J-203
 

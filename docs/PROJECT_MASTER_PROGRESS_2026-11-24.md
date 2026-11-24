@@ -6,12 +6,16 @@
 **Active branch:** `phase-2/market-data-foundation`  
 **Latest exact-head code checkpoint:** `b71bf86c31fadd2895a2b4f18991b6742847e1a1`  
 **Documentation parent before Batch 62J-204:** `4eef1fe3547d70257a39e00e9d4f49934dc3db2a`  
-**Latest documentation maintenance:** [Batch 62J-204](WORK_CYCLE_2026-11-24_BATCH62J204_INDICATOR_LEDGER_RECONCILIATION.md)  
+**Latest documentation maintenance:** [Batch 62J-205](WORK_CYCLE_2026-11-24_BATCH62J205_GATE25_SNAPSHOT_DIGEST_EVIDENCE_CORRECTION.md)  
 **Latest documentation HEAD before Batch 62J-204:** `4eef1fe3547d70257a39e00e9d4f49934dc3db2a`  
 **Protected branch:** `main` — untouched  
 **Delivery target:** approximately **24 December 2026** (planning target, not a guarantee)  
 **Cost rule:** **ZERO COST / ZERO INCREMENTAL SPEND**  
 **Purpose:** canonical, consolidated progress record. This document summarizes the evidence ledger; it does not replace the detailed work-cycle reports linked below.
+
+## Latest Gate 25 snapshot-digest correction — Batch 62J-205
+
+Current source stores the snapshot digest in the mutable replica checkpoint and verifies callback digest/checkpoint equality before Redis client construction. It does not yet persist a separate immutable per-generation receipt or authenticate owner-host receipt custody. Gate 25 remains OPEN. See [Batch 62J-205](WORK_CYCLE_2026-11-24_BATCH62J205_GATE25_SNAPSHOT_DIGEST_EVIDENCE_CORRECTION.md).
 
 ## Latest indicator audit — Batch 62J-204
 

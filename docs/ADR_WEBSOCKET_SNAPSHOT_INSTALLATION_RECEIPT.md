@@ -78,10 +78,25 @@ This ADR does not close Gate 25, authenticate a real owner-host transfer, config
 The following details were verified directly against the branch source and tests:
 
 - `SQLiteOhlcvReplicaStore.install_global_snapshot()` performs preflight verification and then re-reads/validates the manifest and content while inserting the replacement snapshot under a write transaction. Snapshot replacement and checkpoint changes are atomic.
-- The mutable replica checkpoint contains source ID, replica ID, applied cursor, snapshot generation, retention metadata and schema/protocol versions; it does not contain the snapshot digest or immutable installation receipt.
-- Gateway runtime checks the installer status, source ID, generation, cursor, SHA-256 syntax and checkpoint alignment before constructing Redis. It exposes the digest in runtime evidence but cannot bind it to a durable receipt yet.
+- At that audit checkpoint, the mutable replica checkpoint was described as not containing the snapshot digest. That statement is superseded by the Batch 62J-205 current-source correction below; do not use it as a description of the current branch.
 - Publisher-side `_validate_snapshot_evidence()` requires a receipt per configured gateway and matches source, stream, generation, cursor and digest. The owner-host callback remains responsible for authenticating and retrieving those receipts; the validator itself does not contact remote gateways.
 
 This confirms the design gap described above. Gate 25 remains OPEN. Do not treat digest syntax validation, transactional snapshot installation, or callback-supplied receipt validation as proof of durable gateway receipt custody. The implementation acceptance matrix and ordered migration plan are recorded in `WORK_CYCLE_2026-11-22_BATCH62J135_GATE25_SOURCE_AUDIT_IP3S.md`.
 
 No implementation was performed; the ADR remains PROPOSED and design-only. The source-backed review does not authorize schema/runtime changes.
+
+
+## Batch 62J-205 — current-source correction: digest is durable in the mutable checkpoint, receipt is still missing (24 November 2026)
+
+The earlier Batch 62J-135 wording that the replica checkpoint does not contain a snapshot digest is superseded by the current source/test checkpoint `b71bf86c31fadd2895a2b4f18991b6742847e1a1`.
+
+Verified source behavior in `backend/app/ohlcv_store.py`:
+- `ohlcv_replica_checkpoint` has a nullable `snapshot_sha256` column; initialization adds the column to older databases when absent.
+- `SQLiteOhlcvReplicaStore.install_global_snapshot()` validates the snapshot in a preflight pass, then re-reads and hashes the exact content while inserting the replacement bars under `BEGIN IMMEDIATE`.
+- It validates manifest row count and digest against both the recomputed digest and preflight metadata.
+- It writes the digest in the same transaction as the replica checkpoint replacement; `checkpoint()` and `load_snapshot()` expose that digest.
+- `build_gateway_replica_runtime_factory()` compares installer metadata against the durable checkpoint digest before constructing the Redis client. The regression `test_gateway_runtime_rejects_callback_digest_not_bound_to_durable_checkpoint` proves a forged callback digest is rejected and no Redis client is created.
+
+**Important distinction:** this is a digest bound to the current mutable checkpoint, not a separate immutable installation receipt. The checkpoint is updated when a newer snapshot generation is installed; it is not an append-only provenance history. The publisher-side callback still supplies the per-gateway receipt map, and the validator checks its fields but does not authenticate or retrieve remote receipts itself.
+
+Therefore the ADR's original statement that no durable checkpoint digest exists is stale and corrected below. The remaining Gate 25 design gap is narrower but still material: authenticated owner-controlled receipt custody, immutable per-generation receipt persistence, signer/key provenance and crash-safe audit retention. Gate 25 remains OPEN; no schema or runtime migration is authorized by this clarification.
