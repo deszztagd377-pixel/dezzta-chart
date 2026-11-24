@@ -93,6 +93,19 @@ def test_real_redis_publisher_and_gateway_acl_roles_are_least_privilege():
         assert gateway.xrange(stream_key, min="-", max="+")
         with pytest.raises(redis_module.exceptions.ResponseError):
             gateway.xadd(stream_key, {"payload": "forbidden"}, id="3-0")
+
+        # Neither runtime identity may destroy replay history or generation state.
+        # Retention must use a separately reviewed, least-privilege maintenance role.
+        with pytest.raises(redis_module.exceptions.ResponseError):
+            publisher.execute_command("XTRIM", stream_key, "MAXLEN", "0")
+        with pytest.raises(redis_module.exceptions.ResponseError):
+            publisher.execute_command("XDEL", stream_key, "1-0")
+        with pytest.raises(redis_module.exceptions.ResponseError):
+            gateway.execute_command("XTRIM", stream_key, "MAXLEN", "0")
+        with pytest.raises(redis_module.exceptions.ResponseError):
+            gateway.execute_command("XDEL", stream_key, "1-0")
+        with pytest.raises(redis_module.exceptions.ResponseError):
+            gateway.execute_command("XGROUP", "DESTROY", stream_key, group_name)
         with pytest.raises(redis_module.exceptions.ResponseError):
             gateway.set(f"{lease_key}:outside-scope", "forbidden")
 
