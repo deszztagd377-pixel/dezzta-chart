@@ -2,8 +2,13 @@
 
 **Branch:** `phase-2/market-data-foundation`  
 **Exact code/test HEAD:** `b71bf86c31fadd2895a2b4f18991b6742847e1a1`  
+**Documentation base HEAD for Batch 62J-202:** `1e5aac317c5714fbe554f0daf380c9dad53a27e4`  
 **Exact-head CI:** Automated Tests [45321594594](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594594) SUCCESS (1/1 job, 40/40 steps) • CodeQL [45321594526](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594526) SUCCESS (2/2 jobs) • OCI ARM64 [45321594556](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594556) SUCCESS • Secret Audit [45321594499](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594499) SUCCESS. All four exact `head_sha` values match `b71bf86c31fadd2895a2b4f18991b6742847e1a1`.  
 **Cost:** ZERO COST • **main:** untouched • **delivery target:** approximately 24 December 2026 (planning target only)
+
+## Latest documentation maintenance — Batch 62J-202
+
+The duplicate current indicator/accounting block was removed; historical checkpoints remain preserved. See [Batch 62J-202](WORK_CYCLE_2026-11-24_BATCH62J202_INDICATOR_LEDGER_DEDUPLICATION_AND_STATUS_SYNC.md). Code/test evidence remains on the separately identified Batch 62J-201 source HEAD.
 
 ## Batch 62J-201 — Redis 7 ACL selector fix
 
@@ -41,35 +46,6 @@ WebSocket/OHLCV repository foundations include authenticated delivery boundaries
 
 SQLite source/outbox retention uses a 100,000-event bounded window and transactional monotonic floor advancement. Redis Stream retention remains NOT IMPLEMENTED pending durable gateway inventory, retirement semantics, authenticated snapshot receipts, per-gateway floor acknowledgements, PEL policy and crash-safe intent/commit/trim/reconcile tests. Runtime users must not receive destructive stream permissions.
 
-
-
-## Complete indicator status
-
-| Indicator / layer | Verified calculation foundation | Visible chart state | Status |
-|---|---|---|---|
-| SMA 20 | 20-close mean; first valid index 19; tests | No overlay/toggle/legend | 🟨 Foundation |
-| EMA 20 | SMA-seeded; alpha 2/21; first valid index 19; tests | No overlay/toggle/legend | 🟨 Foundation |
-| RSI 14 (Wilder) | Wilder smoothing; first valid index 14; tests | No pane, 0–100 scale, 30/70 guides or toggle | 🟨 Foundation |
-| MACD 12/26/9 | MACD index 25; signal/histogram index 33; tests | No dedicated pane/visible histogram/zero guide | 🟨 Foundation |
-| Bollinger 20,2 | Mean ± 2 population SD; first valid index 19; tests | No bands/fill/toggle | 🟨 Foundation |
-| Shared indicator hook | Identity-bound validated backend snapshot; trust-state suppression | Hook only; not chart-integrated | 🟨 Foundation |
-| Footprint | Deterministic synthetic/offline aggregation + fixtures | Wait for owner reference + scoped blueprint; OFF normal candles, ON spaced clusters | 🟧 Gated |
-| Heatmap | No implementation verified | Not implemented; wait for owner reference | 🟥 Open |
-| Liquidation Maps | No implementation verified | Not implemented; wait for owner reference | 🟥 Open |
-
-## Accounting and remaining gates
-
-| Meter | Verified state | Status |
-|---|---:|---|
-| Stage 1 | 30/40 criteria • 300/400 ticks • 75% provisional | 🟨 Active |
-| Gate 10 | 0/10 formally closed; open 8, 20, 25, 30, 31, 34, 35, 36, 38, 39 | 🟥 Open |
-| Stages 2–6 | Not officially opened/scored | 🟦 / ⬜ Parked |
-| Overall project | No approved weighted denominator | ⚪ NOT SCORED |
-| Aggregate indicator progress | No approved indicator denominator | ⚪ NOT SCORED |
-
-Calculation tests establish mathematical foundations, not visible feature completion. Stage 4 remains parked. Footprint OFF preserves ordinary candle spacing; Footprint ON alone may use the dedicated spaced-cluster layout. Footprint and Heatmap visuals wait for owner reference images and scoped blueprint review.
-
-Redis Stream retention is NOT IMPLEMENTED. Owner-controlled durable gateway inventory, explicit retirement, authenticated snapshot receipts, per-gateway floor acknowledgements, PEL policy and crash-safe intent/commit/trim/reconcile remain prerequisites. Owner-host WebSocket and Android/browser E2E also remain open.
 
 ---
 

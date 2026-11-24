@@ -5,6 +5,8 @@
 **Official active stage:** Stage 1 — Foundation, Security & Data Integrity  
 **Active branch:** `phase-2/market-data-foundation`  
 **Latest exact-head code checkpoint:** `b71bf86c31fadd2895a2b4f18991b6742847e1a1`  
+**Documentation base before Batch 62J-202:** `1e5aac317c5714fbe554f0daf380c9dad53a27e4`  
+**Latest documentation maintenance:** [Batch 62J-202](WORK_CYCLE_2026-11-24_BATCH62J202_INDICATOR_LEDGER_DEDUPLICATION_AND_STATUS_SYNC.md)  
 **Protected branch:** `main` — untouched  
 **Delivery target:** approximately **24 December 2026** (planning target, not a guarantee)  
 **Cost rule:** **ZERO COST / ZERO INCREMENTAL SPEND**  
