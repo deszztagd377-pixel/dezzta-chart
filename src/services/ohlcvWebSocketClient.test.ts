@@ -275,6 +275,47 @@ describe('connectOhlcvStream', () => {
     connection.close();
   });
 
+  it('rejects a replacement snapshot whose durable cursor differs from the resnapshot watermark', () => {
+    const { socket, onError, onSnapshot, connection } = setup();
+    socket.readyState = 1;
+    socket.emit('open', new Event('open'));
+    socket.message({ type: 'market_data.status', version: 1 });
+    socket.message({
+      type: 'market_data.ohlcv.resnapshot_required',
+      version: 1,
+      reason: 'cursor_expired',
+      snapshotCursor: '7',
+    });
+
+    socket.message({ ...snapshot, cursor: '8' });
+
+    expect(connection.state).toBe('closed');
+    expect(onSnapshot).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError.mock.calls[0][0].message).toMatch(/replacement snapshot cursor/i);
+  });
+
+  it('rejects a replacement snapshot that omits its required durable cursor', () => {
+    const { socket, onError, onSnapshot, connection } = setup();
+    socket.readyState = 1;
+    socket.emit('open', new Event('open'));
+    socket.message({ type: 'market_data.status', version: 1 });
+    socket.message({
+      type: 'market_data.ohlcv.resnapshot_required',
+      version: 1,
+      reason: 'cursor_expired',
+      snapshotCursor: '7',
+    });
+
+    const { cursor: _ignored, ...snapshotWithoutCursor } = snapshot;
+    socket.message(snapshotWithoutCursor);
+
+    expect(connection.state).toBe('closed');
+    expect(onSnapshot).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError.mock.calls[0][0].message).toMatch(/replacement snapshot cursor/i);
+  });
+
   it('rejects malformed server-directed resnapshot instructions', () => {
     const { socket, onError, connection } = setup();
     socket.readyState = 1;
