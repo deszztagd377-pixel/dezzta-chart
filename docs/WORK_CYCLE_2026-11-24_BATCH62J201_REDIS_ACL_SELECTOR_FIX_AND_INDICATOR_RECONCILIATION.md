@@ -15,10 +15,10 @@ This cycle closes the Redis gateway ACL key-scope gap found in Batch 62J-200, pr
 
 | Workflow | Run | Result |
 |---|---:|---|
-| Automated Tests & Build | [#2328](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594594) | 1/1 job, 40/40 steps SUCCESS |
-| CodeQL Security Analysis | [#1684](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594526) | Python + JavaScript/TypeScript, 2/2 jobs SUCCESS |
-| OCI ARM64 Image Readiness | [#314](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594556) | Native ARM64 build/smoke SUCCESS |
-| Full Git History Secret Audit | [#1267](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594499) | 1/1 job SUCCESS |
+| Automated Tests & Build | [#2329](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594594) | 1/1 job, 40/40 steps SUCCESS |
+| CodeQL Security Analysis | [#1686](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594526) | Python + JavaScript/TypeScript, 2/2 jobs SUCCESS |
+| OCI ARM64 Image Readiness | [#315](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594556) | Native ARM64 build/smoke SUCCESS |
+| Full Git History Secret Audit | [#1268](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594499) | 1/1 job SUCCESS |
 
 Automated Tests passed frontend unit/build and credential scans, synthetic Cloudflare Worker/workerd and Durable Object proofs, Android host preflight and immutable preview publisher tests, Redis TLS CA/hostname fixture, backend tests, SQLite outbox/metrics benchmarks, backend dependency audit, container build, Redis guard/persistent-volume smoke, container vulnerability scan/report export and frontend dependency audit enforcement. No failed steps were present in the final job summary.
 
