@@ -87,6 +87,10 @@ def test_gateway_runtime_factory_installs_snapshot_before_creating_tls_client(tm
     assert checkpoint["snapshot_generation"] == metadata["generation_id"]
     assert checkpoint["applied_cursor"] == metadata["high_water"]
     assert runtime["snapshot_evidence"]["snapshot_sha256"] == metadata["sha256"]
+    assert runtime["snapshot_evidence"]["authenticated_source_id"] == metadata["source_id"]
+    assert runtime["snapshot_evidence"]["replica_id"] == checkpoint["replica_id"]
+    assert runtime["snapshot_evidence"]["verification_state"] == "OWNER_SIGNATURE_VERIFIED"
+    assert runtime["snapshot_evidence"]["key_id"] == "test-source-key"
     assert runtime["consumer"].replica_store is runtime["replica_store"]
     assert runtime["consumer"].redis is client
     assert runtime["consumer"].stream_key == runtime["stream_key"]
