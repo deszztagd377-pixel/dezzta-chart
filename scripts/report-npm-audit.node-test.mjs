@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const reporterPath = fileURLToPath(new URL('./report-npm-audit.mjs', import.meta.url));
 
-async function runReporter(audit, tree = { dependencies: {} }) {
+async function runReporter(audit, tree = { dependencies: { undici: { version: '7.30.1' } } }) {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'dezzta-npm-audit-'));
   try {
     const auditPath = path.join(directory, 'audit.json');
@@ -69,13 +69,37 @@ test('allows LOW-only advisories while keeping the audit complete', async () => 
   assert.equal(result.status, 0, result.stderr);
 });
 
-test('blocks an npm dependency tree with unresolved problems', async () => {
+test('blocks an npm dependency tree with unresolved Undici problems', async () => {
   const result = await runReporter(cleanAudit, {
+    error: 'ELSPROBLEMS',
     problems: ['missing: undici@7.30.1'],
     dependencies: { undici: { version: '7.30.1' } },
   });
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /dependency-tree problems/);
+  assert.match(result.stderr, /Undici-specific problems/);
+});
+
+test('ignores unrelated npm ls diagnostics when the Undici tree is resolved', async () => {
+  const result = await runReporter(cleanAudit, {
+    error: 'ELSPROBLEMS',
+    problems: ['invalid: unrelated-package@1.0.0'],
+    dependencies: {
+      miniflare: {
+        version: '4.20260730.0',
+        dependencies: { undici: { version: '7.30.1' } },
+      },
+      undici: { version: '7.30.1' },
+    },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /undici_instances=2/);
+  assert.match(result.stdout, /Non-Undici npm ls diagnostics ignored/);
+});
+
+test('fails closed when no resolved Undici package is present', async () => {
+  const result = await runReporter(cleanAudit, { dependencies: { miniflare: { version: '4.20260730.0' } } });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /no resolved Undici package/);
 });
 
 test('blocks npm audit transport or registry errors', async () => {
