@@ -1254,6 +1254,46 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                     payload_sha256 TEXT NOT NULL
                 )"""
             )
+            # Content-integrity receipts are append-only and deliberately do
+            # not claim source authentication. Historical checkpoints without
+            # a matching row remain LEGACY_UNATTESTED.
+            db.execute(
+                """CREATE TABLE IF NOT EXISTS ohlcv_replica_snapshot_receipts (
+                    source_id TEXT NOT NULL,
+                    replica_id TEXT NOT NULL,
+                    generation_id TEXT NOT NULL,
+                    high_water_cursor INTEGER NOT NULL CHECK(high_water_cursor >= 0),
+                    canonical_sha256 TEXT NOT NULL
+                        CHECK(length(canonical_sha256) = 64),
+                    manifest_format_version INTEGER NOT NULL
+                        CHECK(manifest_format_version >= 1),
+                    row_count INTEGER NOT NULL CHECK(row_count >= 0),
+                    verification_state TEXT NOT NULL
+                        CHECK(verification_state = 'CONTENT_ONLY_UNAUTHENTICATED'),
+                    authenticated_source_id TEXT,
+                    key_id TEXT,
+                    attestation BLOB,
+                    installed_at_utc TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    installer_protocol_version INTEGER NOT NULL,
+                    PRIMARY KEY(source_id, replica_id, generation_id)
+                )"""
+            )
+            db.execute(
+                """CREATE TRIGGER IF NOT EXISTS
+                ohlcv_replica_snapshot_receipts_no_update
+                BEFORE UPDATE ON ohlcv_replica_snapshot_receipts
+                BEGIN
+                    SELECT RAISE(ABORT, 'snapshot_receipt_is_immutable');
+                END"""
+            )
+            db.execute(
+                """CREATE TRIGGER IF NOT EXISTS
+                ohlcv_replica_snapshot_receipts_no_delete
+                BEFORE DELETE ON ohlcv_replica_snapshot_receipts
+                BEGIN
+                    SELECT RAISE(ABORT, 'snapshot_receipt_is_immutable');
+                END"""
+            )
             db.execute("COMMIT")
         except Exception:
             if db.in_transaction:
@@ -1386,6 +1426,44 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
                     else str(row["snapshot_sha256"])
                 ),
             }
+        finally:
+            db.close()
+
+    def snapshot_receipts(self) -> list[dict[str, object]]:
+        """Return immutable per-generation content receipts in install order.
+
+        CONTENT_ONLY_UNAUTHENTICATED is intentionally not an authenticity
+        claim. A receipt is not production trust evidence until Gate 25's
+        owner-controlled signer/transport verification is implemented.
+        """
+        db = self._connect()
+        try:
+            rows = db.execute(
+                """SELECT source_id,replica_id,generation_id,high_water_cursor,
+                    canonical_sha256,manifest_format_version,row_count,
+                    verification_state,authenticated_source_id,key_id,
+                    attestation,installed_at_utc,installer_protocol_version
+                FROM ohlcv_replica_snapshot_receipts
+                ORDER BY installed_at_utc, source_id, replica_id, generation_id"""
+            ).fetchall()
+            return [
+                {
+                    "source_id": str(row["source_id"]),
+                    "replica_id": str(row["replica_id"]),
+                    "generation_id": str(row["generation_id"]),
+                    "high_water_cursor": int(row["high_water_cursor"]),
+                    "canonical_sha256": str(row["canonical_sha256"]),
+                    "manifest_format_version": int(row["manifest_format_version"]),
+                    "row_count": int(row["row_count"]),
+                    "verification_state": str(row["verification_state"]),
+                    "authenticated_source_id": row["authenticated_source_id"],
+                    "key_id": row["key_id"],
+                    "attestation": row["attestation"],
+                    "installed_at_utc": str(row["installed_at_utc"]),
+                    "installer_protocol_version": int(row["installer_protocol_version"]),
+                }
+                for row in rows
+            ]
         finally:
             db.close()
 
@@ -1914,6 +1992,41 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
             ):
                 raise ValueError("Snapshot manifest changed or does not match installed rows.")
 
+            receipt_identity = (source_id, replica_id, str(metadata["generation_id"]))
+            existing_receipt = db.execute(
+                """SELECT high_water_cursor,canonical_sha256,row_count,
+                    manifest_format_version
+                FROM ohlcv_replica_snapshot_receipts
+                WHERE source_id=? AND replica_id=? AND generation_id=?""",
+                receipt_identity,
+            ).fetchone()
+            if existing_receipt is not None:
+                if (
+                    int(existing_receipt["high_water_cursor"]) != int(metadata["high_water"])
+                    or str(existing_receipt["canonical_sha256"]) != str(metadata["sha256"])
+                    or int(existing_receipt["row_count"]) != int(metadata["row_count"])
+                    or int(existing_receipt["manifest_format_version"]) != int(metadata["format_version"])
+                ):
+                    raise ValueError(
+                        "Snapshot generation conflicts with its immutable installation receipt."
+                    )
+            else:
+                db.execute(
+                    """INSERT INTO ohlcv_replica_snapshot_receipts(
+                        source_id,replica_id,generation_id,high_water_cursor,
+                        canonical_sha256,manifest_format_version,row_count,
+                        verification_state,authenticated_source_id,key_id,
+                        attestation,installer_protocol_version
+                    ) VALUES (?,?,?,?,?,?,?,
+                        'CONTENT_ONLY_UNAUTHENTICATED',NULL,NULL,NULL,?)""",
+                    (
+                        source_id, replica_id, str(metadata["generation_id"]),
+                        int(metadata["high_water"]), str(metadata["sha256"]),
+                        int(metadata["format_version"]), int(metadata["row_count"]),
+                        _REPLICA_PROTOCOL_VERSION,
+                    ),
+                )
+
             db.execute(
                 """INSERT INTO ohlcv_replica_checkpoint(
                     source_id,replica_id,applied_cursor,snapshot_generation,
@@ -1949,5 +2062,6 @@ class SQLiteOhlcvReplicaStore(SQLiteOhlcvStore):
             **metadata,
             "replica_id": replica_id,
             "installed_rows": inserted,
+            "receipt_verification_state": "CONTENT_ONLY_UNAUTHENTICATED",
             "status": "installed",
         }
