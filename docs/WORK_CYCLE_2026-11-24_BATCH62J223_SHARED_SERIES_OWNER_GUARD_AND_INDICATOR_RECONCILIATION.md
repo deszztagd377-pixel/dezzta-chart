@@ -85,3 +85,134 @@ Stage 1's 75% is provisional and must not be presented as total project completi
 - Next: exact-head CI verification; then continue the approved owner-host authenticated receipt-transfer and recovery sequence; then external WSS/Firebase/browser/Android acceptance. Indicator visual implementation stays behind its stage/blueprint gate.
 
 **Batch 223 conclusion:** one narrowly scoped WebSocket ownership defect was corrected and regression coverage added. CI for the new HEAD remains pending verification; production WebSocket and visible indicator completion are not claimed.
+
+
+# DEZZTA CHART — Batch 62J-224
+## Exact-HEAD CI acceptance, Gate 25 production-boundary audit, and indicator ledger checkpoint
+
+**Date:** 24 November 2026  
+**Branch:** `phase-2/market-data-foundation`  
+**Audited code/test/documentation HEAD:** `fd7b4fd42f7253d3f155b40cad45b76e14e39568`  
+**Cost:** ZERO COST • **main:** untouched • **Vercel:** deployment deferred  
+**Delivery target:** approximately 24 December 2026 (planning target only)
+
+## 1. Exact-HEAD CI acceptance — Batch 223
+
+All four required GitHub Actions workflows reached terminal SUCCESS and every reported check-run matched the exact SHA `fd7b4fd42f7253d3f155b40cad45b76e14e39568`.
+
+| Workflow | Run ID | Result |
+|---|---:|---|
+| Automated Tests | [45416341004](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45416341004) | SUCCESS |
+| CodeQL Security Analysis | [45416341144](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45416341144) | SUCCESS |
+| OCI ARM64 Image Readiness | [45416341215](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45416341215) | SUCCESS |
+| Full Git History Secret Audit | [45416340964](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45416340964) | SUCCESS |
+
+Exact check-run evidence:
+- Automated Tests / Test and Build: `138523475848` — completed SUCCESS.
+- CodeQL JavaScript/TypeScript: `138523486230` — completed SUCCESS.
+- CodeQL Python: `138523487270` — completed SUCCESS.
+- OCI ARM64 / Build and smoke-test native ARM64 backend: `138523457714` — completed SUCCESS.
+- Full Git History Secret Audit / Scan complete reachable Git history: `138526794517` — completed SUCCESS.
+
+The four workflow run objects and all five listed check runs reported the same exact HEAD. This closes the Batch 223 CI-pending item. The result is repository CI evidence; it is not external production-host or real-device acceptance.
+
+## 2. Batch 223 implementation accepted at repository CI level
+
+The previous batch corrected a real multi-panel shared-supervisor ownership mismatch:
+- `src/services/ohlcvSeriesSupervisorRegistry.ts` stores the active endpoint and canonical instrument mapping.
+- New owners for an already active series are rejected if either value conflicts.
+- `src/services/ohlcvSeriesSupervisorRegistry.test.ts` verifies endpoint and canonical mapping conflicts and verifies that the original owner/series remain intact.
+
+The exact-head CI above passed after those changes. No claim is made that this closes public WSS, Firebase production E2E, owner-host receipt custody, or device lifecycle acceptance.
+
+## 3. Gate 25 — source-backed audit and remaining boundary
+
+Re-read current branch source:
+- `backend/app/ohlcv_redis_gateway_runtime.py`
+- `backend/app/ohlcv_redis_runtime.py`
+- `backend/app/snapshot_attestation.py`
+- `backend/app/ohlcv_store.py`
+- `backend/tests/test_ohlcv_redis_gateway_runtime.py`
+- `backend/tests/test_ohlcv_redis_runtime.py`
+- `backend/tests/test_ohlcv_snapshot_receipts.py`
+- `docs/GATE25_ED25519_SNAPSHOT_AUTHENTICATION.md`
+- `docs/ADR_WEBSOCKET_SNAPSHOT_INSTALLATION_RECEIPT.md`
+
+Confirmed repository-side behavior:
+1. Production gateway requires a non-empty owner-pinned Ed25519 public-key allow-list.
+2. Snapshot receipt signature is re-verified from persisted immutable evidence before Redis client creation.
+3. Receipt source identity and signer key ID are bound to the verified attestation.
+4. Installer metadata is compared against the durable replica checkpoint and immutable receipt.
+5. Invalid source, generation, cursor, digest, retention policy, replica identity, schema/protocol version or authentication state fails before Redis client creation.
+6. Source publisher evidence requires an exact receipt set for all configured gateway IDs, authenticated source identity, owner-signature verification, matching stream/generation/cursor/digest, unique durable replica IDs and one consistent owner signer key ID.
+7. Redis client construction happens only after snapshot/receipt validation; constructor failures close a created Redis client.
+
+No new confirmed repository-side Gate 25 defect was found in this read-only audit. A speculative code change would weaken precision rather than improve the acceptance boundary, so none was made.
+
+**Still OPEN (external):** owner-controlled private-key provisioning/custody, authenticated owner-host callback transport, real signed snapshot transfer, retrieval of each gateway's actual persisted receipt, restart-time re-verification and multi-gateway high-water acknowledgement. The callback is an explicit trust boundary; a callback-supplied mapping is not by itself proof that a remote gateway was contacted. No credentials, host access, or external receipt evidence are available in repository CI.
+
+## 4. WebSocket production acceptance matrix
+
+| Area | Status |
+|---|---|
+| Frontend protocol, ticket exchange, reconnect and sequence guard | 🟩 Repository foundation |
+| Backend authentication, ticket and subscription enforcement | 🟩 Repository foundation |
+| Redis replay, replica consumer and recovery logic | 🟩 Repository foundation |
+| Shared per-series supervisor owner consistency | 🟩 Batch 223 + exact-head CI |
+| Gate 25 owner-host transfer and persisted remote receipt custody | 🟥 OPEN |
+| Gate 36 public HTTPS/WSS and reverse proxy/TLS | 🟥 OPEN |
+| Real Firebase sign-in, revocation and entitlement E2E | 🟥 OPEN |
+| Real production multi-instance failover/restart | 🟥 OPEN |
+| Browser production and Android physical-device lifecycle | 🟥 OPEN |
+| Redis destructive retention | 🟥 BLOCKED |
+
+Redis `XTRIM`, `XDEL` and consumer-group destruction remain unauthorized until gateway inventory/retirement, pending-entry policy, per-gateway durable floor acknowledgements, separate retention authority and crash-safe trim/reconcile are proven.
+
+## 5. Complete indicator progress checkpoint
+
+| Indicator / subsystem | Verified mathematical or architectural foundation | First valid index | Visible chart integration | Status |
+|---|---|---:|---|---|
+| SMA20 | 20-close arithmetic mean; overflow-resistant normalized summation | 19 | No overlay/toggle/legend/latest-value lifecycle | 🟨 Foundation |
+| EMA20 | SMA-seeded EMA; alpha = 2/21 | 19 | No overlay/toggle/legend/latest-value lifecycle | 🟨 Foundation |
+| RSI14 Wilder | Initial 14-change averages and Wilder recurrence; flat/rising/falling edge cases | 14 | No 0–100 pane, 30/70 guides or toggle | 🟨 Foundation |
+| MACD12/26/9 | EMA12−EMA26; EMA9 signal; histogram = MACD−signal | MACD 25; signal/histogram 33 | No dedicated pane, lines, histogram or toggle | 🟨 Foundation |
+| Bollinger20,2 | 20-close mean ± 2 population standard deviations | 19 | No three-line overlay, fill or toggle | 🟨 Foundation |
+| Shared Indicator Hook | Exact keyed immutable backend snapshot, shared calculation cache, trust-state gating and stale-output clearing | Per study | Not integrated into CandlestickChart | 🟨 Foundation |
+| Footprint | Synthetic/educational accumulator; not exchange-native bid/ask truth | N/A | Visual reference supplied; reviewed blueprint/stage gate still applies | 🟧 Gated |
+| Heatmap | No accepted depth/liquidity renderer | N/A | Not implemented; user reference and validated depth contract required | 🟥 Open |
+| Liquidation Maps | No accepted calculation/runtime renderer | N/A | Not implemented; provenance and reviewed blueprint required | 🟥 Open |
+
+Indicator test inventory remains 17 calculation-engine tests + 7 shared-hook tests = 24 focused named tests. Test count is not a completion percentage.
+
+Calculation acceptance includes warm-up/alignment, Wilder RSI recurrence and edge handling, MACD initialization/histogram identity, Bollinger population deviation/symmetry/translation, supported timeframes, prefix causality, non-finite inputs, large-magnitude arithmetic and insufficient history. Hook acceptance includes trusted backend state, exact keyed snapshots, live revision, panel isolation, immutable shared cache and stale-output clearing.
+
+Footprint invariant remains: OFF preserves normal candlestick spacing; explicit ON alone enables the dedicated spaced-cluster layout. Visual indicator expansion remains behind its official stage gate, scoped blueprint and user review. Footprint and Heatmap visual implementation remain reference-gated.
+
+**Aggregate indicator progress: NOT SCORED.** No approved per-indicator weights or denominator exists.
+
+## 6. Official project progress
+
+| Meter | Verified value | Status |
+|---|---:|---|
+| Stage 1 — Foundation, Security & Data Integrity | 30/40 criteria = 300/400 ticks = 75% provisional | 🟨 |
+| Stage 2 — Market Data Infrastructure | Active engineering; denominator not approved | 🟦 NOT SCORED |
+| Stages 3–6 | Not officially scored | ⬜ NOT SCORED |
+| Gate 10 | 0/10 external criteria formally closed | 🟥 OPEN |
+| Overall project | No approved weighted denominator | ⚪ NOT SCORED |
+| Indicator aggregate | No approved indicator denominator | ⚪ NOT SCORED |
+| IP3S / significant-progress score | No approved formula applied to this batch | ⚪ NOT SCORED |
+
+Do not extrapolate Stage 1's provisional 75% to the whole project.
+
+## 7. ZERO COST and next execution order
+
+1. Keep Batch 223 exact-head CI evidence accepted.
+2. Continue Gate 25 only through real owner-host authenticated transfer/receipt/restart evidence; do not fabricate host success or secrets.
+3. Then complete public WSS/TLS and Firebase E2E acceptance.
+4. Then perform browser/Android real-device lifecycle and production multi-instance recovery.
+5. Keep Redis destructive retention blocked until its separate safety acceptance is met.
+6. Continue indicator foundation work within existing scope; visible UI waits for the official stage gate and approved blueprint.
+
+No paid service, subscription, domain, market-data provider, production host, private key or credential was provisioned. No deployment, no Vercel release, and no change to `main`.
+
+**Batch 224 conclusion:** Batch 223 is now exact-head CI accepted (4/4 workflows SUCCESS). Gate 25's repository-side verification is strong, but real owner-host transfer and durable remote receipt custody remain external OPEN blockers. WebSocket is not 100% production-complete.
