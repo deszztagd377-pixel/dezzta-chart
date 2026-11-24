@@ -68,7 +68,7 @@ def _validate_snapshot_evidence(
             or receipt.get("verification_state") != "OWNER_SIGNATURE_VERIFIED"
             or not isinstance(replica_id, str) or not replica_id.strip() or len(replica_id) > 128
             or not isinstance(key_id, str) or not key_id or len(key_id) > 64
-            or not key_id[0].isalnum()
+            or not key_id.isascii() or not key_id[0].isalnum()
             or any(not (character.isalnum() or character in "._-") for character in key_id)
             or receipt.get("stream_key") != stream_key
             or receipt.get("snapshot_generation") != generation
