@@ -228,3 +228,37 @@ def test_source_signing_key_loader_rejects_group_or_world_permissions(tmp_path):
 
     with pytest.raises(ValueError, match="owner-only"):
         load_ed25519_private_key(str(key_path))
+
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX no-follow semantics")
+def test_source_signing_key_loader_rejects_symbolic_links(tmp_path):
+    private_key = Ed25519PrivateKey.generate()
+    target = tmp_path / "owner.private.pem"
+    target.write_bytes(
+        private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+    )
+    target.chmod(0o600)
+    link = tmp_path / "owner-key-link.pem"
+    link.symlink_to(target)
+
+    with pytest.raises(ValueError, match="opened safely"):
+        load_ed25519_private_key(str(link))
+
+
+def test_source_signing_key_loader_rejects_non_regular_files(tmp_path):
+    with pytest.raises(ValueError, match="regular file"):
+        load_ed25519_private_key(str(tmp_path))
+
+
+def test_source_signing_key_loader_rejects_oversized_files(tmp_path):
+    key_path = tmp_path / "oversized.private.pem"
+    key_path.write_bytes(b"x" * 65_537)
+    key_path.chmod(0o600)
+
+    with pytest.raises(ValueError, match="64 KiB"):
+        load_ed25519_private_key(str(key_path))

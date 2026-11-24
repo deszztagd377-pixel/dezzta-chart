@@ -1,3 +1,18 @@
+# Latest verified correction — 24 November 2026 (Batch 62J-230)
+
+**Active branch:** phase-2/market-data-foundation  
+**Parent HEAD:** af5d30e3f8daa552c1676a16007f73c749c8f2a1  
+**Parent CI:** 4/4 workflows terminal SUCCESS on the parent SHA. This correction adds the three security regression test functions that were missing from the prior test-file commit; the parent CI did not exercise those new cases.  
+**Change:** adds explicit regression coverage for POSIX symbolic-link rejection, non-regular key paths and PEM files larger than 64 KiB.  
+**Changed file:** backend/tests/test_snapshot_attestation.py.  
+**Current exact-HEAD CI:** PENDING for the new correction commit; parent CI is not inherited.  
+**Gate 25:** source-side private-key file boundary code is hardened, and the missing regression cases are now added. Real owner-host key custody, authenticated remote snapshot transfer, per-gateway receipt retrieval, restart re-verification and durable high-water ACK remain 🟥 OPEN.  
+**Indicator status:** no indicator code changed. Focused indicator suite remains 28 named declarations (21 calculation + 7 shared-hook); the three added tests belong to Gate 25 backend security, not indicator inventory. SMA20/EMA20/RSI14/MACD/Bollinger/Shared Hook 🟨 foundation; Footprint 🟧 gated; Volume Profile variants, Heatmap and Liquidation Maps 🟥 open. Aggregate indicator completion ⚪ NOT SCORED.  
+**Project meters:** Stage 1 30/40 = 75% provisional 🟨 (inherited, not rescored); Stage 2 🟦 active / NOT SCORED; Stage 3 ⬜ NOT SCORED; Stage 4 🟪 gated; Stage 5 ⬜ NOT SCORED; Stage 6 ⬜ NOT SCORED; Gate 10 0/10 🟥; overall project ⚪ NOT SCORED; IP3S ⚪ NOT SCORED.  
+**Cost/deployment:** ZERO COST; main untouched; no Vercel deployment; target approximately 24 December 2026.
+
+---
+
 # Latest indicator reconciliation — Batch 62J-229 (24 November 2026)
 
 **Focused suite inventory:** 28 named test declarations = 21 calculation-engine + 7 shared-hook tests. The count is a source inventory, not a count of completed indicators or a completion percentage. CI is the pass/fail authority.  
