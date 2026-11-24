@@ -1,3 +1,26 @@
+# Latest verified checkpoint — 24 November 2026 (Batch 62J-187)
+
+**Branch:** `phase-2/market-data-foundation`  
+**Latest verified source HEAD:** `1b3f39ea8f3a6cfd56425fc799b58ee8e0d0991b`.  
+**Latest documentation report commit:** `2b40035b76276ad76ff94c5cb2c2681c7390e652` (report: [Batch 62J-187](WORK_CYCLE_2026-11-24_BATCH62J187_EXACT_HEAD_CI_APK_INDICATOR_RECONCILIATION.md)).  
+**Exact-HEAD CI:** five workflows SUCCESS on source HEAD `1b3f39ea8f3a6cfd56425fc799b58ee8e0d0991b`:
+- Automated Tests [45215527228](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45215527228)
+- CodeQL [45215526929](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45215526929)
+- OCI ARM64 Image Readiness [45215526908](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45215526908)
+- Android APK Build [45215527101](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45215527101)
+- Full Git History Secret Audit [45215526995](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45215526995)
+
+**Android artifact:** debug APK uploaded; artifact ID `14838496390`; APK SHA-256 `978da27dedc506a7b3060d89deef4639d6b3dc19862628e3fa86324a998295a1`. [Artifact](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45215527101/artifacts/14838496390). Debug CI artifact only; not device or release acceptance.
+
+**Latest source change:** commit `1b3f39ea8f3a6cfd56425fc799b58ee8e0d0991b` changes only `package.json`, applying a scoped Miniflare `undici@7.30.1` override. No WebSocket or indicator runtime/UI source changed.
+
+**Protected branch `main`:** unchanged.  
+**Stage 1:** 30/40 = 75% provisional 🟨. **Stages 2–6:** not scored. **Gate 10:** 0/10 external criteria formally closed 🟥. **Overall project:** NOT SCORED; approved weighted denominator unavailable.  
+**Indicators:** SMA20, EMA20, RSI14, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain 🟨 Foundation; Footprint 🟧 synthetic prototype only; Heatmap and Liquidation Maps 🟥 not implemented. No aggregate indicator percentage is approved.  
+**Delivery target:** 24 December 2026 (planning target, not guaranteed). **Cost:** ZERO COST.
+
+---
+
 # Latest verified checkpoint — 23 November 2026
 
 **Branch:** `phase-2/market-data-foundation`  
