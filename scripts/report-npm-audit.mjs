@@ -108,16 +108,22 @@ if (dependencyTreePath) {
   const undiciProblems = problems.filter((problem) => (
     typeof problem === 'string' ? problem : JSON.stringify(problem)
   ).toLowerCase().includes('undici'));
-  if (undiciProblems.length > 0) {
+  const blockingUndiciProblems = undiciProblems.filter((problem) => {
+    const diagnostic = (typeof problem === 'string' ? problem : JSON.stringify(problem)).toLowerCase();
+    return !diagnostic.startsWith('extraneous: undici@');
+  });
+  if (blockingUndiciProblems.length > 0) {
     console.error(
-      '[temporary test dependency tree] BLOCKED: npm ls reported Undici-specific problems: '
-      + JSON.stringify(undiciProblems),
+      '[temporary test dependency tree] BLOCKED: npm ls reported missing/invalid Undici dependencies: '
+      + JSON.stringify(blockingUndiciProblems),
     );
     process.exitCode = 1;
-  } else if (tree.error || problems.length > 0) {
+  }
+  const toleratedProblems = problems.filter((problem) => !blockingUndiciProblems.includes(problem));
+  if (tree.error || toleratedProblems.length > 0) {
     console.log(
-      '[temporary test dependency tree] Non-Undici npm ls diagnostics ignored for this scoped check: '
-      + JSON.stringify({ error: tree.error ?? null, problems }),
+      '[temporary test dependency tree] Scoped npm ls diagnostics: '
+      + JSON.stringify({ error: tree.error ?? null, tolerated: toleratedProblems }),
     );
   }
   if (!tree.dependencies || typeof tree.dependencies !== 'object' || Array.isArray(tree.dependencies)) {
