@@ -566,3 +566,69 @@ def test_stream_hub_rejects_updates_when_any_series_identity_dimension_differs()
         assert hub.subscriber_count == 0
 
     asyncio.run(scenario())
+
+
+
+def test_replay_live_handoff_deduplicates_both_sides_of_fixed_watermark():
+    async def scenario():
+        pipeline = OhlcvPipeline()
+        assert pipeline.apply(make_bar(0)) == "inserted"
+        hub = OhlcvStreamHub()
+        subscription, _, _ = hub.subscribe_snapshot(
+            pipeline,
+            dataset="GLBX.MDP3",
+            publisher_id=1,
+            instrument_id=101,
+            raw_symbol="ESZ6",
+            timeframe="1s",
+            limit=100,
+            durable_cursor=41,
+        )
+
+        # Simulate live delivery while the fixed replica replay is being read.
+        # Two queued events are covered by the replay watermark; only cursor 44
+        # is genuinely newer and may survive the handoff.
+        for offset, cursor in ((1, 42), (2, 43), (3, 44)):
+            bar = make_bar(offset)
+            assert pipeline.apply(bar) == "inserted"
+            hub.publish(
+                bar,
+                durable_cursor=cursor,
+                durable_event_id=f"event-{cursor}",
+            )
+
+        replay_series = {
+            "provider": "databento",
+            "dataset": "GLBX.MDP3",
+            "publisherId": 1,
+            "instrumentId": 101,
+            "seriesType": "contract",
+            "rawSymbol": "ESZ6",
+            "timeframe": "1s",
+            "bucketPolicy": "UTC_LEGACY",
+            "calendarId": "",
+            "calendarVersion": "",
+        }
+        replay_events = [
+            {"cursor": 42, "series": replay_series},
+            {"cursor": 43, "series": replay_series},
+        ]
+
+        merged = hub.merge_replay_boundary(
+            subscription,
+            replay_events,
+            replay_end_cursor=43,
+        )
+
+        assert merged == 1
+        assert subscription.queue.qsize() == 1
+        surviving = subscription.queue.get_nowait()
+        assert surviving["cursor"] == "44"
+        assert surviving["eventId"] == "event-44"
+        assert surviving["sequence"] == 3
+        assert subscription.watermark == 3
+        assert subscription.snapshot_cursor == 41
+        assert subscription.durable_cursor == 44
+        assert subscription.queue.empty()
+
+    asyncio.run(scenario())
