@@ -1,4 +1,16 @@
-# Latest branch update — 24 November 2026 (Batch 62J-221)
+# Latest branch update — 24 November 2026 (Batch 62J-222)
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Exact-head CI parent:** `e7848bb0598e89bc719cf78a74ff4c07150b50af` — all four required workflows SUCCESS: Automated Tests [45408466719](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45408466719), CodeQL [45408467015](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45408467015), OCI ARM64 [45408466622](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45408466622), Full Git History Secret Audit [45408466870](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45408466870). All exact `head_sha` values match; Automated Tests completed 41/41 reported steps.  
+**Batch 62J-222:** read-only cross-path audit of frontend WebSocket client/ticket exchange, FastAPI route, production Settings, Redis shared ticket/connection guard, stream hub, replay reader and replica consumer. No new confirmed runtime defect; no speculative code patch. Replay retention-floor and malformed-checkpoint tests already exist.  
+**Work-cycle:** [Batch 62J-222](WORK_CYCLE_2026-11-24_BATCH62J222_WEBSOCKET_CROSS_PATH_ACCEPTANCE.md). This documentation update creates a new HEAD; its exact-head CI is pending and must not inherit the parent result.  
+**WebSocket:** repository protocol/runtime foundation substantially implemented; public WSS/reverse proxy, real Firebase E2E, owner-host authenticated snapshot transfer/receipt custody, production multi-instance/failover, browser/Android real-device lifecycle remain OPEN. **WebSocket 100% completion: NO.** Redis destructive retention remains BLOCKED.  
+**Batch 62J-221:** four source/test files changed for authenticated gateway receipt binding; exact-head CI 4/4 SUCCESS on parent HEAD above.  
+**Stage 1:** 30/40 criteria = 75% provisional. **Stage 2:** active engineering; not assigned a completion percentage. **Stages 3–6:** not scored. **Gate 10:** 0/10 external criteria formally closed.  
+**Indicators:** no implementation changes or progress credit in Batch 222. SMA20, EMA20, Wilder RSI14, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain foundation; Footprint synthetic/reference-gated; Heatmap and Liquidation Maps not implemented. Overall project and aggregate indicator progress: NOT SCORED.  
+**ZERO COST**; `main` untouched; Vercel deployment deferred. **Target:** approximately 24 December 2026 (planning target only).
+
+---
 
 **Active branch:** `phase-2/market-data-foundation`  
 **Last fully verified CI HEAD:** `0fa0b17b7f436e5c41e87599ae8f993da8b67a7a` — all four required workflows SUCCESS: Automated Tests [45406917673](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45406917673), CodeQL [45406917414](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45406917414), OCI ARM64 [45406917429](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45406917429), Full Git History Secret Audit [45406917428](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45406917428). All exact `head_sha` values match.  
