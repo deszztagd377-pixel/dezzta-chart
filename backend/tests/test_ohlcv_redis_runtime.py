@@ -29,6 +29,10 @@ def snapshot_evidence(store, checkpoint, *, bad_gateway=False, bad_digest=False)
     for gateway_id in required:
         installations[gateway_id] = {
             "source_id": store.source_id(),
+            "authenticated_source_id": store.source_id(),
+            "replica_id": f"replica-{gateway_id}",
+            "verification_state": "OWNER_SIGNATURE_VERIFIED",
+            "key_id": "owner-source-key",
             "stream_key": "dezzta:market-data:ohlcv:v1",
             "snapshot_generation": "snapshot-generation-0007",
             "snapshot_cursor": checkpoint["published_cursor"] + (1 if bad_gateway and gateway_id == "gateway-b" else 0),
@@ -169,6 +173,50 @@ def test_environment_factory_is_opt_in_and_production_requires_tls():
         )
 
 
+def test_factory_rejects_duplicate_durable_replica_identity_before_redis_creation(tmp_path):
+    store = make_store(tmp_path)
+    checkpoint = SQLiteOhlcvPublisherCheckpoint(store)
+    checkpoint.initialize_from_snapshot(0, now_ms=1000)
+    created = []
+
+    def duplicate_replica(source, state):
+        evidence = snapshot_evidence(source, state)
+        evidence["gateway_installations"]["gateway-b"]["replica_id"] = "replica-gateway-a"
+        return evidence
+
+    factory = build_source_publisher_runtime_factory(
+        redis_url="rediss://publisher:secret@redis.example:6380/0",
+        owner="source-host-01", production=True,
+        snapshot_verifier=duplicate_replica,
+        redis_client_factory=lambda *args, **kwargs: created.append(True),
+    )
+    with pytest.raises(RuntimeError, match="reuse the same durable replica ID"):
+        factory(store)
+    assert created == []
+
+
+def test_factory_rejects_mixed_owner_snapshot_signing_keys_before_redis_creation(tmp_path):
+    store = make_store(tmp_path)
+    checkpoint = SQLiteOhlcvPublisherCheckpoint(store)
+    checkpoint.initialize_from_snapshot(0, now_ms=1000)
+    created = []
+
+    def mixed_signers(source, state):
+        evidence = snapshot_evidence(source, state)
+        evidence["gateway_installations"]["gateway-b"]["key_id"] = "other-owner-key"
+        return evidence
+
+    factory = build_source_publisher_runtime_factory(
+        redis_url="rediss://publisher:secret@redis.example:6380/0",
+        owner="source-host-01", production=True,
+        snapshot_verifier=mixed_signers,
+        redis_client_factory=lambda *args, **kwargs: created.append(True),
+    )
+    with pytest.raises(RuntimeError, match="same owner snapshot signing key ID"):
+        factory(store)
+    assert created == []
+
+
 @pytest.mark.parametrize("receipt_set_error", ["missing", "unexpected", "duplicate_required"])
 def test_factory_rejects_incomplete_or_ambiguous_gateway_receipt_set(
     tmp_path, receipt_set_error,
@@ -206,6 +254,10 @@ def test_factory_rejects_incomplete_or_ambiguous_gateway_receipt_set(
     ("field", "invalid_value"),
     [
         ("source_id", "different-source"),
+        ("authenticated_source_id", "different-source"),
+        ("verification_state", "CONTENT_ONLY_UNAUTHENTICATED"),
+        ("replica_id", ""),
+        ("key_id", ""),
         ("stream_key", "different:stream"),
         ("snapshot_generation", "different-generation"),
     ],
