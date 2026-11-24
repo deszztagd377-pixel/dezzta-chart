@@ -105,9 +105,9 @@ if (dependencyTreePath) {
     throw new Error('Invalid npm dependency tree JSON: problems must be an array.');
   }
   const problems = tree.problems ?? [];
-  const undiciProblems = problems.filter((problem) => /\\bundici\\b/i.test(
-    typeof problem === 'string' ? problem : JSON.stringify(problem),
-  ));
+  const undiciProblems = problems.filter((problem) => (
+    typeof problem === 'string' ? problem : JSON.stringify(problem)
+  ).toLowerCase().includes('undici'));
   if (undiciProblems.length > 0) {
     console.error(
       '[temporary test dependency tree] BLOCKED: npm ls reported Undici-specific problems: '
