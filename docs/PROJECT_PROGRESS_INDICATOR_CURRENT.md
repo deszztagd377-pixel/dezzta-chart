@@ -1,3 +1,15 @@
+# Latest verified checkpoint — 24 November 2026 (Batch 62J-189)
+
+**Branch:** `phase-2/market-data-foundation`  
+**Latest source/test HEAD:** `713449822022e555b6fe98964952814b012f3520`.  
+**Batch report:** [WORK_CYCLE_2026-11-24_BATCH62J189_REPLAY_CHECKPOINT_FLOOR_INTEGRITY.md](WORK_CYCLE_2026-11-24_BATCH62J189_REPLAY_CHECKPOINT_FLOOR_INTEGRITY.md).  
+**Exact-HEAD CI at report creation:** Automated Tests [45302691457](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45302691457) RUNNING; CodeQL [45302691477](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45302691477) SUCCESS; OCI ARM64 [45302691475](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45302691475) SUCCESS; Secret Audit [45302691440](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45302691440) SUCCESS. Automated Tests had completed frontend tests/build and was executing backend tests; do not award full CI credit until it completes.
+**Batch 62J-189:** immutable `snapshot_cursor` is now tracked separately from moving `durable_cursor`. Replay handoff fails closed if its checkpoint predates the snapshot watermark. Regression coverage includes both in-memory and externally consistent replica snapshot registration paths, and verifies the live queue is not drained on rejection.
+**Provider / ZERO COST:** fixed-symbol Databento subscription remains configuration-scoped; no verified dynamic add/remove API or recurring-$0 redistribution entitlement. No provider activated and no disconnected reference counter added.
+**main:** untouched (`e3841681bc69b73619058deaf939df82ae5116a1`). **Stage 1:** 30/40 = 75% provisional 🟨. **Stages 2–6:** not scored. **Gate 10:** 0/10 formally closed 🟥. **Overall:** NOT SCORED; weighted denominator unavailable. **Delivery target:** 24 December 2026, planning target only. **Cost:** ZERO COST.
+
+---
+
 # Latest verified checkpoint — 24 November 2026 (Batch 62J-188)
 
 **Branch:** `phase-2/market-data-foundation`  
