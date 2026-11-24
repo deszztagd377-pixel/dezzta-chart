@@ -1,3 +1,25 @@
+# Latest indicator checkpoint — 24 November 2026 (Batch 62J-190)
+
+**Branch:** `phase-2/market-data-foundation`  
+**Source/test HEAD:** `8606cb460f641b0b831081aeed8aae6a6149c91d`.  
+**Indicator implementation delta:** none. Batches 62J-189/190 harden WebSocket replay and reconnect continuity; they change no indicator formula, numeric kernel, hook calculation, chart binding, renderer, pane, toggle, legend or indicator-specific test. **Indicator credit: zero.** Exact-HEAD CI is 5/5 SUCCESS; frontend 320 tests passed, backend 1,348 passed, 1 skipped, 6 non-failing warnings.
+
+| Indicator / subsystem | Status | Verified foundation | Remaining acceptance |
+|---|---|---|---|
+| SMA20 | 🟨 Foundation | 20-close arithmetic mean; first valid index 19 | Candlestick overlay, toggle, legend/latest value, identity clearing, lifecycle, render/performance |
+| EMA20 | 🟨 Foundation | SMA-seeded EMA; alpha 2/21; first valid index 19 | Overlay, toggle, legend/latest value, identity clearing, lifecycle, render/performance |
+| RSI14 Wilder | 🟨 Foundation | Initial 14-change mean + Wilder recurrence; first valid index 14 | 0–100 pane, 30/70 guides, toggle, legend/latest value, lifecycle/render |
+| MACD12/26/9 | 🟨 Foundation | MACD first valid index 25; signal/histogram first valid index 33 | Pane, lines, histogram, zero guide, toggle, legend/latest values, lifecycle/render |
+| Bollinger20,2 | 🟨 Foundation | 20-close mean ±2 population SD; first valid index 19 | Upper/middle/lower overlay, toggle, values, identity clearing, lifecycle, render/performance |
+| Shared Indicator Hook | 🟨 Foundation | Exact backend snapshot; aligned multi-study calculation; trust-state and immutable-revision regression coverage | Actual chart binding, stale clearing across identity changes, settings/legend, accessibility/performance |
+| Footprint | 🟧 Synthetic prototype only | Educational synthetic accumulator; not exchange-native bid/ask truth | Owner reference image(s), reviewed blueprint, verified bid/ask source contract, spaced cluster renderer and acceptance |
+| Heatmap | 🟥 Not implemented | No accepted depth/liquidity renderer | Owner reference image(s), validated depth/liquidity contract, reviewed blueprint, renderer and tests |
+| Liquidation Maps | 🟥 Not implemented | No accepted runtime/render implementation | Defensible provenance/calculation contract, blueprint, renderer and tests |
+
+**Aggregate indicator progress: NOT SCORED.** Study weights and acceptance denominator remain unapproved. Preserve warm-up nulls, exact candle-index alignment, prefix causality/no future repaint, invalid/gapped-input rejection and stale-output clearing on identity changes. Footprint OFF preserves standard candle spacing; explicit ON alone enables spaced clusters. Footprint/Heatmap visual implementation remains gated on owner reference images and scoped blueprint review.
+
+---
+
 # Latest indicator checkpoint — 24 November 2026 (Batch 62J-189)
 
 **Branch:** `phase-2/market-data-foundation`  

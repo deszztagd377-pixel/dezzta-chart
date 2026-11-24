@@ -1,3 +1,15 @@
+## Final CI addendum — 24 November 2026
+
+The exact source/test HEAD `713449822022e555b6fe98964952814b012f3520` was subsequently verified on documentation-only HEAD `f4456288d4b9cb4c2e7d533a8a3037d6c959c5ab`. Git comparison confirmed that the latter added only the three documentation files described in the report; runtime and test source were identical.
+
+All four exact-head workflows completed SUCCESS:
+- [Automated Tests #2307](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45303141385)
+- [CodeQL #1246](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45303141593)
+- [OCI ARM64 Image Readiness #1246](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45303141484)
+- [Full Git History Secret Audit #1246](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45303141432)
+
+Automated Tests: frontend 320 passed across 34 test files; backend 1,348 passed, 1 skipped, 6 non-failing warnings. Container build, smoke test and vulnerability scan also completed successfully. These are CI results, not public WSS or production host/device acceptance.
+
 # Work cycle — 24 November 2026 — Batch 62J-189: replay checkpoint floor integrity
 
 **Branch:** `phase-2/market-data-foundation`  

@@ -1,3 +1,16 @@
+# Latest verified checkpoint — 24 November 2026 (Batch 62J-190)
+
+**Branch:** `phase-2/market-data-foundation`  
+**Latest source/test HEAD:** `8606cb460f641b0b831081aeed8aae6a6149c91d`.  
+**Latest code work:** [Batch 62J-189 replay checkpoint floor](WORK_CYCLE_2026-11-24_BATCH62J189_REPLAY_CHECKPOINT_FLOOR_INTEGRITY.md) and [Batch 62J-190 resnapshot reconnect cursor recovery](WORK_CYCLE_2026-11-24_BATCH62J190_RESNAPSHOT_RECONNECT_CURSOR_RECOVERY.md).  
+**Exact-HEAD CI:** Automated Tests [45304034616](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45304034616), CodeQL [45304034690](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45304034690), OCI ARM64 [45304034703](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45304034703), Secret Audit [45304034693](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45304034693), Android APK Build [45304034582](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45304034582) — **5/5 SUCCESS**. Frontend 320 tests passed; backend 1,348 passed, 1 skipped, 6 non-failing warnings.
+**Significant WebSocket delta:** backend now rejects replay checkpoints older than immutable snapshot cursor; client propagates server resnapshot instructions to the supervisor; supervisor clears stale resume cursor and requests a full snapshot before adopting a new cursor.
+**Android artifact:** debug APK artifact [14880166595](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45304034582/artifacts/14880166595), SHA-256 `39a6b0a97b3d55bfa44e5dea390d8d8b2a506fb23e7b4de68cfaca830a47e562`. Debug artifact only; no real-device acceptance.
+**Provider / ZERO COST:** fixed-symbol Databento subscription remains configuration-scoped; no verified dynamic add/remove API or recurring-$0 redistribution entitlement. No provider activated.
+**main:** untouched (`e3841681bc69b73619058deaf939df82ae5116a1`). **Stage 1:** 30/40 = 75% provisional 🟨. **Stages 2–6:** not scored. **Gate 10:** 0/10 formally closed 🟥. **Overall:** NOT SCORED; weighted denominator unavailable. **Delivery target:** 24 December 2026, planning target only. **Cost:** ZERO COST.
+
+---
+
 # Latest verified checkpoint — 24 November 2026 (Batch 62J-189)
 
 **Branch:** `phase-2/market-data-foundation`  
