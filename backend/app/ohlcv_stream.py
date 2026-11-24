@@ -172,6 +172,7 @@ class OhlcvStreamHub:
             identity=identity,
             queue=asyncio.Queue(maxsize=self._queue_capacity),
             durable_cursor=durable_cursor,
+            snapshot_cursor=durable_cursor,
         )
         self._register(subscription)
         return subscription, list(bars), total

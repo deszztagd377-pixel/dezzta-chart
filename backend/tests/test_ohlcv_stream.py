@@ -451,6 +451,23 @@ def test_replay_boundary_rejects_checkpoint_older_than_snapshot_cursor():
     assert subscription.queue.qsize() == 1
     assert subscription.queue.get_nowait()["cursor"] == "43"
 
+    # The externally consistent replica-snapshot registration path must capture
+    # the same immutable floor; it must not silently bypass the replay guard.
+    external_hub = OhlcvStreamHub()
+    external_sub, bars, total = external_hub.subscribe_snapshot_bars(
+        [make_bar(0)], total=1, dataset="GLBX.MDP3", publisher_id=1,
+        instrument_id=101, raw_symbol="ESZ6", timeframe="1s", limit=100,
+        durable_cursor=51,
+    )
+    assert len(bars) == total == 1
+    assert external_sub.snapshot_cursor == 51
+    try:
+        external_hub.merge_replay_boundary(external_sub, [], replay_end_cursor=50)
+    except OhlcvStreamResnapshotRequired:
+        pass
+    else:
+        raise AssertionError("replica snapshot replay floor must be enforced")
+
 
 def test_replay_boundary_fails_closed_on_overflow_or_wrong_series():
     async def scenario():
