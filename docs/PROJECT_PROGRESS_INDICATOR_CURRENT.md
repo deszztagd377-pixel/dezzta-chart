@@ -10,7 +10,21 @@
 
 The duplicate current indicator/accounting block was removed; historical checkpoints remain preserved. See [Batch 62J-202](WORK_CYCLE_2026-11-24_BATCH62J202_INDICATOR_LEDGER_DEDUPLICATION_AND_STATUS_SYNC.md). Code/test evidence remains on the separately identified Batch 62J-201 source HEAD.
 
-## Batch 62J-201 — Redis 7 ACL selector fix
+## Latest documentation and WebSocket audit — Batch 62J-203
+
+The Batch 62J-202 documentation commit `490d110eb01a4ea90d38e02a3a9def45efa54c77` has independently completed all four required CI workflows successfully. Batch 62J-203 records a source/test evidence audit; it does not award production acceptance to owner-host WSS, Firebase, Android/browser, or cross-instance hosting.
+
+Automated Tests [45327803885](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45327803885) SUCCESS • CodeQL [45327803964](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45327803964) SUCCESS • OCI ARM64 [45327803882](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45327803882) SUCCESS • Secret Audit [45327804169](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45327804169) SUCCESS. All four runs report exact head `490d110eb01a4ea90d38e02a3a9def45efa54c77`.
+
+The audit mapped 111 named test cases across selected WebSocket/Redis suites: Redis consumer (22), gateway runtime (8), lease (5), worker lifecycle (7), browser supervisor (27), WebSocket client (22), browser lifecycle (5), and protocol validation (15). This is a count of named tests in those inspected files, not a claim that every conditional real-Redis case executed in every CI environment.
+
+Verified repository behavior includes durable snapshot installation checks before gateway Redis client creation; generation-scoped consumer groups and lease fencing; XAUTOCLAIM pending recovery before new-entry reads; durable local apply before ACK; callback-failure retry behavior; replay/live boundary merging; two-gateway and two-ASGI-process test scenarios; TCP interruption recovery; browser cursor resume and server-directed resnapshot; Firebase token/ticket retry bounds; and fail-closed handling for sequence gaps, authentication rejection, entitlement denial, protocol close, and heartbeat timeout.
+
+Still externally unaccepted: public owner-host WSS/TLS and proxy behavior; real Firebase sign-in, revocation and entitlement E2E; production owner-controlled snapshot transport/receipt custody; real Android and browser lifecycle/reconnect acceptance; production cross-instance and platform-lifetime proof. Redis Stream retention remains intentionally unimplemented until durable gateway inventory, retirement, authenticated snapshot receipts, per-gateway floor acknowledgements, PEL policy, dedicated retention identity, and crash-safe trim/reconcile semantics are proven.
+
+No code, tests, dependencies, credentials, hosting, deployment, or provider activation changed in this audit. Cost remains ZERO; `main` remains untouched. Stage 1 stays 30/40 criteria (300/400 ticks, 75% provisional); Gate 10 stays 0/10 closed; overall project and aggregate indicator progress remain NOT SCORED.
+
+## Batch 62J-201 — Redis 7 ACL selector fix## Batch 62J-201 — Redis 7 ACL selector fix
 
 Gateway stream-consumer permissions now remain at the root ACL scope for the stream key. Lease lifecycle commands `SET`, `EVAL`, `GET`, `PEXPIRE`, `DEL` are isolated in a Redis 7 ACL selector restricted to one exact literal lease key. The real Redis integration test denies gateway SET/DEL/PEXPIRE/EVAL against the stream key while allowing lease acquisition, renewal and token-fenced release. Out-of-scope keys, publisher lease access, XTRIM/XDEL/XGROUP DESTROY and database switching remain denied.
 

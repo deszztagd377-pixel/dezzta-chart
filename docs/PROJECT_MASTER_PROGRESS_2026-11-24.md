@@ -6,13 +6,28 @@
 **Active branch:** `phase-2/market-data-foundation`  
 **Latest exact-head code checkpoint:** `b71bf86c31fadd2895a2b4f18991b6742847e1a1`  
 **Documentation base before Batch 62J-202:** `1e5aac317c5714fbe554f0daf380c9dad53a27e4`  
-**Latest documentation maintenance:** [Batch 62J-202](WORK_CYCLE_2026-11-24_BATCH62J202_INDICATOR_LEDGER_DEDUPLICATION_AND_STATUS_SYNC.md)  
+**Latest documentation maintenance:** [Batch 62J-203](WORK_CYCLE_2026-11-24_BATCH62J203_WEBSOCKET_ACCEPTANCE_EVIDENCE_AUDIT.md)  
+**Latest documentation HEAD before Batch 62J-203:** `490d110eb01a4ea90d38e02a3a9def45efa54c77`  
 **Protected branch:** `main` — untouched  
 **Delivery target:** approximately **24 December 2026** (planning target, not a guarantee)  
 **Cost rule:** **ZERO COST / ZERO INCREMENTAL SPEND**  
 **Purpose:** canonical, consolidated progress record. This document summarizes the evidence ledger; it does not replace the detailed work-cycle reports linked below.
 
-## Latest verified code checkpoint — Batch 62J-201
+## Latest documentation and WebSocket audit — Batch 62J-203
+
+The Batch 62J-202 documentation commit `490d110eb01a4ea90d38e02a3a9def45efa54c77` has independently completed all four required CI workflows successfully. Batch 62J-203 records a source/test evidence audit; it does not award production acceptance to owner-host WSS, Firebase, Android/browser, or cross-instance hosting.
+
+Automated Tests [45327803885](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45327803885) SUCCESS • CodeQL [45327803964](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45327803964) SUCCESS • OCI ARM64 [45327803882](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45327803882) SUCCESS • Secret Audit [45327804169](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45327804169) SUCCESS. All four runs report exact head `490d110eb01a4ea90d38e02a3a9def45efa54c77`.
+
+The audit mapped 111 named test cases across selected WebSocket/Redis suites: Redis consumer (22), gateway runtime (8), lease (5), worker lifecycle (7), browser supervisor (27), WebSocket client (22), browser lifecycle (5), and protocol validation (15). This is a count of named tests in those inspected files, not a claim that every conditional real-Redis case executed in every CI environment.
+
+Verified repository behavior includes durable snapshot installation checks before gateway Redis client creation; generation-scoped consumer groups and lease fencing; XAUTOCLAIM pending recovery before new-entry reads; durable local apply before ACK; callback-failure retry behavior; replay/live boundary merging; two-gateway and two-ASGI-process test scenarios; TCP interruption recovery; browser cursor resume and server-directed resnapshot; Firebase token/ticket retry bounds; and fail-closed handling for sequence gaps, authentication rejection, entitlement denial, protocol close, and heartbeat timeout.
+
+Still externally unaccepted: public owner-host WSS/TLS and proxy behavior; real Firebase sign-in, revocation and entitlement E2E; production owner-controlled snapshot transport/receipt custody; real Android and browser lifecycle/reconnect acceptance; production cross-instance and platform-lifetime proof. Redis Stream retention remains intentionally unimplemented until durable gateway inventory, retirement, authenticated snapshot receipts, per-gateway floor acknowledgements, PEL policy, dedicated retention identity, and crash-safe trim/reconcile semantics are proven.
+
+No code, tests, dependencies, credentials, hosting, deployment, or provider activation changed in this audit. Cost remains ZERO; `main` remains untouched. Stage 1 stays 30/40 criteria (300/400 ticks, 75% provisional); Gate 10 stays 0/10 closed; overall project and aggregate indicator progress remain NOT SCORED.
+
+## Latest verified code checkpoint — Batch 62J-201## Latest verified code checkpoint — Batch 62J-201
 
 Automated Tests [45321594594](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594594) SUCCESS (1/1 job, 40/40 steps) • CodeQL [45321594526](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594526) SUCCESS (2/2 jobs) • OCI ARM64 [45321594556](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594556) SUCCESS • Secret Audit [45321594499](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594499) SUCCESS. All four exact `head_sha` values match `b71bf86c31fadd2895a2b4f18991b6742847e1a1`.
 

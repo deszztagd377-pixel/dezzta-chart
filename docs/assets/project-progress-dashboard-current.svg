@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1540" viewBox="0 0 1280 1540" role="img" aria-labelledby="title desc">
-<title id="title">DEZZTA CHART project and indicator progress — Batch 62J-202</title>
-<desc id="desc">Batch 62J-202 is documentation-only. Stage 1 is 75 percent provisional with 30 of 40 criteria. Gate 10 is zero of ten closed. Overall and aggregate indicator progress are not scored. Exact-head CI is four of four success. Redis gateway lease commands are isolated by Redis 7 ACL selector. Indicators remain calculation foundations or gated/not implemented.</desc>
+<title id="title">DEZZTA CHART project and indicator progress — Batch 62J-203</title>
+<desc id="desc">Batch 62J-203 is documentation-only. Stage 1 is 75 percent provisional with 30 of 40 criteria. Gate 10 is zero of ten closed. Overall and aggregate indicator progress are not scored. Exact-head CI is four of four success. Redis gateway lease commands are isolated by Redis 7 ACL selector. Indicators remain calculation foundations or gated/not implemented.</desc>
 <rect width="1280" height="1540" rx="28" fill="#0b1220"/>
 <g font-family="Arial,sans-serif">
 <text x="48" y="58" fill="#f8fafc" font-size="32" font-weight="700">DEZZTA CHART — PROJECT &amp; INDICATOR PROGRESS</text>
-<text x="48" y="92" fill="#94a3b8" font-size="16">BATCH 62J-202 • 24 NOV 2026 • DOC BASE 1e5aac3 • phase-2/market-data-foundation • ZERO COST</text>
+<text x="48" y="92" fill="#94a3b8" font-size="16">BATCH 62J-203 • 24 NOV 2026 • DOC BASE 490d110 • phase-2/market-data-foundation • ZERO COST</text>
 <rect x="44" y="122" width="370" height="220" rx="18" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
 <text x="70" y="164" fill="#d1fae5" font-size="21" font-weight="700">STAGE 1 — ACTIVE</text>
 <text x="70" y="235" fill="#fff" font-size="60" font-weight="700">75%</text>
@@ -65,6 +65,6 @@
 <rect x="638" y="1304" width="598" height="112" rx="14" fill="#450a0a" stroke="#f87171" stroke-width="2"/>
 <text x="662" y="1344" fill="#fee2e2" font-size="20" font-weight="700">LIQUIDATION MAPS — NOT IMPLEMENTED</text>
 <text x="662" y="1380" fill="#fecaca" font-size="15">Await owner reference and scoped blueprint review</text>
-<text x="48" y="1462" fill="#94a3b8" font-size="15">Stage 1: 30/40 • Gate 10: 0/10 • Overall: NOT SCORED • DOC CLEANUP BATCH 202 • ZERO COST • Target: 24 DEC 2026</text>
+<text x="48" y="1462" fill="#94a3b8" font-size="15">Stage 1: 30/40 • Gate 10: 0/10 • Overall: NOT SCORED • WEBSOCKET AUDIT BATCH 203 • ZERO COST • Target: 24 DEC 2026</text>
 </g>
 </svg>
