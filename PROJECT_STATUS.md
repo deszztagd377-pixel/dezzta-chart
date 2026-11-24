@@ -1220,3 +1220,76 @@ Do not repeat the earlier request for a PC, laptop, or second phone. Do not buy 
 - SSO protection: enabled for all deployment targets.
 - Build log confirms Python 3.12 from `poc/vercel_ws/.python-version` and requirements from `poc/vercel_ws/requirements.txt`, confirming the expected POC build subdirectory.
 - Project settings response omits effective Fluid Compute. Source `fluid: true` is not substituted for independent runtime read-back. Gate 36 remains OPEN.
+
+
+---
+
+## Batch 62J-225 — exact-head reconciliation and current production blockers (24 November 2026)
+
+**Audited branch:** `phase-2/market-data-foundation`  
+**Pre-documentation HEAD:** `2d56e8c079801bcbaa1c47963844c31736476589`  
+**Exact-HEAD CI:** 4/4 configured workflows terminal SUCCESS  
+**Scope:** documentation reconciliation only; no runtime source, tests, dependencies, secrets, deployment, or paid services changed.
+
+### Exact-HEAD workflow evidence
+
+All four workflow runs report the exact SHA `2d56e8c079801bcbaa1c47963844c31736476589` and terminal `completed / success`:
+
+| Workflow | Run ID | Result |
+|---|---:|---|
+| Automated Tests | [45417603350](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45417603350) | 🟩 SUCCESS |
+| CodeQL Security Analysis | [45417602448](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45417602448) | 🟩 SUCCESS |
+| OCI ARM64 Image Readiness | [45417606609](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45417606609) | 🟩 SUCCESS |
+| Full Git History Secret Audit | [45417602216](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45417602216) | 🟩 SUCCESS |
+
+No workflow was queued or in progress in the exact-SHA query. This is GitHub CI evidence, not public production WSS, live market-data, owner-host or Android physical-device acceptance.
+
+### WebSocket / Gate 25 / infrastructure status
+
+- 🟩 Repository foundations: protocol validation, ticket/authentication enforcement, reconnect/sequence/replay and Redis replica/recovery logic; Batch 223 shared-series owner consistency has exact-head CI acceptance.
+- 🟩 Gate 25 repository-side checks: owner-pinned Ed25519 allow-list, persisted receipt signature re-verification, identity/key binding, durable checkpoint digest comparison and fail-closed validation before Redis client construction.
+- 🟥 Gate 25 external acceptance remains OPEN: owner private-key custody, authenticated owner-host callback transport, actual signed snapshot transfer, retrieval of each gateway's persisted immutable receipt, restart-time re-verification and multi-gateway durable high-water acknowledgement.
+- 🟥 Gate 36 remains OPEN: public HTTPS/WSS and reverse proxy/TLS, independent runtime/Fluid Compute read-back, Android-native WSS lifecycle and production multi-instance fan-out.
+- 🟥 Firebase production sign-in/revocation/entitlement E2E remains OPEN.
+- 🟥 Redis destructive retention remains BLOCKED until gateway inventory/retirement, pending-entry policy, per-gateway durable floor acknowledgements, separate retention authority and crash-safe trim/reconcile are accepted. XTRIM/XDEL and consumer-group destruction remain unauthorized.
+- No external host credentials, private keys, production endpoint or second device were available to verify. Do not convert repository tests or synthetic preview evidence into production acceptance.
+
+### Indicator ledger — no score inflation
+
+| Indicator | Verified foundation | Visible chart integration | Status |
+|---|---|---|---|
+| SMA20 | 20-close mean; first valid index 19 | Not integrated | 🟨 Foundation |
+| EMA20 | SMA-seeded; alpha 2/21; first valid index 19 | Not integrated | 🟨 Foundation |
+| RSI14 Wilder | 14-change seed and Wilder recurrence; first valid index 14 | No 0–100 pane/30–70 guides | 🟨 Foundation |
+| MACD12/26/9 | EMA12−EMA26; signal EMA9; histogram identity; MACD index 25, signal/histogram 33 | No pane/lines/histogram | 🟨 Foundation |
+| Bollinger20,2 | Population standard deviation; mean ± 2σ; first valid index 19 | No three-line overlay/fill | 🟨 Foundation |
+| Shared Indicator Hook | Exact keyed immutable snapshot, shared cache, trust gating, stale-output clearing | Not integrated into CandlestickChart | 🟨 Foundation |
+| Footprint PRO 2GD | Synthetic/offline accumulator only | Owner references recorded; renderer gated | 🟧 Gated |
+| Volume Profile / Complete VP / movable-range VP tool | No complete production implementation verified | Not integrated | 🟥 Open |
+| Heatmap | No accepted depth/liquidity engine and renderer | Not integrated; owner reference/data contract required | 🟥 Open |
+| Liquidation Maps | No accepted methodology/provenance/renderer | Not integrated | 🟥 Open |
+
+Focused test inventory remains 17 calculation-engine + 7 shared-hook = 24 named tests; it is not a completion percentage. Footprint OFF must preserve ordinary candle spacing; explicit ON alone enables the spaced-cluster layout. Indicator visual expansion remains behind the official Stage 4 gate, scoped blueprint and owner review. Aggregate indicator completion remains **NOT SCORED** because no approved denominator/weights exist.
+
+### Official progress accounting
+
+- Stage 1: **30/40 criteria = 300/400 ticks = 75% provisional**; previously recorded, not independently re-audited in this documentation cycle.
+- Gate 10: **0/10 formally closed**; external acceptance remains OPEN.
+- Stage 2: active engineering, denominator not approved — 🟦 NOT SCORED.
+- Stages 3–6: ⬜ NOT SCORED.
+- Overall project: ⚪ NOT SCORED; no approved weighted denominator.
+- Aggregate indicators: ⚪ NOT SCORED.
+- IP3S/significant progress: ⚪ NOT SCORED; no approved scoring formula applied.
+
+Do not extrapolate Stage 1's provisional 75% to total project completion. No Stage 1 ticks or indicator credit are awarded by this documentation reconciliation.
+
+### Execution order retained
+
+1. Continue only source-backed repository work that does not cross the owner-review boundary.
+2. Gate 25 next requires real owner-host authenticated transfer and durable remote receipt/restart evidence; no callback-only simulation is sufficient.
+3. Then public WSS/TLS and Firebase production E2E.
+4. Then browser/Android real-device lifecycle and production multi-instance recovery.
+5. Keep Redis destructive retention blocked until its independent safety contract passes.
+6. Keep indicator UI work behind Stage 4 and its approved blueprint/review.
+
+**Constraints:** ZERO COST; active branch only; `main` untouched; no Vercel deployment; target remains approximately 24 December 2026 as a planning target, not a guarantee.
