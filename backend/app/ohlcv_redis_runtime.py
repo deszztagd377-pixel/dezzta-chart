@@ -55,18 +55,37 @@ def _validate_snapshot_evidence(
         or set(installations) != set(required)
     ):
         raise RuntimeError("Every required gateway must confirm the same installed snapshot generation.")
+    replica_ids: set[str] = set()
+    signer_key_ids: set[str] = set()
     for gateway_id in required:
         receipt = installations[gateway_id]
+        replica_id = receipt.get("replica_id") if isinstance(receipt, Mapping) else None
+        key_id = receipt.get("key_id") if isinstance(receipt, Mapping) else None
         if (
             not isinstance(receipt, Mapping)
             or receipt.get("source_id") != source_id
+            or receipt.get("authenticated_source_id") != source_id
+            or receipt.get("verification_state") != "OWNER_SIGNATURE_VERIFIED"
+            or not isinstance(replica_id, str) or not replica_id.strip() or len(replica_id) > 128
+            or not isinstance(key_id, str) or not key_id or len(key_id) > 64
+            or not key_id[0].isalnum()
+            or any(not (character.isalnum() or character in "._-") for character in key_id)
             or receipt.get("stream_key") != stream_key
             or receipt.get("snapshot_generation") != generation
             or type(receipt.get("snapshot_cursor")) is not int
             or receipt.get("snapshot_cursor") != cursor
             or receipt.get("snapshot_sha256") != snapshot_sha256
         ):
-            raise RuntimeError("A gateway snapshot receipt does not match the global snapshot manifest and SHA-256.")
+            raise RuntimeError(
+                "A gateway snapshot receipt is missing its owner-authenticated identity "
+                "or does not match the global snapshot manifest and SHA-256."
+            )
+        if replica_id in replica_ids:
+            raise RuntimeError("Distinct gateway IDs cannot reuse the same durable replica ID.")
+        replica_ids.add(replica_id)
+        signer_key_ids.add(key_id)
+    if len(signer_key_ids) != 1:
+        raise RuntimeError("Every gateway must verify the same owner snapshot signing key ID.")
     return {
         "source_id": source_id,
         "stream_key": stream_key,
