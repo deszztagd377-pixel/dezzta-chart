@@ -1,56 +1,67 @@
-# CURRENT INDICATOR AND PROJECT PROGRESS — 19 NOVEMBER 2026 (BATCH 54)
+# CURRENT INDICATOR AND PROJECT PROGRESS — 24 NOVEMBER 2026 (BATCH 62J-201)
 
-**Active branch:** `phase-2/market-data-foundation`  
-**Audited HEAD:** `fba43a12017e314baeb9e2719a50b441274126c6`  
-**CI:** Automated Tests [44470207284](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44470207284) SUCCESS • CodeQL [44470207308](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44470207308) SUCCESS • Secret Audit [44470207366](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44470207366) SUCCESS  
-**Test totals:** Frontend 234/234 (28 files) • Backend 1,032/1,032 • npm audit 0 vulnerabilities • backend dependency audit clean • Trivy report 0 vulnerabilities  
-**Stage 1:** 30/40 criteria • 300/400 ticks • **75% provisional**  
-**Gate 10:** 0/10 formally closed • open 8, 20, 25, 30, 31, 34, 35, 36, 38, 39  
-**Overall project:** NOT ESTABLISHED; historical 20.9% remains unweighted.
+**Branch:** `phase-2/market-data-foundation`  
+**Exact code/test HEAD:** `b71bf86c31fadd2895a2b4f18991b6742847e1a1`  
+**Exact-head CI:** Automated Tests [45321594594](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594594) SUCCESS (1/1 job, 40/40 steps) • CodeQL [45321594526](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594526) SUCCESS (2/2 jobs) • OCI ARM64 [45321594556](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594556) SUCCESS • Secret Audit [45321594499](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594499) SUCCESS. All four exact `head_sha` values match `b71bf86c31fadd2895a2b4f18991b6742847e1a1`.  
+**Cost:** ZERO COST • **main:** untouched • **delivery target:** approximately 24 December 2026 (planning target only)
 
-## Technical indicator implementation tracker — Batch 54 (no implementation status change)
+## Batch 62J-201 — Redis 7 ACL selector fix
 
-| Indicator / layer | Verified implementation | Visible chart status | Roadmap |
+Gateway stream-consumer permissions now remain at the root ACL scope for the stream key. Lease lifecycle commands `SET`, `EVAL`, `GET`, `PEXPIRE`, `DEL` are isolated in a Redis 7 ACL selector restricted to one exact literal lease key. The real Redis integration test denies gateway SET/DEL/PEXPIRE/EVAL against the stream key while allowing lease acquisition, renewal and token-fenced release. Out-of-scope keys, publisher lease access, XTRIM/XDEL/XGROUP DESTROY and database switching remain denied.
+
+Changed files: `backend/app/ohlcv_redis_config.py`, `backend/tests/test_ohlcv_redis_acl_integration.py`, `backend/tests/test_ohlcv_redis_config.py`. Backend tests, Redis TLS fixture, dependency audit, container build/smoke, image scan and report export passed. No production credentials or runtime relay startup wiring changed; relay remains disabled/unwired pending owner-controlled snapshot transport and dedicated credentials.
+
+## Project progress
+| Meter | Verified state | Status |
+|---|---:|---|
+| Stage 1 | 30/40 criteria • 300/400 ticks • 75% provisional | 🟨 Active |
+| Gate 10 | 0/10 formally closed; open 8, 20, 25, 30, 31, 34, 35, 36, 38, 39 | 🟥 Open |
+| Stages 2–6 | Not officially opened/scored | 🟦 / ⬜ Parked |
+| Overall project | No approved weighted denominator | ⚪ NOT SCORED |
+| Aggregate indicator progress | No approved indicator denominator | ⚪ NOT SCORED |
+
+## Complete indicator ledger
+| Indicator / layer | Verified calculation foundation | Visible chart state | Status |
 |---|---|---|---|
-| SMA 20 | Calculation + tests; warm-up alignment | Not integrated | Stage 4 parked |
-| EMA 20 | Calculation + tests; seeded SMA warm-up | Not integrated | Stage 4 parked |
-| RSI 14 (Wilder) | Calculation + tests; index 14 warm-up | Not integrated | Stage 4 parked |
-| MACD 12/26/9 | Calculation + tests; line index 25, signal index 33 | Not integrated | Stage 4 parked |
-| Bollinger Bands 20,2 | Calculation + tests; population deviation | Not integrated | Stage 4 parked |
-| Shared `useMarketIndicators()` | Exact validated shared backend snapshot; suppresses DEMO/loading/unavailable/error | Hook only; no controls/panes | Stage 4 parked |
-| Footprint | Deterministic offline simulated aggregation + fixtures | Visual implementation waits for owner reference; OFF keeps standard candle spacing | Separately gated |
-| Heatmap | No implementation verified | Not implemented | Wait for owner reference |
-| Liquidation Maps | No implementation verified | Not implemented | Wait for owner reference |
+| SMA 20 | 20-close mean; first valid index 19; tests | No overlay/toggle/legend | 🟨 Foundation |
+| EMA 20 | SMA-seeded; alpha 2/21; first valid index 19; tests | No overlay/toggle/legend | 🟨 Foundation |
+| RSI 14 (Wilder) | Wilder smoothing; first valid index 14; tests | No pane, 0–100 scale, 30/70 guides or toggle | 🟨 Foundation |
+| MACD 12/26/9 | MACD index 25; signal/histogram index 33; tests | No dedicated pane/visible histogram/zero guide | 🟨 Foundation |
+| Bollinger 20,2 | Mean ± 2 population SD; first valid index 19; tests | No bands/fill/toggle | 🟨 Foundation |
+| Shared indicator hook | Identity-bound validated backend snapshot; trust-state suppression | Hook only; not chart-integrated | 🟨 Foundation |
+| Footprint | Deterministic synthetic/offline aggregation + fixtures | Wait for owner reference + scoped blueprint; OFF normal candles, ON spaced clusters | 🟧 Gated |
+| Heatmap | No implementation verified | Not implemented; wait for owner reference | 🟥 Open |
+| Liquidation Maps | No implementation verified | Not implemented; wait for owner reference | 🟥 Open |
 
-**Coverage:** 7 indicator calculation tests pass inside the 234 frontend tests; they cover all 18 configured timeframes, warm-up alignment, Wilder RSI, MACD signal warm-up, Bollinger population deviation and invalid-input rejection. Calculations are not visible-feature completion credit.
+No aggregate indicator percentage is invented. Calculation foundations are not finished visible features. Stage 4 remains parked; Footprint and Heatmap visual work waits for owner references and scoped blueprint review.
 
-## Batch 54 — Gate 8/20/25/35 artifact and source audit
+## WebSocket and retention blockers
 
-- Exact-head CI completed successfully on `fba43a12017e314baeb9e2719a50b441274126c6`.
-- Trivy JSON artifact parsed directly: **0 vulnerabilities** in the exact CI backend image.
-- Synthetic SQLite/outbox microbenchmark: 1,000 events persisted/replayed; persist p95 10.20 ms, concurrent replay page p95 1.62 ms. Single-process synthetic runner only; not production SLO/capacity.
-- Gate 8: code/bundle/history scan passes; production secret injection remains external.
-- Gate 20: Firebase auth source tests and server verification boundary pass; real Firebase signed-token E2E and scoped WSS ticket exchange remain outstanding.
-- Gate 25: Redis Lua/TLS/ACL/fail-closed CI proof passes; independent production Redis and multi-instance test remain outstanding.
-- Gate 35: exact HTTPS CORS config is enforced; public owner-host TLS and certificate evidence remain outstanding.
-- Detailed report: [WORK_CYCLE_2026-11-19_BATCH54_CI_ARTIFACT_FORENSICS_GATE8_20_25_35.md](WORK_CYCLE_2026-11-19_BATCH54_CI_ARTIFACT_FORENSICS_GATE8_20_25_35.md).
+WebSocket/OHLCV repository foundations include authenticated delivery boundaries, snapshot/replay recovery, durable SQLite source outbox, per-replica checkpoints and Redis Stream relay components. Owner-host WSS, actual Android/browser reconnect, cross-instance and platform-lifetime proof remain open.
 
-## Gate 10 acceptance ledger
+SQLite source/outbox retention uses a 100,000-event bounded window and transactional monotonic floor advancement. Redis Stream retention remains NOT IMPLEMENTED pending durable gateway inventory, retirement semantics, authenticated snapshot receipts, per-gateway floor acknowledgements, PEL policy and crash-safe intent/commit/trim/reconcile tests. Runtime users must not receive destructive stream permissions.
 
-| Gate | Current evidence | Formal status |
-|---:|---|---|
-| 8 | secret scans + settings redaction | OPEN — production injection absent |
-| 20 | Firebase client/server code tests | OPEN — real project E2E and ticket policy absent |
-| 25 | Redis TLS/ACL/Lua + CI smoke | OPEN — independent production Redis absent |
-| 30 | encrypted backup/restore CI drill | OPEN — owner target-host restore absent |
-| 31 | authenticated encryption + tamper tests | OPEN — off-host artifact/key custody absent |
-| 34 | mounted-volume CI smoke | OPEN — owner-host volume absent |
-| 35 | exact HTTPS CORS validation | OPEN — public backend TLS absent |
-| 36 | isolated SSO WSS preview | OPEN — browser/Android/330s/effective Fluid proof absent |
-| 38 | bounded process-local metrics tests | OPEN — host collector/retention absent |
-| 39 | sanitized alert reporter tests | OPEN — operator/escalation drill absent |
 
-No gate closed and no progress ticks awarded by this audit.
+
+## Indicator tracker
+
+| Indicator / layer | Verified calculation foundation | Visible chart state | Status |
+|---|---|---|---|
+| SMA 20 | 20-close mean; first valid index 19; tests | No overlay/toggle/legend | 🟨 Foundation |
+| EMA 20 | SMA-seeded; alpha 2/21; first valid index 19; tests | No overlay/toggle/legend | 🟨 Foundation |
+| RSI 14 (Wilder) | Wilder smoothing; first valid index 14; tests | No pane, 0–100 scale, 30/70 guides or toggle | 🟨 Foundation |
+| MACD 12/26/9 | MACD index 25; signal/histogram index 33; tests | No dedicated pane/visible histogram/zero guide | 🟨 Foundation |
+| Bollinger 20,2 | Mean ± 2 population SD; first valid index 19; tests | No bands/fill/toggle | 🟨 Foundation |
+| Shared indicator hook | Identity-bound validated backend snapshot; trust-state suppression | Hook only; not chart-integrated | 🟨 Foundation |
+| Footprint | Deterministic synthetic/offline aggregation + fixtures | Wait for owner reference + scoped blueprint; OFF normal candles, ON spaced clusters | 🟧 Gated |
+| Heatmap | No implementation verified | Not implemented; wait for owner reference | 🟥 Open |
+| Liquidation Maps | No implementation verified | Not implemented; wait for owner reference | 🟥 Open |
+
+## CI and external acceptance
+
+Automated Tests completed 40/40 steps; CodeQL completed 2/2 analyses; OCI ARM64 and Full Git History Secret Audit passed. Ephemeral CI does not close owner-host/device criteria. Stage 1 remains 75% provisional; Gate 10 remains 0/10 closed. Redis relay remains disabled until owner-controlled snapshot transport and ACL credentials are ready. Redis Stream retention remains unimplemented pending the documented gateway inventory/receipt/floor/PEL/crash-safe protocol.
+
+Detailed report: [Batch 62J-201](WORK_CYCLE_2026-11-24_BATCH62J201_REDIS_ACL_SELECTOR_FIX_AND_INDICATOR_RECONCILIATION.md).
 
 ---
 

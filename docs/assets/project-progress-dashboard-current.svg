@@ -1,10 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1500" viewBox="0 0 1280 1500" role="img" aria-labelledby="title desc">
-<title id="title">DEZZTA CHART project and indicator progress — Batch 62J-53</title>
-<desc id="desc">Stage 1 75 percent provisional. Gate 10 zero of ten formally closed. Overall project progress not established. Redis consumer ownership guard and exact-head CI passed. SMA, EMA, RSI, MACD, Bollinger and shared indicator hook are foundations. Footprint is gated. Heatmap and Liquidation Maps are not implemented.</desc>
-<rect width="1280" height="1500" rx="28" fill="#0b1220"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1540" viewBox="0 0 1280 1540" role="img" aria-labelledby="title desc">
+<title id="title">DEZZTA CHART project and indicator progress — Batch 62J-201</title>
+<desc id="desc">Stage 1 is 75 percent provisional with 30 of 40 criteria. Gate 10 is zero of ten closed. Overall and aggregate indicator progress are not scored. Exact-head CI is four of four success. Redis gateway lease commands are isolated by Redis 7 ACL selector. Indicators remain calculation foundations or gated/not implemented.</desc>
+<rect width="1280" height="1540" rx="28" fill="#0b1220"/>
 <g font-family="Arial,sans-serif">
 <text x="48" y="58" fill="#f8fafc" font-size="32" font-weight="700">DEZZTA CHART — PROJECT &amp; INDICATOR PROGRESS</text>
-<text x="48" y="92" fill="#94a3b8" font-size="16">BATCH 62J-53 • 21 NOV 2026 • phase-2/market-data-foundation • ZERO COST</text>
+<text x="48" y="92" fill="#94a3b8" font-size="16">BATCH 62J-201 • 24 NOV 2026 • phase-2/market-data-foundation • ZERO COST</text>
 <rect x="44" y="122" width="370" height="220" rx="18" fill="#064e3b" stroke="#34d399" stroke-width="2"/>
 <text x="70" y="164" fill="#d1fae5" font-size="21" font-weight="700">STAGE 1 — ACTIVE</text>
 <text x="70" y="235" fill="#fff" font-size="60" font-weight="700">75%</text>
@@ -15,54 +15,56 @@
 <text x="70" y="326" fill="#fcd34d" font-size="16" font-weight="700">Gate 10: 0 / 10 closed</text>
 <rect x="436" y="122" width="800" height="220" rx="18" fill="#172554" stroke="#60a5fa" stroke-width="2"/>
 <text x="466" y="166" fill="#dbeafe" font-size="21" font-weight="700">OVERALL PROJECT PROGRESS</text>
-<text x="466" y="228" fill="#f8fafc" font-size="43" font-weight="700">NOT ESTABLISHED</text>
-<text x="466" y="269" fill="#fcd34d" font-size="18" font-weight="700">No approved M1–M8 weighting</text>
-<text x="466" y="306" fill="#cbd5e1" font-size="15">No invented percentage • Stages 2–6 not scored</text>
-<text x="48" y="392" fill="#e2e8f0" font-size="22" font-weight="700">LATEST VERIFIED ENGINEERING CHECKPOINT</text>
+<text x="466" y="228" fill="#f8fafc" font-size="43" font-weight="700">NOT SCORED</text>
+<text x="466" y="269" fill="#fcd34d" font-size="18" font-weight="700">No approved weighted denominator</text>
+<text x="466" y="306" fill="#cbd5e1" font-size="15">Stages 2–6 and aggregate indicators are not scored</text>
+<text x="48" y="392" fill="#e2e8f0" font-size="22" font-weight="700">LATEST EXACT-HEAD CI — 4 / 4 SUCCESS</text>
 <rect x="44" y="418" width="1192" height="150" rx="16" fill="#052e24" stroke="#34d399" stroke-width="2"/>
-<text x="70" y="458" fill="#d1fae5" font-size="20" font-weight="700">WEBSOCKET CONSUMER OWNERSHIP — REPOSITORY SCOPE PASSED</text>
-<text x="70" y="495" fill="#f8fafc" font-size="17">Token-fenced generation lease • fail-closed ownership • guarded ACK • crash takeover</text>
-<text x="70" y="528" fill="#a7f3d0" font-size="16">CI 3/3 PASS • Frontend 245/245 • Backend 1,218 passed • CodeQL + secret audit PASS</text>
-<text x="48" y="620" fill="#e2e8f0" font-size="22" font-weight="700">INDICATOR IMPLEMENTATION STATUS</text>
-<text x="48" y="650" fill="#94a3b8" font-size="15">Color status reflects verified scope, not a fabricated completion percentage.</text>
+<text x="70" y="458" fill="#d1fae5" font-size="20" font-weight="700">AUTOMATED TESTS • CODEQL • OCI ARM64 • SECRET AUDIT</text>
+<text x="70" y="495" fill="#f8fafc" font-size="17">All four head_sha values match b71bf86c31fadd2895a2b4f18991b6742847e1a1</text>
+<text x="70" y="528" fill="#a7f3d0" font-size="16">Automated Tests 40/40 steps • CodeQL 2/2 jobs • ARM64 and secret audit PASS</text>
+<text x="48" y="620" fill="#e2e8f0" font-size="22" font-weight="700">SIGNIFICANT ENGINEERING PROGRESS</text>
+<rect x="44" y="646" width="1192" height="130" rx="16" fill="#052e24" stroke="#34d399" stroke-width="2"/>
+<text x="70" y="687" fill="#d1fae5" font-size="20" font-weight="700">REDIS 7 ACL KEY-SCOPE FIX VERIFIED</text>
+<text x="70" y="724" fill="#f8fafc" font-size="16">Stream commands stay on stream key • lease commands isolated to exact lease key</text>
+<text x="70" y="753" fill="#a7f3d0" font-size="15">Real Redis CI denies stream-key SET/DEL/PEXPIRE/EVAL; lease acquire/renew/release pass</text>
+<text x="48" y="828" fill="#e2e8f0" font-size="22" font-weight="700">INDICATOR IMPLEMENTATION STATUS</text>
 <g>
-<rect x="44" y="680" width="376" height="132" rx="14" fill="#422006" stroke="#fbbf24" stroke-width="2"/>
-<text x="68" y="720" fill="#fef3c7" font-size="21" font-weight="700">🟨 SMA 20 — FOUNDATION</text>
-<text x="68" y="755" fill="#fde68a" font-size="15">20-close rolling mean • first value index 19</text>
-<text x="68" y="783" fill="#fef3c7" font-size="14">Overlay, toggle, legend, lifecycle/render tests</text>
-<rect x="452" y="680" width="376" height="132" rx="14" fill="#422006" stroke="#fbbf24" stroke-width="2"/>
-<text x="476" y="720" fill="#fef3c7" font-size="21" font-weight="700">🟨 EMA 20 — FOUNDATION</text>
-<text x="476" y="755" fill="#fde68a" font-size="15">SMA-seeded • alpha 2/21 • index 19</text>
-<text x="476" y="783" fill="#fef3c7" font-size="14">Overlay, toggle, legend, lifecycle/render tests</text>
-<rect x="860" y="680" width="376" height="132" rx="14" fill="#422006" stroke="#fbbf24" stroke-width="2"/>
-<text x="884" y="720" fill="#fef3c7" font-size="21" font-weight="700">🟨 RSI 14 — FOUNDATION</text>
-<text x="884" y="755" fill="#fde68a" font-size="15">Wilder smoothing • first value index 14</text>
-<text x="884" y="783" fill="#fef3c7" font-size="14">Pane 0–100, 30/70 guides, toggle, legend</text>
-<rect x="44" y="832" width="570" height="132" rx="14" fill="#422006" stroke="#fbbf24" stroke-width="2"/>
-<text x="68" y="872" fill="#fef3c7" font-size="21" font-weight="700">🟨 MACD 12/26/9 — FOUNDATION</text>
-<text x="68" y="907" fill="#fde68a" font-size="15">MACD first index 25 • signal/histogram index 33</text>
-<text x="68" y="935" fill="#fef3c7" font-size="14">Dedicated pane, signal line, histogram, zero guide, toggle</text>
-<rect x="638" y="832" width="598" height="132" rx="14" fill="#422006" stroke="#fbbf24" stroke-width="2"/>
-<text x="662" y="872" fill="#fef3c7" font-size="21" font-weight="700">🟨 BOLLINGER 20,2 — FOUNDATION</text>
-<text x="662" y="907" fill="#fde68a" font-size="15">Population standard deviation • first band index 19</text>
-<text x="662" y="935" fill="#fef3c7" font-size="14">Upper/middle/lower overlay, toggle, values, render tests</text>
-<rect x="44" y="984" width="570" height="132" rx="14" fill="#422006" stroke="#fbbf24" stroke-width="2"/>
-<text x="68" y="1024" fill="#fef3c7" font-size="21" font-weight="700">🟨 SHARED INDICATOR HOOK</text>
-<text x="68" y="1059" fill="#fde68a" font-size="15">Validated backend snapshot only • no DEMO fallback</text>
-<text x="68" y="1087" fill="#fef3c7" font-size="14">Active chart/timeframe binding and stale clearing remain</text>
-<rect x="638" y="984" width="282" height="132" rx="14" fill="#431407" stroke="#fb923c" stroke-width="2"/>
-<text x="662" y="1024" fill="#ffedd5" font-size="21" font-weight="700">🟧 FOOTPRINT</text>
-<text x="662" y="1059" fill="#fed7aa" font-size="15">GATED — simulated only</text>
-<text x="662" y="1087" fill="#ffedd5" font-size="14">Needs user visual reference + blueprint</text>
-<rect x="944" y="984" width="292" height="132" rx="14" fill="#450a0a" stroke="#f87171" stroke-width="2"/>
-<text x="968" y="1024" fill="#fee2e2" font-size="21" font-weight="700">🟥 HEATMAP</text>
-<text x="968" y="1059" fill="#fecaca" font-size="15">Not implemented</text>
-<text x="968" y="1087" fill="#fee2e2" font-size="14">Needs reference + source contract</text>
-<rect x="44" y="1136" width="1192" height="112" rx="14" fill="#450a0a" stroke="#f87171" stroke-width="2"/>
-<text x="68" y="1177" fill="#fee2e2" font-size="21" font-weight="700">🟥 LIQUIDATION MAPS — NOT IMPLEMENTED</text>
-<text x="68" y="1212" fill="#fecaca" font-size="16">No validated liquidation dataset/calculation contract; no live-market claims.</text>
-<text x="48" y="1302" fill="#e2e8f0" font-size="20" font-weight="700">GATE 10 — ALL EXTERNAL ACCEPTANCE REMAINS OPEN</text>
-<text x="48" y="1338" fill="#fcd34d" font-size="16">8 • 20 • 25 • 30 • 31 • 34 • 35 • 36 • 38 • 39 — 0 / 10 formally closed</text>
-<text x="48" y="1382" fill="#94a3b8" font-size="14">Indicator implementation unchanged in Batch 62J-53 • no paid service/deployment/Termux action</text>
-<text x="48" y="1412" fill="#94a3b8" font-size="13">Source/test HEAD: 56317eff2b71886040acb998bf692814622feedf • Branch phase-2/market-data-foundation</text>
-</g></svg>
+<rect x="44" y="858" width="376" height="132" rx="14" fill="#422006" stroke="#fbbf24" stroke-width="2"/>
+<text x="68" y="898" fill="#fef3c7" font-size="21" font-weight="700">SMA 20 — FOUNDATION</text>
+<text x="68" y="933" fill="#fde68a" font-size="15">20-close mean • first valid index 19</text>
+<text x="68" y="961" fill="#fef3c7" font-size="14">No visible overlay, toggle or legend</text>
+<rect x="452" y="858" width="376" height="132" rx="14" fill="#422006" stroke="#fbbf24" stroke-width="2"/>
+<text x="476" y="898" fill="#fef3c7" font-size="21" font-weight="700">EMA 20 — FOUNDATION</text>
+<text x="476" y="933" fill="#fde68a" font-size="15">SMA-seeded • alpha 2/21 • index 19</text>
+<text x="476" y="961" fill="#fef3c7" font-size="14">No visible overlay, toggle or legend</text>
+<rect x="860" y="858" width="376" height="132" rx="14" fill="#422006" stroke="#fbbf24" stroke-width="2"/>
+<text x="884" y="898" fill="#fef3c7" font-size="21" font-weight="700">RSI 14 — FOUNDATION</text>
+<text x="884" y="933" fill="#fde68a" font-size="15">Wilder smoothing • first value index 14</text>
+<text x="884" y="961" fill="#fef3c7" font-size="14">No pane, scale or 30/70 guides</text>
+<rect x="44" y="1010" width="570" height="132" rx="14" fill="#422006" stroke="#fbbf24" stroke-width="2"/>
+<text x="68" y="1050" fill="#fef3c7" font-size="21" font-weight="700">MACD 12/26/9 — FOUNDATION</text>
+<text x="68" y="1085" fill="#fde68a" font-size="15">MACD index 25 • signal/histogram index 33</text>
+<text x="68" y="1113" fill="#fef3c7" font-size="14">No dedicated pane or visible histogram</text>
+<rect x="638" y="1010" width="598" height="132" rx="14" fill="#422006" stroke="#fbbf24" stroke-width="2"/>
+<text x="662" y="1050" fill="#fef3c7" font-size="21" font-weight="700">BOLLINGER 20,2 — FOUNDATION</text>
+<text x="662" y="1085" fill="#fde68a" font-size="15">Mean ± 2 population SD • first index 19</text>
+<text x="662" y="1113" fill="#fef3c7" font-size="14">No visible upper/lower bands or fill</text>
+</g>
+<rect x="44" y="1162" width="570" height="122" rx="14" fill="#1e293b" stroke="#60a5fa" stroke-width="2"/>
+<text x="68" y="1202" fill="#dbeafe" font-size="20" font-weight="700">SHARED INDICATOR HOOK — FOUNDATION</text>
+<text x="68" y="1238" fill="#cbd5e1" font-size="15">Validated identity-bound backend snapshot; hook only</text>
+<text x="68" y="1265" fill="#cbd5e1" font-size="14">Not integrated into chart UI</text>
+<rect x="638" y="1162" width="598" height="122" rx="14" fill="#431407" stroke="#fb923c" stroke-width="2"/>
+<text x="662" y="1202" fill="#ffedd5" font-size="20" font-weight="700">FOOTPRINT — GATED</text>
+<text x="662" y="1238" fill="#fed7aa" font-size="15">Synthetic/offline only; visual waits for owner reference</text>
+<text x="662" y="1265" fill="#ffedd5" font-size="14">OFF = standard candles • ON = spaced clusters</text>
+<rect x="44" y="1304" width="570" height="112" rx="14" fill="#450a0a" stroke="#f87171" stroke-width="2"/>
+<text x="68" y="1344" fill="#fee2e2" font-size="20" font-weight="700">HEATMAP — NOT IMPLEMENTED</text>
+<text x="68" y="1380" fill="#fecaca" font-size="15">Await owner reference and scoped blueprint review</text>
+<rect x="638" y="1304" width="598" height="112" rx="14" fill="#450a0a" stroke="#f87171" stroke-width="2"/>
+<text x="662" y="1344" fill="#fee2e2" font-size="20" font-weight="700">LIQUIDATION MAPS — NOT IMPLEMENTED</text>
+<text x="662" y="1380" fill="#fecaca" font-size="15">Await owner reference and scoped blueprint review</text>
+<text x="48" y="1462" fill="#94a3b8" font-size="15">Stage 1: 30/40 • Gate 10: 0/10 • Overall: NOT SCORED • ZERO COST • Target: 24 DEC 2026</text>
+</g>
+</svg>

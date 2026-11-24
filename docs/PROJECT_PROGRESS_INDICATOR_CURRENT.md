@@ -1,48 +1,75 @@
-# Latest verified checkpoint — 24 November 2026 (Batch 62J-199)
+# Latest verified checkpoint — 24 November 2026 (Batch 62J-201)
 
 **Branch:** `phase-2/market-data-foundation`  
-**Latest verified source/test HEAD:** `23bf2da93ec8b4c935d2898a993f4d1c80ce9a7d`.  
-**Latest documentation HEAD:** `3e6572658ab47836023d44e70efc02f704639ca2`.  
-**Work-cycle report:** [Batch 62J-199 Redis ACL and indicator audit](WORK_CYCLE_2026-11-24_BATCH62J199_REDIS_ACL_DESTRUCTIVE_BOUNDARY_AND_INDICATOR_AUDIT.md).  
-**Master progress:** [PROJECT MASTER PROGRESS — 24 November 2026](PROJECT_MASTER_PROGRESS_2026-11-24.md).
+**Exact code/test HEAD:** `b71bf86c31fadd2895a2b4f18991b6742847e1a1`  
+**Exact-head CI:** Automated Tests [45321594594](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594594) SUCCESS (1/1 job, 40/40 steps) • CodeQL [45321594526](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594526) SUCCESS (2/2 jobs) • OCI ARM64 [45321594556](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594556) SUCCESS • Secret Audit [45321594499](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594499) SUCCESS. All four exact `head_sha` values match `b71bf86c31fadd2895a2b4f18991b6742847e1a1`.  
+**Cost:** ZERO COST • **main:** untouched • **delivery target:** approximately 24 December 2026 (planning target only)
 
-### Exact-head CI — terminal 4/4 SUCCESS
+## Batch 62J-201 — Redis 7 ACL selector fix
 
-Source/test HEAD `23bf2da93ec8b4c935d2898a993f4d1c80ce9a7d`:
-- Automated Tests [45313574302](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45313574302): SUCCESS — 1,359 backend passed, 1 skipped, 6 non-failing warnings; frontend 320/320 across 34 files; real Redis ACL negative test passed; dedicated Redis TLS fixture passed; npm audit 0 vulnerabilities; pip-audit no known vulnerabilities; container smoke passed.
-- CodeQL [45313574375](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45313574375): SUCCESS.
-- Full Git History Secret Audit [45313574338](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45313574338): SUCCESS.
-- OCI ARM64 Image Readiness [45313574445](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45313574445): SUCCESS.
+Gateway stream-consumer permissions now remain at the root ACL scope for the stream key. Lease lifecycle commands `SET`, `EVAL`, `GET`, `PEXPIRE`, `DEL` are isolated in a Redis 7 ACL selector restricted to one exact literal lease key. The real Redis integration test denies gateway SET/DEL/PEXPIRE/EVAL against the stream key while allowing lease acquisition, renewal and token-fenced release. Out-of-scope keys, publisher lease access, XTRIM/XDEL/XGROUP DESTROY and database switching remain denied.
 
-Documentation HEAD `3e6572658ab47836023d44e70efc02f704639ca2` also completed all four configured workflows terminal SUCCESS:
-- Automated Tests [45314631606](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45314631606).
-- CodeQL [45314631694](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45314631694).
-- Full Git History Secret Audit [45314631725](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45314631725).
-- OCI ARM64 Image Readiness [45314631523](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45314631523).
+Changed files: `backend/app/ohlcv_redis_config.py`, `backend/tests/test_ohlcv_redis_acl_integration.py`, `backend/tests/test_ohlcv_redis_config.py`. Backend tests, Redis TLS fixture, dependency audit, container build/smoke, image scan and report export passed. No production credentials or runtime relay startup wiring changed; relay remains disabled/unwired pending owner-controlled snapshot transport and dedicated credentials.
 
-### Significant engineering delta
+## Project progress
+| Meter | Verified state | Status |
+|---|---:|---|
+| Stage 1 | 30/40 criteria • 300/400 ticks • 75% provisional | 🟨 Active |
+| Gate 10 | 0/10 formally closed; open 8, 20, 25, 30, 31, 34, 35, 36, 38, 39 | 🟥 Open |
+| Stages 2–6 | Not officially opened/scored | 🟦 / ⬜ Parked |
+| Overall project | No approved weighted denominator | ⚪ NOT SCORED |
+| Aggregate indicator progress | No approved indicator denominator | ⚪ NOT SCORED |
 
-Batch 62J-199 added real Redis ACL integration assertions denying publisher/gateway `XTRIM` and `XDEL`, and denying gateway `XGROUP DESTROY`. The updated integration test passed against the ephemeral CI Redis instance. No production runtime code or ACL grant changed.
+## Complete indicator ledger
+| Indicator / layer | Verified calculation foundation | Visible chart state | Status |
+|---|---|---|---|
+| SMA 20 | 20-close mean; first valid index 19; tests | No overlay/toggle/legend | 🟨 Foundation |
+| EMA 20 | SMA-seeded; alpha 2/21; first valid index 19; tests | No overlay/toggle/legend | 🟨 Foundation |
+| RSI 14 (Wilder) | Wilder smoothing; first valid index 14; tests | No pane, 0–100 scale, 30/70 guides or toggle | 🟨 Foundation |
+| MACD 12/26/9 | MACD index 25; signal/histogram index 33; tests | No dedicated pane/visible histogram/zero guide | 🟨 Foundation |
+| Bollinger 20,2 | Mean ± 2 population SD; first valid index 19; tests | No bands/fill/toggle | 🟨 Foundation |
+| Shared indicator hook | Identity-bound validated backend snapshot; trust-state suppression | Hook only; not chart-integrated | 🟨 Foundation |
+| Footprint | Deterministic synthetic/offline aggregation + fixtures | Wait for owner reference + scoped blueprint; OFF normal candles, ON spaced clusters | 🟧 Gated |
+| Heatmap | No implementation verified | Not implemented; wait for owner reference | 🟥 Open |
+| Liquidation Maps | No implementation verified | Not implemented; wait for owner reference | 🟥 Open |
 
-Redis Stream retention remains **NOT IMPLEMENTED**. The SQLite source outbox remains bounded at 100,000 events with transactional retention-floor advancement. A safe Redis trim requires a durable authoritative gateway inventory, explicit retirement semantics, authenticated snapshot receipts, gateway floor coordination, PEL policy and crash-safe intent/commit/trim/reconcile tests. Publisher and gateway identities must not receive destructive permissions.
+No aggregate indicator percentage is invented. Calculation foundations are not finished visible features. Stage 4 remains parked; Footprint and Heatmap visual work waits for owner references and scoped blueprint review.
 
-### Current project accounting
+## WebSocket and retention blockers
 
-- Official stage: Stage 1 — Foundation, Security & Data Integrity.
-- Stage 1: **30/40 criteria = 75% provisional** 🟨.
-- Gate 10: **0/10 formally closed** 🟥.
-- Still open: **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39**.
-- Stages 2–6: NOT SCORED / not officially opened.
-- Overall project: **NOT SCORED**; no approved weighted denominator.
-- Aggregate indicator progress: **NOT SCORED**; no approved indicator denominator.
-- ZERO COST. `main` untouched.
-- Delivery target: approximately **24 December 2026**, planning target only.
+WebSocket/OHLCV repository foundations include authenticated delivery boundaries, snapshot/replay recovery, durable SQLite source outbox, per-replica checkpoints and Redis Stream relay components. Owner-host WSS, actual Android/browser reconnect, cross-instance and platform-lifetime proof remain open.
 
-### Complete indicator status
+SQLite source/outbox retention uses a 100,000-event bounded window and transactional monotonic floor advancement. Redis Stream retention remains NOT IMPLEMENTED pending durable gateway inventory, retirement semantics, authenticated snapshot receipts, per-gateway floor acknowledgements, PEL policy and crash-safe intent/commit/trim/reconcile tests. Runtime users must not receive destructive stream permissions.
 
-SMA20 🟨 foundation (first valid index 19); EMA20 🟨 SMA-seeded, alpha 2/21 (index 19); RSI14 Wilder 🟨 (index 14); MACD12/26/9 🟨 (MACD index 25, signal/histogram index 33); Bollinger20,2 🟨 (20-close mean ± 2 population SD, index 19); Shared Indicator Hook 🟨 (identity-bound validated backend snapshot, not chart-integrated); Footprint 🟧 synthetic educational accumulator only; Heatmap 🟥 not implemented; Liquidation Maps 🟥 not implemented.
 
-Calculation tests cover warm-up nulls, source-index alignment, prefix causality, numerical edge cases, immutable snapshot revisions, canonical-series isolation and trust-state suppression. Visible overlays/panes/toggles/legends remain absent because the chart still renders only its candlestick series. Keep indicator UI parked until Stage 4. Footprint OFF retains standard candle spacing; Footprint ON alone may use the dedicated spaced cluster layout. Footprint and Heatmap visual implementation waits for owner references and scoped blueprint review.
+
+## Complete indicator status
+
+| Indicator / layer | Verified calculation foundation | Visible chart state | Status |
+|---|---|---|---|
+| SMA 20 | 20-close mean; first valid index 19; tests | No overlay/toggle/legend | 🟨 Foundation |
+| EMA 20 | SMA-seeded; alpha 2/21; first valid index 19; tests | No overlay/toggle/legend | 🟨 Foundation |
+| RSI 14 (Wilder) | Wilder smoothing; first valid index 14; tests | No pane, 0–100 scale, 30/70 guides or toggle | 🟨 Foundation |
+| MACD 12/26/9 | MACD index 25; signal/histogram index 33; tests | No dedicated pane/visible histogram/zero guide | 🟨 Foundation |
+| Bollinger 20,2 | Mean ± 2 population SD; first valid index 19; tests | No bands/fill/toggle | 🟨 Foundation |
+| Shared indicator hook | Identity-bound validated backend snapshot; trust-state suppression | Hook only; not chart-integrated | 🟨 Foundation |
+| Footprint | Deterministic synthetic/offline aggregation + fixtures | Wait for owner reference + scoped blueprint; OFF normal candles, ON spaced clusters | 🟧 Gated |
+| Heatmap | No implementation verified | Not implemented; wait for owner reference | 🟥 Open |
+| Liquidation Maps | No implementation verified | Not implemented; wait for owner reference | 🟥 Open |
+
+## Accounting and remaining gates
+
+| Meter | Verified state | Status |
+|---|---:|---|
+| Stage 1 | 30/40 criteria • 300/400 ticks • 75% provisional | 🟨 Active |
+| Gate 10 | 0/10 formally closed; open 8, 20, 25, 30, 31, 34, 35, 36, 38, 39 | 🟥 Open |
+| Stages 2–6 | Not officially opened/scored | 🟦 / ⬜ Parked |
+| Overall project | No approved weighted denominator | ⚪ NOT SCORED |
+| Aggregate indicator progress | No approved indicator denominator | ⚪ NOT SCORED |
+
+Calculation tests establish mathematical foundations, not visible feature completion. Stage 4 remains parked. Footprint OFF preserves ordinary candle spacing; Footprint ON alone may use the dedicated spaced-cluster layout. Footprint and Heatmap visuals wait for owner reference images and scoped blueprint review.
+
+Redis Stream retention is NOT IMPLEMENTED. Owner-controlled durable gateway inventory, explicit retirement, authenticated snapshot receipts, per-gateway floor acknowledgements, PEL policy and crash-safe intent/commit/trim/reconcile remain prerequisites. Owner-host WebSocket and Android/browser E2E also remain open.
 
 ---
 

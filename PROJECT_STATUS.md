@@ -1,27 +1,61 @@
-# CURRENT AUDITED CHECKPOINT — 20 NOVEMBER 2026 (BATCH 62J-47)
+# CURRENT AUDITED CHECKPOINT — 24 NOVEMBER 2026 (BATCH 62J-201)
 
 **Active branch:** `phase-2/market-data-foundation`  
-**Exact source/test HEAD:** `826bae749f48e844f5fddb82dfec396bb3f9baa7` (cross-account WebSocket ticket-renewal regression; test-only change).  
-**Automated Tests & Build:** [44751619536](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44751619536) — **SUCCESS**. Frontend **245/245 across 29 files**; backend **1,198 passed, 6 warnings**.  
-**CodeQL:** [44751619516](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44751619516) — **SUCCESS** for JavaScript/TypeScript and Python.  
-**Full Git History Secret Audit:** [44751619621](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/44751619621) — **SUCCESS**.
+**Exact code/test HEAD:** `b71bf86c31fadd2895a2b4f18991b6742847e1a1`  
+**Exact-head CI:** Automated Tests [45321594594](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594594) SUCCESS (1/1 job, 40/40 steps) • CodeQL [45321594526](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594526) SUCCESS (2/2 jobs) • OCI ARM64 [45321594556](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594556) SUCCESS • Secret Audit [45321594499](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594499) SUCCESS. All four exact `head_sha` values match `b71bf86c31fadd2895a2b4f18991b6742847e1a1`.  
+**Cost:** ZERO COST • **main:** untouched • **delivery target:** approximately 24 December 2026 (planning target only)
 
-## Batch 62J-47 — WebSocket ticket renewal subject binding
+## Batch 62J-201 — Redis 7 ACL selector fix
 
-- Added `test_websocket_ticket_renewal_rejects_ticket_for_different_subject`. The test authenticates a socket as account A and attempts renewal with a valid single-use ticket issued to account B; server rejection with close code **4401** is verified.
-- This locks an existing server-side subject comparison with regression coverage. No production runtime code or WebSocket protocol changed.
-- Frontend dependency audit reported **0 vulnerabilities**; backend dependency audit reported **no known vulnerabilities**. Container build, Redis ACL/AOF + mounted-volume smoke test, Trivy HIGH/CRITICAL scan and report export passed. Trivy report artifact: `14635407508`; no zero-vulnerability claim is made for this artifact.
-- Detailed report: [docs/WORK_CYCLE_2026-11-20_BATCH62J47_CROSS_ACCOUNT_WEBSOCKET_RENEWAL.md](docs/WORK_CYCLE_2026-11-20_BATCH62J47_CROSS_ACCOUNT_WEBSOCKET_RENEWAL.md).
+Gateway stream-consumer permissions now remain at the root ACL scope for the stream key. Lease lifecycle commands `SET`, `EVAL`, `GET`, `PEXPIRE`, `DEL` are isolated in a Redis 7 ACL selector restricted to one exact literal lease key. The real Redis integration test denies gateway SET/DEL/PEXPIRE/EVAL against the stream key while allowing lease acquisition, renewal and token-fenced release. Out-of-scope keys, publisher lease access, XTRIM/XDEL/XGROUP DESTROY and database switching remain denied.
 
-## Current project accounting — unchanged
+Changed files: `backend/app/ohlcv_redis_config.py`, `backend/tests/test_ohlcv_redis_acl_integration.py`, `backend/tests/test_ohlcv_redis_config.py`. Backend tests, Redis TLS fixture, dependency audit, container build/smoke, image scan and report export passed. No production credentials or runtime relay startup wiring changed; relay remains disabled/unwired pending owner-controlled snapshot transport and dedicated credentials.
 
-- **Stage 1:** 30/40 criteria; 300/400 ticks; **75% provisional**.
-- **Gate 10:** **0/10 formally closed**; open criteria **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**.
-- **Stages 2–6:** NOT SCORED.
-- **Overall project percentage:** NOT ESTABLISHED; historical 20.9% remains unweighted.
-- **Indicators:** SMA/EMA/RSI/MACD/Bollinger calculation foundations and shared hook only; visible controls/panes remain Stage 4 parked. Footprint visual waits for owner reference; Heatmap/Liquidation Maps remain unimplemented/unverified pending references.
-- **ZERO COST:** no paid provider, hosting, deployment, billing activation, or Termux package operation.
-- **Protected `main`:** untouched.
+## Project progress
+| Meter | Verified state | Status |
+|---|---:|---|
+| Stage 1 | 30/40 criteria • 300/400 ticks • 75% provisional | 🟨 Active |
+| Gate 10 | 0/10 formally closed; open 8, 20, 25, 30, 31, 34, 35, 36, 38, 39 | 🟥 Open |
+| Stages 2–6 | Not officially opened/scored | 🟦 / ⬜ Parked |
+| Overall project | No approved weighted denominator | ⚪ NOT SCORED |
+| Aggregate indicator progress | No approved indicator denominator | ⚪ NOT SCORED |
+
+## Complete indicator ledger
+| Indicator / layer | Verified calculation foundation | Visible chart state | Status |
+|---|---|---|---|
+| SMA 20 | 20-close mean; first valid index 19; tests | No overlay/toggle/legend | 🟨 Foundation |
+| EMA 20 | SMA-seeded; alpha 2/21; first valid index 19; tests | No overlay/toggle/legend | 🟨 Foundation |
+| RSI 14 (Wilder) | Wilder smoothing; first valid index 14; tests | No pane, 0–100 scale, 30/70 guides or toggle | 🟨 Foundation |
+| MACD 12/26/9 | MACD index 25; signal/histogram index 33; tests | No dedicated pane/visible histogram/zero guide | 🟨 Foundation |
+| Bollinger 20,2 | Mean ± 2 population SD; first valid index 19; tests | No bands/fill/toggle | 🟨 Foundation |
+| Shared indicator hook | Identity-bound validated backend snapshot; trust-state suppression | Hook only; not chart-integrated | 🟨 Foundation |
+| Footprint | Deterministic synthetic/offline aggregation + fixtures | Wait for owner reference + scoped blueprint; OFF normal candles, ON spaced clusters | 🟧 Gated |
+| Heatmap | No implementation verified | Not implemented; wait for owner reference | 🟥 Open |
+| Liquidation Maps | No implementation verified | Not implemented; wait for owner reference | 🟥 Open |
+
+No aggregate indicator percentage is invented. Calculation foundations are not finished visible features. Stage 4 remains parked; Footprint and Heatmap visual work waits for owner references and scoped blueprint review.
+
+## WebSocket and retention blockers
+
+WebSocket/OHLCV repository foundations include authenticated delivery boundaries, snapshot/replay recovery, durable SQLite source outbox, per-replica checkpoints and Redis Stream relay components. Owner-host WSS, actual Android/browser reconnect, cross-instance and platform-lifetime proof remain open.
+
+SQLite source/outbox retention uses a 100,000-event bounded window and transactional monotonic floor advancement. Redis Stream retention remains NOT IMPLEMENTED pending durable gateway inventory, retirement semantics, authenticated snapshot receipts, per-gateway floor acknowledgements, PEL policy and crash-safe intent/commit/trim/reconcile tests. Runtime users must not receive destructive stream permissions.
+
+
+
+## Exact-head CI details
+
+- Automated Tests: backend tests, Redis TLS fixture, synthetic outbox/metrics benchmarks, backend dependency audit, container build, persistent-volume smoke, image scan/report export and frontend audit enforcement all passed.
+- CodeQL: Python and JavaScript/TypeScript analyses passed.
+- OCI ARM64: native ARM64 image build and smoke test passed.
+- Full Git History Secret Audit passed.
+- No Android APK workflow run was found for this exact HEAD; CI is not real-device/release acceptance.
+
+## Indicator interpretation
+
+SMA/EMA/RSI/MACD/Bollinger calculations and the shared hook are foundations only. No visible overlays/panes/toggles/legends are integrated. Footprint is synthetic/offline only; Heatmap and Liquidation Maps are not implemented. No indicator aggregate percentage is claimed.
+
+Detailed report: [Batch 62J-201](docs/WORK_CYCLE_2026-11-24_BATCH62J201_REDIS_ACL_SELECTOR_FIX_AND_INDICATOR_RECONCILIATION.md).
 
 ---
 

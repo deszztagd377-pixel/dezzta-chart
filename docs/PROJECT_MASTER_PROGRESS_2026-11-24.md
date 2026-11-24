@@ -4,11 +4,19 @@
 **Repository:** `deszztagd377-pixel/dezzta-chart`  
 **Official active stage:** Stage 1 — Foundation, Security & Data Integrity  
 **Active branch:** `phase-2/market-data-foundation`  
-**Audited pre-documentation HEAD:** `a537e43f6e9ec3c9c6f190126bd462d8cb938f2b`  
+**Latest exact-head code checkpoint:** `b71bf86c31fadd2895a2b4f18991b6742847e1a1`  
 **Protected branch:** `main` — untouched  
 **Delivery target:** approximately **24 December 2026** (planning target, not a guarantee)  
 **Cost rule:** **ZERO COST / ZERO INCREMENTAL SPEND**  
 **Purpose:** canonical, consolidated progress record. This document summarizes the evidence ledger; it does not replace the detailed work-cycle reports linked below.
+
+## Latest verified code checkpoint — Batch 62J-201
+
+Automated Tests [45321594594](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594594) SUCCESS (1/1 job, 40/40 steps) • CodeQL [45321594526](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594526) SUCCESS (2/2 jobs) • OCI ARM64 [45321594556](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594556) SUCCESS • Secret Audit [45321594499](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45321594499) SUCCESS. All four exact `head_sha` values match `b71bf86c31fadd2895a2b4f18991b6742847e1a1`.
+
+Automated Tests completed 1/1 job and 40/40 steps. The Redis 7 ACL selector confines lease lifecycle commands to the exact lease key; real Redis tests deny SET/DEL/PEXPIRE/EVAL against the stream key and preserve lease operations. Source/test files changed: `backend/app/ohlcv_redis_config.py`, `backend/tests/test_ohlcv_redis_acl_integration.py`, `backend/tests/test_ohlcv_redis_config.py`. Stage 1 remains 30/40 (75% provisional), Gate 10 0/10 closed; overall project and aggregate indicator progress remain NOT SCORED. ZERO COST; `main` untouched.
+
+Detailed report: [Batch 62J-201](WORK_CYCLE_2026-11-24_BATCH62J201_REDIS_ACL_SELECTOR_FIX_AND_INDICATOR_RECONCILIATION.md).
 
 ---
 
