@@ -1,3 +1,5 @@
+import hashlib
+import json
 import sqlite3
 
 import pytest
@@ -113,3 +115,65 @@ def test_pre_receipt_checkpoint_remains_unattested_after_table_recreation(tmp_pa
     migrated = SQLiteOhlcvReplicaStore(path)
     assert migrated.checkpoint() == checkpoint_before
     assert migrated.snapshot_receipts() == []
+
+
+
+def test_checkpoint_failure_rolls_back_receipt_and_snapshot_rows(tmp_path):
+    snapshot_path, metadata = _export_empty_snapshot(tmp_path)
+    path = str(tmp_path / "replica.sqlite3")
+    replica = SQLiteOhlcvReplicaStore(path)
+
+    connection = sqlite3.connect(path)
+    try:
+        connection.execute(
+            """CREATE TRIGGER reject_replica_checkpoint
+            BEFORE INSERT ON ohlcv_replica_checkpoint
+            BEGIN
+                SELECT RAISE(ABORT, 'injected_checkpoint_failure');
+            END"""
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    with pytest.raises(sqlite3.IntegrityError, match="injected_checkpoint_failure"):
+        replica.install_global_snapshot(
+            str(snapshot_path), expected_source_id=metadata["source_id"]
+        )
+
+    assert replica.checkpoint() is None
+    assert replica.snapshot_receipts() == []
+    assert replica.stats()["bars"] == 0
+
+
+def test_same_generation_with_different_canonical_digest_is_rejected(tmp_path):
+    snapshot_path, metadata = _export_empty_snapshot(tmp_path)
+    original_lines = snapshot_path.read_text(encoding="utf-8").splitlines()
+    header = json.loads(original_lines[0])
+    manifest = json.loads(original_lines[1])
+
+    # Re-serialize the same semantic header with different canonical bytes.
+    alternate_header = json.dumps(header, sort_keys=True, separators=(", ", ": "))
+    alternate_digest = hashlib.sha256((alternate_header + "\n").encode("utf-8")).hexdigest()
+    manifest["sha256"] = alternate_digest
+    conflicting_path = tmp_path / "same-generation-different-content.jsonl"
+    conflicting_path.write_text(
+        alternate_header + "\n"
+        + json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\n",
+        encoding="utf-8",
+    )
+
+    replica = SQLiteOhlcvReplicaStore(str(tmp_path / "replica.sqlite3"))
+    replica.install_global_snapshot(
+        str(snapshot_path), expected_source_id=metadata["source_id"]
+    )
+    receipt_before = replica.snapshot_receipts()
+    checkpoint_before = replica.checkpoint()
+
+    with pytest.raises(ValueError, match="conflicts with its immutable installation receipt"):
+        replica.install_global_snapshot(
+            str(conflicting_path), expected_source_id=metadata["source_id"]
+        )
+
+    assert replica.snapshot_receipts() == receipt_before
+    assert replica.checkpoint() == checkpoint_before

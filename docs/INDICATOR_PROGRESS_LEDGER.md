@@ -1,3 +1,16 @@
+# Latest indicator progress — Batch 62J-212 (24 November 2026)
+
+**Latest source audit HEAD:** `4832f628e5fe616dfe2902be83a8529e540c8ea2`.  
+**Detailed current matrix:** [INDICATOR_PROGRESS_2026-11-24_BATCH62J212.md](INDICATOR_PROGRESS_2026-11-24_BATCH62J212.md).
+
+Current state remains: SMA20, EMA20, Wilder RSI14, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook are calculation/data foundations only; `CandlestickChart.tsx` does not yet bind the shared hook or render visible study overlays/panes. Standard Volume Profile, Complete Volume Profile, and the separate compact Tools profile have no production implementation verified in the current source tree. Footprint remains synthetic/educational only; Heatmap and Liquidation Maps are not implemented. Low Tier has 15 planned slots but its exact final list is not approved; Mid Tier has Volume Profile plus approximately ten pending studies; Exclusive Indicator Pro contains Footprint PRO 2GD, Heatmap, Liquidation Maps, and Complete Volume Profile.
+
+The two owner-supplied Footprint references remain saved in ChatGPT Saved Reference Images and are not binary assets committed to Git. Footprint OFF must preserve normal candlesticks and spacing; Footprint ON alone may activate spaced candle clusters. No visual implementation is authorized before its scoped blueprint and owner review.
+
+The focused indicator suites still contain 24 named tests (17 calculation + 7 shared-hook). Aggregate indicator progress remains **NOT SCORED** because no denominator or weights have been approved. Stage 1 remains 30/40 = 75% provisional; overall project remains NOT SCORED. ZERO COST.
+
+---
+
 ## Owner Footprint visual reference intake — Batch 62J-206 (24 November 2026)
 
 **Owner reference images received:** 2/2 and saved in the persistent Reference Images collection as:
