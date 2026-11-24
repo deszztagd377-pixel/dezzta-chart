@@ -1,3 +1,18 @@
+# Latest verified work — 24 November 2026 (Batch 62J-223)
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Code/test HEAD:** `92b8ef0936d374f81df6d09e67a4752494100d40`  
+**Documentation work-cycle:** [Batch 62J-223](WORK_CYCLE_2026-11-24_BATCH62J223_SHARED_SERIES_OWNER_GUARD_AND_INDICATOR_RECONCILIATION.md)  
+**Exact-head CI:** PENDING / NOT YET VERIFIED for the new code/test HEAD; earlier parent results are not inherited.  
+**Change:** the shared OHLCV supervisor registry now rejects a same-series owner whose transport endpoint or canonical instrument mapping conflicts with the active supervisor. A regression test covers both mismatch paths and confirms the existing owner remains intact.  
+**Changed source/test:** `src/services/ohlcvSeriesSupervisorRegistry.ts`; `src/services/ohlcvSeriesSupervisorRegistry.test.ts`.  
+**Indicator ledger:** 17 calculation-engine tests + 7 shared-hook tests = 24 focused named cases. SMA20/EMA20/RSI14/MACD12/26/9/Bollinger20,2 and Shared Indicator Hook remain 🟨 foundation; Footprint 🟧 synthetic/reference-gated; Heatmap and Liquidation Maps 🟥 not implemented. Visible chart integration remains unimplemented; indicator aggregate remains NOT SCORED.  
+**WebSocket:** Gate 25 and Gate 36 remain OPEN; Redis destructive retention remains BLOCKED.  
+**Progress:** Stage 1 = 30/40 criteria = 75% provisional 🟨; Stage 2 active engineering but NOT SCORED 🟦; Stages 3–6 NOT SCORED ⬜; Gate 10 = 0/10 formally closed 🟥; overall project NOT SCORED ⚪; IP3S for this batch NOT SCORED ⚪.  
+**Cost/deployment:** ZERO COST; `main` untouched; no Vercel deployment; target approximately 24 December 2026 (planning target only).
+
+---
+
 # CURRENT AUDITED CHECKPOINT — 24 NOVEMBER 2026 (BATCH 62J-205)
 
 **Active branch:** `phase-2/market-data-foundation`  
