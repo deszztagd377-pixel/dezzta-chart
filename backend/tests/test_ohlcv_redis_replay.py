@@ -257,3 +257,98 @@ def test_replica_replay_validates_stream_and_series_even_at_empty_interval():
             NoCallRedis(), stream_key="ohlcv", checkpoint=checkpoint,
             after_cursor=5, series_identity={},
         )
+
+
+
+@pytest.mark.parametrize(
+    ("after_cursor", "expected_status", "expected_reason"),
+    [
+        (9, "resnapshot_required", "cursor_expired"),
+        (10, "ok", None),
+        (11, "ok", None),
+    ],
+)
+def test_replica_replay_retention_floor_boundary_is_inclusive(
+    after_cursor, expected_status, expected_reason,
+):
+    # The retention floor is the oldest cursor a client may resume AFTER.
+    # Equality is valid; only a cursor strictly below the floor has expired.
+    redis = FakeRedis([make_entry(11), make_entry(12)])
+    result = replay_replica_history(
+        redis,
+        stream_key="ohlcv",
+        checkpoint={
+            "source_id": SOURCE,
+            "applied_cursor": 12,
+            "retention_floor": 10,
+        },
+        after_cursor=after_cursor,
+        series_identity=IDENTITY,
+        scan_limit=2,
+    )
+    assert result["status"] == expected_status
+    assert result["reason"] == expected_reason
+    if expected_status == "ok":
+        assert [event["cursor"] for event in result["events"]] == list(
+            range(after_cursor + 1, 13)
+        )
+        assert result["next_cursor"] == 12
+    else:
+        assert result["events"] == []
+
+
+@pytest.mark.parametrize(
+    "checkpoint",
+    [
+        {"source_id": SOURCE, "applied_cursor": True, "retention_floor": 0},
+        {"source_id": SOURCE, "applied_cursor": -1, "retention_floor": 0},
+        {"source_id": SOURCE, "applied_cursor": 2},
+        {"source_id": SOURCE, "applied_cursor": 2, "retention_floor": 3},
+        {"source_id": SOURCE, "applied_cursor": 2, "retention_floor": -1},
+    ],
+)
+def test_replica_replay_rejects_malformed_checkpoint_matrix(checkpoint):
+    class NoCallRedis:
+        def xrange(self, *args, **kwargs):
+            raise AssertionError("Malformed checkpoints must fail before Redis access")
+
+    with pytest.raises(ValueError):
+        replay_replica_history(
+            NoCallRedis(),
+            stream_key="ohlcv",
+            checkpoint=checkpoint,
+            after_cursor=0,
+            series_identity=IDENTITY,
+        )
+
+
+def test_replay_page_exact_scan_limit_advances_to_next_contiguous_page():
+    redis = FakeRedis([make_entry(1), make_entry(2), make_entry(3)])
+    first = read_redis_replay_page(
+        redis,
+        stream_key="ohlcv",
+        source_id=SOURCE,
+        after_cursor=0,
+        through_cursor=3,
+        series_identity=IDENTITY,
+        scan_limit=2,
+    )
+    assert first["scanned"] == 2
+    assert first["next_cursor"] == 2
+    assert first["has_more"] is True
+
+    second = read_redis_replay_page(
+        redis,
+        stream_key="ohlcv",
+        source_id=SOURCE,
+        after_cursor=first["next_cursor"],
+        through_cursor=3,
+        series_identity=IDENTITY,
+        scan_limit=2,
+    )
+    assert second["scanned"] == 1
+    assert second["next_cursor"] == 3
+    assert second["has_more"] is False
+    assert [
+        event["cursor"] for event in first["events"] + second["events"]
+    ] == [1, 2, 3]
