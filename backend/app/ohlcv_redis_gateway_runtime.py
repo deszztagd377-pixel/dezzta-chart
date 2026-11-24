@@ -201,6 +201,7 @@ def build_gateway_replica_runtime_factory(
                 "stream_key": stream_key,
                 "snapshot_evidence": {
                     "source_id": expected_source_id,
+                    "authenticated_source_id": receipt["authenticated_source_id"],
                     "snapshot_generation": generation,
                     "snapshot_cursor": cursor,
                     "snapshot_sha256": digest,
