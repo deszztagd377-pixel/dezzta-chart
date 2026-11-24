@@ -59,6 +59,25 @@ test('blocks CRITICAL advisories', async () => {
   assert.match(result.stderr, /HIGH\/CRITICAL/);
 });
 
+test('allows LOW-only advisories while keeping the audit complete', async () => {
+  const result = await runReporter({
+    vulnerabilities: {
+      example: { severity: 'low', isDirect: true, via: ['test advisory'] },
+    },
+    metadata: { vulnerabilities: { total: 1, critical: 0, high: 0, moderate: 0, low: 1, info: 0 } },
+  });
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test('blocks an npm dependency tree with unresolved problems', async () => {
+  const result = await runReporter(cleanAudit, {
+    problems: ['missing: undici@7.30.1'],
+    dependencies: { undici: { version: '7.30.1' } },
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /dependency-tree problems/);
+});
+
 test('blocks npm audit transport or registry errors', async () => {
   const result = await runReporter({ ...cleanAudit, error: { code: 'ENETWORK', summary: 'registry unavailable' } });
   assert.notEqual(result.status, 0);
