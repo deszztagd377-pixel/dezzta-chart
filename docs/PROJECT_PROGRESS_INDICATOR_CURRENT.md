@@ -1,4 +1,14 @@
-# Latest branch update — 24 November 2026 (Batch 62J-218)
+# Latest branch update — 24 November 2026 (Batch 62J-219)
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Previous remediation HEAD:** `1130c53b5d9f95def9b455985b9a28445431c61b` — exact-head CI completed 3/4 SUCCESS, Automated Tests FAILED.  
+**Batch 62J-218 finding:** all 10 audit reporter regression tests passed, but the real CI dependency tree reported `extraneous: undici@7.30.1` for the root temporary no-save override. The nested Miniflare Undici and root override both resolved at 7.30.1. The Worker runtime test was not reached.  
+**Batch 62J-219 remediation commits:** `ab6f5b9bcfa8b489b97063417e172caf5bf20a7a` scopes failure to missing/invalid Undici diagnostics while tolerating npm's temporary extraneous override; `a2c97bbc5759f691b145a58edc91ebbdabda5cae` adds regression coverage for that exact diagnostic. Work-cycle: [Batch 62J-219](WORK_CYCLE_2026-11-24_BATCH62J219_NPM_UNDICI_EXTRANEOUS_FIX.md).  
+**Current exact-head CI:** pending for Batch 62J-219 final documentation HEAD; no success is claimed until all four workflows finish.  
+**Stage 1:** 30/40 criteria = 75% provisional. **Stage 2:** active. **Gate 25:** owner-host key custody, signed transfer, remote receipt custody and multi-gateway acknowledgement remain open. **Redis destructive retention:** blocked.  
+**Indicators:** no implementation changes in Batches 217–219; no completion credit. **Overall project and aggregate indicator completion:** NOT SCORED. **ZERO COST**; `main` untouched; Vercel deployment deferred. **Target:** approximately 24 December 2026 (planning target only).
+
+---
 
 **Active branch:** `phase-2/market-data-foundation`  
 **CI-triage base HEAD:** `e8fa80256d23bd19e18d84cab4320bf5c425a0f6`  
