@@ -4140,3 +4140,27 @@ Focused declaration inventory remains **28 total = 21 calculation + 7 shared-hoo
 Cross-indicator acceptance remains mandatory: warm-up values null until mathematically valid; prefix causality; no future-candle lookahead/repaint; exact timestamp/series identity alignment; stale-output clearing on identity change; deterministic repeated results; bounded computation; no mutation of source candle data; no calculations for demo/loading/unavailable/error/empty snapshots.
 
 **Controls:** ZERO COST; active branch only phase-2/market-data-foundation; main untouched; no Vercel; no paid market data, hosting, monitoring, backup, subscription or publication; no duplicate Cloudflare infrastructure. Planning target remains around **24 December 2026**.
+
+
+---
+
+## Batch 80–86 indicator reconciliation — 25 November 2026
+
+WebSocket/runtime work produced no indicator source, chart-rendering or interaction changes. The complete per-indicator inventory and mathematical contracts remain as recorded in the preceding ledger entries; the latest consolidated project/batch reconciliation is `WORK_CYCLE_2026-11-25_BATCH80_86_EXECUTION_RECONCILIATION.md`.
+
+| Indicator | Current state | Remaining acceptance |
+|---|---|---|
+| SMA20 | 🟨 FOUNDATION | First valid index 19; chart overlay, toggle, legend/value and lifecycle |
+| EMA20 | 🟨 FOUNDATION | First valid index 19; alpha 2/21; chart overlay and lifecycle |
+| RSI14 Wilder | 🟨 FOUNDATION | First valid index 14; 0–100 pane, 30/70 guides and lifecycle |
+| MACD12/26/9 | 🟨 FOUNDATION | MACD index 25; signal/histogram index 33; dedicated pane and render tests |
+| Bollinger20,2 | 🟨 FOUNDATION | First valid index 19; bands, fill, toggle and lifecycle |
+| Shared Indicator Hook | 🟨 FOUNDATION | 7 focused declarations; integrate with `CandlestickChart.tsx` |
+| Footprint PRO 2GD | 🟧 GATED | Synthetic/offline only; match both supplied references; OFF normal spacing, ON spaced clusters |
+| Volume Profile | 🟥 OPEN | Price-bin conservation, value area, range and timestamp boundaries |
+| Complete Volume Profile | 🟥 OPEN | Full-session completeness, POC/VAH/VAL and conservation |
+| Movable-range Volume Profile | 🟥 OPEN | User-selected bounds and deterministic recomputation |
+| Heatmap | 🟥 OPEN | Data provenance/aggregation/decay; visual reference still required |
+| Liquidation Maps | 🟥 OPEN | Provenance, estimation method and confidence contract |
+
+Global invariants remain mandatory: warm-up nulls; prefix causality; no future-candle lookahead/repaint; timestamp/series identity alignment; stale-output clearing; deterministic results; bounded computation; no mutation of source candles; no calculation for demo/loading/unavailable/error/empty snapshots. Focused declarations remain 28 (21 calculation + 7 hook), not passed-test count or percent. Aggregate indicator progress remains ⚪ NOT SCORED because no approved weighted denominator exists.
