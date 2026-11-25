@@ -62,7 +62,7 @@ No external network call, provider credential, paid feed, deployment or destruct
 
 ## 5. CI and indicator accounting
 
-This source/test commit requires exact-HEAD verification by Automated Tests, CodeQL, OCI ARM64 readiness and full Git-history secret audit. The run IDs and final conclusions must be recorded only after the workflows finish.
+The source/test commit `b6cb9137f41b183d4dfa2983949c5a60fd4a9d16` was included in the later exact branch-head verification on documentation HEAD `e4a085e9e34629ddee53d970f9ab0a79d1cabdd5`, which contains no source/test changes beyond that parent. All four workflows completed successfully on the exact HEAD: Automated Tests run 45591860373 (41/41 steps, job SUCCESS); CodeQL run 45591860438 (Python 8/8 and JavaScript/TypeScript 8/8); OCI ARM64 run 45591860401 (7/7); Full Git History Secret Audit run 45591860419 (6/6). The backend pytest step, frontend tests/build, Redis TLS CA/hostname fixture, dependency audit, synthetic benchmarks, container build, container smoke test and HIGH/CRITICAL image scan all completed successfully. The earlier Automated Tests run 45591449872 for the intermediate `b6cb9137...` ref was cancelled by branch concurrency after the next commit; it is not counted as a pass or failure. Exact-head verification on `e4a085...` is the authoritative result.
 
 No indicator formula, calculation hook, chart component, renderer, UI or indicator test changed. No indicator completion credit is awarded. The full twelve-row indicator ledger and numerical contracts remain in `docs/INDICATOR_PROGRESS_LEDGER.md`.
 
