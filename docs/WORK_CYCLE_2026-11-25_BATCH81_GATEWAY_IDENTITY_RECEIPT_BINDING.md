@@ -120,3 +120,21 @@ Stage 1 remains provisional; this patch does not close unrelated criteria. Gate 
 No Cloudflare account, zone, Worker, Pages project, Tunnel, Durable Object, R2 bucket, domain or paid service was created or changed. The prior connected-account inventory is only evidence about the connected account, not proof that the user's production server is absent. A Cloudflare account name by itself does not create a subscription or charge; only explicit activation/purchase actions can do that. Do not upgrade or purchase anything.
 
 Planning delivery target remains around **24 December 2026**, not month-end and not a guarantee.
+
+
+---
+
+## Batch 81 authenticated gateway peer binding — 25 November 2026
+
+- Source/test commit: `e1d2cfe05130e705264f416c61f56c6d12a73df3`.
+- The source evidence validator now requires both `gateway_id` and `authenticated_gateway_id` to equal the required gateway inventory key. The owner callback contract explicitly states that `authenticated_gateway_id` must be derived from the authenticated remote connection identity, not copied from the receipt payload.
+- Regression coverage includes mismatched `gateway_id` and mismatched `authenticated_gateway_id`; both negative cases are explicitly PASSED. All receipt mismatches fail before Redis client creation.
+- Exact-head CI: 4/4 workflows terminal SUCCESS. Automated Tests: **1,435 passed, 1 skipped, 6 warnings** in 58.80s. Dedicated isolated Redis TLS integration: **1 passed in 0.08s**. CodeQL Python + JavaScript/TypeScript SUCCESS; full reachable-history secret audit SUCCESS; OCI ARM64 build/smoke SUCCESS. All jobs and cleanup steps completed; no running jobs remain.
+- The single suite skip is the TLS integration test invoked without its isolated fixture variables; the same exact test passed in the dedicated TLS-fixture step.
+- The code change hardens the owner callback evidence boundary; it does not itself authenticate remote connections or implement the missing owner-host callback. Batch 81 remains 🟨 foundation/hardening, not production activation.
+- Files changed in this source commit: `backend/app/ohlcv_redis_runtime.py`, `backend/tests/test_ohlcv_redis_runtime.py`.
+- CI runs: Automated Tests [45627353203](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45627353203); CodeQL [45627353126](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45627353126); OCI ARM64 [45627353138](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45627353138); Full Git History Secret Audit [45627353123](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45627353123).
+
+## Cloudflare account-name resolution — read-only
+
+The user supplied `DZZTV2GD ENGINE SERVER` as the expected display name of the account leading the DEZZTA CHART APK server. A read-only inventory of the Cloudflare account currently connected to this session returned one account, but an exact-name lookup for `DZZTV2GD ENGINE SERVER` returned zero matches. This does not prove the user's production account is absent; it means the expected account is not available through the current Cloudflare connection. No resource was created, modified, deleted, deployed, upgraded or purchased. No billing action occurred. Batch 85 remains blocked until the correct existing Cloudflare account is connected by the account owner.

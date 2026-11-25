@@ -6271,3 +6271,25 @@ Source/test SHA `9138249fc31431c1112fb6fa49c4e11e63dc0f1a` has 4/4 required work
 Batch 80 🟩 code/CI complete; Batch 81 🟨 foundation + identity binding, owner verifier still required; Batch 82 🟨 component foundation, authenticated installer/key pinning required; Batch 83 🟨 broad automated matrix passed; Batch 84 🟧 receipt foundation, owner-accepted ACK/restart proof open; Batch 85 🟥 production WSS/device E2E open; Batch 86 🟧 local recovery foundation, owner-host acceptance open.
 
 Indicator aggregate remains ⚪ NOT SCORED. No indicator code or chart UI changed in Batch 81. The complete indicator ledger and mathematical invariants are in `docs/WORK_CYCLE_2026-11-25_BATCH81_GATEWAY_IDENTITY_RECEIPT_BINDING.md` and `docs/INDICATOR_PROGRESS_LEDGER.md`.
+
+
+---
+
+## Batch 81 CI checkpoint refresh — 25 November 2026
+
+| Meter | State | Notes |
+|---|---|---|
+| Stage 1 | 🟨 30/40 = 75% provisional | No unrelated criterion closed |
+| Gate 10 | 🟥 0/10 formally closed | Criteria 8,20,25,30,31,34,35,36,38,39 open |
+| Stage 2 | 🟦 Preparatory / not scored | Entry not formally accepted |
+| Stage 3 | ⚪ Not scored | No approved stage denominator |
+| Stage 4 | 🟪 Gated | Production acceptance blocked |
+| Stage 5 | ⚪ Not scored | No approved stage denominator |
+| Stage 6 | ⚪ Not scored | No approved stage denominator |
+| Overall project | ⚪ NOT SCORED | Approved weighted denominator absent |
+| Significant progress / IP3S | ⚪ NOT SCORED | Approved weighted denominator absent |
+| Indicator aggregate | ⚪ NOT SCORED | Approved weighted denominator absent |
+
+Latest source/test SHA `e1d2cfe05130e705264f416c61f56c6d12a73df3`: four workflows SUCCESS; backend 1,435 passed, 1 skipped, 6 warnings; isolated TLS integration 1 passed. The new authenticated gateway peer binding is Batch 81 hardening only; no indicator implementation changed.
+
+Batch 80 🟩; 81 🟨; 82 🟨; 83 🟨; 84 🟧; 85 🟥; 86 🟧. Delivery planning target remains around 24 December 2026. ZERO COST remains mandatory.

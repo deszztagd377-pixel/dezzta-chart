@@ -4190,3 +4190,29 @@ No indicator calculation, chart integration, rendering, or lifecycle source chan
 Global invariants remain: warm-up nulls; prefix causality; no lookahead/repaint; timestamp/series identity alignment; stale-output clearing; deterministic bounded calculations; no source candle mutation; no calculations for demo/loading/unavailable/error/empty snapshots. Footprint OFF preserves normal candle spacing; explicit ON alone uses spaced clusters. The two Footprint references are available; Heatmap reference remains outstanding.
 
 The source/test checkpoint `9138249fc31431c1112fb6fa49c4e11e63dc0f1a` passed all 4 required workflows. This WebSocket receipt-identity patch does not alter indicator status. Aggregate indicator completion remains ⚪ NOT SCORED because no approved weighted denominator exists.
+
+
+---
+
+## Batch 81 latest verification refresh — 25 November 2026
+
+Source/test SHA `e1d2cfe05130e705264f416c61f56c6d12a73df3` adds a source publisher receipt guard requiring `authenticated_gateway_id` to equal the gateway inventory ID. Regression cases for mismatched `gateway_id` and `authenticated_gateway_id` both pass. This is WebSocket/runtime hardening only; **no indicator calculation, chart integration, rendering or lifecycle code changed**, so indicator progress credit remains unchanged.
+
+| Indicator | State | Remaining acceptance |
+|---|---|---|
+| SMA20 | 🟨 | First valid index 19; chart overlay/toggle/legend/value/lifecycle |
+| EMA20 | 🟨 | SMA seed, alpha 2/21, first valid index 19; chart integration |
+| RSI14 Wilder | 🟨 | First valid index 14; 0–100 pane and 30/70 guides |
+| MACD12/26/9 | 🟨 | MACD index 25; signal/histogram index 33; dedicated pane |
+| Bollinger20,2 | 🟨 | Population SD, first valid index 19; bands/fill/toggle |
+| Shared Indicator Hook | 🟨 | 7 declarations; integrate with `CandlestickChart.tsx` |
+| Footprint PRO 2GD | 🟧 | Synthetic/offline only; both saved references; OFF normal spacing, ON spaced clusters |
+| Volume Profile | 🟥 | Price-bin conservation, value area and range semantics |
+| Complete Volume Profile | 🟥 | Full-session completeness, POC/VAH/VAL and conservation |
+| Movable-range Volume Profile | 🟥 | User bounds and deterministic recomputation |
+| Heatmap | 🟥 | Data provenance/aggregation/decay; visual work awaits user reference |
+| Liquidation Maps | 🟥 | Provenance, estimation method and confidence contract |
+
+Mathematical/lifecycle invariants remain unchanged: warm-up nulls; prefix causality; no future lookahead/repaint; timestamp and series identity alignment; stale-output clearing; deterministic bounded calculation; no source candle mutation; no calculation for demo/loading/unavailable/error/empty data. Focused declarations remain 28 (21 calculation + 7 hook), not a pass count or completion percentage. Indicator aggregate remains ⚪ NOT SCORED without an approved weighted denominator.
+
+Exact-head CI for the WebSocket hardening commit: 4/4 workflows SUCCESS; backend 1,435 passed, 1 skipped, 6 warnings; dedicated Redis TLS test 1 passed. No indicator source/UI changed.

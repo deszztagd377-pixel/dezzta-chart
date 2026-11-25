@@ -1854,3 +1854,16 @@ Exact source/test SHA `66d4c6a812d5ce2570345e1108e813b5067f5248`: Automated Test
 - Batch 81 remains component foundation, not production activation: owner-authenticated remote verifier and durable receipt retrieval still required. Batch 82 owner installer/key pinning, Batch 84 owner-accepted high-water ACK, Batch 85 public Cloudflare WSS/device E2E and Batch 86 owner-host restore/incident acceptance remain open.
 - Indicator source/UI unchanged; no indicator progress credit. Full ledger: `docs/WORK_CYCLE_2026-11-25_BATCH81_GATEWAY_IDENTITY_RECEIPT_BINDING.md`.
 - ZERO COST; no Cloudflare resource or production deployment changed; delivery target around 24 December 2026.
+
+
+---
+
+## Latest checkpoint — 25 November 2026 / Batch 81 authenticated peer binding
+
+Source/test SHA `e1d2cfe05130e705264f416c61f56c6d12a73df3` adds `authenticated_gateway_id` binding to the source publisher receipt validator. It must match the inventory gateway ID and must be populated from authenticated connection identity by the owner callback, never copied from receipt payload. Regression cases for both gateway ID fields passed.
+
+Exact SHA CI: **4/4 workflows SUCCESS**. Backend **1,435 passed, 1 skipped, 6 warnings** in 58.80s; dedicated isolated Redis TLS test **1 passed in 0.08s**. CodeQL, full reachable-history secret audit and OCI ARM64 readiness all passed. No running jobs remain.
+
+Batch 81 remains 🟨 foundation/hardening pending owner callback; 82 🟨 foundation; 83 🟨 broad matrix; 84 🟧 receipt foundation; 85 🟥 production WSS/E2E; 86 🟧 local recovery foundation. No indicator source/UI changed; indicator status receives no new completion credit. Full evidence and CI run IDs are recorded in `docs/WORK_CYCLE_2026-11-25_BATCH81_GATEWAY_IDENTITY_RECEIPT_BINDING.md`.
+
+Cloudflare: expected account display name `DZZTV2GD ENGINE SERVER` is not present in the currently connected account list (exact-name read-only lookup returned zero). No account/resource mutation or billing action was performed. Batch 85 must use the existing account after it is connected; do not create duplicate infrastructure.
