@@ -176,6 +176,50 @@ def test_release_with_retry_preserves_lease_after_exhaustion():
     run(scenario())
 
 
+def test_pending_release_reconciliation_recovers_persistent_stop_failure():
+    async def scenario():
+        adapter = InMemoryOfflineProviderAdapter()
+        coordinator = ProviderDemandCoordinator(adapter)
+        lease = await coordinator.acquire("panel-a", key())
+        adapter.stop_error = RuntimeError("persistent stop failure")
+
+        with pytest.raises(RuntimeError, match="persistent stop failure"):
+            await coordinator.release_with_retry(
+                lease, attempts=2, initial_delay=0
+            )
+
+        assert coordinator.pending_release_count == 1
+        assert coordinator.active_lease_count == 1
+
+        adapter.stop_error = None
+        assert await coordinator.retry_pending_releases() == 1
+        assert coordinator.pending_release_count == 0
+        assert coordinator.active_lease_count == 0
+        assert adapter.active == set()
+        assert adapter.stop_calls == [key()]
+
+    run(scenario())
+
+
+def test_pending_release_reconciliation_keeps_failed_lease_queued():
+    async def scenario():
+        adapter = InMemoryOfflineProviderAdapter()
+        coordinator = ProviderDemandCoordinator(adapter)
+        lease = await coordinator.acquire("panel-a", key())
+        adapter.stop_error = RuntimeError("still unavailable")
+
+        with pytest.raises(RuntimeError, match="still unavailable"):
+            await coordinator.release_with_retry(
+                lease, attempts=1, initial_delay=0
+            )
+
+        assert await coordinator.retry_pending_releases() == 0
+        assert coordinator.pending_release_count == 1
+        assert coordinator.active_lease_count == 1
+
+    run(scenario())
+
+
 def test_release_with_retry_rejects_invalid_retry_policy():
     async def scenario():
         coordinator = ProviderDemandCoordinator(InMemoryOfflineProviderAdapter())
