@@ -1831,3 +1831,12 @@ Focused declaration inventory remains **28 total = 21 calculation + 7 shared-hoo
 Cross-indicator acceptance remains mandatory: warm-up values null until mathematically valid; prefix causality; no future-candle lookahead/repaint; exact timestamp/series identity alignment; stale-output clearing on identity change; deterministic repeated results; bounded computation; no mutation of source candle data; no calculations for demo/loading/unavailable/error/empty snapshots.
 
 **Controls:** ZERO COST; active branch only phase-2/market-data-foundation; main untouched; no Vercel; no paid market data, hosting, monitoring, backup, subscription or publication; no duplicate Cloudflare infrastructure. Planning target remains around **24 December 2026**.
+
+
+---
+
+## Batch 80–86 execution reconciliation — 25 November 2026
+
+The latest evidence reconciliation is recorded in `docs/WORK_CYCLE_2026-11-25_BATCH80_86_EXECUTION_RECONCILIATION.md`. Corrected accounting: Batch 80 is complete at code/CI scope; source/gateway factory components for Batches 81–82 already exist but owner callback/host integration is still open; prior real-Redis two-ASGI/TCP recovery and snapshot-generation scenarios provide partial Batch 83 acceptance; immutable signed snapshot receipts exist but Gate 25 owner-accepted durable high-water ACK remains open; public Cloudflare WSS/device E2E remains open; local recovery/metrics foundations exist but owner-host backup/restore remains open.
+
+Exact source/test SHA `66d4c6a812d5ce2570345e1108e813b5067f5248`: Automated Tests 1,433 passed, 1 skipped, 6 warnings; CodeQL Python 8/8 and JavaScript/TypeScript 8/8; Full Git History Secret Audit 6/6; OCI ARM64 7/7. Every job is terminal success. This evidence does not apply to later documentation-only HEADs. See the reconciliation report for test scope, skipped TLS test boundary, detailed batch states, and ordered dependencies.
