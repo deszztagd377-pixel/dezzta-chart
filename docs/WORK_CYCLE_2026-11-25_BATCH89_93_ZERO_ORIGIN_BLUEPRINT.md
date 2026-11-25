@@ -481,3 +481,48 @@ No runtime implementation is to be committed until an already-authorized zero-co
 ### 14.4 No false completion
 
 At this checkpoint Batches 89–95 retain their existing statuses. The source audit increases confidence in the blocker diagnosis, not implementation completion. Gate 25 and Gate 36 remain open; no live provider, public WSS, production Worker or durable ACK receipt is claimed. No Cloudflare resource, deployment, paid service or `main` branch change is authorized or performed.
+
+
+## 15. Existing WebSocket test inventory and acceptance gap map — 25 November 2026
+
+A fresh source-level inventory found **43 declared test cases** across three existing suites. This is a declaration count, not a test execution or pass count:
+
+| Existing suite | Declared cases | Runtime scope |
+|---|---:|---|
+| `cloudflare/proof/worker.node-test.mjs` | 31 | Node-level validation, synthetic contract, request bounds, tickets, sequence gate and proof behavior |
+| `cloudflare/proof/worker.durable-object.runtime.mjs` | 11 | Cloudflare Vitest/DO runtime: authenticated fan-out, snapshot watermark, single-use ticket/races, attachment restoration, alarms, series binding, duplicate/gap cursor behavior |
+| `cloudflare/proof/worker.miniflare-test.mjs` | 1 | Miniflare/workerd integration for real local WebSocket, DO storage and fan-out |
+| **Total** | **43** | **Not executed in this session** |
+
+### 15.1 Existing coverage versus the 15 production acceptance tests
+
+| # | Required production acceptance | Existing source-level coverage | Remaining gap |
+|---:|---|---|---|
+| 1 | Event payload and high-water atomic; rollback injected | 🟥 None | Implement event row + cursor in one transaction and rollback test |
+| 2 | Same sequence/digest idempotent | 🟨 Partial | Existing duplicate cursor rejection does not compare payload digest |
+| 3 | Same sequence/different digest conflict | 🟥 None | Canonical digest conflict behavior |
+| 4 | Sequence gap never advances high-water | 🟩 Proof-only behavior | Re-test against durable event store, not cursor-only proof |
+| 5 | Replay after DO eviction/recreation | 🟥 None | Persisted event rows and replay after eviction |
+| 6 | Fan-out only after durable commit | 🟨 Partial | Current test verifies fan-out but not injected failure between commit and send |
+| 7 | ACK bound to series/generation/digest/high-water | 🟥 None | ACK protocol and validation |
+| 8 | ACK receipt durable after eviction | 🟥 None | Consumer receipt table and post-eviction query |
+| 9 | Monotonic receipt version/idempotent replay/no regression | 🟥 None | Receipt version transaction and regression tests |
+| 10 | Bounded contiguous RESUME page | 🟥 None | Cursor protocol, page bound and contiguity tests |
+| 11 | Below retention floor returns resnapshot_required | 🟥 None | Retention floor semantics and explicit response |
+| 12 | Generation mismatch prevents stale replay | 🟥 None | Generation-bound cursor/replay tests |
+| 13 | Racing ACK/ticket consumption cannot duplicate/regress receipt | 🟨 Partial | Ticket race is tested; ACK receipt race is not |
+| 14 | Hibernation wake + DO eviction preserve authorized identity and cursor | 🟨 Partial | Attachment restoration exists; durable cursor/replay restoration is not proven |
+| 15 | Android/browser process death + network handover | 🟥 None | Device E2E at Gate 36 |
+
+🟩 here means only the narrow synthetic proof behavior is covered by existing test source; it does not close a production gate. 🟨 means adjacent or partial coverage only. None of the 15 production acceptance items is accepted solely from this inventory.
+
+### 15.2 Correct interpretation of the inventory
+
+- 43 test declarations do not mean 43 tests passed.
+- The 11 DO runtime cases and 1 Miniflare case require the repository's Cloudflare runtime test commands; they were not run in this session.
+- Existing ticket-consumption race tests are not ACK receipt race tests.
+- Existing serialized socket attachment restoration is not proof of durable event replay or cursor restoration.
+- Existing sequence-gap tests exercise the synthetic cursor gate, not atomic event payload + digest + high-water.
+- No test has been added or modified in this audit. Do not change production acceptance statuses based on test-name presence.
+
+The first implementation test batch must be introduced with Batch 90/92 schema and event engine work, then the remaining ACK/replay/device cases in dependency order. No new code is safe to commit until a zero-cost runner can execute the exact suites.
