@@ -1,3 +1,16 @@
+# Latest indicator audit — Work Cycle 87 (25 November 2026)
+
+**Audited source/test HEAD:** `471eb4413a716922b20a5503fe5165607e77947f`.  
+**Current indicator files:** calculation source `507284fb286c633144b497b9d98c8c810250a8db`; calculation tests `5da008e045829876c78b82e612f73d7bd590b1c1`; shared hook `40188569cfc1d823bef2d814404c7bd5bb577c0c`; hook tests `3681bb9b66dd39da8606c7c58c56a3993ef8d80b`; chart `d2ec7c1e825a969b055e3e4d0109290f6f951348`.
+**Focused test declarations:** 21 calculation + 7 hook = 28 declarations; not a pass count or completion percentage. **Chart integration:** `CandlestickChart.tsx` does not import/call `useMarketIndicators`.
+**Status:** SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and shared hook 🟨 FOUNDATION; Footprint PRO 2GD 🟧 GATED; Volume Profile, Complete Volume Profile, Movable-range Volume Profile, Heatmap and Liquidation Maps 🟥 OPEN.
+**Mathematical first-valid indices:** SMA20 19; EMA20 19; RSI14 14; MACD line 25 and signal/histogram 33; Bollinger20 19. Warm-up nulls, prefix causality, no lookahead, exact series/timestamp alignment, stale-output clearing, finite numeric behavior and no output for demo/loading/unavailable/error/empty snapshots remain mandatory.
+**Footprint:** OFF keeps ordinary candle spacing; explicit ON alone uses spaced clusters. Two saved Footprint references remain authoritative. Heatmap visual work remains blocked on the user's reference.
+**Aggregate indicator completion:** ⚪ NOT SCORED; no approved weighted denominator. No indicator source/UI change or completion credit in Batch 87.
+**Full evidence and all 12 indicator rows:** `docs/WORK_CYCLE_2026-11-25_BATCH87_INDICATOR_AND_WEBSOCKET_RECONCILIATION.md`.
+
+---
+
 # Indicator progress reconciliation — Batch 72 (25 November 2026)
 
 **Audited source HEAD:** `6a6e9e82ed2de725bef94e8ed1fa7f28c60e0a49`.  
