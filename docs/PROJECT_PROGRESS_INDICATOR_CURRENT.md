@@ -1,6 +1,6 @@
 # Exact-head project reconciliation — Batch 62J-243 (25 November 2026)
 
-**Source/test HEAD:** `b60a9d375a9b3d9742c0c4e1c107aff593ad7ebc`  
+**Source/test HEAD:** `c80b9ef05fa531f36f4b41673030447f15c97e47`  
 **Branch:** `phase-2/market-data-foundation`  
 **Previous checkpoint:** `65bf9203b2521846ddbac6206202d302a9fc81b8`  
 **Scope:** retryable WebSocket disconnect cleanup, in-process pending-release reconciliation, cancellation safety, route/lifespan regression coverage, exact-HEAD CI and indicator status.
@@ -11,12 +11,12 @@ All four GitHub Actions workflows completed successfully against the same exact 
 
 | Workflow | Run | Result |
 |---|---:|---|
-| Automated Tests | 45536261384 | 🟩 SUCCESS — 41/41 steps |
-| CodeQL | 45536261374 | 🟩 SUCCESS — Python 8/8 and JavaScript/TypeScript 8/8 |
-| OCI ARM64 Image Readiness | 45536261564 | 🟩 SUCCESS — 7/7 steps |
-| Full Git History Secret Audit | 45536261385 | 🟩 SUCCESS — 6/6 steps |
+| Automated Tests | 45538396678 | 🟩 SUCCESS — 41/41 steps |
+| CodeQL | 45538396760 | 🟩 SUCCESS — Python 8/8 and JavaScript/TypeScript 8/8 |
+| OCI ARM64 Image Readiness | 45538396680 | 🟩 SUCCESS — 7/7 steps |
+| Full Git History Secret Audit | 45538396698 | 🟩 SUCCESS — 6/6 steps |
 
-Backend pytest: **1,419 passed, 1 skipped, 6 warnings in 64.27s**. The skipped test is `tests/test_shared_guard_tls_integration.py:22`, because that test's isolated Redis TLS fixture was not configured in the pytest invocation. The workflow separately completed its isolated Redis TLS CA/hostname enforcement step successfully. Do not interpret the skipped shared-guard integration test as full owner-host TLS acceptance.
+Backend pytest: **1,419 passed, 1 skipped, 6 warnings in 68.94s**. The skipped test is `tests/test_shared_guard_tls_integration.py:22`, because that test's isolated Redis TLS fixture was not configured in the pytest invocation. The workflow separately completed its isolated Redis TLS CA/hostname enforcement step successfully. Do not interpret the skipped shared-guard integration test as full owner-host TLS acceptance.
 
 The Automated Tests workflow also completed frontend unit tests, frontend build, source/bundle secret scans, Android host preflight, immutable Android preview publisher tests, synthetic Cloudflare Worker tests, backend dependency audit, backend container build, and container smoke tests. Container smoke verified health JSON, Redis ACL authentication and persistence across restart, API fail-closed behavior during Redis outage and recovery, non-root UID/GID, mounted-volume ownership, SQLite integrity/restart persistence, and HTTP rate-limit rejection.
 
@@ -31,7 +31,7 @@ The previous three-attempt retry could still leave a disconnected owner's lease 
 - A successful release clears the pending marker; persistent failure leaves it queued for a later pass.
 - The FastAPI lifespan starts a one-second reconciliation worker and joins it during graceful shutdown with a two-second deadline.
 - Cancellation during adapter stop or retry backoff preserves the pending lease for later reconciliation.
-- Retry policy rejects attempts outside 1–10 and non-finite/negative delays.
+- Retry policy rejects attempts outside 1–5 and delays outside the finite range [0, 1.0] seconds.
 
 Regression coverage includes transient stop recovery, persistent stop failure, pending-queue retention, cancellation during adapter stop, cancellation during backoff, retry-policy validation, and an authenticated WebSocket route/lifespan integration test that recovers after a persistent disconnect cleanup failure is cleared.
 

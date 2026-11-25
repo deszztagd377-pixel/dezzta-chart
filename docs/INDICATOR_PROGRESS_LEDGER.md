@@ -1,8 +1,8 @@
 # Indicator progress reconciliation — Batch 62J-243 (25 November 2026)
 
-**Source/test HEAD audited:** `b60a9d375a9b3d9742c0c4e1c107aff593ad7ebc`  
+**Source/test HEAD audited:** `c80b9ef05fa531f36f4b41673030447f15c97e47`  
 **Branch:** `phase-2/market-data-foundation`  
-**Exact-HEAD CI:** 4/4 workflows SUCCESS; Automated Tests reports 1,419 passed, 1 skipped, 6 warnings.
+**Exact-HEAD CI:** 4/4 workflows SUCCESS on source/test HEAD `c80b9ef05fa531f36f4b41673030447f15c97e47`; Automated Tests reports 1,419 passed, 1 skipped, 6 warnings.
 
 ## Current indicator inventory
 

@@ -2,7 +2,7 @@
 
 Date: 25 November 2026  
 Branch: `phase-2/market-data-foundation`  
-Exact source/test HEAD: `b60a9d375a9b3d9742c0c4e1c107aff593ad7ebc`  
+Exact source/test HEAD: `c80b9ef05fa531f36f4b41673030447f15c97e47`  
 Previous source checkpoint: `65bf9203b2521846ddbac6206202d302a9fc81b8`
 
 ## Problem
@@ -12,7 +12,7 @@ A failed final adapter stop deliberately retained the last demand lease. The pre
 ## Source changes
 
 - `backend/app/provider_demand.py`
-  - bounded retry policy (1–10 attempts; finite non-negative delay);
+  - bounded retry policy (1–5 attempts; finite initial delay in [0, 1.0] seconds);
   - pending-release ID queue for failed final release;
   - pending reconciliation method;
   - cancellation during adapter stop or backoff queues the retained lease;
@@ -35,12 +35,12 @@ A failed final adapter stop deliberately retained the last demand lease. The pre
 
 All four workflows completed successfully on the exact source/test SHA `b60a9d375a9b3d9742c0c4e1c107aff593ad7ebc`:
 
-- Automated Tests run 45536261384: 41/41 steps SUCCESS.
-- CodeQL run 45536261374: Python 8/8 and JavaScript/TypeScript 8/8 SUCCESS.
-- OCI ARM64 run 45536261564: 7/7 steps SUCCESS.
-- Full Git History Secret Audit run 45536261385: 6/6 steps SUCCESS.
+- Automated Tests run 45538396678: 41/41 steps SUCCESS.
+- CodeQL run 45538396760: Python 8/8 and JavaScript/TypeScript 8/8 SUCCESS.
+- OCI ARM64 run 45538396680: 7/7 steps SUCCESS.
+- Full Git History Secret Audit run 45538396698: 6/6 steps SUCCESS.
 
-Backend pytest: 1,419 passed, 1 skipped, 6 warnings in 64.27s. The one skipped test is `tests/test_shared_guard_tls_integration.py:22` because its isolated Redis TLS fixture was not configured in that pytest invocation. The separate CI Redis TLS CA/hostname enforcement step passed.
+Backend pytest: 1,419 passed, 1 skipped, 6 warnings in 68.94s. The one skipped test is `tests/test_shared_guard_tls_integration.py:22` because its isolated Redis TLS fixture was not configured in that pytest invocation. The separate CI Redis TLS CA/hostname enforcement step passed.
 
 The workflow also passed frontend tests/build, backend dependency audit, container build, container smoke tests and generated/uploaded the container vulnerability report. The report was not interpreted as a clean scan without inspection.
 
