@@ -168,7 +168,13 @@ class ProviderDemandCoordinator:
                         if isinstance(lease_id, str) and lease_id in self._leases_by_id:
                             self._pending_release_ids.add(lease_id)
                     raise
-                await asyncio.sleep(initial_delay * (2**attempt))
+                try:
+                    await asyncio.sleep(initial_delay * (2**attempt))
+                except asyncio.CancelledError:
+                    async with self._lock:
+                        if isinstance(lease_id, str) and lease_id in self._leases_by_id:
+                            self._pending_release_ids.add(lease_id)
+                    raise
         return False
 
     async def retry_pending_releases(self) -> int:
