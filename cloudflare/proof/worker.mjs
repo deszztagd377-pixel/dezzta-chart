@@ -10,6 +10,7 @@ const PROTOCOL_VERSION = 1;
 const TICKET_TTL_MS = 90_000;
 const MAX_TICKET_COUNT = 256;
 const MAX_CONNECTIONS_PER_SERIES = 64;
+const MAX_UNAUTHENTICATED_CONNECTIONS_PER_SERIES = 8;
 const UNAUTHENTICATED_SOCKET_TTL_MS = 15_000;
 const MAX_REQUEST_BYTES = 2_048;
 const SNAPSHOT_BARS = 50;
@@ -237,10 +238,48 @@ async function readSmallJson(request) {
   if (!(request.headers.get("Content-Type") || "").toLowerCase().startsWith("application/json")) {
     return null;
   }
-  const declaredLength = Number(request.headers.get("Content-Length") || "0");
-  if (declaredLength > MAX_REQUEST_BYTES) return null;
-  const body = await request.text();
-  if (new TextEncoder().encode(body).byteLength > MAX_REQUEST_BYTES) return null;
+
+  const declaredLength = request.headers.get("Content-Length");
+  if (declaredLength !== null) {
+    if (!/^(0|[1-9][0-9]*)$/.test(declaredLength)) return null;
+    const parsedLength = Number(declaredLength);
+    if (!Number.isSafeInteger(parsedLength) || parsedLength > MAX_REQUEST_BYTES) return null;
+  }
+
+  if (!request.body) return null;
+  const reader = request.body.getReader();
+  const chunks = [];
+  let totalBytes = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalBytes += value.byteLength;
+      if (totalBytes > MAX_REQUEST_BYTES) {
+        await reader.cancel("Request body exceeds the configured limit");
+        return null;
+      }
+      chunks.push(value);
+    }
+  } catch {
+    return null;
+  } finally {
+    reader.releaseLock();
+  }
+
+  const bytes = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  let body;
+  try {
+    body = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return null;
+  }
   try {
     const parsed = JSON.parse(body);
     return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
@@ -379,8 +418,21 @@ export class SeriesCoordinatorDO {
     if (url.pathname === "/internal/connect" && request.headers.get("Upgrade") === "websocket") {
       const seriesKey = url.searchParams.get("seriesKey");
       if (!isValidSyntheticSeriesKey(seriesKey)) return new Response("Invalid series", { status: 400 });
-      if (this.ctx.getWebSockets().length >= MAX_CONNECTIONS_PER_SERIES) {
+      const sockets = this.ctx.getWebSockets();
+      if (sockets.length >= MAX_CONNECTIONS_PER_SERIES) {
         return new Response("Series connection capacity reached", { status: 429 });
+      }
+      let unauthenticatedCount = 0;
+      for (const socket of sockets) {
+        const attachment = readSocketAttachment(socket);
+        if (!isValidSocketAttachment(attachment)) {
+          try { socket.close(4401, "Invalid connection state"); } catch { /* already closed */ }
+          continue;
+        }
+        if (!attachment.authorized) unauthenticatedCount += 1;
+      }
+      if (unauthenticatedCount >= MAX_UNAUTHENTICATED_CONNECTIONS_PER_SERIES) {
+        return new Response("Authentication capacity reached", { status: 429 });
       }
       const pair = new WebSocketPair();
       const client = pair[0];
@@ -630,6 +682,7 @@ export const proofLimits = Object.freeze({
   ticketTtlMs: TICKET_TTL_MS,
   maxPendingTickets: MAX_TICKET_COUNT,
   maxConnectionsPerSeries: MAX_CONNECTIONS_PER_SERIES,
+  maxUnauthenticatedConnectionsPerSeries: MAX_UNAUTHENTICATED_CONNECTIONS_PER_SERIES,
   unauthenticatedSocketTtlMs: UNAUTHENTICATED_SOCKET_TTL_MS,
   maxRequestBytes: MAX_REQUEST_BYTES,
   snapshotBars: SNAPSHOT_BARS,
