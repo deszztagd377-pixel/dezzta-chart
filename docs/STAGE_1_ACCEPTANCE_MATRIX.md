@@ -1,30 +1,44 @@
-# Stage 1 / project architecture reconciliation — Work Cycle 88 (25 November 2026)
+# Stage 1 / project architecture reconciliation — Work Cycle 89 (25 November 2026)
 
-**Current selected architecture:** Cloudflare Native / Zero-Origin. The historical owner-host/source-gateway/Redis Batch 80–86 execution plan is superseded and must not be followed as the active sequence.
-**Stage 1 meter:** 30/40 = 75% provisional 🟨; not whole-project completion.
-**Gate 10:** 0/10 formally closed 🟥. Remaining criteria: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.
-**Stage 2:** 🟦 PREPARATORY. **Stage 3:** ⚪ NOT SCORED. **Stage 4:** 🟪 GATED. **Stage 5/6:** ⚪ NOT SCORED.
-**Overall project / IP3S:** ⚪ NOT SCORED; no approved reproducible weighted denominator.
-**Production WebSocket:** 🟥 OPEN. Existing Worker remains synthetic-only proof and is not deployed evidence.
-**Project Gate 25:** 🟥 OPEN; owner-auditable durable receipt/high-water contract must be reconciled to Zero-Origin consumers.
-**Gate 36:** 🟥 OPEN; public WSS/TLS/browser/Android E2E not proven.
-**Live market data:** 🟥 OPEN; provider license, zero-cost access, package and transport compatibility not established.
-**CI:** documentation-only commits use `[skip ci]`; this is not a source/runtime test pass.
+**Selected architecture:** Cloudflare Native / Zero-Origin. Historical owner-host/Redis Batch 80–86 execution and the earlier Python Workers spike are superseded as active work.  
+**Stage 1 meter:** 30/40 = 75% provisional 🟨; not whole-project completion.  
+**Gate 10:** 0/10 formally closed 🟥. Remaining criteria: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.  
+**Stage 2:** 🟦 PREPARATORY. **Stage 3:** ⚪ NOT SCORED. **Stage 4:** 🟪 GATED. **Stage 5/6:** ⚪ NOT SCORED.  
+**Overall project / IP3S:** ⚪ NOT SCORED; no approved reproducible weighted denominator.  
+**Production WebSocket:** 🟥 OPEN; Worker remains synthetic-only proof and is not deployed evidence.  
+**Project Gate 25:** 🟥 OPEN; durable signed snapshot/receipt/high-water acceptance not proven.  
+**Gate 36:** 🟥 OPEN; public WSS/TLS/browser/Android E2E not proven.  
+**Live market data:** 🟥 OPEN; lawful, compatible and genuinely zero-cost provider access not established.  
+**CI:** documentation-only commits use `[skip ci]`; this is not a source/runtime test pass. Empty status/run results mean UNKNOWN / NOT VERIFIED.  
 **Cost:** ZERO COST; no deployment, paid service, resource creation or `main` changes.
 
-## Active execution order (supersedes owner-host Batch 80–86)
+## Active execution order — authoritative
 
-1. Batch 88 — architecture alignment (documented).
-2. Batch 89 — Python Workers dependency/runtime compatibility spike.
-3. Batch 90 — Durable Objects SQLite schema and legacy migration design.
-4. Batch 91 — provider-neutral Worker API shell.
-5. Batch 92 — series Durable Object, durable event log, cursor and replay.
-6. Batch 93 — WebSocket authentication, hibernation, reconnect and receipts.
-7. Batch 94 — zero-cost lawful provider ingress feasibility and connector.
-8. Batch 95 — public WSS/TLS/device E2E, quotas and backup/restore.
+1. **Batch 89 — runtime gate:** `npm ci`, app tests, production build, Miniflare runtime tests, Durable Object runtime tests, and final working-tree hygiene. Capture versions/logs/exit codes/exact SHA; all four validation commands must pass.
+2. **Batch 90 — SQLite schema/migration:** additive migration, v1 compatibility, local DO runtime proof.
+3. **Batch 91 — provider-neutral API/envelope contract:** parallel contract preparation allowed; runtime acceptance follows schema gate.
+4. **Batch 92 — durable event log:** atomic payload/digest/high-water, fan-out-after-commit, bounded contiguous replay.
+5. **Batch 93 — ACK/receipt/RESUME:** authenticated consumer identity, digest/generation validation, durable monotonic receipts, retention-floor resnapshot and eviction recovery.
+6. **Batch 94 — lawful zero-cost provider ingress:** no provider activation without evidence.
+7. **Batch 95 — public WSS/TLS/browser/Android E2E, quota and restore acceptance:** after predecessor gates only.
 
-Full Zero-Origin architecture and platform-limit evidence: `docs/WORK_CYCLE_2026-11-25_BATCH88_CLOUDFLARE_NATIVE_ZERO_ORIGIN_ALIGNMENT.md`.  
-Historical Batch 80–86 plan remains preserved but marked superseded for execution.
+Parallel preparation is limited to independent contract review and failure-injection test design. Serialize schema migrations and shared Worker/DO runtime changes. Never claim a batch complete from a design document alone.
+
+## Current acceptance disposition
+
+- Batch 89: 🟥 OPEN; runtime commands not executed in the current connector environment.
+- Batches 90–91: 🟦 design/preparation; implementation acceptance open.
+- Batches 92–93: 🟥 durable event log/replay and ACK/receipt/RESUME missing from inspected source.
+- Batch 94: 🟥 lawful zero-cost provider gate not passed.
+- Batch 95 / Gate 36: 🟥 public WSS/TLS/browser/Android E2E absent.
+- Project Gate 25: 🟥 durable signed snapshot receipt/high-water acceptance open.
+- Redis destructive retention: 🟧 BLOCKED; do not enable without durable receipt and retention-floor proof.
+
+The repository connector does not provide a checkout/terminal. No current install/build/test/audit execution is claimed. Runtime code must not be committed without a supported execution path and captured acceptance evidence.
+
+**Detailed source/test traceability:** `docs/WEBSOCKET_ACCEPTANCE_TRACEABILITY_2026-11-25.md`.  
+**Source-level Batch 89–93 blockers:** `docs/BATCH89_93_SOURCE_AUDIT_2026-11-25.md`.
+
 
 ---
 
