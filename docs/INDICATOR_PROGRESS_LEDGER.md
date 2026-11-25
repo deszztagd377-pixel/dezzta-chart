@@ -4284,3 +4284,24 @@ Warm-up nulls; prefix causality; no future-candle lookahead/repaint; exact canon
 Focused test declarations remain 28 (21 calculation + 7 hook), not a passing-test count. Aggregate indicator completion remains ⚪ NOT SCORED. Stage 4 remains 🟪 GATED; do not wire chart UI before its scoped blueprint and review.
 
 Backend Zero-Origin design dependency: indicators remain platform-neutral and consume only authenticated, durable OHLCV snapshots. They must not depend on Redis or owner-host runtime.
+
+
+---
+
+# Indicator ledger checkpoint — owner-approved Batch 89–93 execution (25 November 2026)
+
+No indicator source, calculation, renderer, UI or indicator test changed in this backend/WebSocket audit. Indicator implementation credit for this cycle remains **0**; this avoids inflating indicator progress from backend documentation.
+
+The complete 12-item ledger and all mathematical first-valid indices remain unchanged:
+- SMA20: 19; EMA20: 19 (SMA seed, alpha 2/21); RSI14 Wilder: 14.
+- MACD12/26/9: MACD 25; signal/histogram 33.
+- Bollinger20,2: 19 using population standard deviation.
+- Shared Indicator Hook: foundation only; not integrated into CandlestickChart.
+- Footprint PRO 2GD: synthetic/offline accumulator; renderer gated by both saved visual references.
+- Volume Profile, Complete Volume Profile, Movable-range Volume Profile, Heatmap and Liquidation Maps: open/incomplete.
+
+All lifecycle rules remain: warm-up nulls, prefix causality, no lookahead/repaint, canonical series/timestamp alignment, deterministic finite values, no source mutation, bounded history, stale-output clearing and no indicator output for demo/loading/unavailable/error/empty snapshots.
+
+Footprint OFF preserves ordinary candle spacing; explicit ON alone enables spaced clusters. Heatmap visual implementation remains reference-gated.
+
+**Indicator aggregate:** ⚪ NOT SCORED. No approved weighted denominator. Stage 4 remains 🟪 GATED. Indicator UI work stays separate from Batch 89–93 backend acceptance and requires its own scoped implementation plan.
