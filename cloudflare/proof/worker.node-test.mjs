@@ -264,6 +264,42 @@ test("streaming JSON reader cancels an oversized body without buffering the rema
   assert.equal(pulls, 1);
 });
 
+test("declared oversized JSON bodies are rejected before reading", async () => {
+  const oversized = new Request("https://synthetic-proof.local/v1/auth/websocket-ticket", {
+    method: "POST",
+    headers: {
+      Origin: "http://localhost:3000",
+      Authorization: "Bearer " + TOKEN,
+      "Content-Type": "application/json",
+      "Content-Length": "2049",
+    },
+    body: "{}",
+  });
+  const response = await worker.fetch(oversized, makeEnv());
+  assert.equal(response.status, 400);
+});
+
+test("invalid UTF-8 JSON bodies fail closed", async () => {
+  const body = new ReadableStream({
+    start(controller) {
+      controller.enqueue(new Uint8Array([0xff, 0xfe, 0x7b, 0x7d]));
+      controller.close();
+    },
+  });
+  const invalidUtf8 = new Request("https://synthetic-proof.local/v1/auth/websocket-ticket", {
+    method: "POST",
+    headers: {
+      Origin: "http://localhost:3000",
+      Authorization: "Bearer " + TOKEN,
+      "Content-Type": "application/json",
+    },
+    body,
+    duplex: "half",
+  });
+  const response = await worker.fetch(invalidUtf8, makeEnv());
+  assert.equal(response.status, 400);
+});
+
 test("Durable Object rejects excess unauthenticated sockets before accepting another", async () => {
   const pending = Array.from({ length: proofLimits.maxUnauthenticatedConnectionsPerSeries }, () => (
     new MemorySocket({
