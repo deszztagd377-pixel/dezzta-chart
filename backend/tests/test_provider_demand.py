@@ -129,6 +129,64 @@ def test_failed_last_release_retains_lease_for_safe_retry():
     run(scenario())
 
 
+def test_release_with_retry_recovers_from_transient_stop_failure():
+    async def scenario():
+        class FlakyAdapter(InMemoryOfflineProviderAdapter):
+            def __init__(self):
+                super().__init__()
+                self.failures_remaining = 1
+
+            async def stop(self, demand_key):
+                if self.failures_remaining:
+                    self.failures_remaining -= 1
+                    raise RuntimeError("transient stop failure")
+                await super().stop(demand_key)
+
+        adapter = FlakyAdapter()
+        coordinator = ProviderDemandCoordinator(adapter)
+        lease = await coordinator.acquire("panel-a", key())
+
+        assert await coordinator.release_with_retry(
+            lease, attempts=3, initial_delay=0
+        ) is True
+        assert coordinator.active_lease_count == 0
+        assert adapter.active == set()
+        assert adapter.stop_calls == [key()]
+
+    run(scenario())
+
+
+def test_release_with_retry_preserves_lease_after_exhaustion():
+    async def scenario():
+        adapter = InMemoryOfflineProviderAdapter()
+        coordinator = ProviderDemandCoordinator(adapter)
+        lease = await coordinator.acquire("panel-a", key())
+        adapter.stop_error = RuntimeError("persistent stop failure")
+
+        with pytest.raises(RuntimeError, match="persistent stop failure"):
+            await coordinator.release_with_retry(
+                lease, attempts=2, initial_delay=0
+            )
+
+        assert coordinator.active_lease_count == 1
+        assert coordinator.subscriber_count(key()) == 1
+        assert adapter.active == {key()}
+        assert adapter.stop_calls == []
+
+    run(scenario())
+
+
+def test_release_with_retry_rejects_invalid_retry_policy():
+    async def scenario():
+        coordinator = ProviderDemandCoordinator(InMemoryOfflineProviderAdapter())
+        with pytest.raises(ValueError, match="attempts"):
+            await coordinator.release_with_retry("lease", attempts=0)
+        with pytest.raises(ValueError, match="initial_delay"):
+            await coordinator.release_with_retry("lease", initial_delay=-1)
+
+    run(scenario())
+
+
 def test_concurrent_acquires_start_exactly_once():
     async def scenario():
         adapter = InMemoryOfflineProviderAdapter()
