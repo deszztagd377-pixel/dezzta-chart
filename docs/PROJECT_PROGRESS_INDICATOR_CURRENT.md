@@ -5920,3 +5920,21 @@ Backend pytest and all remaining Automated Tests steps completed successfully. T
 No indicator implementation changed. Full status and math contracts remain in `docs/INDICATOR_PROGRESS_LEDGER.md`. Stage 1 30/40 = 75% provisional inherited; Stage 2 active/not scored; Stage 4 gated; Gate 10 0/10; overall project, aggregate indicator completion and IP3S NOT SCORED.
 
 ZERO COST, `main` untouched, no deployment, no paid service and no destructive Redis retention. Target approximately 24 December 2026.
+
+
+---
+
+# Work Cycle 69 — WebSocket offline-demand route/lifespan audit (25 November 2026)
+
+**Audited exact HEAD:** `c746478cba0bbec95c663d9f9986e9863866538c`  
+**Exact-HEAD CI:** 4/4 terminal SUCCESS (Automated Tests 45592885822; CodeQL 45592885957; OCI ARM64 45592885915; Secret Audit 45592886298). No workflow remains running on this SHA.
+
+Source trace confirms demand acquisition is limited to the explicitly named `offline-fixture` after authentication and entitlement checks. Demand identity includes source, venue, dataset, canonical instrument, symbology and timeframe channel. Disconnect cleanup performs bounded retry; the lifespan recovery worker retries retained pending releases every second and has a bounded shutdown wait.
+
+Route regression evidence: `test_offline_websocket_demand_is_shared_and_released_on_disconnect` and `test_offline_websocket_pending_release_is_recovered_by_lifespan_worker` in `backend/tests/test_api.py`. Audit PASS for offline-fixture route/lifespan scope only. No runtime source change and no production provider credit.
+
+Still open: durable restart recovery, cross-process provider-demand ownership, lawful recurring-$0 provider contract and dynamic provider ACK, Gate 25 owner-host receipt/high-water ACK, Gate 36 public WSS/TLS/Firebase E2E, and Android process-death/network-handover acceptance.
+
+Indicator inventory unchanged; no completion credit. Full ledger: `docs/INDICATOR_PROGRESS_LEDGER.md`. Stage 1 remains 30/40 = 75% provisional 🟨; Stage 2 🟦 unscored; Stage 4 🟪 gated; Gate 10 0/10 🟥; overall project, aggregate indicators and IP3S ⚪ NOT SCORED. ZERO COST; `main` untouched; Vercel deferred; target ~24 December 2026.
+
+Full report: `docs/WORK_CYCLE_2026-11-25_BATCH69_WEBSOCKET_OFFLINE_DEMAND_ROUTE_LIFESPAN_AUDIT.md`.

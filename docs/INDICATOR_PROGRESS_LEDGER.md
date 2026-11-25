@@ -3790,3 +3790,33 @@ The full indicator status remains:
 Mathematical contracts remain unchanged: SMA/EMA/Bollinger first valid index 19; RSI14 index 14; MACD line index 25 and signal/histogram index 33. Warm-up nulls, prefix causality, no lookahead, exact candle timestamp alignment and stale-output clearing remain mandatory.
 
 Focused indicator test declaration inventory remains 28 (21 calculation + 7 shared-hook declarations). This count is not a passed-test count and not an indicator completion percentage. Aggregate indicator completion remains ⚪ NOT SCORED because no approved weighted denominator exists.
+
+
+---
+
+# Work Cycle 69 indicator reconciliation — 25 November 2026
+
+**Audited project HEAD:** `c746478cba0bbec95c663d9f9986e9863866538c`  
+**Exact-HEAD CI:** 4/4 SUCCESS.  
+**Indicator source changes:** none. **Indicator completion credit:** none.
+
+The WebSocket offline-demand route/lifespan audit does not alter indicator math, hook behavior, renderer, chart UI, or indicator test coverage. Existing indicator statuses remain:
+
+| Indicator / subsystem | Status | Remaining acceptance |
+|---|---|---|
+| SMA20 | 🟨 FOUNDATION | Chart overlay, toggle, legend/latest value and lifecycle |
+| EMA20 | 🟨 FOUNDATION | Chart overlay, toggle, legend/latest value and lifecycle |
+| RSI14 Wilder | 🟨 FOUNDATION | Dedicated 0–100 pane, 30/70 guides and lifecycle |
+| MACD12/26/9 | 🟨 FOUNDATION | Dedicated pane, MACD/signal lines, histogram and zero guide |
+| Bollinger20,2 | 🟨 FOUNDATION | Upper/middle/lower overlays, fill, legend and lifecycle |
+| Shared Indicator Hook | 🟨 FOUNDATION | Integration into CandlestickChart and complete trust/lifecycle acceptance |
+| Footprint PRO 2GD | 🟧 GATED | Stage 4 blueprint/review and reference-matched renderer; offline accumulator is not exchange-native bid/ask |
+| Volume Profile | 🟥 OPEN | Accepted binning, POC/value-area algorithm and chart integration |
+| Complete Volume Profile | 🟥 OPEN | Session/range methodology and POC/VAH/VAL acceptance |
+| Movable-range Volume Profile | 🟥 OPEN | User range interaction, recalculation and lifecycle |
+| Heatmap | 🟥 OPEN | Lawful depth source, aggregation/decay methodology and supplied visual reference |
+| Liquidation Maps | 🟥 OPEN | Data provenance, estimation methodology and confidence limits |
+
+Mathematical invariants remain mandatory: null warm-up; prefix causality; no future-candle lookahead; exact timestamp/series alignment; stale-output clearing on identity change; no indicator output from demo/loading/unavailable/error snapshots. Footprint OFF retains ordinary candle spacing; explicit ON alone selects spaced-cluster layout.
+
+Focused declarations remain 21 calculation + 7 shared-hook tests; these are declaration counts, not pass counts or completed indicators. Aggregate indicator completion remains ⚪ NOT SCORED because no approved weighted denominator exists.
