@@ -155,6 +155,11 @@ class ProviderDemandCoordinator:
         for attempt in range(attempts):
             try:
                 return await self.release(lease)
+            except asyncio.CancelledError:
+                async with self._lock:
+                    if isinstance(lease_id, str) and lease_id in self._leases_by_id:
+                        self._pending_release_ids.add(lease_id)
+                raise
             except Exception:
                 if attempt + 1 >= attempts:
                     async with self._lock:
