@@ -1,3 +1,17 @@
+# Latest verified checkpoint — Batch 62J-235 (25 November 2026)
+
+**Active branch:** phase-2/market-data-foundation  
+**Audited documentation HEAD:** 2bd311e1479659c418e5b8623826114f5dfb86f7  
+**Unchanged code/test baseline:** bd4904b52d29b3ec456da91014e90922fec35f21  
+**Exact audited HEAD CI:** 4/4 terminal SUCCESS — Automated Tests 45521703215; CodeQL 45521703291; OCI ARM64 45521703194; Full Git History Secret Audit 45521703184. All four runs and jobs completed on the exact audited HEAD.  
+**Provider-demand finding:** client-side per-series panel/supervisor ownership and backend downstream exact-series fan-out exist, but DatabentoLiveSource subscribes only to a static symbol tuple at startup and exposes no dynamic add/remove API. The SDK range is databento>=0.88,<1 and its adapter source explicitly marks real SDK calls UNVERIFIED. Provider-upstream reference counting/dynamic subscribe-unsubscribe remain 🟥 OPEN. See [Batch 62J-235](WORK_CYCLE_2026-11-25_BATCH62J235_PROVIDER_DEMAND_AND_INDICATOR_GATE.md).  
+**Indicator inventory:** 21 calculation test declarations + 7 shared-hook declarations = 28. SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain 🟨 foundation only; CandlestickChart does not call the hook. Footprint PRO 2GD 🟧 synthetic/reference-gated. Volume Profile, Complete Volume Profile, movable-range VP, Heatmap and Liquidation Maps 🟥 not integrated/acceptance incomplete. Aggregate indicator completion ⚪ NOT SCORED.  
+**Project:** Stage 1 30/40 = 75% provisional 🟨 (inherited); Stage 2 🟦 active / NOT SCORED; Stage 3 ⬜ NOT SCORED; Stage 4 🟪 gated; Stage 5 ⬜ NOT SCORED; Stage 6 ⬜ NOT SCORED; Gate 10 0/10 formally closed 🟥; overall ⚪ NOT SCORED; IP3S ⚪ NOT SCORED.  
+**External gates:** Gate 25 owner-host transfer/receipt/high-water ACK 🟥 OPEN; Gate 36 public WSS/TLS/runtime 🟥 OPEN; Firebase production E2E 🟥 OPEN; physical browser/Android lifecycle and multi-instance failover 🟥 OPEN; Redis destructive retention 🟧 BLOCKED.  
+**Controls:** ZERO COST; main untouched; no Vercel deployment; no destructive Redis operation; APK target approximately 24 December 2026.
+
+---
+
 # Latest verified CI closure — Batch 62J-233 (25 November 2026)
 
 **Active branch:** phase-2/market-data-foundation  
