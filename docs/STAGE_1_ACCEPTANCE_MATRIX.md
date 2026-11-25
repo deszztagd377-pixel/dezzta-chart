@@ -1487,3 +1487,35 @@ Blueprint: `docs/WORK_CYCLE_2026-11-25_BATCH89_93_ZERO_ORIGIN_BLUEPRINT.md`. Thi
 | 95 | 🟥 Public acceptance blocked | Explicit deployment authorization, public WSS/TLS, browser/Android E2E, quota and restore drill |
 
 Production WebSocket: 🟥 OPEN. Project Gate 25: 🟥 OPEN. Gate 36: 🟥 OPEN. No production Worker/API is claimed deployed. No deployment or Cloudflare resource creation occurred. Zero Cost and main-branch isolation preserved.
+
+
+---
+
+# Owner-approved execution update — 25 November 2026
+
+The owner approved the Batch 89–93 Zero-Origin blueprint. Approval authorizes scoped implementation planning/work; it does not authorize deployment, Cloudflare resource creation, paid services or bypassing test evidence.
+
+## Newly confirmed WebSocket production gaps
+
+- Current synthetic proof stores sequence watermark but not durable event payload.
+- Fan-out occurs after sequence commit, creating a crash window with no replay source.
+- WebSocket protocol currently handles auth and ping only; ACK/RESUME are absent.
+- No durable consumer receipt ledger or restart receipt reconciliation exists.
+
+Therefore production WebSocket remains 🟥 OPEN. Correct order: DO SQLite atomic event+cursor → bounded replay → durable ACK receipt → reconnect/resnapshot → public WSS/browser/Android E2E. Gate 25 and Gate 36 remain open.
+
+## Execution status
+
+| Batch | Status | Evidence |
+|---:|---|---|
+| 89 | 🟨 platform feasibility / 🟥 runtime unverified | FastAPI ASGI path documented; no exact repository runtime execution |
+| 90 | 🟦 design | DO SQLite schema and migration invariants |
+| 91 | 🟦 design | provider-neutral API and fail-closed response contract |
+| 92 | 🟦 design | durable series event/cursor/replay contract |
+| 93 | 🟦 design | ticket, ACK receipt, hibernation and reconnect contract |
+| 94 | 🟥 blocked | no provider passed zero-cost lawful compatibility gate |
+| 95 | 🟥 blocked | no production WSS/device E2E/restore evidence |
+
+No code was committed without a runnable test environment. GitHub connector currently exposes file operations only, and local container could not resolve github.com. This limitation is recorded rather than disguising untested source as successful.
+
+Stage 1 acceleration will parallelize independent design and evidence tracks but retain implementation dependency order. No gate closure is inferred from documentation completion.
