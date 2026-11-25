@@ -29,6 +29,7 @@ def snapshot_evidence(store, checkpoint, *, bad_gateway=False, bad_digest=False)
     for gateway_id in required:
         installations[gateway_id] = {
             "gateway_id": gateway_id,
+            "authenticated_gateway_id": gateway_id,
             "source_id": store.source_id(),
             "authenticated_source_id": store.source_id(),
             "replica_id": f"replica-{gateway_id}",
@@ -256,6 +257,7 @@ def test_factory_rejects_incomplete_or_ambiguous_gateway_receipt_set(
     ("field", "invalid_value"),
     [
         ("gateway_id", "gateway-unexpected"),
+        ("authenticated_gateway_id", "gateway-unexpected"),
         ("source_id", "different-source"),
         ("authenticated_source_id", "different-source"),
         ("verification_state", "CONTENT_ONLY_UNAUTHENTICATED"),

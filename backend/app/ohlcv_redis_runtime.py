@@ -30,8 +30,10 @@ def _validate_snapshot_evidence(
     """Validate the manifest digest plus one matching install receipt per gateway.
 
     The owner-host callback must verify the snapshot file with
-    SQLiteOhlcvStore.verify_global_snapshot() and authenticate/read the
-    authoritative installation receipts. This function binds every receipt
+    SQLiteOhlcvStore.verify_global_snapshot(), authenticate each gateway
+    connection, and read its authoritative durable installation receipt.
+    ``authenticated_gateway_id`` must come from that authenticated connection
+    identity, never from the receipt payload. This function binds every receipt
     to the exact verified artifact; it cannot probe remote hosts itself.
     """
     if not isinstance(evidence, Mapping):
@@ -67,6 +69,7 @@ def _validate_snapshot_evidence(
         if (
             not isinstance(receipt, Mapping)
             or receipt.get("gateway_id") != gateway_id
+            or receipt.get("authenticated_gateway_id") != gateway_id
             or receipt.get("source_id") != source_id
             or receipt.get("authenticated_source_id") != source_id
             or receipt.get("verification_state") != "OWNER_SIGNATURE_VERIFIED"
