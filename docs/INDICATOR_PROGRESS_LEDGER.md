@@ -1,3 +1,63 @@
+# Current exact-head reconciliation — Batch 62J-239 (25 November 2026)
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Parent HEAD before this batch:** `1929394bb557cd86369416b1d1ccfe283677b820`  
+**Purpose:** correct lease-token integrity, add regression coverage, reconcile indicator and project status.  
+**ZERO COST:** maintained. **Vercel:** no deployment. **main:** untouched.
+
+> This entry supersedes older checkpoint summaries below where their HEAD or workflow state differs. The parent SHA had 4/4 workflows completed successfully; this batch's new commit requires fresh exact-HEAD CI.
+
+## Current indicator status
+
+| Indicator | Calculation foundation | Chart integration | Status |
+|---|---|---|---|
+| SMA20 | 20-close mean; first valid index 19 | Not accepted | 🟨 FOUNDATION |
+| EMA20 | SMA-seeded; alpha 2/21; first valid index 19 | Not accepted | 🟨 FOUNDATION |
+| RSI14 Wilder | 14-change seed; first valid index 14 | Not accepted | 🟨 FOUNDATION |
+| MACD12/26/9 | MACD index 25; signal/histogram index 33 | Not accepted | 🟨 FOUNDATION |
+| Bollinger20,2 | 20-close mean ± 2 population SD; first valid index 19 | Not accepted | 🟨 FOUNDATION |
+| Shared Indicator Hook | Keyed immutable snapshot/cache and trust-gating foundation | Not integrated into CandlestickChart | 🟨 FOUNDATION |
+| Footprint PRO 2GD | Synthetic/offline accumulator only | Renderer gated; supplied visual references retained | 🟧 GATED |
+| Volume Profile | Not fully verified | Not integrated | 🟥 OPEN |
+| Complete Volume Profile | Not fully verified | Not integrated | 🟥 OPEN |
+| Movable-range Volume Profile | Not fully verified | Not integrated | 🟥 OPEN |
+| Heatmap | Depth/liquidity engine not accepted; reference gate remains | Not integrated | 🟥 OPEN |
+| Liquidation Maps | Methodology/provenance/renderer not accepted | Not integrated | 🟥 OPEN |
+
+No indicator source or chart renderer is changed by Batch 62J-239. Test declaration counts are not completed-indicator counts. Warm-up values remain null; future-candle lookahead and stale-series carryover are prohibited.
+
+## WebSocket / external acceptance
+
+| Item | Status |
+|---|---|
+| Offline provider-demand lease coordinator | 🟩 Local primitive; lease-token integrity hardened in this batch |
+| Coordinator ↔ authenticated WebSocket route | 🟥 Not wired |
+| Coordinator ↔ provider lifecycle | 🟥 Not wired |
+| Dynamic provider subscribe/unsubscribe acknowledgement | 🟥 Not verified |
+| Cross-process / multi-host demand ownership | 🟨 Local-only; production acceptance open |
+| Gate 36 public WSS/TLS and client E2E | 🟥 External acceptance open |
+| Gate 25 owner-host snapshot/receipt/high-water ACK | 🟥 External acceptance open |
+| Redis destructive retention | 🟧 Blocked pending gateway and pending-entry proof |
+
+These statuses are intentionally conservative. Local fake/offline tests do not prove provider-side acknowledgements, public TLS, production identity, multi-host failover, owner-host custody or durable gateway acceptance.
+
+## Project dashboard
+
+- Stage 1: 30/40 = 75% provisional inherited baseline 🟨
+- Stage 2: active, unscored 🟦
+- Stage 3: unscored ⬜
+- Stage 4: gated 🟪
+- Stage 5: unscored ⬜
+- Stage 6: unscored ⬜
+- Gate 10: 0/10 formally closed 🟥
+- Overall project: NOT SCORED ⚪ (no approved weighted denominator)
+- Indicator aggregate: NOT SCORED ⚪
+- IP3S / significant progress: NOT SCORED ⚪
+
+Target delivery: around 24 December 2026 (planning target).
+
+---
+
 # Exact-HEAD CI closure — Batch 62J-237 (25 November 2026)
 
 **Active branch:** `phase-2/market-data-foundation`  

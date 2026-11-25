@@ -98,12 +98,21 @@ class ProviderDemandCoordinator:
             return lease
 
     async def release(self, lease: DemandLease | str) -> bool:
-        lease_id = lease.lease_id if isinstance(lease, DemandLease) else lease
-        if not isinstance(lease_id, str) or not lease_id:
+        if isinstance(lease, DemandLease):
+            lease_id = lease.lease_id
+        elif isinstance(lease, str):
+            lease_id = lease
+        else:
+            return False
+        if not lease_id:
             return False
         async with self._lock:
             current_lease = self._leases_by_id.get(lease_id)
             if current_lease is None:
+                return False
+            # A copied/forged token must not release another owner's lease.
+            # String IDs remain supported for internal recovery paths.
+            if isinstance(lease, DemandLease) and current_lease != lease:
                 return False
             owners = self._lease_ids_by_key[current_lease.key]
             if len(owners) == 1:

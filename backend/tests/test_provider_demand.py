@@ -4,6 +4,7 @@ import pytest
 
 from app.provider_demand import (
     InMemoryOfflineProviderAdapter,
+    DemandLease,
     ProviderDemandCoordinator,
     ProviderDemandKey,
 )
@@ -167,5 +168,42 @@ def test_acquire_rejects_invalid_subscriber_identity(subscriber_id):
         coordinator = ProviderDemandCoordinator(InMemoryOfflineProviderAdapter())
         with pytest.raises(ValueError):
             await coordinator.acquire(subscriber_id, key())
+
+    run(scenario())
+
+
+def test_release_rejects_forged_lease_object_without_releasing_real_owner():
+    async def scenario():
+        adapter = InMemoryOfflineProviderAdapter()
+        coordinator = ProviderDemandCoordinator(adapter)
+        original = await coordinator.acquire("panel-a", key())
+        forged = DemandLease(
+            lease_id=original.lease_id,
+            subscriber_id="panel-b",
+            key=key("EDU-SYNTH-OTHER"),
+        )
+
+        assert await coordinator.release(forged) is False
+        assert coordinator.active_lease_count == 1
+        assert coordinator.subscriber_count(key()) == 1
+        assert adapter.active == {key()}
+
+        assert await coordinator.release(original) is True
+        assert coordinator.active_lease_count == 0
+        assert adapter.active == set()
+
+    run(scenario())
+
+
+def test_release_rejects_non_lease_non_string_values():
+    async def scenario():
+        adapter = InMemoryOfflineProviderAdapter()
+        coordinator = ProviderDemandCoordinator(adapter)
+        lease = await coordinator.acquire("panel-a", key())
+
+        assert await coordinator.release(None) is False
+        assert await coordinator.release(123) is False
+        assert coordinator.active_lease_count == 1
+        assert await coordinator.release(lease) is True
 
     run(scenario())
