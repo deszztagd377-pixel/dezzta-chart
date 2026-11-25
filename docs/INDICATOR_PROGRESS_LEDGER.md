@@ -4360,3 +4360,14 @@ Footprint OFF must retain ordinary candle spacing; explicit ON alone enables clu
 **Cross-cutting math and data invariants:** warm-up values remain null until the first valid index; prefix causality; no future-candle lookahead/repaint; exact timestamp and canonical-series alignment; deterministic finite output; no mutation of source candles; bounded history/computation; stale-output clearing on identity changes; no calculation/output for demo, loading, unavailable, error or empty snapshots.
 
 **Architecture boundary:** indicator calculation modules remain platform-neutral. Future chart integration must consume authenticated, durable OHLCV snapshots and must not infer live provenance from synthetic Worker fixtures. No indicator progress credit is awarded for backend/WebSocket documentation or source audit.
+
+
+---
+
+# Indicator reconciliation — coordinated backend work cycle 90–95 (25 November 2026)
+
+**Implementation credit this cycle: 0.** The cycle produced a backend/WebSocket design specification only; no indicator source, calculation, hook, chart integration, renderer, visual design or indicator test was changed. All 12 indicator statuses and their acceptance conditions remain exactly as recorded in the preceding ledger. Aggregate indicator completion remains NOT SCORED.
+
+The new backend contract requires indicator consumers to receive canonical, generation-aware, durable OHLCV snapshots/events. Synthetic proof payloads must never be presented as live market data. Indicator implementation may proceed independently only where it does not depend on unaccepted live-data provenance; chart integration requiring live snapshots remains gated by authenticated durable delivery.
+
+Math invariants remain mandatory: warm-up nulls, prefix causality, no lookahead/repaint, exact timestamp/series alignment, deterministic finite outputs, no source mutation, bounded history/computation, stale-output clearing, and suppression for demo/loading/unavailable/error/empty snapshots.
