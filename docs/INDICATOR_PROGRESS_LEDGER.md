@@ -1,3 +1,83 @@
+# Indicator progress reconciliation — Batch 62J-243 (25 November 2026)
+
+**Source/test HEAD audited:** `b60a9d375a9b3d9742c0c4e1c107aff593ad7ebc`  
+**Branch:** `phase-2/market-data-foundation`  
+**Exact-HEAD CI:** 4/4 workflows SUCCESS; Automated Tests reports 1,419 passed, 1 skipped, 6 warnings.
+
+## Current indicator inventory
+
+| Indicator | Calculation foundation | Chart rendering / lifecycle | Status |
+|---|---|---|---|
+| SMA20 | 20-close arithmetic mean; first valid index 19 | Overlay, legend, visibility toggle and series lifecycle not wired | 🟨 FOUNDATION |
+| EMA20 | SMA-seeded EMA; alpha 2/21; first valid index 19 | Overlay, legend, visibility toggle and series lifecycle not wired | 🟨 FOUNDATION |
+| RSI14 Wilder | 14-change seed and Wilder recurrence; first valid index 14 | Dedicated 0–100 pane, 30/70 guides and lifecycle not wired | 🟨 FOUNDATION |
+| MACD12/26/9 | MACD begins index 25; signal/histogram begin index 33 | Dedicated pane, lines, histogram, zero guide and lifecycle not wired | 🟨 FOUNDATION |
+| Bollinger20,2 | 20-close mean ± 2 population standard deviations; first valid index 19 | Upper/middle/lower overlays, fill, legend and lifecycle not wired | 🟨 FOUNDATION |
+| Shared Indicator Hook | Keyed immutable snapshot/cache and trust gating; 7 hook test declarations | Not imported/called by CandlestickChart | 🟨 FOUNDATION |
+| Footprint PRO 2GD | Synthetic/offline accumulator only | Renderer gated; supplied visual references govern future implementation | 🟧 GATED |
+| Volume Profile | Full binning/value-area calculation not accepted | Not integrated | 🟥 OPEN |
+| Complete Volume Profile | Session/range/POC/VAH/VAL methodology not accepted | Not integrated | 🟥 OPEN |
+| Movable-range Volume Profile | User range selection/recalculation lifecycle not accepted | Not integrated | 🟥 OPEN |
+| Heatmap | Depth/liquidity source, aggregation and decay not accepted | Not integrated; visual reference gate remains | 🟥 OPEN |
+| Liquidation Maps | Data provenance, estimation methodology and confidence limits not accepted | Not integrated | 🟥 OPEN |
+
+## Verified source and test evidence
+
+- `src/indicators/indicatorCalculations.ts`: 21 test declarations for the shared calculation engine.
+- `src/indicators/useMarketIndicators.ts`: 7 hook test declarations; values are withheld unless the exact shared snapshot is non-empty validated backend data in ready/degraded state.
+- `src/components/CandlestickChart.tsx`: audited source does not import or call `useMarketIndicators`; no indicator overlay, pane, toggle or legend is connected.
+- `src/components/CandlestickChart.lifecycle.test.tsx`: 7 chart lifecycle test declarations; these do not constitute indicator rendering acceptance.
+
+Test declaration counts are inventory evidence only. The exact-HEAD CI result is the pass/fail evidence for the current source commit.
+
+## Calculation acceptance rules
+
+| Study | Definition | First valid source index |
+|---|---|---:|
+| SMA20 | Arithmetic mean of the latest 20 closes | 19 |
+| EMA20 | SMA seed, then EMA with alpha (2/21) | 19 |
+| RSI14 | Wilder 14-change initialization and recurrence | 14 |
+| MACD12/26/9 | EMA12 minus EMA26; signal EMA9 from first valid MACD | MACD 25; signal/histogram 33 |
+| Bollinger20,2 | 20-close mean ± 2 population standard deviations | 19 |
+
+Global rules:
+- Warm-up values are null; do not fabricate early values.
+- Prefix-causality is mandatory: adding future candles cannot change prior outputs.
+- No future-candle lookahead or repaint.
+- Values remain aligned to source timestamps and the exact selected series.
+- Instrument/timeframe identity changes clear old outputs before new values are shown.
+- DEMO, loading, unavailable, error and empty backend states expose no indicator calculations.
+
+## Visual and interaction acceptance
+
+- SMA/EMA/Bollinger: price-pane overlays, per-indicator visibility, accessible controls, legend/current value, axis/scale behavior and update lifecycle.
+- RSI: separate pane, 0–100 scale, 30/70 guides, accessible visibility control.
+- MACD: separate pane, MACD/signal lines, histogram and zero guide.
+- All controls default OFF so the current candlestick-only experience is preserved.
+- Do not recreate the chart on each data revision. Use verified Lightweight Charts v5 APIs from the installed package/lockfile; never invent API signatures.
+- On snapshot replacement, live update, correction, reconnect, or series switch, keep every plotted point aligned to the matching source bar.
+- No calculations or displays from DEMO candles or stale prior instruments.
+
+## Reference-driven indicator gates
+
+- Footprint: the user's two saved Footprint references define the intended dark layout, red/green bid-ask cells, price-aligned volume bars, numeric labels, highlighted rows and deliberate cluster spacing. Ordinary candles and spacing remain unchanged while Footprint is OFF; only explicit ON selects spaced clusters.
+- Heatmap: keep visual implementation gated until the user supplies/identifies the reference for the implementation task.
+- Liquidation Maps: require a separate provenance and estimation-methodology review; never label estimated levels as exchange-observed.
+- Volume Profile family: define bin size, session boundaries, value-area percentage, POC tie-breaking, and movable-range behavior before chart integration.
+
+## Roadmap gate and progress accounting
+
+`docs/INDICATOR_UI_BLUEPRINT.md` is a parked Stage 4 preparation draft. The official roadmap is still at Stage 1. The 40% broader UI/feature gate does not authorize skipping official roadmap stages. Visible indicator UI implementation remains parked until official Stage 4 entry and owner review/acceptance.
+
+The inventory has 12 indicator/study rows, but this is not a completion denominator. Calculation, data provenance, rendering, interaction, lifecycle and regression evidence must be scored separately. Therefore:
+- Aggregate indicator completion: **NOT SCORED** ⚪.
+- A calculation foundation does not make an indicator chart-complete.
+- No indicator is upgraded to green merely because its formula or unit tests exist.
+
+This batch changes WebSocket cleanup/recovery only. No indicator calculation engine or chart renderer was changed.
+
+---
+
 # Indicator ledger reconciliation — Batch 62J-243 (25 November 2026)
 
 **Branch:** `phase-2/market-data-foundation`  

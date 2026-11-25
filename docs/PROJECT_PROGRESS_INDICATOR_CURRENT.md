@@ -1,3 +1,103 @@
+# Exact-head project reconciliation — Batch 62J-243 (25 November 2026)
+
+**Source/test HEAD:** `b60a9d375a9b3d9742c0c4e1c107aff593ad7ebc`  
+**Branch:** `phase-2/market-data-foundation`  
+**Previous checkpoint:** `65bf9203b2521846ddbac6206202d302a9fc81b8`  
+**Scope:** retryable WebSocket disconnect cleanup, in-process pending-release reconciliation, cancellation safety, route/lifespan regression coverage, exact-HEAD CI and indicator status.
+
+## Exact-HEAD CI — 4/4 SUCCESS
+
+All four GitHub Actions workflows completed successfully against the same exact source/test SHA `b60a9d375a9b3d9742c0c4e1c107aff593ad7ebc`:
+
+| Workflow | Run | Result |
+|---|---:|---|
+| Automated Tests | 45536261384 | 🟩 SUCCESS — 41/41 steps |
+| CodeQL | 45536261374 | 🟩 SUCCESS — Python 8/8 and JavaScript/TypeScript 8/8 |
+| OCI ARM64 Image Readiness | 45536261564 | 🟩 SUCCESS — 7/7 steps |
+| Full Git History Secret Audit | 45536261385 | 🟩 SUCCESS — 6/6 steps |
+
+Backend pytest: **1,419 passed, 1 skipped, 6 warnings in 64.27s**. The skipped test is `tests/test_shared_guard_tls_integration.py:22`, because that test's isolated Redis TLS fixture was not configured in the pytest invocation. The workflow separately completed its isolated Redis TLS CA/hostname enforcement step successfully. Do not interpret the skipped shared-guard integration test as full owner-host TLS acceptance.
+
+The Automated Tests workflow also completed frontend unit tests, frontend build, source/bundle secret scans, Android host preflight, immutable Android preview publisher tests, synthetic Cloudflare Worker tests, backend dependency audit, backend container build, and container smoke tests. Container smoke verified health JSON, Redis ACL authentication and persistence across restart, API fail-closed behavior during Redis outage and recovery, non-root UID/GID, mounted-volume ownership, SQLite integrity/restart persistence, and HTTP rate-limit rejection.
+
+The container vulnerability scan report was uploaded as artifact `container-vulnerability-reports`. This checkpoint confirms report generation/upload, not a clean vulnerability result; the report must be inspected before making a clean-image claim.
+
+## WebSocket recovery — Batch 62J-243
+
+The previous three-attempt retry could still leave a disconnected owner's lease retained indefinitely after persistent adapter-stop failure. The source now has an in-process recovery path:
+
+- Failed final releases enqueue the retained lease ID in the coordinator's pending-release set.
+- `retry_pending_releases()` retries queued releases without dropping unrelated subscribers.
+- A successful release clears the pending marker; persistent failure leaves it queued for a later pass.
+- The FastAPI lifespan starts a one-second reconciliation worker and joins it during graceful shutdown with a two-second deadline.
+- Cancellation during adapter stop or retry backoff preserves the pending lease for later reconciliation.
+- Retry policy rejects attempts outside 1–10 and non-finite/negative delays.
+
+Regression coverage includes transient stop recovery, persistent stop failure, pending-queue retention, cancellation during adapter stop, cancellation during backoff, retry-policy validation, and an authenticated WebSocket route/lifespan integration test that recovers after a persistent disconnect cleanup failure is cleared.
+
+**Boundary:** this is process-local recovery for the explicitly named in-memory `offline-fixture` adapter. It is not durable across process restart and is not production multi-host provider ownership. No live provider, paid feed, external network connection, or external subscription acknowledgement was activated.
+
+## WebSocket acceptance matrix
+
+| Area | Status | Evidence / remaining gate |
+|---|---|---|
+| Offline demand coordinator and lease-token integrity | 🟩 | Local coordinator tests |
+| Disconnect retry and pending-release recovery | 🟩 | Coordinator tests + route/lifespan recovery test; exact-HEAD CI passed |
+| Replay/live handoff | 🟩 | Exact-series replay boundary, fixed watermark, overflow and cursor validation tests |
+| Subscriber isolation | 🟩 | Per-series fan-out and disconnect-isolation tests |
+| Redis pending-first / XAUTOCLAIM recovery | 🟩 | Consumer tests; apply-before-ACK and deleted-pending fail-closed behavior |
+| Destructive Redis retention | 🟧 GATED | Runtime ACL omits XTRIM/XDEL; no destructive trimming enabled; owner/gateway pending-entry and receipt proof remains required |
+| External provider lifecycle integration | 🟥 OPEN | ProviderManager is not wired to the demand coordinator |
+| Dynamic external subscribe/unsubscribe ACK | 🟥 OPEN | No verified provider adapter contract/ACK path |
+| Cross-process demand ownership | 🟨 PARTIAL | Redis gateway groups and lease primitives exist; production owner-host acceptance remains open |
+| Gate 25 snapshot receipt/high-water ACK | 🟥 OPEN | Owner-authenticated gateway installation and durable ACK evidence remains external |
+| Gate 36 public WSS/TLS/Firebase E2E | 🟥 OPEN | Local TLS tests exist; public endpoint and device E2E acceptance remains open |
+| Android reconnect / multi-instance E2E | 🟥 OPEN | Device acceptance evidence remains open |
+
+Redis role ACL evidence: publisher commands are limited to `PING/XADD/XRANGE`; gateway stream commands are limited to `PING/XGROUP CREATE/XAUTOCLAIM/XREADGROUP/XACK/XRANGE`. No `XTRIM` or `XDEL` is granted by these role command lists. This is a safety boundary, not a completed retention policy.
+
+Test declaration inventory (not passing-test counts): `test_provider_demand.py` 18; `test_api.py` 106; `test_ohlcv_stream.py` 18; `test_ohlcv_redis_replay.py` 14; `test_ohlcv_redis_consumer.py` 22.
+
+## Indicator progress — current source audit
+
+| Indicator | Calculation foundation | Chart integration | Status |
+|---|---|---|---|
+| SMA20 | 20-close mean; first valid index 19 | Not wired into CandlestickChart | 🟨 FOUNDATION |
+| EMA20 | SMA-seeded; alpha 2/21; first valid index 19 | Not wired into CandlestickChart | 🟨 FOUNDATION |
+| RSI14 Wilder | 14-change seed; first valid index 14 | No visible oscillator pane | 🟨 FOUNDATION |
+| MACD12/26/9 | MACD index 25; signal/histogram index 33 | No visible MACD pane | 🟨 FOUNDATION |
+| Bollinger20,2 | 20-close mean ± 2 population SD; first valid index 19 | No visible overlay/fill | 🟨 FOUNDATION |
+| Shared Indicator Hook | Keyed immutable snapshot/cache and trust gating; 7 hook tests | Not imported/called by CandlestickChart | 🟨 FOUNDATION |
+| Footprint PRO 2GD | Synthetic/offline accumulator only | Renderer gated; supplied Footprint references retained | 🟧 GATED |
+| Volume Profile | Full calculation not accepted | Not integrated | 🟥 OPEN |
+| Complete Volume Profile | Session/POC/VAH/VAL methodology not accepted | Not integrated | 🟥 OPEN |
+| Movable-range Volume Profile | Range selection/recalculation not accepted | Not integrated | 🟥 OPEN |
+| Heatmap | Depth/liquidity engine not accepted | Not integrated; visual reference gate remains | 🟥 OPEN |
+| Liquidation Maps | Provenance/methodology not accepted | Not integrated | 🟥 OPEN |
+
+The calculation engine has 21 test declarations. These are calculation foundations, not finished chart indicators. The current `CandlestickChart.tsx` source imports neither `useMarketIndicators` nor any indicator series. `docs/INDICATOR_UI_BLUEPRINT.md` remains parked for official Stage 4; the official roadmap is still in Stage 1, and the 40% broader UI gate does not authorize skipping stages. No indicator UI was changed in this batch.
+
+Math invariants: warm-up nulls; no future-candle lookahead; prefix-causal values; exact timestamp alignment; clear stale values on instrument/timeframe identity change. Footprint OFF preserves ordinary candlesticks; ON alone selects spaced cluster layout. Heatmap and other reference-driven visual work remain gated.
+
+## Project dashboard
+
+- Stage 1: 30/40 = **75% provisional inherited baseline** 🟨; not recalculated in this batch.
+- Stage 2: active engineering 🟦; no approved weighted denominator.
+- Stage 3: not scored ⬜.
+- Stage 4: parked/gated 🟪.
+- Stage 5: not scored ⬜.
+- Stage 6: not scored ⬜.
+- Gate 10: 0/10 formally closed 🟥.
+- Overall project: **NOT SCORED** ⚪; no approved weighted denominator.
+- Aggregate indicators: **NOT SCORED** ⚪; foundations are not chart-complete indicators.
+- Significant progress / IP3S: **NOT SCORED** ⚪; no approved formula.
+
+Next work order remains unchanged: replay/live synchronization acceptance, subscriber isolation edge cases, Redis pending-entry and retention safety, Gate 25 receipt/high-water ACK, Gate 36 public WSS/TLS/Firebase E2E, Android reconnect/multi-instance, then final WebSocket acceptance. Do not activate destructive Redis retention before proof.
+
+**ZERO COST:** maintained. No paid data, paid hosting, deployment, Vercel commit, or `main` update. Planning target remains around **24 December 2026**.
+
+---
+
 # Current exact-head reconciliation — Batch 62J-243 (25 November 2026)
 
 **Active branch:** `phase-2/market-data-foundation`  
