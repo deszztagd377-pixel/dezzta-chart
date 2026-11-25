@@ -177,3 +177,19 @@ Next order remains:
 8. Remaining UI, hardening and APK acceptance.
 
 Conclusion: exact active HEAD CI is 4/4 terminal SUCCESS. The most important newly isolated WebSocket blocker is provider-upstream demand control: client and downstream foundations exist, but the real provider adapter is static and its SDK surface is explicitly unverified. No speculative source code was introduced. ZERO COST and the approximately 24 December 2026 planning target remain unchanged.
+
+
+## 9. Official SDK API compatibility research — 25 November 2026
+
+The official Databento Python Live API documentation and release history narrow the earlier compatibility uncertainty:
+
+- Live.subscribe() is documented as adding a subscription to an existing session; subscriptions in one Live session must use the same dataset. The API returns a subscription ID. See https://databento.com/docs/api-live/client/subscribe?lang=python.
+- Live.unsubscribe() is documented for removing selected symbols from a schema. The accepted input symbology for unsubscribe must be compatible with the original subscription. The gateway can return an UNSUBSCRIBE_ACK or an ErrorMsg; a local call returning does not itself prove the gateway accepted the removal. See https://databento.com/docs/api-live?lang=python.
+- The official Python changelog identifies Live.unsubscribe() as added in version 0.89.0. It also records a 0.90.0 fix for Live methods such as stop()/terminate() blocking during reconnect attempts. See https://github.com/databento/databento-python/blob/main/CHANGELOG.md.
+
+**Engineering consequence:** the repository currently permits versions from 0.88, so its declared dependency range includes a version before the documented unsubscribe addition. A dynamic implementation must raise the minimum supported SDK to at least 0.89 and pin an exact tested version for reproducible CI before relying on unsubscribe. It must also process gateway acknowledgement/error records and respect the single-dataset-per-session constraint.
+
+**Still unverified:** the active environment's installed SDK version, exact runtime behavior for the repository's callback threading model, and real gateway acknowledgement behavior. Official API documentation narrows the design, but does not substitute for fake-adapter regression tests and a separately authorized real-provider acceptance test. No provider dependency or runtime code was changed in this batch.
+
+**ZERO COST decision:** this API research does not authorize Databento usage. Databento remains a potentially billable source; no account, key, paid subscription or live request was created. The app must retain disabled-by-default behavior unless a lawful, genuinely free source is validated or the owner changes the zero-cost requirement.
+
