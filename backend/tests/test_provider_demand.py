@@ -10,11 +10,13 @@ from app.provider_demand import (
 )
 
 
-def key(instrument="EDU-SYNTH-001"):
+def key(instrument="EDU-SYNTH-001", *, dataset="offline-fixture-dataset", symbology="raw_symbol"):
     return ProviderDemandKey(
         source="offline-fixture",
         venue="synthetic",
+        dataset=dataset,
         instrument=instrument,
+        symbology=symbology,
         channel="ohlcv-demo",
     )
 
@@ -72,6 +74,35 @@ def test_one_subscriber_can_own_distinct_series_independently():
         assert adapter.active == {second_key}
         assert coordinator.subscriber_count(second_key) == 1
         assert await coordinator.release(second) is True
+
+    run(scenario())
+
+
+
+
+def test_dataset_and_symbology_are_part_of_upstream_identity():
+    async def scenario():
+        adapter = InMemoryOfflineProviderAdapter()
+        coordinator = ProviderDemandCoordinator(adapter)
+        alternate_dataset = key(dataset="offline-fixture-alt")
+        alternate_symbology = key(symbology="instrument_id")
+        first = await coordinator.acquire("panel-a", key())
+        second = await coordinator.acquire("panel-a", alternate_dataset)
+        third = await coordinator.acquire("panel-a", alternate_symbology)
+
+        assert len({first.key, second.key, third.key}) == 3
+        assert adapter.start_calls == [key(), alternate_dataset, alternate_symbology]
+        assert coordinator.active_lease_count == 3
+        assert coordinator.subscriber_count(key()) == 1
+        assert coordinator.subscriber_count(alternate_dataset) == 1
+        assert coordinator.subscriber_count(alternate_symbology) == 1
+
+        assert await coordinator.release(second) is True
+        assert adapter.active == {key(), alternate_symbology}
+        assert await coordinator.release(first) is True
+        assert await coordinator.release(third) is True
+        assert adapter.active == set()
+        assert len(adapter.stop_calls) == 3
 
     run(scenario())
 
@@ -335,9 +366,10 @@ def test_concurrent_acquires_start_exactly_once():
 @pytest.mark.parametrize(
     "fields",
     [
-        {"source": "", "venue": "synthetic", "instrument": "A", "channel": "ohlcv"},
-        {"source": "source", "venue": " synthetic", "instrument": "A", "channel": "ohlcv"},
-        {"source": "source", "venue": "venue", "instrument": "A" * 129, "channel": "ohlcv"},
+        {"source": "", "venue": "synthetic", "dataset": "dataset", "instrument": "A", "symbology": "raw", "channel": "ohlcv"},
+        {"source": "source", "venue": " synthetic", "dataset": "dataset", "instrument": "A", "symbology": "raw", "channel": "ohlcv"},
+        {"source": "source", "venue": "venue", "dataset": "dataset", "instrument": "A" * 129, "symbology": "raw", "channel": "ohlcv"},
+        {"source": "source", "venue": "venue", "dataset": "dataset", "instrument": "A", "symbology": " raw", "channel": "ohlcv"},
     ],
 )
 def test_demand_key_rejects_noncanonical_or_oversized_fields(fields):

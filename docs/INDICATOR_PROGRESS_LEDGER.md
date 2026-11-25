@@ -1,3 +1,40 @@
+# Indicator progress reconciliation — Work Cycle 65 (25 November 2026)
+
+**Branch:** `phase-2/market-data-foundation`  
+**Parent source/test HEAD:** `8b8218d53a7baeb8c13446ba7b91514e4f7312f8`  
+**Current source/test HEAD:** Work Cycle 65 commit; exact-head CI pending.
+
+This cycle changes provider-demand identity only. It does not change indicator calculations, hooks, chart rendering, visual design or indicator tests, and awards no indicator completion credit.
+
+| Indicator / subsystem | Calculation / data foundation | Chart rendering, interaction and lifecycle | Status |
+|---|---|---|---|
+| SMA20 | 20-close arithmetic mean; first valid index 19 | Overlay, legend, toggle and lifecycle absent | 🟨 FOUNDATION |
+| EMA20 | SMA-seeded EMA; alpha 2/21; first valid index 19 | Overlay, legend, toggle and lifecycle absent | 🟨 FOUNDATION |
+| RSI14 Wilder | 14-change seed and Wilder recurrence; first valid index 14 | 0–100 pane, 30/70 guides and lifecycle absent | 🟨 FOUNDATION |
+| MACD12/26/9 | MACD index 25; signal/histogram index 33 | Pane, lines, histogram and zero guide absent | 🟨 FOUNDATION |
+| Bollinger20,2 | 20-close mean ± 2 population SD; first valid index 19 | Bands, fill, legend and lifecycle absent | 🟨 FOUNDATION |
+| Shared Indicator Hook | Keyed immutable snapshot/cache/trust gating; 7 hook test declarations | Not integrated into `CandlestickChart.tsx` | 🟨 FOUNDATION |
+| Footprint PRO 2GD | Synthetic/offline accumulator only; not exchange-native bid/ask truth | Renderer gated by Stage 4; two supplied references retained | 🟧 GATED |
+| Volume Profile | Full binning/value-area calculation not accepted | Not integrated | 🟥 OPEN |
+| Complete Volume Profile | Session/range/POC/VAH/VAL methodology not accepted | Not integrated | 🟥 OPEN |
+| Movable-range Volume Profile | Range selection/recalculation lifecycle not accepted | Not integrated | 🟥 OPEN |
+| Heatmap | Depth/liquidity source, aggregation and decay not accepted | Not integrated; visual reference pending | 🟥 OPEN |
+| Liquidation Maps | Data provenance, estimation methodology and confidence limits not accepted | Not integrated | 🟥 OPEN |
+
+## Mathematical acceptance contracts
+
+- SMA20: mean of 20 closes; first valid source index 19.
+- EMA20: SMA seed, then alpha 2/21; first valid index 19.
+- RSI14 Wilder: 14 close-to-close changes for seed; first valid index 14.
+- MACD12/26/9: MACD first valid index 25; EMA9 signal and histogram first valid index 33.
+- Bollinger20,2: 20-close mean ± 2 population standard deviations; first valid index 19.
+
+Global invariants: warm-up remains null; prefix-causality; no lookahead/repaint; exact timestamp and series identity alignment; clear stale output on identity changes; no output for DEMO/loading/unavailable/error/empty states. Footprint OFF preserves ordinary candle spacing; only explicit ON uses spaced clusters. Heatmap visual implementation remains reference-gated.
+
+Focused test declarations remain 28 (21 calculation + 7 hook), not 28 completed indicators. Aggregate indicator completion remains NOT SCORED because no approved weighted denominator exists.
+
+---
+
 # Indicator progress reconciliation — Batch 62J-244 (25 November 2026)
 
 **Branch:** `phase-2/market-data-foundation`  

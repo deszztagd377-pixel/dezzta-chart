@@ -1533,7 +1533,9 @@ def create_app(
                             ProviderDemandKey(
                                 source="offline-fixture",
                                 venue="synthetic",
+                                dataset=dataset,
                                 instrument=canonical_id,
+                                symbology="raw_symbol",
                                 channel=f"ohlcv:{timeframe}",
                             ),
                         )

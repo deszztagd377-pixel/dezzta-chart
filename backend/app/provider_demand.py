@@ -18,11 +18,15 @@ class ProviderDemandKey:
 
     source: str
     venue: str
+    dataset: str
     instrument: str
+    symbology: str
     channel: str
 
     def __post_init__(self) -> None:
-        for name in ("source", "venue", "instrument", "channel"):
+        # Dataset and input symbology are part of upstream identity: identical
+        # instruments in different upstream namespaces must not share a lease.
+        for name in ("source", "venue", "dataset", "instrument", "symbology", "channel"):
             value = getattr(self, name)
             if not isinstance(value, str) or not value or value != value.strip():
                 raise ValueError(f"{name} must be a non-empty canonical string")

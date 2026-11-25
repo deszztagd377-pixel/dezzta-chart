@@ -1,3 +1,7 @@
+# Project progress indicator — Work Cycle 65
+
+**Latest source/test work:** Provider-demand identity now includes dataset and input symbology; exact-head CI pending. Indicator implementation unchanged; full per-study ledger is in `docs/INDICATOR_PROGRESS_LEDGER.md`.
+
 
 
 ---
