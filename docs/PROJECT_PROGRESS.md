@@ -1,3 +1,23 @@
+# Latest verified CI closure — Batch 62J-233 (25 November 2026)
+
+**Active branch:** phase-2/market-data-foundation  
+**Code/test SHA:** bd4904b52d29b3ec456da91014e90922fec35f21  
+**Code/test CI:** 4/4 terminal SUCCESS on that exact SHA:
+- Automated Tests run 45520805106 — 41/41 steps, backend pytest 1,394 passed / 1 skipped / 6 warnings in 66.76s. FIFO non-blocking regression test PASSED.
+- CodeQL run 45520805120 — Python 8/8 + JavaScript/TypeScript 8/8 steps.
+- OCI ARM64 run 45520805221 — 7/7 steps.
+- Full Git History Secret Audit run 45520805267 — 6/6 steps.
+All workflows are terminal; no active run remains for the code/test SHA.
+
+**Source change:** POSIX private-key loader now uses O_NOFOLLOW + O_NONBLOCK before fstat; FIFO/device paths cannot block before regular-file validation. Permission error wording reflects the true no-group/world-access invariant.
+**Gate 25:** repository-side file boundary hardened. Owner-host custody, authenticated remote snapshot transfer, persisted receipt retrieval from every gateway, restart re-verification, and durable per-gateway high-water ACK remain 🟥 OPEN.
+**WebSocket:** Gate 36 public HTTPS/WSS, reverse proxy/TLS, production runtime, Firebase production sign-in/entitlement/revocation E2E and real browser/Android lifecycle/multi-instance acceptance remain 🟥 OPEN. Redis destructive retention remains 🟧 BLOCKED.
+**Indicators:** 28 focused indicator declarations = 21 calculation + 7 shared-hook; no new indicator tests or UI integrations in this batch. SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook 🟨 foundation-only; Footprint PRO 2GD 🟧 synthetic/reference-gated; Volume Profile variants, Heatmap and Liquidation Maps 🟥 incomplete/not integrated. Aggregate completion ⚪ NOT SCORED.
+**Project:** Stage 1 30/40 = 75% provisional 🟨 (inherited); Stage 2 🟦 active / NOT SCORED; Stage 3 ⬜ NOT SCORED; Stage 4 🟪 gated; Stage 5 ⬜ NOT SCORED; Stage 6 ⬜ NOT SCORED; Gate 10 0/10 🟥; overall ⚪ NOT SCORED; IP3S ⚪ NOT SCORED.
+**Controls:** ZERO COST; main untouched; no Vercel deployment; no destructive Redis action; APK target around 24 December 2026.
+
+---
+
 # Latest verified update — Batch 62J-232 (25 November 2026)
 
 **Branch:** phase-2/market-data-foundation  
