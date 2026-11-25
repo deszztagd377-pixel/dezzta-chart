@@ -4305,3 +4305,30 @@ All lifecycle rules remain: warm-up nulls, prefix causality, no lookahead/repain
 Footprint OFF preserves ordinary candle spacing; explicit ON alone enables spaced clusters. Heatmap visual implementation remains reference-gated.
 
 **Indicator aggregate:** ⚪ NOT SCORED. No approved weighted denominator. Stage 4 remains 🟪 GATED. Indicator UI work stays separate from Batch 89–93 backend acceptance and requires its own scoped implementation plan.
+
+ 
+---
+ 
+# Indicator ledger reconciliation — 25 November 2026 source re-audit
+ 
+This backend/WebSocket cycle changed no indicator source, calculation, renderer, UI or test. Indicator implementation credit: **0**.
+ 
+| # | Indicator | Foundation / first valid index | Remaining acceptance | Status |
+|---:|---|---|---|---|
+| 1 | SMA20 | 20-close arithmetic mean; 19 | Overlay, toggle, legend/value and lifecycle | 🟨 FOUNDATION |
+| 2 | EMA20 | SMA seed, alpha 2/21; 19 | Overlay, toggle, legend/value and lifecycle | 🟨 FOUNDATION |
+| 3 | RSI14 Wilder | 14-change seed; 14 | 0–100 pane, 30/70 guides and lifecycle | 🟨 FOUNDATION |
+| 4 | MACD12/26/9 | MACD 25; signal/histogram 33 | Dedicated pane, lines, histogram and zero guide | 🟨 FOUNDATION |
+| 5 | Bollinger20,2 | Population SD; 19 | Bands, fill, legend and lifecycle | 🟨 FOUNDATION |
+| 6 | Shared Indicator Hook | Snapshot trust/state gate and WeakMap cache | Hook not yet integrated into CandlestickChart | 🟨 FOUNDATION |
+| 7 | Footprint PRO 2GD | Synthetic/offline accumulator | Renderer gated by both saved references; OFF standard spacing, ON spaced clusters | 🟧 GATED |
+| 8 | Volume Profile | Calculation contract not accepted | Binning, volume conservation, POC/VAH/VAL | 🟥 OPEN |
+| 9 | Complete Volume Profile | Session completeness not accepted | Full-session POC/VAH/VAL and conservation | 🟥 OPEN |
+| 10 | Movable-range Volume Profile | Range calculation not accepted | User bounds and deterministic recomputation | 🟥 OPEN |
+| 11 | Heatmap | Depth provenance/aggregation/decay not accepted | Visual implementation awaits user reference | 🟥 OPEN |
+| 12 | Liquidation Maps | Provenance/method not accepted | Confidence and source contract | 🟥 OPEN |
+ 
+### Mathematical and lifecycle invariants
+Warm-up nulls; prefix causality; no future lookahead/repaint; canonical series/timestamp alignment; finite deterministic outputs; no source mutation; bounded history; stale-output clearing on identity change; no output for demo/loading/unavailable/error/empty snapshots. Focused test declarations remain **28 = 21 calculation + 7 hook**, not a passing-test count. No indicator test was executed in this session. Aggregate indicator completion remains ⚪ NOT SCORED.
+ 
+Footprint OFF must retain ordinary candle spacing; explicit ON alone enables cluster spacing and its visual must match both saved references. Heatmap visual implementation remains reference-gated.
