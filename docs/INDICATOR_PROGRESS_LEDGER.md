@@ -1,3 +1,23 @@
+# Latest verified indicator and project checkpoint — Batch 62J-236 (25 November 2026)
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Verified documentation parent:** `2553b942fbcb99d2a9f9b078ad2ff3be5d242912`  
+**Source/test baseline:** `bd4904b52d29b3ec456da91014e90922fec35f21` (unchanged by Batch 62J-235/236 documentation updates)  
+**Exact-parent CI:** 4/4 terminal SUCCESS on `2553b942fbcb99d2a9f9b078ad2ff3be5d242912`:
+- Automated Tests `45526623643`: 41/41 steps; backend pytest **1,394 passed, 1 skipped, 6 warnings in 64.11s**.
+- CodeQL `45526623850`: Python 8/8 and JavaScript/TypeScript 8/8.
+- OCI ARM64 `45526623693`: 7/7 steps.
+- Full Git History Secret Audit `45526623570`: 6/6 steps.
+The single skip is the separately configured Redis TLS integration fixture, which was not configured in CI. It does not count as production Redis acceptance. All four workflows are terminal and exact-SHA matched.
+
+**Indicator source audit:** `indicatorCalculations.test.ts` has 21 `it(...)` declarations; `useMarketIndicators.test.ts` has 7. The verified total is **28**. The hook calculates only for backend-origin ready/degraded snapshots, caches by immutable snapshot identity, and clears demo/loading/unavailable/error output. `CandlestickChart.tsx` does not import/call `useMarketIndicators`; visible chart integration remains incomplete. See [Batch 62J-236](WORK_CYCLE_2026-11-25_BATCH62J236_STAGE1_AND_INDICATOR_RECONCILIATION.md).
+
+**Stage 1:** 30/40 = 75% provisional 🟨; 10 remaining criteria are 8, 20, 25, 30, 31, 34, 35, 36, 38, 39. Gate 10 = 0/10 formally closed 🟥. Stage 1 checklist criterion #25 is Redis TLS/ACL/persistence; separately tracked Project Gate 25 is Ed25519 snapshot receipt/high-water ACK. They are distinct blockers.
+**Project:** Stage 2 🟦 active / NOT SCORED; Stage 3 ⬜ NOT SCORED; Stage 4 🟪 gated; Stage 5 ⬜ NOT SCORED; Stage 6 ⬜ NOT SCORED; overall ⚪ NOT SCORED; IP3S ⚪ NOT SCORED.
+**Controls:** ZERO COST; `main` untouched; no Vercel deployment; no destructive Redis retention; APK target approximately 24 December 2026.
+
+---
+
 # Latest verified checkpoint — Batch 62J-235 (25 November 2026)
 
 **Active branch:** phase-2/market-data-foundation  
