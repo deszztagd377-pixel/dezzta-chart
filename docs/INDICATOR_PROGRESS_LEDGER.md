@@ -4049,3 +4049,94 @@ Authoritative work package: [WORK_CYCLE_2026-11-25_BATCH80_86_UNIFIED_RUNTIME_AN
 **Indicator ledger unchanged:** SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook 🟨 FOUNDATION; Footprint PRO 2GD 🟧 GATED; Volume Profile, Complete Volume Profile, Movable-range VP, Heatmap and Liquidation Maps 🔴 OPEN. 28 focused declarations (21 calculation + 7 hook) are not a completion percentage. No indicator source/UI changes. Keep warm-up nulls, prefix causality, no lookahead/repaint, timestamp alignment, stale-output clearing and no calculations on unavailable/demo/error/empty snapshots. Footprint OFF remains normal spacing; Footprint ON alone uses spaced clusters. Footprint references are available; Heatmap reference is still required before visual work.
 
 Controls: ZERO COST; `main` untouched; Vercel deferred; no new/duplicate Cloudflare resources; no paid data/hosting/monitoring/backup; delivery target around 24 December 2026.
+
+
+---
+
+## Batch 80 — strict runtime role and fail-closed app binding (25 November 2026)
+
+**Status: IMPLEMENTED + VERIFIED 🟩.** This is a bounded Batch 80 completion, not a claim that the complete source/gateway production relay is deployed.
+
+### Implemented controls
+
+- OHLCV_REDIS_ROLE must explicitly be source or gateway whenever OHLCV_REDIS_ENABLED=true; missing, unknown, or mismatched roles fail closed.
+- create_app() validates that the declared role has its matching injected factory: source requires publisher_runtime_factory; gateway requires replica_runtime_factory. A crossed factory or enabled relay with no injected factory is rejected before application startup.
+- Source and gateway factories remain mutually exclusive.
+- Source and replica SQLite database targets must be absolute file paths; relative paths, symbolic-link targets, and directory targets are rejected.
+- backend/.env.example now documents the role selector. Relay remains disabled by default.
+- Added focused tests for missing/invalid/mismatched roles, factory-role binding, fail-closed app creation, absolute database paths, directories and symlinks.
+
+### Changed files
+
+- backend/app/ohlcv_redis_config.py
+- backend/app/ohlcv_redis_runtime.py
+- backend/app/ohlcv_redis_gateway_runtime.py
+- backend/app/main.py
+- backend/tests/test_ohlcv_redis_config.py
+- backend/tests/test_ohlcv_redis_runtime.py
+- backend/tests/test_ohlcv_redis_gateway_runtime.py
+- backend/tests/test_ohlcv_redis_publisher_lifecycle.py
+- backend/.env.example
+
+### Exact verification — final source commit
+
+Commit: 66d4c6a812d5ce2570345e1108e813b5067f5248
+
+| Workflow | Run | Result |
+|---|---:|---|
+| Automated Tests | [2457](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45612188191) | 🟩 41/41 steps; 1,433 passed, 1 skipped, 6 warnings |
+| CodeQL Python | [1814](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45612188170) | 🟩 8/8 |
+| CodeQL JavaScript/TypeScript | [1814](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45612188170) | 🟩 8/8 |
+| Full Git History Secret Audit | [1396](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45612188184) | 🟩 6/6 |
+| OCI ARM64 Image Readiness | [443](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45612188277) | 🟩 7/7 |
+
+Automated Tests also completed the Redis TLS fixture step, backend dependency audit, backend container build, container smoke test with shared Redis guard/persistent volume, and container scan. All four workflows are terminal success; no CI job remains running. An earlier run exposed one legacy gateway fixture missing the new role; that fixture was corrected before the final successful run.
+
+### Boundary — what is still not complete
+
+The module-level production ASGI app does not invent owner-specific snapshot callbacks. Source publisher activation still requires an owner-provided snapshot_verifier that verifies the exact snapshot and every required gateway's durable installation receipt. Gateway activation still requires an authenticated snapshot_installer and owner-pinned Ed25519 trust keys. These callbacks are not guessed or fabricated. Therefore production publisher/gateway runtime wiring, Gate 25 owner-accepted durable high-water ACK, public Cloudflare WSS, browser/Android E2E and owner-host recovery remain 🔴 OPEN. No production deployment or Cloudflare resource was changed.
+
+### Next ordered work
+
+1. **Batch 81:** source publisher runtime integration, contingent on the authoritative owner snapshot-verifier and durable gateway-receipt source.
+2. **Batch 82:** gateway replica runtime integration, contingent on the authenticated snapshot-transfer/install callback and owner-pinned key configuration.
+3. **Batch 83:** two-gateway Redis process/restart/fencing/fault acceptance.
+4. **Batch 84:** durable owner-accepted high-water ACK and restart reconciliation.
+5. **Batch 85:** existing Cloudflare route/origin plus public WSS/browser/Android acceptance.
+6. **Batch 86:** owner-host backup/restore, local observability and incident drills.
+
+Do not trim/delete Redis stream entries or destroy consumer groups until every required gateway has a durable owner-accepted high-water ACK and restart reconciliation proof.
+
+### Project and indicator progress — no percentage inflation
+
+- Stage 1: **30/40 = 75% provisional 🟨** (unchanged; Batch 80 does not auto-close Stage 1 criteria).
+- Gate 10: **0/10 formally closed 🔴**; criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.
+- Stage 2: 🟦 preparatory, not officially entered/scored.
+- Stage 3: ⚪ not scored.
+- Stage 4: 🟪 gated.
+- Stages 5–6: ⚪ not scored.
+- Overall project: ⚪ NOT SCORED; approved weighted denominator is still absent.
+- Significant project index/IP3S: ⚪ NOT SCORED for the same reason.
+
+### Complete indicator ledger — source/UI unchanged in Batch 80
+
+| Indicator | Status | Current implementation/evidence | Mathematical/acceptance boundary |
+|---|---|---|---|
+| SMA20 | 🟨 FOUNDATION | Calculation foundation only | First valid index 19; arithmetic mean of 20 closes |
+| EMA20 | 🟨 FOUNDATION | Calculation foundation only | First valid index 19; alpha 2/21; recursive seed contract tested |
+| RSI14 Wilder | 🟨 FOUNDATION | Calculation foundation only | First valid index 14; Wilder smoothing; no divide-by-zero NaN leak |
+| MACD12/26/9 | 🟨 FOUNDATION | Calculation foundation only | MACD line first valid index 25; signal and histogram index 33 |
+| Bollinger20,2 | 🟨 FOUNDATION | Calculation foundation only | First valid index 19; population standard deviation per current contract |
+| Shared Indicator Hook | 🟨 FOUNDATION | 7 focused declarations | Chart integration into CandlestickChart.tsx remains open |
+| Footprint PRO 2GD | 🟧 GATED | Synthetic/offline accumulator only | Visual work must match both saved Footprint references; OFF keeps normal candle spacing, ON alone enables spaced clusters |
+| Volume Profile | 🟥 OPEN | Not accepted | Price-bin volume conservation, range semantics and timestamp boundaries |
+| Complete Volume Profile | 🟥 OPEN | Not accepted | Full-session completeness, POC/VA derivation and conservation |
+| Movable-range Volume Profile | 🟥 OPEN | Not accepted | User-selected range bounds and deterministic recomputation |
+| Heatmap | 🟥 OPEN | Visual implementation not started | Must wait for the user's Heatmap reference image |
+| Liquidation Maps | 🟥 OPEN | Not accepted | Data provenance and methodology remain unapproved |
+
+Focused declaration inventory remains **28 total = 21 calculation + 7 shared-hook declarations**. This is not an indicator completion percentage or count of accepted indicators. Batch 80 changed no indicator calculation or chart UI; indicator progress credit is therefore unchanged.
+
+Cross-indicator acceptance remains mandatory: warm-up values null until mathematically valid; prefix causality; no future-candle lookahead/repaint; exact timestamp/series identity alignment; stale-output clearing on identity change; deterministic repeated results; bounded computation; no mutation of source candle data; no calculations for demo/loading/unavailable/error/empty snapshots.
+
+**Controls:** ZERO COST; active branch only phase-2/market-data-foundation; main untouched; no Vercel; no paid market data, hosting, monitoring, backup, subscription or publication; no duplicate Cloudflare infrastructure. Planning target remains around **24 December 2026**.
