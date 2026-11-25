@@ -201,6 +201,41 @@ def test_pending_release_reconciliation_recovers_persistent_stop_failure():
     run(scenario())
 
 
+def test_cancelled_release_is_queued_for_reconciliation():
+    async def scenario():
+        class BlockingStopAdapter(InMemoryOfflineProviderAdapter):
+            def __init__(self):
+                super().__init__()
+                self.stop_started = asyncio.Event()
+                self.allow_stop = asyncio.Event()
+
+            async def stop(self, demand_key):
+                self.stop_started.set()
+                await self.allow_stop.wait()
+                await super().stop(demand_key)
+
+        adapter = BlockingStopAdapter()
+        coordinator = ProviderDemandCoordinator(adapter)
+        lease = await coordinator.acquire("panel-a", key())
+        release_task = asyncio.create_task(
+            coordinator.release_with_retry(lease, attempts=3, initial_delay=0)
+        )
+        await adapter.stop_started.wait()
+        release_task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await release_task
+
+        assert coordinator.active_lease_count == 1
+        assert coordinator.pending_release_count == 1
+        adapter.allow_stop.set()
+        assert await coordinator.retry_pending_releases() == 1
+        assert coordinator.active_lease_count == 0
+        assert coordinator.pending_release_count == 0
+        assert adapter.active == set()
+
+    run(scenario())
+
+
 def test_pending_release_reconciliation_keeps_failed_lease_queued():
     async def scenario():
         adapter = InMemoryOfflineProviderAdapter()
