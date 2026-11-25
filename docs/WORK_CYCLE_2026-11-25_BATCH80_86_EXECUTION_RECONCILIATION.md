@@ -89,3 +89,10 @@ Focused declarations remain 28 total (21 calculation + 7 shared hook); they are 
 Do not skip or reorder batches. Do not change `main`. Do not invent remote APIs, receipt sources, Cloudflare hostnames, signing keys or credentials. Do not enable a role in production until its matching owner callback and configuration are present. Do not perform destructive Redis retention. The successful CI evidence above applies only to source/test SHA `66d4c6a812d5ce2570345e1108e813b5067f5248`; the latest docs-only HEAD has no CI claim.
 
 **Next executable work:** finish owner callback contracts and test-only fault gaps while retaining the existing successful baseline. No source change is authorized by this reconciliation report alone.
+
+
+## 7. Connected Cloudflare account visibility check — read-only
+
+A fresh read-only inspection of the Cloudflare account currently connected to this session returned zero Worker scripts, zero Worker custom domains, zero Pages projects, zero Tunnels, zero Durable Object namespaces, zero Queues, zero D1 databases and zero Zones. R2 is not enabled in that connected account. No Cloudflare resource was created, changed or deleted.
+
+This is an account-visibility result only. It does **not** prove that the user's stated production server is absent; it may be hosted in another Cloudflare account, an account not connected here, or an owner-managed origin behind a different route. Batch 85 and owner-host portions of Batch 86 remain blocked until the actual existing production account/zone/route/origin is identified. Do not create a replacement Worker, Pages project, Tunnel, zone, R2 bucket or domain as a workaround.
