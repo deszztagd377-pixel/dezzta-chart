@@ -6000,3 +6000,19 @@ Gate 25 source audit confirms gateway/source factories validate signed snapshot 
 Gate 25 remains OPEN; no fake callback or guessed endpoint was added. Full report: `docs/WORK_CYCLE_2026-11-25_BATCH70_EXACT_HEAD_CI_GATE25_RUNTIME_WIRING_AUDIT.md`.
 
 Indicators unchanged; no completion credit. Stage 1 30/40 = 75% provisional 🟨; Stage 2 active/unscored 🟦; Stage 4 gated 🟪; Gate 10 0/10 🟥; overall project, aggregate indicators and IP3S ⚪ NOT SCORED. ZERO COST, `main` untouched, Vercel deferred, no destructive Redis action, target ~24 December 2026.
+
+
+## Batch 72 exact-head CI closure — 25 November 2026
+
+**Audited commit:** `a342a2abe8f70315445343e123e661ea37c52050` on `phase-2/market-data-foundation`. All four required workflows are now terminal SUCCESS on this exact SHA:
+
+| Workflow | Run | Result | Job steps |
+|---|---:|---|---:|
+| Automated Tests | 45599485761 | 🟢 SUCCESS | 41/41 |
+| CodeQL Security Analysis | 45599485734 | 🟢 SUCCESS | Python 8/8 + JavaScript/TypeScript 8/8 |
+| OCI ARM64 Image Readiness | 45599485776 | 🟢 SUCCESS | 7/7 |
+| Full Git History Secret Audit | 45599485759 | 🟢 SUCCESS | 6/6 |
+
+Automated Tests log confirms **1,426 passed, 1 skipped, 6 warnings in 59.44 seconds**. The skipped test is the isolated Redis TLS integration fixture because it is not configured. Therefore this is not owner-host Redis TLS acceptance. Container smoke checks passed for health, Redis ACL/AOF persistence across restart, fail-closed API response during Redis outage, backend reconnect, non-root UID/GID, mounted-volume ownership, SQLite integrity/restart persistence, and HTTP rate-limit rejection. OCI ARM64, CodeQL and full-history secret audit passed. No failure was recorded.
+
+**Evidence boundary:** these are GitHub CI results only. They do not prove a live Cloudflare deployment, public WSS, Firebase identity, real market-data provider, owner-host Redis TLS, Android/browser production lifecycle, or production snapshot transfer/ACK. The CI success does not change Stage 1 30/40 provisional or Gate 10 0/10. Indicator implementation status and completion credit are unchanged.

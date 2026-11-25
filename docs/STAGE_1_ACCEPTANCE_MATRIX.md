@@ -1203,3 +1203,18 @@ The repository collector's per-series scalar accumulators now have explicit satu
 
 This does not change criterion 38's external status: host-side collection, bounded log retention/rotation, dashboard access, disk-pressure recovery and real secret-redaction evidence remain required. No Stage 1 tick is awarded. Stage 1 remains 30/40 = 75% provisional; open criteria remain 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. ZERO COST maintained; no deployment, paid service, Termux or device operation.
 \n\n## Batch 62J-45 — Gate 30 owner-host drill preparation — 2026-11-20\n\n- Added `docs/GATE30_OWNER_HOST_RESTORE_DRILL_RUNBOOK.md`.\n- Audited the existing restore drill, SQLite Online Backup helper, runtime database-path configuration and its 12 named regression tests. The drill already checks source read-only behavior, fresh-path no-overwrite publication, SQLite integrity, foreign keys, required application tables, typed per-table row hashes, schema hashes, domain-store readback, outbox identity/cursor uniqueness and committed write/fresh-read/cleanup.\n- Runtime database selection is `INSTRUMENT_REGISTRY_DB_PATH`, falling back to `./data/instrument_registry.sqlite3` relative to the backend process working directory. Repository source cannot prove the live injected path or host.\n- Runbook capacity threshold: `3 × S + max(64 MiB, 10% of 3 × S)` additional free space, where S is the source DB file size.\n- Owner-host execution is not performed. Termux on a client phone is not a substitute if the backend database resides on a separate host.\n- **Gate 30 remains OPEN; no Stage 1 tick is awarded.**\n
+
+## Batch 72 exact-head CI closure — 25 November 2026
+
+**Audited commit:** `a342a2abe8f70315445343e123e661ea37c52050` on `phase-2/market-data-foundation`. All four required workflows are now terminal SUCCESS on this exact SHA:
+
+| Workflow | Run | Result | Job steps |
+|---|---:|---|---:|
+| Automated Tests | 45599485761 | 🟢 SUCCESS | 41/41 |
+| CodeQL Security Analysis | 45599485734 | 🟢 SUCCESS | Python 8/8 + JavaScript/TypeScript 8/8 |
+| OCI ARM64 Image Readiness | 45599485776 | 🟢 SUCCESS | 7/7 |
+| Full Git History Secret Audit | 45599485759 | 🟢 SUCCESS | 6/6 |
+
+Automated Tests log confirms **1,426 passed, 1 skipped, 6 warnings in 59.44 seconds**. The skipped test is the isolated Redis TLS integration fixture because it is not configured. Therefore this is not owner-host Redis TLS acceptance. Container smoke checks passed for health, Redis ACL/AOF persistence across restart, fail-closed API response during Redis outage, backend reconnect, non-root UID/GID, mounted-volume ownership, SQLite integrity/restart persistence, and HTTP rate-limit rejection. OCI ARM64, CodeQL and full-history secret audit passed. No failure was recorded.
+
+**Evidence boundary:** these are GitHub CI results only. They do not prove a live Cloudflare deployment, public WSS, Firebase identity, real market-data provider, owner-host Redis TLS, Android/browser production lifecycle, or production snapshot transfer/ACK. The CI success does not change Stage 1 30/40 provisional or Gate 10 0/10. Indicator implementation status and completion credit are unchanged.
