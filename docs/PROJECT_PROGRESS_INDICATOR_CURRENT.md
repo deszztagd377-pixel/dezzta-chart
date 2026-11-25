@@ -1,11 +1,11 @@
-# Current exact-head reconciliation — Batch 62J-239 (25 November 2026)
+# Current exact-head reconciliation — Batch 62J-240 (25 November 2026) (25 November 2026)
 
 **Active branch:** `phase-2/market-data-foundation`  
-**Parent HEAD before this batch:** `1929394bb557cd86369416b1d1ccfe283677b820`  
-**Purpose:** correct lease-token integrity, add regression coverage, reconcile indicator and project status.  
+**Parent HEAD before this batch:** `4262019813feff3f524101684eea36b945f0b513`  
+**Purpose:** synthetic/offline WebSocket route demand acquire/release lifecycle, regression coverage, and indicator/project status reconciliation.  
 **ZERO COST:** maintained. **Vercel:** no deployment. **main:** untouched.
 
-> This entry supersedes older checkpoint summaries below where their HEAD or workflow state differs. The parent SHA had 4/4 workflows completed successfully; this batch's new commit requires fresh exact-HEAD CI.
+ > This entry supersedes older checkpoint summaries below where their HEAD or workflow state differs. Parent HEAD had 4/4 workflows completed successfully; this batch's new commit requires fresh exact-HEAD CI. Live market-data remains disabled.
 
 ## Current indicator status
 
@@ -30,8 +30,8 @@ No indicator source or chart renderer is changed by Batch 62J-239. Test declarat
 
 | Item | Status |
 |---|---|
-| Offline provider-demand lease coordinator | 🟩 Local primitive; lease-token integrity hardened in this batch |
-| Coordinator ↔ authenticated WebSocket route | 🟥 Not wired |
+| Offline provider-demand lease coordinator | 🟩 Local primitive; lease-token integrity hardened |
+| Synthetic/offline coordinator ↔ authenticated WebSocket route | 🟩 Route acquire/release regression added; exact-HEAD CI pending |
 | Coordinator ↔ provider lifecycle | 🟥 Not wired |
 | Dynamic provider subscribe/unsubscribe acknowledgement | 🟥 Not verified |
 | Cross-process / multi-host demand ownership | 🟨 Local-only; production acceptance open |

@@ -52,6 +52,11 @@ from app.ohlcv import (
     decimal_to_string,
 )
 from app.provider import ProviderManager
+from app.provider_demand import (
+    InMemoryOfflineProviderAdapter,
+    ProviderDemandCoordinator,
+    ProviderDemandKey,
+)
 from app.databento_definition_sync import DatabentoDefinitionSynchronizer
 from app.ohlcv_stream import OhlcvStreamHub, OhlcvStreamResnapshotRequired
 from app.ohlcv_store import SQLiteOhlcvReplicaStore, SQLiteOhlcvStore
@@ -212,6 +217,10 @@ def create_app(
     ohlcv_pipeline = OhlcvPipeline()
     resolver = InstrumentResolver()
     stream_hub = OhlcvStreamHub()
+    # This adapter is intentionally local-only and is acquired solely by the
+    # explicitly named offline-fixture WebSocket series. It performs no I/O.
+    offline_provider_adapter = InMemoryOfflineProviderAdapter()
+    provider_demand_coordinator = ProviderDemandCoordinator(offline_provider_adapter)
     ohlcv_store = SQLiteOhlcvStore(config.instrument_registry_db_path)
     publisher_wakeup = asyncio.Event()
     publisher_event_loop = None
@@ -721,6 +730,8 @@ def create_app(
         )
     application.state.ohlcv_pipeline = ohlcv_pipeline
     application.state.ohlcv_stream_hub = stream_hub
+    application.state.offline_provider_adapter = offline_provider_adapter
+    application.state.provider_demand_coordinator = provider_demand_coordinator
     application.state.ohlcv_store = ohlcv_store
     application.state.ohlcv_replica_store = None
     application.state.ohlcv_replica_redis_client = None
@@ -1356,6 +1367,7 @@ def create_app(
             )
 
             subscription = None
+            demand_lease = None
             try:
                 try:
                     request = await asyncio.wait_for(websocket.receive_json(), timeout=10.0)
@@ -1482,6 +1494,23 @@ def create_app(
                 if not authorized:
                     await websocket.close(code=4403, reason="Instrument access denied")
                     return
+
+                # The synthetic fixture exercises route-level demand ownership
+                # without creating or enabling any external provider connection.
+                if provider_id == "offline-fixture":
+                    try:
+                        demand_lease = await provider_demand_coordinator.acquire(
+                            connection_id,
+                            ProviderDemandKey(
+                                source="offline-fixture",
+                                venue="synthetic",
+                                instrument=canonical_id,
+                                channel=f"ohlcv:{timeframe}",
+                            ),
+                        )
+                    except Exception:
+                        await websocket.close(code=1013, reason="Offline demand coordinator unavailable")
+                        return
 
                 # No await occurs between durable high-water capture, snapshot
                 # query, and stream registration. Ingestion and fan-out share this
@@ -1843,6 +1872,13 @@ def create_app(
             finally:
                 if subscription is not None:
                     stream_hub.unsubscribe(subscription.stream_id)
+                if demand_lease is not None:
+                    try:
+                        await provider_demand_coordinator.release(demand_lease)
+                    except Exception:
+                        logging.getLogger("dezzta.provider_demand").exception(
+                            "offline provider-demand lease cleanup failed"
+                        )
 
         finally:
             if shared_guard is not None:

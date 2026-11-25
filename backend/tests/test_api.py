@@ -39,6 +39,7 @@ from app.ohlcv import OhlcvBar
 from app.ohlcv_store import SQLiteOhlcvReplicaStore, SQLiteOhlcvStore
 from app.instrument_identity import CanonicalInstrument
 from app.instrument_registry import ProviderInstrumentMapping
+from app.provider_demand import ProviderDemandKey
 
 
 def _test_database_path() -> str:
@@ -3373,3 +3374,72 @@ def test_real_tls_websocket_upgrade_ticket_auth_origin_policy_and_multi_user_hea
             listener.close()
 
     asyncio.run(exercise_real_transport())
+
+
+def test_offline_websocket_demand_is_shared_and_released_on_disconnect() -> None:
+    application = create_app(make_settings())
+    _install_test_identity(application)
+    canonical_id = "9c6b5b4e-35d7-4d2f-9f6b-8c2f5f9d7a22"
+    instrument = CanonicalInstrument(
+        canonical_id=canonical_id, asset_class="future", instrument_type="future",
+        symbol="EDU-SYNTH-001", venue="SYNTH", expiration_date="2027-01-01",
+        settlement_currency="USD", contract_multiplier="1", tick_size="0.01",
+        session_calendar_id="",
+    )
+    mapping = ProviderInstrumentMapping(
+        provider="offline-fixture", dataset="SYNTHETIC.V1", publisher_id=1,
+        instrument_id=9001, raw_symbol="EDU-SYNTH-001", valid_from_ns=1,
+        valid_to_ns=None, canonical_id=canonical_id,
+    )
+    application.state.instrument_registry.register_instrument_with_mapping(instrument, mapping)
+    application.state.instrument_entitlements.grant(
+        subject="firebase-user-123", canonical_instrument_id=canonical_id,
+    )
+    demand_key = ProviderDemandKey(
+        source="offline-fixture", venue="synthetic",
+        instrument=canonical_id, channel="ohlcv:1s",
+    )
+    client = TestClient(application)
+
+    def connect_and_subscribe(websocket):
+        websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+        assert websocket.receive_json()["type"] == "market_data.status"
+        websocket.send_json({
+            "type": "market_data.subscribe",
+            "version": 1,
+            "canonicalInstrumentId": canonical_id,
+            "series": {
+                "provider": "offline-fixture",
+                "dataset": "SYNTHETIC.V1",
+                "publisherId": 1,
+                "instrumentId": 9001,
+                "rawSymbol": "EDU-SYNTH-001",
+                "seriesType": "contract",
+                "timeframe": "1s",
+                "bucketPolicy": "UTC_FIXED_V1",
+            },
+        })
+        snapshot = websocket.receive_json()
+        assert snapshot["type"] == "market_data.ohlcv.snapshot"
+        assert snapshot["count"] == 0
+
+    adapter = application.state.offline_provider_adapter
+    coordinator = application.state.provider_demand_coordinator
+    with client.websocket_connect("/ws/market-data") as first:
+        connect_and_subscribe(first)
+        assert coordinator.subscriber_count(demand_key) == 1
+        assert adapter.start_calls == [demand_key]
+        assert adapter.active == {demand_key}
+
+        with client.websocket_connect("/ws/market-data") as second:
+            connect_and_subscribe(second)
+            assert coordinator.subscriber_count(demand_key) == 2
+            assert adapter.start_calls == [demand_key]
+
+        assert coordinator.subscriber_count(demand_key) == 1
+        assert adapter.active == {demand_key}
+
+    assert coordinator.subscriber_count(demand_key) == 0
+    assert coordinator.active_lease_count == 0
+    assert adapter.active == set()
+    assert adapter.stop_calls == [demand_key]
