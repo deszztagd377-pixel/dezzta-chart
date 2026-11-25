@@ -1,3 +1,51 @@
+# Verified Stage 1 blocker reconciliation — Batch 62J-236 (25 November 2026)
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Audited documentation HEAD:** `e03ada0cd1a21ebc76b2c9b5fce41c73db1e923c`  
+**Exact-HEAD CI:** 4/4 terminal SUCCESS on this exact SHA:
+- Automated Tests run `45525451961`: 41/41 steps, no failed steps.
+- CodeQL run `45525451749`: Python 8/8 and JavaScript/TypeScript 8/8.
+- OCI ARM64 run `45525451873`: 7/7 steps.
+- Full Git History Secret Audit run `45525451791`: 6/6 steps.
+All four runs completed against the exact same SHA. Earlier runs on superseded documentation commits were cancelled by newer commits; the final SHA has its own successful, terminal run set. No workflow remains running for this SHA.
+
+## Why Stage 1 is not 100%
+
+The Stage 1 matrix has 40 acceptance criteria. 30 have repository implementation/test evidence or approved design evidence; 10 still lack required real owner-host, owner-device, or production acceptance evidence. The provisional meter is therefore **30/40 = 75%**. The remaining 10 are not one generic code bug; most cannot be proven from GitHub CI alone.
+
+| Criterion | Remaining proof required | Current blocker |
+|---|---|---|
+| 8 | Actual owner-host secret injection, owner/mode, UID 10001 readability, runtime exposure/rotation/log checks | 🟨 Host evidence absent |
+| 20 | Real no-billing Firebase sign-in, expiry/revocation, entitlement denial, ticket exchange and web/Android reconnect | 🟥 Real project/device E2E absent; billing must remain disabled |
+| 25 (Stage 1 checklist) | Self-hosted Redis TLS certificate validation, ACL, private binding/firewall, persistence, restart/failure/recovery on existing owner hardware | 🟥 Owner-host Redis acceptance absent; managed paid Redis prohibited |
+| 30 | Restore the actual application DB into a fresh target-host destination and verify application records | 🟨 Owner-target restore drill absent |
+| 31 | Encrypted off-host backup, separate key custody, retention/access policy and successful key-recovery restore | 🟥 No zero-cost off-host destination/key-custody evidence |
+| 34 | Actual persistent volume mount/owner/permissions, restart durability, disk-pressure and recovery | 🟨 Owner-host volume proof absent |
+| 35 | Backend on existing owner hardware, health/startup/secret injection; public route only if no incremental cost | 🟨 Host route/runtime proof absent; public route may be zero-cost constrained |
+| 36 | Authenticated HTTPS/WSS through owner-controlled reverse proxy from real web and Android clients; reconnect/resnapshot/cross-instance | 🟥 Production WSS/device proof absent |
+| 38 | Durable owner-host metrics, retention, backup/restore, disk pressure, firewall, token rotation, dashboard, independent alert/ACK/recovery | 🟧 Host observability/operations proof absent |
+| 39 | Demonstrated zero-cost local alert route plus incident owner, escalation, acknowledgement and recovery drill | 🟨 Operator drill absent |
+
+**Important naming distinction:** Stage 1 checklist criterion **#25** is the Redis TLS/ACL/persistence acceptance item above. The separately tracked project **Gate 25** is the Ed25519 signed-snapshot installation/receipt/high-water-ACK acceptance path. They are different work items and both remain open. Project Gate 25 still needs owner-host private-key custody, authenticated transfer to each gateway, persisted receipt retrieval after restart, re-verification, and durable per-gateway high-water ACK.
+
+**Gate 10 accounting:** 0/10 formally closed. Repository CI success does not close any of these ten external acceptance criteria. No points are awarded for documentation-only work or synthetic CI substitutes.
+
+## Work order without stage skipping
+
+1. Project Gate 25: owner-host custody → authenticated snapshot transfer → persisted receipt per gateway → restart/reverify → durable per-gateway high-water ACK.
+2. Stage 1 criterion #25: existing-hardware Redis TLS/ACL/private binding/persistence/restart/failure recovery.
+3. Criterion 8: actual secret injection and runtime exposure/rotation proof.
+4. Criteria 30/31/34: real restore, off-host key recovery and persistent-volume evidence, strictly zero incremental cost.
+5. Criterion 35: owner-host backend runtime and health checks; public exposure only if existing path is free.
+6. Criterion 36: public WSS/TLS/proxy and real browser/Android E2E, only when no-billing infrastructure is proven.
+7. Criteria 38/39: durable operations metrics and local alert/incident drill.
+8. Criterion 20: Firebase E2E only on a verified no-billing configuration.
+9. Only after Stage 1 acceptance, progress the official stage transition. Early Stage 2 source foundations do not authorize skipping Stage 1.
+
+**Safety / cost:** ZERO COST. No managed paid Redis, paid hosting, domain purchase, paid market data, paid monitoring, paid backup, or billing-plan upgrade. No Vercel deployment. `main` untouched. No destructive Redis retention. APK planning target remains approximately 24 December 2026.
+
+---
+
 # Latest verified CI closure — Batch 62J-233 (25 November 2026)
 
 **Active branch:** phase-2/market-data-foundation  
