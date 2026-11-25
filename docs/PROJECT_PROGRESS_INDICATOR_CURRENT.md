@@ -6239,3 +6239,12 @@ Focused declaration inventory remains **28 total = 21 calculation + 7 shared-hoo
 Cross-indicator acceptance remains mandatory: warm-up values null until mathematically valid; prefix causality; no future-candle lookahead/repaint; exact timestamp/series identity alignment; stale-output clearing on identity change; deterministic repeated results; bounded computation; no mutation of source candle data; no calculations for demo/loading/unavailable/error/empty snapshots.
 
 **Controls:** ZERO COST; active branch only phase-2/market-data-foundation; main untouched; no Vercel; no paid market data, hosting, monitoring, backup, subscription or publication; no duplicate Cloudflare infrastructure. Planning target remains around **24 December 2026**.
+
+
+---
+
+## Batch 80–86 evidence correction — 25 November 2026
+
+See `WORK_CYCLE_2026-11-25_BATCH80_86_EXECUTION_RECONCILIATION.md` for exact evidence. Batch 80 🟩 code/CI complete; Batches 81–82 🟨 factories/tests exist but owner callbacks and real host integration remain open; Batch 83 🟨 prior real-Redis two-ASGI broadcast/replay/restart/TCP interruption and dual-replica snapshot-generation scenarios passed; Batch 84 🟧 immutable signed snapshot receipt foundation exists, but owner-accepted durable high-water ACK/Gate 25 remains open; Batch 85 🟥 public Cloudflare WSS and browser/Android E2E open; Batch 86 🟧 local metrics/incident and Redis AOF/container recovery foundations exist, owner-host backup/restore open.
+
+Indicator ledger is unchanged by this WebSocket cycle: SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook 🟨 FOUNDATION; Footprint PRO 2GD 🟧 GATED; Volume Profile, Complete Volume Profile, Movable-range Volume Profile, Heatmap and Liquidation Maps 🟥 OPEN. Focused declarations remain 28 (21 calculation + 7 hook), not a completion percentage. No indicator source/UI completion credit. Overall project and IP3S remain ⚪ NOT SCORED; Stage 1 remains 30/40 = 75% provisional; Gate 10 remains 0/10 closed. ZERO COST; target around 24 December 2026.
