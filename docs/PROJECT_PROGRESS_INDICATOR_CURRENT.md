@@ -5938,3 +5938,23 @@ Still open: durable restart recovery, cross-process provider-demand ownership, l
 Indicator inventory unchanged; no completion credit. Full ledger: `docs/INDICATOR_PROGRESS_LEDGER.md`. Stage 1 remains 30/40 = 75% provisional 🟨; Stage 2 🟦 unscored; Stage 4 🟪 gated; Gate 10 0/10 🟥; overall project, aggregate indicators and IP3S ⚪ NOT SCORED. ZERO COST; `main` untouched; Vercel deferred; target ~24 December 2026.
 
 Full report: `docs/WORK_CYCLE_2026-11-25_BATCH69_WEBSOCKET_OFFLINE_DEMAND_ROUTE_LIFESPAN_AUDIT.md`.
+
+
+---
+
+# Work Cycle 70 — exact-HEAD CI closure and Gate 25 runtime-wiring audit (25 November 2026)
+
+**Audited source HEAD:** `f0c474fa25f973b1069bb0cef95b9b4fc7611127`  
+**Exact-HEAD CI:** 4/4 terminal SUCCESS:
+- Automated Tests 45594350798 — 41/41 steps; backend pytest **1,426 passed, 1 skipped, 6 warnings in 63.89s**.
+- CodeQL 45594350653 — Python 8/8; JavaScript/TypeScript 8/8.
+- OCI ARM64 45594350605 — 7/7.
+- Full Git History Secret Audit 45594350685 — 6/6.
+
+Container smoke completed Redis ACL/AOF restart, fail-closed API outage/reconnection, non-root UID/GID, mounted-volume ownership, SQLite integrity/restart persistence and HTTP rate-limit checks. This remains CI-only evidence, not owner-host/public production acceptance.
+
+Gate 25 source audit confirms gateway/source factories validate signed snapshot receipt and checkpoint contracts, but both require injected callbacks. The default `app = create_app()` and `backend/Dockerfile` ASGI command supply neither runtime factory. No owner-host authenticated transfer/receipt retrieval transport is implemented in the checked-in default composition. Durable local `applied_cursor` plus Redis `XACK` is not a source-side durable per-gateway high-water ACK ledger.
+
+Gate 25 remains OPEN; no fake callback or guessed endpoint was added. Full report: `docs/WORK_CYCLE_2026-11-25_BATCH70_EXACT_HEAD_CI_GATE25_RUNTIME_WIRING_AUDIT.md`.
+
+Indicators unchanged; no completion credit. Stage 1 30/40 = 75% provisional 🟨; Stage 2 active/unscored 🟦; Stage 4 gated 🟪; Gate 10 0/10 🟥; overall project, aggregate indicators and IP3S ⚪ NOT SCORED. ZERO COST, `main` untouched, Vercel deferred, no destructive Redis action, target ~24 December 2026.

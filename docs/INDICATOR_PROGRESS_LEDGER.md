@@ -3820,3 +3820,33 @@ The WebSocket offline-demand route/lifespan audit does not alter indicator math,
 Mathematical invariants remain mandatory: null warm-up; prefix causality; no future-candle lookahead; exact timestamp/series alignment; stale-output clearing on identity change; no indicator output from demo/loading/unavailable/error snapshots. Footprint OFF retains ordinary candle spacing; explicit ON alone selects spaced-cluster layout.
 
 Focused declarations remain 21 calculation + 7 shared-hook tests; these are declaration counts, not pass counts or completed indicators. Aggregate indicator completion remains ⚪ NOT SCORED because no approved weighted denominator exists.
+
+
+---
+
+# Work Cycle 70 indicator reconciliation — 25 November 2026
+
+**Audited source HEAD:** `f0c474fa25f973b1069bb0cef95b9b4fc7611127`  
+**Exact-HEAD CI:** 4/4 SUCCESS; Automated Tests 41/41 steps; backend pytest 1,426 passed, 1 skipped, 6 warnings.  
+**Indicator source changes:** none. **Indicator completion credit:** none.
+
+The Gate 25 runtime-wiring audit changes no indicator math, hooks, chart rendering, UI or indicator tests. Current status remains:
+
+| Indicator / subsystem | Status | Remaining acceptance |
+|---|---|---|
+| SMA20 | 🟨 FOUNDATION | Chart overlay, toggle, legend/latest value and lifecycle |
+| EMA20 | 🟨 FOUNDATION | Chart overlay, toggle, legend/latest value and lifecycle |
+| RSI14 Wilder | 🟨 FOUNDATION | Dedicated 0–100 pane, 30/70 guides and lifecycle |
+| MACD12/26/9 | 🟨 FOUNDATION | Dedicated pane, MACD/signal lines, histogram and zero guide |
+| Bollinger20,2 | 🟨 FOUNDATION | Upper/middle/lower overlays, fill, legend and lifecycle |
+| Shared Indicator Hook | 🟨 FOUNDATION | Integration into CandlestickChart and complete trust/lifecycle acceptance |
+| Footprint PRO 2GD | 🟧 GATED | Stage 4 blueprint/review and reference-matched renderer; offline accumulator is not exchange-native bid/ask |
+| Volume Profile | 🟥 OPEN | Accepted binning, POC/value-area algorithm and chart integration |
+| Complete Volume Profile | 🟥 OPEN | Session/range methodology and POC/VAH/VAL acceptance |
+| Movable-range Volume Profile | 🟥 OPEN | User range interaction, recalculation and lifecycle |
+| Heatmap | 🟥 OPEN | Lawful depth source, aggregation/decay methodology and supplied visual reference |
+| Liquidation Maps | 🟥 OPEN | Data provenance, estimation methodology and confidence limits |
+
+Mathematical invariants remain: warm-up nulls, prefix causality, no future-candle lookahead, exact timestamp/series alignment, stale-output clearing on identity change, and no output from demo/loading/unavailable/error snapshots. Footprint OFF retains standard candle spacing; explicit ON alone enables spaced clusters.
+
+Focused declarations remain 21 calculation + 7 shared-hook tests; they are not completed-indicator counts. Aggregate indicator completion remains ⚪ NOT SCORED because no approved weighted denominator exists.
