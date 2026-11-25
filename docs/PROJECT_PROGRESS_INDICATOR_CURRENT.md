@@ -6432,3 +6432,57 @@ Indicator aggregate remains ⚪ NOT SCORED. No indicator code or chart UI change
 Latest source/test SHA `e1d2cfe05130e705264f416c61f56c6d12a73df3`: four workflows SUCCESS; backend 1,435 passed, 1 skipped, 6 warnings; isolated TLS integration 1 passed. The new authenticated gateway peer binding is Batch 81 hardening only; no indicator implementation changed.
 
 Batch 80 🟩; 81 🟨; 82 🟨; 83 🟨; 84 🟧; 85 🟥; 86 🟧. Delivery planning target remains around 24 December 2026. ZERO COST remains mandatory.
+
+---
+
+# Work Cycle 89–93 dashboard update — 25 November 2026
+
+**Blueprint:** `docs/WORK_CYCLE_2026-11-25_BATCH89_93_ZERO_ORIGIN_BLUEPRINT.md` (draft for owner review).  
+**Latest known completed documentation commit:** `d3eff655660c328de2d09ad77e825cf0ca8f023c` (Batch 89–93 blueprint).  
+**Runtime implementation:** none claimed. No Worker project was executed, no DO schema migrated, no API/series engine/WebSocket production code added, no Cloudflare resource created/deployed.
+
+## Batch 89–95 live status
+
+| Batch | Status | Evidence / remaining gate |
+|---:|---|---|
+| 89 | 🟨 INSPECTION RECORDED / 🟥 RUNTIME NOT VERIFIED | Existing package manifest and backend requirements inspected; isolated Python Worker runtime tests not executed |
+| 90 | 🟦 DESIGN DRAFT | DO SQLite logical schema, invariants and legacy mapping prepared; owner review and implementation pending |
+| 91 | 🟦 DESIGN DRAFT | Provider-neutral API routes, response envelope and security contract prepared; frontend contract reconciliation and implementation pending |
+| 92 | 🟦 DESIGN DRAFT | Series state machine, atomic append, replay and idempotency contract prepared; implementation/tests pending |
+| 93 | 🟦 DESIGN DRAFT | WSS ticket/auth, hibernation, reconnect and durable receipt protocol prepared; implementation/tests pending |
+| 94 | 🟥 BLOCKED | No lawful, compatible, zero-cost provider has passed evidence gate |
+| 95 | 🟥 BLOCKED | Public WSS/device E2E, quota and restore evidence absent; deployment authorization not granted |
+
+**WebSocket production completion:** 🟥 NOT COMPLETE. **Project Gate 25:** 🟥 OPEN. **Gate 36:** 🟥 OPEN.
+
+The new blueprint is a substantial planning deliverable, not a claim that Batches 89–93 are implementation-successful. No batch is marked green without terminal test or acceptance evidence.
+
+## Indicator dashboard — unchanged, complete inventory
+
+| # | Indicator / subsystem | Status | Next acceptance |
+|---:|---|---|---|
+| 1 | SMA20 | 🟨 FOUNDATION | Chart overlay, toggle, legend/value and lifecycle |
+| 2 | EMA20 | 🟨 FOUNDATION | Chart overlay, toggle, legend/value and lifecycle |
+| 3 | RSI14 Wilder | 🟨 FOUNDATION | 0–100 pane, 30/70 guides and lifecycle |
+| 4 | MACD12/26/9 | 🟨 FOUNDATION | MACD/signal lines, histogram and zero guide |
+| 5 | Bollinger20,2 | 🟨 FOUNDATION | Three bands, fill, legend and lifecycle |
+| 6 | Shared Indicator Hook | 🟨 FOUNDATION | Chart integration after Stage 4 scoped review |
+| 7 | Footprint PRO 2GD | 🟧 GATED | Visual blueprint must match both saved references |
+| 8 | Volume Profile | 🟥 OPEN | Binning, volume allocation, POC/VAH/VAL tests |
+| 9 | Complete Volume Profile | 🟥 OPEN | Session completeness and POC/VAH/VAL methodology |
+| 10 | Movable-range Volume Profile | 🟥 OPEN | Range selection and deterministic recomputation |
+| 11 | Heatmap | 🟥 OPEN | User reference plus lawful depth/aggregation/decay contract |
+| 12 | Liquidation Maps | 🟥 OPEN | Provenance, estimation method and confidence limits |
+
+Math first-valid indices remain SMA20 19, EMA20 19, RSI14 14, MACD line 25/signal+histogram 33, Bollinger20 19. Focused test declarations remain 28 (21 calculations + 7 hook), not a pass count. Footprint OFF preserves normal candle spacing; only explicit ON uses spaced clusters. Heatmap visuals remain reference-gated.
+
+## Scoring remains conservative
+
+- Stage 1: 30/40 = 75% provisional 🟨; not whole-project completion.
+- Gate 10: 0/10 formally closed 🟥; criteria 8,20,25,30,31,34,35,36,38,39 remain.
+- Stage 2 🟦 PREPARATORY; Stage 3 ⚪ NOT SCORED; Stage 4 🟪 GATED; Stage 5/6 ⚪ NOT SCORED.
+- Overall project ⚪ NOT SCORED; approved weighted denominator absent.
+- Significant progress / IP3S ⚪ NOT SCORED; approved reproducible formula absent.
+- Aggregate indicator completion ⚪ NOT SCORED.
+
+No CI success is claimed. The documentation commit uses [skip ci], so it intentionally does not create a CI run. Connector limitations do not establish the absence of push-triggered runs.
