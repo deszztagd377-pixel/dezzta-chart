@@ -1,3 +1,69 @@
+# Current exact-head reconciliation — Batch 62J-243 (25 November 2026)
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Exact source HEAD:** `429999e77b99c4f42e8dfafb82488fcdd7822a04`  
+**Parent checkpoint:** `65bf9203b2521846ddbac6206202d302a9fc81b8`  
+**Scope:** persistent offline WebSocket disconnect-release recovery, regression tests, lifecycle worker and indicator/project status reconciliation.  
+**ZERO COST:** local in-memory adapter only. **Vercel:** no deployment. **main:** untouched.
+
+## WebSocket recovery — Batch 62J-243
+
+The previous bounded three-attempt retry still retained a disconnected lease indefinitely if all attempts failed. This batch adds a recovery queue and an application-lifecycle reconciliation loop:
+
+- Failed final releases enqueue the still-owned lease ID in the coordinator's in-memory pending-release set.
+- `retry_pending_releases()` retries queued IDs without releasing unrelated active subscribers.
+- Successful release clears the pending marker; persistent failures remain queued for the next pass.
+- FastAPI lifespan starts a local recovery task with a one-second polling interval and joins it during graceful shutdown with a two-second deadline.
+- The worker uses no external provider, network connection, paid service, or Redis operation.
+
+Regression coverage added:
+- persistent stop failure is queued and later recovered after the adapter becomes available;
+- persistent failure remains queued after a recovery pass also fails.
+
+The coordinator test file now contains 16 test declarations. This count is inventory only, not a passing-test count. Route-level and lifecycle behavior still require exact-HEAD automated test evidence.
+
+**Important boundary:** this remains in-process recovery for the explicitly offline-fixture adapter. It is not durable across process restart, and it does not implement production multi-process ownership or external provider lifecycle.
+
+## CI / verification state
+
+The repository status-check endpoint returned no status records for this exact SHA, and the available workflow-run endpoint only exposes pull-request-triggered runs; it returned no run records. Therefore exact-HEAD Automated Tests, CodeQL, OCI ARM64 and Secret Audit are **unverified**, not passed and not asserted to be absent. No workflow is represented as running based on these empty responses.
+
+## Indicator progress — unchanged source, explicit integration gaps
+
+| Indicator | Calculation foundation | Chart integration | Status |
+|---|---|---|---|
+| SMA20 | 20-close mean; first valid index 19 | Not accepted | 🟨 FOUNDATION |
+| EMA20 | SMA-seeded; alpha 2/21; first valid index 19 | Not accepted | 🟨 FOUNDATION |
+| RSI14 Wilder | 14-change seed; first valid index 14 | Not accepted | 🟨 FOUNDATION |
+| MACD12/26/9 | MACD index 25; signal/histogram index 33 | Not accepted | 🟨 FOUNDATION |
+| Bollinger20,2 | 20-close mean ± 2 population SD; first valid index 19 | Not accepted | 🟨 FOUNDATION |
+| Shared Indicator Hook | Keyed immutable snapshot/cache and trust-gating foundation | Not integrated into CandlestickChart | 🟨 FOUNDATION |
+| Footprint PRO 2GD | Synthetic/offline accumulator only | Renderer gated; supplied visual references retained | 🟧 GATED |
+| Volume Profile | Not fully verified | Not integrated | 🟥 OPEN |
+| Complete Volume Profile | Not fully verified | Not integrated | 🟥 OPEN |
+| Movable-range Volume Profile | Not fully verified | Not integrated | 🟥 OPEN |
+| Heatmap | Depth/liquidity engine not accepted; reference gate remains | Not integrated | 🟥 OPEN |
+| Liquidation Maps | Methodology/provenance/renderer not accepted | Not integrated | 🟥 OPEN |
+
+Math invariants: warm-up values null; no future-candle lookahead; prefix-causal results; clear stale data when instrument/timeframe identity changes. Footprint OFF preserves normal candles; ON alone selects spaced clusters. Heatmap visual work remains gated on the user's reference.
+
+## Project dashboard
+
+- Stage 1: 30/40 = 75% provisional inherited baseline 🟨 (not recalculated in this batch).
+- Stage 2: active engineering 🟦; no approved weighted denominator.
+- Stage 3: unscored ⬜.
+- Stage 4: gated 🟪.
+- Stage 5: unscored ⬜.
+- Stage 6: unscored ⬜.
+- Gate 10: 0/10 formally closed 🟥.
+- Overall project: NOT SCORED ⚪.
+- Aggregate indicator completion: NOT SCORED ⚪.
+- Significant progress / IP3S: NOT SCORED ⚪.
+
+Target remains around **24 December 2026**, as a planning target only. Next work remains in order: exact-HEAD CI verification, replay/live synchronization, subscriber isolation, Redis pending-entry safety, Gate 25 snapshot/receipt, Gate 36 WSS/TLS and Firebase E2E, Android reconnect/multi-instance, final WebSocket acceptance.
+
+---
+
 # Current exact-head reconciliation — Batch 62J-240 (25 November 2026) (25 November 2026)
 
 **Active branch:** `phase-2/market-data-foundation`  
