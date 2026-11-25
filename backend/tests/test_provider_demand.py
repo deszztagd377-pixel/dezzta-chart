@@ -260,8 +260,14 @@ def test_release_with_retry_rejects_invalid_retry_policy():
         coordinator = ProviderDemandCoordinator(InMemoryOfflineProviderAdapter())
         with pytest.raises(ValueError, match="attempts"):
             await coordinator.release_with_retry("lease", attempts=0)
+        with pytest.raises(ValueError, match="attempts"):
+            await coordinator.release_with_retry("lease", attempts=11)
         with pytest.raises(ValueError, match="initial_delay"):
             await coordinator.release_with_retry("lease", initial_delay=-1)
+        with pytest.raises(ValueError, match="initial_delay"):
+            await coordinator.release_with_retry("lease", initial_delay=float("inf"))
+        with pytest.raises(ValueError, match="initial_delay"):
+            await coordinator.release_with_retry("lease", initial_delay=float("nan"))
 
     run(scenario())
 
