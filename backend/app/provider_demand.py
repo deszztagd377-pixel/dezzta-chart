@@ -143,15 +143,15 @@ class ProviderDemandCoordinator:
         external recovery path can retry it later. Cancellation is never
         swallowed.
         """
-        if isinstance(attempts, bool) or not isinstance(attempts, int) or not 1 <= attempts <= 10:
-            raise ValueError("attempts must be an integer between 1 and 10")
+        if isinstance(attempts, bool) or not isinstance(attempts, int) or not 1 <= attempts <= 5:
+            raise ValueError("attempts must be an integer between 1 and 5")
         if (
             isinstance(initial_delay, bool)
             or not isinstance(initial_delay, (int, float))
             or not math.isfinite(initial_delay)
-            or initial_delay < 0
+            or not 0 <= initial_delay <= 1.0
         ):
-            raise ValueError("initial_delay must be a finite non-negative number")
+            raise ValueError("initial_delay must be finite and within [0, 1.0]")
 
         lease_id = lease.lease_id if isinstance(lease, DemandLease) else lease
         for attempt in range(attempts):
