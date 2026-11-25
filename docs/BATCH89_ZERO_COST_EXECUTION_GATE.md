@@ -82,3 +82,13 @@ Do not advance downstream implementation past its dependency gates.
 
 **🟨 Gate specification documented. 🟥 Runtime execution pending.**  
 The exact current test/build results remain UNKNOWN / NOT VERIFIED. This document does not claim a test pass.
+
+
+## 8. Follow-up static audit — 25 November 2026
+
+The source audit is recorded in [BATCH89_93_SOURCE_AUDIT_2026-11-25.md](BATCH89_93_SOURCE_AUDIT_2026-11-25.md), audited at branch HEAD `5004d47ac9a492032f275c6df610b875a8b2d869` before the audit-document commit.
+
+- LockfileVersion 3 and root package dependency declarations match `package.json`; this is static metadata inspection only, not a successful install.
+- `package.json` has no declared Node engine range; record Node/npm versions when the actual runner becomes available.
+- Static scan found 31 Node proof tests, 11 Durable Object Vitest tests and 1 Miniflare test declaration: 43 declarations total, all **NOT RUN** in this audit.
+- The four validation commands remain unexecuted. The current repository connector has no command runner, so Batch 89 remains 🟥 OPEN.
