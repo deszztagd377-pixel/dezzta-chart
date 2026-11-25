@@ -1,3 +1,33 @@
+# Stage 1 / project architecture reconciliation — Work Cycle 88 (25 November 2026)
+
+**Current selected architecture:** Cloudflare Native / Zero-Origin. The historical owner-host/source-gateway/Redis Batch 80–86 execution plan is superseded and must not be followed as the active sequence.
+**Stage 1 meter:** 30/40 = 75% provisional 🟨; not whole-project completion.
+**Gate 10:** 0/10 formally closed 🟥. Remaining criteria: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.
+**Stage 2:** 🟦 PREPARATORY. **Stage 3:** ⚪ NOT SCORED. **Stage 4:** 🟪 GATED. **Stage 5/6:** ⚪ NOT SCORED.
+**Overall project / IP3S:** ⚪ NOT SCORED; no approved reproducible weighted denominator.
+**Production WebSocket:** 🟥 OPEN. Existing Worker remains synthetic-only proof and is not deployed evidence.
+**Project Gate 25:** 🟥 OPEN; owner-auditable durable receipt/high-water contract must be reconciled to Zero-Origin consumers.
+**Gate 36:** 🟥 OPEN; public WSS/TLS/browser/Android E2E not proven.
+**Live market data:** 🟥 OPEN; provider license, zero-cost access, package and transport compatibility not established.
+**CI:** documentation-only commits use `[skip ci]`; this is not a source/runtime test pass.
+**Cost:** ZERO COST; no deployment, paid service, resource creation or `main` changes.
+
+## Active execution order (supersedes owner-host Batch 80–86)
+
+1. Batch 88 — architecture alignment (documented).
+2. Batch 89 — Python Workers dependency/runtime compatibility spike.
+3. Batch 90 — Durable Objects SQLite schema and legacy migration design.
+4. Batch 91 — provider-neutral Worker API shell.
+5. Batch 92 — series Durable Object, durable event log, cursor and replay.
+6. Batch 93 — WebSocket authentication, hibernation, reconnect and receipts.
+7. Batch 94 — zero-cost lawful provider ingress feasibility and connector.
+8. Batch 95 — public WSS/TLS/device E2E, quotas and backup/restore.
+
+Full Zero-Origin architecture and platform-limit evidence: `docs/WORK_CYCLE_2026-11-25_BATCH88_CLOUDFLARE_NATIVE_ZERO_ORIGIN_ALIGNMENT.md`.  
+Historical Batch 80–86 plan remains preserved but marked superseded for execution.
+
+---
+
 # Latest Stage 1 acceptance reconciliation — Work Cycle 87 (25 November 2026)
 
 **Audited source/test HEAD:** `471eb4413a716922b20a5503fe5165607e77947f`.  
