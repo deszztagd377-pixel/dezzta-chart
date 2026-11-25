@@ -138,6 +138,7 @@ test("synthetic snapshot is bounded to 50 bars and has monotonic cursors", () =>
   assert.equal(proofLimits.snapshotBars, 50);
   assert.equal(proofLimits.ticketTtlMs, 90_000);
   assert.equal(proofLimits.unauthenticatedSocketTtlMs, 15_000);
+  assert.equal(proofLimits.maxUnauthenticatedConnectionsPerSeries, 8);
 });
 
 test("ticket is series-bound, purpose-bound, expires, and is single-use under concurrency", async () => {
@@ -233,6 +234,57 @@ test("snapshot endpoint returns exactly 50 synthetic bars", async () => {
   assert.equal(payload.bars.length, 50);
   assert.equal(payload.watermarkCursor, "50");
   assert.equal(payload.dataSource, "synthetic_only_not_market_data");
+});
+
+test("streaming JSON reader cancels an oversized body without buffering the remainder", async () => {
+  let cancelled = false;
+  let pulls = 0;
+  const body = new ReadableStream({
+    pull(controller) {
+      pulls += 1;
+      controller.enqueue(new Uint8Array(2_049));
+    },
+    cancel() {
+      cancelled = true;
+    },
+  });
+  const oversized = new Request("https://synthetic-proof.local/v1/auth/websocket-ticket", {
+    method: "POST",
+    headers: {
+      Origin: "http://localhost:3000",
+      Authorization: "Bearer " + TOKEN,
+      "Content-Type": "application/json",
+    },
+    body,
+    duplex: "half",
+  });
+  const response = await worker.fetch(oversized, makeEnv());
+  assert.equal(response.status, 400);
+  assert.equal(cancelled, true);
+  assert.equal(pulls, 1);
+});
+
+test("Durable Object rejects excess unauthenticated sockets before accepting another", async () => {
+  const pending = Array.from({ length: proofLimits.maxUnauthenticatedConnectionsPerSeries }, () => (
+    new MemorySocket({
+      authorized: false,
+      seriesKey: SERIES,
+      subject: null,
+      connectedAt: Date.now(),
+    })
+  ));
+  const coordinator = new SeriesCoordinatorDO({
+    storage: new MemoryStorage(),
+    getWebSockets: () => pending,
+  }, {});
+  const response = await coordinator.fetch({
+    url: "https://series.internal/internal/connect?seriesKey=" + encodeURIComponent(SERIES),
+    method: "GET",
+    headers: new Headers({ Upgrade: "websocket" }),
+  });
+  assert.equal(response.status, 429);
+  assert.equal(await response.text(), "Authentication capacity reached");
+  assert.equal(pending.length, proofLimits.maxUnauthenticatedConnectionsPerSeries);
 });
 
 test("ticket endpoint validates series before calling the coordinator", async () => {
