@@ -6547,3 +6547,14 @@ The synthetic proof stores only a sequence watermark, not replayable event paylo
 The GitHub connector has no checked-out command runner; local container DNS could not resolve GitHub. No test, build, lint, Miniflare, DO runtime or Python Worker command ran in this cycle. The available status endpoint returned no status entries and the connector's PR-filtered workflow endpoint returned no runs; neither result proves that all push workflows are absent. No CI success is claimed.
  
 Stage 1 remains **30/40 = 75% provisional 🟨**, with no gate closed in this cycle. Gate 10 remains **0/10 formally closed 🟥**. Stage 2 🟦 preparatory; Stage 3 ⚪ not scored; Stage 4 🟪 gated; Stages 5–6 ⚪ not scored. Overall project, significant progress/IP3S and aggregate indicator completion remain ⚪ NOT SCORED because approved formulas/denominators are absent. ZERO COST, active branch isolation and the around-24-December-2026 planning target remain unchanged.
+
+
+---
+
+# WebSocket test coverage audit — 25 November 2026
+
+A source-level inventory found **43 existing test declarations**: 31 Node proof tests, 11 Cloudflare Durable Object runtime tests, and 1 Miniflare/workerd integration test. They were inspected, not executed; this is not a pass count.
+
+Existing tests cover synthetic ticket issuance/consumption, ticket race, series binding, proof-only sequence continuity, authenticated fan-out, socket attachment restoration, alarms and bounded request parsing. They do **not** establish durable event payload replay, atomic event+digest+cursor rollback, ACK receipt durability, receipt monotonicity, RESUME paging, retention-floor resnapshot, generation mismatch behavior or Android/browser network-handover E2E.
+
+The 15 production WebSocket acceptance requirements are mapped individually in the latest Batch 89–93 blueprint. Existing test-name presence is not production acceptance. No test status or batch status was upgraded from this audit.
