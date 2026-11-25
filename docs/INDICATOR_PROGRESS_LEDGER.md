@@ -1,3 +1,16 @@
+# Latest verified update — Batch 62J-232 (25 November 2026)
+
+**Branch:** phase-2/market-data-foundation  
+**Parent:** 821b3b6602fa2568bf2e103bb725651b1a60de6c  
+**Change:** POSIX key loading adds O_NONBLOCK beside O_NOFOLLOW so FIFO/device paths cannot block before fstat rejects non-regular files. Added POSIX FIFO regression test. Permission diagnostic now accurately describes owner-only/no group-world access rather than implying exactly 0600.  
+**CI:** pending exact new SHA; parent CI is not inherited.  
+**Gate 25:** repository file-open boundary hardened; owner-host custody, authenticated remote transfer, per-gateway receipt retrieval, restart re-verification and durable high-water ACK remain 🟥 OPEN.  
+**Indicator inventory:** 28 focused declarations = 21 calculation + 7 shared-hook; FIFO regression is backend security coverage and excluded. SMA20/EMA20/RSI14/MACD/Bollinger/Shared Hook 🟨 foundation; Footprint 🟧 gated; Volume Profile variants/Heatmap/Liquidation Maps 🟥 incomplete/not integrated. Aggregate ⚪ NOT SCORED.  
+**Project:** Stage 1 30/40 = 75% provisional 🟨; Stage 2 🟦 active / NOT SCORED; Stage 3 ⬜ NOT SCORED; Stage 4 🟪 gated; Stage 5 ⬜ NOT SCORED; Stage 6 ⬜ NOT SCORED; Gate 10 0/10 🟥; overall ⚪ NOT SCORED; IP3S ⚪ NOT SCORED.  
+**Controls:** ZERO COST; main untouched; no Vercel deployment; no destructive Redis action; APK target around 24 December 2026.
+
+---
+
 # Latest indicator reconciliation — Batch 62J-229 (24 November 2026)
 
 **Focused suite inventory:** 28 named test declarations = 21 calculation-engine + 7 shared-hook tests. The count is a source inventory, not a count of completed indicators or a completion percentage. CI is the pass/fail authority.  

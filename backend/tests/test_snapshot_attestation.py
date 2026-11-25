@@ -262,3 +262,13 @@ def test_source_signing_key_loader_rejects_oversized_files(tmp_path):
 
     with pytest.raises(ValueError, match="64 KiB"):
         load_ed25519_private_key(str(key_path))
+
+
+
+@pytest.mark.skipif(os.name != "posix", reason="POSIX FIFO semantics")
+def test_source_signing_key_loader_rejects_fifo_without_blocking(tmp_path):
+    fifo_path = tmp_path / "owner-key.pipe"
+    os.mkfifo(fifo_path)
+
+    with pytest.raises(ValueError, match="regular file"):
+        load_ed25519_private_key(str(fifo_path))

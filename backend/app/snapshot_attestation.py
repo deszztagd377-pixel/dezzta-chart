@@ -159,6 +159,8 @@ def load_ed25519_private_key(path: str) -> Ed25519PrivateKey:
                 "Snapshot private key loading requires no-follow file support."
             )
         flags |= no_follow
+        # Avoid blocking on FIFOs/devices before fstat rejects non-regular files.
+        flags |= getattr(os, "O_NONBLOCK", 0)
 
     try:
         descriptor = os.open(key_path, flags)
@@ -177,7 +179,7 @@ def load_ed25519_private_key(path: str) -> Ed25519PrivateKey:
                 raise ValueError("Snapshot private key file must be owned by the service user.")
             if stat.S_IMODE(file_info.st_mode) & 0o077:
                 raise ValueError(
-                    "Snapshot private key file permissions must be owner-only (0600)."
+                    "Snapshot private key file must be owner-only with no group/world access."
                 )
         with os.fdopen(descriptor, "rb") as key_file:
             descriptor = -1
