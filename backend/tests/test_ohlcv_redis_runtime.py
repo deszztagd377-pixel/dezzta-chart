@@ -167,6 +167,7 @@ def test_environment_factory_is_opt_in_and_production_requires_tls():
             snapshot_verifier=lambda source, state: {},
             environ={
                 "APP_ENV": "production", "OHLCV_REDIS_ENABLED": "true",
+                "OHLCV_REDIS_ROLE": "source",
                 "OHLCV_REDIS_PUBLISHER_OWNER": "source-host-01",
                 "OHLCV_REDIS_PUBLISH_URL": "redis://publisher:secret@redis.example:6379/0",
             },

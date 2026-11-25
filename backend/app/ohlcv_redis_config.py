@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import re
+from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Mapping
 from urllib.parse import unquote, urlsplit
@@ -36,6 +37,34 @@ def gateway_lease_acl_selector(lease_key: str) -> str:
         raise ValueError("lease_key must be an exact literal Redis key.")
     commands = " ".join(GATEWAY_LEASE_ACL_COMMANDS)
     return "(" + commands + " ~" + lease_key + ")"
+
+
+def require_ohlcv_runtime_role(environ: Mapping[str, str], expected_role: str) -> str:
+    """Require an explicit, non-conflicting source/gateway process identity."""
+    if expected_role not in {"source", "gateway"}:
+        raise ValueError("expected_role must be source or gateway.")
+    role = environ.get("OHLCV_REDIS_ROLE", "").strip().lower()
+    if role not in {"source", "gateway"}:
+        raise ValueError("OHLCV_REDIS_ROLE must be explicitly set to source or gateway.")
+    if role != expected_role:
+        raise ValueError(
+            f"OHLCV_REDIS_ROLE={role} cannot initialize the {expected_role} runtime."
+        )
+    return role
+
+
+def validate_absolute_database_path(value: str, *, name: str) -> str:
+    """Reject relative, symbolic-link, and directory database targets."""
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{name} is required.")
+    path = Path(value.strip()).expanduser()
+    if not path.is_absolute():
+        raise ValueError(f"{name} must be an absolute file path.")
+    if path.is_symlink():
+        raise ValueError(f"{name} must not be a symbolic link.")
+    if path.exists() and not path.is_file():
+        raise ValueError(f"{name} must reference a file, not a directory.")
+    return str(path)
 
 
 def _parse_bool(value: str, *, name: str) -> bool:

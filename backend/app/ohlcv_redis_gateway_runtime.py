@@ -16,6 +16,8 @@ from app.ohlcv_redis_config import (
     DEFAULT_OHLCV_STREAM_KEY,
     OhlcvRedisRelayConfig,
     _parse_acl_url,
+    require_ohlcv_runtime_role,
+    validate_absolute_database_path,
 )
 from app.ohlcv_redis_consumer import RedisOhlcvReplicaConsumer
 from app.ohlcv import MIN_RETENTION, SUPPORTED_TIMEFRAMES
@@ -51,8 +53,9 @@ def build_gateway_replica_runtime_factory(
     """
     if type(production) is not bool:
         raise ValueError("production must be a boolean.")
-    if not isinstance(database_path, str) or not database_path.strip():
-        raise ValueError("A persistent gateway replica database path is required.")
+    database_path = validate_absolute_database_path(
+        database_path, name="OHLCV_REDIS_REPLICA_DATABASE_PATH"
+    )
     if not isinstance(expected_source_id, str) or not expected_source_id.strip():
         raise ValueError("A configured authoritative source ID is required.")
     if len(expected_source_id) > 128:
@@ -243,6 +246,7 @@ def gateway_replica_runtime_factory_from_environment(
     else:
         trusted_snapshot_keys = {}
 
+    require_ohlcv_runtime_role(source, "gateway")
     return build_gateway_replica_runtime_factory(
         redis_url=source.get("OHLCV_REDIS_GATEWAY_URL", ""),
         database_path=source.get("OHLCV_REDIS_REPLICA_DATABASE_PATH", ""),

@@ -7,7 +7,10 @@ from typing import Any
 from urllib.parse import urlsplit
 
 
-from app.ohlcv_redis_config import DEFAULT_OHLCV_STREAM_KEY, OhlcvRedisRelayConfig, _parse_acl_url
+from app.ohlcv_redis_config import (
+    DEFAULT_OHLCV_STREAM_KEY, OhlcvRedisRelayConfig, _parse_acl_url,
+    require_ohlcv_runtime_role, validate_absolute_database_path,
+)
 from app.ohlcv_redis_publisher import RedisOhlcvPublisher, SQLiteOhlcvPublisherCheckpoint
 from app.ohlcv_store import SQLiteOhlcvStore
 
@@ -128,6 +131,9 @@ def build_source_publisher_runtime_factory(
     def runtime_factory(source_store: SQLiteOhlcvStore) -> dict[str, Any]:
         if not isinstance(source_store, SQLiteOhlcvStore):
             raise TypeError("The source publisher requires the authoritative SQLiteOhlcvStore.")
+        validate_absolute_database_path(
+            source_store.database_path, name="OHLCV_REDIS_SOURCE_DATABASE_PATH"
+        )
         checkpoint = SQLiteOhlcvPublisherCheckpoint(source_store, stream_key=stream_key)
         state = checkpoint.state()
         if state is None:
@@ -179,6 +185,7 @@ def source_publisher_runtime_factory_from_environment(
         return None
     if enabled not in {"1", "true", "yes", "on"}:
         raise ValueError("OHLCV_REDIS_ENABLED must be a boolean value.")
+    require_ohlcv_runtime_role(source, "source")
     return build_source_publisher_runtime_factory(
         redis_url=source.get("OHLCV_REDIS_PUBLISH_URL", ""),
         owner=source.get("OHLCV_REDIS_PUBLISHER_OWNER", ""),

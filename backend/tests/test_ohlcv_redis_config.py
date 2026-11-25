@@ -99,3 +99,45 @@ def test_relay_enabled_flag_rejects_ambiguous_boolean():
 def test_gateway_lease_acl_selector_rejects_non_literal_keys(lease_key):
     with pytest.raises(ValueError, match="exact literal Redis key"):
         gateway_lease_acl_selector(lease_key)
+
+
+def test_runtime_role_requires_explicit_source_or_gateway_identity():
+    from app.ohlcv_redis_config import require_ohlcv_runtime_role
+
+    with pytest.raises(ValueError, match="explicitly set"):
+        require_ohlcv_runtime_role({}, "source")
+    with pytest.raises(ValueError, match="source or gateway"):
+        require_ohlcv_runtime_role({"OHLCV_REDIS_ROLE": "worker"}, "source")
+    with pytest.raises(ValueError, match="cannot initialize"):
+        require_ohlcv_runtime_role({"OHLCV_REDIS_ROLE": "source"}, "gateway")
+    assert require_ohlcv_runtime_role(
+        {"OHLCV_REDIS_ROLE": "gateway"}, "gateway"
+    ) == "gateway"
+
+
+def test_runtime_database_path_must_be_absolute_and_file_backed(tmp_path):
+    from app.ohlcv_redis_config import validate_absolute_database_path
+
+    database_path = tmp_path / "replica.sqlite3"
+    assert validate_absolute_database_path(
+        str(database_path), name="DATABASE_PATH"
+    ) == str(database_path)
+    with pytest.raises(ValueError, match="absolute file path"):
+        validate_absolute_database_path("relative/replica.sqlite3", name="DATABASE_PATH")
+    with pytest.raises(ValueError, match="required"):
+        validate_absolute_database_path("", name="DATABASE_PATH")
+    directory = tmp_path / "database-directory"
+    directory.mkdir()
+    with pytest.raises(ValueError, match="file, not a directory"):
+        validate_absolute_database_path(str(directory), name="DATABASE_PATH")
+
+
+def test_runtime_database_path_rejects_symbolic_links(tmp_path):
+    from app.ohlcv_redis_config import validate_absolute_database_path
+
+    target = tmp_path / "target.sqlite3"
+    target.write_text("", encoding="utf-8")
+    link = tmp_path / "replica-link.sqlite3"
+    link.symlink_to(target)
+    with pytest.raises(ValueError, match="symbolic link"):
+        validate_absolute_database_path(str(link), name="DATABASE_PATH")

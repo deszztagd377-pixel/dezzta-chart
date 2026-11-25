@@ -191,6 +191,7 @@ def test_gateway_environment_factory_is_opt_in_and_requires_host_evidence():
             snapshot_installer=lambda store: {},
             environ={
                 "OHLCV_REDIS_ENABLED": "true",
+                "OHLCV_REDIS_ROLE": "gateway",
                 "APP_ENV": "production",
                 "OHLCV_REDIS_GATEWAY_URL": "redis://gateway:secret@redis.example:6379/0",
                 "OHLCV_REDIS_REPLICA_DATABASE_PATH": "/var/lib/dezzta/replica.sqlite",
