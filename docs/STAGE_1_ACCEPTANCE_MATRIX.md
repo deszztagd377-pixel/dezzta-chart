@@ -1540,3 +1540,22 @@ This audit confirms that the current synthetic Worker remains proof-only. The se
 The current session has no checked-out repository command runner. No runtime tests, build, lint or Cloudflare simulator suite were executed. The GitHub status endpoint returned no status entries and the available workflow endpoint is PR-filtered; neither is evidence of a successful CI run. No code was committed without runnable tests.
 
 No Stage 1 gate is closed by this documentation audit. Stage 1 remains 30/40 = 75% provisional; Gate 10 remains 0/10 formally closed; Gate 25 and Gate 36 remain open. Zero-cost and branch-isolation constraints remain mandatory.
+
+
+---
+
+# WebSocket test evidence inventory — 25 November 2026
+
+Source inventory: **43 test declarations** (31 Node proof, 11 Durable Object runtime, 1 Miniflare/workerd integration). These are declarations only; no execution is claimed.
+
+The current suites cover synthetic proof request validation, ticket lifecycle/race, sequence continuity, exact-series authenticated fan-out, socket attachment restoration and alarm behavior. Production acceptance remains open for:
+- atomic event payload + digest + high-water commit and rollback;
+- digest-aware idempotency/conflict detection;
+- durable event replay after DO eviction;
+- fan-out crash-window proof;
+- authenticated ACK and durable monotonic receipt;
+- bounded RESUME, retention-floor resnapshot and generation mismatch;
+- ACK receipt race and durable cursor restoration;
+- Android/browser process-death and network-handover E2E.
+
+Existing ticket-consumption race tests and socket-attachment restoration tests are only adjacent coverage; they do not satisfy ACK receipt race or event replay requirements. No Gate 25/36 status is changed by this inventory.
