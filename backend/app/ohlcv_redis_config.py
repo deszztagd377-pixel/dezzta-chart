@@ -53,6 +53,39 @@ def require_ohlcv_runtime_role(environ: Mapping[str, str], expected_role: str) -
     return role
 
 
+def validate_ohlcv_runtime_binding(
+    environ: Mapping[str, str],
+    *,
+    publisher_runtime_factory: object | None,
+    replica_runtime_factory: object | None,
+) -> str | None:
+    """Fail closed when relay enablement and injected app role do not agree."""
+    enabled = _parse_bool(
+        environ.get("OHLCV_REDIS_ENABLED", "false"),
+        name="OHLCV_REDIS_ENABLED",
+    )
+    if not enabled:
+        return None
+    configured_role = environ.get("OHLCV_REDIS_ROLE", "").strip().lower()
+    role = require_ohlcv_runtime_role(
+        environ,
+        configured_role if configured_role in {"source", "gateway"} else "gateway",
+    )
+    if role == "source" and not callable(publisher_runtime_factory):
+        raise ValueError(
+            "Source OHLCV relay is enabled but no publisher_runtime_factory was injected."
+        )
+    if role == "gateway" and not callable(replica_runtime_factory):
+        raise ValueError(
+            "Gateway OHLCV relay is enabled but no replica_runtime_factory was injected."
+        )
+    if role == "source" and replica_runtime_factory is not None:
+        raise ValueError("Source role cannot inject a gateway replica runtime.")
+    if role == "gateway" and publisher_runtime_factory is not None:
+        raise ValueError("Gateway role cannot inject a source publisher runtime.")
+    return role
+
+
 def validate_absolute_database_path(value: str, *, name: str) -> str:
     """Reject relative, symbolic-link, and directory database targets."""
     if not isinstance(value, str) or not value.strip():

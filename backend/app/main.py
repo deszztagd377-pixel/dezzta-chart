@@ -11,6 +11,7 @@ import hmac
 import inspect
 import json
 import logging
+import os
 import time
 from uuid import uuid4
 from collections import deque
@@ -22,6 +23,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import Settings
+from app.ohlcv_redis_config import validate_ohlcv_runtime_binding
 from app.observability import RequestMetrics, WebSocketMetrics, WebSocketMetricsMiddleware
 from app.metrics_collector import SQLiteMetricsCollector
 from app.coverage_store import SQLiteCoverageTracker
@@ -176,6 +178,11 @@ def create_app(
         raise TypeError("publisher_runtime_factory must be callable when provided.")
     if replica_runtime_factory is not None and publisher_runtime_factory is not None:
         raise ValueError("Source publisher and gateway replica runtimes must use separate app roles.")
+    validate_ohlcv_runtime_binding(
+        os.environ,
+        publisher_runtime_factory=publisher_runtime_factory,
+        replica_runtime_factory=replica_runtime_factory,
+    )
     config = settings or Settings.from_environment()
     request_metrics = RequestMetrics()
     websocket_metrics = WebSocketMetrics()

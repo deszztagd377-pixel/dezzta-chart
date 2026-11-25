@@ -133,3 +133,29 @@ def test_publisher_runtime_mismatch_fails_startup_without_accepting_traffic(tmp_
             pass
 
     assert redis_client.closed is True
+
+
+
+def test_create_app_fails_closed_when_enabled_relay_has_no_role_or_factory(
+    tmp_path, monkeypatch,
+):
+    monkeypatch.setenv("OHLCV_REDIS_ENABLED", "true")
+    monkeypatch.delenv("OHLCV_REDIS_ROLE", raising=False)
+    with pytest.raises(ValueError, match="OHLCV_REDIS_ROLE"):
+        create_app(make_settings(tmp_path))
+
+    monkeypatch.setenv("OHLCV_REDIS_ROLE", "source")
+    with pytest.raises(ValueError, match="no publisher_runtime_factory"):
+        create_app(make_settings(tmp_path))
+
+
+def test_create_app_rejects_crossed_runtime_factory_for_declared_role(
+    tmp_path, monkeypatch,
+):
+    monkeypatch.setenv("OHLCV_REDIS_ENABLED", "true")
+    monkeypatch.setenv("OHLCV_REDIS_ROLE", "gateway")
+    with pytest.raises(ValueError, match="no replica_runtime_factory"):
+        create_app(
+            make_settings(tmp_path),
+            publisher_runtime_factory=lambda store: {},
+        )

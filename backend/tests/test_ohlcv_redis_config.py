@@ -141,3 +141,47 @@ def test_runtime_database_path_rejects_symbolic_links(tmp_path):
     link.symlink_to(target)
     with pytest.raises(ValueError, match="symbolic link"):
         validate_absolute_database_path(str(link), name="DATABASE_PATH")
+
+
+def test_runtime_binding_requires_matching_injected_factory_when_enabled():
+    from app.ohlcv_redis_config import validate_ohlcv_runtime_binding
+
+    with pytest.raises(ValueError, match="explicitly set"):
+        validate_ohlcv_runtime_binding(
+            {"OHLCV_REDIS_ENABLED": "true"},
+            publisher_runtime_factory=None,
+            replica_runtime_factory=None,
+        )
+    with pytest.raises(ValueError, match="no publisher_runtime_factory"):
+        validate_ohlcv_runtime_binding(
+            {"OHLCV_REDIS_ENABLED": "true", "OHLCV_REDIS_ROLE": "source"},
+            publisher_runtime_factory=None,
+            replica_runtime_factory=None,
+        )
+    with pytest.raises(ValueError, match="no replica_runtime_factory"):
+        validate_ohlcv_runtime_binding(
+            {"OHLCV_REDIS_ENABLED": "true", "OHLCV_REDIS_ROLE": "gateway"},
+            publisher_runtime_factory=None,
+            replica_runtime_factory=None,
+        )
+    assert validate_ohlcv_runtime_binding(
+        {"OHLCV_REDIS_ENABLED": "true", "OHLCV_REDIS_ROLE": "source"},
+        publisher_runtime_factory=lambda store: {},
+        replica_runtime_factory=None,
+    ) == "source"
+    assert validate_ohlcv_runtime_binding(
+        {"OHLCV_REDIS_ENABLED": "true", "OHLCV_REDIS_ROLE": "gateway"},
+        publisher_runtime_factory=None,
+        replica_runtime_factory=lambda: {},
+    ) == "gateway"
+
+
+def test_runtime_binding_rejects_crossed_role_factory():
+    from app.ohlcv_redis_config import validate_ohlcv_runtime_binding
+
+    with pytest.raises(ValueError, match="cannot inject a source publisher"):
+        validate_ohlcv_runtime_binding(
+            {"OHLCV_REDIS_ENABLED": "true", "OHLCV_REDIS_ROLE": "gateway"},
+            publisher_runtime_factory=lambda store: {},
+            replica_runtime_factory=lambda: {},
+        )
