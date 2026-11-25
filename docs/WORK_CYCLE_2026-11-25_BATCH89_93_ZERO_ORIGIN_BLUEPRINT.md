@@ -5,7 +5,7 @@ Branch: phase-2/market-data-foundation
 Parent checkpoint: bbd6c10bc28b7e090c0c35aa405a3d2785ffa9a8  
 Cost ceiling: ZERO COST  
 Planning target: around 24 December 2026  
-Document status: DRAFT FOR OWNER REVIEW — NOT IMPLEMENTATION ACCEPTANCE
+Document status: OWNER APPROVED FOR SCOPED IMPLEMENTATION — PRODUCTION ACCEPTANCE STILL OPEN
 
 ## 0. Executive result
 
@@ -383,3 +383,64 @@ Official documentation:
 - Python Workers basics and local runtime: https://developers.cloudflare.com/workers/languages/python/basics/
 
 This confirms the platform-level FastAPI/ASGI feasibility, not compatibility of this repository's complete dependency set. Pydantic's exact version, cryptography/Ed25519, Firebase Admin, Databento and Redis remain separate test gates. No isolated Worker scaffold was committed in this cycle because the local runtime could not be executed and a passing code artifact must not be guessed into the repository. Batch 89 therefore remains 🟨 platform feasibility confirmed / 🟥 repository runtime acceptance not executed.
+
+
+## 13. Owner approval and source-level WebSocket gap audit — 25 November 2026
+
+The project owner explicitly approved this blueprint in the current conversation. The blueprint is now the authorized basis for scoped implementation of Batches 89–93. This approval does not authorize Cloudflare resource creation, deployment, paid services, changes to main, or bypassing test gates.
+
+### 13.1 Existing synthetic Worker source audit
+
+The existing proof Worker and Durable Object source were re-read at the approved branch checkpoint. They remain explicitly synthetic-only and are not production WebSocket infrastructure. The audit found the following concrete gaps against the approved contract:
+
+| Finding | Existing behavior | Consequence | Required correction |
+|---|---|---|---|
+| Event durability | acceptNextSequence persists only sequence:<series>; the event payload is not appended to a durable replay log | Sequence high-water can advance without a recoverable event | Atomically persist event digest/payload and high-water in one DO SQLite transaction |
+| Fan-out boundary | Event is sent to sockets after sequence transaction commits | Runtime failure between commit and send loses delivery; there is no durable replay path | Fan-out only after durable append; replay from committed cursor |
+| Client ACK | Authenticated sockets accept ping; other messages are closed | No client acceptance proof | Add bounded ACK schema and durable receipt commit |
+| Resume/replay | No durable event replay endpoint or RESUME protocol | Reconnect cannot recover missed updates | Add cursor-bound replay with retention-floor response |
+| Consumer identity | Synthetic proof subject is a single fixed test identity | No production user/device/consumer identity assurance | Integrate a verified-principal boundary only after Firebase/token compatibility and authorization tests |
+| Snapshot proof | Synthetic snapshot generation/watermark are fixed fixture values | No signed production snapshot-generation acceptance | Bind real generation ID, digest and attestation after verified snapshot import |
+| Provider | No provider is connected; events are deterministic fixtures | Cannot claim live market data | Preserve synthetic_only labeling; Batch 94 remains blocked |
+
+These are not newly introduced defects in the proof: the file header explicitly scopes the Worker to synthetic-only experimentation. The problem would be promoting this proof as if it satisfied production requirements. That promotion is prohibited.
+
+### 13.2 WebSocket implementation acceptance tests
+
+The next implementation must add tests for each item below before the corresponding status can turn green:
+
+1. Event and high-water commit atomically; injected transaction failure changes neither.
+2. Duplicate sequence with identical digest is idempotent.
+3. Duplicate sequence with different digest is rejected as integrity conflict.
+4. Sequence gap does not advance high-water.
+5. Event is replayable after DO eviction/recreation.
+6. Fan-out occurs only after durable commit.
+7. Client ACK is validated against series, generation, digest and committed high-water.
+8. ACK receipt is persisted and remains queryable after DO eviction.
+9. Receipt version is monotonic; replayed identical ACK is idempotent; regression is rejected.
+10. RESUME returns a contiguous bounded replay page from the accepted cursor.
+11. Cursor below retention floor returns explicit resnapshot_required.
+12. Generation mismatch prevents stale replay and requires a new snapshot.
+13. Two sockets racing to ACK/consume a ticket cannot create duplicate or regressing receipt state.
+14. Hibernation wake and DO eviction preserve authorized session identity and cursor attachment.
+15. Android/browser reconnect after process death and network handover is tested at Gate 36.
+
+### 13.3 Batch 89 execution environment gate
+
+The current GitHub connector provides repository file operations, not a checked-out working tree or command runner. The available local container could not resolve github.com, so the repository could not be cloned for an isolated runtime test. No Python Worker code was committed without the ability to run its syntax, dependency and runtime tests. This is an execution-environment limitation, not a package compatibility PASS.
+
+To avoid a false success or broken artifact, Batch 89 remains 🟨 platform-level FastAPI/ASGI feasibility documented / 🟥 exact repository runtime test NOT EXECUTED. The next implementation session must use an already-authorized zero-cost local runner or a repository-connected test runner; it must not provision a paid sandbox or Cloudflare resource.
+
+### 13.4 Stage 1 critical-path acceleration
+
+Stage 1 is expected to be the longest foundation stage because it carries the data-integrity, security, persistence and client-delivery gates. Acceleration must come from parallelizing independent evidence work, not skipping acceptance:
+
+- Track A: Batch 89 Python runtime/package compatibility.
+- Track B: Batch 90 DO SQLite schema, migration and transaction invariants.
+- Track C: Batch 91 API contract/frontend compatibility.
+- Track D: Batch 92/93 event log, replay, ACK receipt and reconnect.
+- Shared release gate: one exact commit, deterministic tests, terminal CI, quota budget and restore proof.
+
+Tracks B–D may be designed in parallel but implementation dependencies remain ordered: schema and invariants before event engine; event engine before replay/ACK; replay/ACK before public WSS E2E. Batch 94 provider evaluation remains isolated and cannot block offline synthetic protocol testing. Batch 95 remains last.
+
+The target of approximately 24 December 2026 remains a planning target. No completion date is guaranteed by documentation progress.
