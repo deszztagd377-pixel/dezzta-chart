@@ -137,3 +137,21 @@ Parallelize only independent preparation: schema review, API contract test desig
 This audit is backend-only. Indicator implementation credit for this cycle is **0**. All 12 indicator statuses remain as recorded in `INDICATOR_PROGRESS_LEDGER.md`; calculation declarations are not converted to passing tests. Stage 1 remains 30/40 = 75% provisional, Gate 10 remains 0/10 formally closed, and overall project progress / IP3S remain NOT SCORED.
 
 The project target remains around 24 December 2026. The date is a planning target, not a reason to waive runtime or data-provenance acceptance.
+
+
+## 10. Additional snapshot/live boundary race — test required before acceptance
+
+A second ordering hazard was identified in the current source path and is recorded as a **potential interleaving race**, not as a reproduced runtime failure:
+
+1. `webSocketMessage` awaits `consumeTicket(...)`.
+2. `consumeTicket` transaction reads the current `sequence:<series>` value and deletes the one-time ticket, then returns the captured `snapshotWatermark`.
+3. After that awaited transaction resolves, the handler marks the socket attachment authorized and sends the snapshot synchronously.
+4. The emit handler advances the cursor and fans out only to sockets already marked authorized.
+
+If an emit is scheduled after the consume transaction commits but before the authentication continuation marks the socket authorized, the new event may be omitted from fan-out while the snapshot still carries the earlier watermark. The existing test named `snapshot captures the current cursor and next live update follows its watermark` verifies the ordinary ordering but does not, by its inspected assertions, force this exact interleaving.
+
+**Required regression proof:** deterministically pause authentication immediately after ticket-consumption transaction completion; commit the next event while the socket is not yet authorized; resume authentication; then prove the client receives either (a) a snapshot at or beyond the new committed cursor, or (b) a contiguous replay beginning immediately after the snapshot watermark. No event may be silently lost or duplicated. Repeat with two concurrent auth/emit schedules and under the actual pinned Miniflare/DO runtime.
+
+**Implementation constraint:** do not fix this by moving the cursor read later without a replayable event log. The durable Batch 92 event log and Batch 93 bounded RESUME path are the intended foundation for closing this race. Keep the socket snapshot/live boundary explicit and testable.
+
+This is a source-ordering risk requiring deterministic runtime reproduction. It does not change the 15 acceptance statuses or imply a test passed. Batch 92/93 remain OPEN.
