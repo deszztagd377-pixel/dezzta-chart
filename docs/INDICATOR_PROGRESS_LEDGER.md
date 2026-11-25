@@ -1,3 +1,21 @@
+# Indicator ledger — latest reconciliation, Work Cycle 88 (25 November 2026)
+
+**Indicator implementation status is unchanged in Batch 88.** This cycle corrected the backend architecture plan; it did not add indicator source, tests or chart integration.
+**Audited indicator source/test baseline:** `471eb4413a716922b20a5503fe5165607e77947f`.
+**Calculation source:** `507284fb286c633144b497b9d98c8c810250a8db`; **calculation tests:** `5da008e045829876c78b82e612f73d7bd590b1c1`; **shared hook:** `40188569cfc1d823bef2d814404c7bd5bb577c0c`; **hook tests:** `3681bb9b66dd39da8606c7c58c56a3993ef8d80b`; **chart:** `d2ec7c1e825a969b055e3e4d0109290f6f951348`.
+**Focused test declarations:** 21 calculation + 7 hook = 28; not a test-pass count.
+**Chart integration gap:** `CandlestickChart.tsx` does not import/call `useMarketIndicators`.
+**Status:** SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook 🟨 FOUNDATION; Footprint PRO 2GD 🟧 GATED; Volume Profile, Complete Volume Profile, Movable-range Volume Profile, Heatmap and Liquidation Maps 🟥 OPEN.
+**First-valid source indices:** SMA20 19; EMA20 19; RSI14 14; MACD line 25; MACD signal/histogram 33; Bollinger20 19.
+**Cross-cutting acceptance:** warm-up nulls, prefix causality, no lookahead, exact series/timestamp alignment, deterministic finite outputs, no source mutation, bounded history, and no output for demo/loading/unavailable/error/empty snapshots.
+**Footprint behavior:** OFF preserves standard candle spacing; explicit ON alone switches to spaced clusters; two saved Footprint references remain authoritative. Heatmap visuals wait for user reference.
+**Overall indicator completion:** ⚪ NOT SCORED. No approved weighted denominator.
+**Architecture dependency:** indicator calculations can remain platform-neutral; future chart/API integration must consume only authenticated, durable OHLCV snapshots from the Cloudflare Zero-Origin backend. Do not couple calculations to Redis or owner-host runtime.
+**Full 12-row evidence and acceptance details:** `docs/WORK_CYCLE_2026-11-25_BATCH87_INDICATOR_AND_WEBSOCKET_RECONCILIATION.md`.  
+**Backend architecture alignment:** `docs/WORK_CYCLE_2026-11-25_BATCH88_CLOUDFLARE_NATIVE_ZERO_ORIGIN_ALIGNMENT.md`.
+
+---
+
 # Latest indicator audit — Work Cycle 87 (25 November 2026)
 
 **Audited source/test HEAD:** `471eb4413a716922b20a5503fe5165607e77947f`.  
