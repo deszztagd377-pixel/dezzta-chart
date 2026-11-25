@@ -1570,3 +1570,14 @@ The detailed cross-batch contract is maintained in [BATCH90_95_DURABLE_WEBSOCKET
 New combined acceptance groups: (1) compatible additive DO SQLite schema; (2) atomic event payload+digest+high-water; (3) duplicate idempotency/conflict and gap rollback; (4) fan-out-after-commit; (5) bounded contiguous replay and retention-floor resnapshot; (6) authenticated ACK and durable monotonic receipts; (7) RESUME/hibernation/eviction recovery; (8) provider legal/free/runtime gate; (9) public WSS/browser/Android/restore E2E. All remain 🟥 OPEN until executable evidence is attached to the exact commit.
 
 No acceptance gate closes from this design document. Stage 1 remains 30/40 = 75% provisional; Gate 10 remains 0/10 formally closed; Gate 25 and Gate 36 remain OPEN. No runtime code or Cloudflare resources were changed.
+
+
+---
+
+# Batch 89–93 source-audit evidence — 25 November 2026
+
+Detailed evidence and blob SHAs: [BATCH89_93_SOURCE_AUDIT_2026-11-25.md](BATCH89_93_SOURCE_AUDIT_2026-11-25.md).
+
+Static test inventory: 31 Node proof + 11 Durable Object Vitest + 1 Miniflare declarations = 43, all NOT RUN. Static lockfile root metadata matches package.json; no runtime compatibility or installation claim follows from this check.
+
+Batch 92 source blocker: sequence cursor only is committed; event payload/digest replay storage is absent. Batch 93 source blocker: ACK, durable consumer receipt, RESUME and replay recovery are absent. Existing socket attachment restore tests do not close these gates. All Batch 89–93 runtime acceptance conditions remain OPEN pending exact-SHA execution evidence.
