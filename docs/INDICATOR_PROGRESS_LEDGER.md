@@ -1,3 +1,50 @@
+# Indicator ledger reconciliation — Batch 62J-243 (25 November 2026)
+
+**Branch:** `phase-2/market-data-foundation`  
+**Project HEAD at reconciliation:** `e759472218f6bb8167996236f658c0d6306128a9`  
+**Scope:** explicit per-indicator calculation/integration evidence and unchanged math acceptance criteria.
+
+## Indicator status
+
+| Indicator | Calculation / methodology foundation | Chart rendering and lifecycle | Current status |
+|---|---|---|---|
+| SMA20 | 20-close arithmetic mean; first valid index 19 | Overlay, legend, visibility toggle and series lifecycle not accepted | 🟨 FOUNDATION |
+| EMA20 | SMA-seeded EMA; alpha 2/21; first valid index 19 | Overlay, legend, visibility toggle and series lifecycle not accepted | 🟨 FOUNDATION |
+| RSI14 Wilder | 14-change seed and Wilder recurrence; first valid index 14 | Dedicated 0–100 pane, 30/70 guides and lifecycle not accepted | 🟨 FOUNDATION |
+| MACD12/26/9 | MACD begins index 25; signal and histogram begin index 33 | Dedicated pane, MACD/signal lines, histogram, zero guide and lifecycle not accepted | 🟨 FOUNDATION |
+| Bollinger20,2 | 20-close mean ± 2 population standard deviations; first valid index 19 | Upper/middle/lower overlay, fill, legend and lifecycle not accepted | 🟨 FOUNDATION |
+| Shared Indicator Hook | Keyed snapshot/cache and trust-gating foundation | Not integrated into CandlestickChart; stale-key and toggle lifecycle acceptance open | 🟨 FOUNDATION |
+| Footprint PRO 2GD | Synthetic/offline accumulator only | Dedicated renderer gated; visual references must be followed; normal candles must remain unchanged when OFF | 🟧 GATED |
+| Volume Profile | Full calculation, binning and value-area behavior not accepted | Not integrated | 🟥 OPEN |
+| Complete Volume Profile | Full session/range/POC/VAH/VAL methodology not accepted | Not integrated | 🟥 OPEN |
+| Movable-range Volume Profile | User-selected range and recalculation lifecycle not accepted | Not integrated | 🟥 OPEN |
+| Heatmap | Depth/liquidity source, aggregation and decay methodology not accepted | Not integrated; user visual reference gate remains | 🟥 OPEN |
+| Liquidation Maps | Provenance, estimation methodology and confidence limitations not accepted | Not integrated | 🟥 OPEN |
+
+## Calculation acceptance criteria
+
+- SMA20: mean of the current 20 closes; first non-null result at index 19.
+- EMA20: SMA seed over the first 20 closes; alpha (2/21); first non-null at index 19.
+- RSI14: Wilder initialization from 14 price changes; first non-null at index 14.
+- MACD12/26/9: EMA12 minus EMA26; first MACD at index 25; signal EMA9 and histogram first valid at index 33 under first-valid-MACD seeding.
+- Bollinger20,2: 20-close mean and population standard deviation; first valid at index 19.
+- All warm-up outputs must be null; calculations must be prefix-causal; no future-candle lookahead; values must be timestamp-aligned; series identity changes must clear stale values.
+
+## Visual and interaction gates
+
+- SMA/EMA/Bollinger: overlay rendering, toggles, legend, axis handling and update lifecycle remain unaccepted.
+- RSI/MACD: separate panes, correct scale, guide lines, labels and update lifecycle remain unaccepted.
+- Footprint: user-provided Footprint references govern visual implementation. Footprint OFF = ordinary candlesticks and ordinary spacing; Footprint ON = spaced cluster layout with legible bid/ask cells.
+- Heatmap: do not begin visual implementation before using the user's Heatmap reference.
+- Volume Profile family: define bin size, value-area percentage, POC tie-breaking, session boundaries and movable-range behavior before chart integration.
+- Liquidation Maps: do not imply exchange-observed liquidation levels where only estimates or synthetic data are available.
+
+## Progress accounting
+
+The 12 rows above are a scope inventory, not a numeric completion denominator. Calculation foundations do not count as completed chart indicators. No aggregate percentage is published until each indicator has weighted calculation, data provenance, chart rendering, interaction, lifecycle and regression criteria. Aggregate indicator progress remains **NOT SCORED ⚪**.
+
+This batch changes WebSocket recovery code and documentation only; no indicator engine or renderer was changed. The indicator states above are therefore not upgraded by the WebSocket commits.
+
 # Offline WebSocket route demand integration — Batch 62J-240 (25 November 2026)
 
 **Active branch:** `phase-2/market-data-foundation`  
