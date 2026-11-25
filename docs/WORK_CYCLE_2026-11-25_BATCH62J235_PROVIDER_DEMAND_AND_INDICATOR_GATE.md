@@ -193,3 +193,20 @@ The official Databento Python Live API documentation and release history narrow 
 
 **ZERO COST decision:** this API research does not authorize Databento usage. Databento remains a potentially billable source; no account, key, paid subscription or live request was created. The app must retain disabled-by-default behavior unless a lawful, genuinely free source is validated or the owner changes the zero-cost requirement.
 
+
+
+## 10. Backend WebSocket integration-point trace
+
+A further line-level trace of backend/app/main.py confirms the missing link is not merely inside the SDK adapter:
+
+- Application construction injects the configured static symbol tuple into DatabentoLiveSource (main.py around lines 264–267).
+- One ProviderManager is constructed for the application (around lines 280–285); its live supervisor is started from configured provider symbols.
+- The authenticated market_data.subscribe handler validates the exact requested identity, canonical mapping and entitlement before creating a downstream stream subscription (around lines 1365–1530).
+- The handler registers the client with OhlcvStreamHub using subscribe_snapshot/replica snapshot, and its finally block removes only that downstream subscription with stream_hub.unsubscribe (around line 1845).
+- No provider-demand acquire/release call is present between successful authorization and downstream registration, or in the downstream cleanup path.
+
+This means the existing WebSocket handler is the precise integration boundary for a future demand coordinator: acquire only after server-side authorization succeeds; release in the same guaranteed cleanup path. The coordinator must not be called before entitlement and canonical mapping validation. It must not couple one user's socket lifetime to the global ProviderManager shutdown.
+
+The current provider source also has no dynamic method on its LiveSource protocol. A future adapter contract must be explicit and tested, with SDK calls serialized safely according to the pinned SDK's runtime semantics. It must treat subscribe IDs and gateway ACK/error records as state transitions rather than assuming that a local method call means an active subscription.
+
+This source trace is read-only evidence. No backend route or provider code was changed. The scoped blueprint is now precise enough to review, but the source implementation remains gated until the owner reviews the blueprint and the SDK version/runtime contract is pinned and tested.
