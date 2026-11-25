@@ -1519,3 +1519,24 @@ Therefore production WebSocket remains 🟥 OPEN. Correct order: DO SQLite atomi
 No code was committed without a runnable test environment. GitHub connector currently exposes file operations only, and local container could not resolve github.com. This limitation is recorded rather than disguising untested source as successful.
 
 Stage 1 acceleration will parallelize independent design and evidence tracks but retain implementation dependency order. No gate closure is inferred from documentation completion.
+
+
+---
+
+# Stage 1 execution checkpoint — 25 November 2026 source re-audit
+
+This audit confirms that the current synthetic Worker remains proof-only. The sequence cursor is persisted without a durable event payload/digest; fan-out occurs after the cursor transaction; authenticated WebSocket messages support ping/pong but not ACK/RESUME; no durable consumer receipt ledger is present. Therefore the event-log, replay, ACK receipt and reconnect portions of Stage 1 remain unaccepted.
+
+| Acceptance item | Status | Evidence required to close |
+|---|---|---|
+| Python Worker dependency compatibility (Batch 89) | 🟥 OPEN | Exact isolated runtime probes, package versions and terminal test output |
+| DO SQLite schema/migration (Batch 90) | 🟦 DESIGN | Tested DDL, repeatable migration, rollback and legacy digest parity |
+| Provider-neutral API (Batch 91) | 🟦 DESIGN | Frontend contract reconciliation, route tests and fail-closed status semantics |
+| Durable event log/replay (Batch 92) | 🟥 OPEN | Atomic event+digest+high-water, bounded replay, gap/duplicate/eviction tests |
+| WebSocket ACK/receipt/reconnect (Batch 93) | 🟥 OPEN | Bound ACK validation, durable monotonic receipts, RESUME/resnapshot and race/restart tests |
+| Provider ingress (Batch 94) | 🟥 BLOCKED | Lawful terms, technical compatibility and zero-cost proof |
+| Public WSS/device E2E (Batch 95) | 🟥 BLOCKED | Explicit deployment authorization, TLS, browser/Android reconnect, quota and restore proof |
+
+The current session has no checked-out repository command runner. No runtime tests, build, lint or Cloudflare simulator suite were executed. The GitHub status endpoint returned no status entries and the available workflow endpoint is PR-filtered; neither is evidence of a successful CI run. No code was committed without runnable tests.
+
+No Stage 1 gate is closed by this documentation audit. Stage 1 remains 30/40 = 75% provisional; Gate 10 remains 0/10 formally closed; Gate 25 and Gate 36 remain open. Zero-cost and branch-isolation constraints remain mandatory.
