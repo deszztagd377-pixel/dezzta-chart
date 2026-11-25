@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> **SUPERSEDED FOR EXECUTION — 25 November 2026.** This document records the historical owner-host/source-gateway/Redis architecture. The user subsequently selected **Cloudflare Native / Zero-Origin** (no owner-operated host/server). Do not execute Batches 80–86 in the order below as the active implementation path. Preserve this document as historical design evidence only. The active roadmap is `docs/WORK_CYCLE_2026-11-25_BATCH88_CLOUDFLARE_NATIVE_ZERO_ORIGIN_ALIGNMENT.md`, with the next active package being Batch 89 (Python Workers dependency/runtime compatibility spike, no deployment). Redis/source-gateway steps must not be repeated unless a later explicit architecture decision reverses Zero-Origin.
+
 # DEZZTA CHART — Batch 80–86 Unified Engineering Work Package
 Date: 25 November 2026
 Branch: `phase-2/market-data-foundation`
