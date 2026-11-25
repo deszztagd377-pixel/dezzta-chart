@@ -4332,3 +4332,31 @@ This backend/WebSocket cycle changed no indicator source, calculation, renderer,
 Warm-up nulls; prefix causality; no future lookahead/repaint; canonical series/timestamp alignment; finite deterministic outputs; no source mutation; bounded history; stale-output clearing on identity change; no output for demo/loading/unavailable/error/empty snapshots. Focused test declarations remain **28 = 21 calculation + 7 hook**, not a passing-test count. No indicator test was executed in this session. Aggregate indicator completion remains ⚪ NOT SCORED.
  
 Footprint OFF must retain ordinary candle spacing; explicit ON alone enables cluster spacing and its visual must match both saved references. Heatmap visual implementation remains reference-gated.
+
+
+---
+
+# Indicator ledger — Work Cycle 89–93 reconciliation (25 November 2026)
+
+**Indicator implementation credit this cycle: 0.** This cycle inspected backend/WebSocket source and test declarations only; it changed no indicator calculation, hook, chart renderer, UI or indicator test.
+
+| # | Indicator / subsystem | Status | Verified contract / remaining acceptance |
+|---:|---|---|---|
+| 1 | SMA20 | 🟨 FOUNDATION | Arithmetic mean of 20 closes; first valid index 19; chart overlay/legend/toggle/lifecycle not accepted. |
+| 2 | EMA20 | 🟨 FOUNDATION | SMA seed; alpha = 2/21; first valid index 19; chart integration not accepted. |
+| 3 | RSI14 Wilder | 🟨 FOUNDATION | Seed from 14 close-to-close changes; first valid index 14; dedicated pane and guides not accepted. |
+| 4 | MACD12/26/9 | 🟨 FOUNDATION | MACD first valid index 25; signal and histogram index 33; dedicated pane not accepted. |
+| 5 | Bollinger20,2 | 🟨 FOUNDATION | 20-close mean ± 2 population standard deviations; first valid index 19; overlays/fill not accepted. |
+| 6 | Shared Indicator Hook | 🟨 FOUNDATION | 7 focused test declarations; `CandlestickChart.tsx` still does not integrate `useMarketIndicators`. |
+| 7 | Footprint PRO 2GD | 🟧 GATED | Synthetic/offline accumulator only; visual implementation not accepted. OFF must preserve ordinary candle spacing; explicit ON alone uses spaced clusters; two saved references remain authoritative. |
+| 8 | Volume Profile | 🟥 OPEN | Price-bin rules, volume conservation, POC and value-area derivation not accepted. |
+| 9 | Complete Volume Profile | 🟥 OPEN | Session completeness, POC/VAH/VAL and volume conservation not accepted. |
+| 10 | Movable-range Volume Profile | 🟥 OPEN | User-selected range bounds and deterministic recomputation not accepted. |
+| 11 | Heatmap | 🟥 OPEN | Depth provenance, aggregation and decay not accepted; visual work waits for user reference. |
+| 12 | Liquidation Maps | 🟥 OPEN | Provenance, estimation methodology and confidence contract not accepted. |
+
+**Focused declarations:** 28 = 21 calculation + 7 hook. This is not a passing-test count or an indicator completion percentage. **Aggregate indicator completion:** ⚪ NOT SCORED; no approved weighted denominator.
+
+**Cross-cutting math and data invariants:** warm-up values remain null until the first valid index; prefix causality; no future-candle lookahead/repaint; exact timestamp and canonical-series alignment; deterministic finite output; no mutation of source candles; bounded history/computation; stale-output clearing on identity changes; no calculation/output for demo, loading, unavailable, error or empty snapshots.
+
+**Architecture boundary:** indicator calculation modules remain platform-neutral. Future chart integration must consume authenticated, durable OHLCV snapshots and must not infer live provenance from synthetic Worker fixtures. No indicator progress credit is awarded for backend/WebSocket documentation or source audit.
