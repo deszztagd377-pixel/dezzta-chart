@@ -30,7 +30,7 @@ Downloading public open-source packages may be zero monetary cost, but it is sti
 
 ## 3. Ordered Batch 89 command matrix
 
-Run from the repository root, after checkout and dependency installation are available:
+Run from the repository root, after checkout and dependency installation are available. The six rows include setup and final hygiene checks; rows 2–5 are the four validation commands:
 
 | Order | Command | Required evidence |
 |---:|---|---|
@@ -46,8 +46,8 @@ The repository's own scripts install their test-only Cloudflare dependencies. Be
 ## 4. Batch 89 acceptance criteria
 
 Batch 89 can be marked complete only when:
-- all five commands above have captured terminal results;
-- each required command exits 0;
+- all four validation commands (app tests, production build, Miniflare runtime tests, and Durable Object tests) have captured terminal results;
+- each validation command exits 0;
 - no unexpected lockfile or tracked-file changes remain;
 - dependency audit does not report blocking HIGH/CRITICAL findings;
 - the Worker test runtime actually loads the project's Wrangler configuration;
