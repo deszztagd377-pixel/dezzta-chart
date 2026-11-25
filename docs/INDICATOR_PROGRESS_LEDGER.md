@@ -3967,3 +3967,21 @@ This CI success does not prove owner-host TLS, production Cloudflare deployment/
 Automated suite: **1,426 passed, 1 skipped, 6 warnings in 71.47 seconds**. Dedicated Redis TLS integration: **1 passed in 0.11 seconds**. Ephemeral CA/server certificate/TLS-only Redis fixture verified trusted CA + DNS hostname, ACL-backed shared-guard operations, rejection of wrong hostname, untrusted CA and plaintext downgrade; AOF data, TLS-only listener and ACL survived an actual container restart. The later general pytest invocation skips the TLS test because fixture environment variables are intentionally scoped to the preceding dedicated step. Backend container health/outage/reconnect, non-root runtime, persistent volume, SQLite integrity/restart and rate-limit smoke checks passed. Frontend tests/build/secret scan, Cloudflare synthetic Worker/DO tests, dependency audit, synthetic SQLite benchmarks, image build/scan, CodeQL, ARM64 and full-history secret audit passed.
 
 Evidence remains CI-only: not owner-host TLS acceptance, production Cloudflare deployment/public WSS, Firebase identity, live provider rights/data, production snapshot/receipt ACK, or Android/browser production lifecycle. Stage 1 remains 30/40 provisional; Gate 10 remains 0/10. Indicator completion credit unchanged.
+
+
+## Batch 76 exact-head CI closure — 25 November 2026
+
+**Audited source commit:** `a2d2e7a03e2afee89429bb9d22c4641fd5b8a833` on `phase-2/market-data-foundation`. All four workflows are terminal SUCCESS on this exact SHA:
+
+| Workflow | Run | Result | Job steps |
+|---|---:|---|---:|
+| Automated Tests | 45604020771 | 🟢 SUCCESS | 41/41 |
+| CodeQL Security Analysis | 45604020613 | 🟢 SUCCESS | Python 8/8 + JavaScript/TypeScript 8/8 |
+| OCI ARM64 Image Readiness | 45604020280 | 🟢 SUCCESS | 7/7 |
+| Full Git History Secret Audit | 45604020286 | 🟢 SUCCESS | 6/6 |
+
+Automated suite: **1,426 passed, 1 skipped, 6 warnings in 57.78 seconds**. Dedicated Redis TLS integration: **1 passed in 0.08 seconds**. It used an ephemeral CA, DNS:localhost certificate and TLS-only Redis listener; trusted CA/hostname and ACL-backed shared-guard operations passed; wrong hostname, untrusted CA and plaintext downgrade were rejected. AOF data, TLS-only listener and ACL survived a real Redis container restart. The general pytest suite's one skip is expected because fixture variables are scoped to the dedicated preceding step. Backend container smoke tests, frontend build/tests/secret scan, Cloudflare synthetic Worker/DO tests, backend dependency audit, synthetic SQLite benchmarks, container vulnerability scan, CodeQL, ARM64 and full-history secret audit all passed.
+
+This is CI evidence only. It does not prove owner-host TLS, production Cloudflare deployment/public WSS, Firebase identity/entitlement, live provider rights/data, production signed snapshot/receipt ACK, or Android/browser production lifecycle. Stage 1 remains 30/40 provisional; Gate 10 remains 0/10. Indicator completion credit unchanged.
+
+The following documentation-only reconciliation commit does not change runtime/source files; CI is not rerun for that documentation-only commit because the exact source tree above already passed all four workflows.
