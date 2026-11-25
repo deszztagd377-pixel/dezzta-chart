@@ -1,74 +1,84 @@
-# Latest project dashboard — Work Cycle 88 (25 November 2026)
+# Latest project dashboard — Work Cycle 89 reconciliation (25 November 2026)
 
-**Current architecture decision:** Cloudflare Native / Zero-Origin.  
-**Latest verified work:** Batch 88 architecture alignment documented; historical owner-host Batch 80–86 plan marked superseded for execution.  
-**Next active package:** Batch 89 — isolated Python Workers compatibility spike (no deployment).  
-**Branch:** `phase-2/market-data-foundation`; `main` untouched.  
-**Cost ceiling:** ZERO COST.  
-**Target:** around 24 December 2026.
+**Branch:** `phase-2/market-data-foundation`  
+**Verified baseline:** `572abed1dbab52d23f87074023f3b9a53a90b7e2`; latest documentation commit: `f1fde71d974c7d276ef52b2f76bf7f02bfd0cde7`.  
+**Architecture:** Cloudflare Native / Zero-Origin. Historical owner-host/Redis execution and the earlier Python Workers spike are not the active sequence.  
+**Current active package:** Batch 89 — exact zero-cost runtime gate; not a Python Workers compatibility spike.  
+**Cost ceiling:** ZERO COST. No paid runners, paid services, market-data feeds, deployments or Cloudflare resource creation.  
+**Target:** around 24 December 2026; planning target only.
 
-## Current stage and overall meters
+## Stage and project meters
 
-- Stage 1: 30/40 = **75% provisional** 🟨. Not whole-project completion.
-- Gate 10: 0/10 formally closed 🟥. Remaining criteria: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.
+- Stage 1: **30/40 = 75% provisional** 🟨; not overall project completion.
+- Gate 10: **0/10 formally closed** 🟥; remaining criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.
 - Stage 2: 🟦 PREPARATORY.
 - Stage 3: ⚪ NOT SCORED.
-- Stage 4: 🟪 GATED.
+- Stage 4 — Indicators & Analytics: 🟪 GATED.
 - Stage 5: ⚪ NOT SCORED.
 - Stage 6: ⚪ NOT SCORED.
-- Overall project: ⚪ NOT SCORED; no approved weighted denominator.
-- Significant progress / IP3S: ⚪ NOT SCORED; no approved reproducible formula.
+- Overall project progress: ⚪ NOT SCORED; no approved weighted denominator.
+- Significant Progress / IP3S: ⚪ NOT SCORED; no approved reproducible formula.
 
-## Active architecture status
+## Active Zero-Origin execution order
 
-- Cloudflare Python Workers + FastAPI ASGI feasibility: 🟩 DOCUMENTED.
-- Full Python dependency compatibility: 🟧 UNVERIFIED.
-- Durable Objects SQLite storage model: 🟨 PLATFORM FIT; PROJECT MIGRATION NOT IMPLEMENTED.
-- Legacy local SQLite migration: 🟥 OPEN.
-- Redis/source-gateway owner-host topology: 🟥 SUPERSEDED FOR EXECUTION; preserve as historical reference.
-- Databento live source on Workers: 🟥 UNVERIFIED / BLOCKED.
-- Firebase identity path: 🟧 COMPATIBILITY AUDIT REQUIRED.
-- Ed25519 snapshot attestation: 🟨 CONTRACT PRESERVATION REQUIRED.
-- Production Worker/API deployment: 🟥 NOT DEPLOYED / NOT EVIDENCED.
-- Project Gate 25: 🟥 OPEN; durable receipt contract must be reconciled with Zero-Origin.
-- Gate 36: 🟥 OPEN; public WSS/TLS/browser/Android E2E not proven.
+1. **Batch 89 — runtime gate:** `npm ci`; app tests; production build; Miniflare runtime tests; Durable Object runtime tests; final working-tree hygiene. Record Node/npm versions, complete logs, exit codes and exact SHA. All four validation commands must pass.
+2. **Batch 90 — SQLite schema/migration:** additive DO migration preserving v1 compatibility; validate in the pinned local runtime.
+3. **Batch 91 — provider-neutral API/envelope contract:** independent contract preparation may run alongside schema review, but runtime acceptance cannot skip Batch 90.
+4. **Batch 92 — durable event log:** atomic payload + digest + sequence/high-water transaction, fan-out after commit, contiguous bounded replay and retention-floor semantics.
+5. **Batch 93 — ACK/receipts/RESUME:** authenticated stable consumer identity, digest/generation-bound ACK, durable monotonic receipt, bounded resume/resnapshot and eviction recovery.
+6. **Batch 94 — provider gate:** lawful, compatible and genuinely zero-cost evidence only.
+7. **Batch 95 — public WSS/TLS/browser/Android E2E and restore acceptance:** only after all predecessor gates.
 
-Cloudflare Free limits to treat as hard ceilings: Workers 100,000 requests/day and 10 ms CPU/request; Durable Objects 100,000 requests/day, 13,000 GB-s/day, 5 million SQL reads/day, 100,000 SQL writes/day and 5 GB total SQLite storage. Exceeding Free quotas can cause operations to fail. WebSocket hibernation and bounded queues are required.
+Parallelize independent contract review and failure-injection test design. Serialize shared runtime edits and schema migrations. Do not mark a batch complete from documentation alone.
 
-## Indicator dashboard (12)
+## Current WebSocket evidence
 
-| Indicator / subsystem | Status |
-|---|---|
-| SMA20 | 🟨 FOUNDATION |
-| EMA20 | 🟨 FOUNDATION |
-| RSI14 Wilder | 🟨 FOUNDATION |
-| MACD12/26/9 | 🟨 FOUNDATION |
-| Bollinger20,2 | 🟨 FOUNDATION |
-| Shared Indicator Hook | 🟨 FOUNDATION |
-| Footprint PRO 2GD | 🟧 GATED |
-| Volume Profile | 🟥 OPEN |
-| Complete Volume Profile | 🟥 OPEN |
-| Movable-range Volume Profile | 🟥 OPEN |
-| Heatmap | 🟥 OPEN — reference pending |
-| Liquidation Maps | 🟥 OPEN |
+- Synthetic Worker/DO proof: 🟩 source present; synthetic-only and not production deployed.
+- Batch 89: 🟥 OPEN; runtime commands not executed in this work cycle.
+- Batch 90–91: 🟦 specification/preparation; runtime implementation not accepted.
+- Batch 92–93: 🟥 durable event payload/replay and ACK/receipt/RESUME missing in inspected source.
+- Batch 94: 🟥 lawful zero-cost provider gate not passed.
+- Batch 95 / Gate 36: 🟥 public WSS/TLS/browser/Android E2E absent.
+- Project Gate 25: 🟥 durable signed snapshot/receipt/high-water acceptance remains open.
+- CI: UNKNOWN / NOT VERIFIED where status endpoints return no records. No empty response is interpreted as success or as a running workflow.
 
-Focused indicator test declarations remain 28 (21 calculation + 7 hook); not a passing-test count. Chart integration is still open because `CandlestickChart.tsx` does not call `useMarketIndicators`. No indicator source/UI changes in Batch 88. Aggregate indicator completion remains ⚪ NOT SCORED.
+The current connector can inspect and edit repository files and read limited CI metadata, but it does not provide a checkout/terminal. No install, build, test or audit command is claimed as executed. Do not commit runtime code without a supported test path.
 
-## Non-looping active execution order
+## Complete indicator dashboard (12)
 
-1. Batch 88 — architecture alignment (documented).
-2. Batch 89 — Python Workers dependency/runtime compatibility spike.
-3. Batch 90 — Durable Objects SQLite data model and migration design.
-4. Batch 91 — provider-neutral Worker API shell.
-5. Batch 92 — series DO core, durable cursor/event log/replay.
-6. Batch 93 — WebSocket auth, hibernation, reconnect and receipts.
-7. Batch 94 — lawful zero-cost provider ingress compatibility; blocked until provider passes.
-8. Batch 95 — public WSS/TLS/device E2E, quota acceptance and backup/restore.
+| # | Indicator / subsystem | Status |
+|---:|---|---|
+| 1 | SMA20 | 🟨 FOUNDATION |
+| 2 | EMA20 | 🟨 FOUNDATION |
+| 3 | RSI14 Wilder | 🟨 FOUNDATION |
+| 4 | MACD12/26/9 | 🟨 FOUNDATION |
+| 5 | Bollinger20,2 | 🟨 FOUNDATION |
+| 6 | Shared Indicator Hook | 🟨 FOUNDATION |
+| 7 | Footprint PRO 2GD | 🟧 GATED |
+| 8 | Volume Profile | 🟥 OPEN |
+| 9 | Complete Volume Profile | 🟥 OPEN |
+| 10 | Movable-range Volume Profile | 🟥 OPEN |
+| 11 | Heatmap | 🟥 OPEN — user visual reference still required |
+| 12 | Liquidation Maps | 🟥 OPEN |
 
-**Do not restart the historical Batch 80–86 owner-host/Redis sequence.**
+**Calculation contracts:** SMA20 first valid index 19; EMA20 SMA seed, alpha 2/21, first valid 19; RSI14 Wilder first valid 14; MACD12/26/9 line first valid 25 and signal/histogram 33; Bollinger20,2 uses population standard deviation and first valid index 19.
 
-Detailed architecture audit: `docs/WORK_CYCLE_2026-11-25_BATCH88_CLOUDFLARE_NATIVE_ZERO_ORIGIN_ALIGNMENT.md`.  
-Detailed indicator evidence: `docs/WORK_CYCLE_2026-11-25_BATCH87_INDICATOR_AND_WEBSOCKET_RECONCILIATION.md`.
+**Focused declarations:** 28 total (21 calculation + 7 hook), not a pass count. `CandlestickChart.tsx` still does not integrate `useMarketIndicators`. Footprint OFF preserves standard candle spacing; explicit ON alone selects spaced clusters. The two saved Footprint references remain authoritative. Heatmap visuals remain gated on the user's reference.
+
+- Indicator implementation credit this WebSocket/documentation cycle: **0**.
+- Aggregate indicator completion: ⚪ NOT SCORED; no approved weighted denominator.
+
+Full 15-point WebSocket acceptance mapping and the detailed 12-row indicator ledger: `docs/WEBSOCKET_ACCEPTANCE_TRACEABILITY_2026-11-25.md`.  
+Source blockers and test declarations: `docs/BATCH89_93_SOURCE_AUDIT_2026-11-25.md`.
+
+## Branch, cost and release safeguards
+
+- Active branch only: `phase-2/market-data-foundation`; `main` untouched.
+- No runtime source, dependency, lockfile, indicator renderer or UI changed.
+- No deployment, resource creation, paid service, paid runner or provider ingress.
+- Synthetic-only proof and localhost origin restrictions remain.
+- Do not enable public WSS before its acceptance gate.
+- Stage 1's provisional 75% must not be extrapolated into overall project completion.
 
 ---
 
