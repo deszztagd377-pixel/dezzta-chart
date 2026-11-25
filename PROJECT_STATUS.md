@@ -1626,3 +1626,19 @@ Automated suite: **1,426 passed, 1 skipped, 6 warnings in 48.77 seconds**. In ad
 The same run also passed frontend tests/build and secret scanning, Cloudflare synthetic proof tests, Durable Object runtime tests, backend dependency audit, synthetic SQLite outbox and metrics benchmarks, backend container build, container smoke tests and container vulnerability scan. CodeQL, native ARM64 and full reachable-history secret audit passed. No CI failure was recorded.
 
 **Evidence boundary remains:** isolated CI Redis TLS acceptance is not owner-host Redis TLS deployment acceptance. CI still does not prove production Cloudflare deployment, public WSS, Firebase identity/entitlement, live provider rights/data, production snapshot transfer/receipt ACK, or Android/browser production lifecycle. Stage 1 remains 30/40 provisional; Gate 10 remains 0/10 formally closed. Indicator completion credit unchanged.
+
+
+## Batch 74 exact-head CI closure — 25 November 2026
+
+**Audited commit:** `9671ce0b9c1c54b1127fe55a03e5008611c6fc2e` on `phase-2/market-data-foundation`. All four workflows are terminal SUCCESS on this exact SHA:
+
+| Workflow | Run | Result | Job steps |
+|---|---:|---|---:|
+| Automated Tests | 45602155645 | 🟢 SUCCESS | 41/41 |
+| CodeQL Security Analysis | 45602155744 | 🟢 SUCCESS | Python 8/8 + JavaScript/TypeScript 8/8 |
+| OCI ARM64 Image Readiness | 45602155670 | 🟢 SUCCESS | 7/7 |
+| Full Git History Secret Audit | 45602155558 | 🟢 SUCCESS | 6/6 |
+
+Automated suite: **1,426 passed, 1 skipped, 6 warnings in 48.66 seconds**. Dedicated Redis TLS integration: **1 passed in 0.07 seconds** using an ephemeral CA, DNS:localhost certificate, wrong CA and TLS-only Redis listener. Wrong-hostname, untrusted-CA and plaintext downgrade cases were rejected; authenticated shared-guard operations succeeded. Redis AOF data, TLS-only listener and ACL survived an actual container restart. The later general suite's one skip is expected because the temporary TLS fixture variables are scoped to the dedicated preceding step. Container health, fail-closed Redis outage/reconnect, non-root UID/GID, mounted-volume ownership, SQLite integrity/restart persistence and HTTP rate-limit smoke checks passed. Frontend tests/build/secret scan, Cloudflare synthetic Worker/DO runtime tests, backend dependency audit, synthetic SQLite benchmarks, backend container build and vulnerability scan passed.
+
+This CI success does not prove owner-host TLS, production Cloudflare deployment/public WSS, Firebase identity, live provider rights/data, production snapshot/receipt ACK, or Android/browser production lifecycle. Stage 1 remains 30/40 provisional; Gate 10 remains 0/10. Indicator status and completion credit are unchanged.
