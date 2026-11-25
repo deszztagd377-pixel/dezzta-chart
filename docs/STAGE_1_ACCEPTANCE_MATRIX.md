@@ -1469,3 +1469,21 @@ Focused declaration inventory remains **28 total = 21 calculation + 7 shared-hoo
 Cross-indicator acceptance remains mandatory: warm-up values null until mathematically valid; prefix causality; no future-candle lookahead/repaint; exact timestamp/series identity alignment; stale-output clearing on identity change; deterministic repeated results; bounded computation; no mutation of source candle data; no calculations for demo/loading/unavailable/error/empty snapshots.
 
 **Controls:** ZERO COST; active branch only phase-2/market-data-foundation; main untouched; no Vercel; no paid market data, hosting, monitoring, backup, subscription or publication; no duplicate Cloudflare infrastructure. Planning target remains around **24 December 2026**.
+
+---
+
+# Work Cycle 89–93 Zero-Origin blueprint status — 25 November 2026
+
+Blueprint: `docs/WORK_CYCLE_2026-11-25_BATCH89_93_ZERO_ORIGIN_BLUEPRINT.md`. This is a design draft, not implementation or production acceptance.
+
+| Batch | Current status | Acceptance still required |
+|---:|---|---|
+| 89 | 🟨 Dependency inspection recorded; runtime unverified | Isolated Python Worker project and exact runtime compatibility tests |
+| 90 | 🟦 DO SQLite schema/migration design drafted | Owner review, DDL implementation, migration and digest/restore tests |
+| 91 | 🟦 Provider-neutral API contract drafted | Existing frontend contract reconciliation, implementation and route tests |
+| 92 | 🟦 Series DO/event/replay design drafted | Durable implementation and concurrency/restart/gap/idempotency tests |
+| 93 | 🟦 WebSocket/receipt design drafted | Authenticated ticket, hibernation, reconnect, durable receipt and restart tests |
+| 94 | 🟥 Provider gate blocked | Lawful zero-cost source and runtime/transport compatibility evidence |
+| 95 | 🟥 Public acceptance blocked | Explicit deployment authorization, public WSS/TLS, browser/Android E2E, quota and restore drill |
+
+Production WebSocket: 🟥 OPEN. Project Gate 25: 🟥 OPEN. Gate 36: 🟥 OPEN. No production Worker/API is claimed deployed. No deployment or Cloudflare resource creation occurred. Zero Cost and main-branch isolation preserved.
