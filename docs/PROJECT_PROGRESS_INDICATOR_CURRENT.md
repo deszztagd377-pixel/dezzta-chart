@@ -6522,3 +6522,28 @@ The available GitHub connector exposes file operations, not a checked-out comman
 Stage 1 remains the longest foundation stage because it contains persistence, security, provenance, delivery and external acceptance. Work can be parallelized across independent design/evidence tracks, but acceptance dependencies remain ordered: schema → durable event engine → replay/ACK → public WSS E2E. Stage 1 is not shortened by relabeling incomplete gates.
 
 All 12 indicator statuses and mathematical acceptance contracts remain unchanged from the complete indicator ledger. Overall project and significant-progress scores remain NOT SCORED because no approved weighted denominator/formula exists.
+
+ 
+---
+ 
+# Latest verified work-cycle checkpoint — 25 November 2026
+ 
+**Parent checkpoint:** `bdef1ed1a09ab103651ba52ea9a7f1885b509253`. This update records source-level WebSocket re-audit, package-script inspection and indicator-ledger reconciliation; it does not claim runtime implementation.
+ 
+- **Batch 89:** 🟨 manifest/source inspection; 🟥 Python Worker runtime not executed. Existing package scripts require a runnable repository checkout.
+- **Batch 90:** 🟦 DO SQLite schema design; migration/rollback/digest parity not executed.
+- **Batch 91:** 🟦 provider-neutral API contract; frontend contract reconciliation and route tests pending.
+- **Batch 92:** 🟦 durable event/replay design; event payload+digest+high-water atomic implementation and eviction replay pending.
+- **Batch 93:** 🟦 ACK/receipt/reconnect design; durable monotonic receipt and ACK/RESUME tests pending.
+- **Batch 94:** 🟥 provider gate blocked; no lawful, compatible, genuinely zero-cost source evidenced.
+- **Batch 95:** 🟥 public WSS/browser/Android E2E, quota and restore evidence absent; deployment authorization absent.
+ 
+**WebSocket production:** 🟥 NOT COMPLETE. **Gate 25:** 🟥 OPEN. **Gate 36:** 🟥 OPEN.
+ 
+### Source findings reconfirmed
+The synthetic proof stores only a sequence watermark, not replayable event payload+digest; the proof emit path fans out after that cursor write. Authenticated sockets support ping/pong only, not ACK/RESUME. Snapshot data and subject identity remain synthetic proof fixtures. These are production blockers, not a reason to mislabel the proof.
+ 
+### Execution and scoring integrity
+The GitHub connector has no checked-out command runner; local container DNS could not resolve GitHub. No test, build, lint, Miniflare, DO runtime or Python Worker command ran in this cycle. The available status endpoint returned no status entries and the connector's PR-filtered workflow endpoint returned no runs; neither result proves that all push workflows are absent. No CI success is claimed.
+ 
+Stage 1 remains **30/40 = 75% provisional 🟨**, with no gate closed in this cycle. Gate 10 remains **0/10 formally closed 🟥**. Stage 2 🟦 preparatory; Stage 3 ⚪ not scored; Stage 4 🟪 gated; Stages 5–6 ⚪ not scored. Overall project, significant progress/IP3S and aggregate indicator completion remain ⚪ NOT SCORED because approved formulas/denominators are absent. ZERO COST, active branch isolation and the around-24-December-2026 planning target remain unchanged.
