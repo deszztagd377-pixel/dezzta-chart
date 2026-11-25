@@ -66,6 +66,7 @@ def _validate_snapshot_evidence(
         key_id = receipt.get("key_id") if isinstance(receipt, Mapping) else None
         if (
             not isinstance(receipt, Mapping)
+            or receipt.get("gateway_id") != gateway_id
             or receipt.get("source_id") != source_id
             or receipt.get("authenticated_source_id") != source_id
             or receipt.get("verification_state") != "OWNER_SIGNATURE_VERIFIED"
