@@ -6594,3 +6594,18 @@ The 15 production WebSocket acceptance requirements are mapped individually in t
 The repository declares `test`, `test:cloudflare-runtime` and `test:cloudflare-durable-objects` scripts, but no test/build/lint command was executed in this work cycle. The current connector's commit-status result is empty and its workflow-run query is PR-triggered only; CI is UNKNOWN / NOT VERIFIED, not PASS. The latest docs commit uses `[skip ci]`.
 
 No runtime code, indicator source/UI, Cloudflare resource, deployment or `main` branch was changed. Stage 1 remains 30/40 = 75% provisional; Gate 10 remains 0/10 formally closed; overall project and IP3S remain NOT SCORED. Zero-cost and the 24 December 2026 planning target remain unchanged.
+
+
+---
+
+# Coordinated Work Cycle — Batches 90–95 (25 November 2026)
+
+**New design artifact:** [BATCH90_95_DURABLE_WEBSOCKET_DELIVERY_SPEC.md](BATCH90_95_DURABLE_WEBSOCKET_DELIVERY_SPEC.md), commit `327cac59c17894859d0deb6ac99644cdd3aa101f`.
+
+This cycle consolidates the dependent WebSocket work into one contract instead of treating each batch as an isolated task. It defines the logical SQLite state/event/receipt model, atomic event commit, bounded generation-aware replay, authenticated ACK and monotonic receipts, RESUME/reconnect, provider-neutral envelopes, zero-cost provider gates, and public WSS/device E2E acceptance. It also defines failure-injection tests and a 12-row acceptance matrix.
+
+**Status remains evidence-based:** Batch 89 runtime execution 🟥 pending; Batch 90–93 implementation 🟦 specified but not accepted; Batch 94–95 🟥 gated. Gate 25 and Gate 36 remain OPEN. No runtime code or indicator implementation was changed. The design does not prescribe unverified Cloudflare SQL APIs and does not authorize deployment/resource creation.
+
+**Execution discipline:** independent audits/design preparation can run in parallel; shared-file writes and storage migrations remain serialized. Schema → event commit/replay → ACK/receipt/recovery dependencies are not bypassed.
+
+**Project indicators unchanged:** Stage 1 30/40 = 75% provisional; Gate 10 0/10 formally closed; overall project, IP3S and aggregate indicator completion NOT SCORED. Target remains around 24 December 2026; zero-cost and no-main-touch constraints remain active.
