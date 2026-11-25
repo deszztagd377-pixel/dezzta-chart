@@ -1,6 +1,20 @@
 # Latest verified checkpoint — Batch 62J-235 (25 November 2026)
 
 **Active branch:** phase-2/market-data-foundation  
+**Latest documentation checkpoint before SDK addendum:** 3178f4f78ff12aeff24d2d9f6d2a601633051bbd  
+**Unchanged code/test baseline:** bd4904b52d29b3ec456da91014e90922fec35f21  
+**Exact audited HEAD CI:** 4/4 terminal SUCCESS — Automated Tests 45521703215; CodeQL 45521703291; OCI ARM64 45521703194; Full Git History Secret Audit 45521703184.  
+**Provider-demand finding:** client-side per-series ownership and backend downstream fan-out exist, but the provider adapter still starts from a static symbol tuple and has no dynamic demand coordinator. Official Databento docs identify Live.unsubscribe() as available from SDK 0.89.0; current requirements permit 0.88, so a dynamic implementation must raise the minimum to at least 0.89 and pin/test an exact version. Gateway acknowledgement/error messages must be observed; a local unsubscribe call alone is not proof of removal. This narrows API uncertainty but does not verify installed runtime or permit paid Databento usage. Provider upstream reference counting remains 🟥 OPEN.  
+**Indicator inventory:** 21 calculation test declarations + 7 shared-hook declarations = 28. SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain 🟨 foundation only; CandlestickChart does not call the hook. Footprint PRO 2GD 🟧 synthetic/reference-gated. Volume Profile, Complete Volume Profile, movable-range VP, Heatmap and Liquidation Maps 🟥 not integrated/acceptance incomplete. Aggregate indicator completion ⚪ NOT SCORED.  
+**Project:** Stage 1 30/40 = 75% provisional 🟨 (inherited); Stage 2 🟦 active / NOT SCORED; Stage 3 ⬜ NOT SCORED; Stage 4 🟪 gated; Stage 5 ⬜ NOT SCORED; Stage 6 ⬜ NOT SCORED; Gate 10 0/10 formally closed 🟥; overall ⚪ NOT SCORED; IP3S ⚪ NOT SCORED.  
+**External gates:** Gate 25 owner-host transfer/receipt/high-water ACK 🟥 OPEN; Gate 36 public WSS/TLS/runtime 🟥 OPEN; Firebase production E2E 🟥 OPEN; physical browser/Android lifecycle and multi-instance failover 🟥 OPEN; Redis destructive retention 🟧 BLOCKED.  
+**Controls:** ZERO COST; main untouched; no Vercel deployment; no destructive Redis operation; APK target approximately 24 December 2026.
+
+---
+
+# Latest verified checkpoint — Batch 62J-235 (25 November 2026)
+
+**Active branch:** phase-2/market-data-foundation  
 **Audited documentation HEAD:** 2bd311e1479659c418e5b8623826114f5dfb86f7  
 **Unchanged code/test baseline:** bd4904b52d29b3ec456da91014e90922fec35f21  
 **Exact audited HEAD CI:** 4/4 terminal SUCCESS — Automated Tests 45521703215; CodeQL 45521703291; OCI ARM64 45521703194; Full Git History Secret Audit 45521703184. All four runs and jobs completed on the exact audited HEAD.  
