@@ -126,6 +126,37 @@ class ProviderDemandCoordinator:
                 self._lease_ids_by_key.pop(current_lease.key, None)
             return True
 
+    async def release_with_retry(
+        self,
+        lease: DemandLease | str,
+        *,
+        attempts: int = 3,
+        initial_delay: float = 0.05,
+    ) -> bool:
+        """Retry transient adapter-stop failures without losing lease ownership.
+
+        The final failure is propagated; the lease remains registered so an
+        external recovery path can retry it later. Cancellation is never
+        swallowed.
+        """
+        if isinstance(attempts, bool) or not isinstance(attempts, int) or attempts < 1:
+            raise ValueError("attempts must be a positive integer")
+        if (
+            isinstance(initial_delay, bool)
+            or not isinstance(initial_delay, (int, float))
+            or initial_delay < 0
+        ):
+            raise ValueError("initial_delay must be a non-negative number")
+
+        for attempt in range(attempts):
+            try:
+                return await self.release(lease)
+            except Exception:
+                if attempt + 1 >= attempts:
+                    raise
+                await asyncio.sleep(initial_delay * (2**attempt)
+        return False
+
     def subscriber_count(self, key: ProviderDemandKey) -> int:
         return len(self._lease_ids_by_key.get(key, ()))
 
