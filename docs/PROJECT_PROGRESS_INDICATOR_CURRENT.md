@@ -1,3 +1,77 @@
+# Latest project dashboard — Work Cycle 88 (25 November 2026)
+
+**Current architecture decision:** Cloudflare Native / Zero-Origin.  
+**Latest verified work:** Batch 88 architecture alignment documented; historical owner-host Batch 80–86 plan marked superseded for execution.  
+**Next active package:** Batch 89 — isolated Python Workers compatibility spike (no deployment).  
+**Branch:** `phase-2/market-data-foundation`; `main` untouched.  
+**Cost ceiling:** ZERO COST.  
+**Target:** around 24 December 2026.
+
+## Current stage and overall meters
+
+- Stage 1: 30/40 = **75% provisional** 🟨. Not whole-project completion.
+- Gate 10: 0/10 formally closed 🟥. Remaining criteria: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.
+- Stage 2: 🟦 PREPARATORY.
+- Stage 3: ⚪ NOT SCORED.
+- Stage 4: 🟪 GATED.
+- Stage 5: ⚪ NOT SCORED.
+- Stage 6: ⚪ NOT SCORED.
+- Overall project: ⚪ NOT SCORED; no approved weighted denominator.
+- Significant progress / IP3S: ⚪ NOT SCORED; no approved reproducible formula.
+
+## Active architecture status
+
+- Cloudflare Python Workers + FastAPI ASGI feasibility: 🟩 DOCUMENTED.
+- Full Python dependency compatibility: 🟧 UNVERIFIED.
+- Durable Objects SQLite storage model: 🟨 PLATFORM FIT; PROJECT MIGRATION NOT IMPLEMENTED.
+- Legacy local SQLite migration: 🟥 OPEN.
+- Redis/source-gateway owner-host topology: 🟥 SUPERSEDED FOR EXECUTION; preserve as historical reference.
+- Databento live source on Workers: 🟥 UNVERIFIED / BLOCKED.
+- Firebase identity path: 🟧 COMPATIBILITY AUDIT REQUIRED.
+- Ed25519 snapshot attestation: 🟨 CONTRACT PRESERVATION REQUIRED.
+- Production Worker/API deployment: 🟥 NOT DEPLOYED / NOT EVIDENCED.
+- Project Gate 25: 🟥 OPEN; durable receipt contract must be reconciled with Zero-Origin.
+- Gate 36: 🟥 OPEN; public WSS/TLS/browser/Android E2E not proven.
+
+Cloudflare Free limits to treat as hard ceilings: Workers 100,000 requests/day and 10 ms CPU/request; Durable Objects 100,000 requests/day, 13,000 GB-s/day, 5 million SQL reads/day, 100,000 SQL writes/day and 5 GB total SQLite storage. Exceeding Free quotas can cause operations to fail. WebSocket hibernation and bounded queues are required.
+
+## Indicator dashboard (12)
+
+| Indicator / subsystem | Status |
+|---|---|
+| SMA20 | 🟨 FOUNDATION |
+| EMA20 | 🟨 FOUNDATION |
+| RSI14 Wilder | 🟨 FOUNDATION |
+| MACD12/26/9 | 🟨 FOUNDATION |
+| Bollinger20,2 | 🟨 FOUNDATION |
+| Shared Indicator Hook | 🟨 FOUNDATION |
+| Footprint PRO 2GD | 🟧 GATED |
+| Volume Profile | 🟥 OPEN |
+| Complete Volume Profile | 🟥 OPEN |
+| Movable-range Volume Profile | 🟥 OPEN |
+| Heatmap | 🟥 OPEN — reference pending |
+| Liquidation Maps | 🟥 OPEN |
+
+Focused indicator test declarations remain 28 (21 calculation + 7 hook); not a passing-test count. Chart integration is still open because `CandlestickChart.tsx` does not call `useMarketIndicators`. No indicator source/UI changes in Batch 88. Aggregate indicator completion remains ⚪ NOT SCORED.
+
+## Non-looping active execution order
+
+1. Batch 88 — architecture alignment (documented).
+2. Batch 89 — Python Workers dependency/runtime compatibility spike.
+3. Batch 90 — Durable Objects SQLite data model and migration design.
+4. Batch 91 — provider-neutral Worker API shell.
+5. Batch 92 — series DO core, durable cursor/event log/replay.
+6. Batch 93 — WebSocket auth, hibernation, reconnect and receipts.
+7. Batch 94 — lawful zero-cost provider ingress compatibility; blocked until provider passes.
+8. Batch 95 — public WSS/TLS/device E2E, quota acceptance and backup/restore.
+
+**Do not restart the historical Batch 80–86 owner-host/Redis sequence.**
+
+Detailed architecture audit: `docs/WORK_CYCLE_2026-11-25_BATCH88_CLOUDFLARE_NATIVE_ZERO_ORIGIN_ALIGNMENT.md`.  
+Detailed indicator evidence: `docs/WORK_CYCLE_2026-11-25_BATCH87_INDICATOR_AND_WEBSOCKET_RECONCILIATION.md`.
+
+---
+
 # Latest project dashboard — Work Cycle 87 (25 November 2026)
 
 **Audited branch:** `phase-2/market-data-foundation`  
