@@ -4247,3 +4247,40 @@ Source/test SHA `e1d2cfe05130e705264f416c61f56c6d12a73df3` adds a source publish
 Mathematical/lifecycle invariants remain unchanged: warm-up nulls; prefix causality; no future lookahead/repaint; timestamp and series identity alignment; stale-output clearing; deterministic bounded calculation; no source candle mutation; no calculation for demo/loading/unavailable/error/empty data. Focused declarations remain 28 (21 calculation + 7 hook), not a pass count or completion percentage. Indicator aggregate remains ⚪ NOT SCORED without an approved weighted denominator.
 
 Exact-head CI for the WebSocket hardening commit: 4/4 workflows SUCCESS; backend 1,435 passed, 1 skipped, 6 warnings; dedicated Redis TLS test 1 passed. No indicator source/UI changed.
+
+---
+
+# Indicator ledger update — Batch 89–93 blueprint reconciliation (25 November 2026)
+
+No indicator source, test or UI implementation changed in the Batch 89–93 Zero-Origin blueprint cycle. Indicator completion credit: **0**.
+
+| # | Indicator / subsystem | Current foundation | Current rendering / interaction status | Status |
+|---:|---|---|---|---|
+| 1 | SMA20 | 20-close arithmetic mean; first valid index 19 | Overlay, toggle, legend/value and lifecycle not integrated | 🟨 FOUNDATION |
+| 2 | EMA20 | SMA-seeded EMA, alpha 2/21; first valid index 19 | Overlay, toggle, legend/value and lifecycle not integrated | 🟨 FOUNDATION |
+| 3 | RSI14 Wilder | 14-change seed + Wilder recurrence; first valid index 14 | 0–100 pane, 30/70 guides and lifecycle not integrated | 🟨 FOUNDATION |
+| 4 | MACD12/26/9 | MACD index 25; signal/histogram index 33 | Dedicated pane, lines, histogram and zero guide not integrated | 🟨 FOUNDATION |
+| 5 | Bollinger20,2 | 20-close mean ± 2 population SD; first valid index 19 | Bands, fill, legend and lifecycle not integrated | 🟨 FOUNDATION |
+| 6 | Shared Indicator Hook | Immutable keyed snapshot, trust/state gate, shared WeakMap cache | CandlestickChart does not call useMarketIndicators | 🟨 FOUNDATION |
+| 7 | Footprint PRO 2GD | Synthetic/offline accumulator only | Renderer remains gated; two saved references are authoritative | 🟧 GATED |
+| 8 | Volume Profile | Full binning/value-area acceptance absent | Not integrated | 🟥 OPEN |
+| 9 | Complete Volume Profile | Session completeness and POC/VAH/VAL contract absent | Not integrated | 🟥 OPEN |
+| 10 | Movable-range Volume Profile | Range bounds and recomputation contract absent | Not integrated | 🟥 OPEN |
+| 11 | Heatmap | Lawful depth provenance, aggregation and decay absent | Visual reference pending | 🟥 OPEN |
+| 12 | Liquidation Maps | Provenance, estimation method and confidence limits absent | Not integrated | 🟥 OPEN |
+
+## Mathematical and lifecycle acceptance
+
+Warm-up nulls; prefix causality; no future-candle lookahead/repaint; exact canonical series and timestamp alignment; deterministic finite output; no source mutation; bounded history; immediate stale-output clearing on identity changes; no output for demo/loading/unavailable/error/empty snapshots.
+
+- SMA20 first valid index 19.
+- EMA20 first valid index 19; SMA seed and alpha 2/21.
+- RSI14 Wilder first valid index 14.
+- MACD12/26/9 line first valid index 25; signal and histogram first valid index 33.
+- Bollinger20,2 first valid index 19 using population standard deviation.
+- Footprint OFF preserves standard candle spacing; explicit ON alone enables spaced clusters.
+- Footprint visual must match the two saved user references. Heatmap visual implementation waits for the user's reference.
+
+Focused test declarations remain 28 (21 calculation + 7 hook), not a passing-test count. Aggregate indicator completion remains ⚪ NOT SCORED. Stage 4 remains 🟪 GATED; do not wire chart UI before its scoped blueprint and review.
+
+Backend Zero-Origin design dependency: indicators remain platform-neutral and consume only authenticated, durable OHLCV snapshots. They must not depend on Redis or owner-host runtime.
