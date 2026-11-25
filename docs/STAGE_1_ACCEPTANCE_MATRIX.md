@@ -1,3 +1,20 @@
+# Latest Stage 1 acceptance reconciliation — Work Cycle 87 (25 November 2026)
+
+**Audited source/test HEAD:** `471eb4413a716922b20a5503fe5165607e77947f`.  
+**Stage 1:** 30/40 = 75% provisional 🟨; this is not whole-project progress.  
+**Gate 10:** 0/10 formally closed 🟥. Remaining criteria: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.  
+**Stage 2:** 🟦 PREPARATORY only. **Stage 4:** 🟪 GATED. Stages 3, 5 and 6 ⚪ NOT SCORED.  
+**Project overall and IP3S:** ⚪ NOT SCORED; no approved denominator/formula.  
+**WebSocket:** synthetic-only Worker proof exists in repository, but production deployment/public WSS is not evidenced. Project Gate 25 signed receipt/high-water ACK and Gate 36 public WSS/TLS/device E2E remain 🟥 OPEN. Redis destructive retention remains 🟧 BLOCKED.  
+**CI:** latest source SHA status query returned no checks; available workflow-run query returned no PR-triggered runs. Current CI state is UNKNOWN / NOT VERIFIED, not SUCCESS.  
+**ZERO COST:** maintained; no paid service, resource creation or deployment. `main` untouched.
+
+Gate 10 criteria are still Stage 1 acceptance items. Stage 1 criterion #25 (owner-host Redis TLS/ACL/persistence) is distinct from Project Gate 25 (signed snapshot transfer/receipt/high-water ACK). Synthetic tests, documentation and CI cannot substitute for owner-host/device evidence.
+
+Full Work Cycle 87 audit: `docs/WORK_CYCLE_2026-11-25_BATCH87_INDICATOR_AND_WEBSOCKET_RECONCILIATION.md`.
+
+---
+
 # Current Stage 1 / Gate 10 status — Batch 72 (25 November 2026)
 
 **Audited source HEAD:** `6a6e9e82ed2de725bef94e8ed1fa7f28c60e0a49`; Batch 71 CI 4/4 terminal SUCCESS.  
