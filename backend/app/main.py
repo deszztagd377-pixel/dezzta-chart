@@ -1874,7 +1874,11 @@ def create_app(
                     stream_hub.unsubscribe(subscription.stream_id)
                 if demand_lease is not None:
                     try:
-                        await provider_demand_coordinator.release(demand_lease)
+                        await provider_demand_coordinator.release_with_retry(
+                            demand_lease,
+                            attempts=3,
+                            initial_delay=0.05,
+                        )
                     except Exception:
                         logging.getLogger("dezzta.provider_demand").exception(
                             "offline provider-demand lease cleanup failed"
