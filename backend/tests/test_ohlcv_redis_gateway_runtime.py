@@ -319,6 +319,7 @@ def test_gateway_environment_factory_parses_ed25519_public_key_allowlist(tmp_pat
         snapshot_installer=lambda store: {},
         environ={
             "OHLCV_REDIS_ENABLED": "true",
+            "OHLCV_REDIS_ROLE": "gateway",
             "APP_ENV": "production",
             "OHLCV_REDIS_GATEWAY_URL": "rediss://gateway:secret@redis.example:6380/0",
             "OHLCV_REDIS_REPLICA_DATABASE_PATH": str(tmp_path / "gateway.sqlite"),
