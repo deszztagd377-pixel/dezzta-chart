@@ -1559,3 +1559,14 @@ The current suites cover synthetic proof request validation, ticket lifecycle/ra
 - Android/browser process-death and network-handover E2E.
 
 Existing ticket-consumption race tests and socket-attachment restoration tests are only adjacent coverage; they do not satisfy ACK receipt race or event replay requirements. No Gate 25/36 status is changed by this inventory.
+
+
+---
+
+# Coordinated durable-delivery acceptance addendum — 25 November 2026
+
+The detailed cross-batch contract is maintained in [BATCH90_95_DURABLE_WEBSOCKET_DELIVERY_SPEC.md](BATCH90_95_DURABLE_WEBSOCKET_DELIVERY_SPEC.md), commit `327cac59c17894859d0deb6ac99644cdd3aa101f`.
+
+New combined acceptance groups: (1) compatible additive DO SQLite schema; (2) atomic event payload+digest+high-water; (3) duplicate idempotency/conflict and gap rollback; (4) fan-out-after-commit; (5) bounded contiguous replay and retention-floor resnapshot; (6) authenticated ACK and durable monotonic receipts; (7) RESUME/hibernation/eviction recovery; (8) provider legal/free/runtime gate; (9) public WSS/browser/Android/restore E2E. All remain 🟥 OPEN until executable evidence is attached to the exact commit.
+
+No acceptance gate closes from this design document. Stage 1 remains 30/40 = 75% provisional; Gate 10 remains 0/10 formally closed; Gate 25 and Gate 36 remain OPEN. No runtime code or Cloudflare resources were changed.
