@@ -1,7 +1,7 @@
 # Latest project dashboard — Work Cycle 89 reconciliation (25 November 2026)
 
 **Branch:** `phase-2/market-data-foundation`  
-**Verified baseline:** `572abed1dbab52d23f87074023f3b9a53a90b7e2`; latest documentation commit: `f1fde71d974c7d276ef52b2f76bf7f02bfd0cde7`.  
+**Verified baseline:** `572abed1dbab52d23f87074023f3b9a53a90b7e2`; WebSocket traceability artifact: `f1fde71d974c7d276ef52b2f76bf7f02bfd0cde7`.  
 **Architecture:** Cloudflare Native / Zero-Origin. Historical owner-host/Redis execution and the earlier Python Workers spike are not the active sequence.  
 **Current active package:** Batch 89 — exact zero-cost runtime gate; not a Python Workers compatibility spike.  
 **Cost ceiling:** ZERO COST. No paid runners, paid services, market-data feeds, deployments or Cloudflare resource creation.  
