@@ -176,6 +176,44 @@ def test_release_with_retry_preserves_lease_after_exhaustion():
     run(scenario())
 
 
+def test_cancelled_retry_backoff_is_queued_for_reconciliation():
+    async def scenario():
+        class FailFirstStopAdapter(InMemoryOfflineProviderAdapter):
+            def __init__(self):
+                super().__init__()
+                self.first_failure = True
+                self.first_stop_failed = asyncio.Event()
+
+            async def stop(self, demand_key):
+                if self.first_failure:
+                    self.first_failure = False
+                    self.first_stop_failed.set()
+                    raise RuntimeError("temporary stop failure")
+                await super().stop(demand_key)
+
+        adapter = FailFirstStopAdapter()
+        coordinator = ProviderDemandCoordinator(adapter)
+        lease = await coordinator.acquire("panel-a", key())
+        release_task = asyncio.create_task(
+            coordinator.release_with_retry(
+                lease, attempts=3, initial_delay=60
+            )
+        )
+        await adapter.first_stop_failed.wait()
+        await asyncio.sleep(0)
+        release_task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await release_task
+
+        assert coordinator.active_lease_count == 1
+        assert coordinator.pending_release_count == 1
+        assert await coordinator.retry_pending_releases() == 1
+        assert coordinator.active_lease_count == 0
+        assert adapter.active == set()
+
+    run(scenario())
+
+
 def test_pending_release_reconciliation_recovers_persistent_stop_failure():
     async def scenario():
         adapter = InMemoryOfflineProviderAdapter()
