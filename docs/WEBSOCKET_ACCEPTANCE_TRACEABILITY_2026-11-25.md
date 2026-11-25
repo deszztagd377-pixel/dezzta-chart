@@ -144,3 +144,12 @@ Stage 1's 75% provisional figure must not be extrapolated into overall project c
 - Keep synthetic-only proof mode and localhost origin restrictions.
 - Do not enable public WSS or provider ingress before their acceptance gates.
 - Planning target remains around **24 December 2026**, not a guaranteed delivery date and not grounds to waive acceptance.
+
+
+## 9. Additional concurrency acceptance — snapshot-to-live handoff
+
+A potential interleaving race exists between one-time ticket consumption and socket authorization. The ticket-consumption transaction captures the current sequence watermark; after the awaited transaction returns, the handler marks the socket authorized and sends its snapshot. An event committed in that gap may be excluded from fan-out because the socket is not yet authorized, while the returned snapshot watermark remains older.
+
+This race is **not yet reproduced** and is not counted as a confirmed runtime failure. The existing snapshot/live ordering test does not explicitly force the consume-commit → concurrent emit → socket-authorize schedule.
+
+Add a deterministic failure-injection test: pause the auth handler after ticket-consumption commit, emit the next contiguous event, resume auth, and assert no gap between snapshot watermark and subsequent delivered/replayed events. The test must run against the actual pinned Durable Object runtime. Accept only a snapshot at/after the event cursor or contiguous durable replay after the snapshot; reject silent loss and duplicate delivery. The durable event log (Batch 92) plus RESUME (Batch 93) are the intended recovery mechanism. Do not attempt to close the gap with a non-durable cursor-only read.
