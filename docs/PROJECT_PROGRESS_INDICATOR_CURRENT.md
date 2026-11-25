@@ -5886,3 +5886,17 @@ Two additional backend regression tests cover 32 concurrent duplicate releases o
 Exact-HEAD CI must be checked on the resulting source/test commit; no workflow result is inferred from a prior SHA. Full indicator status remains in `docs/INDICATOR_PROGRESS_LEDGER.md`; this cycle awards zero indicator completion credit. Overall project, aggregate indicator completion and IP3S remain NOT SCORED. Stage 1 remains 30/40 = 75% provisional inherited baseline; Stage 2 active but without an approved denominator; Stage 4 remains gated.
 
 ZERO COST maintained. `main` untouched. No Vercel deployment, paid service, live provider or destructive Redis operation.
+
+
+---
+
+# Work Cycle 67 — cross-process provider-demand ownership audit (25 November 2026)
+
+**Parent:** `b6cb9137f41b183d4dfa2983949c5a60fd4a9d16`  
+**Scope:** source-backed audit of `ohlcv_redis_lease.py`, `ohlcv_redis_consumer.py`, `shared_guard.py` and `provider_demand.py`.
+
+Finding: existing Redis primitives are not a cross-process provider-demand owner registry. The gateway consumer lease is exclusive per generation-scoped replica consumer group; SharedGuard tracks connection quotas; the offline provider coordinator is process-local. None can safely represent multiple authorized owners of one upstream series. Full rationale and conditional design are recorded in `docs/WORK_CYCLE_2026-11-25_BATCH67_CROSS_PROCESS_PROVIDER_DEMAND_AUDIT.md`.
+
+Decision: no distributed coordinator wiring until a recurring-$0 source, redistribution rights, exact SDK/API capability and provider acknowledgement contract are verified. No runtime source change. Batch 66 source/test CI remains separately tracked on `b6cb9137f41b183d4dfa2983949c5a60fd4a9d16`.
+
+Indicators unchanged; no completion credit. Full ledger: `docs/INDICATOR_PROGRESS_LEDGER.md`. Overall project, aggregate indicator completion and IP3S remain NOT SCORED. ZERO COST; `main` untouched; no Vercel deployment or destructive Redis operation.
