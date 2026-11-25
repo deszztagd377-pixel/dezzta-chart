@@ -154,7 +154,7 @@ class ProviderDemandCoordinator:
             except Exception:
                 if attempt + 1 >= attempts:
                     raise
-                await asyncio.sleep(initial_delay * (2**attempt)
+                await asyncio.sleep(initial_delay * (2**attempt))
         return False
 
     def subscriber_count(self, key: ProviderDemandKey) -> int:
