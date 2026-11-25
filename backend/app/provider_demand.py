@@ -6,6 +6,7 @@ It supplies a small, testable ownership primitive for future Stage 2 integration
 from __future__ import annotations
 
 import asyncio
+import math
 from dataclasses import dataclass
 from typing import Protocol
 from uuid import uuid4
@@ -142,14 +143,15 @@ class ProviderDemandCoordinator:
         external recovery path can retry it later. Cancellation is never
         swallowed.
         """
-        if isinstance(attempts, bool) or not isinstance(attempts, int) or attempts < 1:
-            raise ValueError("attempts must be a positive integer")
+        if isinstance(attempts, bool) or not isinstance(attempts, int) or not 1 <= attempts <= 10:
+            raise ValueError("attempts must be an integer between 1 and 10")
         if (
             isinstance(initial_delay, bool)
             or not isinstance(initial_delay, (int, float))
+            or not math.isfinite(initial_delay)
             or initial_delay < 0
         ):
-            raise ValueError("initial_delay must be a non-negative number")
+            raise ValueError("initial_delay must be a finite non-negative number")
 
         lease_id = lease.lease_id if isinstance(lease, DemandLease) else lease
         for attempt in range(attempts):
