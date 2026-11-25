@@ -196,7 +196,7 @@ def test_cancelled_retry_backoff_is_queued_for_reconciliation():
         lease = await coordinator.acquire("panel-a", key())
         release_task = asyncio.create_task(
             coordinator.release_with_retry(
-                lease, attempts=3, initial_delay=60
+                lease, attempts=3, initial_delay=1.0
             )
         )
         await adapter.first_stop_failed.wait()
