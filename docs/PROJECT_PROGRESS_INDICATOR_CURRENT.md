@@ -1,3 +1,31 @@
+# CURRENT PROJECT PROGRESS — Batch 71 (25 November 2026)
+
+**Latest audited branch HEAD:** `19de41d3dc613a11a0441e65a075f7a1ed5cc685` (Batch 70 parent; Batch 71 documentation reconciliation is the next commit).  
+**Exact-HEAD CI:** 4/4 SUCCESS on `19de41d3dc613a11a0441e65a075f7a1ed5cc685`; Automated Tests 41/41 steps, backend 1,426 passed / 1 skipped / 6 warnings in 63.60s; CodeQL 16/16; OCI ARM64 7/7; Secret Audit 6/6.  
+**Official roadmap stage:** Stage 1 — Foundation, Security & Data Integrity.  
+**Stage 1:** 30/40 = 75% provisional 🟨.  
+**Gate 10:** 0/10 formally closed 🟥; criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, 39 are Stage 1 acceptance criteria, not work automatically transferred to Stage 2.  
+**Stage 2:** early market-data foundation exists on the technical branch 🟦 PREPARATORY; not an official stage transition. Branch name `phase-2/market-data-foundation` is not roadmap acceptance.  
+**Stage 4:** indicator UI remains 🟪 GATED.  
+**Overall project / aggregate indicator completion / IP3S:** ⚪ NOT SCORED; no approved reproducible denominator/formula.  
+**ZERO COST:** maintained. `main` untouched. Vercel deferred. Redis destructive retention blocked. Delivery planning target ~24 December 2026.
+
+## Gate 10 vs Stage 2 — definitive accounting
+
+Gate 10 is the roll-up of the ten remaining Stage 1 acceptance criteria. Some underlying engineering can overlap with Stage 2 foundations, but the acceptance criteria remain assigned to Stage 1. No item is reclassified or waived because Stage 2 work exists. Stage 2 remains preparatory until Stage 1 exit acceptance is satisfied.
+
+Stage 1 criteria: 8 (owner secret runtime proof), 20 (Firebase no-billing E2E), 25 (owner-host Redis TLS/ACL/persistence), 30 (actual DB restore), 31 (encrypted off-host backup/key recovery), 34 (persistent volume host proof), 35 (owner-host runtime/health), 36 (public WSS/TLS/device E2E), 38 (durable operations metrics/alerts), 39 (incident/alert acknowledgement drill).
+
+**Do not confuse Stage 1 criterion #25 (Redis host acceptance) with Project Gate 25 (Ed25519 signed snapshot transfer/receipt/high-water ACK). They are distinct and both open.**
+
+## WebSocket / Gate 25 latest status
+
+Batch 70 source audit found that the source/gateway runtime factories require injected callbacks, but default `app = create_app()` and Docker ASGI entrypoint do not supply an owner-controlled transport. Actual authenticated snapshot transfer, remote persisted-receipt retrieval and source-side durable per-gateway high-water ACK remain 🟥 OPEN. Local `applied_cursor` and Redis `XACK` do not replace the owner ACK ledger. No guessed endpoint or fake callback is permitted.
+
+The Gate 25 transport blueprint is documented in `docs/WORK_CYCLE_2026-11-25_BATCH71_GATE10_STAGE_BOUNDARY_AND_ZERO_COST_TRANSPORT_BLUEPRINT.md` and requires owner review before runtime wiring.
+
+---
+
 # Project progress indicator — Work Cycle 65
 
 **Latest source/test work:** `a065e8b2b5b1736aba076d7b12940ae317989e49`; provider-demand identity includes dataset and input symbology. Exact-head CI: 4/4 SUCCESS; 1,424 passed, 1 skipped, 6 warnings. Indicator implementation unchanged; full per-study ledger is in `docs/INDICATOR_PROGRESS_LEDGER.md`.

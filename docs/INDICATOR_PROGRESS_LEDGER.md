@@ -1,3 +1,40 @@
+# Indicator progress reconciliation — Batch 71 (25 November 2026)
+
+**Audited source/test baseline:** `19de41d3dc613a11a0441e65a075f7a1ed5cc685` (Batch 70 documentation-only commit; no indicator source changes).  
+**Exact-HEAD CI:** 4/4 SUCCESS; backend 1,426 passed, 1 skipped, 6 warnings.  
+**Indicator completion credit this cycle:** none.
+
+| Indicator / subsystem | Calculation/data foundation | Chart rendering, interaction and lifecycle | Status |
+|---|---|---|---|
+| SMA20 | 20-close arithmetic mean; first valid index 19 | Overlay, toggle, legend/latest value and lifecycle absent | 🟨 FOUNDATION |
+| EMA20 | SMA-seeded EMA; alpha 2/21; first valid index 19 | Overlay, toggle, legend/latest value and lifecycle absent | 🟨 FOUNDATION |
+| RSI14 Wilder | 14-change seed + Wilder recurrence; first valid index 14 | 0–100 pane, 30/70 guides and lifecycle absent | 🟨 FOUNDATION |
+| MACD12/26/9 | MACD first index 25; signal/histogram first index 33 | Dedicated pane, lines, histogram and zero guide absent | 🟨 FOUNDATION |
+| Bollinger20,2 | 20-close mean ± 2 population SD; first valid index 19 | Upper/middle/lower overlays, fill and lifecycle absent | 🟨 FOUNDATION |
+| Shared Indicator Hook | Keyed immutable backend snapshot/cache/trust gate; 7 hook test declarations | Not integrated into `CandlestickChart.tsx` | 🟨 FOUNDATION |
+| Footprint PRO 2GD | Synthetic/offline accumulator only; not exchange-native bid/ask truth | Stage 4 gated; two supplied references define visual target | 🟧 GATED |
+| Volume Profile | Full binning/value-area behavior not accepted | Not integrated | 🟥 OPEN |
+| Complete Volume Profile | Session/range/POC/VAH/VAL methodology not accepted | Not integrated | 🟥 OPEN |
+| Movable-range Volume Profile | Range selection/recalculation lifecycle not accepted | Not integrated | 🟥 OPEN |
+| Heatmap | Lawful depth source, aggregation and decay not accepted | Not integrated; reference gate remains | 🟥 OPEN |
+| Liquidation Maps | Provenance, estimation methodology and confidence limits not accepted | Not integrated | 🟥 OPEN |
+
+## Calculation acceptance contracts
+
+- SMA20: arithmetic mean of 20 closes; first valid index 19.
+- EMA20: SMA-seeded EMA, alpha = 2/21; first valid index 19.
+- RSI14 Wilder: seed from 14 close-to-close changes, then Wilder recurrence; first valid index 14.
+- MACD12/26/9: MACD first valid index 25; signal/histogram first valid index 33.
+- Bollinger20,2: 20-close mean ± 2 population standard deviations; first valid index 19.
+
+Global invariants: warm-up nulls; prefix causality; no future-candle lookahead/repaint; exact timestamp and canonical series alignment; clear stale output on instrument/timeframe changes; no calculations for demo/loading/unavailable/error/empty backend snapshots.
+
+Focused test declarations remain **28 = 21 calculation + 7 shared-hook**. These are declaration counts, not passed test counts or completed indicators. `CandlestickChart.tsx` still does not integrate `useMarketIndicators`. Footprint OFF preserves ordinary candle spacing; explicit ON alone uses spaced clusters. Heatmap visuals remain gated on the user's reference.
+
+Aggregate indicator completion: ⚪ NOT SCORED because no approved weighted denominator exists. Visible indicator UI remains behind official Stage 4 and its scoped blueprint/user-review gate. The separate 40% overall-project threshold does not waive this stage gate.
+
+---
+
 # Indicator progress reconciliation — Work Cycle 65 (25 November 2026)
 
 **Branch:** `phase-2/market-data-foundation`  

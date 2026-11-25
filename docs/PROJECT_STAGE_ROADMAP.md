@@ -15,6 +15,16 @@ Current official stage: **Stage 1 — Foundation, Security & Data Integrity**
 | 5 | Professional UI & Interactive Tools | Broader professional chart experience, drawing/measurement tools, advanced visual systems and owner-directed interface expansion |
 | 6 | Hardening, Validation & APK Release | End-to-end regression, security/performance validation, device acceptance, release packaging and delivery |
 
+## Stage 1 / Gate 10 / Stage 2 boundary clarification (Batch 71)
+
+Gate 10 is the ten-item Stage 1 acceptance roll-up: criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. These criteria remain assigned to Stage 1 until their required acceptance evidence is complete; they are not automatically transferred into Stage 2.
+
+Some Stage 2 market-data foundation engineering is present on the technical branch as preparatory/parallel groundwork. This does not mean Stage 2 is the official active stage. The official roadmap remains at Stage 1 until Stage 1 exit acceptance is satisfied. The branch name `phase-2/market-data-foundation` is not a stage-transition signal.
+
+Do not confuse Stage 1 criterion #25 (owner-host Redis TLS/ACL/persistence acceptance) with Project Gate 25 (Ed25519 snapshot transfer, immutable receipt retrieval and durable high-water ACK). Both remain separate and open.
+
+The separate 40% overall-project threshold authorizes preparation/review of broader feature blueprints only; it does not override Stage 1 exit criteria or the Stage 4 indicator UI gate.
+
 ## Current stage and branch naming
 
 - Stage 1 remains the active official project stage until its acceptance requirements are satisfied.

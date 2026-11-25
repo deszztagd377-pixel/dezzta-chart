@@ -1,3 +1,21 @@
+# Current Stage 1 / Gate 10 status — Batch 71 (25 November 2026)
+
+**Current branch HEAD at audit:** `19de41d3dc613a11a0441e65a075f7a1ed5cc685`; Batch 70 exact-HEAD CI 4/4 SUCCESS.  
+**Official active stage:** Stage 1 — Foundation, Security & Data Integrity.  
+**Stage 1 evidence meter:** 30/40 = 75% provisional 🟨.  
+**Gate 10:** 0/10 formally closed 🟥.
+
+Gate 10 comprises only these ten remaining Stage 1 criteria: **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39**. They do not migrate wholesale into Stage 2. Early Stage 2 market-data foundation work on `phase-2/market-data-foundation` is preparatory technical work, not official stage advancement.
+
+- 🟨 Host/owner proof pending: 8, 30, 34, 35, 39.
+- 🟧 Operational/owner proof partially prepared: 38.
+- 🟥 External production/device acceptance open: 20, 25, 31, 36.
+- **Important:** Stage 1 criterion #25 is Redis TLS/ACL/persistence on owner hardware. Project Gate 25 is Ed25519 signed snapshot transfer/receipt/high-water ACK. They are separate blockers.
+- No criterion is formally closed by docs, synthetic tests or CI alone.
+- ZERO COST; `main` untouched; no paid hosting/data/monitoring/backup; Vercel deferred; Redis destructive retention blocked.
+
+---
+
 # Verified Stage 1 blocker reconciliation — Batch 62J-236 (25 November 2026)
 
 **Active branch:** `phase-2/market-data-foundation`  
