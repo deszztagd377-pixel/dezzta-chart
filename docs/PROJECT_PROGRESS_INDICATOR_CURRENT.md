@@ -6486,3 +6486,39 @@ Math first-valid indices remain SMA20 19, EMA20 19, RSI14 14, MACD line 25/signa
 - Aggregate indicator completion ⚪ NOT SCORED.
 
 No CI success is claimed. The documentation commit uses [skip ci], so it intentionally does not create a CI run. Connector limitations do not establish the absence of push-triggered runs.
+
+
+---
+
+# Owner-approved Batch 89–93 execution checkpoint — 25 November 2026
+
+**Blueprint approval:** explicitly granted by project owner in the current conversation. The Zero-Origin blueprint is approved as the basis for scoped implementation. This is not deployment authorization.
+
+**Latest blueprint audit commit:** 0da9d0375b754da3fde585df6ce2edab9402c123  
+**Blueprint:** [Batch 89–93 Zero-Origin blueprint](WORK_CYCLE_2026-11-25_BATCH89_93_ZERO_ORIGIN_BLUEPRINT.md)
+
+## Newly verified WebSocket blockers
+
+The synthetic proof Worker was inspected directly. Its current sequence transaction persists the sequence watermark but not the event payload. Fan-out happens after that transaction, so a runtime interruption between commit and send can lose an event and there is no durable replay source. Authenticated sockets accept ping only; ACK and RESUME are not implemented. There is no durable consumer receipt ledger. These are explicit production blockers, not failures of the intentionally synthetic proof.
+
+**Required correction path:** DO SQLite event+high-water atomic transaction → bounded cursor replay → ACK validation and durable receipt → reconnect/resnapshot semantics → public WSS/browser/Android E2E. Gate 25 and Gate 36 remain 🟥 OPEN.
+
+## Batch status after owner approval
+
+| Batch | Status | Exact interpretation |
+|---:|---|---|
+| 89 | 🟨 / 🟥 | FastAPI/ASGI platform feasibility documented; exact repository Python Worker runtime tests not executed |
+| 90 | 🟦 | DO SQLite schema/migration design; implementation not started |
+| 91 | 🟦 | Provider-neutral API contract; implementation not started |
+| 92 | 🟦 | Series event-log/replay design; implementation not started |
+| 93 | 🟦 | WSS ACK/receipt/reconnect design; implementation not started |
+| 94 | 🟥 | Provider lawful/compatible/zero-cost gate not passed |
+| 95 | 🟥 | Public WSS/device E2E and restore proof absent |
+
+The available GitHub connector exposes file operations, not a checked-out command runner; local container networking could not resolve github.com. Therefore no unexecuted code was committed. No claim of runtime PASS is made. No paid sandbox or Cloudflare resource was created.
+
+## Stage 1 acceleration
+
+Stage 1 remains the longest foundation stage because it contains persistence, security, provenance, delivery and external acceptance. Work can be parallelized across independent design/evidence tracks, but acceptance dependencies remain ordered: schema → durable event engine → replay/ACK → public WSS E2E. Stage 1 is not shortened by relabeling incomplete gates.
+
+All 12 indicator statuses and mathematical acceptance contracts remain unchanged from the complete indicator ledger. Overall project and significant-progress scores remain NOT SCORED because no approved weighted denominator/formula exists.
