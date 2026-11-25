@@ -4164,3 +4164,29 @@ WebSocket/runtime work produced no indicator source, chart-rendering or interact
 | Liquidation Maps | 🟥 OPEN | Provenance, estimation method and confidence contract |
 
 Global invariants remain mandatory: warm-up nulls; prefix causality; no future-candle lookahead/repaint; timestamp/series identity alignment; stale-output clearing; deterministic results; bounded computation; no mutation of source candles; no calculation for demo/loading/unavailable/error/empty snapshots. Focused declarations remain 28 (21 calculation + 7 hook), not passed-test count or percent. Aggregate indicator progress remains ⚪ NOT SCORED because no approved weighted denominator exists.
+
+
+---
+
+## Batch 81 indicator reconciliation — 25 November 2026
+
+No indicator calculation, chart integration, rendering, or lifecycle source changed in Batch 81. No indicator progress credit is awarded. Focused declarations remain 28 total (21 calculation + 7 shared-hook), not a completion percentage or pass count.
+
+| Indicator | State | Acceptance still outstanding |
+|---|---|---|
+| SMA20 | 🟨 FOUNDATION | First valid index 19; chart overlay/toggle/legend/value/lifecycle |
+| EMA20 | 🟨 FOUNDATION | SMA seed, alpha 2/21, first valid index 19; chart integration |
+| RSI14 Wilder | 🟨 FOUNDATION | First valid index 14; 0–100 pane and 30/70 guides |
+| MACD12/26/9 | 🟨 FOUNDATION | MACD index 25; signal/histogram index 33; dedicated pane |
+| Bollinger20,2 | 🟨 FOUNDATION | Population SD, first valid index 19; three overlays/fill/toggle |
+| Shared Indicator Hook | 🟨 FOUNDATION | 7 declarations; integrate with `CandlestickChart.tsx` |
+| Footprint PRO 2GD | 🟧 GATED | Synthetic/offline only; match both saved references; OFF normal spacing, ON spaced clusters |
+| Volume Profile | 🟥 OPEN | Price-bin conservation, value area, range and timestamps |
+| Complete Volume Profile | 🟥 OPEN | Full-session completeness, POC/VAH/VAL and conservation |
+| Movable-range Volume Profile | 🟥 OPEN | User-selected bounds and deterministic recomputation |
+| Heatmap | 🟥 OPEN | Data provenance/aggregation/decay; wait for user's visual reference |
+| Liquidation Maps | 🟥 OPEN | Provenance, estimation method and confidence contract |
+
+Global invariants remain: warm-up nulls; prefix causality; no lookahead/repaint; timestamp/series identity alignment; stale-output clearing; deterministic bounded calculations; no source candle mutation; no calculations for demo/loading/unavailable/error/empty snapshots. Footprint OFF preserves normal candle spacing; explicit ON alone uses spaced clusters. The two Footprint references are available; Heatmap reference remains outstanding.
+
+The source/test checkpoint `9138249fc31431c1112fb6fa49c4e11e63dc0f1a` passed all 4 required workflows. This WebSocket receipt-identity patch does not alter indicator status. Aggregate indicator completion remains ⚪ NOT SCORED because no approved weighted denominator exists.

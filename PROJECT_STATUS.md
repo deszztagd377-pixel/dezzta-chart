@@ -1840,3 +1840,17 @@ Cross-indicator acceptance remains mandatory: warm-up values null until mathemat
 The latest evidence reconciliation is recorded in `docs/WORK_CYCLE_2026-11-25_BATCH80_86_EXECUTION_RECONCILIATION.md`. Corrected accounting: Batch 80 is complete at code/CI scope; source/gateway factory components for Batches 81–82 already exist but owner callback/host integration is still open; prior real-Redis two-ASGI/TCP recovery and snapshot-generation scenarios provide partial Batch 83 acceptance; immutable signed snapshot receipts exist but Gate 25 owner-accepted durable high-water ACK remains open; public Cloudflare WSS/device E2E remains open; local recovery/metrics foundations exist but owner-host backup/restore remains open.
 
 Exact source/test SHA `66d4c6a812d5ce2570345e1108e813b5067f5248`: Automated Tests 1,433 passed, 1 skipped, 6 warnings; CodeQL Python 8/8 and JavaScript/TypeScript 8/8; Full Git History Secret Audit 6/6; OCI ARM64 7/7. Every job is terminal success. This evidence does not apply to later documentation-only HEADs. See the reconciliation report for test scope, skipped TLS test boundary, detailed batch states, and ordered dependencies.
+
+
+---
+
+## Latest verified source/test checkpoint — Batch 81 (25 November 2026)
+
+- Active branch: `phase-2/market-data-foundation`; `main` untouched.
+- Source/test SHA: `9138249fc31431c1112fb6fa49c4e11e63dc0f1a`.
+- Change: source publisher snapshot evidence now requires each gateway receipt's explicit `gateway_id` to match the authenticated inventory key; mismatch fails before Redis client construction.
+- Files: `backend/app/ohlcv_redis_runtime.py`, `backend/tests/test_ohlcv_redis_runtime.py`.
+- Exact-head CI: 4/4 required workflows terminal SUCCESS. Backend 1,434 passed, 1 skipped, 6 warnings; dedicated Redis TLS fixture 1 passed in 0.08 s. Automated Tests, CodeQL, Full Git History Secret Audit and OCI ARM64 all terminal; no running jobs.
+- Batch 81 remains component foundation, not production activation: owner-authenticated remote verifier and durable receipt retrieval still required. Batch 82 owner installer/key pinning, Batch 84 owner-accepted high-water ACK, Batch 85 public Cloudflare WSS/device E2E and Batch 86 owner-host restore/incident acceptance remain open.
+- Indicator source/UI unchanged; no indicator progress credit. Full ledger: `docs/WORK_CYCLE_2026-11-25_BATCH81_GATEWAY_IDENTITY_RECEIPT_BINDING.md`.
+- ZERO COST; no Cloudflare resource or production deployment changed; delivery target around 24 December 2026.

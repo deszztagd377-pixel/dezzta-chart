@@ -6248,3 +6248,26 @@ Cross-indicator acceptance remains mandatory: warm-up values null until mathemat
 See `WORK_CYCLE_2026-11-25_BATCH80_86_EXECUTION_RECONCILIATION.md` for exact evidence. Batch 80 🟩 code/CI complete; Batches 81–82 🟨 factories/tests exist but owner callbacks and real host integration remain open; Batch 83 🟨 prior real-Redis two-ASGI broadcast/replay/restart/TCP interruption and dual-replica snapshot-generation scenarios passed; Batch 84 🟧 immutable signed snapshot receipt foundation exists, but owner-accepted durable high-water ACK/Gate 25 remains open; Batch 85 🟥 public Cloudflare WSS and browser/Android E2E open; Batch 86 🟧 local metrics/incident and Redis AOF/container recovery foundations exist, owner-host backup/restore open.
 
 Indicator ledger is unchanged by this WebSocket cycle: SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook 🟨 FOUNDATION; Footprint PRO 2GD 🟧 GATED; Volume Profile, Complete Volume Profile, Movable-range Volume Profile, Heatmap and Liquidation Maps 🟥 OPEN. Focused declarations remain 28 (21 calculation + 7 hook), not a completion percentage. No indicator source/UI completion credit. Overall project and IP3S remain ⚪ NOT SCORED; Stage 1 remains 30/40 = 75% provisional; Gate 10 remains 0/10 closed. ZERO COST; target around 24 December 2026.
+
+
+---
+
+## Current verified checkpoint — 25 November 2026 / Batch 81
+
+Source/test SHA `9138249fc31431c1112fb6fa49c4e11e63dc0f1a` has 4/4 required workflows terminal SUCCESS. Backend: 1,434 passed, 1 skipped, 6 warnings; dedicated Redis TLS integration fixture: 1 passed. New regression rejects a gateway receipt whose `gateway_id` differs from the authenticated gateway inventory key.
+
+| Meter | Current | Visual state |
+|---|---:|---|
+| Stage 1 | 30/40 = 75% provisional | 🟨 |
+| Gate 10 | 0/10 formally closed | 🟥 |
+| Stage 2 | Preparatory / not scored | 🟦 |
+| Stage 3 | Not scored | ⚪ |
+| Stage 4 | Gated | 🟪 |
+| Stage 5 | Not scored | ⚪ |
+| Stage 6 | Not scored | ⚪ |
+| Overall project | Not scored; weighted denominator not approved | ⚪ |
+| Significant progress / IP3S | Not scored; weighted denominator not approved | ⚪ |
+
+Batch 80 🟩 code/CI complete; Batch 81 🟨 foundation + identity binding, owner verifier still required; Batch 82 🟨 component foundation, authenticated installer/key pinning required; Batch 83 🟨 broad automated matrix passed; Batch 84 🟧 receipt foundation, owner-accepted ACK/restart proof open; Batch 85 🟥 production WSS/device E2E open; Batch 86 🟧 local recovery foundation, owner-host acceptance open.
+
+Indicator aggregate remains ⚪ NOT SCORED. No indicator code or chart UI changed in Batch 81. The complete indicator ledger and mathematical invariants are in `docs/WORK_CYCLE_2026-11-25_BATCH81_GATEWAY_IDENTITY_RECEIPT_BINDING.md` and `docs/INDICATOR_PROGRESS_LEDGER.md`.
