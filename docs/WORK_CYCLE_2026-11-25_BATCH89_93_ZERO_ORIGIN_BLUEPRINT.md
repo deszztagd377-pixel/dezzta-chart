@@ -526,3 +526,12 @@ A fresh source-level inventory found **43 declared test cases** across three exi
 - No test has been added or modified in this audit. Do not change production acceptance statuses based on test-name presence.
 
 The first implementation test batch must be introduced with Batch 90/92 schema and event engine work, then the remaining ACK/replay/device cases in dependency order. No new code is safe to commit until a zero-cost runner can execute the exact suites.
+
+
+---
+
+# Coordinated implementation contract reference — Batches 90–95 (25 November 2026)
+
+The cross-batch logical schema, event transaction, replay cursor, ACK/receipt protocol, RESUME state machine, provider-neutral envelopes, zero-cost provider gate, failure-injection matrix and public WSS/device acceptance are consolidated in [BATCH90_95_DURABLE_WEBSOCKET_DELIVERY_SPEC.md](BATCH90_95_DURABLE_WEBSOCKET_DELIVERY_SPEC.md), commit `327cac59c17894859d0deb6ac99644cdd3aa101f`.
+
+This is a design reference, not implementation or production acceptance. Batch 89 runtime validation remains the prerequisite. Batch 90 schema → Batch 92 event/replay → Batch 93 ACK/recovery dependencies remain strict; Batch 91 contract preparation can be parallelized where independent. Batch 94 provider ingress and Batch 95 public WSS remain gated. No new Cloudflare SQL API syntax is assumed before runtime compatibility is demonstrated.
