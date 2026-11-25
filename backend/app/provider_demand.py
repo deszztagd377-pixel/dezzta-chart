@@ -65,6 +65,7 @@ class ProviderDemandCoordinator:
         self._leases_by_id: dict[str, DemandLease] = {}
         self._lease_ids_by_key: dict[ProviderDemandKey, set[str]] = {}
         self._lease_by_owner: dict[tuple[str, ProviderDemandKey], str] = {}
+        self._pending_release_ids: set[str] = set()
 
     @staticmethod
     def _validate_subscriber(subscriber_id: str) -> None:
@@ -109,6 +110,7 @@ class ProviderDemandCoordinator:
         async with self._lock:
             current_lease = self._leases_by_id.get(lease_id)
             if current_lease is None:
+                self._pending_release_ids.discard(lease_id)
                 return False
             # A copied/forged token must not release another owner's lease.
             # String IDs remain supported for internal recovery paths.
@@ -121,6 +123,7 @@ class ProviderDemandCoordinator:
 
             owners.remove(lease_id)
             self._leases_by_id.pop(lease_id, None)
+            self._pending_release_ids.discard(lease_id)
             self._lease_by_owner.pop((current_lease.subscriber_id, current_lease.key), None)
             if not owners:
                 self._lease_ids_by_key.pop(current_lease.key, None)
@@ -148,14 +151,36 @@ class ProviderDemandCoordinator:
         ):
             raise ValueError("initial_delay must be a non-negative number")
 
+        lease_id = lease.lease_id if isinstance(lease, DemandLease) else lease
         for attempt in range(attempts):
             try:
                 return await self.release(lease)
             except Exception:
                 if attempt + 1 >= attempts:
+                    async with self._lock:
+                        if isinstance(lease_id, str) and lease_id in self._leases_by_id:
+                            self._pending_release_ids.add(lease_id)
                     raise
                 await asyncio.sleep(initial_delay * (2**attempt))
         return False
+
+    async def retry_pending_releases(self) -> int:
+        """Retry disconnected owners' retained leases; return successful releases."""
+        async with self._lock:
+            pending_ids = tuple(sorted(self._pending_release_ids))
+        recovered = 0
+        for lease_id in pending_ids:
+            try:
+                if await self.release_with_retry(lease_id, attempts=1):
+                    recovered += 1
+            except Exception:
+                # Keep the lease queued; a later worker tick can retry it.
+                continue
+        return recovered
+
+    @property
+    def pending_release_count(self) -> int:
+        return len(self._pending_release_ids)
 
     def subscriber_count(self, key: ProviderDemandKey) -> int:
         return len(self._lease_ids_by_key.get(key, ()))
