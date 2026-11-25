@@ -444,3 +444,40 @@ Stage 1 is expected to be the longest foundation stage because it carries the da
 Tracks B–D may be designed in parallel but implementation dependencies remain ordered: schema and invariants before event engine; event engine before replay/ACK; replay/ACK before public WSS E2E. Batch 94 provider evaluation remains isolated and cannot block offline synthetic protocol testing. Batch 95 remains last.
 
 The target of approximately 24 December 2026 remains a planning target. No completion date is guaranteed by documentation progress.
+
+
+## 14. Execution checkpoint — source re-audit and safe implementation gate (25 November 2026)
+
+This addendum records a fresh read of the active branch after the owner-approved blueprint. It does not change the architecture or acceptance order.
+
+### 14.1 Exact source-level finding
+
+The current `cloudflare/proof/worker.mjs` is a synthetic-only proof, not a production market-data service:
+
+- `acceptNextSequence(storage, seriesKey, sequence)` transactionally updates only `sequence:<seriesKey>`; it does not insert an immutable event payload or payload digest.
+- The `/__proof/emit` path constructs a synthetic update after sequence acceptance and then iterates authenticated sockets to send it. Thus the committed cursor is not backed by a replayable event record. A process interruption after cursor commit and before socket delivery has no durable event from which to recover.
+- `webSocketMessage` authenticates a one-time synthetic proof ticket, sends a generated synthetic snapshot, and supports `ping`/pong. Other authenticated client message types are closed as unsupported. ACK and RESUME are not implemented.
+- The snapshot is generated from deterministic fixtures and labels itself `synthetic_only_not_market_data`; it is not a verified production snapshot or provider feed.
+- Existing serialized socket attachments support hibernation restoration of the proof identity, but that proof identity is fixed and is not a production subject/device authorization model.
+
+These are intentional proof boundaries. Do not patch around them by relabelling the proof as production or by treating successful socket send as durable delivery.
+
+### 14.2 Runtime execution boundary
+
+The root `package.json` declares `test`, `test:cloudflare-runtime`, and `test:cloudflare-durable-objects`. The two Cloudflare-specific scripts install pinned tooling before executing the repository tests. The connector available in this session can read/write GitHub files and inspect commit/status metadata, but it does not expose a checked-out working tree or command runner. The local container also cannot resolve GitHub to obtain a clone. Therefore this session cannot honestly execute the repository's Vitest/Miniflare/DO runtime suites.
+
+No runtime implementation is to be committed until an already-authorized zero-cost runner is available and can execute the exact repository scripts. This is a quality gate, not permission to introduce paid CI, a hosted sandbox, a Cloudflare resource, or a new service.
+
+### 14.3 Next executable sequence (non-looping)
+
+1. **Batch 89 — runner and Python Workers spike:** use an existing zero-cost local/repository runner; execute the isolated minimal FastAPI/ASGI probe and exact dependency probes. Record versions, terminal output and exact commit. Do not add Python packages to the production Worker until each required feature passes.
+2. **Batch 90 — schema:** implement only after runner availability; migrate schema in a disposable local DO simulator, verify migration idempotence, transaction rollback and legacy digest parity.
+3. **Batch 91 — API shell:** reconcile every proposed route with existing frontend contracts first; synthetic status must remain explicitly synthetic and unavailable must fail closed.
+4. **Batch 92 — event engine:** atomically insert event payload + canonical digest + high-water; prove duplicate idempotency, conflicting duplicate rejection, gap rejection, rollback and eviction replay.
+5. **Batch 93 — delivery protocol:** implement ACK/RESUME only on top of the durable event engine; persist monotonic receipts and test races, generation mismatch, retention floor and restart reconciliation.
+6. **Batch 94 — provider:** remain blocked unless lawful terms, technical compatibility and genuinely zero-cost access are evidenced.
+7. **Batch 95 — public acceptance:** only after prior gates and separate explicit deployment authorization; browser/Android WSS, TLS, reconnect, quota and restore evidence required.
+
+### 14.4 No false completion
+
+At this checkpoint Batches 89–95 retain their existing statuses. The source audit increases confidence in the blocker diagnosis, not implementation completion. Gate 25 and Gate 36 remain open; no live provider, public WSS, production Worker or durable ACK receipt is claimed. No Cloudflare resource, deployment, paid service or `main` branch change is authorized or performed.
