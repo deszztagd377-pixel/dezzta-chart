@@ -1,3 +1,68 @@
+# Latest project dashboard — Work Cycle 87 (25 November 2026)
+
+**Audited branch:** `phase-2/market-data-foundation`  
+**Audited source/test HEAD:** `471eb4413a716922b20a5503fe5165607e77947f`  
+**Current work cycle:** documentation reconciliation only; no runtime code, indicator UI, Cloudflare resource or deployment changed. `main` untouched. ZERO COST maintained.
+
+## Overall progress
+
+- **Stage 1 — Foundation, Security & Data Integrity:** 30/40 = **75% provisional** 🟨. This is a stage evidence meter, not whole-project completion.
+- **Gate 10:** 0/10 formally closed 🟥. Remaining criteria: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.
+- **Stage 2 — Market Data Infrastructure:** 🟦 PREPARATORY; not an official stage transition.
+- **Stage 3 — Chart Engine & Timeframe:** ⚪ NOT SCORED.
+- **Stage 4 — Indicators & Analytics:** 🟪 GATED pending scoped blueprint/review.
+- **Stage 5 — Professional UI & Interactive Tools:** ⚪ NOT SCORED.
+- **Stage 6 — Hardening, Validation & APK Release:** ⚪ NOT SCORED.
+- **Overall project completion:** ⚪ NOT SCORED; no approved weighted denominator.
+- **Significant progress / IP3S:** ⚪ NOT SCORED; no reproducible formula/denominator approved.
+
+## WebSocket / Cloudflare
+
+- Synthetic Worker source and Wrangler config: 🟩 PRESENT IN REPOSITORY.
+- Synthetic proof guardrails and 31 test declarations: 🟩 SOURCE / 🟨 TEST EXECUTION NOT VERIFIED.
+- Production Worker deployment and public route: 🟥 NOT EVIDENCED.
+- Gate 25 durable signed snapshot receipt + owner-accepted per-gateway high-water ACK: 🟥 OPEN.
+- Gate 36 public WSS/TLS/browser/Android E2E: 🟥 OPEN.
+- Redis destructive retention: 🟧 BLOCKED until durable receipts and retention-floor proof.
+- Latest SHA combined status: no status checks returned; workflow-run connector returned no PR-triggered run records. CI state is **UNKNOWN / NOT VERIFIED**, not green or red.
+
+## Indicator dashboard
+
+| Study / subsystem | Status |
+|---|---|
+| SMA20 | 🟨 FOUNDATION |
+| EMA20 | 🟨 FOUNDATION |
+| RSI14 Wilder | 🟨 FOUNDATION |
+| MACD12/26/9 | 🟨 FOUNDATION |
+| Bollinger20,2 | 🟨 FOUNDATION |
+| Shared Indicator Hook | 🟨 FOUNDATION |
+| Footprint PRO 2GD | 🟧 GATED |
+| Volume Profile | 🟥 OPEN |
+| Complete Volume Profile | 🟥 OPEN |
+| Movable-range Volume Profile | 🟥 OPEN |
+| Heatmap | 🟥 OPEN — visual reference pending |
+| Liquidation Maps | 🟥 OPEN |
+
+**Focused indicator test declarations:** 28 (21 calculation + 7 hook). This is not a passing-test count or indicator completion count. `CandlestickChart.tsx` still does not integrate `useMarketIndicators`. Aggregate indicator completion: ⚪ NOT SCORED.
+
+## Execution order
+
+1. Review source/gateway runtime blueprint and verify existing production host mapping.
+2. Batch 80 strict source/gateway runtime configuration.
+3. Batch 81 source publisher factory.
+4. Batch 82 gateway replica factory.
+5. Batch 83 real Redis multi-gateway/restart/fault acceptance.
+6. Batch 84 durable receipt/high-water ACK ledger.
+7. Batch 85 existing Cloudflare route, public WSS/TLS and browser/Android E2E.
+8. Batch 86 backup/restore/observability/incident acceptance.
+9. Re-run Stage 1 matrix; close only criteria with direct evidence.
+
+**Delivery target:** around 24 December 2026.  
+**Cost:** ZERO COST; no paid hosting, data, monitoring, backup, deployment or publication.  
+**Detailed audit:** `docs/WORK_CYCLE_2026-11-25_BATCH87_INDICATOR_AND_WEBSOCKET_RECONCILIATION.md`.
+
+---
+
 # CURRENT PROJECT PROGRESS — Batch 72 (25 November 2026)
 
 **Latest audited source HEAD:** `6a6e9e82ed2de725bef94e8ed1fa7f28c60e0a49` on `phase-2/market-data-foundation`.  
