@@ -1286,3 +1286,25 @@ Automated suite: **1,426 passed, 1 skipped, 6 warnings in 57.78 seconds**. Dedic
 This is CI evidence only. It does not prove owner-host TLS, production Cloudflare deployment/public WSS, Firebase identity/entitlement, live provider rights/data, production signed snapshot/receipt ACK, or Android/browser production lifecycle. Stage 1 remains 30/40 provisional; Gate 10 remains 0/10. Indicator completion credit unchanged.
 
 The following documentation-only reconciliation commit does not change runtime/source files; CI is not rerun for that documentation-only commit because the exact source tree above already passed all four workflows.
+
+
+---
+
+## STAGE 1 ACCEPTANCE MATRIX — Batch 78 reconciliation (25 November 2026)
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Documentation HEAD before Batch 78:** `fb4fb9843535b0dae1cc733d65df9de653dd88ba`  
+**Last source/test SHA:** `a2d2e7a03e2afee89429bb9d22c4641fd5b8a833`  
+**Batch 78 report:** [Recovery, monitoring and five-batch reconciliation](WORK_CYCLE_2026-11-25_BATCH78_RECOVERY_MONITORING_RECONCILIATION.md)
+
+Batches 74–77 already existed and are reconciled; they are not reimplemented. Exact-source CI recorded by Batch 77: Automated Tests 41/41 (1,426 passed, 1 skipped, 6 warnings), CodeQL 16/16, OCI ARM64 7/7, Secret Audit 6/6; dedicated Redis TLS integration 1 passed. The subsequent branch commits are documentation-only and marked `[skip ci]`; no new source CI run is claimed for them.
+
+**Stage dashboard:** Stage 1 official active, 30/40 = 75% provisional 🟨; Gate 10 = 0/10 formally closed 🟥 (criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, 39). Stage 2 🟦 preparatory only; Stage 3 ⚪ not scored; Stage 4 🟪 gated; Stages 5–6 ⚪ not scored. Overall project, aggregate indicator completion and IP3S remain ⚪ NOT SCORED because no approved weighted denominator exists.
+
+**WebSocket/Gate 25:** production WSS, Firebase identity/entitlement, lawful zero-cost provider provenance, production ticket issuance, signed snapshot transfer, authenticated persisted receipt retrieval, durable per-gateway high-water ACK/fencing/restart reconciliation and public browser/Android E2E remain OPEN. Redis `XTRIM`, `XDEL` and consumer-group destruction remain BLOCKED until durable gateway ACK acceptance. Cloudflare Worker/DO remains synthetic-only; no production resources were created. The connected account inventory is empty, while the user has separately stated the project server is on Cloudflare; do not infer that the connected account is the hosting account or create duplicate infrastructure.
+
+**Recovery/monitoring:** CI verifies container-scope health, Redis ACL/AOF restart, outage fail-closed/reconnect, non-root execution, volume ownership smoke, SQLite integrity/restart, rate limiting and isolated TLS. Owner-host secret/volume/DB restore/off-host encrypted backup, independent alert/incident drill, production WSS and device recovery remain unaccepted.
+
+**Indicators:** SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain 🟨 FOUNDATION; Footprint PRO 2GD 🟧 GATED; Volume Profile, Complete Volume Profile, Movable-range Volume Profile, Heatmap and Liquidation Maps 🟥 OPEN. Focused declarations remain 28 (21 calculation + 7 hook), not completion. No indicator source/UI change and no completion credit in Batch 78. `CandlestickChart.tsx` integration remains absent. Preserve warm-up nulls, prefix causality, no lookahead/repaint, exact timestamp alignment and Footprint OFF normal candle spacing.
+
+**Controls:** ZERO COST; `main` untouched; Vercel deferred; no paid data/hosting/monitoring/backup; no production deployment; delivery target around 24 December 2026.
