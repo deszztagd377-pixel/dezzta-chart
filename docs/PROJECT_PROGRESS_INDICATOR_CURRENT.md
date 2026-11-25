@@ -1,3 +1,17 @@
+# CURRENT PROJECT PROGRESS — Batch 72 (25 November 2026)
+
+**Latest audited source HEAD:** `6a6e9e82ed2de725bef94e8ed1fa7f28c60e0a49` on `phase-2/market-data-foundation`.  
+**Cloudflare finding:** the repository has a tested synthetic Worker/SQLite Durable Object proof, but the connected Cloudflare account has no deployed Worker, Pages project, Tunnel, Durable Object namespace, Zone, Queue, D1, KV or Worker domain. The proof is not production WSS and is not wired to FastAPI, Firebase, live providers or UI.  
+**Cloudflare zero-cost path:** Workers Free + SQLite Durable Objects are viable candidates within published quotas; Cloudflare Containers require Workers Paid and are excluded. Tunnel can carry WebSockets but needs an already-running owner origin. Route A (Cloudflare-native port) vs Route B (Tunnel to owner origin) is not selected pending exact account/project confirmation.  
+**Official active stage:** Stage 1 — Foundation, Security & Data Integrity. Stage 1 30/40 = 75% provisional 🟨; Gate 10 0/10 formally closed 🟥. Stage 2 🟦 PREPARATORY, not official active stage. Stage 4 🟪 GATED. Stages 3, 5, 6 ⚪ NOT SCORED.  
+**Indicators:** 12 indicator/subsystem rows remain as in the full ledger; 6 foundation, 1 gated Footprint, 5 open advanced indicators. Focused declarations 28 (21 calculation + 7 shared-hook), not completion. No indicator source/UI change or completion credit in Batch 72.  
+**Overall project / aggregate indicator completion / IP3S:** ⚪ NOT SCORED; no approved denominator/formula.  
+**Controls:** ZERO COST; `main` untouched; Vercel deferred; no Cloudflare resource created/deployed; Redis destructive retention blocked; delivery target around 24 December 2026.
+
+Full evidence and route analysis: `docs/WORK_CYCLE_2026-11-25_BATCH72_CLOUDFLARE_INVENTORY_ZERO_COST_WEBSOCKET_PATH.md`.
+
+---
+
 # CURRENT PROJECT PROGRESS — Batch 71 (25 November 2026)
 
 **Latest audited branch HEAD:** `19de41d3dc613a11a0441e65a075f7a1ed5cc685` (Batch 70 parent; Batch 71 documentation reconciliation is the next commit).  

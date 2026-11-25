@@ -1,3 +1,17 @@
+# Indicator progress reconciliation — Batch 72 (25 November 2026)
+
+**Audited source HEAD:** `6a6e9e82ed2de725bef94e8ed1fa7f28c60e0a49`.  
+**Indicator source/UI changes:** none. **Completion credit this cycle: 0.**  
+**Complete inventory:** SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain 🟨 FOUNDATION; Footprint PRO 2GD remains 🟧 GATED; Volume Profile, Complete Volume Profile, Movable-range Volume Profile, Heatmap and Liquidation Maps remain 🟥 OPEN.  
+**Focused declarations:** 28 = 21 calculation + 7 shared-hook; this is a declaration count, not passed tests or completion percentage.  
+**Integration status:** `CandlestickChart.tsx` still does not integrate `useMarketIndicators`. Stage 4 remains gated.  
+**Mathematical invariants:** warm-up nulls; prefix causality; no future-candle lookahead/repaint; exact timestamp/canonical series alignment; clear stale output on identity changes; no calculations for demo/loading/unavailable/error/empty snapshots.  
+**Footprint:** OFF preserves standard candle spacing; explicit ON alone uses spaced clusters. The two supplied Footprint references remain authoritative visual targets. Heatmap visual implementation remains reference-gated.  
+**Cloudflare note:** the synthetic Worker/DO proof does not change indicator status or count as production market-data provenance. See Batch 72 Cloudflare inventory document.  
+**Aggregate indicator completion:** ⚪ NOT SCORED; no approved weighted denominator exists.
+
+---
+
 # Indicator progress reconciliation — Batch 71 (25 November 2026)
 
 **Audited source/test baseline:** `19de41d3dc613a11a0441e65a075f7a1ed5cc685` (Batch 70 documentation-only commit; no indicator source changes).  

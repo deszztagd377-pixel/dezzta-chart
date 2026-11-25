@@ -1,3 +1,9 @@
+## Cloudflare deployment boundary — Batch 72 (25 November 2026)
+
+Cloudflare is an intended platform component and the repository contains a tested synthetic Worker/SQLite Durable Object proof. That proof is not a deployed production service: its Wrangler config disables Workers.dev and preview URLs, sets synthetic-only mode, and the Worker source explicitly excludes FastAPI, Firebase, live providers and UI integration. The currently connected Cloudflare account inventory returned no deployed Worker, Pages project, Tunnel, Durable Object namespace, Queue, D1, KV, Zone or Worker domain. Do not treat this as Stage 1 acceptance.
+
+For ZERO COST, evaluate Workers Free + SQLite-backed Durable Objects within the documented quotas. Exclude Cloudflare Containers because they require Workers Paid. Cloudflare Tunnel is available on all plans and supports WebSockets, but it only forwards to an existing owner-operated origin; it does not host the Python FastAPI container. Route selection (Cloudflare-native backend port vs Tunnel to an existing owner origin) requires exact account/project confirmation and a reviewed blueprint before resource creation or deployment. See `docs/WORK_CYCLE_2026-11-25_BATCH72_CLOUDFLARE_INVENTORY_ZERO_COST_WEBSOCKET_PATH.md`.
+
 # DEZZTA CHART — Official Six-Stage Roadmap
 
 Status: owner-agreed project sequence  

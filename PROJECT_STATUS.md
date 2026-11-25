@@ -1,3 +1,17 @@
+# Latest verified project status — Batch 72 (25 November 2026)
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Audited source/test SHA:** `6a6e9e82ed2de725bef94e8ed1fa7f28c60e0a49`; Batch 71 CI 4/4 terminal SUCCESS.  
+**Cloudflare:** repo contains a synthetic-only Worker/SQLite DO proof; it is not deployed or wired to production FastAPI/Firebase/live provider/UI. Connected account inventory currently has no Worker, Pages project, Tunnel, DO namespace, Zone or Worker domain. Workers Free + SQLite DO are candidate zero-cost edge components within quota; Containers are paid-only and excluded.  
+**Stage:** Stage 1 official active, 30/40 = 75% provisional 🟨; Gate 10 0/10 🟥. Stage 2 preparatory; Stage 4 gated. Overall and IP3S remain not scored.  
+**Indicators:** 6 foundation (SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2, Shared Hook); Footprint PRO 2GD gated; 5 advanced studies open. 28 declarations are not completion.  
+**Gate 25 / WebSocket:** production transport, Firebase identity, live-provider provenance, durable per-gateway ACK/receipt and Gate 36 browser/Android WSS remain open. Redis destructive retention remains blocked.  
+**Controls:** ZERO COST; `main` untouched; no paid hosting/data; no Cloudflare resources created/deployed; target ~24 December 2026.
+
+Full Batch 72 evidence: `docs/WORK_CYCLE_2026-11-25_BATCH72_CLOUDFLARE_INVENTORY_ZERO_COST_WEBSOCKET_PATH.md`.
+
+---
+
 # Latest verified CI closure — Batch 62J-233 (25 November 2026)
 
 **Active branch:** phase-2/market-data-foundation  

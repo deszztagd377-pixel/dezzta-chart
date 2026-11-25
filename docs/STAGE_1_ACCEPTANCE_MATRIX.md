@@ -1,3 +1,16 @@
+# Current Stage 1 / Gate 10 status — Batch 72 (25 November 2026)
+
+**Audited source HEAD:** `6a6e9e82ed2de725bef94e8ed1fa7f28c60e0a49`; Batch 71 CI 4/4 terminal SUCCESS.  
+**Official active stage:** Stage 1 — Foundation, Security & Data Integrity.  
+**Stage 1:** 30/40 = 75% provisional 🟨. **Gate 10:** 0/10 formally closed 🟥.  
+**Cloudflare acceptance evidence:** repository Worker/DO proof is synthetic-only and not deployed. The connected Cloudflare account inventory contains no Worker, Pages project, Tunnel, Durable Object namespace, Zone, or Worker domain. Therefore it does not close Stage 1 criteria 8/25/35/36/38/39 or Project Gate 25.  
+**Zero-cost restriction:** Workers Free + SQLite DO may be used within free quotas; Cloudflare Containers require Workers Paid and are excluded. A Tunnel requires an existing owner-operated origin. No resources were created or deployed.  
+**Gate 10 remains:** 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. No docs, synthetic tests, or CI pass substitutes for actual host/device/production evidence.  
+**Important:** Stage 1 criterion #25 (owner-host Redis TLS/ACL/persistence) remains distinct from Project Gate 25 (signed snapshot/receipt/high-water ACK).  
+**Stage 2:** preparatory only; no official transition. **Stage 4:** indicator UI gated.
+
+---
+
 # Current Stage 1 / Gate 10 status — Batch 71 (25 November 2026)
 
 **Current branch HEAD at audit:** `19de41d3dc613a11a0441e65a075f7a1ed5cc685`; Batch 70 exact-HEAD CI 4/4 SUCCESS.  
