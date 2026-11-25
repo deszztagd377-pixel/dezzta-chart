@@ -326,6 +326,7 @@ def create_app(
         nonlocal replica_worker, publisher_event_loop
         worker_stop = asyncio.Event()
         worker_task = None
+        demand_recovery_task = None
         incident_task = None
         metrics_task = None
         publisher_task = None
@@ -616,10 +617,38 @@ def create_app(
                     alert_delivery_loop(),
                     name="dezzta-alert-delivery",
                 )
+            async def offline_demand_recovery_loop() -> None:
+                logger = logging.getLogger("dezzta.provider_demand")
+                while not worker_stop.is_set():
+                    try:
+                        recovered = await provider_demand_coordinator.retry_pending_releases()
+                        if recovered:
+                            logger.info(
+                                "Recovered %s offline provider-demand lease(s).",
+                                recovered,
+                            )
+                    except Exception:
+                        logger.exception("Offline provider-demand recovery tick failed.")
+                    try:
+                        await asyncio.wait_for(worker_stop.wait(), timeout=1.0)
+                    except asyncio.TimeoutError:
+                        pass
+
+            demand_recovery_task = asyncio.create_task(
+                offline_demand_recovery_loop(),
+                name="dezzta-offline-demand-recovery",
+            )
             await asyncio.sleep(0)
             yield
         finally:
             worker_stop.set()
+            if demand_recovery_task is not None:
+                try:
+                    await asyncio.wait_for(demand_recovery_task, timeout=2.0)
+                except asyncio.TimeoutError:
+                    logging.getLogger("dezzta.provider_demand").warning(
+                        "Offline provider-demand recovery loop exceeded shutdown deadline."
+                    )
             publisher_wakeup.set()
             if incident_task is not None:
                 await incident_task
