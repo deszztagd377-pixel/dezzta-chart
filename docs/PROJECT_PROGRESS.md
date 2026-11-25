@@ -1,3 +1,20 @@
+
+
+---
+
+# Work Cycle 64 — 25 November 2026 exact-HEAD reconciliation
+
+**Branch:** `phase-2/market-data-foundation`  
+**Audited parent HEAD:** `6b4eedc2387e5e8a300e78c713861e2efa156678`  
+**CI:** 4/4 exact-HEAD workflows terminal SUCCESS. Automated Tests: 1,419 passed, 1 skipped, 6 warnings (51.92s); CodeQL JS/TS 8/8 and Python 8/8; OCI ARM64 7/7; full Git history secret audit 6/6. All jobs/steps completed; no workflow left running. The one skip is the unconfigured isolated Redis TLS fixture; public/owner-host TLS remains unaccepted.
+
+**Blockers unchanged:** Gate 25 owner-host custody/receipt retrieval/high-water ACK 🟥; Gate 36 public WSS/TLS/multi-instance acceptance 🟥; Firebase production identity/client lifecycle 🟥; Redis destructive retention 🟧 BLOCKED; provider legal-zero-cost dynamic adapter 🟥. Do not turn CI success into production acceptance.
+
+**Indicators:** SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and shared hook 🟨 foundation only; Footprint PRO 2GD 🟧 gated; Volume Profile, Complete Volume Profile, Movable-range Volume Profile, Heatmap and Liquidation Maps 🟥 open. `CandlestickChart.tsx` still does not call `useMarketIndicators`. Focused declaration count remains 28 (21 calculation + 7 hook), not completion. Aggregate indicator completion ⚪ NOT SCORED.
+
+**Dashboard:** Stage 1 30/40 = 75% provisional inherited 🟨; Stages 2–6 not fully scored / Stage 4 🟪 gated; Gate 10 0/10 🟥; overall project ⚪ NOT SCORED; significant progress/IP3S ⚪ NOT SCORED. No denominator has been approved for a truthful overall percentage.
+
+No runtime source or test changes in this cycle. ZERO COST, `main` untouched, Vercel deployment deferred, destructive Redis trim disabled. Full report: `docs/WORK_CYCLE_2026-11-25_BATCH64_EXACT_HEAD_CI_AND_MULTI_GATE_AUDIT.md`.
 # Latest verified CI closure — Batch 62J-233 (25 November 2026)
 
 **Active branch:** phase-2/market-data-foundation  

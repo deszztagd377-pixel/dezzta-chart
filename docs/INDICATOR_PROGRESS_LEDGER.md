@@ -3720,3 +3720,16 @@ Synthetic/offline route acquire/release code is present. Its route regression re
 ## Project constraints
 
 No Vercel deployment, no `main` update, no live market-data integration, no paid service and no destructive Redis retention change. Target remains around 24 December 2026 as a planning target.
+
+
+---
+
+# Exact-HEAD reconciliation — Work Cycle 64 (25 November 2026)
+
+**Audited HEAD:** `6b4eedc2387e5e8a300e78c713861e2efa156678` on `phase-2/market-data-foundation`. The four workflows on this exact SHA are terminal SUCCESS: Automated Tests run 45541050465 (41/41 steps; **1,419 passed, 1 skipped, 6 warnings in 51.92s**), CodeQL run 45541050505 (JavaScript/TypeScript 8/8 and Python 8/8), OCI ARM64 run 45541050539 (7/7), and Full Git History Secret Audit run 45541050527 (6/6). All jobs/steps are completed; none remains running.
+
+The single skipped test is `tests/test_shared_guard_tls_integration.py:22` because the isolated Redis TLS fixture was not configured for that invocation. A separate CI Redis TLS CA/hostname enforcement step passed, but neither result establishes owner-host or public production TLS acceptance. This exact-head result supersedes the earlier ledger's stale exact-head CI reference; historical Batch 62J-244 statements remain historical and are not rewritten.
+
+**No indicator source, tests, or chart integration changed.** The full inventory and statuses remain as listed in the preceding current reconciliation. `CandlestickChart.tsx` still does not import/call `useMarketIndicators`; calculation declarations remain 21 + 7 hook declarations, not completion. SMA20/EMA20/RSI14/MACD12-26-9/Bollinger20,2/shared hook 🟨 foundation; Footprint PRO 🟧 gated; Volume Profile family/Heatmap/Liquidation Maps 🟥 open. Aggregate indicator completion ⚪ NOT SCORED because no approved denominator exists.
+
+External Gate 25, Gate 36 and Firebase/client production acceptance remain 🟥 OPEN; Redis destructive retention remains 🟧 BLOCKED. CI success is repository evidence, not production gate closure. See `docs/WORK_CYCLE_2026-11-25_BATCH64_EXACT_HEAD_CI_AND_MULTI_GATE_AUDIT.md` for the complete evidence and ordered next actions.
