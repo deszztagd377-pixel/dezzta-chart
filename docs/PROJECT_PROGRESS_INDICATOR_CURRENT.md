@@ -1,3 +1,69 @@
+# Exact-HEAD CI closure — Batch 62J-237 (25 November 2026)
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Exact audited HEAD:** `fa83c322df377b2c852ffac1fb499898db3b891e`  
+**Source/test baseline:** `bd4904b52d29b3ec456da91014e90922fec35f21` (unchanged; this batch only updated documentation).
+
+## CI result — 4/4 terminal SUCCESS on the exact HEAD
+
+| Workflow | Run | Result |
+|---|---:|---|
+| Automated Tests | 45527447791 | 🟩 SUCCESS — 41/41 steps |
+| CodeQL | 45527447840 | 🟩 SUCCESS — Python 8/8 and JavaScript/TypeScript 8/8 |
+| OCI ARM64 Image Readiness | 45527447819 | 🟩 SUCCESS — 7/7 |
+| Full Git History Secret Audit | 45527447878 | 🟩 SUCCESS — 6/6 |
+
+Backend pytest: **1,394 passed, 1 skipped, 6 warnings in 64.34s**. The skipped test is `tests/test_shared_guard_tls_integration.py`, whose isolated Redis TLS fixture was not configured for that test invocation. Do not treat the skip as owner-host Redis TLS acceptance.
+
+The same Automated Tests run completed the backend container smoke test:
+- backend health JSON valid;
+- Redis ACL rejects unauthenticated access, incorrect password and unrelated SET;
+- Redis AOF data and ACL persist through Redis restart;
+- API request protection fails closed during Redis outage and recovers after restart;
+- backend runs as UID/GID 10001;
+- mounted SQLite volume ownership, integrity and restart persistence pass;
+- HTTP rate-limit rejection passes.
+
+Backend dependency audit reported no known vulnerabilities. Container image vulnerability scan completed and its JSON report was uploaded as artifact `14983702058`; this checkpoint does not claim a clean image scan without separately inspecting that report. No failed workflow steps; no workflow remains running for this HEAD.
+
+## Engineering boundary and next work
+
+The source/test baseline still has the provider-demand gap: the authenticated WebSocket path validates canonical series and entitlement, then registers downstream fan-out; cleanup releases the downstream stream. No provider-demand acquire/release coordinator is wired into that lifecycle. The provider adapter remains a static configured-symbol session. A future coordinator must be provider-neutral and tested first with deterministic fake/offline sources; do not activate or provision any live market-data provider under ZERO COST. No SDK dependency change or live-source integration is authorized by this documentation update.
+
+Major provider-coordinator implementation remains behind scoped blueprint review. Existing WebSocket work is not being declared complete: Gate 36 public WSS/TLS, real client lifecycle, Firebase E2E and multi-instance acceptance remain external. Project Gate 25 owner-host signed-snapshot transfer, persisted receipts after restart and durable per-gateway high-water ACK remain external.
+
+## Indicator ledger
+
+The source inventory remains **28 test declarations**: 21 calculation-engine + 7 shared-hook. Calculation foundations remain separate from chart integration:
+- SMA20, EMA20, RSI14 Wilder, MACD12/26/9 and Bollinger20,2: 🟨 calculation foundations; no accepted visible chart integration.
+- Shared Indicator Hook: 🟨 snapshot/trust/cache foundation; not called by `CandlestickChart.tsx`.
+- Footprint PRO 2GD: 🟧 synthetic/offline only; visual implementation remains gated and must preserve ordinary candles when OFF.
+- Volume Profile, Complete Volume Profile, movable-range VP, Heatmap and Liquidation Maps: 🟥 incomplete/not integrated.
+- Aggregate indicator completion: ⚪ NOT SCORED; no approved denominator.
+
+Math invariants remain: SMA/EMA/Bollinger first valid index 19; RSI14 Wilder index 14; MACD12/26/9 MACD index 25 and signal/histogram index 33; warm-up values null; prefix-causal outputs; no future-candle repaint.
+
+## Project progress
+
+| Stage / measure | Status |
+|---|---|
+| Stage 1 | 🟨 30/40 = 75% provisional |
+| Stage 2 | 🟦 Active engineering / NOT SCORED |
+| Stage 3 | ⬜ NOT SCORED |
+| Stage 4 | 🟪 GATED |
+| Stage 5 | ⬜ NOT SCORED |
+| Stage 6 | ⬜ NOT SCORED |
+| Gate 10 | 🟥 0/10 formally closed |
+| Overall project | ⚪ NOT SCORED — no approved weighted denominator |
+| Significant progress / IP3S | ⚪ NOT SCORED — no approved formula |
+| Aggregate indicators | ⚪ NOT SCORED |
+
+Stage 1's ten remaining criteria are 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. The two separate items named #25 remain distinct: Stage 1 criterion #25 is Redis TLS/ACL/persistence acceptance; Project Gate 25 is signed-snapshot installation/receipt/high-water ACK acceptance.
+
+**Controls:** ZERO COST; no paid services; no deployment; no Vercel; `main` untouched; no destructive Redis retention. APK planning target remains approximately **24 December 2026**.
+
+---
+
 # Verified Stage 1 blocker reconciliation — Batch 62J-236 (25 November 2026)
 
 **Active branch:** `phase-2/market-data-foundation`  
