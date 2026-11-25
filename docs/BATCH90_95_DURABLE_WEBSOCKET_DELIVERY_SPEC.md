@@ -244,3 +244,12 @@ This document consolidates the next dependent batches into one implementation co
 - Batch 94–95: 🟥 external/provider and public E2E gates remain blocked.
 - Gate 25 and Gate 36: 🟥 OPEN.
 - No runtime source, deployment, Cloudflare resource or `main` branch is changed by this design.
+
+
+## 13. Source audit reconciliation — 25 November 2026
+
+See [BATCH89_93_SOURCE_AUDIT_2026-11-25.md](BATCH89_93_SOURCE_AUDIT_2026-11-25.md) for exact blob SHAs, package metadata, test declaration inventory and source-level blockers.
+
+The latest inspected Worker confirms the event sequence transaction currently writes only `sequence:<series>`; the synthetic event payload is constructed after cursor acceptance. Therefore Batch 92 remains a real durability blocker: payload+digest+high-water are not atomically persisted, and a committed cursor has no durable replay payload in the inspected source. Current authenticated WebSocket messages support ping/pong only; ACK, durable receipts and RESUME are absent, so Batch 93 remains blocked. Existing eviction tests restore socket attachments and ping/pong, not durable event replay or receipt recovery.
+
+Static declaration inventory: 31 Node proof tests + 11 Durable Object Vitest tests + 1 Miniflare test = 43 proof test declarations, **not executed**. Package lock root declarations match package.json; this does not constitute npm install or test evidence. No runtime implementation was changed in this audit cycle.
