@@ -5871,3 +5871,18 @@ Synthetic/offline route acquire/release code is present. Its route regression re
 ## Project constraints
 
 No Vercel deployment, no `main` update, no live market-data integration, no paid service and no destructive Redis retention change. Target remains around 24 December 2026 as a planning target.
+
+
+---
+
+# Work Cycle 66 — 25 November 2026
+
+**Scope:** concurrent offline provider-demand release regression tests.  
+**Branch:** `phase-2/market-data-foundation`  
+**Parent:** `b062bf9229ebf21a0b47b7a082b15461cf95be24`
+
+Two additional backend regression tests cover 32 concurrent duplicate releases of one lease and 16 concurrent final releases from owners sharing one upstream key. Expected invariants: one upstream start, one final stop, no residual lease/subscriber/pending state. Runtime source and indicator implementation are unchanged.
+
+Exact-HEAD CI must be checked on the resulting source/test commit; no workflow result is inferred from a prior SHA. Full indicator status remains in `docs/INDICATOR_PROGRESS_LEDGER.md`; this cycle awards zero indicator completion credit. Overall project, aggregate indicator completion and IP3S remain NOT SCORED. Stage 1 remains 30/40 = 75% provisional inherited baseline; Stage 2 active but without an approved denominator; Stage 4 remains gated.
+
+ZERO COST maintained. `main` untouched. No Vercel deployment, paid service, live provider or destructive Redis operation.

@@ -3771,3 +3771,22 @@ The single skipped test is `tests/test_shared_guard_tls_integration.py:22` becau
 **No indicator source, tests, or chart integration changed.** The full inventory and statuses remain as listed in the preceding current reconciliation. `CandlestickChart.tsx` still does not import/call `useMarketIndicators`; calculation declarations remain 21 + 7 hook declarations, not completion. SMA20/EMA20/RSI14/MACD12-26-9/Bollinger20,2/shared hook 🟨 foundation; Footprint PRO 🟧 gated; Volume Profile family/Heatmap/Liquidation Maps 🟥 open. Aggregate indicator completion ⚪ NOT SCORED because no approved denominator exists.
 
 External Gate 25, Gate 36 and Firebase/client production acceptance remain 🟥 OPEN; Redis destructive retention remains 🟧 BLOCKED. CI success is repository evidence, not production gate closure. See `docs/WORK_CYCLE_2026-11-25_BATCH64_EXACT_HEAD_CI_AND_MULTI_GATE_AUDIT.md` for the complete evidence and ordered next actions.
+
+
+---
+
+# Indicator reconciliation — Work Cycle 66 (25 November 2026)
+
+**Source/test scope:** concurrent offline provider-demand release regression tests.  
+**Indicator source changes:** none. **Indicator completion credit:** zero.
+
+The two new concurrency tests affect only `backend/tests/test_provider_demand.py`. No calculation engine, shared indicator hook, chart component, renderer, indicator UI or indicator-specific test was changed.
+
+The full indicator status remains:
+- 🟨 SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook: calculation/data foundation only; chart rendering and lifecycle acceptance remain open.
+- 🟧 Footprint PRO 2GD: synthetic/offline foundation; visual implementation remains Stage 4 gated and must follow the two supplied references. OFF preserves ordinary candle spacing; explicit ON alone enables spaced clusters.
+- 🟥 Volume Profile, Complete Volume Profile, Movable-range Volume Profile, Heatmap and Liquidation Maps: acceptance incomplete; no implementation completion is claimed.
+
+Mathematical contracts remain unchanged: SMA/EMA/Bollinger first valid index 19; RSI14 index 14; MACD line index 25 and signal/histogram index 33. Warm-up nulls, prefix causality, no lookahead, exact candle timestamp alignment and stale-output clearing remain mandatory.
+
+Focused indicator test declaration inventory remains 28 (21 calculation + 7 shared-hook declarations). This count is not a passed-test count and not an indicator completion percentage. Aggregate indicator completion remains ⚪ NOT SCORED because no approved weighted denominator exists.

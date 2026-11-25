@@ -425,3 +425,50 @@ def test_release_rejects_non_lease_non_string_values():
         assert await coordinator.release(lease) is True
 
     run(scenario())
+
+def test_concurrent_duplicate_releases_stop_upstream_exactly_once():
+    async def scenario():
+        adapter = InMemoryOfflineProviderAdapter()
+        coordinator = ProviderDemandCoordinator(adapter)
+        lease = await coordinator.acquire("panel-a", key())
+
+        results = await asyncio.gather(
+            *(coordinator.release(lease) for _ in range(32))
+        )
+
+        assert results.count(True) == 1
+        assert results.count(False) == 31
+        assert adapter.start_calls == [key()]
+        assert adapter.stop_calls == [key()]
+        assert adapter.active == set()
+        assert coordinator.active_lease_count == 0
+        assert coordinator.subscriber_count(key()) == 0
+        assert coordinator.pending_release_count == 0
+
+    run(scenario())
+
+
+def test_concurrent_final_releases_stop_shared_upstream_once():
+    async def scenario():
+        adapter = InMemoryOfflineProviderAdapter()
+        coordinator = ProviderDemandCoordinator(adapter)
+        leases = [
+            await coordinator.acquire(f"panel-{index}", key())
+            for index in range(16)
+        ]
+
+        results = await asyncio.gather(
+            *(coordinator.release(lease) for lease in leases)
+        )
+
+        assert results == [True] * 16
+        assert adapter.start_calls == [key()]
+        assert adapter.stop_calls == [key()]
+        assert adapter.active == set()
+        assert coordinator.active_lease_count == 0
+        assert coordinator.subscriber_count(key()) == 0
+        assert coordinator.active_keys == ()
+        assert coordinator.pending_release_count == 0
+
+    run(scenario())
+
