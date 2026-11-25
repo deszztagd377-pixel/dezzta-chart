@@ -366,3 +366,20 @@ No percentage is invented from document count, test declarations or batch count.
 - No destructive migration, retention trim or history rewrite.
 - No code is claimed tested unless a test command actually ran and terminal result is recorded.
 - Preserve legacy work as historical evidence; supersede execution order, not source history.
+
+
+## 13. Official Python Workers documentation verification addendum
+
+A fresh review of Cloudflare's current official documentation confirms that FastAPI is supported in Python Workers through Cloudflare's ASGI entrypoint. The documented minimal project uses:
+
+- Python entrypoint importing FastAPI and workers.asgi, then assigning Default = asgi.entrypoint(app).
+- Wrangler main pointing to the Python entrypoint and compatibility_flags containing python_workers.
+- pyproject.toml with Python >=3.13, FastAPI dependency, and workers-py plus workers-runtime-sdk as development dependencies.
+- Local-only runtime command: uv run pywrangler dev. The deployment command is deliberately excluded from this project cycle.
+
+Official documentation:
+- FastAPI on Python Workers: https://developers.cloudflare.com/workers/languages/python/packages/fastapi/
+- Python package support and Pywrangler: https://developers.cloudflare.com/workers/languages/python/packages/
+- Python Workers basics and local runtime: https://developers.cloudflare.com/workers/languages/python/basics/
+
+This confirms the platform-level FastAPI/ASGI feasibility, not compatibility of this repository's complete dependency set. Pydantic's exact version, cryptography/Ed25519, Firebase Admin, Databento and Redis remain separate test gates. No isolated Worker scaffold was committed in this cycle because the local runtime could not be executed and a passing code artifact must not be guessed into the repository. Batch 89 therefore remains 🟨 platform feasibility confirmed / 🟥 repository runtime acceptance not executed.
