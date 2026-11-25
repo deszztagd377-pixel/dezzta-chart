@@ -1,3 +1,102 @@
+# Current reconciliation — Batch 62J-244 (25 November 2026)
+
+**Branch:** `phase-2/market-data-foundation`  
+**Documentation HEAD audited:** `47a62428c4d1ee19ded9f52ae8d7f8a488b13d50`  
+**Source/test baseline:** `c80b9ef05fa531f36f4b41673030447f15c97e47` (Batch 62J-243 source/test changes; the current HEAD adds documentation only).  
+**Exact-HEAD workflows on documentation HEAD:** 4/4 terminal SUCCESS.  
+**ZERO COST:** maintained. `main` untouched. No Vercel deployment.
+
+## Exact-HEAD CI evidence
+
+| Workflow | Run | Completed steps | Result |
+|---|---:|---:|---|
+| Automated Tests | 45539204480 | 41/41 | 🟩 SUCCESS |
+| CodeQL Security Analysis | 45539204449 | 16/16 (JS/TS 8/8, Python 8/8) | 🟩 SUCCESS |
+| OCI ARM64 Image Readiness | 45539204410 | 7/7 | 🟩 SUCCESS |
+| Full Git History Secret Audit | 45539204463 | 6/6 | 🟩 SUCCESS |
+
+All four run records point to the exact HEAD above. Every job is completed; no step is in progress and no failed step was reported. Automated Tests: **1,419 passed, 1 skipped, 6 warnings in 48.60s**. The skipped test is `tests/test_shared_guard_tls_integration.py:22` because its isolated Redis TLS fixture was not configured for that invocation. The separate workflow Redis TLS CA/hostname enforcement step passed; this does not establish owner-host TLS acceptance.
+
+The container vulnerability scan log reports **0 HIGH/CRITICAL findings** for both the Alpine 3.24.4 OS target and the Python package target. The JSON report is retained as artifact `14988093567`. This is a point-in-time HIGH/CRITICAL scan result, not a claim of zero findings at every severity or a guarantee against future advisories.
+
+## Work-cycle findings
+
+1. The offline-fixture demand coordinator now has bounded retry (1–5 attempts; initial delay 0–1.0 seconds), pending-release retention, a one-second in-process reconciliation loop, and route/lifespan regression coverage. It is green only at the in-process offline-fixture scope.
+2. The coordinator is still explicitly not wired to `ProviderManager`. The configured Databento provider uses static symbols and is not a proven dynamic per-subscriber subscribe/unsubscribe adapter. Do not connect it by guessing SDK methods or turning on a paid feed.
+3. Provider-catalog candidates such as public crypto exchange feeds are marked recurring-free but their display/redistribution rights remain UNKNOWN. A zero-price endpoint alone is not sufficient permission to redistribute data in DEZZTA CHART. No live adapter is activated until a lawful use scope and exact adapter contract are verified.
+4. The existing Redis consumer lease is a generation-scoped exclusive lease for replica consumer groups; it is not a cross-process market-provider demand coordinator. Do not conflate those ownership layers.
+5. The offline pending-release queue is process-local and not durable across restart. It is not a substitute for provider-side reconciliation or multi-host ownership.
+
+## WebSocket status — scoped, evidence-based
+
+| Workstream | Status | Remaining acceptance |
+|---|---|---|
+| Offline demand lease/token integrity | 🟩 | Covered by coordinator tests |
+| Disconnect retry and pending-release recovery | 🟩 | Coordinator + authenticated route/lifespan tests; exact-HEAD CI passed |
+| Replay/live boundary and subscriber isolation | 🟩 | Existing repository tests; keep regression coverage in subsequent audits |
+| Redis pending-first / XAUTOCLAIM recovery | 🟩 | Existing consumer tests; apply-before-ACK and fail-closed cases |
+| Destructive Redis retention | 🟧 GATED | Keep XTRIM/XDEL absent; require gateway inventory, pending-entry proof, durable per-gateway floor ACK and crash-safe reconciliation |
+| Provider-demand coordinator ↔ real provider lifecycle | 🟥 OPEN | No verified zero-cost provider contract with approved display/redistribution rights and dynamic adapter API |
+| Dynamic provider subscribe/unsubscribe ACK | 🟥 OPEN | Requires a real adapter contract and provider-side ACK evidence |
+| Cross-process provider demand ownership | 🟨 PARTIAL | Redis replica consumer lease exists but solves a different ownership problem |
+| Gate 25 owner-host receipt/high-water ACK | 🟥 OPEN | Requires actual authenticated owner-host/gateway evidence |
+| Gate 36 public WSS/TLS/Firebase E2E | 🟥 OPEN | Requires a public endpoint and real Firebase/browser/device acceptance; deployment remains deferred |
+| Android reconnect / process-death / multi-instance E2E | 🟥 OPEN | Requires device acceptance evidence |
+
+No external provider, paid data feed, public endpoint, production credential, or deployment was activated.
+
+## Indicator ledger — full inventory
+
+| Indicator / subsystem | Calculation or data foundation | Chart/UI acceptance | Status |
+|---|---|---|---|
+| SMA20 | 20-close arithmetic mean; first valid index 19 | Overlay, toggle, legend/latest value, lifecycle absent | 🟨 FOUNDATION |
+| EMA20 | SMA-seeded; alpha 2/21; first valid index 19 | Overlay, toggle, legend/latest value, lifecycle absent | 🟨 FOUNDATION |
+| RSI14 Wilder | 14-change seed + Wilder recurrence; first valid index 14 | 0–100 pane, 30/70 guides, lifecycle absent | 🟨 FOUNDATION |
+| MACD12/26/9 | MACD first index 25; signal/histogram first index 33 | Dedicated pane, lines, histogram and zero guide absent | 🟨 FOUNDATION |
+| Bollinger20,2 | 20-close mean ± 2 population SD; first valid index 19 | Upper/middle/lower overlays, fill and lifecycle absent | 🟨 FOUNDATION |
+| Shared Indicator Hook | Keyed immutable backend snapshot/cache and trust gate; 7 test declarations | Not imported/called by CandlestickChart | 🟨 FOUNDATION |
+| Footprint PRO 2GD | Synthetic/offline accumulator only | Renderer gated; supplied Footprint references retained | 🟧 GATED |
+| Volume Profile | Full binning/value-area behavior not accepted | Not integrated | 🟥 OPEN |
+| Complete Volume Profile | Session/range/POC/VAH/VAL methodology not accepted | Not integrated | 🟥 OPEN |
+| Movable-range Volume Profile | Range selection/recalculation lifecycle not accepted | Not integrated | 🟥 OPEN |
+| Heatmap | Depth/liquidity source, aggregation and decay not accepted | Not integrated; reference gate remains | 🟥 OPEN |
+| Liquidation Maps | Provenance, estimation methodology and confidence limits not accepted | Not integrated | 🟥 OPEN |
+
+Focused inventory remains 21 calculation-test declarations + 7 shared-hook-test declarations. Counts are not pass counts and not completed-indicator counts. `CandlestickChart.tsx` still does not import/call `useMarketIndicators`. The Stage 4 UI gate remains authoritative; the 40% broader expansion threshold does not authorize skipping the official roadmap stage.
+
+Math invariants remain mandatory: warm-up values null; prefix-causal calculations; no future-candle lookahead; exact source timestamp alignment; clear stale outputs on instrument/timeframe change; no indicator output from demo/loading/unavailable/error snapshots. Footprint OFF preserves normal candle spacing; only explicit ON selects spaced cluster layout. Heatmap visuals remain gated on the user's reference.
+
+## Project progress dashboard
+
+| Meter | Verified value | Status |
+|---|---:|---|
+| Stage 1 | 30/40 = 75% provisional inherited baseline; not re-audited in this cycle | 🟨 |
+| Stage 2 | Active engineering; no approved denominator | 🟦 NOT SCORED |
+| Stage 3 | Not officially scored | ⬜ NOT SCORED |
+| Stage 4 | Official UI/indicator gate remains parked | 🟪 GATED |
+| Stage 5 | Not officially scored | ⬜ NOT SCORED |
+| Stage 6 | Not officially scored | ⬜ NOT SCORED |
+| Gate 10 | 0/10 formally closed | 🟥 OPEN |
+| Overall project | No approved weighted six-stage denominator | ⚪ NOT SCORED |
+| Aggregate indicators | No approved completion denominator | ⚪ NOT SCORED |
+| Significant progress / IP3S | No approved formula applied | ⚪ NOT SCORED |
+
+Do not extrapolate Stage 1's provisional 75% into overall project completion. This reconciliation awards no new stage ticks, no indicator UI completion credit and no external WebSocket gate closure.
+
+## Work order — unchanged
+
+1. Continue repository-verifiable WebSocket regression work in the agreed sequence.
+2. Resolve the zero-cost provider contract and dynamic lifecycle boundary before wiring any real provider.
+3. Close Gate 25 only with owner-host authenticated transfer, persisted receipt retrieval, restart verification and durable high-water ACK from every required gateway.
+4. Close Gate 36 with public WSS/TLS and Firebase production E2E when deployment is explicitly authorized.
+5. Complete Android lifecycle/network handover and multi-instance acceptance.
+6. Keep destructive Redis retention disabled until every independent safety prerequisite passes.
+7. Keep major indicator UI behind Stage 4 and the scoped blueprint/review gate.
+
+Planning target remains approximately **24 December 2026**, not month-end. No paid service, deployment, Vercel commit or `main` update.
+
+---
+
 # Exact-head project reconciliation — Batch 62J-243 (25 November 2026)
 
 **Source/test HEAD:** `c80b9ef05fa531f36f4b41673030447f15c97e47`  
