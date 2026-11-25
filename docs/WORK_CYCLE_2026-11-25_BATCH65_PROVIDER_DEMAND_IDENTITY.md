@@ -37,11 +37,15 @@ This fixes a repository-level identity collision risk in the coordinator foundat
 
 No Databento SDK API was guessed. No credentials, network connection, paid feed, or external service was used.
 
-## 4. Exact-head CI
+## 4. First CI attempt and correction
 
-This source/test commit requires exact-head verification of all four workflows: Automated Tests, CodeQL, OCI ARM64 Image Readiness, and Full Git History Secret Audit. CI completion credit is awarded only after every workflow is terminal SUCCESS and no job remains running. Any failure must be inspected and corrected on this branch before closure.
+The first exact-head Automated Tests run exposed two integration fixtures in `backend/tests/test_api.py` that still constructed the old four-field key. The new coordinator tests passed; the failures were stale expected-key fixtures, not runtime failures. Both fixtures now include the exact `SYNTHETIC.V1` dataset and `raw_symbol` symbology. The key validation matrix also now explicitly covers whitespace and overlength values for dataset and symbology.
 
-## 5. Indicator progress — no implementation changes
+## 5. Exact-head CI
+
+This corrected source/test commit requires exact-head verification of all four workflows: Automated Tests, CodeQL, OCI ARM64 Image Readiness, and Full Git History Secret Audit. CI completion credit is awarded only after every workflow is terminal SUCCESS and no job remains running. Any failure must be inspected and corrected on this branch before closure.
+
+## 6. Indicator progress — no implementation changes
 
 This cycle changes no indicator calculation, hook, chart renderer, visual design, or indicator test. The ledger is reconciled to the new source/test HEAD only; no indicator completion credit is awarded.
 
@@ -73,7 +77,7 @@ This cycle changes no indicator calculation, hook, chart renderer, visual design
 
 Focused declaration inventory remains 28 (21 calculation + 7 hook). This is not indicator completion. `CandlestickChart.tsx` remains unintegrated. Aggregate indicator completion remains NOT SCORED.
 
-## 6. Project dashboard
+## 7. Project dashboard
 
 | Stage / meter | Current evidence | Status |
 |---|---|---|
@@ -88,7 +92,7 @@ Focused declaration inventory remains 28 (21 calculation + 7 hook). This is not 
 | Aggregate indicators | No approved study denominator/weights | ⚪ NOT SCORED |
 | Significant progress / IP3S | Formula not approved/applied | ⚪ NOT SCORED |
 
-## 7. Next work order — unchanged
+## 8. Next work order — unchanged
 
 1. Continue repository-verifiable WebSocket regression and provider-demand integration design.
 2. Resolve recurring-$0 provider rights and one exact SDK/API contract before any live adapter.

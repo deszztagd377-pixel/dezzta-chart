@@ -369,7 +369,10 @@ def test_concurrent_acquires_start_exactly_once():
         {"source": "", "venue": "synthetic", "dataset": "dataset", "instrument": "A", "symbology": "raw", "channel": "ohlcv"},
         {"source": "source", "venue": " synthetic", "dataset": "dataset", "instrument": "A", "symbology": "raw", "channel": "ohlcv"},
         {"source": "source", "venue": "venue", "dataset": "dataset", "instrument": "A" * 129, "symbology": "raw", "channel": "ohlcv"},
+        {"source": "source", "venue": "venue", "dataset": " dataset", "instrument": "A", "symbology": "raw", "channel": "ohlcv"},
+        {"source": "source", "venue": "venue", "dataset": "D" * 129, "instrument": "A", "symbology": "raw", "channel": "ohlcv"},
         {"source": "source", "venue": "venue", "dataset": "dataset", "instrument": "A", "symbology": " raw", "channel": "ohlcv"},
+        {"source": "source", "venue": "venue", "dataset": "dataset", "instrument": "A", "symbology": "S" * 129, "channel": "ohlcv"},
     ],
 )
 def test_demand_key_rejects_noncanonical_or_oversized_fields(fields):

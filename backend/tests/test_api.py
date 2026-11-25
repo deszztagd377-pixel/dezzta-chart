@@ -3397,7 +3397,8 @@ def test_offline_websocket_demand_is_shared_and_released_on_disconnect() -> None
     )
     demand_key = ProviderDemandKey(
         source="offline-fixture", venue="synthetic",
-        instrument=canonical_id, channel="ohlcv:1s",
+        dataset="SYNTHETIC.V1", instrument=canonical_id,
+        symbology="raw_symbol", channel="ohlcv:1s",
     )
     client = TestClient(application)
 
@@ -3468,7 +3469,8 @@ def test_offline_websocket_pending_release_is_recovered_by_lifespan_worker() -> 
     )
     demand_key = ProviderDemandKey(
         source="offline-fixture", venue="synthetic",
-        instrument=canonical_id, channel="ohlcv:1s",
+        dataset="SYNTHETIC.V1", instrument=canonical_id,
+        symbology="raw_symbol", channel="ohlcv:1s",
     )
     adapter = application.state.offline_provider_adapter
     coordinator = application.state.provider_demand_coordinator
