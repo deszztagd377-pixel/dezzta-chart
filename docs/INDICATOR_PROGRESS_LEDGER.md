@@ -1,18 +1,51 @@
-# Indicator ledger — latest reconciliation, Work Cycle 88 (25 November 2026)
+# Indicator ledger — latest reconciliation, Work Cycle 89 (25 November 2026)
 
-**Indicator implementation status is unchanged in Batch 88.** This cycle corrected the backend architecture plan; it did not add indicator source, tests or chart integration.
-**Audited indicator source/test baseline:** `471eb4413a716922b20a5503fe5165607e77947f`.
-**Calculation source:** `507284fb286c633144b497b9d98c8c810250a8db`; **calculation tests:** `5da008e045829876c78b82e612f73d7bd590b1c1`; **shared hook:** `40188569cfc1d823bef2d814404c7bd5bb577c0c`; **hook tests:** `3681bb9b66dd39da8606c7c58c56a3993ef8d80b`; **chart:** `d2ec7c1e825a969b055e3e4d0109290f6f951348`.
-**Focused test declarations:** 21 calculation + 7 hook = 28; not a test-pass count.
-**Chart integration gap:** `CandlestickChart.tsx` does not import/call `useMarketIndicators`.
-**Status:** SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook 🟨 FOUNDATION; Footprint PRO 2GD 🟧 GATED; Volume Profile, Complete Volume Profile, Movable-range Volume Profile, Heatmap and Liquidation Maps 🟥 OPEN.
-**First-valid source indices:** SMA20 19; EMA20 19; RSI14 14; MACD line 25; MACD signal/histogram 33; Bollinger20 19.
-**Cross-cutting acceptance:** warm-up nulls, prefix causality, no lookahead, exact series/timestamp alignment, deterministic finite outputs, no source mutation, bounded history, and no output for demo/loading/unavailable/error/empty snapshots.
-**Footprint behavior:** OFF preserves standard candle spacing; explicit ON alone switches to spaced clusters; two saved Footprint references remain authoritative. Heatmap visuals wait for user reference.
-**Overall indicator completion:** ⚪ NOT SCORED. No approved weighted denominator.
-**Architecture dependency:** indicator calculations can remain platform-neutral; future chart/API integration must consume only authenticated, durable OHLCV snapshots from the Cloudflare Zero-Origin backend. Do not couple calculations to Redis or owner-host runtime.
-**Full 12-row evidence and acceptance details:** `docs/WORK_CYCLE_2026-11-25_BATCH87_INDICATOR_AND_WEBSOCKET_RECONCILIATION.md`.  
-**Backend architecture alignment:** `docs/WORK_CYCLE_2026-11-25_BATCH88_CLOUDFLARE_NATIVE_ZERO_ORIGIN_ALIGNMENT.md`.
+**Indicator implementation status:** unchanged; this work cycle audited WebSocket/backend delivery and corrected project documentation only. **Indicator implementation credit: 0.**  
+**Branch:** `phase-2/market-data-foundation`; current backend source audit baseline is documented in `docs/BATCH89_93_SOURCE_AUDIT_2026-11-25.md`.  
+**Focused test declarations:** 21 calculation + 7 shared-hook = 28; these are declarations, not a pass count or completion percentage.  
+**Chart integration gap:** `CandlestickChart.tsx` does not import/call `useMarketIndicators`.  
+**Aggregate indicator completion:** ⚪ NOT SCORED; no approved weighted denominator exists.
+
+## Complete 12-indicator progress ledger
+
+| # | Indicator / subsystem | Calculation or data foundation | Chart/UI acceptance still missing | Status |
+|---:|---|---|---|---|
+| 1 | SMA20 | 20-close arithmetic mean; first valid index 19 | Price overlay, visibility toggle, legend/latest value, axis behavior and lifecycle | 🟨 FOUNDATION |
+| 2 | EMA20 | SMA-seeded EMA; alpha 2/21; first valid index 19 | Price overlay, visibility toggle, legend/latest value and lifecycle | 🟨 FOUNDATION |
+| 3 | RSI14 Wilder | 14-change seed and Wilder recurrence; first valid index 14 | Dedicated 0–100 pane, 30/70 guides and lifecycle | 🟨 FOUNDATION |
+| 4 | MACD12/26/9 | EMA12−EMA26; MACD first valid index 25; signal/histogram 33 | Dedicated pane, MACD/signal lines, histogram and zero guide | 🟨 FOUNDATION |
+| 5 | Bollinger20,2 | 20-close mean ± 2 population standard deviations; first valid index 19 | Upper/middle/lower overlays, fill, toggle and lifecycle | 🟨 FOUNDATION |
+| 6 | Shared Indicator Hook | Keyed immutable backend snapshot/cache/trust gate; 7 hook declarations | Not integrated into `CandlestickChart.tsx` | 🟨 FOUNDATION |
+| 7 | Footprint PRO 2GD | Synthetic/offline accumulator only; not exchange-native bid/ask truth | Stage 4 gated; two saved visual references are authoritative | 🟧 GATED |
+| 8 | Volume Profile | Binning, POC/value-area calculation and source acceptance incomplete | Not integrated | 🟥 OPEN |
+| 9 | Complete Volume Profile | Session completeness, POC/VAH/VAL methodology and source acceptance incomplete | Not integrated | 🟥 OPEN |
+| 10 | Movable-range Volume Profile | User-selected range, recalculation and lifecycle acceptance incomplete | Not integrated | 🟥 OPEN |
+| 11 | Heatmap | Lawful depth source, aggregation, decay and provenance incomplete | Not integrated; user visual reference required before visual implementation | 🟥 OPEN |
+| 12 | Liquidation Maps | Data provenance, estimation methodology and confidence limits incomplete | Not integrated | 🟥 OPEN |
+
+## Mathematical and data acceptance invariants
+
+- Warm-up outputs remain null; do not backfill or fabricate values.
+- Prefix-causality: appending future candles cannot alter prior indicator values.
+- No future-candle lookahead or repaint.
+- Exact canonical series identity and source timestamp alignment.
+- Deterministic finite numeric output; no source mutation; bounded history.
+- Clear stale output on instrument/timeframe identity changes.
+- No output for DEMO, loading, unavailable, error or empty snapshots.
+- Inputs ultimately come from authenticated, durable OHLCV snapshots; synthetic proof data is not live-market provenance.
+- Footprint OFF preserves standard candle spacing; explicit ON alone activates spaced clusters.
+- Heatmap visual implementation remains gated until the user's reference is supplied.
+
+**First-valid indices:** SMA20 19; EMA20 19; RSI14 Wilder 14; MACD line 25 and signal/histogram 33; Bollinger20,2 19.
+
+**Current status summary:** 6 🟨 foundation rows (five calculations + shared hook), 1 🟧 gated Footprint row, 5 🟥 open advanced rows. These are status categories, not an aggregate completion percentage.
+
+**Architecture dependency:** indicator calculations remain platform-neutral and must consume authenticated, durable OHLCV from the Cloudflare Native / Zero-Origin backend. Do not couple calculations to Redis or the superseded owner-host topology.
+
+**Footprint references:** the two saved user references remain authoritative. OFF = standard candlestick spacing; explicit ON = dedicated spaced-cluster layout.  
+**Heatmap:** visual implementation remains blocked until the user supplies the visual reference.  
+**Detailed combined evidence:** `docs/WEBSOCKET_ACCEPTANCE_TRACEABILITY_2026-11-25.md`.
+
 
 ---
 
