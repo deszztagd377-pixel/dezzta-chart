@@ -41,9 +41,20 @@ No Databento SDK API was guessed. No credentials, network connection, paid feed,
 
 The first exact-head Automated Tests run exposed two integration fixtures in `backend/tests/test_api.py` that still constructed the old four-field key. The new coordinator tests passed; the failures were stale expected-key fixtures, not runtime failures. Both fixtures now include the exact `SYNTHETIC.V1` dataset and `raw_symbol` symbology. The key validation matrix also now explicitly covers whitespace and overlength values for dataset and symbology.
 
-## 5. Exact-head CI
+## 5. Exact-head CI — corrected commit accepted
 
-This corrected source/test commit requires exact-head verification of all four workflows: Automated Tests, CodeQL, OCI ARM64 Image Readiness, and Full Git History Secret Audit. CI completion credit is awarded only after every workflow is terminal SUCCESS and no job remains running. Any failure must be inspected and corrected on this branch before closure.
+The corrected source/test commit `a065e8b2b5b1736aba076d7b12940ae317989e49` completed all four required workflows successfully:
+
+| Workflow | Run ID | Result |
+|---|---:|---|
+| Automated Tests | 45545244972 | SUCCESS — 41/41 steps |
+| CodeQL Security Analysis | 45545244878 | SUCCESS — Python 8/8 and JavaScript/TypeScript 8/8 |
+| OCI ARM64 Image Readiness | 45545245144 | SUCCESS — 7/7 steps |
+| Full Git History Secret Audit | 45545244917 | SUCCESS — 6/6 steps |
+
+Backend pytest: **1,424 passed, 1 skipped, 6 warnings in 64.04 seconds**. The single skipped case is the isolated Redis TLS integration fixture, which is separately exercised by the workflow's Redis TLS CA/hostname enforcement step. The Trivy image report was generated and uploaded; no blanket zero-vulnerability claim is made.
+
+The initial commit `08b974b2e6222a4bc31b7826e9b5245a227c3e40` had two stale test fixtures that still constructed the old four-field key. Both were corrected in the source/test follow-up commit above. Its Automated Tests workflow then passed. All four workflows for the corrected commit are terminal SUCCESS; no job remains running.
 
 ## 6. Indicator progress — no implementation changes
 
