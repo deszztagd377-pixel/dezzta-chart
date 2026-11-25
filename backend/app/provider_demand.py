@@ -154,3 +154,12 @@ class InMemoryOfflineProviderAdapter:
             raise RuntimeError("offline adapter received stop for inactive key")
         self.stop_calls.append(key)
         self.active.remove(key)
+
+
+__all__ = (
+    "DemandLease",
+    "InMemoryOfflineProviderAdapter",
+    "ProviderDemandAdapter",
+    "ProviderDemandCoordinator",
+    "ProviderDemandKey",
+)
