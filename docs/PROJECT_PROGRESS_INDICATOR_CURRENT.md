@@ -6558,3 +6558,39 @@ A source-level inventory found **43 existing test declarations**: 31 Node proof 
 Existing tests cover synthetic ticket issuance/consumption, ticket race, series binding, proof-only sequence continuity, authenticated fan-out, socket attachment restoration, alarms and bounded request parsing. They do **not** establish durable event payload replay, atomic event+digest+cursor rollback, ACK receipt durability, receipt monotonicity, RESUME paging, retention-floor resnapshot, generation mismatch behavior or Android/browser network-handover E2E.
 
 The 15 production WebSocket acceptance requirements are mapped individually in the latest Batch 89–93 blueprint. Existing test-name presence is not production acceptance. No test status or batch status was upgraded from this audit.
+
+
+---
+
+# Work Cycle 89–93 source-level verification addendum — 25 November 2026
+
+**Verified branch:** `phase-2/market-data-foundation`. **Verified documentation checkpoint:** `99c2f30c5467fa4ce9fde6bfc291ad44cb51a2ac` (three commits ahead of parent `eb06758b1f56c590f0f568408fb5444cd117fcaa`, zero behind). The three commits in this delta are documentation-only; the latest commit is `docs: record WebSocket test evidence coverage gaps [skip ci]`. This addendum is a source audit, not a runtime test result.
+
+## Direct source evidence
+
+- `cloudflare/proof/worker.mjs` still implements synthetic-only sequence acceptance by transactionally updating `sequence:<series>`; it does not persist the corresponding event payload/digest in a replay log.
+- The proof emitter sends the event to matching authorized sockets after sequence acceptance. A crash between cursor commit and socket send has no durable replay source in this proof implementation.
+- The authenticated WebSocket message handler supports the auth handshake and ping/pong path; ACK and RESUME are not implemented.
+- No durable consumer receipt ledger was found in the inspected Worker source.
+- Durable Object runtime tests restore serialized socket attachments after eviction. This proves attachment restoration only, not durable event replay or ACK receipt recovery.
+
+## Test declaration inventory (source counted)
+
+- `cloudflare/proof/worker.node-test.mjs`: 31 `it(...)` declarations.
+- `cloudflare/proof/worker.durable-object.runtime.mjs`: 11 `it(...)` declarations.
+- `cloudflare/proof/worker.miniflare-test.mjs`: 1 `test(...)` declaration.
+- Total: **43 declarations**. These are source declarations, not executed tests or passes.
+
+## Current execution and acceptance state
+
+- Batch 89: 🟨 package/platform inspection recorded; 🟥 exact Python Worker runtime compatibility not tested.
+- Batch 90: 🟦 schema/migration design only; no project DDL/migration implementation verified.
+- Batch 91: 🟦 provider-neutral API contract only; route implementation not verified.
+- Batch 92: 🟥 durable event payload/digest/replay implementation absent from inspected proof source.
+- Batch 93: 🟥 ACK, RESUME and durable consumer receipts absent from inspected proof source.
+- Batch 94: 🟥 no provider has passed legal, compatible and zero-cost evidence gates.
+- Batch 95: 🟥 public WSS/device E2E/restore acceptance absent.
+
+The repository declares `test`, `test:cloudflare-runtime` and `test:cloudflare-durable-objects` scripts, but no test/build/lint command was executed in this work cycle. The current connector's commit-status result is empty and its workflow-run query is PR-triggered only; CI is UNKNOWN / NOT VERIFIED, not PASS. The latest docs commit uses `[skip ci]`.
+
+No runtime code, indicator source/UI, Cloudflare resource, deployment or `main` branch was changed. Stage 1 remains 30/40 = 75% provisional; Gate 10 remains 0/10 formally closed; overall project and IP3S remain NOT SCORED. Zero-cost and the 24 December 2026 planning target remain unchanged.
