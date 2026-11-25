@@ -3384,7 +3384,7 @@ def test_offline_websocket_demand_is_shared_and_released_on_disconnect() -> None
         canonical_id=canonical_id, asset_class="future", instrument_type="future",
         symbol="EDU-SYNTH-001", venue="SYNTH", expiration_date="2027-01-01",
         settlement_currency="USD", contract_multiplier="1", tick_size="0.01",
-        session_calendar_id="",
+        session_calendar_id="SYNTHETIC_24X7",
     )
     mapping = ProviderInstrumentMapping(
         provider="offline-fixture", dataset="SYNTHETIC.V1", publisher_id=1,

@@ -3480,3 +3480,37 @@ No stage tick, indicator integration credit, Gate 25 external acceptance, or ove
 6. Keep indicator chart UI behind Stage 4 and its scoped approved blueprint/user review.
 
 No paid service, production credential, domain, deployment, or destructive Redis action was used. APK planning target remains approximately 24 December 2026, not end-of-month.
+
+
+
+# Offline WebSocket fixture correction — Batch 62J-241 (25 November 2026)
+
+**Parent HEAD:** `d7581d72bfa9b34856c58e9cc807cc5d6ee84c2a`  
+**Scope:** correct the synthetic route regression fixture to satisfy canonical instrument metadata validation.  
+**ZERO COST:** no external service or network adapter introduced.
+
+## CI failure diagnosis
+
+The exact-HEAD Automated Tests run failed in one newly added route-level test before it reached the WebSocket handshake. The test constructed a `CanonicalInstrument` with an empty `session_calendar_id`; the canonical identity contract rejects an explicitly supplied empty string. This is a fixture construction defect, not evidence of a coordinator, route, lease, or adapter runtime failure.
+
+The fixture now supplies the non-empty test-only identifier `SYNTHETIC_24X7`. Its requested series continues to use the UTC fixed bucket policy with empty request calendar identity, so no production calendar release is selected or required. No production instrument validation rule is weakened.
+
+## Regression scope retained
+
+The test still verifies two authenticated offline-fixture WebSocket subscribers share one in-memory demand, the first disconnect leaves the second lease active, and the final disconnect releases the last lease and empties the adapter active set. No live provider is invoked.
+
+## Verification disposition
+
+The prior SHA `d7581d72bfa9b34856c58e9cc807cc5d6ee84c2a` had 3/4 workflows successful; Automated Tests failed with 1 failed, 1,410 passed, 1 skipped. This correction requires fresh exact-HEAD CI. Do not inherit the parent result as success.
+
+## Indicator ledger
+
+No indicator calculation or rendering code changes in this batch. Existing calculation foundations, chart-integration gaps, Footprint visual gate and Heatmap reference gate remain unchanged. No completion credit is added.
+
+## WebSocket status
+
+Synthetic/offline route acquire/release code is present. Its route regression remains **🟨 pending exact-HEAD CI** until the corrected test passes. External provider lifecycle, provider ACK, cross-process demand ownership and public WSS/client acceptance remain open; this batch does not claim those gates.
+
+## Project constraints
+
+No Vercel deployment, no `main` update, no live market-data integration, no paid service and no destructive Redis retention change. Target remains around 24 December 2026 as a planning target.
