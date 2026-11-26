@@ -22,10 +22,10 @@ All four required workflows completed successfully on the same source/test SHA `
 
 | Workflow | Run | Result |
 |---|---:|---|
-| Automated Tests | [45857181350](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45855836242) | SUCCESS |
-| CodeQL Security Analysis | [45857181214](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45855836274) | SUCCESS |
-| OCI ARM64 Image Readiness | [45857181270](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45855836304) | SUCCESS |
-| Full Git History Secret Audit | [45857181213](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45855836341) | SUCCESS |
+| Automated Tests | [45857181350](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45857181350) | SUCCESS |
+| CodeQL Security Analysis | [45857181214](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45857181214) | SUCCESS |
+| OCI ARM64 Image Readiness | [45857181270](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45857181270) | SUCCESS |
+| Full Git History Secret Audit | [45857181213](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45857181213) | SUCCESS |
 
 ### Test/build evidence
 
