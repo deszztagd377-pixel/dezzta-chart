@@ -504,6 +504,10 @@ export class SeriesCoordinatorDO {
   constructor(ctx, env) {
     this.ctx = ctx;
     this.env = env;
+    // Serialize snapshot establishment with event persistence/fan-out. This
+    // closes the async digest gap where an accepted event could otherwise land
+    // between the snapshot watermark read and subscription activation.
+    this.protocolTail = Promise.resolve();
     if (this.ctx.storage?.sql) {
       if (typeof this.ctx.blockConcurrencyWhile !== "function") {
         throw new Error("SQLite Durable Object initialization requires blockConcurrencyWhile.");
@@ -516,6 +520,18 @@ export class SeriesCoordinatorDO {
       if (!isValidSocketAttachment(attachment)) {
         try { socket.close(4401, "Invalid connection state"); } catch { /* already closed */ }
       }
+    }
+  }
+
+  async runProtocolExclusive(operation) {
+    const previous = this.protocolTail;
+    let release;
+    this.protocolTail = new Promise((resolve) => { release = resolve; });
+    await previous;
+    try {
+      return await operation();
+    } finally {
+      release();
     }
   }
 
@@ -654,6 +670,7 @@ export class SeriesCoordinatorDO {
         return jsonResponse({ error: "invalid_event" }, 400);
       }
 
+      return this.runProtocolExclusive(async () => {
       const accepted = await acceptNextSequence(this.ctx.storage, body.seriesKey, sequence);
       if (!accepted) return jsonResponse({ error: "sequence_conflict" }, 409);
 
@@ -690,6 +707,7 @@ export class SeriesCoordinatorDO {
         }
       }
       return jsonResponse({ accepted: true, sequence: String(sequence), delivered });
+      });
     }
 
     return new Response("Not found", { status: 404 });
@@ -799,7 +817,17 @@ export class SeriesCoordinatorDO {
         socket.close(4400, "Invalid resume cursor");
         return;
       }
-      const watermark = attachment.snapshotWatermark;
+      return this.runProtocolExclusive(async () => {
+      const currentWatermark = await this.ctx.storage.get("sequence:" + attachment.seriesKey);
+      const watermark = currentWatermark === undefined ? SNAPSHOT_WATERMARK : currentWatermark;
+      if (!Number.isSafeInteger(watermark) || watermark < SNAPSHOT_WATERMARK || watermark > 1_000_000_000) {
+        socket.send(JSON.stringify(createProtocolError(
+          "temporarily_unavailable", true, "snapshot-" + Date.now(),
+          "A consistent synthetic snapshot watermark is unavailable.",
+        )));
+        socket.close(1011, "Snapshot unavailable");
+        return;
+      }
       if (payload.cursor !== undefined) {
         socket.send(JSON.stringify({
           type: "market_data.ohlcv.resnapshot_required",
@@ -816,13 +844,19 @@ export class SeriesCoordinatorDO {
       const snapshot = await createSyntheticSnapshotEnvelope(series, bars, watermark);
       // The connection is made fan-out eligible only after the complete snapshot
       // digest exists. There is no await between enabling fan-out and sending it.
-      socket.serializeAttachment({ ...attachment, subscribed: true, series });
+      socket.serializeAttachment({
+        ...attachment,
+        snapshotWatermark: watermark,
+        subscribed: true,
+        series,
+      });
       socket.send(JSON.stringify({
         ...snapshot,
         streamId: "synthetic:" + attachment.seriesKey,
         watermark: watermark,
         cursor: String(watermark),
       }));
+      });
       return;
     }
 
