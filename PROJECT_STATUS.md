@@ -8,9 +8,9 @@
 
 - **Batch 91:** GREEN — formally accepted for the synthetic-only proof scope. Exact-source CI evidence is 4/4 SUCCESS on source/test SHA `2d0d7e9a2bf1190961126105d65f77d9926e6789`; this evidence is not transferred to later documentation commits.
 - **Batch 92 architecture and execution plan:** GREEN — design decisions, identity resolution, 45-case test specification and multi-work execution package recorded.
-- **Batch 92 runtime implementation:** YELLOW — active next workstream; no Batch 92 runtime code has been committed or claimed as tested yet.
-- **SQLite schema v2 / identity registry:** YELLOW — implement and validate additive migration; preserve schema v1 and legacy keys.
-- **Atomic event commit / high-water:** YELLOW — implement one synchronous transaction and prove rollback/idempotency.
+- **Batch 92 runtime implementation:** YELLOW — first implementation cut committed: additive SQLite schema v2, immutable series identity registry, canonical event persistence and atomic high-water update. Exact-head runtime tests and CI are pending.
+- **SQLite schema v2 / identity registry:** YELLOW — migration and immutability guard implemented; verify Miniflare migration and legacy KV preservation.
+- **Atomic event commit / high-water:** YELLOW — canonical payload, digest and high-water now commit in one synchronous SQLite transaction; identical retry is idempotent and changed payload conflicts. Failure-injection and exact-head CI remain pending.
 - **Durable replay / retention:** YELLOW — implement ordered cursor-exclusive bounded pages and explicit recovery outcomes.
 - **WebSocket resume / replay-to-live handoff:** YELLOW — integrate replay and live fan-out under the per-DO protocol serialization boundary.
 - **Failure injection and exact-head CI:** YELLOW — run all relevant test suites and four required workflows on the same source/test SHA.
@@ -19,12 +19,12 @@
 
 ## Current verified engineering facts
 
-- Existing source uses a legacy `sequence:<seriesKey>` KV cursor in `acceptNextSequence()`; it advances before event fan-out and does not persist the canonical event payload atomically.
-- SQLite schema v1 already creates `series_state`, `series_events`, and `consumer_receipts`; their existence alone does not mean event persistence, replay, or receipts are implemented.
+- Batch 92 adds SQLite schema v2 and an immutable canonical identity registry. Canonical event payload/digest and high-water are written in one `transactionSync`; the legacy KV cursor is read only when bootstrapping a series with no SQLite state.
+- Durable replay reads, retention compaction, replay-to-live handoff, ACK/receipt processing and resume recovery remain unimplemented; schema presence alone is not counted as feature completion.
 - Batch 92 adds an immutable canonical series identity registry because the series key alone does not encode all digest-bound publisher/instrument identity fields.
 - Stable retry requires the emit request to reuse the same canonical `emittedAtNs`; a changed timestamp changes payload bytes and digest and is a conflicting duplicate.
 - Per-event persisted payload cap is 8,192 UTF-8 bytes. Replay page target is at most 100 events and at most 65,536 serialized UTF-8 bytes including framing and metadata; the implementation must measure bytes using UTF-8 encoding.
-- No runtime code, schema, dependency, production setting, paid resource or deployment was changed in this documentation work cycle.
+- This implementation cut changes Worker source, Durable Object schema and runtime tests only. No dependency, production setting, paid resource or deployment was added; exact-head CI must pass before acceptance.
 
 ## Active work package
 

@@ -171,11 +171,13 @@ function coordinatorStub(seriesKey) {
   );
 }
 
-async function emit(seriesKey, sequence) {
+async function emit(seriesKey, sequence, emittedAtNs = (1_800_000_000_000_000_000n + BigInt(sequence)).toString()) {
   const response = await workerFetch("/__proof/emit", {
     method: "POST",
     headers: workerHeaders(),
-    body: JSON.stringify({ seriesKey, sequence: String(sequence) }),
+    body: JSON.stringify({
+      seriesKey, sequence: String(sequence), series: canonicalSeries(seriesKey), emittedAtNs,
+    }),
   });
   return { status: response.status, payload: await response.json() };
 }
@@ -241,6 +243,8 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
         .toArray().map((row) => row.name);
       const receiptColumns = sql.exec("PRAGMA table_info(consumer_receipts)")
         .toArray().map((row) => row.name);
+      const identityColumns = sql.exec("PRAGMA table_info(series_identity)")
+        .toArray().map((row) => row.name);
 
       await state.storage.put("sequence:" + SERIES_A, 50);
       const legacyCursor = await state.storage.get("sequence:" + SERIES_A);
@@ -295,15 +299,17 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
         stateColumns,
         eventColumns,
         receiptColumns,
+        identityColumns,
         legacyCursor,
       };
     });
 
-    expect(first.versions).toEqual([{ version: 1 }]);
+    expect(first.versions).toEqual([{ version: 1 }, { version: 2 }]);
     expect(first.tables).toEqual([
       "consumer_receipts",
       "schema_migrations",
       "series_events",
+      "series_identity",
       "series_state",
     ]);
     expect(first.stateColumns).toEqual([
@@ -322,14 +328,10 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       "committed_at_ms",
     ]);
     expect(first.receiptColumns).toEqual([
-      "series_key",
-      "consumer_id",
-      "generation_id",
-      "committed_sequence",
-      "event_digest",
-      "receipt_version",
-      "updated_at_ms",
+      "series_key", "consumer_id", "generation_id", "committed_sequence",
+      "event_digest", "receipt_version", "updated_at_ms",
     ]);
+    expect(first.identityColumns).toEqual(["series_key", "identity_json", "created_at_ms"]);
     expect(first.legacyCursor).toBe(50);
 
     await evictDurableObject(stub);
@@ -344,9 +346,54 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       ).one().count,
     }));
 
-    expect(restored.versions).toEqual([{ version: 1 }]);
+    expect(restored.versions).toEqual([{ version: 1 }, { version: 2 }]);
     expect(restored.legacyCursor).toBe(50);
     expect(restored.eventCount).toBe(1);
+  });
+
+  it("persists canonical event bytes and high-water atomically and rejects identity mutation", async () => {
+    const seriesKey = "synthetic:DEMO:ATOMIC:1m";
+    const first = await emit(seriesKey, 51);
+    expect(first.status).toBe(200);
+    expect(first.payload).toMatchObject({ accepted: true, duplicate: false, sequence: "51" });
+    const stub = coordinatorStub(seriesKey);
+    const stored = await runInDurableObject(stub, async (_instance, state) => ({
+      state: state.storage.sql.exec(
+        "SELECT generation_id, high_water, retention_floor FROM series_state WHERE series_key = ?", seriesKey,
+      ).toArray(),
+      events: state.storage.sql.exec(
+        "SELECT sequence, event_digest, payload FROM series_events WHERE series_key = ? ORDER BY sequence", seriesKey,
+      ).toArray(),
+      identity: state.storage.sql.exec(
+        "SELECT identity_json FROM series_identity WHERE series_key = ?", seriesKey,
+      ).toArray(),
+    }));
+    expect(stored.state).toEqual([{ generation_id: "synthetic-v1", high_water: 51, retention_floor: 50 }]);
+    expect(stored.events).toHaveLength(1);
+    expect(JSON.parse(stored.events[0].payload)).toMatchObject({
+      type: "market_data.ohlcv.update", sequence: 51, digest: stored.events[0].event_digest,
+      series: { seriesKey },
+    });
+    expect(stored.identity).toHaveLength(1);
+    const changedIdentity = canonicalSeries(seriesKey);
+    changedIdentity.instrumentId = 999;
+    const conflict = await workerFetch("/__proof/emit", {
+      method: "POST", headers: workerHeaders(),
+      body: JSON.stringify({
+        seriesKey, sequence: "52", series: changedIdentity, emittedAtNs: "1800000000000000002",
+      }),
+    });
+    expect(conflict.status).toBe(409);
+    expect(await conflict.json()).toMatchObject({ error: "series_identity_conflict" });
+    const unchanged = await runInDurableObject(stub, async (_instance, state) => ({
+      highWater: state.storage.sql.exec(
+        "SELECT high_water FROM series_state WHERE series_key = ?", seriesKey,
+      ).one().high_water,
+      eventCount: state.storage.sql.exec(
+        "SELECT COUNT(*) AS count FROM series_events WHERE series_key = ?", seriesKey,
+      ).one().count,
+    }));
+    expect(unchanged).toEqual({ highWater: 51, eventCount: 1 });
   });
 
   it("fans out only to authenticated sockets for the exact series", async () => {
@@ -661,15 +708,10 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     ]);
     const accepted = results.filter((result) => result.status === 200);
     const rejected = results.filter((result) => result.status === 409);
-
-    expect(accepted).toHaveLength(1);
-    expect(accepted[0].payload).toMatchObject({
-      accepted: true,
-      sequence: "51",
-      delivered: 1,
-    });
-    expect(rejected).toHaveLength(1);
-    expect(rejected[0].payload).toMatchObject({ error: "sequence_conflict" });
+    expect(accepted).toHaveLength(2);
+    expect(accepted.map((result) => result.payload.delivered).sort()).toEqual([0, 1]);
+    expect(accepted.some((result) => result.payload.duplicate === true)).toBe(true);
+    expect(rejected).toHaveLength(0);
     expect(await updatePromise).toMatchObject({
       type: "market_data.ohlcv.update",
       sequence: 51,
@@ -706,8 +748,11 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     });
 
     const duplicate = await emit(seriesKey, 51);
-    expect(duplicate.status).toBe(409);
-    expect(duplicate.payload).toMatchObject({ error: "sequence_conflict" });
+    expect(duplicate.status).toBe(200);
+    expect(duplicate.payload).toMatchObject({ accepted: true, duplicate: true, sequence: "51", delivered: 0 });
+    const changedTimestamp = await emit(seriesKey, 51, "1800000000000000999");
+    expect(changedTimestamp.status).toBe(409);
+    expect(changedTimestamp.payload).toMatchObject({ error: "sequence_conflict" });
 
     const skipped = await emit(seriesKey, 53);
     expect(skipped.status).toBe(409);
