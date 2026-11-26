@@ -450,7 +450,7 @@ test("snapshot watermark initialization cannot rewind a concurrent first update"
   );
 });
 
-test("Durable Object consumes one-time ticket and sends an aligned synthetic snapshot", async () => {
+test("Node MemoryStorage adapter fails closed for snapshots without a durable identity registry", async () => {
   const storage = new MemoryStorage();
   await initializeSequenceWatermark(storage, SERIES);
   const issued = await issueTicket(storage, SERIES, "synthetic-proof-subject");
@@ -479,10 +479,9 @@ test("Durable Object consumes one-time ticket and sends an aligned synthetic sna
   await coordinator.webSocketMessage(socket, JSON.stringify({
     type: "market_data.subscribe", version: 1, series: identity,
   }));
-  assert.equal(socket.sent[1].type, "market_data.ohlcv.snapshot");
-  assert.equal(socket.sent[1].highWaterCursor, "50");
-  assert.equal(socket.sent[1].bars.length, 50);
-  assert.equal(socket.attachment.subscribed, true);
+  assert.equal(socket.sent[1].type, "market_data.error");
+  assert.equal(socket.sent[1].code, "temporarily_unavailable");
+  assert.equal(socket.closed[0].code, 1011);
 
   const replaySocket = new MemorySocket({
     authorized: false,
@@ -693,7 +692,7 @@ test("fan-out is withheld until a durable SQLite commit succeeds", async () => {
   assert.equal(await storage.get("sequence:" + SERIES), 50);
 });
 
-test("failed event commit cannot advance legacy cursor or snapshot watermark", async () => {
+test("failed event commit and snapshot fail closed without SQLite identity storage", async () => {
   const storage = new MemoryStorage();
   await initializeSequenceWatermark(storage, SERIES);
   const issued = await issueTicket(storage, SERIES, "synthetic-proof-subject");
@@ -717,11 +716,9 @@ test("failed event commit cannot advance legacy cursor or snapshot watermark", a
   await coordinator.webSocketMessage(socket, JSON.stringify({
     type: "market_data.subscribe", version: 1, series: canonicalSeriesForTest(),
   }));
-  assert.equal(socket.sent[1].type, "market_data.ohlcv.snapshot");
-  assert.equal(socket.sent[1].highWaterCursor, "50");
-  assert.equal(socket.sent[1].bars.length, 50);
-  assert.equal(socket.sent[1].bars[0].sequence, 1);
-  assert.equal(socket.sent[1].bars.at(-1).sequence, 50);
+  assert.equal(socket.sent[1].type, "market_data.error");
+  assert.equal(socket.sent[1].code, "temporarily_unavailable");
+  assert.equal(socket.closed[0].code, 1011);
 
   const nextEvent = await coordinator.fetch(new Request("https://series.internal/internal/emit", {
     method: "POST", headers: { "Content-Type": "application/json" },

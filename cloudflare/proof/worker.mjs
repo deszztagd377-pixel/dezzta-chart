@@ -511,13 +511,19 @@ export function applyDurableSchemaMigrations(storage, now = Date.now()) {
 
     if (currentVersion < 3) {
       sql.exec(`
-        ALTER TABLE series_identity ADD COLUMN identity_digest TEXT NOT NULL DEFAULT ''
-          CHECK (
-            identity_digest = '' OR (
-              length(identity_digest) = 64
-              AND identity_digest NOT GLOB '*[^0-9a-f]*'
-            )
-          );
+        const identityColumns = sql.exec("PRAGMA table_info(series_identity)")
+          .toArray().map((row) => row.name);
+        if (!identityColumns.includes("identity_digest")) {
+          sql.exec(`
+            ALTER TABLE series_identity ADD COLUMN identity_digest TEXT NOT NULL DEFAULT ''
+              CHECK (
+                identity_digest = '' OR (
+                  length(identity_digest) = 64
+                  AND identity_digest NOT GLOB '*[^0-9a-f]*'
+                )
+              )
+          `);
+        }
         DROP TRIGGER IF EXISTS series_identity_immutable_update;
         CREATE TRIGGER series_identity_immutable_update
         BEFORE UPDATE ON series_identity
