@@ -1,3 +1,13 @@
+# Latest project reconciliation — Batch 92 preparation (26 November 2026)
+
+**Documentation HEAD:** `6e1d248e935301381433ae8b18c4361a103b9866` (documentation-only; CI intentionally skipped).  
+**Latest audited workflow HEAD:** `8c94b27e5cccb2de64417aad38829dbf86086ebe`; all four required workflows completed SUCCESS: Automated Tests 45832882752, CodeQL 45832882795, Full Git History Secret Audit 45832882892, OCI ARM64 45832882749. The automated test job completed all 41 steps successfully, including frontend tests/build, Worker Node proof, pinned Miniflare/workerd, Durable Object runtime, backend tests, and container smoke checks.  
+**Runtime source/test baseline:** Batch 91 source/test SHA remains `2d0d7e9a2bf1190961126105d65f77d9926e6789`; the latest source implementation is not being represented as newer than that SHA.  
+**Batch 92 preparation:** Added `docs/WORK_CYCLE_2026-11-26_BATCH92_PREIMPLEMENTATION_ENGINEERING_REVIEW.md`. It records five implementation design gaps and eight additional deterministic tests, including legacy-cursor bootstrap, generation cardinality, transaction atomicity, replay byte limits, and post-commit fan-out recovery.  
+**Gate:** Batch 91 formal acceptance remains OWNER REVIEW REQUIRED. Batch 92 runtime implementation remains NOT STARTED / BLOCKED; this documentation review does not bypass the gate. No runtime code, schema, dependencies, production settings, or deployment changed. `main` remains untouched; ZERO COST remains mandatory.
+
+---
+
 # Latest implementation checkpoint — Batch 91 (26 November 2026)
 
 **Status:** IMPLEMENTATION IN PROGRESS — not accepted.  
