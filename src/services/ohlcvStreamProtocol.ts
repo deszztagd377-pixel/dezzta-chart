@@ -88,8 +88,9 @@ export function parseOhlcvStreamUpdate(payload: unknown): OhlcvStreamUpdateMessa
   if (!isPositiveSafeInteger(payload.sequence)) {
     throw new Error('OHLCV stream sequence must be a positive safe integer.');
   }
-  if (payload.cursor !== undefined && payload.cursor !== String(payload.sequence)) {
-    throw new Error('OHLCV cursor must be canonical and equal the event sequence.');
+  if (payload.generationId !== undefined &&
+      payload.cursor !== undefined && payload.cursor !== String(payload.sequence)) {
+    throw new Error('OHLCV durable cursor must be canonical and equal the event sequence.');
   }
   if (payload.generationId !== undefined &&
       (typeof payload.generationId !== 'string' || !/^[A-Za-z0-9._:-]{1,128}$/.test(payload.generationId))) {
@@ -112,6 +113,10 @@ export function parseOhlcvStreamUpdate(payload: unknown): OhlcvStreamUpdateMessa
   }
 
   const series = payload.series;
+  if (series.seriesKey !== undefined &&
+      (typeof series.seriesKey !== 'string' || !/^[A-Za-z0-9._:-]{1,128}$/.test(series.seriesKey))) {
+    throw new Error('OHLCV stream seriesKey is invalid.');
+  }
   if (
     !isNonEmptyString(series.provider) ||
     !['contract', 'continuous'].includes(String(series.seriesType)) ||
