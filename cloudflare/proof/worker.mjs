@@ -1,4 +1,5 @@
 import {
+  createProtocolError,
   createSyntheticCanonicalBar,
   createSyntheticSnapshotEnvelope,
   createSyntheticUpdateEnvelope,
@@ -780,18 +781,33 @@ export class SeriesCoordinatorDO {
     if (payload?.type === "market_data.subscribe" && payload.version === PROTOCOL_VERSION) {
       const series = payload.series;
       if (!validateSyntheticCanonicalSeries(series) || series.seriesKey !== attachment.seriesKey) {
-        socket.send(JSON.stringify({
-          type: "market_data.error",
-          version: PROTOCOL_VERSION,
-          code: "invalid_series",
-          retryable: false,
-          correlationId: "subscribe-" + Date.now(),
-          message: "The requested synthetic series identity is invalid.",
-        }));
+        socket.send(JSON.stringify(createProtocolError(
+          "invalid_series", false, "subscribe-" + Date.now(),
+          "The requested synthetic series identity is invalid.",
+        )));
         socket.close(4400, "Invalid subscription");
         return;
       }
+      if (payload.cursor !== undefined &&
+          (typeof payload.cursor !== "string" ||
+           payload.cursor.length > 16 ||
+           !/^(0|[1-9][0-9]*)$/.test(payload.cursor))) {
+        socket.send(JSON.stringify(createProtocolError(
+          "cursor_invalid", false, "cursor-" + Date.now(),
+          "The resume cursor is not a canonical unsigned decimal string.",
+        )));
+        socket.close(4400, "Invalid resume cursor");
+        return;
+      }
       const watermark = attachment.snapshotWatermark;
+      if (payload.cursor !== undefined) {
+        socket.send(JSON.stringify({
+          type: "market_data.ohlcv.resnapshot_required",
+          version: PROTOCOL_VERSION,
+          reason: "replay_unavailable_in_synthetic_proof",
+          snapshotCursor: String(watermark),
+        }));
+      }
       const asOfNs = (BigInt(Date.now()) * 1_000_000n).toString();
       const firstSequence = watermark - SNAPSHOT_BARS + 1;
       const bars = Array.from({ length: SNAPSHOT_BARS }, (_, index) =>
