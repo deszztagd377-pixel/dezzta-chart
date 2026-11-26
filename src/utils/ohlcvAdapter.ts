@@ -179,12 +179,6 @@ export function parseOhlcvSnapshot(payload: unknown): OhlcvSnapshotMessage {
       })) {
     throw new Error('OHLCV snapshot durable metadata is invalid.');
   }
-  if (payload.highWaterCursor !== undefined &&
-      payload.count !== undefined && payload.highWaterCursor !== String(payload.bars.length ? (payload.bars[payload.bars.length - 1] as Record<string, unknown>).sequence ?? payload.count : payload.count)) {
-    // highWaterCursor is a stream cursor, not necessarily a bar revision; it is
-    // intentionally not compared with bar.sequence here.
-  }
-
     const validFeedStates = ['connecting', 'live', 'recovering', 'degraded', 'disconnected'];
   if (payload.feedState !== undefined && !validFeedStates.includes(String(payload.feedState))) {
     throw new Error('OHLCV snapshot has an invalid feedState.');
