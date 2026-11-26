@@ -780,7 +780,14 @@ export function readDurableReplayPage(storage, seriesKey, cursor, expectedGenera
   ).toArray();
   const events = [];
   let hasMore = rows.length > MAX_REPLAY_EVENTS;
+  let expectedSequence = cursorNumber + 1;
+  let stoppedForBytes = false;
   for (const row of rows.slice(0, MAX_REPLAY_EVENTS)) {
+    if (!Number.isSafeInteger(row.sequence) || row.sequence !== expectedSequence) {
+      return { ok: false, reason: "corrupt_sequence_gap",
+        generationId, highWater, retentionFloor, sequence: row.sequence };
+    }
+    expectedSequence += 1;
     let event;
     try {
       event = JSON.parse(row.payload);
@@ -810,9 +817,17 @@ export function readDurableReplayPage(storage, seriesKey, cursor, expectedGenera
       if (events.length === 0) return { ok: false, reason: "replay_event_too_large",
         generationId, highWater, retentionFloor, sequence: row.sequence };
       hasMore = true;
+      stoppedForBytes = true;
       break;
     }
     events.push(event);
+  }
+  if (rows.length <= MAX_REPLAY_EVENTS && !stoppedForBytes) {
+    const observedHighWater = events.length ? events[events.length - 1].sequence : cursorNumber;
+    if (observedHighWater !== highWater) {
+      return { ok: false, reason: "corrupt_sequence_gap",
+        generationId, highWater, retentionFloor };
+    }
   }
   const lastSequence = events.length ? events[events.length - 1].sequence : cursorNumber;
   const page = {
