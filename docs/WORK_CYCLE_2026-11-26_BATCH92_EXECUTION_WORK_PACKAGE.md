@@ -56,7 +56,7 @@ No active work item is displayed as RED. Work not yet verified is YELLOW / IN PR
 
 ## Test and release gates
 
-The 45-case inventory remains a specification, not a pass count. Exact-head CI on `a8486f710308b5be98929398bbbecba7a89cd99f` verifies the identity/persistence slice plus the implemented bounded replay, compaction and valid-cursor WebSocket path. Page-boundary, generation/corruption, seeded-bootstrap, replay/live race and additional failure-injection cases remain. See the exact-head report for run IDs and observed counts. Documentation-only commits are not evidence of runtime CI.
+The 45-case inventory remains a specification, not a pass count. Exact-head CI on `c8f2a4bb911a63af44ee581d3c1085377c604b44` verifies the identity/persistence slice plus the implemented bounded replay, compaction and valid-cursor WebSocket path. Page-boundary, generation/corruption, seeded-bootstrap, replay/live race and additional failure-injection cases remain. See the exact-head report for run IDs and observed counts. Documentation-only commits are not evidence of runtime CI.
 
 ## Cost and platform guardrail
 
