@@ -528,7 +528,7 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
 
     const pongPromise = nextJsonMessage(client.socket);
     client.socket.send(JSON.stringify({ type: "ping" }));
-    expect(await pongPromise).toMatchObject({ type: "pong", version: 1 });
+    expect(await pongPromise).toMatchObject({ type: "market_data.pong", version: 1 });
   });
 
   it("restores every authenticated socket attachment after Durable Object eviction", async () => {
@@ -556,8 +556,8 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     first.socket.send(JSON.stringify({ type: "ping" }));
     second.socket.send(JSON.stringify({ type: "ping" }));
     expect(await Promise.all([firstPong, secondPong])).toEqual([
-      { type: "pong", version: 1 },
-      { type: "pong", version: 1 },
+      { type: "market_data.pong", version: 1 },
+      { type: "market_data.pong", version: 1 },
     ]);
   });
 
@@ -604,7 +604,7 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
 
     const pongPromise = nextJsonMessage(client.socket);
     client.socket.send(JSON.stringify({ type: "ping" }));
-    expect(await pongPromise).toMatchObject({ type: "pong", version: 1 });
+    expect(await pongPromise).toMatchObject({ type: "market_data.pong", version: 1 });
     expect(client.socket.readyState).toBe(1);
   });
 
@@ -646,8 +646,9 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     expect(rejected).toHaveLength(1);
     expect(rejected[0].payload).toMatchObject({ error: "sequence_conflict" });
     expect(await updatePromise).toMatchObject({
-      type: "market_data.update",
-      sequence: "51",
+      type: "market_data.ohlcv.update",
+      sequence: 51,
+      cursor: "51",
     });
 
     const nextUpdatePromise = nextJsonMessage(client.socket);
@@ -659,8 +660,9 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       delivered: 1,
     });
     expect(await nextUpdatePromise).toMatchObject({
-      type: "market_data.update",
-      sequence: "52",
+      type: "market_data.ohlcv.update",
+      sequence: 52,
+      cursor: "52",
     });
   });
 
@@ -673,8 +675,9 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     expect(first.status).toBe(200);
     expect(first.payload).toMatchObject({ accepted: true, sequence: "51", delivered: 1 });
     expect(await firstUpdatePromise).toMatchObject({
-      type: "market_data.update",
-      sequence: "51",
+      type: "market_data.ohlcv.update",
+      sequence: 51,
+      cursor: "51",
     });
 
     const duplicate = await emit(seriesKey, 51);
@@ -698,8 +701,9 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       delivered: 1,
     });
     expect(await nextUpdatePromise).toMatchObject({
-      type: "market_data.update",
-      sequence: "52",
+      type: "market_data.ohlcv.update",
+      sequence: 52,
+      cursor: "52",
     });
   });
 
