@@ -4,20 +4,17 @@
 **Active branch:** `phase-2/market-data-foundation`; application `main` remains untouched.  
 **Latest source/test SHA:** `2d0d7e9a2bf1190961126105d65f77d9926e6789`.  
 **Implemented:** provider-neutral protocol metadata and validators; canonical cursor and SHA-256 format validation; fixed-position canonical event digest encoding and stable vector; additive snapshot and stream metadata parsing; optional canonical series identity propagation; synthetic-only canonical bar/snapshot/update envelope builders; REST `/v1/ohlcv` exact-series identity path; WebSocket status-first auth, explicit subscribe, canonical snapshot/update, and versioned text-ping/pong; Worker Node, Miniflare and Durable Object regression coverage updated to the new contract.  
-**Latest exact-head CI:** Automated Tests run 45745991786 — in progress; CodeQL 45745991597 — in progress; OCI ARM64 45745991579 — in progress; Full Git History Secret Audit 45745991669 — SUCCESS. Previous CI attempts found and corrected six then one Durable Object test mismatch; the latest test correction fixed the pong timestamp decimal regex. Do not claim acceptance until all exact-head checks finish successfully.  
+**Latest exact-head CI:** 4/4 terminal SUCCESS on source/test SHA `2d0d7e9a2bf1190961126105d65f77d9926e6789`: Automated Tests run 45746150652; CodeQL 45746150693; Full Git History Secret Audit 45746150657; OCI ARM64 45746150726. Logs confirm frontend 35 files / 331 tests, Worker Node 33/33, Miniflare 1/1, Durable Object 15/15, backend pytest 1,435 passed / 1 skipped / 6 warnings, frontend build success, and backend container smoke success. These checks apply to the exact source/test SHA, not later documentation-only HEAD. Formal Batch 91 acceptance still requires owner review; do not mark accepted yet.  
 **Snapshot/live boundary hardening:** Worker now serializes snapshot establishment with event persistence/fan-out through a Durable Object-local operation queue; the subscription reads the latest sequence watermark inside that queue before computing the digest and activating fan-out. Added a Durable Object runtime regression test for queue ordering. This is synthetic-proof coordination only, not durable replay/ACK storage. Durable event persistence, replay reads, ACK receipt persistence, and resume recovery remain Batch 92 scope, not claimed complete here.  
 **Cron relay:** Worker `dezzta-chart-runner-relay` exists at `https://dezzta-chart-runner-relay.deszztagd377.workers.dev`; `CRON_SECRET` and `GITHUB_TOKEN` are not configured. Runner repository contains `preflight.yml` and the manual Batch89 workflow. The cron-job.org 10-minute schedule remains inactive until both secrets are configured and manual dispatch returns HTTP 202. Never schedule Batch89 every 10 minutes.  
-**Controls:** ZERO COST; no provider/live feed, Firebase production auth, broker/order endpoint, production secret, or deployment added; no application `main` changes. Batch 92/93 remain gated behind Batch 91 acceptance.
+**Controls:** ZERO COST; no provider/live feed, Firebase production auth, broker/order endpoint, production secret, or deployment added; no application `main` changes. Batch 92/93 remain gated behind Batch 91 acceptance.  
+**Detailed reconciliation:** `docs/WORK_CYCLE_2026-11-26_BATCH91_IMPLEMENTATION_RECONCILIATION.md` records the 43-commit implementation diff, exact-head 4/4 CI evidence, test counts, explicit Batch 92/93 boundaries and owner acceptance gate.
 
 ---
 
-# Latest design checkpoint — Batch 91 (26 November 2026)
+# Superseded design-only snapshot — Batch 91 (26 November 2026)
 
-**Code baseline:** `9a2f2b9faebdcaf1e97e93c6dfe85a2c93319fbb`; Batch 90 source/test acceptance is 4/4 CI SUCCESS.  
-**Batch 91:** design-only blueprint prepared at `docs/WORK_CYCLE_2026-11-26_BATCH91_PROVIDER_NEUTRAL_API_CONTRACT_BLUEPRINT.md`. No Batch 91 source files have been changed.  
-**Key finding:** current synthetic Worker messages/routes are not wire-compatible with the existing OHLCV frontend protocol. The blueprint keeps the existing REST and WSS route paths and reuses `OhlcvSnapshotMessage`, `OhlcvStreamUpdateMessage`, and the existing replay handshake instead of creating a competing API.  
-**Review gate:** contract field set, digest byte encoding, route mapping and synthetic-only compatibility require owner review before Batch 91 implementation. Batch 92/93 remain gated behind Batch 91 acceptance.  
-**Controls:** ZERO COST; `main` untouched; no provider, broker/order endpoint, live feed, production secret or deployment added.
+The earlier design-only note below is retained as historical context and is superseded by the implementation checkpoint above. Batch 91 source changes are present at source/test SHA `2d0d7e9a2bf1190961126105d65f77d9926e6789`, with exact-head required CI 4/4 SUCCESS. The implementation reconciliation and remaining owner-review gate are documented in `docs/WORK_CYCLE_2026-11-26_BATCH91_IMPLEMENTATION_RECONCILIATION.md`. Do not interpret the historical statement "No Batch 91 source files have been changed" as current status.
 
 ---
 
