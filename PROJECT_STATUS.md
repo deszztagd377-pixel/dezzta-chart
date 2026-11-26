@@ -8,7 +8,8 @@
 **Snapshot/live boundary hardening:** Worker now serializes snapshot establishment with event persistence/fan-out through a Durable Object-local operation queue; the subscription reads the latest sequence watermark inside that queue before computing the digest and activating fan-out. Added a Durable Object runtime regression test for queue ordering. This is synthetic-proof coordination only, not durable replay/ACK storage. Durable event persistence, replay reads, ACK receipt persistence, and resume recovery remain Batch 92 scope, not claimed complete here.  
 **Cron relay:** Worker `dezzta-chart-runner-relay` exists at `https://dezzta-chart-runner-relay.deszztagd377.workers.dev`; `CRON_SECRET` and `GITHUB_TOKEN` are not configured. Runner repository contains `preflight.yml` and the manual Batch89 workflow. The cron-job.org 10-minute schedule remains inactive until both secrets are configured and manual dispatch returns HTTP 202. Never schedule Batch89 every 10 minutes.  
 **Controls:** ZERO COST; no provider/live feed, Firebase production auth, broker/order endpoint, production secret, or deployment added; no application `main` changes. Batch 92/93 remain gated behind Batch 91 acceptance.  
-**Detailed reconciliation:** `docs/WORK_CYCLE_2026-11-26_BATCH91_IMPLEMENTATION_RECONCILIATION.md` records the 43-commit implementation diff, exact-head 4/4 CI evidence, test counts, explicit Batch 92/93 boundaries and owner acceptance gate.
+**Detailed reconciliation:** `docs/WORK_CYCLE_2026-11-26_BATCH91_IMPLEMENTATION_RECONCILIATION.md` records the 43-commit implementation diff, exact-head 4/4 CI evidence, test counts, explicit Batch 92/93 boundaries and owner acceptance gate.  
+**Next-batch preparation:** `docs/WORK_CYCLE_2026-11-26_BATCH92_EVENT_COMMIT_REPLAY_TEST_PLAN.md` defines 22 deterministic atomic-commit/replay failure-injection cases; design only, Batch 92 runtime remains blocked until Batch 91 formal acceptance.
 
 ---
 
