@@ -18,7 +18,7 @@
 
 ## Exact-head CI — 4/4 terminal SUCCESS
 
-All four required workflows completed successfully on the same source/test SHA `a8486f710308b5be98929398bbbecba7a89cd99f`.
+All four required workflows completed successfully on the same source/test SHA `c8f2a4bb911a63af44ee581d3c1085377c604b44`.
 
 | Workflow | Run | Result |
 |---|---:|---|
