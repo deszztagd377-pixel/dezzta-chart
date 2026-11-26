@@ -68,6 +68,37 @@ describe('parseOhlcvStreamUpdate', () => {
     expect(() => event({ cursor: '12.5' })).toThrow(/decimal string/i);
   });
 
+  it('validates Batch 91 generation, cursor, digest and synthetic provenance', () => {
+    const provenance = {
+      mode: 'synthetic',
+      dataStatus: 'synthetic_only',
+      provider: null,
+      dataset: 'DEMO',
+      asOfNs: '1793577601000000000',
+      providerConnected: false,
+    };
+    const valid = event({
+      generationId: 'synthetic-v1',
+      cursor: '8',
+      digest: 'a'.repeat(64),
+      provenance,
+      series: { ...series, seriesKey: 'synthetic:DEMO:ES:1s' },
+    });
+    expect(valid.generationId).toBe('synthetic-v1');
+    expect(valid.cursor).toBe('8');
+    expect(valid.digest).toBe('a'.repeat(64));
+    expect(() => event({ generationId: 'synthetic-v1', cursor: '08' })).toThrow(/cursor/i);
+    expect(() => event({ generationId: 'synthetic-v1', cursor: '9' })).toThrow(/cursor/i);
+    expect(() => event({ generationId: 'synthetic-v1', digest: 'A'.repeat(64) })).toThrow(/digest/i);
+    expect(() => event({
+      generationId: 'synthetic-v1',
+      provenance: { ...provenance, dataStatus: 'live' },
+    })).toThrow(/provenance/i);
+    expect(() => event({
+      series: { ...series, seriesKey: 'bad series key' },
+    })).toThrow(/seriesKey/i);
+  });
+
   it('rejects unsupported versions and missing event identity', () => {
     expect(() => event({ version: 2 })).toThrow(/type or version/i);
     expect(() => event({ eventId: '' })).toThrow(/streamId and eventId/i);
