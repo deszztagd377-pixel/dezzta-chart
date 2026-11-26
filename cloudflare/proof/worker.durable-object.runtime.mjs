@@ -619,9 +619,9 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
 
     const validClient = await connectAuthenticated(SERIES_A, ticket);
     expect(validClient.snapshot).toMatchObject({
-      type: "market_data.snapshot",
+      type: "market_data.ohlcv.snapshot",
       streamId: `synthetic:${SERIES_A}`,
-      watermarkCursor: "50",
+      highWaterCursor: "50",
     });
   });
 
