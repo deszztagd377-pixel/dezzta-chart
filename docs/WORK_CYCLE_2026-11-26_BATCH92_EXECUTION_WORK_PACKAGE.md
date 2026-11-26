@@ -13,15 +13,18 @@ No active work item is displayed as RED. Work not yet verified is YELLOW / IN PR
 
 | ID | Workstream | Active state | Dependency | Exit criteria |
 |---|---|---|---|---|
-| B92-01 | SQLite schema v2 + immutable identity registry | YELLOW / READY | Batch 91 accepted | Migration idempotent; v1 rows and KV tickets/cursor preserved; v2 identity uniqueness and constraints verified |
-| B92-02 | Legacy cursor bootstrap and cutover | YELLOW / READY | B92-01 | Serialized bootstrap; high-water never decreases; SQLite is sole post-cutover cursor authority; no dual-write |
-| B92-03 | Canonical event commit | YELLOW / READY | B92-01/02 | One synchronous SQLite transaction inserts event+digest and advances high-water; fan-out only after commit |
+| B92-01 | SQLite schema v2 + immutable identity registry | YELLOW / IMPLEMENTED — VERIFY | Batch 91 accepted | Miniflare migration, trigger immutability, v1 rows and legacy KV preservation pass |
+| B92-02 | Legacy cursor bootstrap and cutover | YELLOW / PARTIAL | B92-01 | Serialized first-write bootstrap; high-water never decreases; SQLite sole authority after state exists; no dual-write |
+| B92-03 | Canonical event commit | YELLOW / IMPLEMENTED — VERIFY | B92-01/02 | One synchronous SQLite transaction inserts event+digest and advances high-water; fan-out only after commit; idempotent retry proven |
 | B92-04 | Replay and retention | YELLOW / READY | B92-03 | Ordered cursor-exclusive pages; bounded count and bytes; explicit generation and retention errors; no silent cursor jump |
 | B92-05 | WebSocket subscribe/resume integration | YELLOW / READY | B92-04 | Snapshot when no cursor; replay when cursor is valid; explicit resnapshot when cursor is expired or generation differs |
-| B92-06 | Failure and concurrency tests | YELLOW / READY | B92-01..05 | Rollback, duplicate, conflicting duplicate, gap, fan-out failure, eviction and concurrent emit cases pass |
-| B92-07 | Exact-head CI | YELLOW / QUEUED | Runtime implementation | Automated Tests, CodeQL, secret audit and OCI ARM64 all terminal-success on the same tested source/test SHA |
+| B92-06 | Failure and concurrency tests | YELLOW / ACTIVE | B92-01..05 | Update stale key-only Node tests; then prove rollback, duplicate, conflicting duplicate, gap, fan-out failure, eviction and concurrent emit |
+| B92-07 | Exact-head CI | YELLOW / FIRST RUN 3/4 | Runtime implementation | Automated Tests, CodeQL, secret audit and OCI ARM64 all terminal-success on the same tested source/test SHA |
 
 ## Required implementation sequence
+
+**First implementation CI result (26 November 2026):** commit `cd5f08fc17c8ab35b95f26d5b591f7ed992bc746` passed CodeQL, full-history secret audit and OCI ARM64. Automated Tests failed at two Node unit tests that still submitted the retired `{seriesKey, sequence}` request shape; later Miniflare/SQLite runtime suites were skipped by fail-fast. The Node tests are now being updated to require canonical series identity and stable `emittedAtNs`, while retaining fail-closed behavior when SQLite is unavailable. No implementation status is GREEN until the corrected exact-head CI passes.
+
 
 1. Add schema v2 in the existing application migration function. Do not alter Wrangler class-creation migration tags. Preserve schema v1 and the existing `series_state`, `series_events`, and `consumer_receipts` tables.
 2. Add `series_identity` (or an equivalently named registry) with one immutable canonical identity per `series_key`. Store canonical fixed-field-order JSON and an identity digest. Reject a different identity for an already registered key.

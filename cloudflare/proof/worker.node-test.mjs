@@ -23,6 +23,15 @@ import worker, {
 const SERIES = "synthetic:DEMO:BTCUSD:1m";
 const TOKEN = "synthetic-proof-test-token-000000000000000000000000";
 
+function canonicalSeriesForTest(seriesKey = SERIES) {
+  const [, dataset, rawSymbol, timeframe] = seriesKey.split(":");
+  return {
+    seriesKey, provider: "synthetic", seriesType: "contract", dataset,
+    publisherId: 1, instrumentId: 101, rawSymbol, timeframe,
+    bucketPolicy: "UTC_LEGACY", calendarId: "", calendarVersion: "",
+  };
+}
+
 class MemoryStorage {
   constructor() {
     this.values = new Map();
@@ -485,41 +494,31 @@ test("Durable Object consumes one-time ticket and sends an aligned synthetic sna
   assert.equal(replaySocket.closed[0].code, 4401);
 });
 
-test("Durable Object synthetic fan-out is exact-series only and sequence-contiguous", async () => {
-  const otherSeries = "synthetic:DEMO:ETHUSD:1m";
+test("Durable Object emit requires canonical identity and stable timestamp", async () => {
   const storage = new MemoryStorage();
   await storage.put("sequence:" + SERIES, 50);
-  const sameA = new MemorySocket({
+  const sockets = [1, 2].map(() => new MemorySocket({
     authorized: true, seriesKey: SERIES, subject: "synthetic-proof-subject",
     connectedAt: Date.now(), snapshotWatermark: 50,
-  });
-  const sameB = new MemorySocket({
-    authorized: true, seriesKey: SERIES, subject: "synthetic-proof-subject",
-    connectedAt: Date.now(), snapshotWatermark: 50,
-  });
-  const other = new MemorySocket({
-    authorized: true, seriesKey: otherSeries, subject: "synthetic-proof-subject",
-    connectedAt: Date.now(), snapshotWatermark: 50,
-  });
-  const sockets = [sameA, sameB, other];
+  }));
   const coordinator = new SeriesCoordinatorDO({ storage, getWebSockets: () => sockets }, {});
-  const response = await coordinator.fetch(new Request("https://series.internal/internal/emit", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+  const legacy = await coordinator.fetch(new Request("https://series.internal/internal/emit", {
+    method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ seriesKey: SERIES, sequence: "51" }),
   }));
-  assert.equal(response.status, 200);
-  assert.equal((await response.json()).delivered, 2);
-  assert.equal(sameA.sent[0].sequence, "51");
-  assert.equal(sameB.sent[0].sequence, "51");
-  assert.equal(other.sent.length, 0);
-
-  const gap = await coordinator.fetch(new Request("https://series.internal/internal/emit", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ seriesKey: SERIES, sequence: "53" }),
+  assert.equal(legacy.status, 400);
+  assert.equal((await legacy.json()).error, "invalid_event");
+  const withoutSqlite = await coordinator.fetch(new Request("https://series.internal/internal/emit", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      seriesKey: SERIES, sequence: "51", series: canonicalSeriesForTest(),
+      emittedAtNs: "1800000000000000051",
+    }),
   }));
-  assert.equal(gap.status, 409);
+  assert.equal(withoutSqlite.status, 503);
+  assert.equal((await withoutSqlite.json()).error, "temporarily_unavailable");
+  assert.equal(await storage.get("sequence:" + SERIES), 50);
+  assert.equal(sockets.every((socket) => socket.sent.length === 0), true);
 });
 
 test("constructor tolerates an already-closed malformed restored socket", () => {
@@ -539,31 +538,30 @@ test("constructor tolerates an already-closed malformed restored socket", () => 
   assert.equal(valid.closed.length, 0);
 });
 
-test("synthetic fan-out rejects malformed authorization attachments", async () => {
+test("event write fails closed without SQLite and malformed attachments are rejected", async () => {
   const storage = new MemoryStorage();
   await storage.put("sequence:" + SERIES, 50);
   const valid = new MemorySocket({
     authorized: true, seriesKey: SERIES, subject: "synthetic-proof-subject",
     connectedAt: Date.now(), snapshotWatermark: 50,
+    subscribed: true, series: canonicalSeriesForTest(),
   });
   const malformed = new MemorySocket({
     authorized: true, seriesKey: SERIES, subject: "invalid-subject",
     connectedAt: Date.now(), snapshotWatermark: 50,
   });
-  const coordinator = new SeriesCoordinatorDO({
-    storage,
-    getWebSockets: () => [valid, malformed],
-  }, {});
-  const response = await coordinator.fetch(new Request("https://series.internal/internal/emit", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ seriesKey: SERIES, sequence: "51" }),
-  }));
-  assert.equal(response.status, 200);
-  assert.equal((await response.json()).delivered, 1);
-  assert.equal(valid.sent.length, 1);
-  assert.equal(malformed.sent.length, 0);
+  const coordinator = new SeriesCoordinatorDO({ storage, getWebSockets: () => [valid, malformed] }, {});
   assert.equal(malformed.closed[0].code, 4401);
+  const response = await coordinator.fetch(new Request("https://series.internal/internal/emit", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      seriesKey: SERIES, sequence: "51", series: canonicalSeriesForTest(),
+      emittedAtNs: "1800000000000000051",
+    }),
+  }));
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).error, "temporarily_unavailable");
+  assert.equal(valid.sent.length, 0);
 });
 
 test("unauthenticated socket alarm schedules the earliest deadline and expires only overdue sockets", async () => {

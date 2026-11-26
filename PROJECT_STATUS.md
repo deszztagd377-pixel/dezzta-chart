@@ -13,7 +13,7 @@
 - **Atomic event commit / high-water:** YELLOW — canonical payload, digest and high-water now commit in one synchronous SQLite transaction; identical retry is idempotent and changed payload conflicts. Failure-injection and exact-head CI remain pending.
 - **Durable replay / retention:** YELLOW — implement ordered cursor-exclusive bounded pages and explicit recovery outcomes.
 - **WebSocket resume / replay-to-live handoff:** YELLOW — integrate replay and live fan-out under the per-DO protocol serialization boundary.
-- **Failure injection and exact-head CI:** YELLOW — run all relevant test suites and four required workflows on the same source/test SHA.
+- **Failure injection and exact-head CI:** YELLOW — first exact-head run on `cd5f08fc17c8ab35b95f26d5b591f7ed992bc746` returned 3/4 workflow SUCCESS; Automated Tests stopped at two stale Node emit tests using the retired key-only request shape. Miniflare/SQLite runtime tests were skipped by fail-fast. Node tests are being aligned to the canonical identity + stable timestamp contract before the next full run.
 - **ACK / consumer receipts / RESUME extensions:** YELLOW — queued behind Batch 92 replay correctness.
 - **Public WSS / Android end-to-end:** YELLOW — queued behind protocol and runtime acceptance.
 
@@ -36,7 +36,7 @@ The Batch 92 plan specifies **45 cases** after adding canonical identity, stable
 
 ## CI evidence and cost controls
 
-The most recent verified 4/4 source CI remains attached to Batch 91 source/test SHA `2d0d7e9a2bf1190961126105d65f77d9926e6789`. No CI is claimed for documentation-only commits. No new CI was triggered or observed in this work cycle. ZERO COST remains mandatory: do not add paid services or deploy. Cloudflare's SQLite-backed Durable Object storage is subject to usage-based billing; event retention must be sized against the account's actual free allowance before runtime rollout.
+Batch 92 first exact-head CI on `cd5f08fc17c8ab35b95f26d5b591f7ed992bc746`: Automated Tests run 45844917881 FAILED at two legacy Node tests (HTTP 400 where old tests expected 200); CodeQL run 45844917921 SUCCESS; Full Git History Secret Audit run 45844918206 SUCCESS; OCI ARM64 run 45844917972 SUCCESS. Because the automated job stopped at the Node test step, Miniflare and Durable Object SQLite runtime tests did not execute. Batch 91's earlier 4/4 evidence remains scoped to SHA `2d0d7e9a2bf1190961126105d65f77d9926e6789`. ZERO COST remains mandatory; no paid service or deployment is added. Cloudflare SQLite storage is usage-billed, so event retention must be sized against the account's actual allowance before rollout.
 
 ## Schedule
 
