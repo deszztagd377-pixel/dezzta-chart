@@ -7,6 +7,19 @@ const SERIES = "synthetic:DEMO:BTCUSD:1m";
 const TOKEN = "synthetic-proof-test-token-000000000000000000000000";
 const ORIGIN = "http://localhost:3000";
 const BASE_URL = "https://synthetic-proof.local";
+const CANONICAL_SERIES = {
+  seriesKey: SERIES,
+  provider: "synthetic",
+  seriesType: "contract",
+  dataset: "DEMO",
+  publisherId: 1,
+  instrumentId: 101,
+  rawSymbol: "BTCUSD",
+  timeframe: "1m",
+  bucketPolicy: "UTC_LEGACY",
+  calendarId: "",
+  calendarVersion: "",
+};
 
 function nextJsonMessage(socket, timeoutMs = 5_000) {
   return new Promise((resolve, reject) => {
@@ -153,11 +166,17 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
     const emitResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/emit`, {
       method: "POST",
       headers: authorizedHeaders(),
-      body: JSON.stringify({ seriesKey: SERIES, sequence: "51" }),
+      body: JSON.stringify({
+        seriesKey: SERIES,
+        sequence: "51",
+        series: CANONICAL_SERIES,
+        emittedAtNs: "1800000000000000051",
+      }),
     });
     assert.equal(emitResponse.status, 200);
     const emitted = await emitResponse.json();
     assert.equal(emitted.accepted, true);
+    assert.equal(emitted.duplicate, false);
     assert.equal(emitted.sequence, "51");
     assert.equal(emitted.delivered, 1);
 
@@ -169,10 +188,46 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
     assert.equal(update.provenance.providerConnected, false);
     assert.match(update.digest, /^[0-9a-f]{64}$/);
 
+    const retryResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/emit`, {
+      method: "POST",
+      headers: authorizedHeaders(),
+      body: JSON.stringify({
+        seriesKey: SERIES,
+        sequence: "51",
+        series: CANONICAL_SERIES,
+        emittedAtNs: "1800000000000000051",
+      }),
+    });
+    assert.equal(retryResponse.status, 200);
+    assert.deepEqual(await retryResponse.json(), {
+      accepted: true,
+      duplicate: true,
+      sequence: "51",
+      delivered: 0,
+    });
+
+    const changedTimestampResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/emit`, {
+      method: "POST",
+      headers: authorizedHeaders(),
+      body: JSON.stringify({
+        seriesKey: SERIES,
+        sequence: "51",
+        series: CANONICAL_SERIES,
+        emittedAtNs: "1800000000000000999",
+      }),
+    });
+    assert.equal(changedTimestampResponse.status, 409);
+    assert.deepEqual(await changedTimestampResponse.json(), { error: "sequence_conflict" });
+
     const gapResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/emit`, {
       method: "POST",
       headers: authorizedHeaders(),
-      body: JSON.stringify({ seriesKey: SERIES, sequence: "53" }),
+      body: JSON.stringify({
+        seriesKey: SERIES,
+        sequence: "53",
+        series: CANONICAL_SERIES,
+        emittedAtNs: "1800000000000000053",
+      }),
     });
     assert.equal(gapResponse.status, 409);
   } finally {
