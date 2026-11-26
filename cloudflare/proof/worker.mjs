@@ -613,6 +613,47 @@ export async function readDurableHighWater(storage, seriesKey) {
   const legacy = await storage.get("sequence:" + seriesKey);
   return legacy === undefined ? SNAPSHOT_WATERMARK : legacy;
 }
+
+/** One-time legacy KV cursor bootstrap; SQLite is authoritative after insertion. */
+export async function initializeDurableSeriesState(storage, seriesKey, generationId = "synthetic-v1", now = Date.now()) {
+  if (!storage?.sql || typeof storage.sql.exec !== "function" ||
+      typeof storage.transactionSync !== "function" || !isValidSyntheticSeriesKey(seriesKey) ||
+      typeof generationId !== "string" || !generationId.length ||
+      !Number.isSafeInteger(now) || now < 0) {
+    throw new TypeError("Durable series bootstrap input is invalid.");
+  }
+  const existing = storage.sql.exec(
+    "SELECT generation_id, high_water FROM series_state WHERE series_key = ?", seriesKey,
+  ).toArray();
+  if (existing.length) {
+    if (existing.length !== 1 || existing[0].generation_id !== generationId) {
+      throw new Error("Durable series generation conflicts with the requested generation.");
+    }
+    return existing[0].high_water;
+  }
+  const legacy = await storage.get("sequence:" + seriesKey);
+  const bootstrapHighWater = legacy === undefined ? SNAPSHOT_WATERMARK : legacy;
+  if (!Number.isSafeInteger(bootstrapHighWater) || bootstrapHighWater < SNAPSHOT_WATERMARK ||
+      bootstrapHighWater > 1_000_000_000) {
+    throw new Error("Legacy sequence cursor cannot be safely bootstrapped.");
+  }
+  return storage.transactionSync(() => {
+    const current = storage.sql.exec(
+      "SELECT generation_id, high_water FROM series_state WHERE series_key = ?", seriesKey,
+    ).toArray();
+    if (current.length) {
+      if (current.length !== 1 || current[0].generation_id !== generationId) {
+        throw new Error("Durable series generation conflicts with the requested generation.");
+      }
+      return current[0].high_water;
+    }
+    storage.sql.exec(
+      "INSERT INTO series_state (series_key, generation_id, high_water, retention_floor, updated_at_ms) VALUES (?, ?, ?, ?, ?)",
+      seriesKey, generationId, bootstrapHighWater, bootstrapHighWater, now,
+    );
+    return bootstrapHighWater;
+  });
+}
 export async function commitCanonicalEvent(storage, series, event, now = Date.now()) {
   if (!storage?.sql || typeof storage.sql.exec !== "function" || typeof storage.transactionSync !== "function") {
     throw new TypeError("SQLite Durable Object storage is required for event commit.");
@@ -718,12 +759,7 @@ export function readDurableReplayPage(storage, seriesKey, cursor, expectedGenera
   if (stateRows.length) {
     ({ generation_id: generationId, high_water: highWater, retention_floor: retentionFloor } = stateRows[0]);
   } else {
-    // Legacy KV is read-only bootstrap input until the first SQLite state commit.
-    // It is not modified here and is never dual-written.
-    const legacy = storage.sql.exec(
-      "SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = 'series_state'",
-    ).toArray();
-    if (!legacy.length) return { ok: false, reason: "durable_state_unavailable" };
+    return { ok: false, reason: "durable_state_unavailable" };
   }
   if (generationId !== expectedGeneration) return { ok: false, reason: "generation_mismatch",
     generationId, highWater, retentionFloor };
@@ -1186,6 +1222,7 @@ export class SeriesCoordinatorDO {
         socket.close(4400, "Series identity conflict");
         return;
       }
+      await initializeDurableSeriesState(this.ctx.storage, attachment.seriesKey);
       const watermark = await readDurableHighWater(this.ctx.storage, attachment.seriesKey);
       if (!Number.isSafeInteger(watermark) || watermark < SNAPSHOT_WATERMARK || watermark > 1_000_000_000) {
         socket.send(JSON.stringify(createProtocolError(
