@@ -693,6 +693,144 @@ export async function commitCanonicalEvent(storage, series, event, now = Date.no
   });
 }
 
+
+const MAX_REPLAY_EVENTS = 100;
+const MAX_REPLAY_RESPONSE_BYTES = 65_536;
+const MAX_REPLAY_PAGES_PER_SUBSCRIBE = 10;
+
+/** Read one bounded, cursor-exclusive durable replay page. */
+export function readDurableReplayPage(storage, seriesKey, cursor, expectedGeneration = "synthetic-v1") {
+  if (!storage?.sql || typeof storage.sql.exec !== "function" ||
+      typeof cursor !== "string" || !/^(0|[1-9][0-9]*)$/.test(cursor) ||
+      cursor.length > 16 || !Number.isSafeInteger(Number(cursor)) ||
+      Number(cursor) < 0 || Number(cursor) > 1_000_000_000) {
+    return { ok: false, reason: "cursor_invalid" };
+  }
+  const cursorNumber = Number(cursor);
+  const stateRows = storage.sql.exec(
+    "SELECT generation_id, high_water, retention_floor FROM series_state WHERE series_key = ?",
+    seriesKey,
+  ).toArray();
+  if (stateRows.length > 1) return { ok: false, reason: "corrupt_series_state" };
+  let generationId = expectedGeneration;
+  let highWater = SNAPSHOT_WATERMARK;
+  let retentionFloor = SNAPSHOT_WATERMARK;
+  if (stateRows.length) {
+    ({ generation_id: generationId, high_water: highWater, retention_floor: retentionFloor } = stateRows[0]);
+  } else {
+    // Legacy KV is read-only bootstrap input until the first SQLite state commit.
+    // It is not modified here and is never dual-written.
+    const legacy = storage.sql.exec(
+      "SELECT 1 AS present FROM sqlite_master WHERE type = 'table' AND name = 'series_state'",
+    ).toArray();
+    if (!legacy.length) return { ok: false, reason: "durable_state_unavailable" };
+  }
+  if (generationId !== expectedGeneration) return { ok: false, reason: "generation_mismatch",
+    generationId, highWater, retentionFloor };
+  if (!Number.isSafeInteger(highWater) || !Number.isSafeInteger(retentionFloor) ||
+      highWater < SNAPSHOT_WATERMARK || retentionFloor < 0 || retentionFloor > highWater) {
+    return { ok: false, reason: "corrupt_series_state" };
+  }
+  if (cursorNumber > highWater) return { ok: false, reason: "cursor_ahead",
+    generationId, highWater, retentionFloor };
+  if (cursorNumber < retentionFloor) return { ok: false, reason: "retention_expired",
+    generationId, highWater, retentionFloor };
+
+  const rows = storage.sql.exec(
+    "SELECT sequence, event_digest, payload FROM series_events " +
+    "WHERE series_key = ? AND generation_id = ? AND sequence > ? " +
+    "ORDER BY sequence ASC LIMIT ?",
+    seriesKey, generationId, cursorNumber, MAX_REPLAY_EVENTS + 1,
+  ).toArray();
+  const events = [];
+  let hasMore = rows.length > MAX_REPLAY_EVENTS;
+  for (const row of rows.slice(0, MAX_REPLAY_EVENTS)) {
+    let event;
+    try {
+      event = JSON.parse(row.payload);
+    } catch {
+      return { ok: false, reason: "corrupt_persisted_payload",
+        generationId, highWater, retentionFloor, sequence: row.sequence };
+    }
+    if (!event || event.generationId !== generationId ||
+        event.sequence !== row.sequence || event.cursor !== String(row.sequence) ||
+        event.digest !== row.event_digest) {
+      return { ok: false, reason: "corrupt_persisted_payload",
+        generationId, highWater, retentionFloor, sequence: row.sequence };
+    }
+    const candidate = [...events, event];
+    const candidatePage = {
+      type: "market_data.ohlcv.replay",
+      version: PROTOCOL_VERSION,
+      generationId,
+      events: candidate,
+      nextCursor: String(row.sequence),
+      highWaterCursor: String(highWater),
+      retentionFloorCursor: String(retentionFloor),
+      hasMore: hasMore || row.sequence < highWater,
+    };
+    const candidateBytes = new TextEncoder().encode(JSON.stringify(candidatePage)).byteLength;
+    if (candidateBytes > MAX_REPLAY_RESPONSE_BYTES) {
+      if (events.length === 0) return { ok: false, reason: "replay_event_too_large",
+        generationId, highWater, retentionFloor, sequence: row.sequence };
+      hasMore = true;
+      break;
+    }
+    events.push(event);
+  }
+  const lastSequence = events.length ? events[events.length - 1].sequence : cursorNumber;
+  const page = {
+    type: "market_data.ohlcv.replay",
+    version: PROTOCOL_VERSION,
+    generationId,
+    events,
+    nextCursor: String(lastSequence),
+    highWaterCursor: String(highWater),
+    retentionFloorCursor: String(retentionFloor),
+    hasMore: hasMore || lastSequence < highWater,
+  };
+  const responseBytes = new TextEncoder().encode(JSON.stringify(page)).byteLength;
+  if (responseBytes > MAX_REPLAY_RESPONSE_BYTES) {
+    return { ok: false, reason: "replay_response_too_large",
+      generationId, highWater, retentionFloor };
+  }
+  return { ok: true, page, responseBytes };
+}
+
+/** Advance the retained cursor and delete all events through that sequence atomically. */
+export function compactDurableEvents(storage, seriesKey, throughSequence, now = Date.now()) {
+  if (!storage?.sql || typeof storage.sql.exec !== "function" ||
+      typeof storage.transactionSync !== "function" ||
+      !isValidSyntheticSeriesKey(seriesKey) ||
+      !Number.isSafeInteger(throughSequence) || throughSequence < 0 ||
+      throughSequence > 1_000_000_000 || !Number.isSafeInteger(now) || now < 0) {
+    throw new TypeError("Durable event compaction input is invalid.");
+  }
+  return storage.transactionSync(() => {
+    const states = storage.sql.exec(
+      "SELECT generation_id, high_water, retention_floor FROM series_state WHERE series_key = ?",
+      seriesKey,
+    ).toArray();
+    if (states.length !== 1) return { compacted: false, reason: "series_state_missing" };
+    const state = states[0];
+    if (throughSequence > state.high_water) {
+      return { compacted: false, reason: "retention_floor_ahead_of_high_water" };
+    }
+    if (throughSequence <= state.retention_floor) {
+      return { compacted: true, deleted: 0, retentionFloor: state.retention_floor };
+    }
+    const deleted = storage.sql.exec(
+      "DELETE FROM series_events WHERE series_key = ? AND generation_id = ? AND sequence <= ?",
+      seriesKey, state.generation_id, throughSequence,
+    );
+    storage.sql.exec(
+      "UPDATE series_state SET retention_floor = ?, updated_at_ms = ? WHERE series_key = ?",
+      throughSequence, now, seriesKey,
+    );
+    return { compacted: true, deleted: deleted.rowsWritten ?? 0, retentionFloor: throughSequence };
+  });
+}
+
 export class SeriesCoordinatorDO {
   constructor(ctx, env) {
     this.ctx = ctx;
@@ -861,6 +999,20 @@ export class SeriesCoordinatorDO {
       });
       await this.scheduleUnauthenticatedSocketAlarm();
       return new Response(null, { status: 101, webSocket: client });
+    }
+
+    if (url.pathname === "/internal/compact" && request.method === "POST") {
+      const body = await readSmallJson(request);
+      if (!body || !isValidSyntheticSeriesKey(body.seriesKey) ||
+          !Number.isSafeInteger(body.throughSequence) || body.throughSequence < 0) {
+        return jsonResponse({ error: "invalid_compaction_request" }, 400);
+      }
+      try {
+        const result = compactDurableEvents(this.ctx.storage, body.seriesKey, body.throughSequence);
+        return jsonResponse(result, result.compacted ? 200 : 409);
+      } catch {
+        return jsonResponse({ error: "temporarily_unavailable" }, 503);
+      }
     }
 
     if (url.pathname === "/internal/emit" && request.method === "POST") {
@@ -1044,10 +1196,45 @@ export class SeriesCoordinatorDO {
         return;
       }
       if (payload.cursor !== undefined) {
+        const replayPages = [];
+        let replayCursor = payload.cursor;
+        let replayFailure = null;
+        for (let pageIndex = 0; pageIndex < MAX_REPLAY_PAGES_PER_SUBSCRIBE; pageIndex += 1) {
+          const result = readDurableReplayPage(
+            this.ctx.storage, attachment.seriesKey, replayCursor, "synthetic-v1",
+          );
+          if (!result.ok) {
+            replayFailure = result.reason;
+            break;
+          }
+          replayPages.push(result.page);
+          if (!result.page.hasMore) break;
+          replayCursor = result.page.nextCursor;
+        }
+        const replayComplete = !replayFailure &&
+          replayPages.length > 0 && replayPages[replayPages.length - 1].hasMore === false;
+        if (replayComplete) {
+          socket.serializeAttachment({
+            ...attachment,
+            snapshotWatermark: watermark,
+            subscribed: true,
+            series: canonicalSeries,
+          });
+          for (const page of replayPages) socket.send(JSON.stringify(page));
+          return;
+        }
+        if (replayFailure === "cursor_ahead") {
+          socket.send(JSON.stringify(createProtocolError(
+            "cursor_ahead", false, "cursor-" + Date.now(),
+            "The resume cursor is ahead of the durable high-water cursor.",
+          )));
+          socket.close(4400, "Resume cursor ahead of high-water");
+          return;
+        }
         socket.send(JSON.stringify({
           type: "market_data.ohlcv.resnapshot_required",
           version: PROTOCOL_VERSION,
-          reason: "replay_unavailable_in_synthetic_proof",
+          reason: replayFailure || "replay_backlog_exceeds_page_budget",
           snapshotCursor: String(watermark),
         }));
       }
@@ -1208,4 +1395,7 @@ export const proofLimits = Object.freeze({
   unauthenticatedSocketTtlMs: UNAUTHENTICATED_SOCKET_TTL_MS,
   maxRequestBytes: MAX_REQUEST_BYTES,
   snapshotBars: SNAPSHOT_BARS,
+  maxReplayEvents: MAX_REPLAY_EVENTS,
+  maxReplayResponseBytes: MAX_REPLAY_RESPONSE_BYTES,
+  maxReplayPagesPerSubscribe: MAX_REPLAY_PAGES_PER_SUBSCRIBE,
 });
