@@ -348,7 +348,7 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       "series_key", "consumer_id", "generation_id", "committed_sequence",
       "event_digest", "receipt_version", "updated_at_ms",
     ]);
-    expect(first.identityColumns).toEqual(["series_key", "identity_json", "identity_digest", "created_at_ms"]);
+    expect(first.identityColumns).toEqual(["series_key", "identity_json", "created_at_ms", "identity_digest"]);
     expect(first.legacyCursor).toBe(50);
 
     await evictDurableObject(stub);
