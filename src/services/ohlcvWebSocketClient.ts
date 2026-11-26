@@ -37,7 +37,7 @@ export interface OhlcvStreamConnection {
   readonly state: 'connecting' | 'authenticated' | 'subscribed' | 'closed';
 }
 
-function buildWebSocketUrl(baseUrl: string): string {
+function buildWebSocketUrl(baseUrl: string, seriesKey?: string): string {
   if (!baseUrl.trim()) throw new Error('Market-data backend URL is not configured.');
   let base: URL;
   try {
@@ -54,6 +54,12 @@ function buildWebSocketUrl(baseUrl: string): string {
   base.protocol = base.protocol === 'https:' ? 'wss:' : 'ws:';
   base.pathname = '/ws/market-data';
   base.search = '';
+  if (seriesKey !== undefined) {
+    if (!/^[A-Za-z0-9._:-]{1,128}$/.test(seriesKey)) {
+      throw new Error('Market-data WebSocket seriesKey is invalid.');
+    }
+    base.searchParams.set('seriesKey', seriesKey);
+  }
   base.hash = '';
   return base.toString();
 }
@@ -111,7 +117,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
   }
 
   const factory = options.webSocketFactory ?? ((url: string) => new WebSocket(url));
-  const socket = factory(buildWebSocketUrl(options.baseUrl));
+  const socket = factory(buildWebSocketUrl(options.baseUrl, options.identity.seriesKey));
   let state: OhlcvStreamConnection['state'] = 'connecting';
   let guard: OhlcvStreamSequenceGuard | null = null;
   let replayExpectedCount: number | null = null;
