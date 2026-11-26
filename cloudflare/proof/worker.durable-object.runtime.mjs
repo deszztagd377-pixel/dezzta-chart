@@ -409,6 +409,55 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     });
   });
 
+  it("requires a fresh canonical snapshot when a resume cursor is supplied", async () => {
+    const ticket = await issueTicket(SERIES_A);
+    const socket = await openSocket(SERIES_A);
+    const statusPromise = nextJsonMessage(socket);
+    socket.send(JSON.stringify({ type: "auth", ticket }));
+    expect((await statusPromise).type).toBe("market_data.status");
+
+    const resnapshotPromise = nextJsonMessage(socket);
+    socket.send(JSON.stringify({
+      type: "market_data.subscribe",
+      version: 1,
+      cursor: "49",
+      series: canonicalSeries(SERIES_A),
+    }));
+    const instruction = await resnapshotPromise;
+    expect(instruction).toMatchObject({
+      type: "market_data.ohlcv.resnapshot_required",
+      reason: "replay_unavailable_in_synthetic_proof",
+      snapshotCursor: "50",
+    });
+    const snapshot = await nextJsonMessage(socket);
+    expect(snapshot).toMatchObject({
+      type: "market_data.ohlcv.snapshot",
+      highWaterCursor: "50",
+      cursor: "50",
+    });
+  });
+
+  it("rejects non-canonical resume cursors with a stable protocol error", async () => {
+    const ticket = await issueTicket(SERIES_A);
+    const socket = await openSocket(SERIES_A);
+    const statusPromise = nextJsonMessage(socket);
+    socket.send(JSON.stringify({ type: "auth", ticket }));
+    await statusPromise;
+    const errorPromise = nextJsonMessage(socket);
+    socket.send(JSON.stringify({
+      type: "market_data.subscribe",
+      version: 1,
+      cursor: "050",
+      series: canonicalSeries(SERIES_A),
+    }));
+    expect(await errorPromise).toMatchObject({
+      type: "market_data.error",
+      version: 1,
+      code: "cursor_invalid",
+      retryable: false,
+    });
+  });
+
   it("consumes a WebSocket ticket once in Durable Object storage", async () => {
     const ticket = await issueTicket(SERIES_REPLAY);
     await connectAuthenticated(SERIES_REPLAY, ticket);
