@@ -244,11 +244,9 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
     assert.ok(new TextEncoder().encode(JSON.stringify(replay)).byteLength <= 65_536);
 
     // Retention compaction is an atomic cursor-floor advance plus event deletion.
-    const namespace = miniflare.getDurableObjectNamespace("SERIES_COORDINATOR");
-    const coordinator = namespace.get(namespace.idFromName(SERIES));
-    const compactResponse = await coordinator.fetch("https://series.internal/internal/compact", {
+    const compactResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/compact`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authorizedHeaders(),
       body: JSON.stringify({ seriesKey: SERIES, throughSequence: 51 }),
     });
     assert.equal(compactResponse.status, 200);
