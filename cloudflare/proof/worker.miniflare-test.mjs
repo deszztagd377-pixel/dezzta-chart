@@ -57,7 +57,10 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
     modules: true,
     scriptPath: fileURLToPath(new URL("./worker.mjs", import.meta.url)),
     durableObjects: {
-      SERIES_COORDINATOR: "SeriesCoordinatorDO",
+      SERIES_COORDINATOR: {
+        className: "SeriesCoordinatorDO",
+        useSQLite: true,
+      },
     },
     bindings: {
       PROOF_MODE: "synthetic-only",
