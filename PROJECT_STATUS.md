@@ -1,3 +1,13 @@
+# Latest design checkpoint — Batch 91 (26 November 2026)
+
+**Code baseline:** `9a2f2b9faebdcaf1e97e93c6dfe85a2c93319fbb`; Batch 90 source/test acceptance is 4/4 CI SUCCESS.  
+**Batch 91:** design-only blueprint prepared at `docs/WORK_CYCLE_2026-11-26_BATCH91_PROVIDER_NEUTRAL_API_CONTRACT_BLUEPRINT.md`. No Batch 91 source files have been changed.  
+**Key finding:** current synthetic Worker messages/routes are not wire-compatible with the existing OHLCV frontend protocol. The blueprint keeps the existing REST and WSS route paths and reuses `OhlcvSnapshotMessage`, `OhlcvStreamUpdateMessage`, and the existing replay handshake instead of creating a competing API.  
+**Review gate:** contract field set, digest byte encoding, route mapping and synthetic-only compatibility require owner review before Batch 91 implementation. Batch 92/93 remain gated behind Batch 91 acceptance.  
+**Controls:** ZERO COST; `main` untouched; no provider, broker/order endpoint, live feed, production secret or deployment added.
+
+---
+
 # Latest verified update — Batch 90 (26 November 2026)
 
 **Active branch:** `phase-2/market-data-foundation`  
