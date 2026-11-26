@@ -17,11 +17,58 @@ import worker, {
   initializeSequenceWatermark,
   parseSequence,
   proofLimits,
+  readDurableReplayPage,
   SeriesCoordinatorDO,
 } from "./worker.mjs";
 
 const SERIES = "synthetic:DEMO:BTCUSD:1m";
 const TOKEN = "synthetic-proof-test-token-000000000000000000000000";
+
+
+function replayStorage({ state, rows }) {
+  return {
+    sql: {
+      exec(query, ...params) {
+        if (query.includes("FROM series_state")) {
+          return { toArray: () => state ? [state] : [] };
+        }
+        if (query.includes("FROM series_events")) {
+          const [seriesKey, generationId, afterSequence, limit] = params;
+          return {
+            toArray: () => rows
+              .filter((row) => row.seriesKey === seriesKey &&
+                row.generationId === generationId && row.sequence > afterSequence)
+              .sort((a, b) => a.sequence - b.sequence)
+              .slice(0, limit),
+          };
+        }
+        throw new Error("Unexpected replay SQL: " + query);
+      },
+    },
+  };
+}
+
+function replayRows(start, count, { paddingBytes = 0 } = {}) {
+  return Array.from({ length: count }, (_, index) => {
+    const sequence = start + index;
+    const digest = sequence.toString(16).padStart(64, "0");
+    const event = {
+      type: "market_data.ohlcv.update",
+      generationId: "synthetic-v1",
+      sequence,
+      cursor: String(sequence),
+      digest,
+      ...(paddingBytes ? { padding: "x".repeat(paddingBytes) } : {}),
+    };
+    return {
+      seriesKey: SERIES,
+      generationId: "synthetic-v1",
+      sequence,
+      event_digest: digest,
+      payload: JSON.stringify(event),
+    };
+  });
+}
 
 function canonicalSeriesForTest(seriesKey = SERIES) {
   const [, dataset, rawSymbol, timeframe] = seriesKey.split(":");
@@ -138,6 +185,68 @@ test("sequence parser rejects signs, leading whitespace, decimals and unsafe bou
     assert.equal(parseSequence(invalid), null);
   }
   assert.equal(parseSequence("50", { minimum: 51 }), null);
+});
+
+
+test("durable replay returns ordered cursor-exclusive pages and rejects invalid cursor states", () => {
+  const state = { generation_id: "synthetic-v1", high_water: 52, retention_floor: 50 };
+  const rows = replayRows(51, 2);
+  const storage = replayStorage({ state, rows });
+  const result = readDurableReplayPage(storage, SERIES, "50");
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.page.events.map((event) => event.sequence), [51, 52]);
+  assert.equal(result.page.nextCursor, "52");
+  assert.equal(result.page.highWaterCursor, "52");
+  assert.equal(result.page.retentionFloorCursor, "50");
+  assert.equal(result.page.hasMore, false);
+
+  assert.equal(readDurableReplayPage(storage, SERIES, "53").reason, "cursor_ahead");
+  assert.equal(readDurableReplayPage(storage, SERIES, "50", "other-generation").reason, "generation_mismatch");
+  const expired = replayStorage({
+    state: { ...state, retention_floor: 51 },
+    rows,
+  });
+  assert.equal(readDurableReplayPage(expired, SERIES, "50").reason, "retention_expired");
+});
+
+test("durable replay fails closed on corrupt payloads and missing sequence rows", () => {
+  const state = { generation_id: "synthetic-v1", high_water: 52, retention_floor: 50 };
+  const corruptPayload = replayRows(51, 2);
+  corruptPayload[0].payload = "{";
+  assert.equal(
+    readDurableReplayPage(replayStorage({ state, rows: corruptPayload }), SERIES, "50").reason,
+    "corrupt_persisted_payload",
+  );
+
+  const gapRows = replayRows(52, 1);
+  assert.equal(
+    readDurableReplayPage(replayStorage({ state, rows: gapRows }), SERIES, "50").reason,
+    "corrupt_sequence_gap",
+  );
+  assert.equal(
+    readDurableReplayPage(replayStorage({ state, rows: [] }), SERIES, "50").reason,
+    "corrupt_sequence_gap",
+  );
+});
+
+test("durable replay enforces the 100-event and serialized UTF-8 byte page bounds", () => {
+  const rows = replayRows(51, 101);
+  const state = { generation_id: "synthetic-v1", high_water: 151, retention_floor: 50 };
+  const countPage = readDurableReplayPage(replayStorage({ state, rows }), SERIES, "50");
+  assert.equal(countPage.ok, true);
+  assert.equal(countPage.page.events.length, 100);
+  assert.equal(countPage.page.nextCursor, "150");
+  assert.equal(countPage.page.hasMore, true);
+  assert.ok(countPage.responseBytes <= 65_536);
+
+  const paddedRows = replayRows(51, 100, { paddingBytes: 1_000 });
+  const paddedState = { generation_id: "synthetic-v1", high_water: 150, retention_floor: 50 };
+  const bytePage = readDurableReplayPage(replayStorage({ state: paddedState, rows: paddedRows }), SERIES, "50");
+  assert.equal(bytePage.ok, true);
+  assert.ok(bytePage.page.events.length > 0);
+  assert.ok(bytePage.page.events.length < 100);
+  assert.equal(bytePage.page.hasMore, true);
+  assert.ok(bytePage.responseBytes <= 65_536);
 });
 
 test("synthetic OHLCV bars are deterministic, coherent, and use decimal strings", () => {
