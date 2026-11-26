@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   createProtocolError,
+  createSyntheticCanonicalBar,
   createSyntheticSnapshotEnvelope,
   createSyntheticUpdateEnvelope,
   validateSyntheticCanonicalSeries,
@@ -88,6 +89,21 @@ function makeEnv(overrides = {}) {
             return new Response(JSON.stringify({ ticket: "a".repeat(64), purpose: "market-data" }), {
               headers: { "Content-Type": "application/json" },
             });
+          }
+          if (req.url.includes("/internal/snapshot")) {
+            const body = await req.json();
+            const identity = body.series;
+            const asOfNs = "1800000000000000000";
+            const bars = Array.from({ length: 50 }, (_, index) =>
+              createSyntheticCanonicalBar(identity, index + 1, asOfNs)
+            );
+            const snapshot = await createSyntheticSnapshotEnvelope(identity, bars, 50);
+            return new Response(JSON.stringify({
+              ...snapshot,
+              streamId: "synthetic:" + identity.seriesKey,
+              watermark: 50,
+              cursor: "50",
+            }), { headers: { "Content-Type": "application/json" } });
           }
           return new Response(JSON.stringify({ accepted: true, sequence: "51", delivered: 2 }), {
             headers: { "Content-Type": "application/json" },
