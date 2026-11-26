@@ -106,19 +106,47 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
     clientSocket = websocketResponse.webSocket;
     clientSocket.accept();
 
-    const snapshotPromise = nextJsonMessage(clientSocket);
+    const statusPromise = nextJsonMessage(clientSocket);
     clientSocket.send(JSON.stringify({ type: "auth", ticket: ticket.ticket }));
+    const status = await statusPromise;
+    assert.equal(status.type, "market_data.status");
+    assert.equal(status.version, 1);
+    assert.equal(status.providerConnected, false);
+    assert.equal(status.liveProviderEnabled, false);
+
+    const snapshotPromise = nextJsonMessage(clientSocket);
+    clientSocket.send(JSON.stringify({
+      type: "market_data.subscribe",
+      version: 1,
+      canonicalInstrumentId: "00000000-0000-4000-8000-000000000001",
+      series: {
+        seriesKey: SERIES,
+        provider: "synthetic",
+        seriesType: "contract",
+        dataset: "DEMO",
+        publisherId: 1,
+        instrumentId: 101,
+        rawSymbol: "BTCUSD",
+        timeframe: "1m",
+        bucketPolicy: "UTC_LEGACY",
+        calendarId: "",
+        calendarVersion: "",
+      },
+    }));
     const snapshot = await snapshotPromise;
-    assert.equal(snapshot.type, "market_data.snapshot");
+    assert.equal(snapshot.type, "market_data.ohlcv.snapshot");
     assert.equal(snapshot.version, 1);
-    assert.equal(snapshot.watermarkCursor, "50");
+    assert.equal(snapshot.highWaterCursor, "50");
+    assert.equal(snapshot.watermark, 50);
+    assert.equal(snapshot.cursor, "50");
     assert.equal(snapshot.bars.length, 50);
-    assert.equal(snapshot.dataSource, "synthetic_only_not_market_data");
+    assert.equal(snapshot.provenance.dataStatus, "synthetic_only");
+    assert.equal(snapshot.provenance.providerConnected, false);
 
     const pongPromise = nextJsonMessage(clientSocket);
-    clientSocket.send(JSON.stringify({ type: "ping" }));
+    clientSocket.send("ping");
     const pong = await pongPromise;
-    assert.equal(pong.type, "pong");
+    assert.equal(pong.type, "market_data.pong");
     assert.equal(pong.version, 1);
 
     const updatePromise = nextJsonMessage(clientSocket);
@@ -134,9 +162,12 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
     assert.equal(emitted.delivered, 1);
 
     const update = await updatePromise;
-    assert.equal(update.type, "market_data.update");
-    assert.equal(update.sequence, "51");
-    assert.equal(update.dataSource, "synthetic_only_not_market_data");
+    assert.equal(update.type, "market_data.ohlcv.update");
+    assert.equal(update.sequence, 51);
+    assert.equal(update.cursor, "51");
+    assert.equal(update.provenance.dataStatus, "synthetic_only");
+    assert.equal(update.provenance.providerConnected, false);
+    assert.match(update.digest, /^[0-9a-f]{64}$/);
 
     const gapResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/emit`, {
       method: "POST",
