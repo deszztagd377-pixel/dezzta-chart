@@ -15,6 +15,7 @@ import worker, {
   isValidSyntheticSeriesKey,
   issueTicket,
   initializeSequenceWatermark,
+  initializeDurableSeriesState,
   parseSequence,
   proofLimits,
   readDurableReplayPage,
@@ -24,6 +25,41 @@ import worker, {
 const SERIES = "synthetic:DEMO:BTCUSD:1m";
 const TOKEN = "synthetic-proof-test-token-000000000000000000000000";
 
+
+
+function bootstrapStorage(initialLegacyCursor, { failFirstTransaction = false } = {}) {
+  let legacyCursor = initialLegacyCursor;
+  let state = null;
+  let transactionAttempts = 0;
+  return {
+    sql: {
+      exec(query, ...params) {
+        if (query.includes("SELECT generation_id, high_water FROM series_state")) {
+          return { toArray: () => state ? [state] : [] };
+        }
+        if (query.includes("INSERT INTO series_state")) {
+          const [series_key, generation_id, high_water, retention_floor, updated_at_ms] = params;
+          state = { series_key, generation_id, high_water, retention_floor, updated_at_ms };
+          return { toArray: () => [] };
+        }
+        throw new Error("Unexpected bootstrap SQL: " + query);
+      },
+    },
+    async get(key) {
+      assert.equal(key, "sequence:" + SERIES);
+      return legacyCursor;
+    },
+    setLegacyCursor(value) { legacyCursor = value; },
+    getState() { return state; },
+    transactionSync(callback) {
+      transactionAttempts += 1;
+      if (failFirstTransaction && transactionAttempts === 1) {
+        throw new Error("Injected interrupted bootstrap transaction");
+      }
+      return callback();
+    },
+  };
+}
 
 function replayStorage({ state, rows }) {
   return {
@@ -187,6 +223,36 @@ test("sequence parser rejects signs, leading whitespace, decimals and unsafe bou
   assert.equal(parseSequence("50", { minimum: 51 }), null);
 });
 
+
+
+test("legacy cursor bootstraps once into SQLite and SQLite remains authoritative", async () => {
+  const storage = bootstrapStorage(73);
+  assert.equal(await initializeDurableSeriesState(storage, SERIES, "synthetic-v1", 1234), 73);
+  assert.deepEqual(storage.getState(), {
+    series_key: SERIES,
+    generation_id: "synthetic-v1",
+    high_water: 73,
+    retention_floor: 73,
+    updated_at_ms: 1234,
+  });
+  storage.setLegacyCursor(91);
+  assert.equal(await initializeDurableSeriesState(storage, SERIES, "synthetic-v1", 5678), 73);
+  assert.equal(storage.getState().updated_at_ms, 1234);
+});
+
+test("interrupted legacy cursor bootstrap can retry safely and invalid legacy values fail closed", async () => {
+  const storage = bootstrapStorage(64, { failFirstTransaction: true });
+  await assert.rejects(
+    initializeDurableSeriesState(storage, SERIES, "synthetic-v1", 1234),
+    /Injected interrupted bootstrap transaction/,
+  );
+  assert.equal(storage.getState(), null);
+  assert.equal(await initializeDurableSeriesState(storage, SERIES, "synthetic-v1", 1235), 64);
+  await assert.rejects(
+    initializeDurableSeriesState(bootstrapStorage(49), SERIES, "synthetic-v1", 1236),
+    /Legacy sequence cursor cannot be safely bootstrapped/,
+  );
+});
 
 test("durable replay returns ordered cursor-exclusive pages and rejects invalid cursor states", () => {
   const state = { generation_id: "synthetic-v1", high_water: 52, retention_floor: 50 };
