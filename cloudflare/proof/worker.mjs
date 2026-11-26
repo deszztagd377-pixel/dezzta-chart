@@ -495,6 +495,9 @@ export function applyDurableSchemaMigrations(storage, now = Date.now()) {
         CREATE TABLE IF NOT EXISTS series_identity (
           series_key TEXT PRIMARY KEY CHECK (length(series_key) BETWEEN 1 AND 128),
           identity_json TEXT NOT NULL CHECK (length(CAST(identity_json AS BLOB)) BETWEEN 2 AND 2048),
+          identity_digest TEXT NOT NULL CHECK (
+            length(identity_digest) = 64 AND identity_digest NOT GLOB '*[^0-9a-f]*'
+          ),
           created_at_ms INTEGER NOT NULL CHECK (created_at_ms >= 0)
         );
         CREATE TRIGGER IF NOT EXISTS series_identity_immutable_update
@@ -529,6 +532,33 @@ function canonicalSeriesIdentity(series) {
   };
 }
 function canonicalSeriesIdentityJson(series) { return JSON.stringify(canonicalSeriesIdentity(series)); }
+
+export async function registerCanonicalSeriesIdentity(storage, series, now = Date.now()) {
+  if (!storage?.sql || typeof storage.sql.exec !== "function" ||
+      typeof storage.transactionSync !== "function" ||
+      !validateSyntheticCanonicalSeries(series) || !Number.isSafeInteger(now) || now < 0) {
+    throw new TypeError("Canonical SQLite series identity registration input is invalid.");
+  }
+  const identityJson = canonicalSeriesIdentityJson(series);
+  const identityDigest = await sha256Hex(identityJson);
+  return storage.transactionSync(() => {
+    const rows = storage.sql.exec(
+      "SELECT identity_json, identity_digest FROM series_identity WHERE series_key = ?",
+      series.seriesKey,
+    ).toArray();
+    if (rows.length) {
+      return rows.length === 1 &&
+        rows[0].identity_json === identityJson &&
+        rows[0].identity_digest === identityDigest;
+    }
+    storage.sql.exec(
+      "INSERT INTO series_identity (series_key, identity_json, identity_digest, created_at_ms) VALUES (?, ?, ?, ?)",
+      series.seriesKey, identityJson, identityDigest, now,
+    );
+    return true;
+  });
+}
+
 export async function readDurableHighWater(storage, seriesKey) {
   if (storage?.sql && typeof storage.sql.exec === "function") {
     const rows = storage.sql.exec("SELECT high_water FROM series_state WHERE series_key = ?", seriesKey).toArray();
@@ -552,14 +582,21 @@ export async function commitCanonicalEvent(storage, series, event, now = Date.no
     throw new RangeError("Canonical event payload exceeds the 8192-byte storage limit.");
   }
   const identityJson = canonicalSeriesIdentityJson(series);
+  const identityDigest = await sha256Hex(identityJson);
   const legacyCursor = await storage.get("sequence:" + series.seriesKey);
   const bootstrapHighWater = legacyCursor === undefined ? SNAPSHOT_WATERMARK : legacyCursor;
   if (!Number.isSafeInteger(bootstrapHighWater) || bootstrapHighWater < SNAPSHOT_WATERMARK ||
       bootstrapHighWater > 1_000_000_000) throw new Error("Legacy sequence cursor cannot be safely bootstrapped.");
   return storage.transactionSync(() => {
     const sql = storage.sql;
-    const identities = sql.exec("SELECT identity_json FROM series_identity WHERE series_key = ?", series.seriesKey).toArray();
-    if (identities.length && identities[0].identity_json !== identityJson) {
+    const identities = sql.exec(
+      "SELECT identity_json, identity_digest FROM series_identity WHERE series_key = ?",
+      series.seriesKey,
+    ).toArray();
+    if (identities.length && (
+      identities[0].identity_json !== identityJson ||
+      identities[0].identity_digest !== identityDigest
+    )) {
       return { accepted: false, reason: "series_identity_conflict" };
     }
     const states = sql.exec("SELECT generation_id, high_water FROM series_state WHERE series_key = ?", series.seriesKey).toArray();
@@ -580,8 +617,10 @@ export async function commitCanonicalEvent(storage, series, event, now = Date.no
     }
     if (event.sequence !== highWater + 1) return { accepted: false, reason: "sequence_conflict" };
     if (!identities.length) {
-      sql.exec("INSERT INTO series_identity (series_key, identity_json, created_at_ms) VALUES (?, ?, ?)",
-        series.seriesKey, identityJson, now);
+      sql.exec(
+        "INSERT INTO series_identity (series_key, identity_json, identity_digest, created_at_ms) VALUES (?, ?, ?, ?)",
+        series.seriesKey, identityJson, identityDigest, now,
+      );
     }
     if (!states.length) {
       sql.exec("INSERT INTO series_state (series_key, generation_id, high_water, retention_floor, updated_at_ms) VALUES (?, ?, ?, ?, ?)",
@@ -683,19 +722,27 @@ export class SeriesCoordinatorDO {
       if (!body || !validateSyntheticCanonicalSeries(body.series)) {
         return jsonResponse({ error: "invalid_series" }, 400);
       }
-      const watermark = await readDurableHighWater(this.ctx.storage, body.series.seriesKey);
+      const series = canonicalSeriesIdentity(body.series);
+      let identityRegistered;
+      try {
+        identityRegistered = await registerCanonicalSeriesIdentity(this.ctx.storage, series);
+      } catch {
+        return jsonResponse({ error: "temporarily_unavailable" }, 503);
+      }
+      if (!identityRegistered) return jsonResponse({ error: "series_identity_conflict" }, 409);
+      const watermark = await readDurableHighWater(this.ctx.storage, series.seriesKey);
       if (!Number.isSafeInteger(watermark) || watermark < SNAPSHOT_WATERMARK || watermark > 1_000_000_000) {
         return jsonResponse({ error: "temporarily_unavailable" }, 503);
       }
       const asOfNs = (BigInt(Date.now()) * 1_000_000n).toString();
       const firstSequence = watermark - SNAPSHOT_BARS + 1;
       const bars = Array.from({ length: SNAPSHOT_BARS }, (_, index) =>
-        createSyntheticCanonicalBar(body.series, firstSequence + index, asOfNs)
+        createSyntheticCanonicalBar(series, firstSequence + index, asOfNs)
       );
-      const snapshot = await createSyntheticSnapshotEnvelope(body.series, bars, watermark);
+      const snapshot = await createSyntheticSnapshotEnvelope(series, bars, watermark);
       return jsonResponse({
         ...snapshot,
-        streamId: "synthetic:" + body.series.seriesKey,
+        streamId: "synthetic:" + series.seriesKey,
         watermark,
         cursor: String(watermark),
       });
@@ -908,6 +955,26 @@ export class SeriesCoordinatorDO {
         return;
       }
       return this.runProtocolExclusive(async () => {
+      const canonicalSeries = canonicalSeriesIdentity(series);
+      let identityRegistered;
+      try {
+        identityRegistered = await registerCanonicalSeriesIdentity(this.ctx.storage, canonicalSeries);
+      } catch {
+        socket.send(JSON.stringify(createProtocolError(
+          "temporarily_unavailable", true, "identity-" + Date.now(),
+          "The canonical series identity could not be durably registered.",
+        )));
+        socket.close(1011, "Series identity unavailable");
+        return;
+      }
+      if (!identityRegistered) {
+        socket.send(JSON.stringify(createProtocolError(
+          "series_identity_conflict", false, "identity-" + Date.now(),
+          "This series key is already bound to a different canonical identity.",
+        )));
+        socket.close(4400, "Series identity conflict");
+        return;
+      }
       const watermark = await readDurableHighWater(this.ctx.storage, attachment.seriesKey);
       if (!Number.isSafeInteger(watermark) || watermark < SNAPSHOT_WATERMARK || watermark > 1_000_000_000) {
         socket.send(JSON.stringify(createProtocolError(
@@ -928,16 +995,16 @@ export class SeriesCoordinatorDO {
       const asOfNs = (BigInt(Date.now()) * 1_000_000n).toString();
       const firstSequence = watermark - SNAPSHOT_BARS + 1;
       const bars = Array.from({ length: SNAPSHOT_BARS }, (_, index) =>
-        createSyntheticCanonicalBar(series, firstSequence + index, asOfNs)
+        createSyntheticCanonicalBar(canonicalSeries, firstSequence + index, asOfNs)
       );
-      const snapshot = await createSyntheticSnapshotEnvelope(series, bars, watermark);
+      const snapshot = await createSyntheticSnapshotEnvelope(canonicalSeries, bars, watermark);
       // The connection is made fan-out eligible only after the complete snapshot
       // digest exists. There is no await between enabling fan-out and sending it.
       socket.serializeAttachment({
         ...attachment,
         snapshotWatermark: watermark,
         subscribed: true,
-        series,
+        series: canonicalSeries,
       });
       socket.send(JSON.stringify({
         ...snapshot,

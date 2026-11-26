@@ -247,8 +247,8 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
         .toArray().map((row) => row.name);
 
       sql.exec(
-        "INSERT INTO series_identity (series_key, identity_json, created_at_ms) VALUES (?, ?, ?)",
-        SERIES_A, "{}", 1,
+        "INSERT INTO series_identity (series_key, identity_json, identity_digest, created_at_ms) VALUES (?, ?, ?, ?)",
+        SERIES_A, "{}", "a".repeat(64), 1,
       );
       expect(() => sql.exec(
         "UPDATE series_identity SET identity_json = ? WHERE series_key = ?",
@@ -259,8 +259,8 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
         SERIES_A,
       )).toThrow();
       expect(() => sql.exec(
-        "INSERT INTO series_identity (series_key, identity_json, created_at_ms) VALUES (?, ?, ?)",
-        SERIES_A, "{}", 2,
+        "INSERT INTO series_identity (series_key, identity_json, identity_digest, created_at_ms) VALUES (?, ?, ?, ?)",
+        SERIES_A, "{}", "a".repeat(64), 2,
       )).toThrow();
 
       await state.storage.put("sequence:" + SERIES_A, 50);
@@ -348,7 +348,7 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       "series_key", "consumer_id", "generation_id", "committed_sequence",
       "event_digest", "receipt_version", "updated_at_ms",
     ]);
-    expect(first.identityColumns).toEqual(["series_key", "identity_json", "created_at_ms"]);
+    expect(first.identityColumns).toEqual(["series_key", "identity_json", "identity_digest", "created_at_ms"]);
     expect(first.legacyCursor).toBe(50);
 
     await evictDurableObject(stub);
@@ -366,6 +366,47 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     expect(restored.versions).toEqual([{ version: 1 }, { version: 2 }]);
     expect(restored.legacyCursor).toBe(50);
     expect(restored.eventCount).toBe(1);
+  });
+
+  it("registers canonical identity on snapshot before any event and rejects conflicting snapshots", async () => {
+    const stub = coordinatorStub(SERIES_A);
+    const series = canonicalSeries(SERIES_A);
+    const first = await stub.fetch("https://series.internal/internal/snapshot", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ series }),
+    });
+    expect(first.status).toBe(200);
+    const identity = await runInDurableObject(stub, async (_instance, state) =>
+      state.storage.sql.exec(
+        "SELECT identity_json, identity_digest FROM series_identity WHERE series_key = ?",
+        SERIES_A,
+      ).toArray()
+    );
+    expect(identity).toHaveLength(1);
+    expect(JSON.parse(identity[0].identity_json)).toEqual(series);
+    const digestBytes = await crypto.subtle.digest(
+      "SHA-256", new TextEncoder().encode(identity[0].identity_json),
+    );
+    const digest = Array.from(new Uint8Array(digestBytes), (value) =>
+      value.toString(16).padStart(2, "0")
+    ).join("");
+    expect(identity[0].identity_digest).toBe(digest);
+    const conflicting = { ...series, instrumentId: 999 };
+    const conflict = await stub.fetch("https://series.internal/internal/snapshot", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ series: conflicting }),
+    });
+    expect(conflict.status).toBe(409);
+    expect(await conflict.json()).toMatchObject({ error: "series_identity_conflict" });
+    const state = await runInDurableObject(stub, async (_instance, durable) => ({
+      identities: durable.storage.sql.exec(
+        "SELECT COUNT(*) AS count FROM series_identity WHERE series_key = ?", SERIES_A,
+      ).one().count,
+      highWaterRows: durable.storage.sql.exec(
+        "SELECT COUNT(*) AS count FROM series_state WHERE series_key = ?", SERIES_A,
+      ).one().count,
+    }));
+    expect(state).toEqual({ identities: 1, highWaterRows: 0 });
   });
 
   it("persists canonical event bytes and high-water atomically and rejects identity mutation", async () => {
