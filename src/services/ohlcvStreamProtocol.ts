@@ -1,8 +1,10 @@
 import type { OhlcvBarDto, OhlcvTimeframe } from '../types/ohlcv';
 import { parseOhlcvSnapshot } from '../utils/ohlcvAdapter';
 import { getBucketPolicyForTimeframe } from '../utils/ohlcvBucketPolicy';
+import { isOhlcvSha256, isValidOhlcvProvenance } from '../types/marketDataProtocol';
 
 export interface OhlcvStreamSeriesIdentity {
+  seriesKey?: string;
   provider: string;
   seriesType: 'contract' | 'continuous';
   dataset: string;
@@ -32,6 +34,9 @@ export interface OhlcvStreamUpdateMessage {
   isFinal: boolean;
   series: OhlcvStreamSeriesIdentity;
   bar: OhlcvBarDto;
+  generationId?: string;
+  digest?: string;
+  provenance?: import('../types/marketDataProtocol').OhlcvProvenance;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -82,6 +87,19 @@ export function parseOhlcvStreamUpdate(payload: unknown): OhlcvStreamUpdateMessa
   }
   if (!isPositiveSafeInteger(payload.sequence)) {
     throw new Error('OHLCV stream sequence must be a positive safe integer.');
+  }
+  if (payload.cursor !== undefined && payload.cursor !== String(payload.sequence)) {
+    throw new Error('OHLCV cursor must be canonical and equal the event sequence.');
+  }
+  if (payload.generationId !== undefined &&
+      (typeof payload.generationId !== 'string' || !/^[A-Za-z0-9._:-]{1,128}$/.test(payload.generationId))) {
+    throw new Error('OHLCV generationId is invalid.');
+  }
+  if (payload.digest !== undefined && !isOhlcvSha256(payload.digest)) {
+    throw new Error('OHLCV event digest must be lowercase SHA-256 hex.');
+  }
+  if (payload.provenance !== undefined && !isValidOhlcvProvenance(payload.provenance)) {
+    throw new Error('OHLCV event provenance is invalid.');
   }
   if (!isNanosecondString(payload.emittedAtNs)) {
     throw new Error('OHLCV stream emittedAtNs must be an unsigned nanosecond string.');
