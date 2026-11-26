@@ -1,7 +1,7 @@
 # ACTIVE PROJECT DASHBOARD — DEZZTA CHART (26 November 2026)
 
 **Active branch:** `phase-2/market-data-foundation` — `main` untouched.  
-**Latest exact tested source/test HEAD:** `c8f2a4bb911a63af44ee581d3c1085377c604b44`.  
+**Latest exact tested source/test HEAD:** `17857c948cb932d5465eaca1e46dae15ce6c0344`.  
 **Reporting rule:** No active dashboard item is labelled RED. Unfinished or unverified work is YELLOW / IN PROGRESS with an explicit next action and exit criteria. GREEN requires implementation plus passing tests and exact-head CI. This colour convention does not disguise incomplete engineering work.
 
 ## Overall checkpoint
@@ -11,10 +11,10 @@
 - **Batch 92 runtime implementation:** YELLOW — identity and atomic persistence are GREEN; bounded replay, retention compaction and WebSocket cursor resume are now implemented and exact-head CI verified for the exercised path. Edge-boundary, corruption, seeded-bootstrap and replay/live race coverage remains open.
 - **SQLite schema v2/v3 + identity registry:** GREEN — Miniflare/workerd verified fresh schema v1→v3, migration of an existing v2 identity row to v3, digest hydration, immutable update/delete guards, duplicate-key rejection, snapshot-first identity registration, conflict rejection, and DO eviction persistence.
 - **Atomic event commit / high-water:** GREEN — exact-head tests verified canonical payload/digest persistence, atomic high-water advancement, stable identical retry, changed-timestamp conflict, identity mutation rejection, sequence-gap rejection, and concurrent duplicate serialization. Fan-out occurs only after commit.
-- **Legacy cursor bootstrap and cutover:** YELLOW — subscribe now performs one-time legacy KV cursor bootstrap into SQLite; SQLite is authoritative afterward and no dual-write is introduced. Seeded-legacy and interrupted-bootstrap regression cases remain.
-- **Durable replay / retention:** YELLOW — implemented ordered cursor-exclusive SQLite replay, max 100 events and max 65,536 UTF-8 response bytes, explicit generation/cursor/retention/corrupt-payload outcomes, and atomic delete-plus-retention-floor compaction. Workerd verifies one-event replay and expired-cursor resnapshot; pagination boundaries, corruption/fault injection and production retention policy remain.
+- **Legacy cursor bootstrap and cutover:** YELLOW — subscribe performs one-time legacy KV cursor bootstrap into SQLite; SQLite is authoritative afterward and no dual-write is introduced. Node tests now cover seeded cursor, SQLite authority and interrupted-transaction retry; real workerd seeded-KV migration/eviction acceptance remains.
+- **Durable replay / retention:** YELLOW — implemented ordered cursor-exclusive SQLite replay, max 100 events and max 65,536 UTF-8 response bytes, explicit generation/cursor/retention/corrupt-payload/sequence-gap outcomes, and atomic delete-plus-retention-floor compaction. Node covers count/byte boundaries and corruption states; workerd verifies one-event replay and expired-cursor resnapshot. Real-SQLite boundary/fault injection and production retention policy remain.
 - **WebSocket resume / replay-to-live handoff:** YELLOW — valid cursors now replay up to 10 bounded pages inside the per-DO protocol serialization boundary before the socket becomes live-fan-out eligible. Backlogs beyond 10 pages explicitly fall back to a fresh snapshot. Dedicated race/failure tests and multi-page boundary acceptance remain.
-- **Failure injection and exact-head CI:** GREEN — required workflows are 4/4 terminal SUCCESS on exact source/test SHA `c8f2a4bb911a63af44ee581d3c1085377c604b44`. Remaining replay/bootstrap fault-injection cases stay YELLOW and are not claimed complete.
+- **Failure injection and exact-head CI:** GREEN — required workflows are 4/4 terminal SUCCESS on exact source/test SHA `17857c948cb932d5465eaca1e46dae15ce6c0344`. Remaining real-workerd seeded-bootstrap, replay/live race and corruption fault-injection cases stay YELLOW and are not claimed complete.
 - **ACK / consumer receipts / RESUME extensions:** YELLOW — queued behind Batch 92 replay correctness.
 - **Public WSS / Android end-to-end:** YELLOW — queued behind protocol and runtime acceptance.
 
@@ -25,7 +25,7 @@
 - Batch 92 adds an immutable canonical series identity registry because the series key alone does not encode all digest-bound publisher/instrument identity fields.
 - Stable retry requires the emit request to reuse the same canonical `emittedAtNs`; a changed timestamp changes payload bytes and digest and is a conflicting duplicate.
 - Per-event persisted payload cap is 8,192 UTF-8 bytes. Replay page target is at most 100 events and at most 65,536 serialized UTF-8 bytes including framing and metadata; the implementation must measure bytes using UTF-8 encoding.
-- The latest tested implementation changes Worker source and workerd/DO regression tests; no dependency, production setting, paid resource or deployment was added. Exact-head CI is 4/4 SUCCESS for SHA `c8f2a4bb911a63af44ee581d3c1085377c604b44`.
+- The latest tested implementation changes Worker source and workerd/DO regression tests; no dependency, production setting, paid resource or deployment was added. Exact-head CI is 4/4 SUCCESS for SHA `17857c948cb932d5465eaca1e46dae15ce6c0344`.
 
 ## Active work package
 
@@ -37,7 +37,7 @@ The Batch 92 plan specifies **45 cases** after adding canonical identity, stable
 
 ## CI evidence and cost controls
 
-Batch 92 latest exact-head CI is **4/4 terminal SUCCESS** on `c8f2a4bb911a63af44ee581d3c1085377c604b44`: Automated Tests run 45855836242; CodeQL run 45855836274; OCI ARM64 Image Readiness run 45855836304; Full Git History Secret Audit run 45855836341. Automated Tests completed Worker Node proof 36/36, Miniflare/workerd WebSocket + SQLite replay/compaction/resnapshot 1/1, Durable Object suite 18/18, frontend Vitest 35 files / 331 tests, backend pytest 1,435 passed / 1 skipped / 6 warnings, isolated Redis TLS CA/hostname fixture 1/1, frontend build, backend container build/smoke and vulnerability scan. The one skipped backend test is the optional Redis TLS integration test; the separate isolated Redis TLS fixture passed. These results apply only to the exact source/test SHA above. Batch 91's 4/4 evidence remains scoped to SHA `2d0d7e9a2bf1190961126105d65f77d9926e6789`. ZERO COST remains mandatory; no paid resource or production deployment was added.
+Batch 92 latest exact-head CI is **4/4 terminal SUCCESS** on `17857c948cb932d5465eaca1e46dae15ce6c0344`: Automated Tests run 45857181350; CodeQL run 45857181214; OCI ARM64 Image Readiness run 45857181270; Full Git History Secret Audit run 45857181213. Automated Tests completed Worker Node proof 38/38, Miniflare/workerd WebSocket + SQLite replay/compaction/resnapshot 1/1, Durable Object suite 18/18, frontend Vitest 35 files / 331 tests, backend pytest 1,435 passed / 1 skipped / 6 warnings, frontend build, backend container build/smoke and vulnerability scan. The one skipped backend test is the optional Redis TLS integration test because its isolated fixture was not configured in this run. These results apply only to the exact source/test SHA above. Batch 91's 4/4 evidence remains scoped to SHA `2d0d7e9a2bf1190961126105d65f77d9926e6789`. ZERO COST remains mandatory; no paid resource or production deployment was added.
 
 ## Schedule
 
