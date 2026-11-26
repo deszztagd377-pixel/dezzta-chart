@@ -723,8 +723,6 @@ export class SeriesCoordinatorDO {
         socket.close(4400, "Invalid subscription");
         return;
       }
-      const subscribed = { ...attachment, subscribed: true, series };
-      socket.serializeAttachment(subscribed);
       const watermark = attachment.snapshotWatermark;
       const asOfNs = (BigInt(Date.now()) * 1_000_000n).toString();
       const firstSequence = watermark - SNAPSHOT_BARS + 1;
@@ -732,6 +730,9 @@ export class SeriesCoordinatorDO {
         createSyntheticCanonicalBar(series, firstSequence + index, asOfNs)
       );
       const snapshot = await createSyntheticSnapshotEnvelope(series, bars, watermark);
+      // The connection is made fan-out eligible only after the complete snapshot
+      // digest exists. There is no await between enabling fan-out and sending it.
+      socket.serializeAttachment({ ...attachment, subscribed: true, series });
       socket.send(JSON.stringify({
         ...snapshot,
         streamId: "synthetic:" + attachment.seriesKey,
