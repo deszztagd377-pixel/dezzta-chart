@@ -36,7 +36,7 @@ The Batch 92 plan specifies **45 cases** after adding canonical identity, stable
 
 ## CI evidence and cost controls
 
-Batch 92 first exact-head CI on `cd5f08fc17c8ab35b95f26d5b591f7ed992bc746`: Automated Tests run 45844917881 FAILED at two legacy Node tests (HTTP 400 where old tests expected 200); CodeQL run 45844917921 SUCCESS; Full Git History Secret Audit run 45844918206 SUCCESS; OCI ARM64 run 45844917972 SUCCESS. Because the automated job stopped at the Node test step, Miniflare and Durable Object SQLite runtime tests did not execute. Batch 91's earlier 4/4 evidence remains scoped to SHA `2d0d7e9a2bf1190961126105d65f77d9926e6789`. ZERO COST remains mandatory; no paid service or deployment is added. Cloudflare SQLite storage is usage-billed, so event retention must be sized against the account's actual allowance before rollout.
+Batch 92 CI attempt 1 on `cd5f08fc17c8ab35b95f26d5b591f7ed992bc746`: CodeQL run 45844917921 SUCCESS; Full Git History Secret Audit run 45844918206 SUCCESS; OCI ARM64 run 45844917972 SUCCESS; Automated Tests run 45844917881 FAILED at two stale key-only Node tests, so Miniflare/SQLite runtime tests were skipped. Attempt 2 on `bcd25787b98c3b8e5aeb8bad16c4cdda54b7abaf` passed 31/33 Node tests but exposed two additional MemoryStorage tests that still assumed KV cursor advancement and live fan-out without SQLite. Those tests are now being corrected to assert fail-closed behavior; the next exact-head run must execute Miniflare/SQLite runtime tests. Batch 91's earlier 4/4 evidence remains scoped to SHA `2d0d7e9a2bf1190961126105d65f77d9926e6789`. ZERO COST remains mandatory; no paid service or deployment is added.
 
 ## Schedule
 

@@ -662,98 +662,78 @@ test("health response includes local CORS only for the allow-listed origin", asy
   assert.equal(response.headers.get("Access-Control-Allow-Origin"), "http://localhost:3000");
 });
 
-test("fan-out isolates a failed socket send and counts only successful deliveries", async () => {
+test("fan-out is withheld until a durable SQLite commit succeeds", async () => {
   const storage = new MemoryStorage();
   await storage.put("sequence:" + SERIES, 50);
   const failing = new MemorySocket({
     authorized: true, seriesKey: SERIES, subject: "synthetic-proof-subject",
     connectedAt: Date.now(), snapshotWatermark: 50,
+    subscribed: true, series: canonicalSeriesForTest(),
   });
-  failing.send = () => { throw new Error("simulated slow/closed consumer"); };
+  failing.send = () => { throw new Error("send must not run before commit"); };
   const healthy = new MemorySocket({
     authorized: true, seriesKey: SERIES, subject: "synthetic-proof-subject",
     connectedAt: Date.now(), snapshotWatermark: 50,
+    subscribed: true, series: canonicalSeriesForTest(),
   });
   const coordinator = new SeriesCoordinatorDO({
-    storage,
-    getWebSockets: () => [failing, healthy],
+    storage, getWebSockets: () => [failing, healthy],
   }, {});
-
   const response = await coordinator.fetch(new Request("https://series.internal/internal/emit", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ seriesKey: SERIES, sequence: "51" }),
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      seriesKey: SERIES, sequence: "51", series: canonicalSeriesForTest(),
+      emittedAtNs: "1800000000000000051",
+    }),
   }));
-
-  assert.equal(response.status, 200);
-  assert.equal((await response.json()).delivered, 1);
-  assert.deepEqual(failing.closed, [{
-    code: 1011,
-    reason: "Synthetic fan-out failed",
-  }]);
-  assert.equal(healthy.sent.length, 1);
-  assert.equal(healthy.sent[0].sequence, "51");
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).error, "temporarily_unavailable");
+  assert.equal(failing.closed.length, 0);
+  assert.equal(healthy.sent.length, 0);
+  assert.equal(await storage.get("sequence:" + SERIES), 50);
 });
 
-
-test("snapshot captures the current cursor and next live update follows its watermark", async () => {
+test("failed event commit cannot advance legacy cursor or snapshot watermark", async () => {
   const storage = new MemoryStorage();
   await initializeSequenceWatermark(storage, SERIES);
   const issued = await issueTicket(storage, SERIES, "synthetic-proof-subject");
   const socket = new MemorySocket({
-    authorized: false,
-    seriesKey: SERIES,
-    subject: null,
-    connectedAt: Date.now(),
+    authorized: false, seriesKey: SERIES, subject: null, connectedAt: Date.now(),
   });
-  const coordinator = new SeriesCoordinatorDO({
-    storage,
-    getWebSockets: () => [socket],
-  }, {});
-
-  const beforeAuthentication = await coordinator.fetch(new Request("https://series.internal/internal/emit", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ seriesKey: SERIES, sequence: "51" }),
+  const coordinator = new SeriesCoordinatorDO({ storage, getWebSockets: () => [socket] }, {});
+  const eventResponse = await coordinator.fetch(new Request("https://series.internal/internal/emit", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      seriesKey: SERIES, sequence: "51", series: canonicalSeriesForTest(),
+      emittedAtNs: "1800000000000000051",
+    }),
   }));
-  assert.equal(beforeAuthentication.status, 200);
-  assert.equal((await beforeAuthentication.json()).delivered, 0);
+  assert.equal(eventResponse.status, 503);
+  assert.equal(await storage.get("sequence:" + SERIES), 50);
 
-  await coordinator.webSocketMessage(socket, JSON.stringify({
-    type: "auth",
-    ticket: issued.ticket,
-  }));
-  assert.equal(socket.attachment.snapshotWatermark, 51);
+  await coordinator.webSocketMessage(socket, JSON.stringify({ type: "auth", ticket: issued.ticket }));
+  assert.equal(socket.attachment.snapshotWatermark, 50);
   assert.equal(socket.sent[0].type, "market_data.status");
-  const identity = {
-    seriesKey: SERIES, provider: "synthetic", seriesType: "contract",
-    dataset: "DEMO", publisherId: 1, instrumentId: 101,
-    rawSymbol: "BTCUSD", timeframe: "1m", bucketPolicy: "UTC_LEGACY",
-    calendarId: "", calendarVersion: "",
-  };
   await coordinator.webSocketMessage(socket, JSON.stringify({
-    type: "market_data.subscribe", version: 1, series: identity,
+    type: "market_data.subscribe", version: 1, series: canonicalSeriesForTest(),
   }));
   assert.equal(socket.sent[1].type, "market_data.ohlcv.snapshot");
-  assert.equal(socket.sent[1].highWaterCursor, "51");
+  assert.equal(socket.sent[1].highWaterCursor, "50");
   assert.equal(socket.sent[1].bars.length, 50);
-  assert.equal(socket.sent[1].bars[0].sequence, 2);
-  assert.equal(socket.sent[1].bars.at(-1).sequence, 51);
-  assert.equal(socket.attachment.subscribed, true);
+  assert.equal(socket.sent[1].bars[0].sequence, 1);
+  assert.equal(socket.sent[1].bars.at(-1).sequence, 50);
 
-  const afterSnapshot = await coordinator.fetch(new Request("https://series.internal/internal/emit", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ seriesKey: SERIES, sequence: "52" }),
+  const nextEvent = await coordinator.fetch(new Request("https://series.internal/internal/emit", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      seriesKey: SERIES, sequence: "51", series: canonicalSeriesForTest(),
+      emittedAtNs: "1800000000000000051",
+    }),
   }));
-  assert.equal(afterSnapshot.status, 200);
-  assert.equal((await afterSnapshot.json()).delivered, 1);
-  assert.equal(socket.sent[2].type, "market_data.ohlcv.update");
-  assert.equal(socket.sent[2].sequence, 52);
-  assert.equal(socket.sent[2].cursor, "52");
-  assert.match(socket.sent[2].digest, /^[0-9a-f]{64}$/);
+  assert.equal(nextEvent.status, 503);
+  assert.equal(socket.sent.length, 2);
+  assert.equal(await storage.get("sequence:" + SERIES), 50);
 });
-
 
 test("Batch 91 canonical synthetic OHLCV envelopes match the frontend wire contract", async () => {
   const identity = {

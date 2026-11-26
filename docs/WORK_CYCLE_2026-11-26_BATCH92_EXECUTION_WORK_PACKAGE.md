@@ -23,7 +23,7 @@ No active work item is displayed as RED. Work not yet verified is YELLOW / IN PR
 
 ## Required implementation sequence
 
-**First implementation CI result (26 November 2026):** commit `cd5f08fc17c8ab35b95f26d5b591f7ed992bc746` passed CodeQL, full-history secret audit and OCI ARM64. Automated Tests failed at two Node unit tests that still submitted the retired `{seriesKey, sequence}` request shape; later Miniflare/SQLite runtime suites were skipped by fail-fast. The Node tests are now being updated to require canonical series identity and stable `emittedAtNs`, while retaining fail-closed behavior when SQLite is unavailable. No implementation status is GREEN until the corrected exact-head CI passes.
+**First implementation CI result (26 November 2026):** commit `cd5f08fc17c8ab35b95f26d5b591f7ed992bc746` passed CodeQL, full-history secret audit and OCI ARM64. Automated Tests failed at two Node unit tests that still submitted the retired `{seriesKey, sequence}` request shape; later Miniflare/SQLite runtime suites were skipped by fail-fast. The first Node test correction exposed two more tests that assumed the retired KV-only cursor/fan-out behavior. Those tests now assert that writes fail closed without SQLite, the legacy cursor does not advance, and no WebSocket fan-out occurs before a durable commit. No implementation status is GREEN until the corrected exact-head CI passes.
 
 
 1. Add schema v2 in the existing application migration function. Do not alter Wrangler class-creation migration tags. Preserve schema v1 and the existing `series_state`, `series_events`, and `consumer_receipts` tables.
