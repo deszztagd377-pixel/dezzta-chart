@@ -14,7 +14,7 @@
 - **Legacy cursor bootstrap and cutover:** YELLOW — subscribe now performs one-time legacy KV cursor bootstrap into SQLite; SQLite is authoritative afterward and no dual-write is introduced. Seeded-legacy and interrupted-bootstrap regression cases remain.
 - **Durable replay / retention:** YELLOW — implemented ordered cursor-exclusive SQLite replay, max 100 events and max 65,536 UTF-8 response bytes, explicit generation/cursor/retention/corrupt-payload outcomes, and atomic delete-plus-retention-floor compaction. Workerd verifies one-event replay and expired-cursor resnapshot; pagination boundaries, corruption/fault injection and production retention policy remain.
 - **WebSocket resume / replay-to-live handoff:** YELLOW — valid cursors now replay up to 10 bounded pages inside the per-DO protocol serialization boundary before the socket becomes live-fan-out eligible. Backlogs beyond 10 pages explicitly fall back to a fresh snapshot. Dedicated race/failure tests and multi-page boundary acceptance remain.
-- **Failure injection and exact-head CI:** GREEN — required workflows are 4/4 terminal SUCCESS on exact source/test SHA `a8486f710308b5be98929398bbbecba7a89cd99f`. Remaining replay/bootstrap fault-injection cases stay YELLOW and are not claimed complete.
+- **Failure injection and exact-head CI:** GREEN — required workflows are 4/4 terminal SUCCESS on exact source/test SHA `c8f2a4bb911a63af44ee581d3c1085377c604b44`. Remaining replay/bootstrap fault-injection cases stay YELLOW and are not claimed complete.
 - **ACK / consumer receipts / RESUME extensions:** YELLOW — queued behind Batch 92 replay correctness.
 - **Public WSS / Android end-to-end:** YELLOW — queued behind protocol and runtime acceptance.
 
@@ -25,7 +25,7 @@
 - Batch 92 adds an immutable canonical series identity registry because the series key alone does not encode all digest-bound publisher/instrument identity fields.
 - Stable retry requires the emit request to reuse the same canonical `emittedAtNs`; a changed timestamp changes payload bytes and digest and is a conflicting duplicate.
 - Per-event persisted payload cap is 8,192 UTF-8 bytes. Replay page target is at most 100 events and at most 65,536 serialized UTF-8 bytes including framing and metadata; the implementation must measure bytes using UTF-8 encoding.
-- The latest tested implementation changes Worker source and workerd/DO regression tests; no dependency, production setting, paid resource or deployment was added. Exact-head CI is 4/4 SUCCESS for SHA `a8486f710308b5be98929398bbbecba7a89cd99f`.
+- The latest tested implementation changes Worker source and workerd/DO regression tests; no dependency, production setting, paid resource or deployment was added. Exact-head CI is 4/4 SUCCESS for SHA `c8f2a4bb911a63af44ee581d3c1085377c604b44`.
 
 ## Active work package
 
