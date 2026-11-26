@@ -331,10 +331,127 @@ export async function acceptNextSequence(storage, seriesKey, sequence) {
   });
 }
 
+const DURABLE_SCHEMA_VERSION = 1;
+const MAX_DURABLE_EVENT_BYTES = 8_192;
+
+/**
+ * Additive application-level schema migration for the existing SQLite-backed DO.
+ * This is separate from Wrangler's v1 class-creation migration. Legacy KV keys
+ * (including sequence:* and ticket:*) are deliberately left untouched.
+ */
+export function applyDurableSchemaMigrations(storage, now = Date.now()) {
+  if (
+    !storage ||
+    !storage.sql ||
+    typeof storage.sql.exec !== "function" ||
+    typeof storage.transactionSync !== "function"
+  ) {
+    throw new TypeError("SQLite Durable Object storage is required for schema migration.");
+  }
+  if (!Number.isSafeInteger(now) || now < 0) {
+    throw new RangeError("Schema migration timestamp is invalid.");
+  }
+
+  return storage.transactionSync(() => {
+    const sql = storage.sql;
+    sql.exec(`
+      CREATE TABLE IF NOT EXISTS schema_migrations (
+        version INTEGER PRIMARY KEY CHECK (version > 0),
+        applied_at_ms INTEGER NOT NULL CHECK (applied_at_ms >= 0)
+      )
+    `);
+
+    const versions = sql.exec(
+      "SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1",
+    ).toArray();
+    const currentVersion = versions.length === 0 ? 0 : versions[0].version;
+    if (!Number.isSafeInteger(currentVersion) || currentVersion < 0) {
+      throw new Error("Stored Durable Object schema version is invalid.");
+    }
+    if (currentVersion > DURABLE_SCHEMA_VERSION) {
+      throw new Error("Durable Object schema is newer than this Worker supports.");
+    }
+
+    if (currentVersion < 1) {
+      sql.exec(`
+        CREATE TABLE IF NOT EXISTS series_state (
+          series_key TEXT PRIMARY KEY
+            CHECK (length(series_key) BETWEEN 1 AND 128),
+          generation_id TEXT NOT NULL
+            CHECK (length(generation_id) BETWEEN 1 AND 128),
+          high_water INTEGER NOT NULL DEFAULT 0
+            CHECK (high_water >= 0),
+          retention_floor INTEGER NOT NULL DEFAULT 0
+            CHECK (retention_floor >= 0 AND retention_floor <= high_water),
+          updated_at_ms INTEGER NOT NULL
+            CHECK (updated_at_ms >= 0)
+        );
+
+        CREATE TABLE IF NOT EXISTS series_events (
+          series_key TEXT NOT NULL
+            CHECK (length(series_key) BETWEEN 1 AND 128),
+          generation_id TEXT NOT NULL
+            CHECK (length(generation_id) BETWEEN 1 AND 128),
+          sequence INTEGER NOT NULL
+            CHECK (sequence > 0 AND sequence <= 1000000000),
+          event_digest TEXT NOT NULL
+            CHECK (
+              length(event_digest) = 64
+              AND event_digest NOT GLOB '*[^0-9a-f]*'
+            ),
+          payload TEXT NOT NULL
+            CHECK (length(CAST(payload AS BLOB)) <= ${MAX_DURABLE_EVENT_BYTES}),
+          committed_at_ms INTEGER NOT NULL
+            CHECK (committed_at_ms >= 0),
+          PRIMARY KEY (series_key, generation_id, sequence)
+        );
+
+        CREATE TABLE IF NOT EXISTS consumer_receipts (
+          series_key TEXT NOT NULL
+            CHECK (length(series_key) BETWEEN 1 AND 128),
+          consumer_id TEXT NOT NULL
+            CHECK (length(consumer_id) BETWEEN 1 AND 128),
+          generation_id TEXT NOT NULL
+            CHECK (length(generation_id) BETWEEN 1 AND 128),
+          committed_sequence INTEGER NOT NULL
+            CHECK (committed_sequence >= 0 AND committed_sequence <= 1000000000),
+          event_digest TEXT NOT NULL
+            CHECK (
+              length(event_digest) = 64
+              AND event_digest NOT GLOB '*[^0-9a-f]*'
+            ),
+          receipt_version INTEGER NOT NULL
+            CHECK (receipt_version > 0),
+          updated_at_ms INTEGER NOT NULL
+            CHECK (updated_at_ms >= 0),
+          PRIMARY KEY (series_key, consumer_id)
+        );
+
+        INSERT INTO schema_migrations (version, applied_at_ms)
+        VALUES (1, ${now});
+      `);
+    }
+
+    const verified = sql.exec(
+      "SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1",
+    ).toArray();
+    if (verified.length !== 1 || verified[0].version !== DURABLE_SCHEMA_VERSION) {
+      throw new Error("Durable Object schema migration did not reach its expected version.");
+    }
+    return DURABLE_SCHEMA_VERSION;
+  });
+}
+
 export class SeriesCoordinatorDO {
   constructor(ctx, env) {
     this.ctx = ctx;
     this.env = env;
+    if (this.ctx.storage?.sql) {
+      if (typeof this.ctx.blockConcurrencyWhile !== "function") {
+        throw new Error("SQLite Durable Object initialization requires blockConcurrencyWhile.");
+      }
+      this.ctx.blockConcurrencyWhile(() => applyDurableSchemaMigrations(this.ctx.storage));
+    }
     // Hibernation-safe connection state is restored from serialized attachments.
     for (const socket of this.ctx.getWebSockets()) {
       const attachment = readSocketAttachment(socket);
