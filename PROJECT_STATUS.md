@@ -1,7 +1,7 @@
 # ACTIVE PROJECT DASHBOARD — DEZZTA CHART (26 November 2026)
 
 **Active branch:** `phase-2/market-data-foundation` — `main` untouched.  
-**Latest exact tested source/test HEAD:** `0657efc142299753079823bb6d98aa12bdcf517f`.  
+**Latest exact tested source/test HEAD:** `c8f2a4bb911a63af44ee581d3c1085377c604b44`.  
 **Reporting rule:** No active dashboard item is labelled RED. Unfinished or unverified work is YELLOW / IN PROGRESS with an explicit next action and exit criteria. GREEN requires implementation plus passing tests and exact-head CI. This colour convention does not disguise incomplete engineering work.
 
 ## Overall checkpoint
@@ -37,7 +37,7 @@ The Batch 92 plan specifies **45 cases** after adding canonical identity, stable
 
 ## CI evidence and cost controls
 
-Batch 92 exact-head CI is **4/4 terminal SUCCESS** on `0657efc142299753079823bb6d98aa12bdcf517f`: Automated Tests run 45851007304; CodeQL run 45851007316; Full Git History Secret Audit run 45851007271; OCI ARM64 Image Readiness run 45851007421. Automated Tests completed Worker Node proof 33/33, Miniflare/workerd WebSocket + Durable Object storage/fan-out 1/1, Durable Object suite 18/18 (including existing-v2→v3 identity digest migration), frontend Vitest 35 files / 331 tests, backend pytest 1,435 passed / 1 skipped / 6 warnings, frontend build, backend container build/smoke and vulnerability scan. The one skipped backend test is the optional Redis TLS integration fixture because that isolated fixture was not configured. These results apply only to the exact source/test SHA above. Batch 91's 4/4 evidence remains scoped to SHA `2d0d7e9a2bf1190961126105d65f77d9926e6789`. ZERO COST remains mandatory; no paid resource or production deployment was added.
+Batch 92 latest exact-head CI is **4/4 terminal SUCCESS** on `c8f2a4bb911a63af44ee581d3c1085377c604b44`: Automated Tests run 45855836242; CodeQL run 45855836274; OCI ARM64 Image Readiness run 45855836304; Full Git History Secret Audit run 45855836341. Automated Tests completed Worker Node proof 36/36, Miniflare/workerd WebSocket + SQLite replay/compaction/resnapshot 1/1, Durable Object suite 18/18, frontend Vitest 35 files / 331 tests, backend pytest 1,435 passed / 1 skipped / 6 warnings, isolated Redis TLS CA/hostname fixture 1/1, frontend build, backend container build/smoke and vulnerability scan. The one skipped backend test is the optional Redis TLS integration test; the separate isolated Redis TLS fixture passed. These results apply only to the exact source/test SHA above. Batch 91's 4/4 evidence remains scoped to SHA `2d0d7e9a2bf1190961126105d65f77d9926e6789`. ZERO COST remains mandatory; no paid resource or production deployment was added.
 
 ## Schedule
 
