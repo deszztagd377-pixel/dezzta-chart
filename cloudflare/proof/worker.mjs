@@ -32,20 +32,24 @@ export function isValidSyntheticSeriesKey(value) {
 function syntheticSeriesFromUrl(url) {
   const suppliedKey = url.searchParams.get("seriesKey");
   if (suppliedKey && isValidSyntheticSeriesKey(suppliedKey)) {
-    const [, dataset, rawSymbol, timeframe] = suppliedKey.split(":");
-    return {
+    const [, keyDataset, keySymbol, keyTimeframe] = suppliedKey.split(":");
+    if (url.searchParams.has("provider") && url.searchParams.get("provider") !== "synthetic") return null;
+    const identity = {
       seriesKey: suppliedKey,
       provider: "synthetic",
-      seriesType: "contract",
-      dataset,
-      publisherId: 1,
-      instrumentId: 1,
-      rawSymbol,
-      timeframe,
-      bucketPolicy: "UTC_LEGACY",
-      calendarId: "",
-      calendarVersion: "",
+      seriesType: url.searchParams.get("series_type") || "contract",
+      dataset: url.searchParams.get("dataset") || keyDataset,
+      publisherId: url.searchParams.has("publisher_id") ? Number(url.searchParams.get("publisher_id")) : 1,
+      instrumentId: url.searchParams.has("instrument_id") ? Number(url.searchParams.get("instrument_id")) : 1,
+      rawSymbol: url.searchParams.get("raw_symbol") || keySymbol,
+      timeframe: url.searchParams.get("timeframe") || keyTimeframe,
+      bucketPolicy: url.searchParams.get("bucket_policy") || "UTC_LEGACY",
+      calendarId: url.searchParams.get("calendar_id") || "",
+      calendarVersion: url.searchParams.get("calendar_version") || "",
     };
+    if (identity.dataset !== keyDataset || identity.rawSymbol !== keySymbol ||
+        identity.timeframe !== keyTimeframe) return null;
+    return validateSyntheticCanonicalSeries(identity) ? identity : null;
   }
   if (url.searchParams.get("provider") !== "synthetic") return null;
   const dataset = url.searchParams.get("dataset");
