@@ -81,6 +81,22 @@ A page is valid only when the first event is cursor+1, each subsequent event inc
 - Keep failure injection test-only; no public request field may select an arbitrary failure point.
 - Add exact assertions against persisted SQL rows and high-water after every injected failure.
 
+## 6A. Canonical series identity registry cases
+
+The immutable identity registry decision in `docs/WORK_CYCLE_2026-11-26_BATCH92_CANONICAL_SERIES_IDENTITY_DECISION.md` adds ten required cases:
+- B92-ID-T01 first identity registration and stable round-trip.
+- B92-ID-T02 object-key-order independent canonical identity bytes.
+- B92-ID-T03 publisherId/instrumentId conflict rejected.
+- B92-ID-T04 key/identity mismatch rejected before mutation.
+- B92-ID-T05 emit without connected sockets persists one canonical event.
+- B92-ID-T06 multiple subscribers receive byte-identical persisted payload.
+- B92-ID-T07 conflicting subscriber identity cannot subscribe.
+- B92-ID-T08 identity, events and high-water survive DO eviction.
+- B92-ID-T09 identity registration and legacy cursor bootstrap commute without rewind.
+- B92-ID-T10 ticket behavior remains unchanged.
+
+The test inventory is now 40 specified cases (30 existing Batch 92 cases plus 10 identity cases). This is a specification count, not a passing test count.
+
 ## 7. Acceptance gate
 
 Batch 92 may be marked accepted only when:
