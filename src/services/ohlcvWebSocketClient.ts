@@ -297,6 +297,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
           canonicalInstrumentId: options.canonicalInstrumentId,
           ...(options.resumeCursor !== undefined ? { cursor: options.resumeCursor } : {}),
           series: {
+            ...(options.identity.seriesKey !== undefined ? { seriesKey: options.identity.seriesKey } : {}),
             provider: options.identity.provider ?? 'databento',
             seriesType: options.identity.seriesType ?? 'contract',
             dataset: options.identity.dataset,
@@ -343,6 +344,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
         guard = new OhlcvStreamSequenceGuard(
           value.streamId,
           {
+            ...(options.identity.seriesKey !== undefined ? { seriesKey: options.identity.seriesKey } : {}),
             provider: options.identity.provider ?? 'databento',
             seriesType: options.identity.seriesType ?? 'contract',
             dataset: options.identity.dataset,
@@ -398,6 +400,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
         guard = new OhlcvStreamSequenceGuard(
           parsed.streamId,
           {
+            ...(options.identity.seriesKey !== undefined ? { seriesKey: options.identity.seriesKey } : {}),
             provider: options.identity.provider ?? 'databento',
             seriesType: options.identity.seriesType ?? 'contract',
             dataset: options.identity.dataset,
