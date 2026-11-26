@@ -119,17 +119,47 @@ function nextClose(socket, timeoutMs = 5_000) {
   });
 }
 
+function canonicalSeries(seriesKey) {
+  const [, dataset, rawSymbol, timeframe] = seriesKey.split(":");
+  return {
+    seriesKey,
+    provider: "synthetic",
+    seriesType: "contract",
+    dataset,
+    publisherId: 1,
+    instrumentId: 101,
+    rawSymbol,
+    timeframe,
+    bucketPolicy: "UTC_LEGACY",
+    calendarId: "",
+    calendarVersion: "",
+  };
+}
+
 async function connectAuthenticated(seriesKey, suppliedTicket) {
   const ticket = suppliedTicket ?? await issueTicket(seriesKey);
   const socket = await openSocket(seriesKey);
-  const snapshotPromise = nextJsonMessage(socket);
+  const statusPromise = nextJsonMessage(socket);
   socket.send(JSON.stringify({ type: "auth", ticket }));
+  const status = await statusPromise;
+  expect(status).toMatchObject({
+    type: "market_data.status",
+    version: 1,
+    providerConnected: false,
+    liveProviderEnabled: false,
+  });
+  const snapshotPromise = nextJsonMessage(socket);
+  socket.send(JSON.stringify({
+    type: "market_data.subscribe",
+    version: 1,
+    series: canonicalSeries(seriesKey),
+  }));
   const snapshot = await snapshotPromise;
   expect(snapshot).toMatchObject({
-    type: "market_data.snapshot",
+    type: "market_data.ohlcv.snapshot",
     version: 1,
-    watermarkCursor: "50",
-    dataSource: "synthetic_only_not_market_data",
+    highWaterCursor: "50",
+    provenance: { mode: "synthetic", dataStatus: "synthetic_only", providerConnected: false },
   });
   expect(snapshot.bars).toHaveLength(50);
   return { socket, ticket, snapshot };
@@ -320,14 +350,16 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       secondUpdatePromise,
     ]);
     expect(firstUpdate).toMatchObject({
-      type: "market_data.update",
-      sequence: "51",
-      dataSource: "synthetic_only_not_market_data",
+      type: "market_data.ohlcv.update",
+      sequence: 51,
+      cursor: "51",
+      provenance: { mode: "synthetic", dataStatus: "synthetic_only", providerConnected: false },
     });
     expect(secondUpdate).toMatchObject({
-      type: "market_data.update",
-      sequence: "51",
-      dataSource: "synthetic_only_not_market_data",
+      type: "market_data.ohlcv.update",
+      sequence: 51,
+      cursor: "51",
+      provenance: { mode: "synthetic", dataStatus: "synthetic_only", providerConnected: false },
     });
     expect(otherSeries.socket.readyState).toBe(1);
   });
@@ -343,18 +375,24 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     });
 
     const socket = await openSocket(SERIES_A);
-    const snapshotPromise = nextJsonMessage(socket);
+    const statusPromise = nextJsonMessage(socket);
     socket.send(JSON.stringify({ type: "auth", ticket }));
+    const status = await statusPromise;
+    expect(status.type).toBe("market_data.status");
+    const snapshotPromise = nextJsonMessage(socket);
+    socket.send(JSON.stringify({
+      type: "market_data.subscribe", version: 1, series: canonicalSeries(SERIES_A),
+    }));
     const snapshot = await snapshotPromise;
 
     expect(snapshot).toMatchObject({
-      type: "market_data.snapshot",
-      watermarkCursor: "51",
-      dataSource: "synthetic_only_not_market_data",
+      type: "market_data.ohlcv.snapshot",
+      highWaterCursor: "51",
+      provenance: { dataStatus: "synthetic_only" },
     });
     expect(snapshot.bars).toHaveLength(50);
-    expect(snapshot.bars[0].sequence).toBe("2");
-    expect(snapshot.bars.at(-1).sequence).toBe("51");
+    expect(snapshot.bars[0].sequence).toBe(2);
+    expect(snapshot.bars.at(-1).sequence).toBe(51);
 
     const nextUpdatePromise = nextJsonMessage(socket);
     const next = await emit(SERIES_A, 52);
@@ -365,8 +403,9 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       delivered: 1,
     });
     expect(await nextUpdatePromise).toMatchObject({
-      type: "market_data.update",
-      sequence: "52",
+      type: "market_data.ohlcv.update",
+      sequence: 52,
+      cursor: "52",
     });
   });
 
@@ -390,7 +429,7 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     // Install both observers before sending either authentication frame so a
     // fast Durable Object response cannot escape the test harness.
     const observe = (socket) => nextJsonMessage(socket).then(
-      (message) => ({ kind: "message", message }),
+      (message) => ({ kind: "message", message, socket }),
       (error) => ({ kind: "closed", error }),
     );
     const firstOutcome = observe(firstSocket);
@@ -405,9 +444,18 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
 
     expect(accepted).toHaveLength(1);
     expect(accepted[0].message).toMatchObject({
-      type: "market_data.snapshot",
+      type: "market_data.status",
+      providerConnected: false,
+    });
+    const acceptedSocket = accepted[0].socket;
+    const snapshotPromise = nextJsonMessage(acceptedSocket);
+    acceptedSocket.send(JSON.stringify({
+      type: "market_data.subscribe", version: 1, series: canonicalSeries(SERIES_REPLAY),
+    }));
+    expect(await snapshotPromise).toMatchObject({
+      type: "market_data.ohlcv.snapshot",
       streamId: `synthetic:${SERIES_REPLAY}`,
-      watermarkCursor: "50",
+      highWaterCursor: "50",
     });
     expect(rejected).toHaveLength(1);
     expect(rejected[0].error.message).toMatch(/WebSocket closed before the expected message/);
