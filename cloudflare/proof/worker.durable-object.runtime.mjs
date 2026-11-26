@@ -234,7 +234,7 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       ).toArray();
       const tables = sql.exec(
         "SELECT name FROM sqlite_master WHERE type = 'table' " +
-        "AND name IN ('schema_migrations', 'series_state', 'series_events', 'consumer_receipts') " +
+        "AND name IN ('schema_migrations', 'series_state', 'series_events', 'consumer_receipts', 'series_identity') " +
         "ORDER BY name",
       ).toArray().map((row) => row.name);
       const stateColumns = sql.exec("PRAGMA table_info(series_state)")
