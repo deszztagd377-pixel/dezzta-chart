@@ -14,11 +14,11 @@ No active work item is displayed as RED. Work not yet verified is YELLOW / IN PR
 | ID | Workstream | Active state | Dependency | Exit criteria |
 |---|---|---|---|---|
 | B92-01 | SQLite schema v2/v3 + immutable identity registry | GREEN / CI VERIFIED | Batch 91 accepted | Fresh and existing-v2 migration, digest hydration, immutable triggers, snapshot registration, legacy KV preservation and DO eviction tests pass |
-| B92-02 | Legacy cursor bootstrap and cutover | YELLOW / PARTIAL | B92-01 | Add seeded-legacy-cursor and interrupted-bootstrap regression; prove SQLite authority after initialization and no dual-write |
+| B92-02 | Legacy cursor bootstrap and cutover | YELLOW / PARTIAL | B92-01 | One-time KV→SQLite bootstrap now runs during subscribe; add seeded-legacy-cursor and interrupted-bootstrap regression; prove SQLite authority and no dual-write |
 | B92-03 | Canonical event commit | GREEN / CI VERIFIED | B92-01/02 | Canonical event/digest + high-water atomic transaction, stable retry, changed timestamp conflict, identity conflict, gap and concurrency tests pass |
-| B92-04 | Replay and retention | YELLOW / NOT IMPLEMENTED | B92-03 | Ordered cursor-exclusive pages; <=100 events and <=65,536 UTF-8 bytes; explicit generation/retention outcomes; compaction and failure tests |
-| B92-05 | WebSocket subscribe/resume integration | YELLOW / PARTIAL | B92-04 | Snapshot when no cursor; replay when cursor is valid; atomic replay-to-live handoff; explicit resnapshot for expired/mismatched cursors |
-| B92-06 | Failure and concurrency tests | YELLOW / PARTIAL | B92-01..05 | Add rollback/fan-out failure, seeded bootstrap, retention boundary, byte-page boundary and replay/live race tests |
+| B92-04 | Replay and retention | YELLOW / IMPLEMENTED, PARTIAL CI VERIFIED | B92-03 | Cursor-exclusive SQLite pages; <=100 events and <=65,536 actual UTF-8 bytes; generation/cursor/retention/corruption outcomes; atomic compaction. Page-boundary, corruption and fault-injection cases remain |
+| B92-05 | WebSocket subscribe/resume integration | YELLOW / INTEGRATED, PARTIAL CI VERIFIED | B92-04 | Valid cursor replays up to 10 bounded pages under the DO serialization queue; expired/mismatched cursors resnapshot; >10-page backlog falls back to snapshot. Add dedicated replay/live race and multi-page acceptance tests |
+| B92-06 | Failure and concurrency tests | YELLOW / PARTIAL | B92-01..05 | Workerd verifies one-event replay, compaction deletion/floor advance and retention-expiry resnapshot. Add rollback/fan-out failure, seeded bootstrap, 100-event/65,536-byte page boundaries, generation mismatch, corrupt payload and replay/live race tests |
 | B92-07 | Exact-head CI | GREEN / 4 OF 4 SUCCESS | Current source/test HEAD | Automated Tests, CodeQL, secret audit and OCI ARM64 all terminal-success on the same tested source/test SHA |
 
 ## Required implementation sequence
@@ -38,7 +38,7 @@ No active work item is displayed as RED. Work not yet verified is YELLOW / IN PR
 ## Quantitative limits and rationale
 
 - Per-event persisted payload ceiling remains 8,192 UTF-8 bytes, matching the existing schema constraint.
-- Replay page hard cap: 100 events AND 65,536 UTF-8 bytes for the complete serialized response, including envelope and metadata.
+- Replay page hard cap: 100 events AND 65,536 UTF-8 bytes for the complete serialized response, including envelope and metadata. Subscribe emits at most 10 pages (maximum 1,000 events) in one serialized operation; larger backlogs explicitly require a fresh snapshot.
 - Therefore the actual page count is the smaller of 100 and the largest prefix that fits 65,536 bytes. At the 8,192-byte per-event ceiling, a page can hold at most 7 maximum-size events once framing/metadata is included; implementation must measure actual UTF-8 byte length, not estimate by JavaScript string length.
 - An event that cannot fit an otherwise empty page returns a stable explicit error; it must not return an empty page with `hasMore=true`.
 - Keep the current snapshot cap of 50 bars unchanged in this batch.
@@ -56,7 +56,7 @@ No active work item is displayed as RED. Work not yet verified is YELLOW / IN PR
 
 ## Test and release gates
 
-The 45-case test inventory remains a specification, not a pass count. The current exact-head CI verifies the identity/persistence slice. Replay-specific page-byte, retention, replay/live race and additional failure-injection cases remain to be implemented and executed. Record run IDs and exact tested SHA. Documentation-only commits are not evidence of runtime CI.
+The 45-case inventory remains a specification, not a pass count. Exact-head CI on `a8486f710308b5be98929398bbbecba7a89cd99f` verifies the identity/persistence slice plus the implemented bounded replay, compaction and valid-cursor WebSocket path. Page-boundary, generation/corruption, seeded-bootstrap, replay/live race and additional failure-injection cases remain. See the exact-head report for run IDs and observed counts. Documentation-only commits are not evidence of runtime CI.
 
 ## Cost and platform guardrail
 
