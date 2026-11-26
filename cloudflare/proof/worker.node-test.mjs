@@ -83,8 +83,8 @@ function makeEnv(overrides = {}) {
     SERIES_COORDINATOR: {
       idFromName: (name) => name,
       get: () => ({
-        fetch: async (input) => {
-          const req = input instanceof Request ? input : new Request(input);
+        fetch: async (input, init) => {
+          const req = input instanceof Request ? input : new Request(input, init);
           if (req.url.includes("/internal/ticket")) {
             return new Response(JSON.stringify({ ticket: "a".repeat(64), purpose: "market-data" }), {
               headers: { "Content-Type": "application/json" },
