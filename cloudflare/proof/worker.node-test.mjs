@@ -401,9 +401,21 @@ test("Durable Object consumes one-time ticket and sends an aligned synthetic sna
   assert.equal(socket.attachment.authorized, true);
   assert.equal(socket.attachment.snapshotWatermark, 50);
   assert.equal(socket.sent.length, 1);
-  assert.equal(socket.sent[0].type, "market_data.snapshot");
-  assert.equal(socket.sent[0].watermarkCursor, "50");
-  assert.equal(socket.sent[0].bars.length, 50);
+  assert.equal(socket.sent[0].type, "market_data.status");
+  assert.equal(socket.sent[0].providerConnected, false);
+  const identity = {
+    seriesKey: SERIES, provider: "synthetic", seriesType: "contract",
+    dataset: "DEMO", publisherId: 1, instrumentId: 101,
+    rawSymbol: "BTCUSD", timeframe: "1m", bucketPolicy: "UTC_LEGACY",
+    calendarId: "", calendarVersion: "",
+  };
+  await coordinator.webSocketMessage(socket, JSON.stringify({
+    type: "market_data.subscribe", version: 1, series: identity,
+  }));
+  assert.equal(socket.sent[1].type, "market_data.ohlcv.snapshot");
+  assert.equal(socket.sent[1].highWaterCursor, "50");
+  assert.equal(socket.sent[1].bars.length, 50);
+  assert.equal(socket.attachment.subscribed, true);
 
   const replaySocket = new MemorySocket({
     authorized: false,
@@ -656,11 +668,22 @@ test("snapshot captures the current cursor and next live update follows its wate
     ticket: issued.ticket,
   }));
   assert.equal(socket.attachment.snapshotWatermark, 51);
-  assert.equal(socket.sent[0].type, "market_data.snapshot");
-  assert.equal(socket.sent[0].watermarkCursor, "51");
-  assert.equal(socket.sent[0].bars.length, 50);
-  assert.equal(socket.sent[0].bars[0].sequence, "2");
-  assert.equal(socket.sent[0].bars.at(-1).sequence, "51");
+  assert.equal(socket.sent[0].type, "market_data.status");
+  const identity = {
+    seriesKey: SERIES, provider: "synthetic", seriesType: "contract",
+    dataset: "DEMO", publisherId: 1, instrumentId: 101,
+    rawSymbol: "BTCUSD", timeframe: "1m", bucketPolicy: "UTC_LEGACY",
+    calendarId: "", calendarVersion: "",
+  };
+  await coordinator.webSocketMessage(socket, JSON.stringify({
+    type: "market_data.subscribe", version: 1, series: identity,
+  }));
+  assert.equal(socket.sent[1].type, "market_data.ohlcv.snapshot");
+  assert.equal(socket.sent[1].highWaterCursor, "51");
+  assert.equal(socket.sent[1].bars.length, 50);
+  assert.equal(socket.sent[1].bars[0].sequence, 2);
+  assert.equal(socket.sent[1].bars.at(-1).sequence, 51);
+  assert.equal(socket.attachment.subscribed, true);
 
   const afterSnapshot = await coordinator.fetch(new Request("https://series.internal/internal/emit", {
     method: "POST",
@@ -669,8 +692,10 @@ test("snapshot captures the current cursor and next live update follows its wate
   }));
   assert.equal(afterSnapshot.status, 200);
   assert.equal((await afterSnapshot.json()).delivered, 1);
-  assert.equal(socket.sent[1].type, "market_data.update");
-  assert.equal(socket.sent[1].sequence, "52");
+  assert.equal(socket.sent[2].type, "market_data.ohlcv.update");
+  assert.equal(socket.sent[2].sequence, 52);
+  assert.equal(socket.sent[2].cursor, "52");
+  assert.match(socket.sent[2].digest, /^[0-9a-f]{64}$/);
 });
 
 
