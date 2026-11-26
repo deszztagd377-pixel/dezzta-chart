@@ -246,6 +246,23 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       const identityColumns = sql.exec("PRAGMA table_info(series_identity)")
         .toArray().map((row) => row.name);
 
+      sql.exec(
+        "INSERT INTO series_identity (series_key, identity_json, created_at_ms) VALUES (?, ?, ?)",
+        SERIES_A, "{}", 1,
+      );
+      expect(() => sql.exec(
+        "UPDATE series_identity SET identity_json = ? WHERE series_key = ?",
+        "[]", SERIES_A,
+      )).toThrow();
+      expect(() => sql.exec(
+        "DELETE FROM series_identity WHERE series_key = ?",
+        SERIES_A,
+      )).toThrow();
+      expect(() => sql.exec(
+        "INSERT INTO series_identity (series_key, identity_json, created_at_ms) VALUES (?, ?, ?)",
+        SERIES_A, "{}", 2,
+      )).toThrow();
+
       await state.storage.put("sequence:" + SERIES_A, 50);
       const legacyCursor = await state.storage.get("sequence:" + SERIES_A);
 
