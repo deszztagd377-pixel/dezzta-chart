@@ -171,6 +171,132 @@ afterEach(async () => {
 });
 
 describe("synthetic Cloudflare Durable Object runtime", () => {
+  it("installs the additive SQLite schema once and preserves legacy v1 KV state", async () => {
+    const stub = coordinatorStub(SERIES_A);
+    const first = await runInDurableObject(stub, async (_instance, state) => {
+      const sql = state.storage.sql;
+      const versions = sql.exec(
+        "SELECT version FROM schema_migrations ORDER BY version",
+      ).toArray();
+      const tables = sql.exec(
+        "SELECT name FROM sqlite_master WHERE type = 'table' " +
+        "AND name IN ('schema_migrations', 'series_state', 'series_events', 'consumer_receipts') " +
+        "ORDER BY name",
+      ).toArray().map((row) => row.name);
+      const stateColumns = sql.exec("PRAGMA table_info(series_state)")
+        .toArray().map((row) => row.name);
+      const eventColumns = sql.exec("PRAGMA table_info(series_events)")
+        .toArray().map((row) => row.name);
+      const receiptColumns = sql.exec("PRAGMA table_info(consumer_receipts)")
+        .toArray().map((row) => row.name);
+
+      await state.storage.put("sequence:" + SERIES_A, 50);
+      const legacyCursor = await state.storage.get("sequence:" + SERIES_A);
+
+      expect(() => sql.exec(
+        "INSERT INTO series_state " +
+        "(series_key, generation_id, high_water, retention_floor, updated_at_ms) " +
+        "VALUES (?, ?, ?, ?, ?)",
+        SERIES_A,
+        "generation-invalid",
+        1,
+        2,
+        1,
+      )).toThrow();
+
+      sql.exec(
+        "INSERT INTO series_state " +
+        "(series_key, generation_id, high_water, retention_floor, updated_at_ms) " +
+        "VALUES (?, ?, ?, ?, ?)",
+        SERIES_A,
+        "generation-test",
+        0,
+        0,
+        1,
+      );
+      sql.exec(
+        "INSERT INTO series_events " +
+        "(series_key, generation_id, sequence, event_digest, payload, committed_at_ms) " +
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        SERIES_A,
+        "generation-test",
+        1,
+        "a".repeat(64),
+        "{}",
+        1,
+      );
+      expect(() => sql.exec(
+        "INSERT INTO series_events " +
+        "(series_key, generation_id, sequence, event_digest, payload, committed_at_ms) " +
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        SERIES_A,
+        "generation-test",
+        1,
+        "a".repeat(64),
+        "{}",
+        2,
+      )).toThrow();
+
+      return {
+        versions,
+        tables,
+        stateColumns,
+        eventColumns,
+        receiptColumns,
+        legacyCursor,
+      };
+    });
+
+    expect(first.versions).toEqual([{ version: 1 }]);
+    expect(first.tables).toEqual([
+      "consumer_receipts",
+      "schema_migrations",
+      "series_events",
+      "series_state",
+    ]);
+    expect(first.stateColumns).toEqual([
+      "series_key",
+      "generation_id",
+      "high_water",
+      "retention_floor",
+      "updated_at_ms",
+    ]);
+    expect(first.eventColumns).toEqual([
+      "series_key",
+      "generation_id",
+      "sequence",
+      "event_digest",
+      "payload",
+      "committed_at_ms",
+    ]);
+    expect(first.receiptColumns).toEqual([
+      "series_key",
+      "consumer_id",
+      "generation_id",
+      "committed_sequence",
+      "event_digest",
+      "receipt_version",
+      "updated_at_ms",
+    ]);
+    expect(first.legacyCursor).toBe(50);
+
+    await evictDurableObject(stub);
+    const restored = await runInDurableObject(stub, async (_instance, state) => ({
+      versions: state.storage.sql.exec(
+        "SELECT version FROM schema_migrations ORDER BY version",
+      ).toArray(),
+      legacyCursor: await state.storage.get("sequence:" + SERIES_A),
+      eventCount: state.storage.sql.exec(
+        "SELECT COUNT(*) AS count FROM series_events WHERE series_key = ?",
+        SERIES_A,
+      ).one().count,
+    }));
+
+    expect(restored.versions).toEqual([{ version: 1 }]);
+    expect(restored.legacyCursor).toBe(50);
+    expect(restored.eventCount).toBe(1);
+  });
+
   it("fans out only to authenticated sockets for the exact series", async () => {
     const [first, second, otherSeries] = await Promise.all([
       connectAuthenticated(SERIES_A),
