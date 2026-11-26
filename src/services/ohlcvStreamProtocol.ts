@@ -59,7 +59,8 @@ function sameSeries(
   left: OhlcvStreamSeriesIdentity,
   right: OhlcvStreamSeriesIdentity,
 ): boolean {
-  return left.provider === right.provider &&
+  return (left.seriesKey ?? '') === (right.seriesKey ?? '') &&
+    left.provider === right.provider &&
     left.seriesType === right.seriesType &&
     left.dataset === right.dataset &&
     left.publisherId === right.publisherId &&
