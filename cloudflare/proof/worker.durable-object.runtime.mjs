@@ -556,9 +556,12 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     first.socket.send(JSON.stringify({ type: "ping" }));
     second.socket.send(JSON.stringify({ type: "ping" }));
     expect(await Promise.all([firstPong, secondPong])).toEqual([
-      { type: "market_data.pong", version: 1 },
-      { type: "market_data.pong", version: 1 },
+      expect.objectContaining({ type: "market_data.pong", version: 1 }),
+      expect.objectContaining({ type: "market_data.pong", version: 1 }),
     ]);
+    expect((await Promise.all([firstPong, secondPong])).every((pong) =>
+      typeof pong.serverTimeNs === "string" && /^\\d{1,32}$/.test(pong.serverTimeNs)
+    )).toBe(true);
   });
 
   it("runs the real Durable Object alarm and closes an expired unauthenticated socket", async () => {
