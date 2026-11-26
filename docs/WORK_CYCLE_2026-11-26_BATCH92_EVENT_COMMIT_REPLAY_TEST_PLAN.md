@@ -2,7 +2,7 @@
 
 **Date:** 26 November 2026  
 **Branch:** `phase-2/market-data-foundation`  
-**Status:** TEST DESIGN ONLY — Batch 91 formal acceptance remains a prerequisite for Batch 92 runtime implementation.  
+**Status:** TEST DESIGN READY — Batch 91 formally accepted on 26 November 2026; Batch 92 runtime is now unblocked.  
 **Architecture:** Cloudflare Native / Zero-Origin; synthetic proof only; ZERO COST.
 
 ## 1. Purpose
@@ -94,6 +94,6 @@ Batch 92 may be marked accepted only when:
 
 ## 8. Current disposition
 
-**Batch 92 runtime implementation: NOT STARTED / BLOCKED by Batch 91 formal acceptance.**  
+**Batch 92 runtime implementation: UNBLOCKED; implementation not yet committed.**  
 **Batch 92 test design: PREPARED in this document.**  
 **No runtime source or schema migration was changed by this work cycle.**
