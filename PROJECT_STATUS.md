@@ -1,27 +1,62 @@
-# Latest project reconciliation — Batch 92 runtime unblocked (26 November 2026)
+# ACTIVE PROJECT DASHBOARD — DEZZTA CHART (26 November 2026)
 
-**Documentation checkpoint:** Batch 91 formal acceptance recorded in `docs/WORK_CYCLE_2026-11-26_BATCH91_FORMAL_ACCEPTANCE.md` (commit `fefc1734852d47c252269d335272ce1e2139d67f`). Owner explicitly approved the reviewed canonical protocol fields, SHA-256 digest encoding, route mapping and synthetic-only boundary in the project conversation on 26 November 2026.  
-**Batch 91:** FORMALLY ACCEPTED for synthetic-only proof scope. Exact-source CI evidence remains 4/4 SUCCESS on source/test SHA `2d0d7e9a2bf1190961126105d65f77d9926e6789`; later documentation commits do not inherit that exact-head claim.  
-**Batch 92:** Runtime implementation UNBLOCKED but not yet committed. Test plan now specifies 40 cases: 22 atomic/replay cases, 8 supplemental migration/recovery cases, and 10 canonical identity registry cases. Latest test-plan update: `3f3745250410cbf9c0488cbca8c18a6425e465d9`. Runtime source changes are not yet committed.  
-**Architecture proposal:** `docs/WORK_CYCLE_2026-11-26_BATCH92_STORAGE_DESIGN_DECISIONS_PROPOSED.md` recommends one active `synthetic-v1` generation per series, idempotent legacy-cursor bootstrap, SQLite as post-cutover source of truth, atomic event+digest+high-water, and bounded replay. It remains a design proposal and must be reconciled against the canonical event identity issue before implementation.  
-**Canonical identity design resolved:** `docs/WORK_CYCLE_2026-11-26_BATCH92_CANONICAL_SERIES_IDENTITY_DECISION.md` (commit `bb9d3a0bf89e4f4f811780db406f91ed703ffbb3`) specifies an immutable SQLite identity registry (migration v2), explicit identity on proof-only emit, first-write registration, conflict rejection, and byte-identical fan-out from the committed event. This is a design decision, not yet implemented.  
-**Latest exact-head CI:** prior verified 4/4 runs are attached to their exact source/test SHA only. No CI is claimed for the documentation-only commits in this section.  
-**Controls:** ZERO COST; synthetic-only; no live provider, broker/order endpoint, production secret, paid resource, deployment, or application `main` change. Target remains approximately 24 December 2026; delivery date is not guaranteed.
+**Active branch:** `phase-2/market-data-foundation` — `main` untouched.  
+**Latest documentation HEAD before this status update:** `d0c7a21e37a0e96ddd52607938a9472e1e5e04e9`.  
+**Reporting rule:** No active dashboard item is labelled RED. Unfinished or unverified work is YELLOW / IN PROGRESS with an explicit next action and exit criteria. GREEN requires implementation plus passing tests and exact-head CI. This colour convention does not disguise incomplete engineering work.
+
+## Overall checkpoint
+
+- **Batch 91:** GREEN — formally accepted for the synthetic-only proof scope. Exact-source CI evidence is 4/4 SUCCESS on source/test SHA `2d0d7e9a2bf1190961126105d65f77d9926e6789`; this evidence is not transferred to later documentation commits.
+- **Batch 92 architecture and execution plan:** GREEN — design decisions, identity resolution, 45-case test specification and multi-work execution package recorded.
+- **Batch 92 runtime implementation:** YELLOW — active next workstream; no Batch 92 runtime code has been committed or claimed as tested yet.
+- **SQLite schema v2 / identity registry:** YELLOW — implement and validate additive migration; preserve schema v1 and legacy keys.
+- **Atomic event commit / high-water:** YELLOW — implement one synchronous transaction and prove rollback/idempotency.
+- **Durable replay / retention:** YELLOW — implement ordered cursor-exclusive bounded pages and explicit recovery outcomes.
+- **WebSocket resume / replay-to-live handoff:** YELLOW — integrate replay and live fan-out under the per-DO protocol serialization boundary.
+- **Failure injection and exact-head CI:** YELLOW — run all relevant test suites and four required workflows on the same source/test SHA.
+- **ACK / consumer receipts / RESUME extensions:** YELLOW — queued behind Batch 92 replay correctness.
+- **Public WSS / Android end-to-end:** YELLOW — queued behind protocol and runtime acceptance.
+
+## Current verified engineering facts
+
+- Existing source uses a legacy `sequence:<seriesKey>` KV cursor in `acceptNextSequence()`; it advances before event fan-out and does not persist the canonical event payload atomically.
+- SQLite schema v1 already creates `series_state`, `series_events`, and `consumer_receipts`; their existence alone does not mean event persistence, replay, or receipts are implemented.
+- Batch 92 adds an immutable canonical series identity registry because the series key alone does not encode all digest-bound publisher/instrument identity fields.
+- Stable retry requires the emit request to reuse the same canonical `emittedAtNs`; a changed timestamp changes payload bytes and digest and is a conflicting duplicate.
+- Per-event persisted payload cap is 8,192 UTF-8 bytes. Replay page target is at most 100 events and at most 65,536 serialized UTF-8 bytes including framing and metadata; the implementation must measure bytes using UTF-8 encoding.
+- No runtime code, schema, dependency, production setting, paid resource or deployment was changed in this documentation work cycle.
+
+## Active work package
+
+See `docs/WORK_CYCLE_2026-11-26_BATCH92_EXECUTION_WORK_PACKAGE.md` for parallel workstreams, dependencies, quantitative limits, implementation order and acceptance gates.
+
+## Test inventory
+
+The Batch 92 plan specifies **45 cases** after adding canonical identity, stable retry and replay byte-boundary scenarios. This is a specification count, not an executed or passing test count.
+
+## CI evidence and cost controls
+
+The most recent verified 4/4 source CI remains attached to Batch 91 source/test SHA `2d0d7e9a2bf1190961126105d65f77d9926e6789`. No CI is claimed for documentation-only commits. No new CI was triggered or observed in this work cycle. ZERO COST remains mandatory: do not add paid services or deploy. Cloudflare's SQLite-backed Durable Object storage is subject to usage-based billing; event retention must be sized against the account's actual free allowance before runtime rollout.
+
+## Schedule
+
+Target completion remains approximately **24 December 2026**. Prioritize Batch 92 persistence and replay before ACK/RESUME, public WSS and Android E2E. Date remains a target, not a guarantee.
+
 
 ---
 
 # Latest implementation checkpoint — Batch 91 (26 November 2026)
 
-**Status:** IMPLEMENTATION IN PROGRESS — not accepted.  
+**Status:** FORMALLY ACCEPTED — synthetic-only Batch 91 scope.  
 **Active branch:** `phase-2/market-data-foundation`; application `main` remains untouched.  
 **Latest source/test SHA:** `2d0d7e9a2bf1190961126105d65f77d9926e6789`.  
 **Implemented:** provider-neutral protocol metadata and validators; canonical cursor and SHA-256 format validation; fixed-position canonical event digest encoding and stable vector; additive snapshot and stream metadata parsing; optional canonical series identity propagation; synthetic-only canonical bar/snapshot/update envelope builders; REST `/v1/ohlcv` exact-series identity path; WebSocket status-first auth, explicit subscribe, canonical snapshot/update, and versioned text-ping/pong; Worker Node, Miniflare and Durable Object regression coverage updated to the new contract.  
-**Latest exact-head CI:** 4/4 terminal SUCCESS on source/test SHA `2d0d7e9a2bf1190961126105d65f77d9926e6789`: Automated Tests run 45746150652; CodeQL 45746150693; Full Git History Secret Audit 45746150657; OCI ARM64 45746150726. Logs confirm frontend 35 files / 331 tests, Worker Node 33/33, Miniflare 1/1, Durable Object 15/15, backend pytest 1,435 passed / 1 skipped / 6 warnings, frontend build success, and backend container smoke success. These checks apply to the exact source/test SHA, not later documentation-only HEAD. Formal Batch 91 acceptance still requires owner review; do not mark accepted yet.  
+**Latest exact-head CI:** 4/4 terminal SUCCESS on source/test SHA `2d0d7e9a2bf1190961126105d65f77d9926e6789`: Automated Tests run 45746150652; CodeQL 45746150693; Full Git History Secret Audit 45746150657; OCI ARM64 45746150726. Logs confirm frontend 35 files / 331 tests, Worker Node 33/33, Miniflare 1/1, Durable Object 15/15, backend pytest 1,435 passed / 1 skipped / 6 warnings, frontend build success, and backend container smoke success. These checks apply to the exact source/test SHA, not later documentation-only HEAD. Formal Batch 91 acceptance is recorded in `docs/WORK_CYCLE_2026-11-26_BATCH91_FORMAL_ACCEPTANCE.md`.  
 **Snapshot/live boundary hardening:** Worker now serializes snapshot establishment with event persistence/fan-out through a Durable Object-local operation queue; the subscription reads the latest sequence watermark inside that queue before computing the digest and activating fan-out. Added a Durable Object runtime regression test for queue ordering. This is synthetic-proof coordination only, not durable replay/ACK storage. Durable event persistence, replay reads, ACK receipt persistence, and resume recovery remain Batch 92 scope, not claimed complete here.  
 **Cron relay:** Worker `dezzta-chart-runner-relay` is active at `https://dezzta-chart-runner-relay.deszztagd377.workers.dev`; Cloudflare secret-name inventory confirms `CRON_SECRET` and `GITHUB_TOKEN` are configured (values remain secret). The 10-minute relay is dispatching Runner `preflight.yml` only; recent successful Preflight runs include 45824937658, 45826534485, 45828148828, 45829773351 and 45831396293. This is preflight automation, not AI coding automation. AI smoke/audit workflows have not been observed running. Never schedule Batch89 every 10 minutes.  
-**Controls:** ZERO COST; no provider/live feed, Firebase production auth, broker/order endpoint, production secret, or deployment added; no application `main` changes. Batch 92/93 remain gated behind Batch 91 acceptance.  
+**Controls:** ZERO COST; no provider/live feed, Firebase production auth, broker/order endpoint, production secret, or deployment added; no application `main` changes. Batch 92 is unblocked. Batch 93 remains sequenced after Batch 92 replay acceptance.  
 **Detailed reconciliation:** `docs/WORK_CYCLE_2026-11-26_BATCH91_IMPLEMENTATION_RECONCILIATION.md` records the 43-commit implementation diff, exact-head 4/4 CI evidence, test counts, explicit Batch 92/93 boundaries and owner acceptance gate.  
-**Next-batch preparation:** `docs/WORK_CYCLE_2026-11-26_BATCH92_EVENT_COMMIT_REPLAY_TEST_PLAN.md` defines 22 deterministic atomic-commit/replay failure-injection cases; design only, Batch 92 runtime remains blocked until Batch 91 formal acceptance.
+**Next-batch preparation:** `docs/WORK_CYCLE_2026-11-26_BATCH92_EVENT_COMMIT_REPLAY_TEST_PLAN.md` defines 22 deterministic atomic-commit/replay failure-injection cases; design/test specification only; Batch 92 runtime is unblocked and remains in progress.
 
 ---
 
