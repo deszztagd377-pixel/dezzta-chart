@@ -8,6 +8,8 @@ import type {
 } from '../types/ohlcv';
 
 export interface OhlcvSeriesIdentity {
+  /** Optional canonical immutable key for the exact transport series. */
+  seriesKey?: string;
   provider?: string;
   seriesType?: 'contract' | 'continuous';
   dataset: string;
