@@ -49,3 +49,12 @@ Add cases for:
 ## Gate
 
 This decision resolves the design ambiguity that blocked a safe durable event implementation. It does not claim Batch 92 runtime implementation is complete. Implement schema v2, identity registration, atomic event commit and replay together with tests; do not ship a partial state where event fan-out is still per-subscriber but persistence claims one canonical event.
+
+
+## Stable event retry input
+
+The authenticated synthetic proof emit request must carry the full canonical `series` object, `seriesKey`, sequence, and canonical decimal-string `emittedAtNs` (1–32 digits). The Worker validates that the supplied identity maps exactly to the key and that the timestamp is valid before event construction.
+
+The same sequence retry is idempotent only when the stored event digest AND exact serialized payload bytes equal the newly constructed event. The caller must reuse the same `emittedAtNs` on retry; a changed timestamp changes the canonical bar receive time and digest and therefore conflicts. Persisted payload text is the authoritative fan-out/replay body. Never regenerate a stored event using a new timestamp.
+
+This makes the idempotency contract deterministic without inventing server identity values or weakening the Batch 91 digest contract.
