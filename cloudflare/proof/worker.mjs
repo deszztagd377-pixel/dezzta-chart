@@ -389,7 +389,7 @@ export async function acceptNextSequence(storage, seriesKey, sequence) {
   });
 }
 
-const DURABLE_SCHEMA_VERSION = 2;
+const DURABLE_SCHEMA_VERSION = 3;
 const MAX_DURABLE_EVENT_BYTES = 8_192;
 
 /**
@@ -495,9 +495,6 @@ export function applyDurableSchemaMigrations(storage, now = Date.now()) {
         CREATE TABLE IF NOT EXISTS series_identity (
           series_key TEXT PRIMARY KEY CHECK (length(series_key) BETWEEN 1 AND 128),
           identity_json TEXT NOT NULL CHECK (length(CAST(identity_json AS BLOB)) BETWEEN 2 AND 2048),
-          identity_digest TEXT NOT NULL CHECK (
-            length(identity_digest) = 64 AND identity_digest NOT GLOB '*[^0-9a-f]*'
-          ),
           created_at_ms INTEGER NOT NULL CHECK (created_at_ms >= 0)
         );
         CREATE TRIGGER IF NOT EXISTS series_identity_immutable_update
@@ -509,6 +506,40 @@ export function applyDurableSchemaMigrations(storage, now = Date.now()) {
           SELECT RAISE(ABORT, 'series identity is immutable');
         END;
         INSERT INTO schema_migrations (version, applied_at_ms) VALUES (2, ${now});
+      `);
+    }
+
+    if (currentVersion < 3) {
+      sql.exec(`
+        ALTER TABLE series_identity ADD COLUMN identity_digest TEXT NOT NULL DEFAULT ''
+          CHECK (
+            identity_digest = '' OR (
+              length(identity_digest) = 64
+              AND identity_digest NOT GLOB '*[^0-9a-f]*'
+            )
+          );
+        DROP TRIGGER IF EXISTS series_identity_immutable_update;
+        CREATE TRIGGER series_identity_immutable_update
+        BEFORE UPDATE ON series_identity
+        WHEN NEW.series_key <> OLD.series_key
+          OR NEW.identity_json <> OLD.identity_json
+          OR NEW.created_at_ms <> OLD.created_at_ms
+          OR (
+            OLD.identity_digest <> ''
+            AND NEW.identity_digest <> OLD.identity_digest
+          )
+          OR (
+            OLD.identity_digest = ''
+            AND (
+              NEW.identity_digest = ''
+              OR length(NEW.identity_digest) <> 64
+              OR NEW.identity_digest GLOB '*[^0-9a-f]*'
+            )
+          )
+        BEGIN
+          SELECT RAISE(ABORT, 'series identity is immutable');
+        END;
+        INSERT INTO schema_migrations (version, applied_at_ms) VALUES (3, ${now});
       `);
     }
 
@@ -547,9 +578,18 @@ export async function registerCanonicalSeriesIdentity(storage, series, now = Dat
       series.seriesKey,
     ).toArray();
     if (rows.length) {
-      return rows.length === 1 &&
-        rows[0].identity_json === identityJson &&
-        rows[0].identity_digest === identityDigest;
+      if (rows.length !== 1 || rows[0].identity_json !== identityJson) return false;
+      if (rows[0].identity_digest === identityDigest) return true;
+      if (rows[0].identity_digest !== '') return false;
+      storage.sql.exec(
+        "UPDATE series_identity SET identity_digest = ? WHERE series_key = ? AND identity_digest = ''",
+        identityDigest, series.seriesKey,
+      );
+      const hydrated = storage.sql.exec(
+        "SELECT identity_digest FROM series_identity WHERE series_key = ?",
+        series.seriesKey,
+      ).toArray();
+      return hydrated.length === 1 && hydrated[0].identity_digest === identityDigest;
     }
     storage.sql.exec(
       "INSERT INTO series_identity (series_key, identity_json, identity_digest, created_at_ms) VALUES (?, ?, ?, ?)",
@@ -593,11 +633,24 @@ export async function commitCanonicalEvent(storage, series, event, now = Date.no
       "SELECT identity_json, identity_digest FROM series_identity WHERE series_key = ?",
       series.seriesKey,
     ).toArray();
-    if (identities.length && (
-      identities[0].identity_json !== identityJson ||
-      identities[0].identity_digest !== identityDigest
-    )) {
+    if (identities.length && identities[0].identity_json !== identityJson) {
       return { accepted: false, reason: "series_identity_conflict" };
+    }
+    if (identities.length && identities[0].identity_digest !== identityDigest) {
+      if (identities[0].identity_digest !== "") {
+        return { accepted: false, reason: "series_identity_conflict" };
+      }
+      sql.exec(
+        "UPDATE series_identity SET identity_digest = ? WHERE series_key = ? AND identity_digest = ''",
+        identityDigest, series.seriesKey,
+      );
+      const hydrated = sql.exec(
+        "SELECT identity_digest FROM series_identity WHERE series_key = ?",
+        series.seriesKey,
+      ).toArray();
+      if (hydrated.length !== 1 || hydrated[0].identity_digest !== identityDigest) {
+        return { accepted: false, reason: "series_identity_conflict" };
+      }
     }
     const states = sql.exec("SELECT generation_id, high_water FROM series_state WHERE series_key = ?", series.seriesKey).toArray();
     if (states.length > 1) throw new Error("Series state primary-key invariant failed.");

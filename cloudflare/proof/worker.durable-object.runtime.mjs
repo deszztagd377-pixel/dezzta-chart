@@ -6,7 +6,7 @@ import {
   runInDurableObject,
 } from "cloudflare:test";
 import { afterEach, describe, expect, it } from "vitest";
-import { proofLimits } from "./worker.mjs";
+import { applyDurableSchemaMigrations, proofLimits, registerCanonicalSeriesIdentity } from "./worker.mjs";
 
 const ORIGIN = "http://localhost:3000";
 const TOKEN = "synthetic-proof-test-token-000000000000000000000000";
@@ -321,7 +321,7 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       };
     });
 
-    expect(first.versions).toEqual([{ version: 1 }, { version: 2 }]);
+    expect(first.versions).toEqual([{ version: 1 }, { version: 2 }, { version: 3 }]);
     expect(first.tables).toEqual([
       "consumer_receipts",
       "schema_migrations",
@@ -363,9 +363,50 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       ).one().count,
     }));
 
-    expect(restored.versions).toEqual([{ version: 1 }, { version: 2 }]);
+    expect(restored.versions).toEqual([{ version: 1 }, { version: 2 }, { version: 3 }]);
     expect(restored.legacyCursor).toBe(50);
     expect(restored.eventCount).toBe(1);
+  });
+
+  it("upgrades an existing v2 identity row to v3 without changing its canonical identity", async () => {
+    const stub = coordinatorStub(SERIES_B);
+    const series = canonicalSeries(SERIES_B);
+    await runInDurableObject(stub, async (_instance, state) => {
+      const sql = state.storage.sql;
+      sql.exec("DROP TRIGGER IF EXISTS series_identity_immutable_update");
+      sql.exec("ALTER TABLE series_identity DROP COLUMN identity_digest");
+      sql.exec("DELETE FROM schema_migrations WHERE version = 3");
+      sql.exec(
+        "INSERT INTO series_identity (series_key, identity_json, created_at_ms) VALUES (?, ?, ?)",
+        SERIES_B, JSON.stringify(series), 1,
+      );
+      sql.exec(`
+        CREATE TRIGGER series_identity_immutable_update
+        BEFORE UPDATE ON series_identity BEGIN
+          SELECT RAISE(ABORT, 'series identity is immutable');
+        END
+      `);
+    });
+
+    const result = await runInDurableObject(stub, async (_instance, state) => {
+      const version = applyDurableSchemaMigrations(state.storage, 2);
+      const hydrated = await registerCanonicalSeriesIdentity(state.storage, series, 3);
+      const row = state.storage.sql.exec(
+        "SELECT identity_json, identity_digest FROM series_identity WHERE series_key = ?",
+        SERIES_B,
+      ).toArray();
+      return { version, hydrated, row };
+    });
+    expect(result.version).toBe(3);
+    expect(result.hydrated).toBe(true);
+    expect(JSON.parse(result.row[0].identity_json)).toEqual(series);
+    expect(result.row[0].identity_digest).toMatch(/^[0-9a-f]{64}$/);
+    await runInDurableObject(stub, async (_instance, state) => {
+      expect(() => state.storage.sql.exec(
+        "UPDATE series_identity SET identity_json = ? WHERE series_key = ?",
+        "{}", SERIES_B,
+      )).toThrow();
+    });
   });
 
   it("registers canonical identity on snapshot before any event and rejects conflicting snapshots", async () => {
