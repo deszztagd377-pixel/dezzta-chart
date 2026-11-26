@@ -29,6 +29,46 @@ export function isValidSyntheticSeriesKey(value) {
   return typeof value === "string" && value.length <= 128 && SERIES_PATTERN.test(value);
 }
 
+function syntheticSeriesFromUrl(url) {
+  const suppliedKey = url.searchParams.get("seriesKey");
+  if (suppliedKey && isValidSyntheticSeriesKey(suppliedKey)) {
+    const [, dataset, rawSymbol, timeframe] = suppliedKey.split(":");
+    return {
+      seriesKey: suppliedKey,
+      provider: "synthetic",
+      seriesType: "contract",
+      dataset,
+      publisherId: 1,
+      instrumentId: 1,
+      rawSymbol,
+      timeframe,
+      bucketPolicy: "UTC_LEGACY",
+      calendarId: "",
+      calendarVersion: "",
+    };
+  }
+  if (url.searchParams.get("provider") !== "synthetic") return null;
+  const dataset = url.searchParams.get("dataset");
+  const rawSymbol = url.searchParams.get("raw_symbol");
+  const timeframe = url.searchParams.get("timeframe");
+  const publisherId = Number(url.searchParams.get("publisher_id"));
+  const instrumentId = Number(url.searchParams.get("instrument_id"));
+  const bucketPolicy = url.searchParams.get("bucket_policy") || "UTC_LEGACY";
+  const calendarId = url.searchParams.get("calendar_id") || "";
+  const calendarVersion = url.searchParams.get("calendar_version") || "";
+  if (!dataset || !rawSymbol || !timeframe ||
+      !Number.isSafeInteger(publisherId) || publisherId <= 0 ||
+      !Number.isSafeInteger(instrumentId) || instrumentId <= 0) return null;
+  const seriesKey = `synthetic:${dataset}:${rawSymbol}:${timeframe}`;
+  const identity = {
+    seriesKey, provider: "synthetic", seriesType: "contract",
+    dataset, publisherId, instrumentId, rawSymbol, timeframe,
+    bucketPolicy, calendarId, calendarVersion,
+  };
+  if (suppliedKey && suppliedKey !== seriesKey) return null;
+  return validateSyntheticCanonicalSeries(identity) ? identity : null;
+}
+
 export function parseSequence(value, { minimum = 1, maximum = 1_000_000_000 } = {}) {
   if (typeof value !== "string" || value.length > 10 || !/^[0-9]+$/.test(value)) return null;
   const parsed = Number(value);
@@ -522,6 +562,30 @@ export class SeriesCoordinatorDO {
 
   async fetch(request) {
     const url = new URL(request.url);
+    if (url.pathname === "/internal/snapshot" && request.method === "POST") {
+      const body = await readSmallJson(request);
+      if (!body || !validateSyntheticCanonicalSeries(body.series)) {
+        return jsonResponse({ error: "invalid_series" }, 400);
+      }
+      const current = await this.ctx.storage.get("sequence:" + body.series.seriesKey);
+      const watermark = current === undefined ? SNAPSHOT_WATERMARK : current;
+      if (!Number.isSafeInteger(watermark) || watermark < SNAPSHOT_WATERMARK || watermark > 1_000_000_000) {
+        return jsonResponse({ error: "temporarily_unavailable" }, 503);
+      }
+      const asOfNs = (BigInt(Date.now()) * 1_000_000n).toString();
+      const firstSequence = watermark - SNAPSHOT_BARS + 1;
+      const bars = Array.from({ length: SNAPSHOT_BARS }, (_, index) =>
+        createSyntheticCanonicalBar(body.series, firstSequence + index, asOfNs)
+      );
+      const snapshot = await createSyntheticSnapshotEnvelope(body.series, bars, watermark);
+      return jsonResponse({
+        ...snapshot,
+        streamId: "synthetic:" + body.series.seriesKey,
+        watermark,
+        cursor: String(watermark),
+      });
+    }
+
     if (url.pathname === "/internal/ticket" && request.method === "POST") {
       const body = await readSmallJson(request);
       if (!body || !isValidSyntheticSeriesKey(body.seriesKey)) {
@@ -812,19 +876,24 @@ export default {
     }
 
     if (url.pathname === "/v1/ohlcv" && request.method === "GET") {
-      const seriesKey = url.searchParams.get("seriesKey");
-      if (!isValidSyntheticSeriesKey(seriesKey)) {
-        return withCors(jsonResponse({ error: "invalid_series" }, 400), origin);
+      const series = syntheticSeriesFromUrl(url);
+      if (!series) {
+        return withCors(jsonResponse({
+          type: "market_data.error",
+          version: PROTOCOL_VERSION,
+          code: "invalid_series",
+          retryable: false,
+          correlationId: "snapshot-" + Date.now(),
+          message: "A complete explicit synthetic series identity is required for this proof endpoint.",
+        }, 400), origin);
       }
-      return withCors(jsonResponse({
-        type: "market_data.snapshot",
-        version: PROTOCOL_VERSION,
-        streamId: "synthetic:" + seriesKey,
-        snapshotGeneration: "synthetic-v1",
-        watermarkCursor: String(SNAPSHOT_WATERMARK),
-        bars: createSyntheticBars(seriesKey, SNAPSHOT_BARS),
-        dataSource: "synthetic_only_not_market_data",
-      }), origin);
+      const stub = env.SERIES_COORDINATOR.get(env.SERIES_COORDINATOR.idFromName(series.seriesKey));
+      const snapshotResponse = await stub.fetch("https://series.internal/internal/snapshot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ series }),
+      });
+      return withCors(snapshotResponse, origin);
     }
 
     if (url.pathname === "/v1/auth/websocket-ticket" && request.method === "POST") {
