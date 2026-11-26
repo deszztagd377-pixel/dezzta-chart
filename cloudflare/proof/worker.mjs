@@ -1403,6 +1403,21 @@ export default {
       return withCors(issued, origin);
     }
 
+    if (url.pathname === "/__proof/compact" && request.method === "POST") {
+      const body = await readSmallJson(request);
+      if (!body || !isValidSyntheticSeriesKey(body.seriesKey) ||
+          !Number.isSafeInteger(body.throughSequence) || body.throughSequence < 0) {
+        return withCors(jsonResponse({ error: "invalid_compaction_request" }, 400), origin);
+      }
+      const stub = env.SERIES_COORDINATOR.get(env.SERIES_COORDINATOR.idFromName(body.seriesKey));
+      const compacted = await stub.fetch("https://series.internal/internal/compact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      return withCors(compacted, origin);
+    }
+
     if (url.pathname === "/__proof/emit" && request.method === "POST") {
       const body = await readSmallJson(request);
       if (!body || !isValidSyntheticSeriesKey(body.seriesKey) ||
