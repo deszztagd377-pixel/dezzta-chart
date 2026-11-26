@@ -113,3 +113,15 @@ Batch 92 may be marked accepted only when:
 **Batch 92 runtime implementation: UNBLOCKED; implementation not yet committed.**  
 **Batch 92 test design: PREPARED in this document.**  
 **No runtime source or schema migration was changed by this work cycle.**
+
+
+## 6B. Stable retry and exact page-byte cases
+
+Add these mandatory acceptance cases to the existing inventory:
+- B92-RETRY-01: emit request includes a canonical `emittedAtNs`; replaying the identical request produces byte-identical event payload and digest and is idempotently acknowledged.
+- B92-RETRY-02: same series/generation/sequence with a different `emittedAtNs`, digest, or payload bytes is rejected as a sequence conflict; stored row and high-water remain unchanged.
+- B92-PAGE-01: page builder measures `TextEncoder().encode(JSON.stringify(response)).byteLength`, including envelope and cursor metadata, and never exceeds 65,536 bytes.
+- B92-PAGE-02: page builder stops before the first event that would exceed either the 100-event cap or byte budget; next cursor equals the last included sequence.
+- B92-PAGE-03: a single event that cannot fit an empty page produces an explicit error, not an empty successful page or an infinite `hasMore` loop.
+
+The inventory is now 45 specified cases. This is a test specification count only; it is not a count of executed or passing tests.
