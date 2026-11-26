@@ -2,7 +2,7 @@
 
 **Date:** 26 November 2026  
 **Branch:** `phase-2/market-data-foundation`  
-**Exact source/test SHA:** `a8486f710308b5be98929398bbbecba7a89cd99f`  
+**Exact source/test SHA:** `c8f2a4bb911a63af44ee581d3c1085377c604b44`  
 **Documentation HEAD at report creation:** `970c092240f48a9ffd9fe35743fa8e0ba51dfe85`  
 **Cost/deployment:** ZERO COST; synthetic-only proof; no production deployment or new paid resource.
 
@@ -22,14 +22,14 @@ All four required workflows completed successfully on the same source/test SHA `
 
 | Workflow | Run | Result |
 |---|---:|---|
-| Automated Tests | [45854423934](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45854423934) | SUCCESS |
-| CodeQL Security Analysis | [45854423864](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45854423864) | SUCCESS |
-| OCI ARM64 Image Readiness | [45854424104](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45854424104) | SUCCESS |
-| Full Git History Secret Audit | [45854423933](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45854423933) | SUCCESS |
+| Automated Tests | [45855836242](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45855836242) | SUCCESS |
+| CodeQL Security Analysis | [45855836274](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45855836274) | SUCCESS |
+| OCI ARM64 Image Readiness | [45855836304](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45855836304) | SUCCESS |
+| Full Git History Secret Audit | [45855836341](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45855836341) | SUCCESS |
 
 ### Test/build evidence
 
-- Worker Node proof: **33/33 passed**.
+- Worker Node proof: **36/36 passed**, including three replay-focused unit groups covering cursor states, corrupt payload/sequence gaps, 100-event pagination and the serialized UTF-8 byte ceiling.
 - Miniflare pinned workerd integration: **1/1 passed**, exercising authentication, snapshot, live fan-out, persisted replay from cursor 50 to 51, replay envelope byte cap, atomic compaction deleting one event and advancing floor to 51, then expired-cursor resnapshot.
 - Durable Object runtime suite: **18/18 passed**, including the updated explicit `retention_expired` contract.
 - Frontend Vitest: **35 test files / 331 tests passed**.
@@ -41,12 +41,12 @@ All four required workflows completed successfully on the same source/test SHA `
 
 ## Corrections and transparency
 
-An earlier CI attempt on predecessor SHA `efc25e8867e852a1d3f38902bbbed9e6bcfd2256` exposed one stale Durable Object assertion expecting the old generic replay-unavailable reason. The implementation correctly returned `retention_expired`; the assertion was updated. The subsequent exact-head run listed above passed. The earlier failed run is not counted as a pass.
+An earlier CI attempt on predecessor SHA `efc25e8867e852a1d3f38902bbbed9e6bcfd2256` exposed one stale Durable Object assertion expecting the old generic replay-unavailable reason. The implementation correctly returned `retention_expired`; the assertion was updated. The subsequent exact-head run listed above passed. The earlier failed run is not counted as a pass. A further source/test batch added fail-closed missing-sequence detection and three replay-specific Node test groups; all 36 Worker Node tests passed on the SHA recorded above.
 
 ## Remaining work — YELLOW, not GREEN
 
 - Legacy bootstrap: add seeded-cursor and interrupted-bootstrap fault-injection tests.
-- Replay: test 100-event and 65,536-byte boundaries, cursor-ahead, generation mismatch, corrupt payload and missing-sequence detection.
+- Replay: the 100-event and 65,536-byte bounds, cursor-ahead, generation mismatch, corrupt payload and missing-sequence detection now have Node coverage; additional real-SQLite boundary and injected-corruption cases remain.
 - Replay/retention: add concurrent compaction/replay and rollback/failure injection; define an operational retention policy only after storage/quota measurements.
 - WebSocket: add a deterministic replay-to-live race test and exercise multi-page replay plus the >10-page snapshot fallback.
 - ACK/consumer receipts/RESUME protocol extensions remain queued behind these tests.
