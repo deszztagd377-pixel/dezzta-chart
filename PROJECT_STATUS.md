@@ -1,3 +1,16 @@
+# Latest implementation checkpoint — Batch 91 (26 November 2026)
+
+**Status:** IMPLEMENTATION IN PROGRESS — not accepted.  
+**Active branch:** `phase-2/market-data-foundation`; `main` remains untouched.  
+**Latest source SHA:** `c1c41d7fcb6e1df835f57ccee601e1bb6167d7e1`.  
+**Implemented so far:** provider-neutral protocol metadata types; synthetic-only provenance validator; canonical cursor/SHA-256 validators; fixed-position canonical event digest encoding and stable test vector; additive snapshot metadata validation; additive stream-event metadata validation and preservation; canonical series key propagation through the frontend WebSocket subscription and sequence guard; regression tests for legacy compatibility and malformed durable metadata.  
+**Exact-head CI:** pending for source SHA `c1c41d7fcb6e1df835f57ccee601e1bb6167d7e1`. Earlier test run on `8344f34be9a1e8815a0f8529a94d5244b11382c9` exposed one metadata-return regression; fixed by preserving validated fields in the parser output. Do not treat that earlier failed run as accepted.  
+**Still open in Batch 91:** Worker-side provider-neutral contract module; synthetic canonical bar builder; REST `/v1/ohlcv` exact-series compatibility; status-first WebSocket auth/subscribe/snapshot flow; literal `ping` → versioned `market_data.pong`; replay/error envelopes; negative Worker tests; exact-head CI closure.  
+**Cron relay:** Worker `dezzta-chart-runner-relay` exists at `https://dezzta-chart-runner-relay.deszztagd377.workers.dev`; relay currently has no `CRON_SECRET` or `GITHUB_TOKEN` secrets configured. Runner repository already contains `preflight.yml` and the manual Batch89 workflow. Runner README now documents the POST contract and required secret names. The cron-job.org 10-minute schedule remains inactive until secrets are configured and manual dispatch returns HTTP 202. Never schedule Batch89 every 10 minutes.  
+**Controls:** ZERO COST; no provider, Firebase production auth, broker/order endpoint, live feed, or deployment added; no application `main` changes; no production secrets committed. Batch 92/93 remain gated behind Batch 91 acceptance.
+
+---
+
 # Latest design checkpoint — Batch 91 (26 November 2026)
 
 **Code baseline:** `9a2f2b9faebdcaf1e97e93c6dfe85a2c93319fbb`; Batch 90 source/test acceptance is 4/4 CI SUCCESS.  
