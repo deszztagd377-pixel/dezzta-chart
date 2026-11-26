@@ -14,11 +14,11 @@ No active work item is displayed as RED. Work not yet verified is YELLOW / IN PR
 | ID | Workstream | Active state | Dependency | Exit criteria |
 |---|---|---|---|---|
 | B92-01 | SQLite schema v2/v3 + immutable identity registry | GREEN / CI VERIFIED | Batch 91 accepted | Fresh and existing-v2 migration, digest hydration, immutable triggers, snapshot registration, legacy KV preservation and DO eviction tests pass |
-| B92-02 | Legacy cursor bootstrap and cutover | YELLOW / PARTIAL | B92-01 | One-time KV→SQLite bootstrap now runs during subscribe; add seeded-legacy-cursor and interrupted-bootstrap regression; prove SQLite authority and no dual-write |
+| B92-02 | Legacy cursor bootstrap and cutover | YELLOW / PARTIAL | B92-01 | One-time KV→SQLite bootstrap runs during subscribe; Node tests cover seeded cursor, SQLite authority and interrupted transaction retry; real-workerd seeded-KV migration/eviction acceptance remains |
 | B92-03 | Canonical event commit | GREEN / CI VERIFIED | B92-01/02 | Canonical event/digest + high-water atomic transaction, stable retry, changed timestamp conflict, identity conflict, gap and concurrency tests pass |
-| B92-04 | Replay and retention | YELLOW / IMPLEMENTED, PARTIAL CI VERIFIED | B92-03 | Cursor-exclusive SQLite pages; <=100 events and <=65,536 actual UTF-8 bytes; generation/cursor/retention/corruption outcomes; atomic compaction. Page-boundary, corruption and fault-injection cases remain |
+| B92-04 | Replay and retention | YELLOW / IMPLEMENTED, PARTIAL CI VERIFIED | B92-03 | Cursor-exclusive SQLite pages; <=100 events and <=65,536 actual UTF-8 bytes; generation/cursor/retention/corruption/sequence-gap outcomes; atomic compaction. Node page-boundary tests pass; real-SQLite corruption and failure-injection cases remain |
 | B92-05 | WebSocket subscribe/resume integration | YELLOW / INTEGRATED, PARTIAL CI VERIFIED | B92-04 | Valid cursor replays up to 10 bounded pages under the DO serialization queue; expired/mismatched cursors resnapshot; >10-page backlog falls back to snapshot. Add dedicated replay/live race and multi-page acceptance tests |
-| B92-06 | Failure and concurrency tests | YELLOW / PARTIAL | B92-01..05 | Workerd verifies one-event replay, compaction deletion/floor advance and retention-expiry resnapshot. Add rollback/fan-out failure, seeded bootstrap, 100-event/65,536-byte page boundaries, generation mismatch, corrupt payload and replay/live race tests |
+| B92-06 | Failure and concurrency tests | YELLOW / PARTIAL | B92-01..05 | Workerd verifies one-event replay, compaction deletion/floor advance and retention-expiry resnapshot. Add rollback/fan-out failure, real-workerd seeded bootstrap, 100-event/65,536-byte SQLite page boundaries, injected generation/payload corruption and replay/live race tests |
 | B92-07 | Exact-head CI | GREEN / 4 OF 4 SUCCESS | Current source/test HEAD | Automated Tests, CodeQL, secret audit and OCI ARM64 all terminal-success on the same tested source/test SHA |
 
 ## Required implementation sequence
@@ -56,7 +56,7 @@ No active work item is displayed as RED. Work not yet verified is YELLOW / IN PR
 
 ## Test and release gates
 
-The 45-case inventory remains a specification, not a pass count. Exact-head CI on `c8f2a4bb911a63af44ee581d3c1085377c604b44` verifies the identity/persistence slice plus the implemented bounded replay, compaction and valid-cursor WebSocket path. Page-boundary, generation/corruption, seeded-bootstrap, replay/live race and additional failure-injection cases remain. See the exact-head report for run IDs and observed counts. Documentation-only commits are not evidence of runtime CI.
+The 45-case inventory remains a specification, not a pass count. Exact-head CI on `17857c948cb932d5465eaca1e46dae15ce6c0344` verifies identity/persistence, bounded replay, missing-sequence detection, compaction, valid-cursor WebSocket resume, replay page boundaries and unit-level seeded/interrupted bootstrap. Real-workerd seeded bootstrap, replay/live race and injected SQLite corruption/failure cases remain. See the exact-head report for run IDs and observed counts. Documentation-only commits are not evidence of runtime CI.
 
 ## Cost and platform guardrail
 
