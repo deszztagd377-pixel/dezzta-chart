@@ -264,6 +264,42 @@ test("snapshot endpoint returns exactly 50 synthetic bars", async () => {
   assert.equal(payload.bars[0].provider, "synthetic");
 });
 
+test("REST snapshot requires and preserves the exact explicit synthetic series identity", async () => {
+  const query = new URLSearchParams({
+    provider: "synthetic",
+    dataset: "DEMO",
+    publisher_id: "9",
+    instrument_id: "123",
+    raw_symbol: "ESZ6",
+    timeframe: "5m",
+    bucket_policy: "UTC_LEGACY",
+    calendar_id: "",
+    calendar_version: "",
+  });
+  const response = await worker.fetch(
+    request("/v1/ohlcv?" + query.toString(), { token: TOKEN }),
+    makeEnv(),
+  );
+  const snapshot = await response.json();
+  assert.equal(response.status, 200);
+  assert.equal(snapshot.type, "market_data.ohlcv.snapshot");
+  assert.equal(snapshot.bars[0].dataset, "DEMO");
+  assert.equal(snapshot.bars[0].publisherId, 9);
+  assert.equal(snapshot.bars[0].instrumentId, 123);
+  assert.equal(snapshot.bars[0].rawSymbol, "ESZ6");
+  assert.equal(snapshot.bars[0].timeframe, "5m");
+  assert.equal(snapshot.bars[0].provider, "synthetic");
+
+  const noSyntheticOptIn = await worker.fetch(
+    request("/v1/ohlcv?" + new URLSearchParams({
+      dataset: "DEMO", publisher_id: "9", instrument_id: "123",
+      raw_symbol: "ESZ6", timeframe: "5m",
+    }).toString(), { token: TOKEN }),
+    makeEnv(),
+  );
+  assert.equal(noSyntheticOptIn.status, 400);
+});
+
 test("streaming JSON reader cancels an oversized body without buffering the remainder", async () => {
   let cancelled = false;
   let pulls = 0;
