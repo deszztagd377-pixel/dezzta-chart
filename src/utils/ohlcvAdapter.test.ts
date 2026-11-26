@@ -52,6 +52,41 @@ describe('parseOhlcvSnapshot', () => {
     expect(result.bars[0].tsStartNs).toBe('1793577600000000000');
   });
 
+  it('accepts complete Batch 91 durable metadata while keeping legacy snapshots valid', () => {
+    const provenance = {
+      mode: 'synthetic',
+      dataStatus: 'synthetic_only',
+      provider: null,
+      dataset: 'DEMO',
+      asOfNs: '1793577601000000000',
+      providerConnected: false,
+    };
+    const durable = parseOhlcvSnapshot(makeSnapshot({
+      generationId: 'synthetic-v1',
+      highWaterCursor: '50',
+      retentionFloorCursor: '1',
+      snapshotDigest: 'a'.repeat(64),
+      provenance,
+    }));
+    expect(durable.generationId).toBe('synthetic-v1');
+    expect(durable.highWaterCursor).toBe('50');
+    expect(durable.provenance?.dataStatus).toBe('synthetic_only');
+    expect(() => parseOhlcvSnapshot(makeSnapshot({
+      generationId: 'synthetic-v1',
+      highWaterCursor: '50',
+      retentionFloorCursor: '51',
+      snapshotDigest: 'a'.repeat(64),
+      provenance,
+    }))).toThrow(/durable metadata/i);
+    expect(() => parseOhlcvSnapshot(makeSnapshot({
+      generationId: 'synthetic-v1',
+      highWaterCursor: '50',
+      retentionFloorCursor: '1',
+      snapshotDigest: 'A'.repeat(64),
+      provenance,
+    }))).toThrow(/durable metadata/i);
+  });
+
   it('rejects unsupported message versions', () => {
     expect(() => parseOhlcvSnapshot(makeSnapshot({ version: 2 }))).toThrow(/version/);
   });
