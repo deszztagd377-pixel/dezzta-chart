@@ -237,9 +237,15 @@ test("snapshot endpoint returns exactly 50 synthetic bars", async () => {
   );
   const payload = await response.json();
   assert.equal(response.status, 200);
+  assert.equal(payload.type, "market_data.ohlcv.snapshot");
+  assert.equal(payload.version, 1);
   assert.equal(payload.bars.length, 50);
-  assert.equal(payload.watermarkCursor, "50");
-  assert.equal(payload.dataSource, "synthetic_only_not_market_data");
+  assert.equal(payload.highWaterCursor, "50");
+  assert.equal(payload.retentionFloorCursor, "1");
+  assert.equal(payload.provenance.mode, "synthetic");
+  assert.equal(payload.provenance.dataStatus, "synthetic_only");
+  assert.equal(payload.provenance.providerConnected, false);
+  assert.equal(payload.bars[0].provider, "synthetic");
 });
 
 test("streaming JSON reader cancels an oversized body without buffering the remainder", async () => {
