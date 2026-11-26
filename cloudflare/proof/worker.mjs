@@ -1,3 +1,10 @@
+import {
+  createSyntheticCanonicalBar,
+  createSyntheticSnapshotEnvelope,
+  createSyntheticUpdateEnvelope,
+  validateSyntheticCanonicalSeries,
+} from "./market-data-contract.mjs";
+
 /**
  * DEZZTA CHART synthetic-only Cloudflare proof.
  *
@@ -194,10 +201,16 @@ function isValidSocketAttachment(attachment) {
   ) return false;
 
   if (attachment.authorized) {
-    return attachment.subject === "synthetic-proof-subject" &&
+    const validBase = attachment.subject === "synthetic-proof-subject" &&
       Number.isSafeInteger(attachment.snapshotWatermark) &&
       attachment.snapshotWatermark >= SNAPSHOT_WATERMARK &&
       attachment.snapshotWatermark <= 1_000_000_000;
+    if (!validBase) return false;
+    if (attachment.subscribed === true) {
+      return validateSyntheticCanonicalSeries(attachment.series) &&
+        attachment.series.seriesKey === attachment.seriesKey;
+    }
+    return attachment.subscribed === undefined || attachment.subscribed === false;
   }
   return attachment.subject === null;
 }
@@ -590,9 +603,17 @@ export class SeriesCoordinatorDO {
           try { socket.close(4401, "Invalid connection state"); } catch { /* already closed */ }
           continue;
         }
-        if (attachment.authorized && attachment.seriesKey === body.seriesKey) {
+        if (attachment.authorized && attachment.seriesKey === body.seriesKey &&
+            attachment.subscribed !== false) {
           try {
-            socket.send(JSON.stringify(event));
+            const outbound = attachment.subscribed === true && attachment.series
+              ? await createSyntheticUpdateEnvelope(
+                  attachment.series,
+                  sequence,
+                  (BigInt(Date.now()) * 1_000_000n).toString(),
+                )
+              : event;
+            socket.send(JSON.stringify(outbound));
             delivered += 1;
           } catch {
             try { socket.close(1011, "Synthetic fan-out failed"); } catch { /* already closed */ }
@@ -609,6 +630,14 @@ export class SeriesCoordinatorDO {
     const raw = typeof message === "string"
       ? message
       : new TextDecoder().decode(message);
+    if (raw === "ping") {
+      socket.send(JSON.stringify({
+        type: "market_data.pong",
+        version: PROTOCOL_VERSION,
+        serverTimeNs: (BigInt(Date.now()) * 1_000_000n).toString(),
+      }));
+      return;
+    }
     if (new TextEncoder().encode(raw).byteLength > MAX_REQUEST_BYTES) {
       socket.close(4400, "Message too large");
       return;
@@ -658,26 +687,60 @@ export class SeriesCoordinatorDO {
         socket.close(4408, "Authentication timeout");
         return;
       }
-      socket.serializeAttachment(authorized);
-      // Send the snapshot synchronously before the next await. This establishes
-      // the snapshot/live boundary: subsequent updates are delivered after it.
+      socket.serializeAttachment({ ...authorized, subscribed: false, series: null });
       socket.send(JSON.stringify({
-        type: "market_data.snapshot",
+        type: "market_data.status",
         version: PROTOCOL_VERSION,
-        streamId: "synthetic:" + attachment.seriesKey,
-        snapshotGeneration: "synthetic-v1",
-        watermarkCursor: String(snapshotWatermark),
-        bars: createSyntheticBars(attachment.seriesKey, SNAPSHOT_BARS, snapshotWatermark),
+        source: "synthetic",
         dataSource: "synthetic_only_not_market_data",
+        providerConnected: false,
+        liveProviderEnabled: false,
       }));
       await this.scheduleUnauthenticatedSocketAlarm();
       return;
     }
 
-    if (payload?.type === "ping") {
-      socket.send(JSON.stringify({ type: "pong", version: PROTOCOL_VERSION }));
+    if (raw === "ping" || payload?.type === "ping") {
+      socket.send(JSON.stringify({
+        type: "market_data.pong",
+        version: PROTOCOL_VERSION,
+        serverTimeNs: (BigInt(Date.now()) * 1_000_000n).toString(),
+      }));
       return;
     }
+
+    if (payload?.type === "market_data.subscribe" && payload.version === PROTOCOL_VERSION) {
+      const series = payload.series;
+      if (!validateSyntheticCanonicalSeries(series) || series.seriesKey !== attachment.seriesKey) {
+        socket.send(JSON.stringify({
+          type: "market_data.error",
+          version: PROTOCOL_VERSION,
+          code: "invalid_series",
+          retryable: false,
+          correlationId: "subscribe-" + Date.now(),
+          message: "The requested synthetic series identity is invalid.",
+        }));
+        socket.close(4400, "Invalid subscription");
+        return;
+      }
+      const subscribed = { ...attachment, subscribed: true, series };
+      socket.serializeAttachment(subscribed);
+      const watermark = attachment.snapshotWatermark;
+      const asOfNs = (BigInt(Date.now()) * 1_000_000n).toString();
+      const firstSequence = watermark - SNAPSHOT_BARS + 1;
+      const bars = Array.from({ length: SNAPSHOT_BARS }, (_, index) =>
+        createSyntheticCanonicalBar(series, firstSequence + index, asOfNs)
+      );
+      const snapshot = await createSyntheticSnapshotEnvelope(series, bars, watermark);
+      socket.send(JSON.stringify({
+        ...snapshot,
+        streamId: "synthetic:" + attachment.seriesKey,
+        watermark: watermark,
+        cursor: String(watermark),
+      }));
+      return;
+    }
+
     socket.close(4400, "Unsupported synthetic proof message");
   }
 
