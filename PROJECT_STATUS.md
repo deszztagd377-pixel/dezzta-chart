@@ -1,9 +1,9 @@
 # Latest project reconciliation — Batch 92 preparation (26 November 2026)
 
-**Documentation HEAD:** `9afa77140ebf4d1c8cb65a6c2b403c5edb6187d3` (documentation-only; CI intentionally skipped).  
+**Documentation HEAD:** `a932bf2619d9658e94184c45858cd8e5647e129f` (documentation-only; CI intentionally skipped).  
 **Latest audited workflow HEAD:** `8c94b27e5cccb2de64417aad38829dbf86086ebe`; all four required workflows completed SUCCESS: Automated Tests 45832882752, CodeQL 45832882795, Full Git History Secret Audit 45832882892, OCI ARM64 45832882749. The automated test job completed all 41 steps successfully, including frontend tests/build, Worker Node proof, pinned Miniflare/workerd, Durable Object runtime, backend tests, and container smoke checks.  
 **Runtime source/test baseline:** Batch 91 source/test SHA remains `2d0d7e9a2bf1190961126105d65f77d9926e6789`; the latest source implementation is not being represented as newer than that SHA.  
-**Batch 92 preparation:** Added `docs/WORK_CYCLE_2026-11-26_BATCH92_PREIMPLEMENTATION_ENGINEERING_REVIEW.md`. It records five implementation design gaps and eight additional deterministic tests, including legacy-cursor bootstrap, generation cardinality, transaction atomicity, replay byte limits, and post-commit fan-out recovery.  
+**Batch 92 preparation:** Added `docs/WORK_CYCLE_2026-11-26_BATCH92_PREIMPLEMENTATION_ENGINEERING_REVIEW.md` and `docs/WORK_CYCLE_2026-11-26_BATCH92_STORAGE_DESIGN_DECISIONS_PROPOSED.md`. The proposal recommends one active `synthetic-v1` generation per series key, idempotent legacy-cursor bootstrap, SQLite as sole post-cutover cursor source, atomic event+digest+high-water transaction, and bounded 100-event / 64-KiB replay pages. These are proposed decisions, not owner-approved or runtime-implemented. Eight supplemental deterministic tests extend the 22-case Batch 92 plan to 30 cases.  
 **Gate:** Batch 91 formal acceptance remains OWNER REVIEW REQUIRED. Batch 92 runtime implementation remains NOT STARTED / BLOCKED; this documentation review does not bypass the gate. No runtime code, schema, dependencies, production settings, or deployment changed. `main` remains untouched; ZERO COST remains mandatory.
 
 ---
