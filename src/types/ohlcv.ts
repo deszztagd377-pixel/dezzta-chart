@@ -59,4 +59,17 @@ export interface OhlcvSnapshotMessage {
   feedState?: 'connecting' | 'live' | 'recovering' | 'degraded' | 'disconnected';
   count?: number;
   truncated?: boolean;
+  /** Batch 91 durable snapshot metadata; absent on legacy payloads. */
+  generationId?: string;
+  highWaterCursor?: string;
+  retentionFloorCursor?: string;
+  snapshotDigest?: string;
+  provenance?: {
+    mode: 'synthetic' | 'provider';
+    dataStatus: 'synthetic_only' | 'live' | 'stale' | 'unavailable' | 'error';
+    provider: string | null;
+    dataset: string | null;
+    asOfNs: string | null;
+    providerConnected: boolean;
+  };
 }
