@@ -84,6 +84,8 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
   });
 
   let clientSocket;
+  let resumeSocket;
+  let retentionSocket;
   try {
     await miniflare.ready;
 
@@ -206,6 +208,84 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
       delivered: 0,
     });
 
+    // A reconnect with the last durable cursor receives the persisted event,
+    // not a synthetic resnapshot. This exercises replay against real workerd SQLite.
+    const resumeTicketResponse = await miniflare.dispatchFetch(
+      `${BASE_URL}/v1/auth/websocket-ticket`,
+      { method: "POST", headers: authorizedHeaders(), body: JSON.stringify({ seriesKey: SERIES }) },
+    );
+    assert.equal(resumeTicketResponse.status, 200);
+    const resumeTicket = await resumeTicketResponse.json();
+    const resumeResponse = await miniflare.dispatchFetch(
+      `${BASE_URL}/ws/market-data?seriesKey=${encodeURIComponent(SERIES)}`,
+      { headers: { Origin: ORIGIN, Upgrade: "websocket" } },
+    );
+    assert.equal(resumeResponse.status, 101);
+    resumeSocket = resumeResponse.webSocket;
+    resumeSocket.accept();
+    const resumeAuthPromise = nextJsonMessage(resumeSocket);
+    resumeSocket.send(JSON.stringify({ type: "auth", ticket: resumeTicket.ticket }));
+    assert.equal((await resumeAuthPromise).type, "market_data.status");
+    const replayPromise = nextJsonMessage(resumeSocket);
+    resumeSocket.send(JSON.stringify({
+      type: "market_data.subscribe",
+      version: 1,
+      series: CANONICAL_SERIES,
+      cursor: "50",
+    }));
+    const replay = await replayPromise;
+    assert.equal(replay.type, "market_data.ohlcv.replay");
+    assert.equal(replay.generationId, "synthetic-v1");
+    assert.equal(replay.events.length, 1);
+    assert.equal(replay.events[0].sequence, 51);
+    assert.equal(replay.nextCursor, "51");
+    assert.equal(replay.highWaterCursor, "51");
+    assert.equal(replay.hasMore, false);
+    assert.ok(new TextEncoder().encode(JSON.stringify(replay)).byteLength <= 65_536);
+
+    // Retention compaction is an atomic cursor-floor advance plus event deletion.
+    const namespace = miniflare.getDurableObjectNamespace("SERIES_COORDINATOR");
+    const coordinator = namespace.get(namespace.idFromName(SERIES));
+    const compactResponse = await coordinator.fetch("https://series.internal/internal/compact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ seriesKey: SERIES, throughSequence: 51 }),
+    });
+    assert.equal(compactResponse.status, 200);
+    const compacted = await compactResponse.json();
+    assert.equal(compacted.compacted, true);
+    assert.equal(compacted.deleted, 1);
+    assert.equal(compacted.retentionFloor, 51);
+
+    const retentionTicketResponse = await miniflare.dispatchFetch(
+      `${BASE_URL}/v1/auth/websocket-ticket`,
+      { method: "POST", headers: authorizedHeaders(), body: JSON.stringify({ seriesKey: SERIES }) },
+    );
+    const retentionTicket = await retentionTicketResponse.json();
+    const retentionResponse = await miniflare.dispatchFetch(
+      `${BASE_URL}/ws/market-data?seriesKey=${encodeURIComponent(SERIES)}`,
+      { headers: { Origin: ORIGIN, Upgrade: "websocket" } },
+    );
+    assert.equal(retentionResponse.status, 101);
+    retentionSocket = retentionResponse.webSocket;
+    retentionSocket.accept();
+    const retentionAuthPromise = nextJsonMessage(retentionSocket);
+    retentionSocket.send(JSON.stringify({ type: "auth", ticket: retentionTicket.ticket }));
+    await retentionAuthPromise;
+    const resnapshotPromise = nextJsonMessage(retentionSocket);
+    retentionSocket.send(JSON.stringify({
+      type: "market_data.subscribe",
+      version: 1,
+      series: CANONICAL_SERIES,
+      cursor: "50",
+    }));
+    const resnapshotRequired = await resnapshotPromise;
+    assert.equal(resnapshotRequired.type, "market_data.ohlcv.resnapshot_required");
+    assert.equal(resnapshotRequired.reason, "retention_expired");
+    const retainedSnapshot = await nextJsonMessage(retentionSocket);
+    assert.equal(retainedSnapshot.type, "market_data.ohlcv.snapshot");
+    assert.equal(retainedSnapshot.cursor, "51");
+
     const changedTimestampResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/emit`, {
       method: "POST",
       headers: authorizedHeaders(),
@@ -233,6 +313,8 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
   } finally {
     try {
       clientSocket?.close(1000, "Local workerd integration test complete");
+      resumeSocket?.close(1000, "Replay integration test complete");
+      retentionSocket?.close(1000, "Retention integration test complete");
     } catch {
       // The runtime may already have closed the test socket during teardown.
     }
