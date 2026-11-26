@@ -1,5 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import {
+  createProtocolError,
+  createSyntheticSnapshotEnvelope,
+  createSyntheticUpdateEnvelope,
+  validateSyntheticCanonicalSeries,
+} from "./market-data-contract.mjs";
 import worker, {
   acceptNextSequence,
   consumeTicket,
@@ -665,4 +671,67 @@ test("snapshot captures the current cursor and next live update follows its wate
   assert.equal((await afterSnapshot.json()).delivered, 1);
   assert.equal(socket.sent[1].type, "market_data.update");
   assert.equal(socket.sent[1].sequence, "52");
+});
+
+
+test("Batch 91 canonical synthetic OHLCV envelopes match the frontend wire contract", async () => {
+  const identity = {
+    seriesKey: SERIES,
+    provider: "synthetic",
+    seriesType: "contract",
+    dataset: "DEMO",
+    publisherId: 1,
+    instrumentId: 101,
+    rawSymbol: "BTCUSD",
+    timeframe: "1m",
+    bucketPolicy: "UTC_LEGACY",
+    calendarId: "",
+    calendarVersion: "",
+  };
+  assert.equal(validateSyntheticCanonicalSeries(identity), true);
+  assert.equal(validateSyntheticCanonicalSeries({ ...identity, provider: "databento" }), false);
+
+  const bars = Array.from({ length: 50 }, (_, index) => ({
+    sequence: index + 1,
+    tsReceivedNs: (1_800_000_000_000_000_000n + BigInt(index)).toString(),
+    ...{},
+  }));
+  const { createSyntheticCanonicalBar } = await import("./market-data-contract.mjs");
+  const canonicalBars = bars.map((item) =>
+    createSyntheticCanonicalBar(identity, item.sequence, item.tsReceivedNs)
+  );
+  const snapshot = await createSyntheticSnapshotEnvelope(identity, canonicalBars, 50);
+  assert.equal(snapshot.type, "market_data.ohlcv.snapshot");
+  assert.equal(snapshot.version, 1);
+  assert.equal(snapshot.state, "ready");
+  assert.equal(snapshot.highWaterCursor, "50");
+  assert.equal(snapshot.retentionFloorCursor, "1");
+  assert.match(snapshot.snapshotDigest, /^[0-9a-f]{64}$/);
+  assert.equal(snapshot.provenance.mode, "synthetic");
+  assert.equal(snapshot.provenance.dataStatus, "synthetic_only");
+  assert.equal(snapshot.provenance.providerConnected, false);
+  assert.equal(snapshot.bars[0].provider, "synthetic");
+  assert.equal(snapshot.bars[0].origin, "derived");
+
+  const event = await createSyntheticUpdateEnvelope(identity, 51, "1800000000000000051");
+  assert.equal(event.type, "market_data.ohlcv.update");
+  assert.equal(event.sequence, 51);
+  assert.equal(event.cursor, "51");
+  assert.equal(event.generationId, "synthetic-v1");
+  assert.match(event.digest, /^[0-9a-f]{64}$/);
+  assert.equal(event.series.seriesKey, SERIES);
+  assert.equal(event.provenance.dataStatus, "synthetic_only");
+  assert.equal(event.bar.sequence, 51);
+  assert.equal(event.bar.provider, "synthetic");
+
+  const error = createProtocolError("invalid_request", false, "corr-51", "Invalid request.");
+  assert.deepEqual(error, {
+    type: "market_data.error",
+    version: 1,
+    code: "invalid_request",
+    retryable: false,
+    correlationId: "corr-51",
+    message: "Invalid request.",
+  });
+  assert.throws(() => createProtocolError("secret_leak", false, "corr-51", "bad"));
 });
