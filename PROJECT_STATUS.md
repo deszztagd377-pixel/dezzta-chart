@@ -1,3 +1,19 @@
+# Latest verified update — Batch 90 (26 November 2026)
+
+**Active branch:** `phase-2/market-data-foundation`  
+**Exact source/test SHA:** `9a2f2b9faebdcaf1e97e93c6dfe85a2c93319fbb`  
+**Batch 90:** PASS — additive SQLite schema migration, version ledger, local Miniflare SQLite runtime, schema constraints, event uniqueness, legacy KV preservation, and DO eviction persistence verified.  
+**Exact-head CI:** 4/4 terminal SUCCESS — Automated Tests run 45742201070; CodeQL 45742201040; Full Git History Secret Audit 45742201069; OCI ARM64 45742201064. Backend pytest: 1,435 passed, 1 skipped, 6 warnings; frontend Vitest: 34 files / 325 tests passed; Worker Node proof 31/31; Miniflare 1/1; Durable Object runtime 12/12; frontend build and backend container smoke test passed.  
+**Batch 91:** NEXT — provider-neutral API contract; inspect and reconcile the existing OHLCV snapshot/update contracts before adding any envelope.  
+**Batch 92–93:** OPEN — atomic durable event payload/digest/high-water, bounded replay, ACK, durable receipts and RESUME.  
+**Batch 94–95:** OPEN/BLOCKED — lawful zero-cost provider gate and public WSS/browser/Android E2E.  
+**Stage accounting:** Stage 1 remains official active at 30/40 criteria = 75% provisional; Gate 10 0/10 formally closed. No stage transition or overall progress score is inferred from this backend batch.  
+**Controls:** ZERO COST; `main` untouched; no Cloudflare resources created/deployed; no live provider enabled; synthetic proof remains synthetic-only; delivery target ~24 December 2026.
+
+Detailed evidence: `docs/WORK_CYCLE_2026-11-26_BATCH90_SQLITE_SCHEMA_MIGRATION.md`.
+
+---
+
 # Latest verified project status — Batch 72 (25 November 2026)
 
 **Active branch:** `phase-2/market-data-foundation`  
