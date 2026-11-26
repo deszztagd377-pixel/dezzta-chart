@@ -201,6 +201,28 @@ afterEach(async () => {
 });
 
 describe("synthetic Cloudflare Durable Object runtime", () => {
+  it("serializes snapshot establishment with event persistence and fan-out", async () => {
+    const stub = coordinatorStub(SERIES_A);
+    const order = await runInDurableObject(stub, async (instance) => {
+      const events = [];
+      const snapshot = instance.runProtocolExclusive(async () => {
+        events.push("snapshot-start");
+        await new Promise((resolve) => setTimeout(resolve, 10));
+        events.push("snapshot-ready");
+      });
+      const emit = instance.runProtocolExclusive(async () => {
+        events.push("event-commit-and-fanout");
+      });
+      await Promise.all([snapshot, emit]);
+      return events;
+    });
+    expect(order).toEqual([
+      "snapshot-start",
+      "snapshot-ready",
+      "event-commit-and-fanout",
+    ]);
+  });
+
   it("installs the additive SQLite schema once and preserves legacy v1 KV state", async () => {
     const stub = coordinatorStub(SERIES_A);
     const first = await runInDurableObject(stub, async (_instance, state) => {
