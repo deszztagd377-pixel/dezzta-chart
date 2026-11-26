@@ -74,6 +74,8 @@ function buildSnapshotUrl(baseUrl: string, identity: OhlcvSeriesIdentity, limit?
     throw new OhlcvRequestError('configuration', 'OHLCV limit must be an integer between 1 and 5000.');
   }
 
+  if (identity.provider !== undefined) url.searchParams.set('provider', identity.provider);
+  if (identity.seriesKey !== undefined) url.searchParams.set('seriesKey', identity.seriesKey);
   url.searchParams.set('dataset', identity.dataset);
   url.searchParams.set('publisher_id', String(identity.publisherId));
   url.searchParams.set('instrument_id', String(identity.instrumentId));
