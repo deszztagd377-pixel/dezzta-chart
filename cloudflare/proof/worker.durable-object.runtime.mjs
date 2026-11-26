@@ -594,7 +594,7 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     const instruction = await resnapshotPromise;
     expect(instruction).toMatchObject({
       type: "market_data.ohlcv.resnapshot_required",
-      reason: "replay_unavailable_in_synthetic_proof",
+      reason: "retention_expired",
       snapshotCursor: "50",
     });
     const snapshot = await nextJsonMessage(socket);
