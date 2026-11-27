@@ -360,6 +360,18 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
     assert.equal(websocketAck.committedCursor, "52");
     assert.equal(websocketAck.receiptVersion, 1);
 
+    // Close the three transport consumers before isolating the manual retention
+    // proof below. Their leases are required consumers too and must be released.
+    const closeTestSocket = (socket, reason) => new Promise((resolve) => {
+      socket.addEventListener("close", resolve, { once: true });
+      socket.close(1000, reason);
+    });
+    await Promise.all([
+      closeTestSocket(clientSocket, "initial transport complete"),
+      closeTestSocket(resumeSocket, "replay transport complete"),
+      closeTestSocket(raceSocket, "ACK transport complete"),
+    ]);
+
     const primaryRegistration = await miniflare.dispatchFetch(`${BASE_URL}/__proof/register-consumer`, {
       method: "POST", headers: authorizedHeaders(),
       body: JSON.stringify({
