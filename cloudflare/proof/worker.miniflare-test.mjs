@@ -362,6 +362,7 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
       method: "POST", headers: authorizedHeaders(),
       body: JSON.stringify({
         seriesKey: SERIES, consumerId: "synthetic-proof-consumer-1", generationId: "synthetic-v1",
+        ownerToken: "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       }),
     });
     assert.equal(primaryRegistration.status, 200);
@@ -371,6 +372,8 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
       seriesKey: SERIES,
       consumerId: "synthetic-proof-consumer-1",
       generationId: "synthetic-v1",
+      ownerToken: "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      fenceToken: 1,
       sequence: 52,
       eventDigest: event52.digest,
     };
@@ -587,6 +590,7 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
       method: "POST", headers: authorizedHeaders(),
       body: JSON.stringify({
         seriesKey: SERIES, consumerId: "synthetic-proof-consumer-no-ack", generationId: "synthetic-v1",
+        ownerToken: "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
       }),
     });
     assert.equal(noAckRegistration.status, 200);
@@ -603,7 +607,8 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
       method: "POST", headers: authorizedHeaders(),
       body: JSON.stringify({
         seriesKey: SERIES, consumerId: "synthetic-proof-consumer-no-ack",
-        generationId: "synthetic-v1", sequence: 52, eventDigest: event52.digest,
+        generationId: "synthetic-v1", ownerToken: "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", fenceToken: 1,
+        sequence: 52, eventDigest: event52.digest,
       }),
     });
     assert.equal(noAckReceiptResponse.status, 200);
@@ -614,6 +619,7 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
       method: "POST", headers: authorizedHeaders(),
       body: JSON.stringify({
         seriesKey: SERIES, consumerId: "synthetic-proof-consumer-lagging", generationId: "synthetic-v1",
+        ownerToken: "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
       }),
     });
     assert.equal(laggingRegistration.status, 200);
@@ -621,6 +627,8 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
       seriesKey: SERIES,
       consumerId: "synthetic-proof-consumer-lagging",
       generationId: "synthetic-v1",
+      ownerToken: "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+      fenceToken: 1,
       sequence: 51,
       eventDigest: event51Digest,
     };
