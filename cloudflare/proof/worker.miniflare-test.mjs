@@ -352,7 +352,7 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
       eventDigest: event52.digest,
     }));
     const websocketAck = await websocketAckPromise;
-    assert.equal(websocketAck.type, "market_data.acknowledged");
+    assert.equal(websocketAck.type, "market_data.acknowledged", JSON.stringify(websocketAck));
     assert.equal(websocketAck.accepted, true);
     assert.equal(websocketAck.duplicate, false);
     assert.equal(websocketAck.committedCursor, "52");
