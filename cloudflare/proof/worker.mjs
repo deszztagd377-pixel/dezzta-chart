@@ -1434,25 +1434,32 @@ export class SeriesCoordinatorDO {
     }
 
     if (payload?.type === "market_data.ack" && payload.version === PROTOCOL_VERSION) {
-      if (!attachment.subscribed ||
-          attachment.consumerId !== SYNTHETIC_WS_CONSUMER_ID ||
-          !Number.isSafeInteger(payload.sequence) ||
-          payload.sequence <= attachment.snapshotWatermark ||
-          payload.sequence > attachment.lastDeliveredSequence ||
-          payload.sequence > 1_000_000_000 ||
-          typeof payload.eventDigest !== "string" ||
-          !/^[0-9a-f]{64}$/.test(payload.eventDigest)) {
-        socket.send(JSON.stringify({
-          type: "market_data.ack_rejected",
-          version: PROTOCOL_VERSION,
-          reason: "ack_not_delivered_or_invalid",
-        }));
-        return;
-      }
       return this.runProtocolExclusive(() => {
+        // Read the attachment inside the protocol queue. Fan-out sends the
+        // update before persisting its delivered watermark to the attachment;
+        // a fast client can ACK as soon as it receives that frame. Reading the
+        // attachment before queue admission can therefore reject a valid ACK
+        // against the previous watermark.
+        const currentAttachment = readSocketAttachment(socket);
+        if (!isValidSocketAttachment(currentAttachment) ||
+            !currentAttachment.subscribed ||
+            currentAttachment.consumerId !== SYNTHETIC_WS_CONSUMER_ID ||
+            !Number.isSafeInteger(payload.sequence) ||
+            payload.sequence <= currentAttachment.snapshotWatermark ||
+            payload.sequence > currentAttachment.lastDeliveredSequence ||
+            payload.sequence > 1_000_000_000 ||
+            typeof payload.eventDigest !== "string" ||
+            !/^[0-9a-f]{64}$/.test(payload.eventDigest)) {
+          socket.send(JSON.stringify({
+            type: "market_data.ack_rejected",
+            version: PROTOCOL_VERSION,
+            reason: "ack_not_delivered_or_invalid",
+          }));
+          return;
+        }
         const receipt = commitConsumerReceipt(this.ctx.storage, {
-          seriesKey: attachment.seriesKey,
-          consumerId: attachment.consumerId,
+          seriesKey: currentAttachment.seriesKey,
+          consumerId: currentAttachment.consumerId,
           generationId: "synthetic-v1",
           sequence: payload.sequence,
           eventDigest: payload.eventDigest,
