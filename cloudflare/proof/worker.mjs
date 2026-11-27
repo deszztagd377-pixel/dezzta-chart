@@ -389,7 +389,7 @@ export async function acceptNextSequence(storage, seriesKey, sequence) {
   });
 }
 
-const DURABLE_SCHEMA_VERSION = 3;
+const DURABLE_SCHEMA_VERSION = 4;
 const MAX_DURABLE_EVENT_BYTES = 8_192;
 
 /**
@@ -546,6 +546,27 @@ export function applyDurableSchemaMigrations(storage, now = Date.now()) {
           SELECT RAISE(ABORT, 'series identity is immutable');
         END;
         INSERT INTO schema_migrations (version, applied_at_ms) VALUES (3, ${now});
+      `);
+    }
+
+    if (currentVersion < 4) {
+      sql.exec(`
+        CREATE TABLE IF NOT EXISTS required_consumers (
+          series_key TEXT NOT NULL
+            CHECK (length(series_key) BETWEEN 1 AND 128),
+          consumer_id TEXT NOT NULL
+            CHECK (length(consumer_id) BETWEEN 1 AND 128),
+          generation_id TEXT NOT NULL
+            CHECK (length(generation_id) BETWEEN 1 AND 128),
+          registered_at_ms INTEGER NOT NULL
+            CHECK (registered_at_ms >= 0),
+          active INTEGER NOT NULL DEFAULT 1
+            CHECK (active IN (0, 1)),
+          PRIMARY KEY (series_key, consumer_id)
+        );
+        CREATE INDEX IF NOT EXISTS required_consumers_active_generation
+          ON required_consumers (series_key, generation_id, active);
+        INSERT INTO schema_migrations (version, applied_at_ms) VALUES (4, ${now});
       `);
     }
 
@@ -848,6 +869,46 @@ export function readDurableReplayPage(storage, seriesKey, cursor, expectedGenera
   return { ok: true, page, responseBytes };
 }
 
+/** Register a required consumer before it is allowed to ACK or be excluded from retention. */
+export function registerRequiredConsumer(storage, {
+  seriesKey, consumerId, generationId,
+}, now = Date.now()) {
+  if (!storage?.sql || typeof storage.sql.exec !== "function" ||
+      typeof storage.transactionSync !== "function" ||
+      !isValidSyntheticSeriesKey(seriesKey) ||
+      typeof consumerId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(consumerId) ||
+      typeof generationId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(generationId) ||
+      !Number.isSafeInteger(now) || now < 0) {
+    throw new TypeError("Required consumer registration input is invalid.");
+  }
+  return storage.transactionSync(() => {
+    const states = storage.sql.exec(
+      "SELECT generation_id FROM series_state WHERE series_key = ?",
+      seriesKey,
+    ).toArray();
+    if (states.length !== 1) return { registered: false, reason: "series_state_missing" };
+    if (states[0].generation_id !== generationId) {
+      return { registered: false, reason: "generation_mismatch" };
+    }
+    const existing = storage.sql.exec(
+      "SELECT generation_id, active FROM required_consumers WHERE series_key = ? AND consumer_id = ?",
+      seriesKey, consumerId,
+    ).toArray();
+    if (existing.length === 1 && existing[0].generation_id !== generationId) {
+      return { registered: false, reason: "generation_mismatch" };
+    }
+    storage.sql.exec(
+      "INSERT INTO required_consumers (series_key, consumer_id, generation_id, registered_at_ms, active) " +
+      "VALUES (?, ?, ?, ?, 1) ON CONFLICT(series_key, consumer_id) DO NOTHING",
+      seriesKey, consumerId, generationId, now,
+    );
+    return {
+      registered: true,
+      duplicate: existing.length === 1 && existing[0].active === 1,
+    };
+  });
+}
+
 /** Persist a monotonic consumer receipt against the exact retained event digest. */
 export function commitConsumerReceipt(storage, {
   seriesKey, consumerId, generationId, sequence, eventDigest,
@@ -882,6 +943,16 @@ export function commitConsumerReceipt(storage, {
     if (events.length !== 1) return { accepted: false, reason: "event_missing" };
     if (events[0].event_digest !== eventDigest) {
       return { accepted: false, reason: "digest_mismatch" };
+    }
+    const registrations = storage.sql.exec(
+      "SELECT generation_id, active FROM required_consumers WHERE series_key = ? AND consumer_id = ?",
+      seriesKey, consumerId,
+    ).toArray();
+    if (registrations.length !== 1 || registrations[0].active !== 1) {
+      return { accepted: false, reason: "consumer_not_registered" };
+    }
+    if (registrations[0].generation_id !== generationId) {
+      return { accepted: false, reason: "generation_mismatch" };
     }
     const receipts = storage.sql.exec(
       "SELECT generation_id, committed_sequence, event_digest, receipt_version, updated_at_ms " +
@@ -956,20 +1027,34 @@ export function compactDurableEvents(storage, seriesKey, throughSequence, now = 
     if (throughSequence <= state.retention_floor) {
       return { compacted: true, deleted: 0, retentionFloor: state.retention_floor };
     }
-    // Never delete events beyond the slowest receipt already known to this
-    // series. This protects registered/observed consumers from a premature
-    // retention-floor advance; production still requires an authoritative
-    // active-consumer registry before compaction can be enabled.
+    const registered = storage.sql.exec(
+      "SELECT COUNT(*) AS count FROM required_consumers " +
+      "WHERE series_key = ? AND generation_id = ? AND active = 1",
+      seriesKey, state.generation_id,
+    ).toArray();
+    if (registered[0]?.count === 0) {
+      return { compacted: false, reason: "required_consumer_registry_empty" };
+    }
+    // Every active required consumer must have a durable receipt at or beyond
+    // the proposed floor. Missing receipts fail closed; known receipts alone
+    // are not a substitute for an authoritative consumer registry.
     const laggingReceipts = storage.sql.exec(
-      "SELECT COUNT(*) AS count, MIN(committed_sequence) AS minimum_acknowledged " +
-      "FROM consumer_receipts WHERE series_key = ? AND generation_id = ? AND committed_sequence < ?",
+      "SELECT COUNT(*) AS count, " +
+      "SUM(CASE WHEN r.consumer_id IS NULL THEN 1 ELSE 0 END) AS missing_count, " +
+      "MIN(r.committed_sequence) AS minimum_acknowledged " +
+      "FROM required_consumers c LEFT JOIN consumer_receipts r " +
+      "ON r.series_key = c.series_key AND r.consumer_id = c.consumer_id " +
+      "AND r.generation_id = c.generation_id " +
+      "WHERE c.series_key = ? AND c.generation_id = ? AND c.active = 1 " +
+      "AND (r.consumer_id IS NULL OR r.committed_sequence < ?)",
       seriesKey, state.generation_id, throughSequence,
     ).toArray();
     if (laggingReceipts[0]?.count > 0) {
       return {
         compacted: false,
         reason: "consumer_ack_behind",
-        minimumAcknowledgedSequence: laggingReceipts[0].minimum_acknowledged,
+        minimumAcknowledgedSequence: laggingReceipts[0].minimum_acknowledged ?? null,
+        missingConsumerReceipts: laggingReceipts[0].missing_count ?? 0,
       };
     }
     const deleted = storage.sql.exec(
@@ -1163,6 +1248,19 @@ export class SeriesCoordinatorDO {
       }
       await this.ctx.storage.put("sequence:" + body.seriesKey, body.sequence);
       return jsonResponse({ seeded: true, sequence: body.sequence });
+    }
+
+    if (url.pathname === "/internal/register-consumer" && request.method === "POST") {
+      const body = await readSmallJson(request);
+      if (!body || !isValidSyntheticSeriesKey(body.seriesKey)) {
+        return jsonResponse({ error: "invalid_consumer_registration" }, 400);
+      }
+      try {
+        const result = registerRequiredConsumer(this.ctx.storage, body);
+        return jsonResponse(result, result.registered ? 200 : 409);
+      } catch {
+        return jsonResponse({ error: "temporarily_unavailable" }, 503);
+      }
     }
 
     if (url.pathname === "/internal/ack" && request.method === "POST") {
@@ -1581,6 +1679,23 @@ export default {
         body: JSON.stringify(body),
       });
       return withCors(seeded, origin);
+    }
+
+    if (url.pathname === "/__proof/register-consumer" && request.method === "POST") {
+      const body = await readSmallJson(request);
+      if (!body || !isValidSyntheticSeriesKey(body.seriesKey) ||
+          typeof body.consumerId !== "string" ||
+          !/^[A-Za-z0-9._:-]{1,128}$/.test(body.consumerId) ||
+          body.generationId !== "synthetic-v1") {
+        return withCors(jsonResponse({ error: "invalid_consumer_registration" }, 400), origin);
+      }
+      const stub = env.SERIES_COORDINATOR.get(env.SERIES_COORDINATOR.idFromName(body.seriesKey));
+      const registered = await stub.fetch("https://series.internal/internal/register-consumer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      return withCors(registered, origin);
     }
 
     if (url.pathname === "/__proof/ack" && request.method === "POST") {
