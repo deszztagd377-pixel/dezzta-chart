@@ -1565,14 +1565,6 @@ export class SeriesCoordinatorDO {
             ? replayPages[replayPages.length - 1].nextCursor
             : payload.cursor;
           const throughSequence = Number(throughCursor);
-          socket.serializeAttachment({
-            ...attachment,
-            snapshotWatermark: watermark,
-            subscribed: true,
-            series: canonicalSeries,
-            consumerId: SYNTHETIC_WS_CONSUMER_ID,
-            lastDeliveredSequence: throughSequence,
-          });
           socket.send(JSON.stringify({
             type: "market_data.ohlcv.replay_started",
             version: PROTOCOL_VERSION,
@@ -1584,6 +1576,16 @@ export class SeriesCoordinatorDO {
             throughSequence,
           }));
           for (const event of replayEvents) socket.send(JSON.stringify(event));
+          // Advance the delivered watermark only after every replay frame has
+          // been accepted by the socket send API.
+          socket.serializeAttachment({
+            ...attachment,
+            snapshotWatermark: watermark,
+            subscribed: true,
+            series: canonicalSeries,
+            consumerId: SYNTHETIC_WS_CONSUMER_ID,
+            lastDeliveredSequence: throughSequence,
+          });
           socket.send(JSON.stringify({
             type: "market_data.ohlcv.replay_complete",
             version: PROTOCOL_VERSION,
