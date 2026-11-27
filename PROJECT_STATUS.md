@@ -2,14 +2,17 @@
 
 **PR:** [#13 — durable WebSocket ACK protocol](https://github.com/deszztagd377-pixel/dezzta-chart/pull/13)  
 **Candidate branch:** `work/batch95-websocket-ack-protocol`  
-**Code/test candidate SHA:** `be406610ade3d9f03288be500357204831d0a5c7`  
+**Code/test candidate SHA:** `76a8d51b5bfa135576aea4b66eb6e5ea67a68fff`  
 **PR state:** OPEN, mergeable, not merged. The application `main` branch remains untouched.
 
 All four required workflows completed with terminal SUCCESS on the candidate SHA:
-- Automated Tests — [45990584004](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45990584004)
-- CodeQL — [45990583904](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45990583904)
-- Full Git History Secret Audit — [45990583882](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45990583882)
-- OCI ARM64 Image Readiness — [45990583900](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45990583900)
+- Automated Tests — [46003712453](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45990584004)
+- CodeQL — [46003712587](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45990583904)
+- Full Git History Secret Audit — [46003712685](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45990583882)
+- OCI ARM64 Image Readiness — [46003712578](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45990583900)
+
+
+**ACK race correction:** the real-workerd test exposed a fast-client race: the handler captured the socket attachment before entering the Durable Object protocol queue, so an immediate ACK could be checked against the preceding delivered watermark. The handler now reads and validates the current attachment inside the queue, after earlier fan-out work completes. The regression is covered by the existing immediate WebSocket ACK integration test and passed on the exact source/test SHA above.
 
 This is **synthetic proof acceptance only**. Production Firebase grant, lease renewal/expiry/fencing/deregistration, canonical production event digest, public WSS, provider rights, zero-cost quota certification and browser/Android E2E remain YELLOW. No production completion or Stage 1 gate closure is inferred.
 
