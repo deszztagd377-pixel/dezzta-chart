@@ -1,13 +1,13 @@
 # VERIFIED CURRENT CHECKPOINT — 27 November 2026 (supersedes older snapshots below)
 
 **Last validated code/test HEAD:** `0409c8690650eb9fa78d28e7f4a3bb64b28b634e`.  
-**Current documentation-only branch HEAD at this edit:** `6089546039dc8c970ead15c9fc34b202d567f835` (two docs-only commits after the validated code/test HEAD; no source/runtime files changed).  
+**Documentation follow-ups:** subsequent commits in this branch update only these two status documents; no source/runtime files changed and no new CI run is claimed for documentation-only commits.  
 **PR #13:** OPEN, unmerged, base `phase-2/market-data-foundation`.  
 **Stage 1:** 30/40 = 75% provisional; Gate 10 = 0/10 formally closed. Stage 2 remains preparatory and is not authorized.
 
 ## WebSocket lease lifecycle — GREEN at synthetic code/test level only
 
-The current exact HEAD has all four required GitHub Actions workflows terminal SUCCESS:
+The validated code/test HEAD `0409c8690650eb9fa78d28e7f4a3bb64b28b634e` has all four required GitHub Actions workflows terminal SUCCESS:
 - Automated Tests — [46019484467](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46019484467), SUCCESS (41/41 job steps).
 - CodeQL — [46019484655](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46019484655), SUCCESS.
 - OCI ARM64 — [46019484485](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46019484485), SUCCESS.
