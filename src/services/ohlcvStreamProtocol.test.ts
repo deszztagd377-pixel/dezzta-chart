@@ -87,8 +87,9 @@ describe('parseOhlcvStreamUpdate', () => {
     expect(valid.generationId).toBe('synthetic-v1');
     expect(valid.cursor).toBe('8');
     expect(valid.digest).toBe('a'.repeat(64));
+    // The durable outbox cursor is global; stream sequence is subscription-local.
+    expect(event({ generationId: 'synthetic-v1', cursor: '42', sequence: 8 }).cursor).toBe('42');
     expect(() => event({ generationId: 'synthetic-v1', cursor: '08' })).toThrow(/cursor/i);
-    expect(() => event({ generationId: 'synthetic-v1', cursor: '9' })).toThrow(/cursor/i);
     expect(() => event({ generationId: 'synthetic-v1', digest: 'A'.repeat(64) })).toThrow(/digest/i);
     expect(() => event({
       generationId: 'synthetic-v1',

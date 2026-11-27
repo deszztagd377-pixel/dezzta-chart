@@ -90,10 +90,6 @@ export function parseOhlcvStreamUpdate(payload: unknown): OhlcvStreamUpdateMessa
     throw new Error('OHLCV stream sequence must be a positive safe integer.');
   }
   if (payload.generationId !== undefined &&
-      payload.cursor !== undefined && payload.cursor !== String(payload.sequence)) {
-    throw new Error('OHLCV durable cursor must be canonical and equal the event sequence.');
-  }
-  if (payload.generationId !== undefined &&
       (typeof payload.generationId !== 'string' || !/^[A-Za-z0-9._:-]{1,128}$/.test(payload.generationId))) {
     throw new Error('OHLCV generationId is invalid.');
   }
