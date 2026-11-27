@@ -180,14 +180,24 @@ describe('connectOhlcvStream', () => {
       cursor: '9',
       sequence: 9,
       digest: 'b'.repeat(64),
-      bar: { ...bar, sequence: 9, close: '6002.000' },
+      emittedAtNs: '1793577602000000000',
+      bar: {
+        ...bar,
+        tsStartNs: '1793577601000000000',
+        tsEventNs: '1793577601999000000',
+        tsReceivedNs: '1793577602000000000',
+        sequence: 9,
+        close: '6002.000',
+      },
     });
 
+    expect(onError).not.toHaveBeenCalled();
     vi.advanceTimersByTime(9_999);
     expect(socket.sent.map((value) => JSON.parse(value)).filter((value) => value.type === 'market_data.ack')).toHaveLength(0);
     vi.advanceTimersByTime(1);
     const acknowledgements = socket.sent.map((value) => JSON.parse(value))
       .filter((value) => value.type === 'market_data.ack');
+    expect(onError).not.toHaveBeenCalled();
     expect(acknowledgements).toEqual([{
       type: 'market_data.ack',
       version: 1,
@@ -216,8 +226,9 @@ describe('connectOhlcvStream', () => {
     socket.message({ type: 'market_data.status', version: 1 });
     socket.message(snapshot);
     socket.message(ackUpdate);
-    vi.advanceTimersByTime(30_000);
-    expect(socket.sent.map((value) => JSON.parse(value)).some((value) => value.type === 'market_data.ack')).toBe(false);
+    vi.advanceTimersByTime(10_000);
+    expect(socket.sent.filter((value) => value.startsWith('{')).map((value) => JSON.parse(value))
+      .some((value) => value.type === 'market_data.ack')).toBe(false);
     connection.close();
   });
 
