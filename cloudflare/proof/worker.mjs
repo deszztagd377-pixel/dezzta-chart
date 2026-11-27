@@ -596,7 +596,12 @@ export function applyDurableSchemaMigrations(storage, now = Date.now()) {
             CHECK (lease_expires_at_ms >= 0)
         `);
       }
+      // Legacy v4 registrations have no authenticated owner or valid lease.
+      // They must not remain retention-critical or ACK-capable after upgrade.
       sql.exec(`
+        UPDATE required_consumers
+        SET active = 0
+        WHERE owner_token = '' OR fence_token = 0 OR lease_expires_at_ms = 0;
         CREATE INDEX IF NOT EXISTS required_consumers_lease_expiry
           ON required_consumers (series_key, generation_id, active, lease_expires_at_ms);
         INSERT INTO schema_migrations (version, applied_at_ms) VALUES (5, ${now});
