@@ -70,5 +70,22 @@ The existing HTTP proof ACK tests remain in place for receipt duplicate, regress
 
 ## 7. Validation record
 
-The PR's exact-head GitHub Actions result is the acceptance authority. Do not infer success from a preview deployment, an earlier commit, or a different branch. Update this section only after every required workflow on the final head reaches a terminal result.
+**Validated source/test head:** `a428c7901ae3ddd398897cbc5a7d78a378e180d3`
+
+All four required workflows reached terminal **SUCCESS** on this exact head:
+
+- Automated Tests — run [45982338038](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45982338038): **SUCCESS**. All 40 job steps completed, including Worker syntax/unit tests, pinned workerd/Miniflare integration, Durable Object hibernation/alarm/isolation tests, frontend tests/build, backend tests, Redis TLS integration, benchmarks, backend image build/smoke test and image scan.
+- CodeQL Security Analysis — run [45982338137](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45982338137): **SUCCESS** (JavaScript/TypeScript and Python).
+- Full Git History Secret Audit — run [45982338192](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45982338192): **SUCCESS**.
+- OCI ARM64 Image Readiness — run [45982337953](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45982337953): **SUCCESS**.
+
+### Failure and correction history
+
+The preceding source head `880ae0f8e7fe787015b41b5a63e86a8689377266` had an Automated Tests failure in run [45982180407](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45982180407). The failing unit test was `fan-out is withheld until a durable SQLite commit succeeds`: three mock socket fixtures still used the pre-ACK attachment shape. The production guard correctly rejected those stale fixtures. The fixtures were updated to include the synthetic consumer ID and delivered-sequence watermark, then the final head `a428c790` passed the full workflow.
+
+The intermediate CI attempts on older heads were cancelled by GitHub's branch concurrency policy; they are not counted as successful validation. The final four runs listed above are terminal and green.
+
+**Repository safety:** PR #13 remains open and unmerged. `main` was verified unchanged at `e3841681bc69b73619058deaf939df82ae5116a`. No Cloudflare deployment/resource, secret, paid service, or recurring automation was changed.
+
+This is repository-level synthetic proof acceptance only. It does not establish Firebase-to-Worker production identity, consumer lease/fencing/deregistration, public WSS, provider rights, billing zero-cost certification, or browser/Android production acceptance. Overall Batch 95 and production Gate 10 remain **YELLOW**.
 
