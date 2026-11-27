@@ -215,3 +215,23 @@ PR #11 head commit `cb67a6fe30a3a9faadb053b4ed3c9d73f5ee72a1` was tested against
 These runs validate the checked-out PR merge context and its configured CI suites. They do not add missing ACK/compaction behavioral tests, do not prove Firebase identity binding, and do not constitute public WSS or Android E2E acceptance.
 
 **Disposition:** Batch 90 — source schema implemented in synthetic proof, production migration/deployment unaccepted. Batch 92 — durable synthetic event commit/replay implemented, production provider/runtime integration unaccepted. Batch 93 — receipt storage primitive and proof-only HTTP ACK path exist; authenticated consumer binding, WebSocket ACK, bounded retention-by-receipt, behavioral coverage and production recovery remain YELLOW / OPEN. Stage 1 and Gate 10 accounting are unchanged.
+
+---
+
+## Batch 94 execution checkpoint — 27 November 2026
+
+**Answer: Batch 94 has started. It is in progress, not complete.** Two parallel PR workstreams are open against `phase-2/market-data-foundation` (`4979bd4a69dfd37b4571a125790150931c4154ee`):
+
+1. **PR #7 — durable replay after Durable Object eviction:** branch `work/batch94-gate-batch93-eviction-test`, head `0b44fb4474071ea2e26d39deddddebcf1083e289`. Adds an integration test that emits sequence 51, evicts/reconstructs the Durable Object, inspects persisted high-water/event payload/digest, then authenticates a new socket and checks replay-started, event update, and replay-complete. Automated Tests run [45928293821](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45928293821) — **SUCCESS**. CodeQL [45928293846](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45928293846), secret audit [45928293783](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45928293783), and OCI ARM64 readiness [45928293763](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45928293763) — all **SUCCESS**. PR remains open and mergeable.
+
+2. **PR #10 — zero-cost provider eligibility gate:** branch `audit/batch94-zero-cost-provider-gate`, head `4ebeb0a147d1cf474ef8a2ec9a2578a53326897d`. Records the provider acceptance criteria and official-source screening for Coinbase, Kraken, Binance Spot streams, and Binance Vision datasets. Automated Tests [45939059711](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45939059711), CodeQL [45939060366](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45939060366), secret audit [45939059764](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45939059764), and OCI ARM64 readiness [45939059713](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45939059713) — all **SUCCESS**. PR remains open and mergeable.
+
+### Batch 94 acceptance position
+
+- Replay-after-eviction has a passing automated integration test in PR #7; this is synthetic Durable Object runtime evidence, not public WSS or production Firebase/provider acceptance.
+- Provider eligibility remains **YELLOW**: no candidate is approved for the exact multi-user DEZZTA CHART display/redistribution scope and zero-cost requirements.
+- PR #7 and PR #10 are separate, unmerged branches. Do not describe either as integrated into the foundation branch until merge evidence exists.
+- No changes to `main`; no provider secrets, paid trials, deployments, or Cloudflare resources were created.
+- Latest audit found no in-progress Actions in either `dezzta-chart` or `dezzta-chart-runner`.
+
+**Batch 94 overall: IN PROGRESS / YELLOW.** Next engineering sequence: preserve PR #7 eviction proof, then add behavioral receipt/ACK/compaction invariants; keep provider selection gated until authoritative terms and free-tier limits satisfy every acceptance criterion. The 24 December 2026 target remains unchanged.
