@@ -268,7 +268,20 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
     const raceAuthPromise = nextJsonMessage(raceSocket);
     raceSocket.send(JSON.stringify({ type: "auth", ticket: raceTicket.ticket }));
     assert.equal((await raceAuthPromise).type, "market_data.status");
-    const raceFirstMessagePromise = nextJsonMessage(raceSocket);
+    // Keep a persistent listener/queue: all replay frames may be sent synchronously
+    // before the test reaches the next await, so one-shot listeners can lose frames.
+    const raceQueue = [];
+    const raceWaiters = [];
+    raceSocket.addEventListener("message", (event) => {
+      const message = JSON.parse(String(event.data));
+      const waiter = raceWaiters.shift();
+      if (waiter) waiter(message);
+      else raceQueue.push(message);
+    });
+    const nextRaceMessage = () => raceQueue.length
+      ? Promise.resolve(raceQueue.shift())
+      : new Promise((resolve) => raceWaiters.push(resolve));
+    const raceFirstMessagePromise = nextRaceMessage();
     raceSocket.send(JSON.stringify({
       type: "market_data.subscribe",
       version: 1,
@@ -298,17 +311,17 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
     let event52 = null;
     let event51Digest = null;
     for (let index = 0; index < raceStart.count; index += 1) {
-      const replayEvent = await nextJsonMessage(raceSocket);
+      const replayEvent = await nextRaceMessage();
       assert.equal(replayEvent.type, "market_data.ohlcv.update");
       observedSequences.push(replayEvent.sequence);
       if (replayEvent.sequence === 51) event51Digest = replayEvent.digest;
       if (replayEvent.sequence === 52) event52 = replayEvent;
     }
-    const raceComplete = await nextJsonMessage(raceSocket);
+    const raceComplete = await nextRaceMessage();
     assert.equal(raceComplete.type, "market_data.ohlcv.replay_complete");
     assert.equal(raceComplete.count, raceStart.count);
     if (!observedSequences.includes(52)) {
-      const liveEvent = await nextJsonMessage(raceSocket);
+      const liveEvent = await nextRaceMessage();
       assert.equal(liveEvent.type, "market_data.ohlcv.update");
       observedSequences.push(liveEvent.sequence);
       if (liveEvent.sequence === 52) event52 = liveEvent;
