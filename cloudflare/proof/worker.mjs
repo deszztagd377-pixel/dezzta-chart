@@ -980,12 +980,17 @@ export function renewRequiredConsumerLease(storage, {
   }
   return storage.transactionSync(() => {
     const leaseExpiresAtMs = now + CONSUMER_LEASE_TTL_MS;
-    const result = storage.sql.exec(
+    storage.sql.exec(
       "UPDATE required_consumers SET lease_expires_at_ms = ? WHERE series_key = ? AND consumer_id = ? " +
       "AND generation_id = ? AND active = 1 AND owner_token = ? AND fence_token = ? AND lease_expires_at_ms > ?",
       leaseExpiresAtMs, seriesKey, consumerId, generationId, ownerToken, fenceToken, now,
     );
-    return result.rowsWritten === 1 ? { renewed: true, leaseExpiresAtMs } :
+    const verified = storage.sql.exec(
+      "SELECT lease_expires_at_ms FROM required_consumers WHERE series_key = ? AND consumer_id = ? " +
+      "AND generation_id = ? AND active = 1 AND owner_token = ? AND fence_token = ? AND lease_expires_at_ms = ?",
+      seriesKey, consumerId, generationId, ownerToken, fenceToken, leaseExpiresAtMs,
+    ).toArray();
+    return verified.length === 1 ? { renewed: true, leaseExpiresAtMs } :
       { renewed: false, reason: "lease_expired_or_fenced" };
   });
 }
@@ -1001,12 +1006,17 @@ export function releaseRequiredConsumerLease(storage, {
       !/^[0-9a-f]{64}$/.test(ownerToken) || !Number.isSafeInteger(fenceToken) || fenceToken < 1 ||
       !Number.isSafeInteger(now) || now < 0) return false;
   return storage.transactionSync(() => {
-    const result = storage.sql.exec(
+    storage.sql.exec(
       "UPDATE required_consumers SET active = 0, lease_expires_at_ms = ? WHERE series_key = ? " +
       "AND consumer_id = ? AND generation_id = ? AND active = 1 AND owner_token = ? AND fence_token = ?",
       now, seriesKey, consumerId, generationId, ownerToken, fenceToken,
     );
-    return result.rowsWritten === 1;
+    const verified = storage.sql.exec(
+      "SELECT active FROM required_consumers WHERE series_key = ? AND consumer_id = ? " +
+      "AND generation_id = ? AND owner_token = ? AND fence_token = ? AND active = 0",
+      seriesKey, consumerId, generationId, ownerToken, fenceToken,
+    ).toArray();
+    return verified.length === 1;
   });
 }
 
@@ -1097,12 +1107,17 @@ export function commitConsumerReceipt(storage, {
       );
     }
     const leaseExpiresAtMs = now + CONSUMER_LEASE_TTL_MS;
-    const renewed = storage.sql.exec(
+    storage.sql.exec(
       "UPDATE required_consumers SET lease_expires_at_ms = ? WHERE series_key = ? AND consumer_id = ? " +
       "AND generation_id = ? AND active = 1 AND owner_token = ? AND fence_token = ? AND lease_expires_at_ms > ?",
       leaseExpiresAtMs, seriesKey, consumerId, generationId, ownerToken, fenceToken, now,
     );
-    if (renewed.rowsWritten !== 1) return { accepted: false, reason: "lease_expired_or_fenced" };
+    const renewed = storage.sql.exec(
+      "SELECT 1 AS renewed FROM required_consumers WHERE series_key = ? AND consumer_id = ? " +
+      "AND generation_id = ? AND active = 1 AND owner_token = ? AND fence_token = ? AND lease_expires_at_ms = ?",
+      seriesKey, consumerId, generationId, ownerToken, fenceToken, leaseExpiresAtMs,
+    ).toArray();
+    if (renewed.length !== 1) return { accepted: false, reason: "lease_expired_or_fenced" };
     return {
       accepted: true, duplicate, committedCursor: String(sequence), receiptVersion,
       committedAtNs: (BigInt(now) * 1_000_000n).toString(), leaseExpiresAtMs,
