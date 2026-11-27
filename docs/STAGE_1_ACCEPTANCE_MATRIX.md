@@ -4,7 +4,7 @@
 **Stage 1 meter:** 30/40 criteria = 75% provisional. **Gate 10:** 0/10 external criteria formally closed.  
 **Stages 2–6:** Stage 2 remains preparatory; Stages 3, 5 and 6 are not scored; Stage 4 remains gated. Overall project percentage is not scored.
 
-**Latest repository candidate:** PR [#13](https://github.com/deszztagd377-pixel/dezzta-chart/pull/13), branch `work/batch95-websocket-ack-protocol`, current PR HEAD `d62e040d9963db93fcc64928e69d6829a586c480` (documentation-only). The latest source/test SHA is `5cb1dd0b24ee083a0149a8e804ba7276a893a869`; all four required workflows (Automated Tests, CodeQL, Full Git History Secret Audit and OCI ARM64) reached terminal SUCCESS on that exact source/test SHA. No source changes were made after it; later commits only corrected project documentation. PR #13 remains open and unmerged. This does not establish production WebSocket acceptance.
+**Latest repository candidate:** PR [#13](https://github.com/deszztagd377-pixel/dezzta-chart/pull/13), branch `work/batch95-websocket-ack-protocol`, current PR HEAD `f5567e88cc138920a0ebb83b78bb836f93a97c8f` (documentation-only). The latest source/test SHA is `5cb1dd0b24ee083a0149a8e804ba7276a893a869`; all four required workflows (Automated Tests, CodeQL, Full Git History Secret Audit and OCI ARM64) reached terminal SUCCESS on that exact source/test SHA. No source changes were made after it; later commits only corrected project documentation. PR #13 remains open and unmerged. This does not establish production WebSocket acceptance.
 
 **Remaining Stage 1 external criteria — all YELLOW / evidence pending:**
 - **8:** actual production secret injection, host permissions, runtime exposure and rotation.
