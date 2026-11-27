@@ -248,3 +248,19 @@ Cross-indicator acceptance remains mandatory: warm-up values null until mathemat
 - Next implementation order: (1) make legacy ownerless consumer rows fail closed; (2) implement atomic lease acquire/renew/release with monotonic fencing; (3) bind ACK and socket close to owner + fence + unexpired lease; (4) make compaction evaluate only valid active leases and reject unsafe stale owners; (5) add expiry, takeover, duplicate-owner, stale-fence, restart/eviction and concurrent ACK/compaction tests; (6) run all four exact-source CI workflows to terminal state.
 - CI success is synthetic proof/repository evidence, not production acceptance and not closure of any external Stage 1 gate.
 - Delivery target remains **24 December 2026**; from 27 November, **27 calendar days** remain. ZERO COST. Do not merge PR #13 or modify `main` without explicit owner authorization. No autonomous 10-minute AI coding is claimed; the configured relay runs preflight only.
+
+
+## Automation reality audit — 27 November 2026 (read-only Cloudflare + GitHub verification)
+
+The Cloudflare account currently contains one Worker script, `dezzta-chart-runner-relay`; the account has **zero** Durable Object namespaces, Pages projects, zones, and Worker custom domains. The Worker account subdomain exists, but that does not mean the DEZZTA CHART application Worker is deployed.
+
+- The relay's Cron Trigger schedules endpoint returns an empty schedule list. No 10-minute Cron Trigger is configured.
+- The relay Worker has a `fetch` handler only; its health endpoint reports `mode: standby`. Its authenticated `POST /trigger` route dispatches GitHub workflow `preflight.yml` in `dezzta-chart-runner`. It does not invoke ChatGPT or edit application code.
+- The runner workflow has only `workflow_dispatch`, checks out application branch `phase-2/market-data-foundation` (not the active PR branch `work/batch95-websocket-ack-protocol`), verifies branch/package metadata, and explicitly performs **no install, build, tests, edits, or pushes**.
+- Therefore the prior description of an autonomous 10-minute AI coding loop was inaccurate. Do not represent the relay as an AI agent, scheduled build/test runner, or autonomous coding system. Do not add a Cron Trigger that only repeats a no-op preflight or would consume free CI minutes without delivering code progress.
+
+This audit used read-only account/resource queries and source inspection. No Cloudflare resource, secret, schedule, billing setting, deployment, or repository application code was changed by this audit.
+
+## Current exact-head CI — documentation-only head
+
+After the checkpoint above, three documentation-only commits updated the owner dashboard, roadmap, and acceptance matrix. Latest PR HEAD is `7a5255a9935ccdf728f91bfc71ad98aaf67bc08d`. Four workflows on this exact HEAD are terminal SUCCESS: Automated Tests [46012847491] (41/41 steps), CodeQL [46012847240], OCI ARM64 [46012847230], and Full Git History Secret Audit [46012847260]. The latest source/test implementation remains `96cb3d505b7f70d70147f6773d879632d71e9a58`; documentation-only changes do not change its application behavior.
