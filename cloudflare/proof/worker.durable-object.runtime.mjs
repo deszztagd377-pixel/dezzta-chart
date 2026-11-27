@@ -234,7 +234,7 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       ).toArray();
       const tables = sql.exec(
         "SELECT name FROM sqlite_master WHERE type = 'table' " +
-        "AND name IN ('schema_migrations', 'series_state', 'series_events', 'consumer_receipts', 'series_identity') " +
+        "AND name IN ('schema_migrations', 'series_state', 'series_events', 'consumer_receipts', 'series_identity', 'required_consumers') " +
         "ORDER BY name",
       ).toArray().map((row) => row.name);
       const stateColumns = sql.exec("PRAGMA table_info(series_state)")
@@ -321,9 +321,10 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       };
     });
 
-    expect(first.versions).toEqual([{ version: 1 }, { version: 2 }, { version: 3 }]);
+    expect(first.versions).toEqual([{ version: 1 }, { version: 2 }, { version: 3 }, { version: 4 }]);
     expect(first.tables).toEqual([
       "consumer_receipts",
+      "required_consumers",
       "schema_migrations",
       "series_events",
       "series_identity",
@@ -363,19 +364,19 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       ).one().count,
     }));
 
-    expect(restored.versions).toEqual([{ version: 1 }, { version: 2 }, { version: 3 }]);
+    expect(restored.versions).toEqual([{ version: 1 }, { version: 2 }, { version: 3 }, { version: 4 }]);
     expect(restored.legacyCursor).toBe(50);
     expect(restored.eventCount).toBe(1);
   });
 
-  it("upgrades an existing v2 identity row to v3 without changing its canonical identity", async () => {
+  it("upgrades an existing v2 identity row to v4 without changing its canonical identity", async () => {
     const stub = coordinatorStub(SERIES_B);
     const series = canonicalSeries(SERIES_B);
     await runInDurableObject(stub, async (_instance, state) => {
       const sql = state.storage.sql;
       sql.exec("DROP TRIGGER IF EXISTS series_identity_immutable_update");
       sql.exec("ALTER TABLE series_identity DROP COLUMN identity_digest");
-      sql.exec("DELETE FROM schema_migrations WHERE version = 3");
+      sql.exec("DELETE FROM schema_migrations WHERE version >= 3");
       sql.exec(
         "INSERT INTO series_identity (series_key, identity_json, created_at_ms) VALUES (?, ?, ?)",
         SERIES_B, JSON.stringify(series), 1,
@@ -397,7 +398,7 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       ).toArray();
       return { version, hydrated, row };
     });
-    expect(result.version).toBe(3);
+    expect(result.version).toBe(4);
     expect(result.hydrated).toBe(true);
     expect(JSON.parse(result.row[0].identity_json)).toEqual(series);
     expect(result.row[0].identity_digest).toMatch(/^[0-9a-f]{64}$/);
