@@ -1,3 +1,21 @@
+# AUTHORITATIVE OWNER CHECKPOINT — 27 November 2026, Batch 96C implementation candidate
+
+**Stage control:** Stage 1 remains 30/40 (75% provisional); Gate 10 remains 0/10 formally closed. Stage 2 is preparatory only and cannot begin until Stage 1 is accepted at 40/40 and the owner explicitly approves.
+
+**Parallel implementation streams completed in this candidate:**
+- Core lease primitives: atomic acquisition, same-owner renewal, active-owner collision rejection, expiry takeover with monotonically incremented fence, fenced release, and owner/fence/expiry-validated receipt commit.
+- WebSocket lifecycle: unique owner token and consumer ID per socket, lease renewal on ping/ACK, alarm-driven expiry, fan-out expiry guard, close/error release, and re-subscribe release.
+- Retention safety: compaction deactivates expired leases and only blocks on non-expired active consumers.
+- Runtime tests: acquisition/collision/renewal/takeover, stale ACK/release rejection, expired-lease compaction, socket isolation/close release, and ping+ACK renewal.
+
+**Verification is still pending.** One prior Automated Tests run failed at JavaScript syntax checking because an ACK callback containing `await` was not marked `async`; this was corrected in commit `bebd1c66ee262240e593409f9c7ddee78b544045`. Follow-up fixes for pending lease cleanup and replay alarm scheduling are in `247b22344b437f729d026f05bc80f8469a889e4c`. The latest exact-head CI must still reach terminal SUCCESS on all four required workflows. No WebSocket item is accepted or awarded a Stage 1 tick until that evidence and runtime edge-case review pass.
+
+**Latest candidate source commit:** `247b22344b437f729d026f05bc80f8469a889e4c`. Runtime-test commit: `d2760d18c7194bdd19b88e71adccf2e681fe7a02`. Subsequent documentation-only commits may move PR HEAD without changing source/test content.
+
+**Remaining external Stage 1 gates:** 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 still require real owner-host, Firebase, backup/key recovery, deployment, public WSS/device, monitoring or incident evidence. Synthetic CI cannot close them. ZERO COST; no paid services or new infrastructure. Target: 24 December 2026.
+
+---
+
 # AUTHORITATIVE OWNER CHECKPOINT — 27 November 2026, Batch 96C candidate
 
 **Stage 1:** 30/40 = 75% provisional; Gate 10 = 0/10 formally closed. Stage 2 remains preparatory and requires Stage 1 100% plus explicit owner approval.
