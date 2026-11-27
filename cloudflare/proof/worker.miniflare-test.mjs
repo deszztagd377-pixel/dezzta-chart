@@ -633,7 +633,7 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
       method: "POST", headers: authorizedHeaders(),
       body: JSON.stringify({
         seriesKey: SERIES, consumerId: "synthetic-proof-consumer-lagging", generationId: "synthetic-v1",
-        ownerToken: "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+        ownerToken: "9999999999999999999999999999999999999999999999999999999999999999",
       }),
     });
     assert.equal(laggingRegistration.status, 200);
@@ -641,7 +641,7 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
       seriesKey: SERIES,
       consumerId: "synthetic-proof-consumer-lagging",
       generationId: "synthetic-v1",
-      ownerToken: "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+      ownerToken: "9999999999999999999999999999999999999999999999999999999999999999",
       fenceToken: 1,
       sequence: 51,
       eventDigest: event51Digest,
