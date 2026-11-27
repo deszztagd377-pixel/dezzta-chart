@@ -1,3 +1,24 @@
+## Latest PR candidate verification — Batch 95 (27 November 2026)
+
+**PR:** [#13 — durable WebSocket ACK protocol](https://github.com/deszztagd377-pixel/dezzta-chart/pull/13)  
+**Candidate branch:** `work/batch95-websocket-ack-protocol`  
+**Code/test candidate SHA:** `be406610ade3d9f03288be500357204831d0a5c7`  
+**PR state:** OPEN, mergeable, not merged. The application `main` branch remains untouched.
+
+All four required workflows completed with terminal SUCCESS on the candidate SHA:
+- Automated Tests — [45990584004](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45990584004)
+- CodeQL — [45990583904](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45990583904)
+- Full Git History Secret Audit — [45990583882](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45990583882)
+- OCI ARM64 Image Readiness — [45990583900](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45990583900)
+
+This is **synthetic proof acceptance only**. Production Firebase grant, lease renewal/expiry/fencing/deregistration, canonical production event digest, public WSS, provider rights, zero-cost quota certification and browser/Android E2E remain YELLOW. No production completion or Stage 1 gate closure is inferred.
+
+**SHA reconciliation:** the dashboard's source/test SHA `9e7a7ec4534e0985b9ad123d70edfe9fdec76418` is an ancestor of active branch base `4979bd4a69dfd37b4571a125790150931c4154ee`. The five intervening commits changed only CI workflow files and documentation; no source/runtime files changed in that interval. The separate PR candidate above contains the later WebSocket ACK implementation and has its own exact-head CI evidence.
+
+**Next engineering batch:** implement the required-consumer lease lifecycle on the existing PR branch: additive SQLite migration, owner/fencing validation, bounded renewal/expiry, stale-owner rejection, safe deregistration, and compaction interaction. Keep all work synthetic-only until production identity and deployment acceptance exist. Do not merge automatically.
+
+---
+
 # ACTIVE PROJECT DASHBOARD — DEZZTA CHART (27 November 2026)
 
 **Active branch:** `phase-2/market-data-foundation` — `main` untouched.  
