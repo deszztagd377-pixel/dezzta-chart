@@ -475,14 +475,14 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
     const overBudgetAuthPromise = nextJsonMessage(overBudgetSocket);
     overBudgetSocket.send(JSON.stringify({ type: "auth", ticket: overBudgetTicket.ticket }));
     assert.equal((await overBudgetAuthPromise).type, "market_data.status");
-    const resnapshotPromise = nextJsonMessage(overBudgetSocket);
+    const overBudgetResnapshotPromise = nextJsonMessage(overBudgetSocket);
     overBudgetSocket.send(JSON.stringify({
       type: "market_data.subscribe",
       version: 1,
       series: overBudgetSeries,
       cursor: "50",
     }));
-    const overBudgetResnapshot = await resnapshotPromise;
+    const overBudgetResnapshot = await overBudgetResnapshotPromise;
     assert.equal(overBudgetResnapshot.type, "market_data.ohlcv.resnapshot_required");
     assert.equal(overBudgetResnapshot.reason, "replay_backlog_exceeds_page_budget");
     assert.equal(overBudgetResnapshot.snapshotCursor, "1051");
