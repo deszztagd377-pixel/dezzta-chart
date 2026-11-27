@@ -16,7 +16,6 @@ import {
 
 const PROTOCOL_VERSION = 1;
 const TICKET_TTL_MS = 90_000;
-const CONSUMER_LEASE_TTL_MS = 30_000;
 const MAX_TICKET_COUNT = 256;
 const MAX_CONNECTIONS_PER_SERIES = 64;
 const MAX_UNAUTHENTICATED_CONNECTIONS_PER_SERIES = 8;
@@ -908,78 +907,43 @@ export function readDurableReplayPage(storage, seriesKey, cursor, expectedGenera
   return { ok: true, page, responseBytes };
 }
 
-/** Acquire a consumer lease atomically; takeover always increments its fencing token. */
-export function registerRequiredConsumer(storage, { seriesKey, consumerId, generationId, ownerToken }, now = Date.now()) {
-  if (!storage?.sql || typeof storage.sql.exec !== "function" || typeof storage.transactionSync !== "function" ||
-      !isValidSyntheticSeriesKey(seriesKey) || typeof consumerId !== "string" ||
-      !/^[A-Za-z0-9._:-]{1,128}$/.test(consumerId) || typeof generationId !== "string" ||
-      !/^[A-Za-z0-9._:-]{1,128}$/.test(generationId) || typeof ownerToken !== "string" ||
-      !/^[0-9a-f]{64}$/.test(ownerToken) || !Number.isSafeInteger(now) || now < 0) {
-    throw new TypeError("Required consumer lease input is invalid.");
+/** Register a required consumer before it is allowed to ACK or be excluded from retention. */
+export function registerRequiredConsumer(storage, {
+  seriesKey, consumerId, generationId,
+}, now = Date.now()) {
+  if (!storage?.sql || typeof storage.sql.exec !== "function" ||
+      typeof storage.transactionSync !== "function" ||
+      !isValidSyntheticSeriesKey(seriesKey) ||
+      typeof consumerId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(consumerId) ||
+      typeof generationId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(generationId) ||
+      !Number.isSafeInteger(now) || now < 0) {
+    throw new TypeError("Required consumer registration input is invalid.");
   }
   return storage.transactionSync(() => {
-    const states = storage.sql.exec("SELECT generation_id FROM series_state WHERE series_key = ?", seriesKey).toArray();
-    if (states.length !== 1) return { registered: false, reason: "series_state_missing" };
-    if (states[0].generation_id !== generationId) return { registered: false, reason: "generation_mismatch" };
-    const rows = storage.sql.exec(
-      "SELECT generation_id, active, owner_token, fence_token, lease_expires_at_ms FROM required_consumers " +
-      "WHERE series_key = ? AND consumer_id = ?", seriesKey, consumerId,
+    const states = storage.sql.exec(
+      "SELECT generation_id FROM series_state WHERE series_key = ?",
+      seriesKey,
     ).toArray();
-    const old = rows[0];
-    if (old && old.generation_id !== generationId) return { registered: false, reason: "generation_mismatch" };
-    if (old && old.active === 1 && old.lease_expires_at_ms > now && old.owner_token !== ownerToken) {
-      return { registered: false, reason: "lease_held" };
+    if (states.length !== 1) return { registered: false, reason: "series_state_missing" };
+    if (states[0].generation_id !== generationId) {
+      return { registered: false, reason: "generation_mismatch" };
     }
-    const sameOwner = old && old.active === 1 && old.owner_token === ownerToken && old.lease_expires_at_ms > now;
-    const fenceToken = sameOwner ? old.fence_token : (old ? old.fence_token + 1 : 1);
-    if (!Number.isSafeInteger(fenceToken) || fenceToken < 1 || fenceToken > 2_147_483_647) {
-      return { registered: false, reason: "fence_exhausted" };
+    const existing = storage.sql.exec(
+      "SELECT generation_id, active FROM required_consumers WHERE series_key = ? AND consumer_id = ?",
+      seriesKey, consumerId,
+    ).toArray();
+    if (existing.length === 1 && existing[0].generation_id !== generationId) {
+      return { registered: false, reason: "generation_mismatch" };
     }
-    const leaseExpiresAtMs = now + CONSUMER_LEASE_TTL_MS;
     storage.sql.exec(
-      "INSERT INTO required_consumers (series_key, consumer_id, generation_id, registered_at_ms, active, owner_token, fence_token, lease_expires_at_ms) " +
-      "VALUES (?, ?, ?, ?, 1, ?, ?, ?) ON CONFLICT(series_key, consumer_id) DO UPDATE SET " +
-      "generation_id = excluded.generation_id, registered_at_ms = excluded.registered_at_ms, active = 1, " +
-      "owner_token = excluded.owner_token, fence_token = excluded.fence_token, lease_expires_at_ms = excluded.lease_expires_at_ms",
-      seriesKey, consumerId, generationId, now, ownerToken, fenceToken, leaseExpiresAtMs,
+      "INSERT INTO required_consumers (series_key, consumer_id, generation_id, registered_at_ms, active) " +
+      "VALUES (?, ?, ?, ?, 1) ON CONFLICT(series_key, consumer_id) DO NOTHING",
+      seriesKey, consumerId, generationId, now,
     );
-    return { registered: true, duplicate: Boolean(sameOwner), ownerToken, fenceToken, leaseExpiresAtMs };
-  });
-}
-
-/** Renew only the exact, still-live owner/fence pair. */
-export function renewRequiredConsumerLease(storage, { seriesKey, consumerId, generationId, ownerToken, fenceToken }, now = Date.now()) {
-  if (!storage?.sql || typeof storage.sql.exec !== "function" || typeof storage.transactionSync !== "function" ||
-      !isValidSyntheticSeriesKey(seriesKey) || typeof consumerId !== "string" ||
-      typeof generationId !== "string" || typeof ownerToken !== "string" ||
-      !/^[0-9a-f]{64}$/.test(ownerToken) || !Number.isSafeInteger(fenceToken) || fenceToken < 1 ||
-      !Number.isSafeInteger(now) || now < 0) return { renewed: false, reason: "invalid_lease" };
-  return storage.transactionSync(() => {
-    const expiry = now + CONSUMER_LEASE_TTL_MS;
-    const result = storage.sql.exec(
-      "UPDATE required_consumers SET lease_expires_at_ms = ? WHERE series_key = ? AND consumer_id = ? " +
-      "AND generation_id = ? AND active = 1 AND owner_token = ? AND fence_token = ? AND lease_expires_at_ms > ?",
-      expiry, seriesKey, consumerId, generationId, ownerToken, fenceToken, now,
-    );
-    return result.rowsWritten === 1 ? { renewed: true, leaseExpiresAtMs: expiry } :
-      { renewed: false, reason: "lease_expired_or_fenced" };
-  });
-}
-
-/** Stale sockets cannot release a successor's lease. */
-export function releaseRequiredConsumerLease(storage, { seriesKey, consumerId, generationId, ownerToken, fenceToken }, now = Date.now()) {
-  if (!storage?.sql || typeof storage.sql.exec !== "function" || typeof storage.transactionSync !== "function" ||
-      !isValidSyntheticSeriesKey(seriesKey) || typeof consumerId !== "string" ||
-      typeof generationId !== "string" || typeof ownerToken !== "string" ||
-      !/^[0-9a-f]{64}$/.test(ownerToken) || !Number.isSafeInteger(fenceToken) || fenceToken < 1 ||
-      !Number.isSafeInteger(now) || now < 0) return false;
-  return storage.transactionSync(() => {
-    const result = storage.sql.exec(
-      "UPDATE required_consumers SET active = 0, lease_expires_at_ms = ? WHERE series_key = ? " +
-      "AND consumer_id = ? AND generation_id = ? AND active = 1 AND owner_token = ? AND fence_token = ?",
-      now, seriesKey, consumerId, generationId, ownerToken, fenceToken,
-    );
-    return result.rowsWritten === 1;
+    return {
+      registered: true,
+      duplicate: existing.length === 1 && existing[0].active === 1,
+    };
   });
 }
 
