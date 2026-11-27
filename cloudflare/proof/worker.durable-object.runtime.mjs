@@ -876,4 +876,80 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     });
   });
 
+
+  it("replays the committed event after Durable Object eviction and reconstruction", async () => {
+    const seriesKey = "synthetic:DEMO:EVICTION:1m";
+    const emitted = await emit(seriesKey, 51);
+    expect(emitted.status).toBe(200);
+    expect(emitted.payload).toMatchObject({
+      accepted: true,
+      duplicate: false,
+      sequence: "51",
+    });
+
+    const stub = coordinatorStub(seriesKey);
+    await evictDurableObject(stub);
+
+    const persisted = await runInDurableObject(stub, async (_instance, state) => ({
+      state: state.storage.sql.exec(
+        "SELECT generation_id, high_water, retention_floor FROM series_state WHERE series_key = ?",
+        seriesKey,
+      ).toArray(),
+      events: state.storage.sql.exec(
+        "SELECT sequence, event_digest, payload FROM series_events WHERE series_key = ? ORDER BY sequence",
+        seriesKey,
+      ).toArray(),
+    }));
+
+    expect(persisted.state).toEqual([{
+      generation_id: "synthetic-v1",
+      high_water: 51,
+      retention_floor: 50,
+    }]);
+    expect(persisted.events).toHaveLength(1);
+    expect(JSON.parse(persisted.events[0].payload)).toMatchObject({
+      type: "market_data.ohlcv.update",
+      sequence: 51,
+      cursor: "51",
+      digest: persisted.events[0].event_digest,
+      series: { seriesKey },
+    });
+
+    const ticket = await issueTicket(seriesKey);
+    const socket = await openSocket(seriesKey);
+    const statusPromise = nextJsonMessage(socket);
+    socket.send(JSON.stringify({ type: "auth", ticket }));
+    expect(await statusPromise).toMatchObject({
+      type: "market_data.status",
+      providerConnected: false,
+      liveProviderEnabled: false,
+    });
+
+    const replayStartedPromise = nextJsonMessage(socket);
+    socket.send(JSON.stringify({
+      type: "market_data.subscribe",
+      version: 1,
+      cursor: "50",
+      series: canonicalSeries(seriesKey),
+    }));
+    expect(await replayStartedPromise).toMatchObject({
+      type: "market_data.ohlcv.replay_started",
+      fromCursor: "50",
+      throughCursor: "51",
+      count: 1,
+    });
+    expect(await nextJsonMessage(socket)).toMatchObject({
+      type: "market_data.ohlcv.update",
+      sequence: 51,
+      cursor: "51",
+      digest: persisted.events[0].event_digest,
+    });
+    expect(await nextJsonMessage(socket)).toMatchObject({
+      type: "market_data.ohlcv.replay_complete",
+      cursor: "51",
+      throughSequence: 51,
+      count: 1,
+    });
+  });
+
 });
