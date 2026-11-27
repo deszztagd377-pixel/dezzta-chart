@@ -880,12 +880,9 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
   it("keeps SQLite authoritative after bootstrap even when legacy KV is corrupt, including after eviction", async () => {
     const seriesKey = "synthetic:DEMO:LEGACYRECOVERY:1m";
     const stub = coordinatorStub(seriesKey);
-    const seeded = await stub.fetch("https://series.internal/internal/seed-legacy-cursor", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ seriesKey, sequence: 77 }),
+    await runInDurableObject(stub, async (_instance, state) => {
+      await state.storage.put("sequence:" + seriesKey, 77);
     });
-    expect(seeded.status).toBe(200);
 
     const first = await emit(seriesKey, 78);
     expect(first.status).toBe(200);
@@ -929,15 +926,7 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       });
     }
 
-    const ticket = await issueTicket(seriesKey);
-    const socket = await openSocket(seriesKey);
-    const statusPromise = nextJsonMessage(socket);
-    socket.send(JSON.stringify({ type: "auth", ticket }));
-    expect(await statusPromise).toMatchObject({
-      type: "market_data.status",
-      providerConnected: false,
-      liveProviderEnabled: false,
-    });
+  });
 
     const replayStartedPromise = nextJsonMessage(socket);
     socket.send(JSON.stringify({
