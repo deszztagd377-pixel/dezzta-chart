@@ -1595,3 +1595,19 @@ Detailed evidence and blob SHAs: [BATCH89_93_SOURCE_AUDIT_2026-11-25.md](BATCH89
 Static test inventory: 31 Node proof + 11 Durable Object Vitest + 1 Miniflare declarations = 43, all NOT RUN. Static lockfile root metadata matches package.json; no runtime compatibility or installation claim follows from this check.
 
 Batch 92 source blocker: sequence cursor only is committed; event payload/digest replay storage is absent. Batch 93 source blocker: ACK, durable consumer receipt, RESUME and replay recovery are absent. Existing socket attachment restore tests do not close these gates. All Batch 89–93 runtime acceptance conditions remain OPEN pending exact-SHA execution evidence.
+
+---
+
+## Source-status correction — 27 November 2026
+
+This addendum supersedes older source-only statements in this matrix that describe the synthetic Worker as having no durable event log/replay or receipt schema. It does not change formal Stage 1 gate closure or overall scoring.
+
+Inspected source baseline: `phase-2/market-data-foundation` base SHA `4979bd4a69dfd37b4571a125790150931c4154ee`; Worker blob `e8b4b5b5c4c35c5b7915ff46df00ced39e894f88`.
+
+- SQLite schema v3, series event payload/digest/high-water transaction, bounded durable replay and serialized subscribe/fan-out are implemented in the synthetic proof source.
+- A durable consumer receipt primitive and proof-only HTTP ACK route exist. The consumer ID is client-supplied under synthetic bearer-token authorization; Firebase identity binding and a WebSocket ACK message are not implemented.
+- The compaction function does not enforce a retention floor bounded by all required consumers' durable receipts. Do not enable destructive retention for production.
+- The Worker remains synthetic-only and is not deployed as the production WSS service. Public WSS, Firebase-authenticated consumer identity, provider ingress, browser/Android E2E and production recovery remain unaccepted.
+- Behavioral test coverage for ACK receipt commit and receipt-aware compaction was not found in the inspected test files. Schema tests alone do not close those acceptance items.
+
+Updated batch disposition: Batch 90 schema — implemented in synthetic proof, production acceptance open; Batch 92 event commit/replay — implemented in synthetic proof, production integration open; Batch 93 — partial proof primitives only, authenticated ACK/RESUME protocol and receipt-aware retention still open. Stage 1 remains 30/40 = 75% provisional; Gate 10 remains 0/10 formally closed. This correction awards no Stage 1 points and does not advance the official stage.
