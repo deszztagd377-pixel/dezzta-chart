@@ -331,6 +331,33 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
     assert.deepEqual(observedSequences, [51, 52]);
     assert.ok(event52 && /^[0-9a-f]{64}$/.test(event52.digest));
 
+    // ACK is now a first-class WebSocket protocol message. A cursor beyond the
+    // highest event delivered on this connection is rejected before persistence.
+    const aheadAckPromise = nextRaceMessage();
+    raceSocket.send(JSON.stringify({
+      type: "market_data.ack",
+      version: 1,
+      sequence: 53,
+      eventDigest: event52.digest,
+    }));
+    const aheadAck = await aheadAckPromise;
+    assert.equal(aheadAck.type, "market_data.ack_rejected");
+    assert.equal(aheadAck.reason, "ack_not_delivered_or_invalid");
+
+    const websocketAckPromise = nextRaceMessage();
+    raceSocket.send(JSON.stringify({
+      type: "market_data.ack",
+      version: 1,
+      sequence: 52,
+      eventDigest: event52.digest,
+    }));
+    const websocketAck = await websocketAckPromise;
+    assert.equal(websocketAck.type, "market_data.acknowledged");
+    assert.equal(websocketAck.accepted, true);
+    assert.equal(websocketAck.duplicate, false);
+    assert.equal(websocketAck.committedCursor, "52");
+    assert.equal(websocketAck.receiptVersion, 1);
+
     const primaryRegistration = await miniflare.dispatchFetch(`${BASE_URL}/__proof/register-consumer`, {
       method: "POST", headers: authorizedHeaders(),
       body: JSON.stringify({
