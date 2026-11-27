@@ -1010,6 +1010,23 @@ export function releaseRequiredConsumerLease(storage, {
   });
 }
 
+/** Confirm that a socket still owns the authoritative, unexpired lease before fan-out. */
+function isCurrentRequiredConsumerLease(storage, attachment, now = Date.now()) {
+  if (!storage?.sql || !attachment || typeof attachment.seriesKey !== "string" ||
+      typeof attachment.consumerId !== "string" || typeof attachment.ownerToken !== "string" ||
+      !/^[0-9a-f]{64}$/.test(attachment.ownerToken) ||
+      !Number.isSafeInteger(attachment.fenceToken) || attachment.fenceToken < 1 ||
+      !Number.isSafeInteger(now) || now < 0) return false;
+  const rows = storage.sql.exec(
+    "SELECT 1 AS owned FROM required_consumers WHERE series_key = ? AND consumer_id = ? " +
+    "AND generation_id = ? AND active = 1 AND owner_token = ? AND fence_token = ? " +
+    "AND lease_expires_at_ms > ? LIMIT 1",
+    attachment.seriesKey, attachment.consumerId, "synthetic-v1",
+    attachment.ownerToken, attachment.fenceToken, now,
+  ).toArray();
+  return rows.length === 1;
+}
+
 /** Persist a monotonic receipt only while the exact owner/fence lease is live. */
 export function commitConsumerReceipt(storage, {
   seriesKey, consumerId, generationId, ownerToken, fenceToken, sequence, eventDigest,
@@ -1445,7 +1462,8 @@ export class SeriesCoordinatorDO {
               continue;
             }
             if (attachment.authorized && attachment.seriesKey === body.seriesKey &&
-                attachment.subscribed === true && attachment.leaseExpiresAtMs > Date.now() && attachment.series &&
+                attachment.subscribed === true && attachment.leaseExpiresAtMs > Date.now() &&
+                isCurrentRequiredConsumerLease(this.ctx.storage, attachment) && attachment.series &&
                 canonicalSeriesIdentityJson(attachment.series) === canonicalSeriesIdentityJson(series)) {
               try {
                 socket.send(committed.payload);
