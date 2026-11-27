@@ -1,3 +1,25 @@
+# OWNER CHECKPOINT — Batch 96C WebSocket lease lifecycle
+
+**WebSocket implementation: 6/6 GREEN at code/test level on tested source commit `a9b7a126cefd87e87d11d52bd7d2016d7f71e363`.**
+- Atomic lease acquisition and collision-safe takeover — verified.
+- Lease renewal and expiry handling — verified.
+- Monotonic fencing token increment on takeover — verified.
+- ACK bound to current owner token, fence token and live lease — verified.
+- Per-socket lifecycle, ping/ACK renewal, close/error release, alarm expiry and stale-owner fan-out rejection — verified.
+- Expiry-aware compaction — verified.
+
+**Exact test evidence on the tested source commit:**
+- Automated Tests run [46018548453](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46018548453) — SUCCESS. Includes Miniflare/workerd WebSocket test, Durable Object runtime suite, frontend tests, backend tests, Redis TLS fixture, backend build/smoke test and image scan.
+- CodeQL run [46018548662](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46018548662) — SUCCESS.
+- OCI ARM64 run [46018548597](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46018548597) — SUCCESS.
+- Full Git History Secret Audit [46018548415](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46018548415) — SUCCESS.
+
+**Clean source commit:** `57dd158fe085207989cad19d47f15214805a7397` removes temporary diagnostic logging only; exact-head CI is being rerun before this clean commit is finally accepted. No feature behavior was intentionally changed by that cleanup.
+
+**Stage 1 is NOT complete:** remains 30/40 = 75% provisional; Gate 10 = 0/10 formally closed. These six synthetic code-level items do not prove public production WSS or close external Stage 1 criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. Stage 2 remains preparatory and requires Stage 1 40/40 plus explicit owner approval. Zero cost; no new infrastructure. Target: 24 December 2026.
+
+---
+
 # AUTHORITATIVE OWNER CHECKPOINT — 27 November 2026, Batch 96C implementation candidate
 
 **Stage control:** Stage 1 remains 30/40 (75% provisional); Gate 10 remains 0/10 formally closed. Stage 2 is preparatory only and cannot begin until Stage 1 is accepted at 40/40 and the owner explicitly approves.
