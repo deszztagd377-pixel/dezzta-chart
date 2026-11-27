@@ -24,6 +24,7 @@ const MAX_REQUEST_BYTES = 2_048;
 const SNAPSHOT_BARS = 50;
 const SNAPSHOT_WATERMARK = SNAPSHOT_BARS;
 const TICKET_PURPOSE = "market-data";
+const SYNTHETIC_WS_CONSUMER_ID = "synthetic-proof-websocket";
 const SERIES_PATTERN = /^synthetic:[A-Z0-9._-]{1,24}:[A-Z0-9._-]{1,24}:(1m|5m|15m|1h)$/;
 
 export function isValidSyntheticSeriesKey(value) {
@@ -253,7 +254,11 @@ function isValidSocketAttachment(attachment) {
     if (!validBase) return false;
     if (attachment.subscribed === true) {
       return validateSyntheticCanonicalSeries(attachment.series) &&
-        attachment.series.seriesKey === attachment.seriesKey;
+        attachment.series.seriesKey === attachment.seriesKey &&
+        attachment.consumerId === SYNTHETIC_WS_CONSUMER_ID &&
+        Number.isSafeInteger(attachment.lastDeliveredSequence) &&
+        attachment.lastDeliveredSequence >= attachment.snapshotWatermark &&
+        attachment.lastDeliveredSequence <= 1_000_000_000;
     }
     return attachment.subscribed === undefined || attachment.subscribed === false;
   }
@@ -1321,8 +1326,16 @@ export class SeriesCoordinatorDO {
             if (attachment.authorized && attachment.seriesKey === body.seriesKey &&
                 attachment.subscribed === true && attachment.series &&
                 canonicalSeriesIdentityJson(attachment.series) === canonicalSeriesIdentityJson(series)) {
-              try { socket.send(committed.payload); delivered += 1; }
-              catch { try { socket.close(1011, "Synthetic fan-out failed"); } catch { /* already closed */ } }
+              try {
+                socket.send(committed.payload);
+                socket.serializeAttachment({
+                  ...attachment,
+                  lastDeliveredSequence: sequence,
+                });
+                delivered += 1;
+              } catch {
+                try { socket.close(1011, "Synthetic fan-out failed"); } catch { /* already closed */ }
+              }
             }
           }
           return jsonResponse({ accepted: true, duplicate: false, sequence: String(sequence), delivered });
@@ -1419,6 +1432,49 @@ export class SeriesCoordinatorDO {
       return;
     }
 
+    if (payload?.type === "market_data.ack" && payload.version === PROTOCOL_VERSION) {
+      if (!attachment.subscribed ||
+          attachment.consumerId !== SYNTHETIC_WS_CONSUMER_ID ||
+          !Number.isSafeInteger(payload.sequence) ||
+          payload.sequence <= attachment.snapshotWatermark ||
+          payload.sequence > attachment.lastDeliveredSequence ||
+          payload.sequence > 1_000_000_000 ||
+          typeof payload.eventDigest !== "string" ||
+          !/^[0-9a-f]{64}$/.test(payload.eventDigest)) {
+        socket.send(JSON.stringify({
+          type: "market_data.ack_rejected",
+          version: PROTOCOL_VERSION,
+          reason: "ack_not_delivered_or_invalid",
+        }));
+        return;
+      }
+      return this.runProtocolExclusive(() => {
+        const receipt = commitConsumerReceipt(this.ctx.storage, {
+          seriesKey: attachment.seriesKey,
+          consumerId: attachment.consumerId,
+          generationId: "synthetic-v1",
+          sequence: payload.sequence,
+          eventDigest: payload.eventDigest,
+        });
+        if (!receipt.accepted) {
+          socket.send(JSON.stringify({
+            type: "market_data.ack_rejected",
+            version: PROTOCOL_VERSION,
+            reason: receipt.reason,
+          }));
+          return;
+        }
+        socket.send(JSON.stringify({
+          type: "market_data.acknowledged",
+          version: PROTOCOL_VERSION,
+          accepted: true,
+          duplicate: receipt.duplicate,
+          committedCursor: receipt.committedCursor,
+          receiptVersion: receipt.receiptVersion,
+        }));
+      });
+    }
+
     if (payload?.type === "market_data.subscribe" && payload.version === PROTOCOL_VERSION) {
       const series = payload.series;
       if (!validateSyntheticCanonicalSeries(series) || series.seriesKey !== attachment.seriesKey) {
@@ -1462,6 +1518,19 @@ export class SeriesCoordinatorDO {
         return;
       }
       await initializeDurableSeriesState(this.ctx.storage, attachment.seriesKey);
+      const registration = registerRequiredConsumer(this.ctx.storage, {
+        seriesKey: attachment.seriesKey,
+        consumerId: SYNTHETIC_WS_CONSUMER_ID,
+        generationId: "synthetic-v1",
+      });
+      if (!registration.registered) {
+        socket.send(JSON.stringify(createProtocolError(
+          "consumer_registration_failed", true, "consumer-" + Date.now(),
+          "The synthetic WebSocket consumer could not be durably registered.",
+        )));
+        socket.close(1011, "Consumer registration unavailable");
+        return;
+      }
       const watermark = await readDurableHighWater(this.ctx.storage, attachment.seriesKey);
       if (!Number.isSafeInteger(watermark) || watermark < SNAPSHOT_WATERMARK || watermark > 1_000_000_000) {
         socket.send(JSON.stringify(createProtocolError(
@@ -1501,6 +1570,8 @@ export class SeriesCoordinatorDO {
             snapshotWatermark: watermark,
             subscribed: true,
             series: canonicalSeries,
+            consumerId: SYNTHETIC_WS_CONSUMER_ID,
+            lastDeliveredSequence: throughSequence,
           });
           socket.send(JSON.stringify({
             type: "market_data.ohlcv.replay_started",
@@ -1550,6 +1621,8 @@ export class SeriesCoordinatorDO {
         snapshotWatermark: watermark,
         subscribed: true,
         series: canonicalSeries,
+        consumerId: SYNTHETIC_WS_CONSUMER_ID,
+        lastDeliveredSequence: watermark,
       });
       socket.send(JSON.stringify({
         ...snapshot,
