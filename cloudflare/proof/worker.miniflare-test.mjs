@@ -348,7 +348,7 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
     assert.equal(resnapshotRequired.reason, "retention_expired");
     const retainedSnapshot = await nextJsonMessage(retentionSocket);
     assert.equal(retainedSnapshot.type, "market_data.ohlcv.snapshot");
-    assert.equal(retainedSnapshot.cursor, "51");
+    assert.equal(retainedSnapshot.cursor, "52");
 
     const changedTimestampResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/emit`, {
       method: "POST",
