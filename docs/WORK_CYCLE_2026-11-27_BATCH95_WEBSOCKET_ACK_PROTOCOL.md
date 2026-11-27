@@ -153,3 +153,29 @@ A repeat run on the unchanged Batch 95 source exposed a race in the real-workerd
 Automated Tests completed the Worker Node proof, pinned workerd WebSocket/SQLite integration, Durable Object runtime tests, frontend tests/build and secret scans, backend tests, Redis TLS integration, synthetic benchmarks, backend container build/smoke and image scan. All four workflows ran against the same source/test SHA above.
 
 **Scope boundary:** this remains synthetic repository proof. Production Firebase grants, lease/fencing lifecycle, production event digest contract, public WSS, provider rights, account-level zero-cost certification and browser/Android production E2E remain YELLOW. PR #13 remains OPEN and unmerged; `main` remains untouched.
+
+
+## 11. Owner visual references captured — Heatmap and Footprint (27 November 2026)
+
+These are design requirements for the later indicator/visualization stages. They do **not** authorize implementation ahead of the Stage 1 acceptance gate.
+
+### Heatmap reference (owner-uploaded TradingView screenshot)
+
+- Reference is a desktop chart captured at a strongly zoomed-out view (1536 × 647 screenshot). Its apparent smallness is due to the desktop zoom level, not the intended mobile sizing.
+- Visual language: dark chart canvas; horizontal liquidity/intensity bands across price levels; restrained cyan/teal, green, yellow and red intensity; red/green trade/price markers around the visible price path.
+- Responsive sizing requirement: on the Infinix GT 20 / mobile layout at normal chart zoom, the Heatmap must remain legible and proportionate. **Do not scale the Heatmap into oversized blocks or let it dominate/crowd out candles.** Density, band thickness, label/marker size and visible vertical range must adapt to viewport and chart zoom.
+- Preserve chart readability: candles/price path remain the primary reference; Heatmap is a supporting layer with controllable visibility/opacity and must not obscure price action.
+- Acceptance must include at least desktop zoomed-out, desktop normal zoom, and mobile normal zoom screenshots; compare at equivalent visible price/time ranges rather than raw pixel dimensions alone.
+
+### Footprint reference (separate indicator)
+
+- Footprint is a distinct feature, not another name for Heatmap. The saved owner references show bid/ask volume cells aligned by price level beside candle bodies, numeric volume values, horizontal volume/profile bars and deliberate candle-cluster spacing.
+- The intended visual behavior is a readable per-price-level bid/ask footprint with buy/sell imbalance cues and volume context. It must not be reduced to decorative red/green dots or generic horizontal Heatmap bands.
+- Data provenance must be explicit. Until validated bid/ask or trade-level source data is available, any approximation must be labelled **simulated/estimated**, never presented as real exchange order flow or true bid/ask delta.
+- Footprint and Heatmap remain gated behind their indicator-stage architecture, reviewed calculation/data contracts, performance budget and owner visual acceptance.
+
+### Non-regression checks for both indicators
+
+- Candles, axes, crosshair, zoom/pan and timeframe changes remain usable with overlays enabled.
+- Overlay density and rendering cost are bounded for long visible histories; hidden overlays must not continue expensive per-frame work.
+- Validate at the phone's actual viewport and normal zoom, not only a desktop screenshot zoomed far out.
