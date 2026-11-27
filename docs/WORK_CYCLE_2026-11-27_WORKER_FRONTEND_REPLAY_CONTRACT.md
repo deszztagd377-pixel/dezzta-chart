@@ -21,3 +21,8 @@ The frontend replay guard also used the replay event count as its final numeric 
 ## Acceptance
 
 The change remains YELLOW until Automated Tests, CodeQL, Full Git History Secret Audit and OCI ARM64 are terminal SUCCESS on the exact source/test SHA. No public WSS, provider integration, production identity or Android E2E is claimed.
+
+
+## CI correction — post-race sequence gap fixture
+
+The first integration run exercised the replay frame contract and concurrent handoff through sequence 52. A later legacy gap assertion still attempted sequence 53, which is correctly accepted as the next contiguous event. Updated the negative gap case to sequence 54. No production sequence-validation rule changed. Fresh exact-head CI is required.

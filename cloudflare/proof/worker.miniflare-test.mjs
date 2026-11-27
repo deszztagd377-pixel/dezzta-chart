@@ -369,9 +369,9 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
       headers: authorizedHeaders(),
       body: JSON.stringify({
         seriesKey: SERIES,
-        sequence: "53",
+        sequence: "54",
         series: CANONICAL_SERIES,
-        emittedAtNs: "1800000000000000053",
+        emittedAtNs: "1800000000000000054",
       }),
     });
     assert.equal(gapResponse.status, 409);
