@@ -1,3 +1,27 @@
+# AUTHORITATIVE OWNER CHECKPOINT — 27 November 2026, Batch 96B
+
+**Official stage:** Stage 1 — Foundation, Security & Data Integrity. Stage 2 is preparatory only and cannot officially start until Stage 1 reaches 100% and the owner explicitly authorizes the transition.
+
+**Stage 1 accounting:** 30/40 = 75% provisional. The ten remaining external acceptance criteria are 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. Gate 10 remains 0/10 formally closed. These are not ten missing source-code functions: each requires owner-host, real Firebase, backup/key custody, deployment, public WSS/device, monitoring or incident evidence. Repository CI cannot truthfully close them. No ticks are added by documentation or synthetic tests.
+
+**Exact source/test HEAD:** `96cb3d505b7f70d70147f6773d879632d71e9a58`. PR #13 remains OPEN and unmerged; branch `work/batch95-websocket-ack-protocol`; `main` untouched. The exact source/test SHA has all four required workflows terminal SUCCESS:
+- Automated Tests [46011891943](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46011891943) — **41/41 steps SUCCESS**.
+- CodeQL [46011891956](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46011891956) — **SUCCESS**.
+- OCI ARM64 [46011892089](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46011892089) — **SUCCESS**.
+- Full Git History Secret Audit [46011892151](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46011892151) — **SUCCESS**.
+
+Automated Tests passed Worker/DO runtime tests, frontend tests and build, Android read-only preflight, Redis TLS CA/hostname fixture, backend tests, SQLite outbox/metrics benchmarks, dependency audit, backend image build, persistent-volume/Redis-guard smoke test, image scan/report and audit enforcement. This is repository/synthetic evidence, not a production deployment or owner-host acceptance.
+
+**Batch 96B change:** schema v5 migration now deactivates legacy consumer rows without valid owner/fence/lease metadata. Regression test added for v4-to-v5 migration. The change is included in the exact SHA above and therefore has full four-workflow CI success.
+
+**Remaining WebSocket lifecycle work:** implement atomic lease acquisition/renewal/release; monotonic fencing on expired takeover; owner+fence+expiry validation on ACK; expiry-aware compaction; socket lifecycle integration; stale owner/duplicate owner/takeover/restart/eviction/concurrency tests. These are still open. Do not claim WebSocket lifecycle complete.
+
+**Project status:** Stage 1 75% provisional; Stage 2 preparatory; Stage 3/5/6 unscored; Stage 4 gated; overall project percentage not scored. ZERO COST. No paid trials, new resources, deployments or billing changes. Delivery target 24 December 2026: 27 calendar days remain from 27 November. No autonomous background AI coding is claimed; the 10-minute relay runs preflight only.
+
+---
+
+# ACTIVE OWNER DASHBOARD
+
 # ACTIVE OWNER DASHBOARD — VERIFIED CHECKPOINT (27 November 2026)
 
 **Official active stage:** Stage 1 — Foundation, Security & Data Integrity.  
