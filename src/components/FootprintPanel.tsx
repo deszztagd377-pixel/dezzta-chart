@@ -21,10 +21,14 @@ const SAMPLE_LEVELS: FootprintLevel[] = [
   { price: 4033.25, bid: 12000, ask: 34000 },
 ];
 
-const formatVolume = (value: number): string =>
-  value >= 1000 ? `${(value / 1000).toFixed(value % 1000 === 0 ? 0 : 1)}k` : String(value);
+const formatVolume = (value: number): string => {
+  const absolute = Math.abs(value);
+  return absolute >= 1000
+    ? `${(absolute / 1000).toFixed(absolute % 1000 === 0 ? 0 : 1)}k`
+    : String(absolute);
+};
 const formatSigned = (value: number): string =>
-  `${value > 0 ? '+' : ''}${formatVolume(value)}`;
+  `${value > 0 ? '+' : value < 0 ? '-' : ''}${formatVolume(value)}`;
 
 export const getFootprintCellMetrics = (cell: SelectedCell) => {
   const total = cell.bid + cell.ask;
