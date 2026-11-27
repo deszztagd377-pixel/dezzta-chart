@@ -179,3 +179,18 @@ These are design requirements for the later indicator/visualization stages. They
 - Candles, axes, crosshair, zoom/pan and timeframe changes remain usable with overlays enabled.
 - Overlay density and rendering cost are bounded for long visible histories; hidden overlays must not continue expensive per-frame work.
 - Validate at the phone's actual viewport and normal zoom, not only a desktop screenshot zoomed far out.
+
+
+### Footprint interaction clarification from owner — 27 November 2026
+
+The per-cell detail interaction is activated by the **DEZZTA Chart in-app chart cursor/crosshair** (the chart pointer rendered as a plus sign, "+"). It is not a desktop mouse cursor requirement and must work with the app's own cursor tool, including on the Infinix GT 20 touchscreen.
+
+Acceptance behavior:
+- With Footprint enabled, moving the in-app plus/crosshair to a candle/price cell and selecting/tapping that location reveals the corresponding per-cell details.
+- The detail panel/popover is anchored to the selected chart cell/price level and identifies its candle time, price row, bid volume, ask volume, total volume and imbalance fields that are actually available from the data contract.
+- The selection follows chart coordinate transforms (zoom, pan, timeframe changes) and must not use raw screen coordinates as a persistent cell identity.
+- Tapping another cell updates the detail view; tapping outside or disabling Footprint dismisses it. Crosshair navigation without selecting a cell must not accidentally open a detail panel.
+- Desktop mouse hover may be an optional convenience, but is not the required interaction contract. Mobile tap/selection through the in-app plus cursor is required.
+- If bid/ask values are estimated/simulated, show that provenance in the detail view; never label estimates as actual exchange order flow.
+
+This is a future Footprint-stage requirement and remains gated; this clarification records the interaction contract only and does not claim implementation.
