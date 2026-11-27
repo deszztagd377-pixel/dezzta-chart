@@ -297,3 +297,44 @@ The target date remains 24 December 2026. From 27 November to 24 December there 
 - No recurring 10-minute job created or re-enabled.
 - PR #7 and #10 current-head CI checks are terminal SUCCESS. PR #11 latest documentation-only commit has no CI run; do not label that exact commit CI-tested.
 - Batch 94 overall remains **IN PROGRESS / YELLOW**. Production WSS, Firebase identity binding, provider eligibility, zero-cost certification, Android E2E, and Stage 1 closure remain **YELLOW / NOT ACCEPTED**.
+
+
+---
+
+## Correction and continuation — PR #7 / PR #12 consumer retention work (27 November 2026)
+
+This addendum supersedes the earlier Batch 93 statement that no direct behavioral receipt/compaction tests existed on the current Batch 94 candidate. That statement described the foundation baseline before PR #7; it is not accurate for the PR #7 head.
+
+### PR #7 candidate now contains
+
+- Durable Object eviction/reconstruction integration test proving the committed event payload, digest and high-water survive eviction and are replayed to a newly authenticated synthetic socket.
+- Workerd/Miniflare behavioral ACK tests for first receipt, duplicate/idempotent ACK, ACK regression rejection, and digest mismatch rejection.
+- Receipt-aware compaction guard against already-observed lagging receipts, with an integration test that blocks compaction at 52 while a consumer has ACKed only 51, then permits compaction through 51.
+- Current PR #7 head: `80ca695e68badf87b084ce08f01878c604ac02a4`; all four current-head checks were terminal SUCCESS as recorded above.
+
+**Important limitation in PR #7:** the compaction query considers receipts already present, but there is no authoritative required-consumer registry. A connected/required consumer that has not yet written its first receipt is invisible to that query. The source comment itself notes that a production active-consumer registry is still required. Therefore PR #7 alone does not prove safe compaction for every required consumer.
+
+### PR #12 — required-consumer registry candidate
+
+A new feature branch was created from the exact PR #7 head and opened as [PR #12](https://github.com/deszztagd377-pixel/dezzta-chart/pull/12).
+
+- Branch: `work/batch94-required-consumer-registry`
+- Head: `a0d1d4b01c238a1e643f36cf0b939ada067863f3`
+- Adds SQLite schema migration v4 and a required-consumer registry.
+- Adds a synthetic proof registration route; receipt writes require an active registered consumer.
+- Compaction fails closed if the registry is empty or any active required consumer has no receipt / has a cursor below the proposed floor.
+- Extends the real workerd/Miniflare integration test for empty registry, missing receipt, and lagging ACK.
+- Deregistration is intentionally omitted pending a reviewed consumer lifecycle/ownership policy.
+
+PR #12 was opened against `phase-2/market-data-foundation`; it is not merged. At the time of this note its checks are still running. It must remain YELLOW until Automated Tests, CodeQL, Secret Audit and OCI ARM64 checks all reach terminal SUCCESS. Any failure must be investigated and fixed on the feature branch, then CI rerun to terminal state.
+
+### Corrected next-step dependency order
+
+1. Complete PR #12 CI and review its schema migration/registry behavior. Fix any failing checks before proceeding.
+2. Add explicit lifecycle policy for required-consumer registration, expiry, ownership/fencing and safe deregistration; the current synthetic registry deliberately retains registrations indefinitely.
+3. Bind registration and ACK identity to verified Firebase principals/server-side gateway identities. Client-supplied consumer IDs remain untrusted.
+4. Implement WebSocket ACK message handling and end-to-end authenticated ACK tests; current ACK is still a proof-only HTTP route.
+5. Validate compaction under restart/eviction, concurrent ACK/compaction, generation rollover, and multiple required consumers.
+6. Only then design production WSS deployment and Android/browser E2E against a legally approved provider.
+
+**Status correction:** receipt behavioral tests and an observed-receipt compaction guard exist on PR #7. A required-consumer registry and fail-closed handling for missing receipts are proposed on PR #12 and are not yet CI-accepted. Firebase identity, production WebSocket ACK, consumer lifecycle, provider approval, public WSS and Android E2E remain YELLOW.
