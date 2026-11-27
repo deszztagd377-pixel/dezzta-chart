@@ -70,3 +70,22 @@ No active item is marked RED in the project dashboard. YELLOW denotes an unresol
 **Delivery target:** approximately 24 December 2026.  
 **Cost:** zero.  
 **Overall project completion:** not inferred from this gate audit.
+
+
+## 7. Official-source legal screening — 27 November 2026
+
+This screening is an engineering eligibility check, not legal advice or a final interpretation of any provider agreement.
+
+| Candidate/source | Official evidence reviewed | Engineering decision |
+|---|---|---|
+| Coinbase Exchange market data | [Market Data Terms of Use](https://www.coinbase.com/legal/market_data) restrict redistribution, display, or dissemination of Market Data and Derived Works to third parties absent prior express written consent. | YELLOW — do not use for a multi-user display until the exact intended use is expressly authorized in writing. |
+| Kraken public API data | [Kraken API introduction](https://docs-legacy.kraken.com/api/docs/guides/global-intro/) says prior permission is required for certain uses, including non-personal commercial use of public endpoint data. | YELLOW — intended application use and permission boundary need authoritative confirmation; public endpoint access is not acceptance. |
+| Binance public Spot streams | [Official Binance API documentation](https://developers.binance.com/en/docs/introduction) and [official Spot API documentation repository](https://github.com/binance/binance-spot-api-docs) establish documented public market-data interfaces. This establishes technical documentation, not by itself a redistribution license. | YELLOW — stream-specific terms and rights for the intended multi-user display remain to be confirmed. |
+| Binance Vision historical datasets | [Binance Vision Dataset Terms](https://github.com/binance/binance-public-data/blob/master/TERMS_AND_CONDITIONS.md), last updated 26 August 2026, state a CC BY-NC-SA 4.0 non-commercial grant and prohibit hosting or commercial exploitation of derivative real-time or historical feeds. These dataset terms must not be assumed to govern every live Spot stream. | YELLOW — not accepted as a general-purpose multi-user feed; obtain a written interpretation for any proposed use. |
+
+### 7.1 Gate conclusion
+
+No candidate is promoted to APPROVED. Coinbase has an explicit third-party redistribution/display restriction absent written consent. Kraken's documentation identifies a prior-permission boundary for certain non-personal commercial uses. Binance's public stream documentation confirms technical availability, while the separately published Vision dataset terms impose non-commercial and redistribution constraints on those datasets. None of these findings establishes every required item in the Batch 94 acceptance matrix: exact data classes, current rate/connection limits, retention, attribution, expiry, runtime behavior, and permission for DEZZTA CHART's exact distribution model.
+
+The provider gate therefore remains YELLOW. Do not add credentials, provider adapters, live endpoints, or data claims on the basis of endpoint reachability alone. Recheck the controlling terms immediately before any later provider decision because terms and product scope can change.
+
