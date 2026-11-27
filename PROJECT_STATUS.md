@@ -1,47 +1,69 @@
-# ACTIVE PROJECT DASHBOARD — DEZZTA CHART (26 November 2026)
+# ACTIVE PROJECT DASHBOARD — DEZZTA CHART (27 November 2026)
 
 **Active branch:** `phase-2/market-data-foundation` — `main` untouched.  
-**Latest exact tested source/test SHA:** `17857c948cb932d5465eaca1e46dae15ce6c0344`. **New race-test candidate:** pending CI.  
-**Reporting rule:** No active dashboard item is labelled RED. Unfinished or unverified work is YELLOW / IN PROGRESS with an explicit next action and exit criteria. GREEN requires implementation plus passing tests and exact-head CI. This colour convention does not disguise incomplete engineering work.
+**Exact source/test SHA:** `c6097506eade1162859adf4312ed6031e99effae`.  
+**Dashboard rule:** no active item is labelled RED. GREEN requires implementation, relevant passing tests and exact-head CI. Unverified edges remain YELLOW with exit criteria.
 
-## Overall checkpoint
+## Batch 92–93 execution state
 
-- **Batch 91:** GREEN — formally accepted for the synthetic-only proof scope. Exact-source CI evidence is 4/4 SUCCESS on source/test SHA `2d0d7e9a2bf1190961126105d65f77d9926e6789`; this evidence is not transferred to later documentation commits.
-- **Batch 92 architecture and execution plan:** GREEN — design decisions, identity resolution, 45-case test specification and multi-work execution package recorded.
-- **Batch 92 runtime implementation:** YELLOW — identity and atomic persistence are GREEN; bounded replay, retention compaction and WebSocket cursor resume are now implemented and exact-head CI verified for the exercised path. Edge-boundary, corruption, seeded-bootstrap and replay/live race coverage remains open.
-- **SQLite schema v2/v3 + identity registry:** GREEN — Miniflare/workerd verified fresh schema v1→v3, migration of an existing v2 identity row to v3, digest hydration, immutable update/delete guards, duplicate-key rejection, snapshot-first identity registration, conflict rejection, and DO eviction persistence.
-- **Atomic event commit / high-water:** GREEN — exact-head tests verified canonical payload/digest persistence, atomic high-water advancement, stable identical retry, changed-timestamp conflict, identity mutation rejection, sequence-gap rejection, and concurrent duplicate serialization. Fan-out occurs only after commit.
-- **Legacy cursor bootstrap and cutover:** YELLOW — subscribe performs one-time legacy KV cursor bootstrap into SQLite; SQLite is authoritative afterward and no dual-write is introduced. Node tests now cover seeded cursor, SQLite authority and interrupted-transaction retry; real workerd seeded-KV migration/eviction acceptance remains.
-- **Durable replay / retention:** YELLOW — implemented ordered cursor-exclusive SQLite replay, max 100 events and max 65,536 UTF-8 response bytes, explicit generation/cursor/retention/corrupt-payload/sequence-gap outcomes, and atomic delete-plus-retention-floor compaction. Node covers count/byte boundaries and corruption states; workerd verifies one-event replay and expired-cursor resnapshot. Real-SQLite boundary/fault injection and production retention policy remain.
-- **WebSocket resume / replay-to-live handoff:** YELLOW — Worker now emits the frontend's replay_started → update events → replay_complete contract, including explicit stream-sequence baselines. Frontend validates sequence bounds separately from opaque cursor strings. Real-workerd concurrent subscribe/emit regression asserts exact ordered delivery [51,52]. First integration run confirmed the replay frame/race path but exposed a stale gap fixture (53 is valid after race event 52); corrected the fixture to sequence 54. Exact-head CI rerun pending.
-- **Failure injection and exact-head CI:** GREEN — required workflows are 4/4 terminal SUCCESS on exact source/test SHA `17857c948cb932d5465eaca1e46dae15ce6c0344`. Remaining real-workerd seeded-bootstrap, replay/live race and corruption fault-injection cases stay YELLOW and are not claimed complete.
-- **ACK / consumer receipts / RESUME extensions:** YELLOW — queued behind Batch 92 replay correctness.
-- **Public WSS / Android end-to-end:** YELLOW — queued behind protocol and runtime acceptance.
+| Workstream | Status | Verified state / remaining exit criteria |
+|---|---|---|
+| SQLite schema v2/v3 + immutable canonical identity | GREEN | Fresh v1→v3, existing-v2 migration, digest hydration, immutable triggers and DO eviction persistence tested |
+| Atomic event commit + high-water | GREEN | Atomic payload/digest/high-water, stable retry, changed-payload conflict, sequence gap and concurrency tests |
+| Legacy cursor bootstrap | YELLOW | Seeded cursor, SQLite authority and interrupted-bootstrap retry covered by Node tests; real workerd seeded-KV migration/eviction remains |
+| Durable replay pages | GREEN — synthetic proof scope | Cursor-exclusive order, 100-event/65,536 UTF-8 byte caps, corruption/gap/retention outcomes covered by Node tests |
+| Retention compaction | GREEN — synthetic proof scope | Atomic delete + retention-floor update exercised on real workerd SQLite; concurrent compaction/rollback and operational retention policy remain YELLOW |
+| WebSocket resume + frontend protocol | GREEN — tested slice | Worker emits replay_started → update frames → replay_complete; frontend sequence guard validates explicit sequence bounds separately from cursor; real-workerd replay and concurrent replay/live race pass |
+| Multi-page resume and >10-page fallback | YELLOW | Unit/page logic exists; real-workerd multi-page and budget-fallback acceptance remains |
+| ACK / consumer receipts / RESUME extensions | YELLOW | Durable schema foundation exists; receipt transaction and authenticated consumer identity binding remain |
+| Public WSS / Android end-to-end | YELLOW | No production endpoint/provider/auth integration or device acceptance; debug APK build only |
+| Exact-head CI | GREEN — 4/4 | All required workflows terminal SUCCESS on exact source/test SHA above |
 
-## Current verified engineering facts
+## Exact-head CI evidence — 27 November 2026
 
-- Batch 92 adds SQLite schema v2 and v3: v2 introduces the immutable canonical identity registry; v3 adds a SHA-256 identity digest with a compatibility migration for v2 databases, including lazy digest hydration for existing identity rows. Canonical event payload/digest and high-water are written in one `transactionSync`; the legacy KV cursor is read only when bootstrapping a series with no SQLite state.
-- Durable replay and compaction now have a tested synthetic-proof implementation. Replay is bounded to 10 pages per subscribe (100 events/page, 65,536 UTF-8 bytes/page); larger backlogs require snapshot fallback. ACK/consumer receipt processing, replay pagination beyond the subscribe budget, and production resume recovery remain unimplemented.
-- Batch 92 adds an immutable canonical series identity registry because the series key alone does not encode all digest-bound publisher/instrument identity fields.
-- Stable retry requires the emit request to reuse the same canonical `emittedAtNs`; a changed timestamp changes payload bytes and digest and is a conflicting duplicate.
-- Per-event persisted payload cap is 8,192 UTF-8 bytes. Replay page target is at most 100 events and at most 65,536 serialized UTF-8 bytes including framing and metadata; the implementation must measure bytes using UTF-8 encoding.
-- The latest tested implementation changes Worker source and workerd/DO regression tests; no dependency, production setting, paid resource or deployment was added. Exact-head CI is 4/4 SUCCESS for SHA `17857c948cb932d5465eaca1e46dae15ce6c0344`.
+| Workflow | Run | Result |
+|---|---:|---|
+| Automated Tests | [45921185878](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45921185878) | SUCCESS |
+| CodeQL Security Analysis | [45921185890](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45921185890) | SUCCESS |
+| Full Git History Secret Audit | [45921185892](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45921185892) | SUCCESS |
+| OCI ARM64 Image Readiness | [45921185920](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45921185920) | SUCCESS |
 
-## Active work package
+**Test/build totals on exact SHA `c6097506eade1162859adf4312ed6031e99effae`:**
+- Worker Node proof: **38/38 passed**
+- Real Miniflare/workerd WebSocket + SQLite replay/compaction/resnapshot + concurrent replay/live race: **1/1 passed**
+- Durable Object runtime suite: **18/18 passed**
+- Frontend Vitest: **35 files / 332 tests passed**
+- Backend pytest: **1,435 passed / 1 skipped / 6 warnings**
+- Dedicated Redis TLS integration fixture: **1 passed**
+- Frontend production build and frontend source/bundle secret scans: passed
+- Backend container build, Redis/persistent-volume smoke test and vulnerability scan: passed
+- OCI ARM64 build/smoke, CodeQL Python + JavaScript/TypeScript, and full reachable-history secret audit: passed
 
-See `docs/WORK_CYCLE_2026-11-26_BATCH92_EXECUTION_WORK_PACKAGE.md` for parallel workstreams, dependencies, quantitative limits, implementation order and acceptance gates.
+The one skipped pytest case is the optional Redis TLS integration case in the main backend suite; the dedicated TLS integration step separately passed 1/1. Six upstream deprecation warnings were recorded, not suppressed.
 
-## Test inventory
+## Android build evidence
 
-The Batch 92 plan specifies **45 cases** after adding canonical identity, stable retry and replay byte-boundary scenarios. This is a specification count, not an executed or passing test count.
+Zero-cost CI built and verified an installable **debug APK** at source SHA `030fca35477e1f5e3fbc0b2bec2c298b027d4775`, run [45921041784](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45921041784), SUCCESS. Later commits through `c6097506eade1162859adf4312ed6031e99effae` changed only tests/documentation after the app source in that build. This is not a signed release APK, Play Store publication, or device E2E acceptance.
 
-## CI evidence and cost controls
+## Current implementation facts and guardrails
 
-Batch 92 latest exact-head CI is **4/4 terminal SUCCESS** on `17857c948cb932d5465eaca1e46dae15ce6c0344`: Automated Tests run 45857181350; CodeQL run 45857181214; OCI ARM64 Image Readiness run 45857181270; Full Git History Secret Audit run 45857181213. Automated Tests completed Worker Node proof 38/38, Miniflare/workerd WebSocket + SQLite replay/compaction/resnapshot 1/1, Durable Object suite 18/18, frontend Vitest 35 files / 331 tests, backend pytest 1,435 passed / 1 skipped / 6 warnings, frontend build, backend container build/smoke and vulnerability scan. The one skipped backend test is the optional Redis TLS integration test because its isolated fixture was not configured in this run. These results apply only to the exact source/test SHA above. Batch 91's 4/4 evidence remains scoped to SHA `2d0d7e9a2bf1190961126105d65f77d9926e6789`. ZERO COST remains mandatory; no paid resource or production deployment was added.
+- Durable replay is bounded to 10 pages per subscribe; each page is at most 100 events and 65,536 UTF-8 bytes. Larger backlog explicitly falls back to a fresh snapshot.
+- Event payload persistence cap remains 8,192 UTF-8 bytes.
+- WebSocket replay matches the frontend wire contract. Explicit `fromSequence` / `throughSequence` values are separate from cursor strings, which may be opaque or larger than JavaScript safe integers.
+- A real-workerd concurrency regression races a cursor-50 reconnect with commit of event 52 and asserts exact ordered delivery [51,52], without missing or duplicate events.
+- No paid resources, new Cloudflare namespace, production deployment, live provider, broker/order endpoint or Firebase production identity was added. Synthetic data remains explicitly synthetic.
 
-## Schedule
+## Next engineering order
 
-Target completion remains approximately **24 December 2026**. Prioritize Batch 92 persistence and replay before ACK/RESUME, public WSS and Android E2E. Date remains a target, not a guarantee.
+1. Real-workerd seeded legacy-KV bootstrap, DO eviction and interrupted-bootstrap recovery.
+2. Multi-page replay and >10-page fallback on real workerd.
+3. Concurrent replay/compaction and transaction rollback/failure-injection tests.
+4. Implement ACK/consumer receipt transaction only after authenticated consumer identity binding is defined; do not trust a client-supplied consumer ID as production identity.
+5. Public WSS, Android device E2E, production identity/provider integration and owner-host recovery after account/host acceptance.
+
+**Delivery target:** approximately **24 December 2026**. ZERO COST. No production completion percentage is inferred.
+
+**Detailed report:** `docs/WORK_CYCLE_2026-11-27_BATCH93_EXACT_HEAD_CI_REPORT.md`.
 
 
 ---
