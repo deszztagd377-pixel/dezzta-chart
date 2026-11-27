@@ -8,6 +8,7 @@ on:
   pull_request:
     branches:
       - main
+      - 'phase-2/market-data-foundation'
   schedule:
     - cron: '17 3 * * 1'
   workflow_dispatch:
