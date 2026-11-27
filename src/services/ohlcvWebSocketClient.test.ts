@@ -187,6 +187,7 @@ describe('connectOhlcvStream', () => {
         tsEventNs: '1793577601999000000',
         tsReceivedNs: '1793577602000000000',
         sequence: 9,
+        high: '6002.000',
         close: '6002.000',
       },
     });
