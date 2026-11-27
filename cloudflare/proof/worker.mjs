@@ -1207,10 +1207,14 @@ export class SeriesCoordinatorDO {
         continue;
       }
       if (!attachment.authorized) {
-        nextDeadline = Math.min(
-          nextDeadline,
-          attachment.connectedAt + UNAUTHENTICATED_SOCKET_TTL_MS,
-        );
+        nextDeadline = Math.min(nextDeadline, attachment.connectedAt + UNAUTHENTICATED_SOCKET_TTL_MS);
+      } else if (attachment.subscribed === true) {
+        if (attachment.leaseExpiresAtMs <= Date.now()) {
+          this.releaseSocketLease(socket);
+          try { socket.close(4408, "Consumer lease expired"); } catch { /* already closed */ }
+        } else {
+          nextDeadline = Math.min(nextDeadline, attachment.leaseExpiresAtMs);
+        }
       }
     }
     if (Number.isFinite(nextDeadline)) {
@@ -1229,6 +1233,15 @@ export class SeriesCoordinatorDO {
         try { socket.close(4401, "Invalid connection state"); } catch { /* already closed */ }
         continue;
       }
+      if (attachment.authorized && attachment.subscribed === true) {
+        if (attachment.leaseExpiresAtMs <= now) {
+          this.releaseSocketLease(socket, now);
+          try { socket.close(4408, "Consumer lease expired"); } catch { /* already closed */ }
+        } else {
+          nextDeadline = Math.min(nextDeadline, attachment.leaseExpiresAtMs);
+        }
+        continue;
+      }
       if (attachment.authorized) continue;
       const deadline = attachment.connectedAt + UNAUTHENTICATED_SOCKET_TTL_MS;
       if (deadline <= now) {
@@ -1242,6 +1255,18 @@ export class SeriesCoordinatorDO {
     } else {
       await this.ctx.storage.deleteAlarm();
     }
+  }
+
+  releaseSocketLease(socket, now = Date.now()) {
+    const attachment = readSocketAttachment(socket);
+    if (!isValidSocketAttachment(attachment) || attachment.subscribed !== true) return false;
+    return releaseRequiredConsumerLease(this.ctx.storage, {
+      seriesKey: attachment.seriesKey,
+      consumerId: attachment.consumerId,
+      generationId: "synthetic-v1",
+      ownerToken: attachment.ownerToken,
+      fenceToken: attachment.fenceToken,
+    }, now);
   }
 
   async fetch(request) {
@@ -1413,7 +1438,7 @@ export class SeriesCoordinatorDO {
               continue;
             }
             if (attachment.authorized && attachment.seriesKey === body.seriesKey &&
-                attachment.subscribed === true && attachment.series &&
+                attachment.subscribed === true && attachment.leaseExpiresAtMs > Date.now() && attachment.series &&
                 canonicalSeriesIdentityJson(attachment.series) === canonicalSeriesIdentityJson(series)) {
               try {
                 socket.send(committed.payload);
@@ -1442,14 +1467,6 @@ export class SeriesCoordinatorDO {
     const raw = typeof message === "string"
       ? message
       : new TextDecoder().decode(message);
-    if (raw === "ping") {
-      socket.send(JSON.stringify({
-        type: "market_data.pong",
-        version: PROTOCOL_VERSION,
-        serverTimeNs: (BigInt(Date.now()) * 1_000_000n).toString(),
-      }));
-      return;
-    }
     if (new TextEncoder().encode(raw).byteLength > MAX_REQUEST_BYTES) {
       socket.close(4400, "Message too large");
       return;
@@ -1457,7 +1474,7 @@ export class SeriesCoordinatorDO {
 
     let payload;
     try {
-      payload = JSON.parse(raw);
+      payload = raw === "ping" ? { type: "ping" } : JSON.parse(raw);
     } catch {
       socket.close(4400, "Invalid message");
       return;
@@ -1513,12 +1530,27 @@ export class SeriesCoordinatorDO {
       return;
     }
 
-    if (raw === "ping" || payload?.type === "ping") {
+    if (payload?.type === "ping") {
+      if (attachment.subscribed === true) {
+        const renewal = renewRequiredConsumerLease(this.ctx.storage, {
+          seriesKey: attachment.seriesKey,
+          consumerId: attachment.consumerId,
+          generationId: "synthetic-v1",
+          ownerToken: attachment.ownerToken,
+          fenceToken: attachment.fenceToken,
+        });
+        if (!renewal.renewed) {
+          socket.close(4408, "Consumer lease lost");
+          return;
+        }
+        socket.serializeAttachment({ ...attachment, leaseExpiresAtMs: renewal.leaseExpiresAtMs });
+      }
       socket.send(JSON.stringify({
         type: "market_data.pong",
         version: PROTOCOL_VERSION,
         serverTimeNs: (BigInt(Date.now()) * 1_000_000n).toString(),
       }));
+      await this.scheduleUnauthenticatedSocketAlarm();
       return;
     }
 
@@ -1532,7 +1564,9 @@ export class SeriesCoordinatorDO {
         const currentAttachment = readSocketAttachment(socket);
         if (!isValidSocketAttachment(currentAttachment) ||
             !currentAttachment.subscribed ||
-            currentAttachment.consumerId !== SYNTHETIC_WS_CONSUMER_ID ||
+            typeof currentAttachment.consumerId !== "string" ||
+            !currentAttachment.ownerToken || !Number.isSafeInteger(currentAttachment.fenceToken) ||
+            currentAttachment.leaseExpiresAtMs <= Date.now() ||
             !Number.isSafeInteger(payload.sequence) ||
             payload.sequence <= currentAttachment.snapshotWatermark ||
             payload.sequence > currentAttachment.lastDeliveredSequence ||
@@ -1550,6 +1584,8 @@ export class SeriesCoordinatorDO {
           seriesKey: currentAttachment.seriesKey,
           consumerId: currentAttachment.consumerId,
           generationId: "synthetic-v1",
+          ownerToken: currentAttachment.ownerToken,
+          fenceToken: currentAttachment.fenceToken,
           sequence: payload.sequence,
           eventDigest: payload.eventDigest,
         });
@@ -1569,6 +1605,11 @@ export class SeriesCoordinatorDO {
           committedCursor: receipt.committedCursor,
           receiptVersion: receipt.receiptVersion,
         }));
+        socket.serializeAttachment({
+          ...currentAttachment,
+          leaseExpiresAtMs: receipt.leaseExpiresAtMs,
+        });
+        await this.scheduleUnauthenticatedSocketAlarm();
       });
     }
 
@@ -1615,10 +1656,13 @@ export class SeriesCoordinatorDO {
         return;
       }
       await initializeDurableSeriesState(this.ctx.storage, attachment.seriesKey);
+      const ownerToken = createLeaseToken();
+      const consumerId = "ws:" + ownerToken;
       const registration = registerRequiredConsumer(this.ctx.storage, {
         seriesKey: attachment.seriesKey,
-        consumerId: SYNTHETIC_WS_CONSUMER_ID,
+        consumerId,
         generationId: "synthetic-v1",
+        ownerToken,
       });
       if (!registration.registered) {
         socket.send(JSON.stringify(createProtocolError(
@@ -1684,7 +1728,10 @@ export class SeriesCoordinatorDO {
             snapshotWatermark: Number(payload.cursor),
             subscribed: true,
             series: canonicalSeries,
-            consumerId: SYNTHETIC_WS_CONSUMER_ID,
+            consumerId,
+            ownerToken,
+            fenceToken: registration.fenceToken,
+            leaseExpiresAtMs: registration.leaseExpiresAtMs,
             lastDeliveredSequence: throughSequence,
           });
           socket.send(JSON.stringify({
@@ -1724,7 +1771,10 @@ export class SeriesCoordinatorDO {
         snapshotWatermark: watermark,
         subscribed: true,
         series: canonicalSeries,
-        consumerId: SYNTHETIC_WS_CONSUMER_ID,
+        consumerId,
+        ownerToken,
+        fenceToken: registration.fenceToken,
+        leaseExpiresAtMs: registration.leaseExpiresAtMs,
         lastDeliveredSequence: watermark,
       });
       socket.send(JSON.stringify({
@@ -1733,6 +1783,7 @@ export class SeriesCoordinatorDO {
         watermark: watermark,
         cursor: String(watermark),
       }));
+      await this.scheduleUnauthenticatedSocketAlarm();
       });
       return;
     }
@@ -1740,7 +1791,9 @@ export class SeriesCoordinatorDO {
     socket.close(4400, "Unsupported synthetic proof message");
   }
 
-  webSocketClose(socket, code, reason) {
+  async webSocketClose(socket, code, reason) {
+    this.releaseSocketLease(socket);
+    await this.scheduleUnauthenticatedSocketAlarm();
     if (code >= 1000 && code < 5000 && ![1004, 1005, 1006, 1015].includes(code)) {
       try { socket.close(code, reason); } catch { /* already closed */ }
     } else {
@@ -1748,7 +1801,9 @@ export class SeriesCoordinatorDO {
     }
   }
 
-  webSocketError(socket) {
+  async webSocketError(socket) {
+    this.releaseSocketLease(socket);
+    await this.scheduleUnauthenticatedSocketAlarm();
     try { socket.close(1011, "WebSocket error"); } catch { /* already closed */ }
   }
 }
