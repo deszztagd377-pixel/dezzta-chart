@@ -4,7 +4,7 @@
 **Stage 1 meter:** 30/40 criteria = 75% provisional. **Gate 10:** 0/10 external criteria formally closed.  
 **Stages 2–6:** Stage 2 remains preparatory; Stages 3, 5 and 6 are not scored; Stage 4 remains gated. Overall project percentage is not scored.
 
-**Latest repository candidate:** PR [#13](https://github.com/deszztagd377-pixel/dezzta-chart/pull/13), branch `work/batch95-websocket-ack-protocol`, current PR HEAD `f5567e88cc138920a0ebb83b78bb836f93a97c8f` (documentation-only). The latest source/test SHA is `5cb1dd0b24ee083a0149a8e804ba7276a893a869`; all four required workflows (Automated Tests, CodeQL, Full Git History Secret Audit and OCI ARM64) reached terminal SUCCESS on that exact source/test SHA. No source changes were made after it; later commits only corrected project documentation. PR #13 remains open and unmerged. This does not establish production WebSocket acceptance.
+**Latest repository candidate:** PR [#13](https://github.com/deszztagd377-pixel/dezzta-chart/pull/13), branch `work/batch95-websocket-ack-protocol`, current PR HEAD `7dcf148b772d37c4321122a1c45d49bae0e43868` (documentation-only). The latest source/test SHA is `7dcf148b772d37c4321122a1c45d49bae0e43868`; all four required workflows (Automated Tests, CodeQL, Full Git History Secret Audit and OCI ARM64) reached terminal SUCCESS on that exact source/test SHA. Batch 96A adds the v5 consumer lease schema and its runtime migration assertions; exact-head CI is in progress. PR #13 remains open and unmerged. This does not establish production WebSocket acceptance.
 
 **Remaining Stage 1 external criteria — all YELLOW / evidence pending:**
 - **8:** actual production secret injection, host permissions, runtime exposure and rotation.
@@ -20,7 +20,7 @@
 
 Repository tests, synthetic proof, documentation and CI do not close these external gates. No Stage 1 ticks are awarded without the specified owner-host/device/production evidence. The current single-device/no-PC/no-second-phone and zero-cost constraints remain binding; no paid trial, billing upgrade, new hardware or production resource is assumed.
 
-**Next code sequence on the existing PR branch:** Batch 96 — implement and test the synthetic required-consumer lease/fencing lifecycle before any production identity binding. The v4 registry currently has only `registered_at_ms` and `active`; lease expiry, owner token, fencing token, renewal, stale-owner rejection and safe deregistration are not implemented. Acceptance must cover additive migration, same-owner renewal, active-owner collision, expiry/reacquisition with incremented fence, stale ACK/close rejection, multiple sockets, compaction and eviction/restart. No Batch 96 source implementation is claimed at this checkpoint. The PR is not to be merged automatically.
+**Next code sequence on the existing PR branch:** Batch 96 — implement and test the synthetic required-consumer lease/fencing lifecycle before any production identity binding. Batch 96A adds additive v5 columns `owner_token`, `fence_token`, and `lease_expires_at_ms`, with migration assertions. Lease acquisition/renewal, expiry enforcement, stale-owner rejection, ACK/close fencing and safe deregistration remain unimplemented. Acceptance must cover additive migration, same-owner renewal, active-owner collision, expiry/reacquisition with incremented fence, stale ACK/close rejection, multiple sockets, compaction and eviction/restart. No Batch 96 source implementation is claimed at this checkpoint. The PR is not to be merged automatically.
 
 **Historical record note:** sections below retain dated checkpoints. Where an older snapshot says Batch 92–93 ACK/replay work is absent, that statement is historical and superseded by the Batch 95 candidate evidence above.
 
@@ -1623,3 +1623,6 @@ Detailed evidence and blob SHAs: [BATCH89_93_SOURCE_AUDIT_2026-11-25.md](BATCH89
 Static test inventory: 31 Node proof + 11 Durable Object Vitest + 1 Miniflare declarations = 43, all NOT RUN. Static lockfile root metadata matches package.json; no runtime compatibility or installation claim follows from this check.
 
 Batch 92 source blocker: sequence cursor only is committed; event payload/digest replay storage is absent. Batch 93 source blocker: ACK, durable consumer receipt, RESUME and replay recovery are absent. Existing socket attachment restore tests do not close these gates. All Batch 89–93 runtime acceptance conditions remain OPEN pending exact-SHA execution evidence.
+
+
+**Batch 96A CI:** exact source/test HEAD `7dcf148b772d37c4321122a1c45d49bae0e43868`. Automated Tests run 46010599247, CodeQL 46010599101 and OCI ARM64 46010599133 were still running at last poll; Full Git History Secret Audit run 46010599070 reached SUCCESS. Do not treat Batch 96A as accepted until all required workflows are terminal SUCCESS.
