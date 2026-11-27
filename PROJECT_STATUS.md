@@ -1,3 +1,72 @@
+# ACTIVE OWNER DASHBOARD — VERIFIED CHECKPOINT (27 November 2026)
+
+**Official active stage:** Stage 1 — Foundation, Security & Data Integrity.  
+**Stage 1 score:** 30/40 criteria = 300/400 ticks = **75% provisional**. This is the existing accepted baseline, not a new score from this documentation update.  
+**Stage 1 external acceptance roll-up:** Gate 10 = **0/10 formally closed**. The ten open criteria are 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. They are shown as YELLOW / awaiting evidence in this active dashboard; none is represented as accepted.
+
+## Current repository and CI evidence
+
+- PR #13: https://github.com/deszztagd377-pixel/dezzta-chart/pull/13
+- Working branch: `work/batch95-websocket-ack-protocol`
+- Current PR HEAD (documentation checkpoint): `0894d2eece2e38b878b2f7f4c2d7c0bbb5e5b47c`
+- Last code/test SHA with exact-head CI: `5cb1dd0b24ee083a0149a8e804ba7276a893a869`
+- PR remains OPEN and mergeable; it is not merged. Application `main` remains untouched.
+- Four required workflows on code/test SHA `5cb1dd0b...` are terminal SUCCESS: Automated Tests [46006459907](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46006459907), CodeQL [46006459864](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46006459864), OCI ARM64 [46006459939](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46006459939), Full Git History Secret Audit [46006459958](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46006459958).
+- The later `0894d2e...` and this dashboard update are documentation-only. They do not alter the code tested at `5cb1dd0...`; no new source/test CI is claimed for documentation-only commits.
+
+## Six-stage project status
+
+| Stage | Official status | Current boundary |
+|---|---|---|
+| 1 — Foundation, Security & Data Integrity | 🟨 ACTIVE — 75% provisional | Ten external acceptance criteria remain open; stage exit is not met |
+| 2 — Market Data Infrastructure | 🟦 PREPARATORY | Some groundwork exists; not officially entered or scored |
+| 3 — Chart Engine & Timeframe | ⚪ NOT SCORED | Waits for Stage 1 acceptance and Stage 2 prerequisites |
+| 4 — Indicators & Analytics | 🟪 GATED | Calculation foundations exist; visible indicator integration is not active |
+| 5 — Professional UI & Interactive Tools | ⚪ NOT SCORED | Later-stage scope |
+| 6 — Hardening, Validation & APK Release | ⚪ NOT SCORED | Final acceptance and release stage |
+
+Overall project percentage and IP3S remain NOT SCORED; the historical 20.9% figure is not a current weighted calculation.
+
+## Open Stage 1 acceptance criteria — YELLOW
+
+| Criterion | Required evidence |
+|---:|---|
+| 8 | Production secret storage and leakage controls |
+| 20 | Real Firebase sign-in, revocation and entitlement tests on browser/Android |
+| 25 | Owner-host Redis TLS, ACL, persistence and failover acceptance |
+| 30 | Backup and restore rehearsal |
+| 31 | Encrypted off-host backup and key recovery |
+| 34 | Owner-host persistent-volume acceptance |
+| 35 | HTTPS backend deployment |
+| 36 | Public WSS, reverse proxy and TLS acceptance |
+| 38 | External metrics, logs and dashboard |
+| 39 | Alert delivery and incident-response drill |
+
+Repository CI and synthetic Miniflare tests are not substitutes for owner-host or production evidence. No production deployment, paid service, provider activation or new Cloudflare resource is authorized by this checkpoint.
+
+## Current WebSocket engineering checkpoint
+
+- Synthetic Worker/SQLite Durable Object ACK replay baseline correction is implemented and passed all four required CI workflows on code/test SHA `5cb1dd0...`.
+- Consumer lease/expiry/fencing lifecycle remains unimplemented in this synthetic proof. The existing v4 registry has only registration time and active flag; its ADR is a proposed design, not implementation evidence.
+- Production FastAPI stream envelope currently lacks the proof's generation + SHA-256 digest contract and does not advertise/accept the proof ACK v1 message. Production Firebase grant binding, public WSS and browser/Android E2E remain unaccepted.
+- Next source batch must be split into independently testable slices: (1) additive v4→v5 migration with safe deactivation of ownerless legacy rows; (2) lease acquisition/renewal/expiry/fencing; (3) ACK and close-handler owner/fence validation; (4) compaction expiry and retention-floor behavior; (5) pinned workerd migration/restart/race tests. Do not mark any slice GREEN until its tests and exact-head CI pass.
+- The production FastAPI/Redis source-gateway runtime acceptance is a separate Gate 25/36 workstream. Do not treat the synthetic Cloudflare proof as its replacement.
+
+## Visual requirements parked at the correct stage
+
+- Heatmap: owner reference is desktop, strongly zoomed out. On mobile normal zoom, band thickness, density, markers and vertical range must remain legible but proportionate; candles remain primary and the overlay must not become oversized.
+- Footprint: distinct bid/ask cells per candle and price row, with volume/profile context and explicit simulated/estimated provenance unless validated trade-level data exists. Per-cell details are selected using DEZZTA Chart's in-app plus/crosshair cursor and tap/selection, not the PC mouse pointer. Crosshair movement alone must not open the detail panel.
+- Both remain gated until their indicator-stage data contract, blueprint and owner acceptance. No stage credit is claimed for documentation.
+
+## Deadline and execution controls
+
+- Planning target: **24 December 2026**; from 27 November, **27 calendar days** remain.
+- ZERO COST: no paid hosting/data/monitoring/backup, no billing trials, no duplicate Cloudflare infrastructure.
+- Keep all work on the existing feature branch; do not merge PR #13 or modify `main` without explicit owner authorization.
+- CI status must be polled to terminal completion while the active session is running. No claim of autonomous background AI coding or 10-minute AI execution is made.
+
+---
+
 ## Latest PR candidate verification — Batch 96 preparation (27 November 2026)
 
 **PR:** [#13 — durable WebSocket ACK protocol](https://github.com/deszztagd377-pixel/dezzta-chart/pull/13)  
