@@ -1282,7 +1282,6 @@ export class SeriesCoordinatorDO {
           typeof attachment.ownerToken === "string" && Number.isSafeInteger(attachment.fenceToken) &&
           Number.isSafeInteger(attachment.leaseExpiresAtMs)) {
         if (attachment.leaseExpiresAtMs <= now) {
-          console.error("LEASE_ALARM_DIAGNOSTIC", attachment.leaseExpiresAtMs, now);
           this.releaseSocketLease(socket, now);
           try { socket.close(4408, "Consumer lease expired"); } catch { /* already closed */ }
         } else {
@@ -1592,7 +1591,6 @@ export class SeriesCoordinatorDO {
           fenceToken: attachment.fenceToken,
         });
         if (!renewal.renewed) {
-          console.error("LEASE_RENEWAL_DIAGNOSTIC", renewal.reason, attachment.leaseExpiresAtMs, Date.now());
           socket.close(4408, "Consumer lease lost");
           return;
         }
