@@ -941,19 +941,26 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       }, 1_800_000_000_002));
     expect(duplicate).toMatchObject({ accepted: true, duplicate: true, committedCursor: "51", receiptVersion: 1 });
 
+    const advanced = await runInDurableObject(stub, async (_instance, state) =>
+      commitConsumerReceipt(state.storage, {
+        seriesKey, consumerId: "consumer-alpha", generationId: "synthetic-v1",
+        sequence: 52, eventDigest: events[1].event_digest,
+      }, 1_800_000_000_003));
+    expect(advanced).toMatchObject({ accepted: true, duplicate: false, committedCursor: "52", receiptVersion: 2 });
+
     const secondConsumer = await runInDurableObject(stub, async (_instance, state) =>
       commitConsumerReceipt(state.storage, {
         seriesKey, consumerId: "consumer-beta", generationId: "synthetic-v1",
         sequence: 52, eventDigest: events[1].event_digest,
-      }, 1_800_000_000_003));
+      }, 1_800_000_000_004));
     expect(secondConsumer).toMatchObject({ accepted: true, duplicate: false, committedCursor: "52", receiptVersion: 1 });
 
     const regression = await runInDurableObject(stub, async (_instance, state) =>
       commitConsumerReceipt(state.storage, {
         seriesKey, consumerId: "consumer-alpha", generationId: "synthetic-v1",
         sequence: 51, eventDigest: events[0].event_digest,
-      }, 1_800_000_000_004));
-    expect(regression).toMatchObject({ accepted: true, duplicate: true, committedCursor: "51", receiptVersion: 1 });
+      }, 1_800_000_000_005));
+    expect(regression).toMatchObject({ accepted: false, reason: "ack_regression" });
 
     const isolated = await runInDurableObject(stub, async (_instance, state) =>
       state.storage.sql.exec(
