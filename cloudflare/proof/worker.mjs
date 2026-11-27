@@ -670,8 +670,20 @@ export async function commitCanonicalEvent(storage, series, event, now = Date.no
   }
   const identityJson = canonicalSeriesIdentityJson(series);
   const identityDigest = await sha256Hex(identityJson);
-  const legacyCursor = await storage.get("sequence:" + series.seriesKey);
-  const bootstrapHighWater = legacyCursor === undefined ? SNAPSHOT_WATERMARK : legacyCursor;
+  // Read legacy KV only for a series that has not yet been bootstrapped.
+  // Once SQLite has a state row, it is authoritative: stale or corrupt legacy
+  // KV must never block later commits or cause the cursor to move backwards.
+  const existingState = storage.sql.exec(
+    "SELECT generation_id, high_water FROM series_state WHERE series_key = ?",
+    series.seriesKey,
+  ).toArray();
+  if (existingState.length > 1) throw new Error("Series state primary-key invariant failed.");
+  const legacyCursor = existingState.length
+    ? undefined
+    : await storage.get("sequence:" + series.seriesKey);
+  const bootstrapHighWater = existingState.length
+    ? existingState[0].high_water
+    : legacyCursor === undefined ? SNAPSHOT_WATERMARK : legacyCursor;
   if (!Number.isSafeInteger(bootstrapHighWater) || bootstrapHighWater < SNAPSHOT_WATERMARK ||
       bootstrapHighWater > 1_000_000_000) throw new Error("Legacy sequence cursor cannot be safely bootstrapped.");
   return storage.transactionSync(() => {
