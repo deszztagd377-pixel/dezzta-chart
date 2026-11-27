@@ -123,6 +123,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
   let replayExpectedCount: number | null = null;
   let replayReceivedCount = 0;
   let replayEndCursor: string | null = null;
+  let replayEndSequence: number | null = null;
   // A server-directed fallback snapshot must be anchored to the exact durable
   // cursor advertised by resnapshot_required; never accept a different watermark.
   let expectedResnapshotCursor: string | null = null;
@@ -327,6 +328,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
         replayExpectedCount = null;
         replayReceivedCount = 0;
         replayEndCursor = null;
+        replayEndSequence = null;
         expectedResnapshotCursor = value.snapshotCursor;
         options.onResnapshotRequired?.(value.snapshotCursor);
         return;
@@ -343,9 +345,21 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
           !/^\d+$/.test(value.throughCursor) ||
           (options.resumeCursor !== undefined &&
             BigInt(value.fromCursor) !== BigInt(options.resumeCursor)) ||
-          BigInt(value.throughCursor) < BigInt(value.fromCursor)
+          BigInt(value.throughCursor) < BigInt(value.fromCursor) ||
+          (value.fromSequence !== undefined &&
+            (!Number.isSafeInteger(value.fromSequence) || (value.fromSequence as number) < 0)) ||
+          (value.throughSequence !== undefined &&
+            (!Number.isSafeInteger(value.throughSequence) || (value.throughSequence as number) < 0))
         ) {
           throw new Error('OHLCV replay start message is invalid.');
+        }
+        const resolvedFromSequence = (value.fromSequence as number | undefined) ?? 0;
+        const resolvedThroughSequence = (value.throughSequence as number | undefined) ??
+          resolvedFromSequence + (value.count as number);
+        if (!Number.isSafeInteger(resolvedThroughSequence) ||
+            resolvedThroughSequence < resolvedFromSequence ||
+            resolvedThroughSequence - resolvedFromSequence !== value.count) {
+          throw new Error('OHLCV replay sequence bounds do not match its event count.');
         }
         guard = new OhlcvStreamSequenceGuard(
           value.streamId,
@@ -362,11 +376,12 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
             calendarId: options.identity.calendarId ?? '',
             calendarVersion: options.identity.calendarVersion ?? '',
           },
-          0,
+          resolvedFromSequence,
         );
         replayExpectedCount = value.count as number;
         replayReceivedCount = 0;
         replayEndCursor = value.throughCursor;
+        replayEndSequence = resolvedThroughSequence;
         refreshHandshakeTimer();
         return;
       }
@@ -380,13 +395,16 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
           typeof value.cursor !== 'string' ||
           value.cursor !== replayEndCursor ||
           !guard ||
-          guard.watermark !== replayExpectedCount
+          guard.watermark !== replayEndSequence ||
+          (value.throughSequence !== undefined &&
+            value.throughSequence !== replayEndSequence)
         ) {
           throw new Error('OHLCV replay completion does not match the replayed event sequence.');
         }
         options.onCursor?.(value.cursor);
         replayExpectedCount = null;
         replayEndCursor = null;
+        replayEndSequence = null;
         clearTimer();
         setState('subscribed');
         startHeartbeat();

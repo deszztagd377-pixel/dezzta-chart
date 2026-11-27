@@ -227,6 +227,57 @@ describe('connectOhlcvStream', () => {
   });
 
 
+  it('resumes synthetic replay from explicit stream sequence bounds independently of its cursor', () => {
+    const socket = new FakeSocket();
+    const onUpdate = vi.fn();
+    const onCursor = vi.fn();
+    const onError = vi.fn();
+    const connection = connectOhlcvStream({
+      baseUrl: 'https://market.example.test',
+      identity,
+      canonicalInstrumentId: '11111111-1111-4111-8111-111111111111',
+      ticket: 'ws-ticket-abcdefghijklmnopqrstuvwxyz1234567890',
+      getRenewalTicket: async () => 'renewed-ticket-abcdefghijklmnopqrstuvwxyz1234567890',
+      resumeCursor: '50',
+      onCursor,
+      webSocketFactory: () => socket as unknown as WebSocket,
+      onSnapshot: vi.fn(),
+      onUpdate,
+      onError,
+    });
+    socket.readyState = 1;
+    socket.emit('open', new Event('open'));
+    socket.message({ type: 'market_data.status', version: 1 });
+    socket.message({
+      type: 'market_data.ohlcv.replay_started',
+      version: 1,
+      streamId: 'synthetic:series',
+      fromCursor: '50',
+      throughCursor: '51',
+      fromSequence: 50,
+      throughSequence: 51,
+      count: 1,
+    });
+    socket.message({
+      ...update,
+      streamId: 'synthetic:series',
+      cursor: '51',
+      sequence: 51,
+    });
+    socket.message({
+      type: 'market_data.ohlcv.replay_complete',
+      version: 1,
+      cursor: '51',
+      throughSequence: 51,
+      count: 1,
+    });
+    expect(connection.state).toBe('subscribed');
+    expect(onUpdate).toHaveBeenCalledOnce();
+    expect(onCursor).toHaveBeenLastCalledWith('51');
+    expect(onError).not.toHaveBeenCalled();
+    connection.close();
+  });
+
   it('abandons an incomplete replay and accepts the server-directed replacement snapshot', () => {
     const socket = new FakeSocket();
     const onSnapshot = vi.fn();

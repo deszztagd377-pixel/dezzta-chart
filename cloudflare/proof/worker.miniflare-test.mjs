@@ -227,22 +227,29 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
     const resumeAuthPromise = nextJsonMessage(resumeSocket);
     resumeSocket.send(JSON.stringify({ type: "auth", ticket: resumeTicket.ticket }));
     assert.equal((await resumeAuthPromise).type, "market_data.status");
-    const replayPromise = nextJsonMessage(resumeSocket);
+    const replayStartPromise = nextJsonMessage(resumeSocket);
     resumeSocket.send(JSON.stringify({
       type: "market_data.subscribe",
       version: 1,
       series: CANONICAL_SERIES,
       cursor: "50",
     }));
-    const replay = await replayPromise;
-    assert.equal(replay.type, "market_data.ohlcv.replay");
-    assert.equal(replay.generationId, "synthetic-v1");
-    assert.equal(replay.events.length, 1);
-    assert.equal(replay.events[0].sequence, 51);
-    assert.equal(replay.nextCursor, "51");
-    assert.equal(replay.highWaterCursor, "51");
-    assert.equal(replay.hasMore, false);
-    assert.ok(new TextEncoder().encode(JSON.stringify(replay)).byteLength <= 65_536);
+    const replayStart = await replayStartPromise;
+    assert.equal(replayStart.type, "market_data.ohlcv.replay_started");
+    assert.equal(replayStart.count, 1);
+    assert.equal(replayStart.fromCursor, "50");
+    assert.equal(replayStart.throughCursor, "51");
+    assert.equal(replayStart.fromSequence, 50);
+    assert.equal(replayStart.throughSequence, 51);
+    const replayEvent = await nextJsonMessage(resumeSocket);
+    assert.equal(replayEvent.type, "market_data.ohlcv.update");
+    assert.equal(replayEvent.sequence, 51);
+    assert.equal(replayEvent.cursor, "51");
+    const replayComplete = await nextJsonMessage(resumeSocket);
+    assert.equal(replayComplete.type, "market_data.ohlcv.replay_complete");
+    assert.equal(replayComplete.count, 1);
+    assert.equal(replayComplete.cursor, "51");
+    assert.equal(replayComplete.throughSequence, 51);
 
     // Race a reconnecting cursor-50 subscriber against commit/fan-out of sequence 52.
     // The only valid outcomes are replay [51,52], or replay [51] followed by live 52.
@@ -261,19 +268,7 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
     const raceAuthPromise = nextJsonMessage(raceSocket);
     raceSocket.send(JSON.stringify({ type: "auth", ticket: raceTicket.ticket }));
     assert.equal((await raceAuthPromise).type, "market_data.status");
-    const raceQueue = [];
-    const raceWaiters = [];
-    raceSocket.addEventListener("message", (event) => {
-      const message = JSON.parse(String(event.data));
-      const waiter = raceWaiters.shift();
-      if (waiter) waiter(message);
-      else raceQueue.push(message);
-    });
-    const nextRaceMessage = () => raceQueue.length
-      ? Promise.resolve(raceQueue.shift())
-      : new Promise((resolve) => raceWaiters.push(resolve));
-    const raceFirstMessage = nextRaceMessage();
-    const raceSecondMessage = nextRaceMessage();
+    const raceFirstMessagePromise = nextJsonMessage(raceSocket);
     raceSocket.send(JSON.stringify({
       type: "market_data.subscribe",
       version: 1,
@@ -290,22 +285,28 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
         emittedAtNs: "1800000000000000052",
       }),
     });
-    const [firstRaceMessage, raceEmitResponse] = await Promise.all([
-      raceFirstMessage,
+    const [raceStart, raceEmitResponse] = await Promise.all([
+      raceFirstMessagePromise,
       raceEmitPromise,
     ]);
     assert.equal(raceEmitResponse.status, 200);
     assert.equal((await raceEmitResponse.json()).accepted, true);
-    const observedSequences = firstRaceMessage.type === "market_data.ohlcv.replay"
-      ? firstRaceMessage.events.map((event) => event.sequence)
-      : [firstRaceMessage.sequence];
+    assert.equal(raceStart.type, "market_data.ohlcv.replay_started");
+    assert.ok(raceStart.count === 1 || raceStart.count === 2);
+    assert.equal(raceStart.fromSequence, 50);
+    const observedSequences = [];
+    for (let index = 0; index < raceStart.count; index += 1) {
+      const replayEvent = await nextJsonMessage(raceSocket);
+      assert.equal(replayEvent.type, "market_data.ohlcv.update");
+      observedSequences.push(replayEvent.sequence);
+    }
+    const raceComplete = await nextJsonMessage(raceSocket);
+    assert.equal(raceComplete.type, "market_data.ohlcv.replay_complete");
+    assert.equal(raceComplete.count, raceStart.count);
     if (!observedSequences.includes(52)) {
-      const secondRaceMessage = await raceSecondMessage;
-      if (secondRaceMessage.type === "market_data.ohlcv.replay") {
-        observedSequences.push(...secondRaceMessage.events.map((event) => event.sequence));
-      } else {
-        observedSequences.push(secondRaceMessage.sequence);
-      }
+      const liveEvent = await nextJsonMessage(raceSocket);
+      assert.equal(liveEvent.type, "market_data.ohlcv.update");
+      observedSequences.push(liveEvent.sequence);
     }
     assert.deepEqual(observedSequences, [51, 52]);
 

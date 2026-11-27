@@ -1266,13 +1266,36 @@ export class SeriesCoordinatorDO {
         const replayComplete = !replayFailure &&
           replayPages.length > 0 && replayPages[replayPages.length - 1].hasMore === false;
         if (replayComplete) {
+          const replayEvents = replayPages.flatMap((page) => page.events);
+          const fromSequence = Number(payload.cursor);
+          const throughCursor = replayPages.length
+            ? replayPages[replayPages.length - 1].nextCursor
+            : payload.cursor;
+          const throughSequence = Number(throughCursor);
           socket.serializeAttachment({
             ...attachment,
             snapshotWatermark: watermark,
             subscribed: true,
             series: canonicalSeries,
           });
-          for (const page of replayPages) socket.send(JSON.stringify(page));
+          socket.send(JSON.stringify({
+            type: "market_data.ohlcv.replay_started",
+            version: PROTOCOL_VERSION,
+            streamId: "synthetic:" + attachment.seriesKey,
+            count: replayEvents.length,
+            fromCursor: payload.cursor,
+            throughCursor,
+            fromSequence,
+            throughSequence,
+          }));
+          for (const event of replayEvents) socket.send(JSON.stringify(event));
+          socket.send(JSON.stringify({
+            type: "market_data.ohlcv.replay_complete",
+            version: PROTOCOL_VERSION,
+            count: replayEvents.length,
+            cursor: throughCursor,
+            throughSequence,
+          }));
           return;
         }
         if (replayFailure === "cursor_ahead") {
