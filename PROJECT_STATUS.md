@@ -1,24 +1,23 @@
-## Latest PR candidate verification — Batch 95 (27 November 2026)
+## Latest PR candidate verification — Batch 96 preparation (27 November 2026)
 
 **PR:** [#13 — durable WebSocket ACK protocol](https://github.com/deszztagd377-pixel/dezzta-chart/pull/13)  
 **Candidate branch:** `work/batch95-websocket-ack-protocol`  
-**Code/test candidate SHA:** `76a8d51b5bfa135576aea4b66eb6e5ea67a68fff`  
+**Exact code/test SHA:** `5cb1dd0b24ee083a0149a8e804ba7276a893a869`  
 **PR state:** OPEN, mergeable, not merged. The application `main` branch remains untouched.
 
-All four required workflows completed with terminal SUCCESS on the candidate SHA:
-- Automated Tests — [46003712453](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45990584004)
-- CodeQL — [46003712587](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45990583904)
-- Full Git History Secret Audit — [46003712685](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45990583882)
-- OCI ARM64 Image Readiness — [46003712578](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45990583900)
+All four required workflows completed with terminal SUCCESS on this exact SHA:
+- Automated Tests — [46006459907](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46006459907)
+- CodeQL Security Analysis — [46006459864](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46006459864)
+- OCI ARM64 Image Readiness — [46006459939](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46006459939)
+- Full Git History Secret Audit — [46006459958](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46006459958)
 
+**ACK replay baseline correction:** replay is cursor-exclusive. The socket attachment now records the client's resume cursor as the ACK baseline, while separately retaining the last sequence delivered by the replay. This prevents the latest replayed event from being rejected merely because the durable high-water was already advanced before replay delivery. The fix is covered by exact-head CI; no ACK digest or ownership checks were weakened.
 
-**ACK race correction:** the real-workerd test exposed a fast-client race: the handler captured the socket attachment before entering the Durable Object protocol queue, so an immediate ACK could be checked against the preceding delivered watermark. The handler now reads and validates the current attachment inside the queue, after earlier fan-out work completes. The regression is covered by the existing immediate WebSocket ACK integration test and passed on the exact source/test SHA above.
+**Verified synthetic scope only.** Production Firebase grant, lease renewal/expiry/fencing/deregistration, canonical production event digest, public WSS, provider rights, zero-cost quota certification and browser/Android E2E remain YELLOW. This CI success does not close external Stage 1 gates or establish production readiness.
 
-This is **synthetic proof acceptance only**. Production Firebase grant, lease renewal/expiry/fencing/deregistration, canonical production event digest, public WSS, provider rights, zero-cost quota certification and browser/Android E2E remain YELLOW. No production completion or Stage 1 gate closure is inferred.
+**SHA reconciliation:** the historical dashboard source/test SHA `9e7a7ec4534e0985b9ad123d70edfe9fdec76418` is an ancestor of active branch base `4979bd4a69dfd37b4571a125790150931c4154ee`. The PR candidate has independent exact-head CI evidence recorded above.
 
-**SHA reconciliation:** the dashboard's source/test SHA `9e7a7ec4534e0985b9ad123d70edfe9fdec76418` is an ancestor of active branch base `4979bd4a69dfd37b4571a125790150931c4154ee`. The five intervening commits changed only CI workflow files and documentation; no source/runtime files changed in that interval. The separate PR candidate above contains the later WebSocket ACK implementation and has its own exact-head CI evidence.
-
-**Next engineering batch:** implement the required-consumer lease lifecycle on the existing PR branch: additive SQLite migration, owner/fencing validation, bounded renewal/expiry, stale-owner rejection, safe deregistration, and compaction interaction. Keep all work synthetic-only until production identity and deployment acceptance exist. Do not merge automatically.
+**Next engineering batch:** implement the required-consumer lease lifecycle on this PR branch: additive SQLite migration, owner/fencing validation, bounded renewal/expiry, stale-owner rejection, safe deregistration, and compaction interaction. Keep work synthetic-only until production identity and deployment acceptance exist. Do not merge automatically.
 
 ---
 
