@@ -1588,7 +1588,11 @@ export class SeriesCoordinatorDO {
           // been accepted by the socket send API.
           socket.serializeAttachment({
             ...attachment,
-            snapshotWatermark: watermark,
+            // A replay is cursor-exclusive. The resume cursor is the baseline
+            // already held by the client; the current durable high-water may
+            // be newer because events in this replay are precisely what the
+            // client must be allowed to ACK.
+            snapshotWatermark: Number(payload.cursor),
             subscribed: true,
             series: canonicalSeries,
             consumerId: SYNTHETIC_WS_CONSUMER_ID,
