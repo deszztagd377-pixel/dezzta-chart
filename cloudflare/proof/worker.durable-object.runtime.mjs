@@ -531,6 +531,28 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     expect(second.socket.readyState).toBe(1);
   });
 
+  it("withholds fan-out and rejects heartbeat after a socket lease is fenced by a successor", async () => {
+    const client = await connectAuthenticated(SERIES_REPLAY);
+    const stub = coordinatorStub(SERIES_REPLAY);
+    const attachment = await runInDurableObject(stub, async (_instance, state) => {
+      const [serverSocket] = state.getWebSockets();
+      return serverSocket.deserializeAttachment();
+    });
+    await runInDurableObject(stub, async (_instance, state) => {
+      state.storage.sql.exec(
+        "UPDATE required_consumers SET owner_token = ?, fence_token = fence_token + 1 " +
+        "WHERE series_key = ? AND consumer_id = ?",
+        "d".repeat(64), SERIES_REPLAY, attachment.consumerId,
+      );
+    });
+    const emitted = await emit(SERIES_REPLAY, 51);
+    expect(emitted.status).toBe(200);
+    expect(emitted.payload.delivered).toBe(0);
+    const closePromise = nextClose(client.socket);
+    client.socket.send("ping");
+    expect((await closePromise).code).toBe(4408);
+  });
+
   it("renews the active socket lease on ping and binds ACK to that lease", async () => {
     const client = await connectAuthenticated(SERIES_A);
     const stub = coordinatorStub(SERIES_A);
