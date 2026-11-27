@@ -1,3 +1,31 @@
+# Current Stage 1 acceptance snapshot — Batch 95 (27 November 2026)
+
+**Official active stage:** Stage 1 — Foundation, Security & Data Integrity.  
+**Stage 1 meter:** 30/40 criteria = 75% provisional. **Gate 10:** 0/10 external criteria formally closed.  
+**Stages 2–6:** Stage 2 remains preparatory; Stages 3, 5 and 6 are not scored; Stage 4 remains gated. Overall project percentage is not scored.
+
+**Latest repository candidate:** PR [#13](https://github.com/deszztagd377-pixel/dezzta-chart/pull/13), branch `work/batch95-websocket-ack-protocol`, candidate SHA `be406610ade3d9f03288be500357204831d0a5c7`. The synthetic WebSocket ACK implementation passed all four exact-head workflows (Automated Tests, CodeQL, Full Git History Secret Audit and OCI ARM64). PR #13 remains open and unmerged. This does not establish production WebSocket acceptance.
+
+**Remaining Stage 1 external criteria — all YELLOW / evidence pending:**
+- **8:** actual production secret injection, host permissions, runtime exposure and rotation.
+- **20:** real Firebase sign-in/revocation/entitlement and browser/Android integration under verified no-billing terms.
+- **25:** owner-host Redis TLS, ACL, persistence and failover.
+- **30:** owner-environment database backup/restore drill with application-record verification.
+- **31:** encrypted off-host backup and independent key-recovery evidence.
+- **34:** real persistent-volume mount, permissions, restart durability and recovery.
+- **35:** backend HTTPS deployment on an existing zero-incremental-cost host.
+- **36:** public WSS/reverse-proxy and browser/Android E2E.
+- **38:** external metrics/logging/dashboard, retention and access-control evidence.
+- **39:** delivered alert, acknowledgement, escalation and incident-recovery drill.
+
+Repository tests, synthetic proof, documentation and CI do not close these external gates. No Stage 1 ticks are awarded without the specified owner-host/device/production evidence. The current single-device/no-PC/no-second-phone and zero-cost constraints remain binding; no paid trial, billing upgrade, new hardware or production resource is assumed.
+
+**Next code sequence on the existing PR branch:** Batch 96 — implement and test the synthetic required-consumer lease/fencing lifecycle before any production identity binding. Acceptance must cover migration, same-owner renewal, active-owner collision, expiry/reacquisition with incremented fence, stale ACK/close rejection, multiple sockets, compaction and eviction/restart. The PR is not to be merged automatically.
+
+**Historical record note:** sections below retain dated checkpoints. Where an older snapshot says Batch 92–93 ACK/replay work is absent, that statement is historical and superseded by the Batch 95 candidate evidence above.
+
+---
+
 # Stage 1 / project architecture reconciliation — Work Cycle 89 (25 November 2026)
 
 **Selected architecture:** Cloudflare Native / Zero-Origin. Historical owner-host/Redis Batch 80–86 execution and the earlier Python Workers spike are superseded as active work.  
