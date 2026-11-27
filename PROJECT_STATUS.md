@@ -1,3 +1,31 @@
+# VERIFIED CURRENT CHECKPOINT — 27 November 2026 (supersedes older snapshots below)
+
+**Repository HEAD at audit:** `0409c8690650eb9fa78d28e7f4a3bb64b28b634e`.  
+**PR #13:** OPEN, unmerged, base `phase-2/market-data-foundation`.  
+**Stage 1:** 30/40 = 75% provisional; Gate 10 = 0/10 formally closed. Stage 2 remains preparatory and is not authorized.
+
+## WebSocket lease lifecycle — GREEN at synthetic code/test level only
+
+The current exact HEAD has all four required GitHub Actions workflows terminal SUCCESS:
+- Automated Tests — [46019484467](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46019484467), SUCCESS (41/41 job steps).
+- CodeQL — [46019484655](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46019484655), SUCCESS.
+- OCI ARM64 — [46019484485](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46019484485), SUCCESS.
+- Full Git History Secret Audit — [46019484584](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46019484584), SUCCESS.
+
+The six code/test checks recorded as GREEN are: atomic lease acquisition/collision-safe takeover; same-owner renewal and expiry; monotonic fencing on takeover; owner/fence/live-lease validation on ACK; per-socket lifecycle with ping/ACK renewal, close/error release, alarm expiry and stale-owner fan-out rejection; expiry-aware compaction. The Automated Tests job passed the pinned workerd/Miniflare proof, Durable Object runtime tests, frontend tests/build, backend tests, Redis TLS fixture, container build/smoke/scan and related checks.
+
+**Production boundary remains YELLOW:** Firebase-verified session grant and real consumer identity; production event generation/sequence/digest contract and FastAPI ACK integration; public WSS/TLS and browser/Android E2E; lawful provider/redistribution rights and account-level zero-cost certification; owner-host backup/restore, monitoring and incident evidence. Synthetic tests do not close these gates or add Stage 1 ticks.
+
+## Remaining Stage 1 evidence gates — YELLOW
+
+Criteria **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39** remain pending owner-controlled production evidence. No gate is marked accepted from documentation or synthetic CI alone.
+
+**Controls:** ZERO COST; no paid service, billing change, new Cloudflare resource, production deployment, PR merge or `main` modification. PR #13 stays open. No autonomous 10-minute AI execution is running; CI is checked during an active session only.
+
+**Deadline:** 24 December 2026 — 27 calendar days remained at this checkpoint.
+
+---
+
 # OWNER CHECKPOINT — Batch 96C WebSocket lease lifecycle
 
 **WebSocket implementation: 6/6 GREEN at code/test level on tested source commit `a9b7a126cefd87e87d11d52bd7d2016d7f71e363`.**
