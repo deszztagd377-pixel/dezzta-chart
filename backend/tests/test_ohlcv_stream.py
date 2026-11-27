@@ -673,3 +673,44 @@ def test_replay_live_handoff_rejects_malformed_or_non_monotonic_queued_cursors()
         assert subscription.durable_cursor == 41
         hub.unsubscribe(subscription.stream_id)
 
+
+
+def test_stream_event_attestation_is_deterministic_and_generation_scoped() -> None:
+    from app.ohlcv_stream import attest_ohlcv_stream_event
+    import hashlib
+    import json
+
+    event = {"type": "market_data.ohlcv.update", "version": 1, "streamId": "s",
+             "eventId": "e", "sequence": 1, "emittedAtNs": "1",
+             "operation": "upsert", "isFinal": True,
+             "series": {"provider": "databento"}, "bar": {"close": "100.5"}}
+    first = attest_ohlcv_stream_event(event, generation_id="generation-a")
+    reordered = attest_ohlcv_stream_event(dict(reversed(list(event.items()))), generation_id="generation-a")
+    other = attest_ohlcv_stream_event(event, generation_id="generation-b")
+    assert first == reordered
+    assert first["generationId"] == "generation-a"
+    assert len(first["digest"]) == 64
+    canonical = json.dumps({k: v for k, v in first.items() if k != "digest"},
+                           sort_keys=True, separators=(",", ":"), ensure_ascii=False,
+                           allow_nan=False).encode("utf-8")
+    assert first["digest"] == hashlib.sha256(canonical).hexdigest()
+    assert first["digest"] != other["digest"]
+
+
+def test_live_stream_events_include_generation_and_digest() -> None:
+    async def scenario() -> None:
+        pipeline = OhlcvPipeline()
+        assert pipeline.apply(make_bar(0)) == "inserted"
+        hub = OhlcvStreamHub()
+        subscription, _, _ = hub.subscribe_snapshot(
+            pipeline, dataset="GLBX.MDP3", publisher_id=1, instrument_id=101,
+            raw_symbol="ESZ6", timeframe="1s", limit=100,
+        )
+        update = make_bar(1)
+        assert pipeline.apply(update) == "inserted"
+        hub.publish(update, durable_cursor=42, durable_event_id="durable-event-42")
+        event = subscription.queue.get_nowait()
+        assert event["generationId"] == subscription.stream_id
+        assert len(event["digest"]) == 64
+        hub.unsubscribe(subscription.stream_id)
+    asyncio.run(scenario())
