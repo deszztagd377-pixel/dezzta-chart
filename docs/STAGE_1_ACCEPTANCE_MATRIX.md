@@ -1,4 +1,16 @@
-# AUTHORITATIVE OWNER CHECKPOINT — 27 November 2026, Batch 96B
+# AUTHORITATIVE OWNER CHECKPOINT — 27 November 2026, Batch 96C candidate
+
+**Stage 1:** 30/40 = 75% provisional; Gate 10 = 0/10 formally closed. Stage 2 remains preparatory and requires Stage 1 100% plus explicit owner approval.
+
+**Batch 96C source implementation:** atomic per-socket lease acquisition/takeover, same-owner renewal, fenced release, owner/fence/expiry ACK validation, lease renewal on ping/ACK, expiry-aware compaction, alarm expiry, and per-socket attachment binding have been added in `cloudflare/proof/worker.mjs`. Runtime tests have been added for acquisition/collision/renewal/takeover, stale ACK/release rejection, expired-lease compaction, socket isolation/close release, and ping+ACK renewal.
+
+**Verification state:** implementation is a candidate, NOT green or accepted yet. Exact-head CI must reach terminal SUCCESS for Automated Tests, CodeQL, OCI ARM64 and Full Git History Secret Audit. Any failure must be fixed and rerun. Runtime eviction/race/expiry edge cases remain to be checked. Do not award Stage 1 ticks until evidence is accepted.
+
+**Source commit:** `8afee18c54e49c97bed7549da89255944d053f58`. **Runtime-test commit:** `d2760d18c7194bdd19b88e71adccf2e681fe7a02`. The final candidate HEAD changes again as follow-up fixes land.
+
+**Stage 1 external gates:** criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 still require owner-host/production/Firebase/backup/deployment/WSS/monitoring evidence. Synthetic WebSocket tests cannot close these external gates. Zero-cost constraint remains; no new resources or paid services. Target 24 December 2026.
+
+---
 
 **Official stage:** Stage 1 — Foundation, Security & Data Integrity. Stage 2 is preparatory only and cannot officially start until Stage 1 reaches 100% and the owner explicitly authorizes the transition.
 
