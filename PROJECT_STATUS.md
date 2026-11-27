@@ -1,6 +1,7 @@
 # VERIFIED CURRENT CHECKPOINT — 27 November 2026 (supersedes older snapshots below)
 
-**Repository HEAD at audit:** `0409c8690650eb9fa78d28e7f4a3bb64b28b634e`.  
+**Last validated code/test HEAD:** `0409c8690650eb9fa78d28e7f4a3bb64b28b634e`.  
+**Current documentation-only branch HEAD at this edit:** `6089546039dc8c970ead15c9fc34b202d567f835` (two docs-only commits after the validated code/test HEAD; no source/runtime files changed).  
 **PR #13:** OPEN, unmerged, base `phase-2/market-data-foundation`.  
 **Stage 1:** 30/40 = 75% provisional; Gate 10 = 0/10 formally closed. Stage 2 remains preparatory and is not authorized.
 
