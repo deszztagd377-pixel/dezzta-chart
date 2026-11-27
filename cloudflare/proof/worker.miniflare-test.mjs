@@ -4,7 +4,6 @@ import { Miniflare } from "miniflare";
 import { fileURLToPath } from "node:url";
 
 const SERIES = "synthetic:DEMO:BTCUSD:1m";
-const PAGING_SERIES = { ...{ seriesKey: SERIES }, };
 const TOKEN = "synthetic-proof-test-token-000000000000000000000000";
 const ORIGIN = "http://localhost:3000";
 const BASE_URL = "https://synthetic-proof.local";
