@@ -1650,3 +1650,26 @@ This is an evidence-status update, not a stage-closure declaration.
 6. Close Stage 1 acceptance and Gate 10 before declaring a formal stage transition.
 
 **Overall Batch 94: IN PROGRESS / YELLOW.** Successful synthetic CI is not production acceptance. Target date remains 24 December 2026.
+
+
+---
+
+## Evidence correction — Batch 94 receipt and retention candidates (27 November 2026)
+
+The earlier matrix entry that described receipt behavioral coverage as wholly absent referred to the pre-PR #7 foundation baseline. Current candidate branches provide additional evidence:
+
+- **PR #7** contains workerd/Miniflare behavioral coverage for receipt creation, duplicate ACK, ACK regression, digest mismatch, and compaction bounded by an already-recorded lagging receipt. Its eviction/replay test and all four checks on head `80ca695e68badf87b084ce08f01878c604ac02a4` are successful.
+- **PR #7 limitation:** consumers without an initial receipt are not visible to a receipt-only compaction query. It does not establish a complete required-consumer registry.
+- **PR #12** proposes schema v4 required-consumer registration, rejects ACK from unregistered consumers, and blocks compaction when the registry is empty or an active required consumer has no receipt / has a lagging cursor. Its current head is `a0d1d4b01c238a1e643f36cf0b939ada067863f3`; CI is pending at the time of this note.
+
+| Acceptance area | Updated candidate evidence | Status |
+|---|---|---|
+| Receipt behavior | PR #7 integration tests cover create, duplicate, regression, digest mismatch | YELLOW — candidate branch only |
+| Receipt-aware compaction | PR #7 blocks compaction past known lagging receipt | YELLOW — candidate branch only |
+| Required consumer registry | PR #12 adds schema v4 and registration gate | YELLOW — CI pending |
+| Missing receipt fail-closed | PR #12 integration test asserts compaction is blocked for registered consumer without receipt | YELLOW — CI pending |
+| Firebase-derived identity | Not implemented; proof bearer and supplied consumer ID remain synthetic-only | YELLOW — open |
+| WebSocket ACK frame | No authenticated production ACK message branch demonstrated | YELLOW — open |
+| Consumer lifecycle / fencing | Registration exists only in synthetic candidate; expiry, ownership and safe deregistration policy remain open | YELLOW — open |
+
+Do not score these candidate branches as accepted foundation functionality until they are reviewed and merged. PR #12 is not merged; main remains untouched.
