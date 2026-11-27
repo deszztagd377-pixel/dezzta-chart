@@ -25,6 +25,7 @@ const SNAPSHOT_BARS = 50;
 const SNAPSHOT_WATERMARK = SNAPSHOT_BARS;
 const TICKET_PURPOSE = "market-data";
 const SYNTHETIC_WS_CONSUMER_ID = "synthetic-proof-websocket";
+const CONSUMER_LEASE_TTL_MS = 30_000;
 const SERIES_PATTERN = /^synthetic:[A-Z0-9._-]{1,24}:[A-Z0-9._-]{1,24}:(1m|5m|15m|1h)$/;
 
 export function isValidSyntheticSeriesKey(value) {
@@ -228,6 +229,12 @@ export async function consumeTicket(storage, ticket, expectedSeriesKey, now = Da
   });
 }
 
+function createLeaseToken() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
+}
+
 function readSocketAttachment(socket) {
   try {
     return socket.deserializeAttachment();
@@ -255,7 +262,12 @@ function isValidSocketAttachment(attachment) {
     if (attachment.subscribed === true) {
       return validateSyntheticCanonicalSeries(attachment.series) &&
         attachment.series.seriesKey === attachment.seriesKey &&
-        attachment.consumerId === SYNTHETIC_WS_CONSUMER_ID &&
+        typeof attachment.consumerId === "string" &&
+        /^ws:[0-9a-f]{64}$/.test(attachment.consumerId) &&
+        typeof attachment.ownerToken === "string" &&
+        /^[0-9a-f]{64}$/.test(attachment.ownerToken) &&
+        Number.isSafeInteger(attachment.fenceToken) && attachment.fenceToken > 0 &&
+        Number.isSafeInteger(attachment.leaseExpiresAtMs) && attachment.leaseExpiresAtMs > 0 &&
         Number.isSafeInteger(attachment.lastDeliveredSequence) &&
         attachment.lastDeliveredSequence >= attachment.snapshotWatermark &&
         attachment.lastDeliveredSequence <= 1_000_000_000;
@@ -907,138 +919,177 @@ export function readDurableReplayPage(storage, seriesKey, cursor, expectedGenera
   return { ok: true, page, responseBytes };
 }
 
-/** Register a required consumer before it is allowed to ACK or be excluded from retention. */
+/** Acquire one consumer lease atomically. Takeover increments the fencing token. */
 export function registerRequiredConsumer(storage, {
-  seriesKey, consumerId, generationId,
+  seriesKey, consumerId, generationId, ownerToken, leaseTtlMs = CONSUMER_LEASE_TTL_MS,
 }, now = Date.now()) {
   if (!storage?.sql || typeof storage.sql.exec !== "function" ||
       typeof storage.transactionSync !== "function" ||
       !isValidSyntheticSeriesKey(seriesKey) ||
       typeof consumerId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(consumerId) ||
       typeof generationId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(generationId) ||
-      !Number.isSafeInteger(now) || now < 0) {
-    throw new TypeError("Required consumer registration input is invalid.");
+      typeof ownerToken !== "string" || !/^[0-9a-f]{64}$/.test(ownerToken) ||
+      !Number.isSafeInteger(leaseTtlMs) || leaseTtlMs < 5_000 || leaseTtlMs > 120_000 ||
+      !Number.isSafeInteger(now) || now < 0 || now + leaseTtlMs > Number.MAX_SAFE_INTEGER) {
+    throw new TypeError("Required consumer lease input is invalid.");
   }
   return storage.transactionSync(() => {
     const states = storage.sql.exec(
-      "SELECT generation_id FROM series_state WHERE series_key = ?",
-      seriesKey,
+      "SELECT generation_id FROM series_state WHERE series_key = ?", seriesKey,
     ).toArray();
     if (states.length !== 1) return { registered: false, reason: "series_state_missing" };
-    if (states[0].generation_id !== generationId) {
-      return { registered: false, reason: "generation_mismatch" };
-    }
-    const existing = storage.sql.exec(
-      "SELECT generation_id, active FROM required_consumers WHERE series_key = ? AND consumer_id = ?",
-      seriesKey, consumerId,
+    if (states[0].generation_id !== generationId) return { registered: false, reason: "generation_mismatch" };
+    const rows = storage.sql.exec(
+      "SELECT generation_id, active, owner_token, fence_token, lease_expires_at_ms " +
+      "FROM required_consumers WHERE series_key = ? AND consumer_id = ?", seriesKey, consumerId,
     ).toArray();
-    if (existing.length === 1 && existing[0].generation_id !== generationId) {
-      return { registered: false, reason: "generation_mismatch" };
+    const previous = rows[0];
+    if (previous && previous.generation_id !== generationId) return { registered: false, reason: "generation_mismatch" };
+    if (previous && previous.active === 1 && previous.lease_expires_at_ms > now &&
+        previous.owner_token !== ownerToken) return { registered: false, reason: "lease_held" };
+    const sameOwner = previous && previous.active === 1 &&
+      previous.owner_token === ownerToken && previous.lease_expires_at_ms > now;
+    const fenceToken = sameOwner ? previous.fence_token : (previous ? previous.fence_token + 1 : 1);
+    if (!Number.isSafeInteger(fenceToken) || fenceToken < 1 || fenceToken > 2_147_483_647) {
+      return { registered: false, reason: "fence_exhausted" };
     }
+    const leaseExpiresAtMs = now + leaseTtlMs;
     storage.sql.exec(
-      "INSERT INTO required_consumers (series_key, consumer_id, generation_id, registered_at_ms, active) " +
-      "VALUES (?, ?, ?, ?, 1) ON CONFLICT(series_key, consumer_id) DO NOTHING",
-      seriesKey, consumerId, generationId, now,
+      "INSERT INTO required_consumers " +
+      "(series_key, consumer_id, generation_id, registered_at_ms, active, owner_token, fence_token, lease_expires_at_ms) " +
+      "VALUES (?, ?, ?, ?, 1, ?, ?, ?) ON CONFLICT(series_key, consumer_id) DO UPDATE SET " +
+      "generation_id = excluded.generation_id, registered_at_ms = excluded.registered_at_ms, active = 1, " +
+      "owner_token = excluded.owner_token, fence_token = excluded.fence_token, " +
+      "lease_expires_at_ms = excluded.lease_expires_at_ms",
+      seriesKey, consumerId, generationId, now, ownerToken, fenceToken, leaseExpiresAtMs,
     );
-    return {
-      registered: true,
-      duplicate: existing.length === 1 && existing[0].active === 1,
-    };
+    return { registered: true, duplicate: Boolean(sameOwner), ownerToken, fenceToken, leaseExpiresAtMs };
   });
 }
 
-/** Persist a monotonic consumer receipt against the exact retained event digest. */
-export function commitConsumerReceipt(storage, {
-  seriesKey, consumerId, generationId, sequence, eventDigest,
+/** Extend a live lease only for its current owner and fencing generation. */
+export function renewRequiredConsumerLease(storage, {
+  seriesKey, consumerId, generationId, ownerToken, fenceToken,
 }, now = Date.now()) {
   if (!storage?.sql || typeof storage.sql.exec !== "function" ||
-      typeof storage.transactionSync !== "function" ||
-      !isValidSyntheticSeriesKey(seriesKey) ||
+      typeof storage.transactionSync !== "function" || !isValidSyntheticSeriesKey(seriesKey) ||
+      typeof consumerId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(consumerId) ||
+      typeof generationId !== "string" || typeof ownerToken !== "string" ||
+      !/^[0-9a-f]{64}$/.test(ownerToken) || !Number.isSafeInteger(fenceToken) || fenceToken < 1 ||
+      !Number.isSafeInteger(now) || now < 0 || now + CONSUMER_LEASE_TTL_MS > Number.MAX_SAFE_INTEGER) {
+    return { renewed: false, reason: "invalid_lease" };
+  }
+  return storage.transactionSync(() => {
+    const leaseExpiresAtMs = now + CONSUMER_LEASE_TTL_MS;
+    const result = storage.sql.exec(
+      "UPDATE required_consumers SET lease_expires_at_ms = ? WHERE series_key = ? AND consumer_id = ? " +
+      "AND generation_id = ? AND active = 1 AND owner_token = ? AND fence_token = ? AND lease_expires_at_ms > ?",
+      leaseExpiresAtMs, seriesKey, consumerId, generationId, ownerToken, fenceToken, now,
+    );
+    return result.rowsWritten === 1 ? { renewed: true, leaseExpiresAtMs } :
+      { renewed: false, reason: "lease_expired_or_fenced" };
+  });
+}
+
+/** Release is fenced so a stale socket cannot deactivate a replacement owner. */
+export function releaseRequiredConsumerLease(storage, {
+  seriesKey, consumerId, generationId, ownerToken, fenceToken,
+}, now = Date.now()) {
+  if (!storage?.sql || typeof storage.sql.exec !== "function" ||
+      typeof storage.transactionSync !== "function" || !isValidSyntheticSeriesKey(seriesKey) ||
+      typeof consumerId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(consumerId) ||
+      typeof generationId !== "string" || typeof ownerToken !== "string" ||
+      !/^[0-9a-f]{64}$/.test(ownerToken) || !Number.isSafeInteger(fenceToken) || fenceToken < 1 ||
+      !Number.isSafeInteger(now) || now < 0) return false;
+  return storage.transactionSync(() => {
+    const result = storage.sql.exec(
+      "UPDATE required_consumers SET active = 0, lease_expires_at_ms = ? WHERE series_key = ? " +
+      "AND consumer_id = ? AND generation_id = ? AND active = 1 AND owner_token = ? AND fence_token = ?",
+      now, seriesKey, consumerId, generationId, ownerToken, fenceToken,
+    );
+    return result.rowsWritten === 1;
+  });
+}
+
+/** Persist a monotonic receipt only while the exact owner/fence lease is live. */
+export function commitConsumerReceipt(storage, {
+  seriesKey, consumerId, generationId, ownerToken, fenceToken, sequence, eventDigest,
+}, now = Date.now()) {
+  if (!storage?.sql || typeof storage.sql.exec !== "function" ||
+      typeof storage.transactionSync !== "function" || !isValidSyntheticSeriesKey(seriesKey) ||
       typeof consumerId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(consumerId) ||
       typeof generationId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(generationId) ||
+      typeof ownerToken !== "string" || !/^[0-9a-f]{64}$/.test(ownerToken) ||
+      !Number.isSafeInteger(fenceToken) || fenceToken < 1 ||
       !Number.isSafeInteger(sequence) || sequence < SNAPSHOT_WATERMARK + 1 ||
-      sequence > 1_000_000_000 ||
-      typeof eventDigest !== "string" || !/^[0-9a-f]{64}$/.test(eventDigest) ||
-      !Number.isSafeInteger(now) || now < 0) {
+      sequence > 1_000_000_000 || typeof eventDigest !== "string" ||
+      !/^[0-9a-f]{64}$/.test(eventDigest) || !Number.isSafeInteger(now) || now < 0) {
     throw new TypeError("Consumer receipt input is invalid.");
   }
   return storage.transactionSync(() => {
     const states = storage.sql.exec(
-      "SELECT generation_id, high_water, retention_floor FROM series_state WHERE series_key = ?",
-      seriesKey,
+      "SELECT generation_id, high_water, retention_floor FROM series_state WHERE series_key = ?", seriesKey,
     ).toArray();
     if (states.length !== 1) return { accepted: false, reason: "series_state_missing" };
     const state = states[0];
-    if (state.generation_id !== generationId) {
-      return { accepted: false, reason: "generation_mismatch" };
-    }
+    if (state.generation_id !== generationId) return { accepted: false, reason: "generation_mismatch" };
     if (sequence > state.high_water) return { accepted: false, reason: "cursor_ahead" };
     if (sequence <= state.retention_floor) return { accepted: false, reason: "cursor_expired" };
+    const leases = storage.sql.exec(
+      "SELECT generation_id, active, owner_token, fence_token, lease_expires_at_ms " +
+      "FROM required_consumers WHERE series_key = ? AND consumer_id = ?", seriesKey, consumerId,
+    ).toArray();
+    const lease = leases[0];
+    if (!lease || lease.active !== 1) return { accepted: false, reason: "consumer_not_registered" };
+    if (lease.generation_id !== generationId) return { accepted: false, reason: "generation_mismatch" };
+    if (lease.owner_token !== ownerToken || lease.fence_token !== fenceToken) return { accepted: false, reason: "lease_fenced" };
+    if (lease.lease_expires_at_ms <= now) return { accepted: false, reason: "lease_expired" };
     const events = storage.sql.exec(
       "SELECT event_digest FROM series_events WHERE series_key = ? AND generation_id = ? AND sequence = ?",
       seriesKey, generationId, sequence,
     ).toArray();
     if (events.length !== 1) return { accepted: false, reason: "event_missing" };
-    if (events[0].event_digest !== eventDigest) {
-      return { accepted: false, reason: "digest_mismatch" };
-    }
-    const registrations = storage.sql.exec(
-      "SELECT generation_id, active FROM required_consumers WHERE series_key = ? AND consumer_id = ?",
-      seriesKey, consumerId,
-    ).toArray();
-    if (registrations.length !== 1 || registrations[0].active !== 1) {
-      return { accepted: false, reason: "consumer_not_registered" };
-    }
-    if (registrations[0].generation_id !== generationId) {
-      return { accepted: false, reason: "generation_mismatch" };
-    }
+    if (events[0].event_digest !== eventDigest) return { accepted: false, reason: "digest_mismatch" };
     const receipts = storage.sql.exec(
       "SELECT generation_id, committed_sequence, event_digest, receipt_version, updated_at_ms " +
-      "FROM consumer_receipts WHERE series_key = ? AND consumer_id = ?",
-      seriesKey, consumerId,
+      "FROM consumer_receipts WHERE series_key = ? AND consumer_id = ?", seriesKey, consumerId,
     ).toArray();
     if (receipts.length > 1) throw new Error("Consumer receipt primary-key invariant failed.");
     let receiptVersion = 1;
+    let duplicate = false;
     if (receipts.length === 1) {
       const previous = receipts[0];
-      if (previous.generation_id !== generationId) {
-        return { accepted: false, reason: "generation_mismatch" };
-      }
-      if (sequence < previous.committed_sequence) {
-        return { accepted: false, reason: "ack_regression" };
-      }
+      if (previous.generation_id !== generationId) return { accepted: false, reason: "generation_mismatch" };
+      if (sequence < previous.committed_sequence) return { accepted: false, reason: "ack_regression" };
       if (sequence === previous.committed_sequence) {
-        if (previous.event_digest !== eventDigest) {
-          return { accepted: false, reason: "digest_mismatch" };
-        }
-        return {
-          accepted: true,
-          duplicate: true,
-          committedCursor: String(sequence),
-          receiptVersion: previous.receipt_version,
-          committedAtNs: (BigInt(previous.updated_at_ms) * 1_000_000n).toString(),
-        };
+        if (previous.event_digest !== eventDigest) return { accepted: false, reason: "digest_mismatch" };
+        receiptVersion = previous.receipt_version;
+        duplicate = true;
+      } else {
+        receiptVersion = previous.receipt_version + 1;
+        storage.sql.exec(
+          "UPDATE consumer_receipts SET committed_sequence = ?, event_digest = ?, receipt_version = ?, updated_at_ms = ? " +
+          "WHERE series_key = ? AND consumer_id = ?",
+          sequence, eventDigest, receiptVersion, now, seriesKey, consumerId,
+        );
       }
-      receiptVersion = previous.receipt_version + 1;
-      storage.sql.exec(
-        "UPDATE consumer_receipts SET committed_sequence = ?, event_digest = ?, " +
-        "receipt_version = ?, updated_at_ms = ? WHERE series_key = ? AND consumer_id = ?",
-        sequence, eventDigest, receiptVersion, now, seriesKey, consumerId,
-      );
     } else {
       storage.sql.exec(
-        "INSERT INTO consumer_receipts " +
-        "(series_key, consumer_id, generation_id, committed_sequence, event_digest, receipt_version, updated_at_ms) " +
+        "INSERT INTO consumer_receipts (series_key, consumer_id, generation_id, committed_sequence, event_digest, receipt_version, updated_at_ms) " +
         "VALUES (?, ?, ?, ?, ?, ?, ?)",
         seriesKey, consumerId, generationId, sequence, eventDigest, receiptVersion, now,
       );
     }
+    const leaseExpiresAtMs = now + CONSUMER_LEASE_TTL_MS;
+    const renewed = storage.sql.exec(
+      "UPDATE required_consumers SET lease_expires_at_ms = ? WHERE series_key = ? AND consumer_id = ? " +
+      "AND generation_id = ? AND active = 1 AND owner_token = ? AND fence_token = ? AND lease_expires_at_ms > ?",
+      leaseExpiresAtMs, seriesKey, consumerId, generationId, ownerToken, fenceToken, now,
+    );
+    if (renewed.rowsWritten !== 1) return { accepted: false, reason: "lease_expired_or_fenced" };
     return {
-      accepted: true,
-      duplicate: false,
-      committedCursor: String(sequence),
-      receiptVersion,
-      committedAtNs: (BigInt(now) * 1_000_000n).toString(),
+      accepted: true, duplicate, committedCursor: String(sequence), receiptVersion,
+      committedAtNs: (BigInt(now) * 1_000_000n).toString(), leaseExpiresAtMs,
     };
   });
 }
@@ -1065,10 +1116,15 @@ export function compactDurableEvents(storage, seriesKey, throughSequence, now = 
     if (throughSequence <= state.retention_floor) {
       return { compacted: true, deleted: 0, retentionFloor: state.retention_floor };
     }
+    storage.sql.exec(
+      "UPDATE required_consumers SET active = 0 WHERE series_key = ? AND generation_id = ? " +
+      "AND active = 1 AND lease_expires_at_ms <= ?",
+      seriesKey, state.generation_id, now,
+    );
     const registered = storage.sql.exec(
       "SELECT COUNT(*) AS count FROM required_consumers " +
-      "WHERE series_key = ? AND generation_id = ? AND active = 1",
-      seriesKey, state.generation_id,
+      "WHERE series_key = ? AND generation_id = ? AND active = 1 AND lease_expires_at_ms > ?",
+      seriesKey, state.generation_id, now,
     ).toArray();
     if (registered[0]?.count === 0) {
       return { compacted: false, reason: "required_consumer_registry_empty" };
@@ -1084,8 +1140,8 @@ export function compactDurableEvents(storage, seriesKey, throughSequence, now = 
       "ON r.series_key = c.series_key AND r.consumer_id = c.consumer_id " +
       "AND r.generation_id = c.generation_id " +
       "WHERE c.series_key = ? AND c.generation_id = ? AND c.active = 1 " +
-      "AND (r.consumer_id IS NULL OR r.committed_sequence < ?)",
-      seriesKey, state.generation_id, throughSequence,
+      "AND c.lease_expires_at_ms > ? AND (r.consumer_id IS NULL OR r.committed_sequence < ?)",
+      seriesKey, state.generation_id, now, throughSequence,
     ).toArray();
     if (laggingReceipts[0]?.count > 0) {
       return {
