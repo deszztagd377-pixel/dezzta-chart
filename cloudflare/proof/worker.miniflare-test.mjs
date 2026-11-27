@@ -4,6 +4,7 @@ import { Miniflare } from "miniflare";
 import { fileURLToPath } from "node:url";
 
 const SERIES = "synthetic:DEMO:BTCUSD:1m";
+const PAGING_SERIES = { ...{ seriesKey: SERIES }, };
 const TOKEN = "synthetic-proof-test-token-000000000000000000000000";
 const ORIGIN = "http://localhost:3000";
 const BASE_URL = "https://synthetic-proof.local";
@@ -87,6 +88,7 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
   let resumeSocket;
   let retentionSocket;
   let raceSocket;
+  let pagingSocket;
   try {
     await miniflare.ready;
 
@@ -368,6 +370,74 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
     assert.equal(badDigestAckResponse.status, 409);
     assert.equal((await badDigestAckResponse.json()).reason, "digest_mismatch");
 
+    // Exercise a real workerd replay that spans two SQLite pages (100 + 2 events).
+    const pagingSeries = { ...CANONICAL_SERIES, seriesKey: SERIES + ":paging" };
+    for (let sequence = 51; sequence <= 152; sequence += 1) {
+      const pagingEmit = await miniflare.dispatchFetch(`${BASE_URL}/__proof/emit`, {
+        method: "POST",
+        headers: authorizedHeaders(),
+        body: JSON.stringify({
+          seriesKey: pagingSeries.seriesKey,
+          sequence: String(sequence),
+          series: pagingSeries,
+          emittedAtNs: (1_800_000_000_000_000_000n + BigInt(sequence)).toString(),
+        }),
+      });
+      assert.equal(pagingEmit.status, 200);
+      assert.equal((await pagingEmit.json()).accepted, true);
+    }
+    const pagingTicketResponse = await miniflare.dispatchFetch(
+      `${BASE_URL}/v1/auth/websocket-ticket`,
+      { method: "POST", headers: authorizedHeaders(), body: JSON.stringify({ seriesKey: pagingSeries.seriesKey }) },
+    );
+    const pagingTicket = await pagingTicketResponse.json();
+    const pagingUpgrade = await miniflare.dispatchFetch(
+      `${BASE_URL}/ws/market-data?seriesKey=${encodeURIComponent(pagingSeries.seriesKey)}`,
+      { headers: { Origin: ORIGIN, Upgrade: "websocket" } },
+    );
+    assert.equal(pagingUpgrade.status, 101);
+    pagingSocket = pagingUpgrade.webSocket;
+    pagingSocket.accept();
+    const pagingAuthPromise = nextJsonMessage(pagingSocket);
+    pagingSocket.send(JSON.stringify({ type: "auth", ticket: pagingTicket.ticket }));
+    assert.equal((await pagingAuthPromise).type, "market_data.status");
+    const pagingQueue = [];
+    const pagingWaiters = [];
+    pagingSocket.addEventListener("message", (event) => {
+      const message = JSON.parse(String(event.data));
+      const waiter = pagingWaiters.shift();
+      if (waiter) waiter(message);
+      else pagingQueue.push(message);
+    });
+    const nextPagingMessage = () => pagingQueue.length
+      ? Promise.resolve(pagingQueue.shift())
+      : new Promise((resolve) => pagingWaiters.push(resolve));
+    const pagingStartPromise = nextPagingMessage();
+    pagingSocket.send(JSON.stringify({
+      type: "market_data.subscribe",
+      version: 1,
+      series: pagingSeries,
+      cursor: "50",
+    }));
+    const pagingStart = await pagingStartPromise;
+    assert.equal(pagingStart.type, "market_data.ohlcv.replay_started");
+    assert.equal(pagingStart.count, 102);
+    assert.equal(pagingStart.fromCursor, "50");
+    assert.equal(pagingStart.throughCursor, "152");
+    assert.equal(pagingStart.fromSequence, 50);
+    assert.equal(pagingStart.throughSequence, 152);
+    const pagedSequences = [];
+    for (let index = 0; index < pagingStart.count; index += 1) {
+      const event = await nextPagingMessage();
+      assert.equal(event.type, "market_data.ohlcv.update");
+      pagedSequences.push(event.sequence);
+    }
+    const pagingComplete = await nextPagingMessage();
+    assert.equal(pagingComplete.type, "market_data.ohlcv.replay_complete");
+    assert.equal(pagingComplete.count, 102);
+    assert.equal(pagingComplete.cursor, "152");
+    assert.deepEqual(pagedSequences, Array.from({ length: 102 }, (_, index) => index + 51));
+
     // Retention compaction is an atomic cursor-floor advance plus event deletion.
     const compactResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/compact`, {
       method: "POST",
@@ -439,6 +509,7 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
       resumeSocket?.close(1000, "Replay integration test complete");
       retentionSocket?.close(1000, "Retention integration test complete");
       raceSocket?.close(1000, "Replay/live race integration test complete");
+      pagingSocket?.close(1000, "Multi-page replay integration test complete");
     } catch {
       // The runtime may already have closed the test socket during teardown.
     }
