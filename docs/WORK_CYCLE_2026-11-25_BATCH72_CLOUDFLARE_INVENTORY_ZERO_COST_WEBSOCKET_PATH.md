@@ -167,3 +167,51 @@ A further read-only verification was performed after this inventory was drafted:
 - A second usage-model read returned HTTP 415 because the request did not satisfy that endpoint's required `application/json` content type. The earlier successful metadata response reporting `usage_model: standard` remains the recorded evidence; no billing-plan inference is added.
 - No Cloudflare resource, secret, schedule, deployment, or billing setting was modified.
 - No recurring 10-minute automation is requested or being continued. The historical runner invocations are retained only as audit history; they are not a current work instruction.
+
+---
+
+## Repository synthetic WebSocket source reconciliation — 27 November 2026
+
+This is a separate repository-source finding. It does not change the Cloudflare account inventory above and does not establish production deployment.
+
+**Exact inspected source baseline:** PR #11 base `4979bd4a69dfd37b4571a125790150931c4154ee` (`phase-2/market-data-foundation`).
+
+| File | Inspected blob SHA |
+|---|---|
+| `cloudflare/proof/worker.mjs` | `e8b4b5b5c4c35c5b7915ff46df00ced39e894f88` |
+| `cloudflare/proof/worker.node-test.mjs` | `13f33364301f7e60a82b3aa8f095d0bb6f3f61e4` |
+| `cloudflare/proof/worker.durable-object.runtime.mjs` | `ef9a58f0f1f7c220366b330079e432c916df585b` |
+| `cloudflare/proof/worker.miniflare-test.mjs` | `87f7367211467f773ca61b1a9f7fa024348f49b0` |
+| `cloudflare/wrangler.jsonc` | `b25de82ed9e82d294b92a336c89b3b45153738a0` |
+
+### Implemented in the synthetic proof source
+
+The current source is materially ahead of the earlier Batch 89–93 source-audit snapshot:
+
+- Application-level SQLite schema migrations are at version 3. Tables include `series_state`, `series_events`, `consumer_receipts`, and immutable `series_identity`.
+- `commitCanonicalEvent` persists the canonical event payload/digest and advances series high-water in one `transactionSync` transaction. The emit path awaits commit before socket fan-out.
+- `readDurableReplayPage` reads cursor-exclusive contiguous events and enforces 100-event and 65,536-byte response limits. Subscription replay is capped at 10 pages.
+- WebSocket subscribe/replay is serialized against event commit/fan-out through the Durable Object protocol queue.
+- A durable receipt write primitive `commitConsumerReceipt` exists, and the proof-only HTTP path can invoke it.
+
+Accordingly, the source status must not continue to say that the event log/replay/receipt schema is entirely absent. Batch 90 schema and substantial Batch 92 event/replay code now exist in the inspected synthetic proof. This is source implementation evidence, not production acceptance.
+
+### Remaining protocol and safety gaps
+
+- The only exposed ACK route is `/__proof/ack`, protected by the shared synthetic proof bearer token. Its `consumerId` is accepted from the request body; it is not derived from a verified Firebase principal.
+- The WebSocket message handler implements subscribe/replay but has no ACK message branch. ACK is not yet part of the authenticated production WebSocket protocol.
+- `commitConsumerReceipt` has no direct named test coverage in the inspected Node or Durable Object test files. The Durable Object runtime tests verify receipt-table schema, but schema presence is not behavioral ACK acceptance.
+- `compactDurableEvents` deletes rows through a supplied sequence and advances the retention floor atomically, but the inspected function does not enforce a floor bounded by the minimum durable receipt of all required consumers. No direct named compaction test was found. Keep destructive retention disabled for production.
+- The Worker remains explicitly `PROOF_MODE=synthetic-only`; the Wrangler config retains `workers_dev: false` and `preview_urls: false`. The proof uses a synthetic subject and synthetic market data. It is not a Firebase-authenticated live market-data service.
+- The connected Cloudflare account inventory above has no deployed Durable Object namespace for this proof Worker. The separately deployed `dezzta-chart-runner-relay` is a preflight dispatcher, not this WebSocket service.
+
+### CI evidence for the documentation PR's tested base
+
+PR #11 head commit `cb67a6fe30a3a9faadb053b4ed3c9d73f5ee72a1` was tested against the inspected base above:
+
+- Automated Tests run [45942073009](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45942073009): terminal **SUCCESS**, 41/41 workflow steps, no failed steps.
+- CodeQL run [45942072797](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45942072797): terminal **SUCCESS**, Python and JavaScript/TypeScript analyses completed.
+
+These runs validate the checked-out PR merge context and its configured CI suites. They do not add missing ACK/compaction behavioral tests, do not prove Firebase identity binding, and do not constitute public WSS or Android E2E acceptance.
+
+**Disposition:** Batch 90 — source schema implemented in synthetic proof, production migration/deployment unaccepted. Batch 92 — durable synthetic event commit/replay implemented, production provider/runtime integration unaccepted. Batch 93 — receipt storage primitive and proof-only HTTP ACK path exist; authenticated consumer binding, WebSocket ACK, bounded retention-by-receipt, behavioral coverage and production recovery remain YELLOW / OPEN. Stage 1 and Gate 10 accounting are unchanged.
