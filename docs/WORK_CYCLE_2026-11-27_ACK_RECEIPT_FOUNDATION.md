@@ -2,7 +2,7 @@
 
 **Date:** 27 November 2026  
 **Branch:** `phase-2/market-data-foundation`  
-**Exact source/test SHA:** `05dd055bbf54e551907e2b4195c169edb591bcac`  
+**Exact source/test SHA:** `8691fd631a82218f0f0ebb71546d2e6ed40d8baf`  
 **State:** GREEN for synthetic-proof persistence slice; production WebSocket ACK remains YELLOW  
 **Cost:** ZERO COST.
 
@@ -17,11 +17,11 @@
 
 ## Exact-head CI
 
-All four required workflows passed on exact SHA `05dd055bbf54e551907e2b4195c169edb591bcac`:
-- Automated Tests [45922189465](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45922189465) — SUCCESS
-- CodeQL [45922189575](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45922189575) — SUCCESS
-- Full Git History Secret Audit [45922189550](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45922189550) — SUCCESS
-- OCI ARM64 [45922189496](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45922189496) — SUCCESS
+All four required workflows passed on exact SHA `8691fd631a82218f0f0ebb71546d2e6ed40d8baf`:
+- Automated Tests [45923131065](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45923131065) — SUCCESS
+- CodeQL [45923130942](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45923130942) — SUCCESS
+- Full Git History Secret Audit [45923131029](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45923131029) — SUCCESS
+- OCI ARM64 [45923131051](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45923131051) — SUCCESS
 
 ## Security boundary
 

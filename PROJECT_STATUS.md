@@ -1,7 +1,7 @@
 # ACTIVE PROJECT DASHBOARD — DEZZTA CHART (27 November 2026)
 
 **Active branch:** `phase-2/market-data-foundation` — `main` untouched.  
-**Exact source/test SHA:** `05dd055bbf54e551907e2b4195c169edb591bcac`.  
+**Exact source/test SHA:** `8691fd631a82218f0f0ebb71546d2e6ed40d8baf`.  
 **Dashboard rule:** no active item is labelled RED. GREEN requires implementation, relevant passing tests and exact-head CI. Unverified edges remain YELLOW with exit criteria.
 
 ## Batch 92–93 execution state
@@ -11,10 +11,10 @@
 | SQLite schema v2/v3 + immutable canonical identity | GREEN | Fresh v1→v3, existing-v2 migration, digest hydration, immutable triggers and DO eviction persistence tested |
 | Atomic event commit + high-water | GREEN | Atomic payload/digest/high-water, stable retry, changed-payload conflict, sequence gap and concurrency tests |
 | Legacy cursor bootstrap | YELLOW | Seeded cursor, SQLite authority and interrupted-bootstrap retry covered by Node tests; real workerd seeded-KV migration/eviction remains |
-| Durable replay pages | GREEN — synthetic proof scope | Cursor-exclusive order, 100-event/65,536 UTF-8 byte caps, corruption/gap/retention outcomes covered by Node tests |
+| Durable replay pages | GREEN — synthetic proof scope | Cursor-exclusive order, 100-event/65,536 UTF-8 byte caps, corruption/gap/retention outcomes covered by Node tests; real workerd now verifies a 102-event replay spanning two pages |
 | Retention compaction | GREEN — synthetic proof scope | Atomic delete + retention-floor update exercised on real workerd SQLite; concurrent compaction/rollback and operational retention policy remain YELLOW |
 | WebSocket resume + frontend protocol | GREEN — tested slice | Worker emits replay_started → update frames → replay_complete; frontend sequence guard validates explicit sequence bounds separately from cursor; real-workerd replay and concurrent replay/live race pass |
-| Multi-page resume and >10-page fallback | YELLOW | Unit/page logic exists; real-workerd multi-page and budget-fallback acceptance remains |
+| Multi-page resume | GREEN — 2-page slice | Real workerd replays 102 events across 100+2 page boundary; >10-page fallback and very large backlogs remain YELLOW |
 | Consumer receipt persistence | GREEN — synthetic proof scope | Real-workerd SQLite verifies event digest, generation, high-water and retention; identical retry is idempotent, ACK regression and digest mismatch are rejected |
 | Production WebSocket ACK / RESUME | YELLOW | Receipt route is proof-only; stable consumer identity must be owner-authenticated before production ACK frames |
 | Public WSS / Android end-to-end | YELLOW | No production endpoint/provider/auth integration or device acceptance; debug APK build only |
@@ -24,14 +24,14 @@
 
 | Workflow | Run | Result |
 |---|---:|---|
-| Automated Tests | [45922189465](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45922189465) | SUCCESS |
-| CodeQL Security Analysis | [45922189575](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45922189575) | SUCCESS |
-| Full Git History Secret Audit | [45922189550](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45922189550) | SUCCESS |
-| OCI ARM64 Image Readiness | [45922189496](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45922189496) | SUCCESS |
+| Automated Tests | [45923131065](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45923131065) | SUCCESS |
+| CodeQL Security Analysis | [45923130942](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45923130942) | SUCCESS |
+| Full Git History Secret Audit | [45923131029](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45923131029) | SUCCESS |
+| OCI ARM64 Image Readiness | [45923131051](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45923131051) | SUCCESS |
 
-**Test/build totals on exact SHA `05dd055bbf54e551907e2b4195c169edb591bcac`:**
+**Test/build totals on exact SHA `8691fd631a82218f0f0ebb71546d2e6ed40d8baf`:**
 - Worker Node proof: **38/38 passed**
-- Real Miniflare/workerd WebSocket + SQLite replay/compaction/resnapshot/race + consumer receipt idempotency/regression/digest checks: **1/1 passed**
+- Real Miniflare/workerd WebSocket + SQLite replay/compaction/resnapshot/race + consumer receipt checks + 102-event two-page replay: **1/1 passed**
 - Durable Object runtime suite: **18/18 passed**
 - Frontend Vitest: **35 files / 332 tests passed**
 - Backend pytest: **1,435 passed / 1 skipped / 6 warnings**
@@ -44,7 +44,7 @@ The one skipped pytest case is the optional Redis TLS integration case in the ma
 
 ## Android build evidence
 
-Zero-cost CI built and verified an installable **debug APK** at frontend source SHA `030fca35477e1f5e3fbc0b2bec2c298b027d4775`, run [45921041784](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45921041784), SUCCESS. Later changes through `05dd055bbf54e551907e2b4195c169edb591bcac` did not change Android/frontend application source after that build. This is not a signed release APK, Play Store publication, or device E2E acceptance.
+Zero-cost CI built and verified an installable **debug APK** at frontend source SHA `030fca35477e1f5e3fbc0b2bec2c298b027d4775`, run [45921041784](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45921041784), SUCCESS. Later changes through `8691fd631a82218f0f0ebb71546d2e6ed40d8baf` did not change Android/frontend application source after that build. This is not a signed release APK, Play Store publication, or device E2E acceptance.
 
 ## Current implementation facts and guardrails
 
@@ -52,14 +52,15 @@ Zero-cost CI built and verified an installable **debug APK** at frontend source 
 - Event payload persistence cap remains 8,192 UTF-8 bytes.
 - WebSocket replay matches the frontend wire contract. Explicit `fromSequence` / `throughSequence` values are separate from cursor strings, which may be opaque or larger than JavaScript safe integers.
 - A real-workerd concurrency regression races a cursor-50 reconnect with commit of event 52 and asserts exact ordered delivery [51,52], without missing or duplicate events.
+- A real-workerd second series verifies cursor-50 replay of 102 events across two bounded pages (100 + 2).
 - Consumer receipt transaction checks the digest of the persisted event before updating monotonic receipt state. Proof endpoint requires the synthetic proof token; caller-supplied consumer ID is not production authentication.
 - No paid resources, new Cloudflare namespace, production deployment, live provider, broker/order endpoint or Firebase production identity was added. Synthetic data remains explicitly synthetic.
 
 ## Next engineering order
 
 1. Real-workerd seeded legacy-KV bootstrap, DO eviction and interrupted-bootstrap recovery.
-2. Real-workerd multi-page replay and >10-page fallback.
-3. Concurrent replay/compaction and transaction rollback/failure-injection tests.
+2. Real-workerd >10-page fallback, backlog boundary and maximum-page fault injection.
+3. Concurrent replay/compaction and transaction rollback/corruption tests.
 4. Define owner-authenticated stable consumer identity, then bind production WebSocket ACK/RESUME to it.
 5. Public WSS, Android device E2E, production identity/provider integration and owner-host recovery after account/host acceptance.
 
