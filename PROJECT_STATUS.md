@@ -2078,3 +2078,28 @@ Cloudflare: expected account display name `DZZTV2GD ENGINE SERVER` is not presen
 - Batch 96A source change: additive SQLite schema v4→v5 adds `owner_token`, `fence_token`, and `lease_expires_at_ms` to `required_consumers`; legacy rows receive safe empty/zero defaults. This is schema groundwork only: lease acquisition/renewal, expiry enforcement, fencing validation, ACK/close integration and safe deregistration are NOT implemented.
 - Batch 96A runtime migration test was updated to assert v5 columns, migration version, and existing v2→v5 upgrade path.
 - Batch 96A CI is running on exact source/test HEAD `7dcf148b772d37c4321122a1c45d49bae0e43868`: Automated Tests [46010599247], CodeQL [46010599101], OCI ARM64 [46010599133], Secret Audit [46010599070]. Secret Audit is terminal SUCCESS; the other three were still in progress at last poll. No CI pass is claimed until each reaches terminal SUCCESS.
+
+
+---
+
+## Authoritative checkpoint — Batch 96A CI terminal verification (27 November 2026)
+
+**This section supersedes older CI/SHA snapshots above for the current checkpoint.** Older dated entries remain historical evidence and must not be read as the latest branch state.
+
+- Official stage remains **Stage 1 — Foundation, Security & Data Integrity**.
+- Stage 1 remains **30/40 criteria = 75% provisional 🟨**. No score increase is claimed for Batch 96A.
+- Ten external Stage 1 acceptance criteria remain open and awaiting evidence: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**. No active item is presented as accepted without owner-host evidence.
+- Stage 2 remains preparatory only. Stage 2 cannot officially begin until Stage 1 reaches 100% and the owner explicitly authorizes the transition.
+- PR #13 remains OPEN and unmerged. Branch: `work/batch95-websocket-ack-protocol`. Latest PR/documentation HEAD at this checkpoint: `f9ddd7f62951fd48471cbb7ece12594702f1407b`. Application `main` remains untouched.
+- Latest source/test SHA with exact-head CI: `7dcf148b772d37c4321122a1c45d49bae0e43868`. The documentation HEAD is later than the tested source/test SHA; do not conflate them.
+- Four workflows on source/test SHA `7dcf148b772d37c4321122a1c45d49bae0e43868` are now terminal SUCCESS:
+  - Automated Tests [46010599247](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46010599247)
+  - CodeQL Security Analysis [46010599101](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46010599101)
+  - OCI ARM64 Image Readiness [46010599133](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46010599133)
+  - Full Git History Secret Audit [46010599070](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46010599070)
+- Automated Tests job completed SUCCESS with all steps successful, including Worker proof, pinned workerd/DO runtime, frontend tests/build, Android read-only preflight, Redis TLS CA/hostname enforcement, backend tests, SQLite benchmarks, backend container build/smoke test and image scan/report.
+- Batch 96A source work adds Durable Object SQLite schema v5 fields to `required_consumers`: `owner_token`, `fence_token`, and `lease_expires_at_ms`, plus the lease-expiry index. Runtime migration tests assert v5 columns, migration history and eviction persistence.
+- **Scope boundary:** this is schema/migration groundwork only. Lease acquire/renew/expire/fencing enforcement, owner-bound ACK and close validation, safe deregistration, expiry-aware compaction and lifecycle race/restart acceptance are not implemented or claimed complete. Production FastAPI/Redis runtime wiring, Firebase owner identity, public WSS and browser/Android E2E remain unaccepted.
+- Next implementation order: (1) make legacy ownerless consumer rows fail closed; (2) implement atomic lease acquire/renew/release with monotonic fencing; (3) bind ACK and socket close to owner + fence + unexpired lease; (4) make compaction evaluate only valid active leases and reject unsafe stale owners; (5) add expiry, takeover, duplicate-owner, stale-fence, restart/eviction and concurrent ACK/compaction tests; (6) run all four exact-source CI workflows to terminal state.
+- CI success is synthetic proof/repository evidence, not production acceptance and not closure of any external Stage 1 gate.
+- Delivery target remains **24 December 2026**; from 27 November, **27 calendar days** remain. ZERO COST. Do not merge PR #13 or modify `main` without explicit owner authorization. No autonomous 10-minute AI coding is claimed; the configured relay runs preflight only.
