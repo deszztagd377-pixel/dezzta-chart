@@ -884,7 +884,7 @@ export function commitConsumerReceipt(storage, {
       return { accepted: false, reason: "digest_mismatch" };
     }
     const receipts = storage.sql.exec(
-      "SELECT generation_id, committed_sequence, event_digest, receipt_version " +
+      "SELECT generation_id, committed_sequence, event_digest, receipt_version, updated_at_ms " +
       "FROM consumer_receipts WHERE series_key = ? AND consumer_id = ?",
       seriesKey, consumerId,
     ).toArray();
@@ -907,7 +907,7 @@ export function commitConsumerReceipt(storage, {
           duplicate: true,
           committedCursor: String(sequence),
           receiptVersion: previous.receipt_version,
-          committedAtNs: (BigInt(now) * 1_000_000n).toString(),
+          committedAtNs: (BigInt(previous.updated_at_ms) * 1_000_000n).toString(),
         };
       }
       receiptVersion = previous.receipt_version + 1;
@@ -1546,7 +1546,8 @@ export default {
           typeof body.consumerId !== "string" ||
           !/^[A-Za-z0-9._:-]{1,128}$/.test(body.consumerId) ||
           body.generationId !== "synthetic-v1" ||
-          parseSequence(String(body.sequence), { minimum: SNAPSHOT_WATERMARK + 1 }) === null ||
+          !Number.isSafeInteger(body.sequence) || body.sequence < SNAPSHOT_WATERMARK + 1 ||
+          body.sequence > 1_000_000_000 ||
           typeof body.eventDigest !== "string" || !/^[0-9a-f]{64}$/.test(body.eventDigest)) {
         return withCors(jsonResponse({ error: "invalid_ack_request" }, 400), origin);
       }
