@@ -295,10 +295,14 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
     assert.ok(raceStart.count === 1 || raceStart.count === 2);
     assert.equal(raceStart.fromSequence, 50);
     const observedSequences = [];
+    let event52 = null;
+    let event51Digest = null;
     for (let index = 0; index < raceStart.count; index += 1) {
       const replayEvent = await nextJsonMessage(raceSocket);
       assert.equal(replayEvent.type, "market_data.ohlcv.update");
       observedSequences.push(replayEvent.sequence);
+      if (replayEvent.sequence === 51) event51Digest = replayEvent.digest;
+      if (replayEvent.sequence === 52) event52 = replayEvent;
     }
     const raceComplete = await nextJsonMessage(raceSocket);
     assert.equal(raceComplete.type, "market_data.ohlcv.replay_complete");
@@ -307,8 +311,49 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
       const liveEvent = await nextJsonMessage(raceSocket);
       assert.equal(liveEvent.type, "market_data.ohlcv.update");
       observedSequences.push(liveEvent.sequence);
+      if (liveEvent.sequence === 52) event52 = liveEvent;
     }
     assert.deepEqual(observedSequences, [51, 52]);
+    assert.ok(event52 && /^[0-9a-f]{64}$/.test(event52.digest));
+
+    const ackBody = {
+      seriesKey: SERIES,
+      consumerId: "synthetic-proof-consumer-1",
+      generationId: "synthetic-v1",
+      sequence: 52,
+      eventDigest: event52.digest,
+    };
+    const ackResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/ack`, {
+      method: "POST", headers: authorizedHeaders(), body: JSON.stringify(ackBody),
+    });
+    assert.equal(ackResponse.status, 200);
+    const ack = await ackResponse.json();
+    assert.equal(ack.accepted, true);
+    assert.equal(ack.duplicate, false);
+    assert.equal(ack.committedCursor, "52");
+    assert.equal(ack.receiptVersion, 1);
+
+    const duplicateAckResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/ack`, {
+      method: "POST", headers: authorizedHeaders(), body: JSON.stringify(ackBody),
+    });
+    assert.equal(duplicateAckResponse.status, 200);
+    const duplicateAck = await duplicateAckResponse.json();
+    assert.equal(duplicateAck.duplicate, true);
+    assert.equal(duplicateAck.receiptVersion, 1);
+
+    const regressedAckResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/ack`, {
+      method: "POST", headers: authorizedHeaders(),
+      body: JSON.stringify({ ...ackBody, sequence: 51, eventDigest: event51Digest }),
+    });
+    assert.equal(regressedAckResponse.status, 409);
+    assert.equal((await regressedAckResponse.json()).reason, "ack_regression");
+
+    const badDigestAckResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/ack`, {
+      method: "POST", headers: authorizedHeaders(),
+      body: JSON.stringify({ ...ackBody, eventDigest: "0".repeat(64) }),
+    });
+    assert.equal(badDigestAckResponse.status, 409);
+    assert.equal((await badDigestAckResponse.json()).reason, "digest_mismatch");
 
     // Retention compaction is an atomic cursor-floor advance plus event deletion.
     const compactResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/compact`, {

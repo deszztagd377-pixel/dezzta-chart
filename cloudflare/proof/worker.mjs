@@ -848,6 +848,92 @@ export function readDurableReplayPage(storage, seriesKey, cursor, expectedGenera
   return { ok: true, page, responseBytes };
 }
 
+/** Persist a monotonic consumer receipt against the exact retained event digest. */
+export function commitConsumerReceipt(storage, {
+  seriesKey, consumerId, generationId, sequence, eventDigest,
+}, now = Date.now()) {
+  if (!storage?.sql || typeof storage.sql.exec !== "function" ||
+      typeof storage.transactionSync !== "function" ||
+      !isValidSyntheticSeriesKey(seriesKey) ||
+      typeof consumerId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(consumerId) ||
+      typeof generationId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(generationId) ||
+      !Number.isSafeInteger(sequence) || sequence < SNAPSHOT_WATERMARK + 1 ||
+      sequence > 1_000_000_000 ||
+      typeof eventDigest !== "string" || !/^[0-9a-f]{64}$/.test(eventDigest) ||
+      !Number.isSafeInteger(now) || now < 0) {
+    throw new TypeError("Consumer receipt input is invalid.");
+  }
+  return storage.transactionSync(() => {
+    const states = storage.sql.exec(
+      "SELECT generation_id, high_water, retention_floor FROM series_state WHERE series_key = ?",
+      seriesKey,
+    ).toArray();
+    if (states.length !== 1) return { accepted: false, reason: "series_state_missing" };
+    const state = states[0];
+    if (state.generation_id !== generationId) {
+      return { accepted: false, reason: "generation_mismatch" };
+    }
+    if (sequence > state.high_water) return { accepted: false, reason: "cursor_ahead" };
+    if (sequence <= state.retention_floor) return { accepted: false, reason: "cursor_expired" };
+    const events = storage.sql.exec(
+      "SELECT event_digest FROM series_events WHERE series_key = ? AND generation_id = ? AND sequence = ?",
+      seriesKey, generationId, sequence,
+    ).toArray();
+    if (events.length !== 1) return { accepted: false, reason: "event_missing" };
+    if (events[0].event_digest !== eventDigest) {
+      return { accepted: false, reason: "digest_mismatch" };
+    }
+    const receipts = storage.sql.exec(
+      "SELECT generation_id, committed_sequence, event_digest, receipt_version " +
+      "FROM consumer_receipts WHERE series_key = ? AND consumer_id = ?",
+      seriesKey, consumerId,
+    ).toArray();
+    if (receipts.length > 1) throw new Error("Consumer receipt primary-key invariant failed.");
+    let receiptVersion = 1;
+    if (receipts.length === 1) {
+      const previous = receipts[0];
+      if (previous.generation_id !== generationId) {
+        return { accepted: false, reason: "generation_mismatch" };
+      }
+      if (sequence < previous.committed_sequence) {
+        return { accepted: false, reason: "ack_regression" };
+      }
+      if (sequence === previous.committed_sequence) {
+        if (previous.event_digest !== eventDigest) {
+          return { accepted: false, reason: "digest_mismatch" };
+        }
+        return {
+          accepted: true,
+          duplicate: true,
+          committedCursor: String(sequence),
+          receiptVersion: previous.receipt_version,
+          committedAtNs: (BigInt(now) * 1_000_000n).toString(),
+        };
+      }
+      receiptVersion = previous.receipt_version + 1;
+      storage.sql.exec(
+        "UPDATE consumer_receipts SET committed_sequence = ?, event_digest = ?, " +
+        "receipt_version = ?, updated_at_ms = ? WHERE series_key = ? AND consumer_id = ?",
+        sequence, eventDigest, receiptVersion, now, seriesKey, consumerId,
+      );
+    } else {
+      storage.sql.exec(
+        "INSERT INTO consumer_receipts " +
+        "(series_key, consumer_id, generation_id, committed_sequence, event_digest, receipt_version, updated_at_ms) " +
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        seriesKey, consumerId, generationId, sequence, eventDigest, receiptVersion, now,
+      );
+    }
+    return {
+      accepted: true,
+      duplicate: false,
+      committedCursor: String(sequence),
+      receiptVersion,
+      committedAtNs: (BigInt(now) * 1_000_000n).toString(),
+    };
+  });
+}
+
 /** Advance the retained cursor and delete all events through that sequence atomically. */
 export function compactDurableEvents(storage, seriesKey, throughSequence, now = Date.now()) {
   if (!storage?.sql || typeof storage.sql.exec !== "function" ||
@@ -1050,6 +1136,19 @@ export class SeriesCoordinatorDO {
       });
       await this.scheduleUnauthenticatedSocketAlarm();
       return new Response(null, { status: 101, webSocket: client });
+    }
+
+    if (url.pathname === "/internal/ack" && request.method === "POST") {
+      const body = await readSmallJson(request);
+      if (!body || !isValidSyntheticSeriesKey(body.seriesKey)) {
+        return jsonResponse({ error: "invalid_ack_request" }, 400);
+      }
+      try {
+        const result = commitConsumerReceipt(this.ctx.storage, body);
+        return jsonResponse(result, result.accepted ? 200 : 409);
+      } catch {
+        return jsonResponse({ error: "temporarily_unavailable" }, 503);
+      }
     }
 
     if (url.pathname === "/internal/compact" && request.method === "POST") {
@@ -1439,6 +1538,25 @@ export default {
         body: JSON.stringify({ seriesKey: body.seriesKey }),
       });
       return withCors(issued, origin);
+    }
+
+    if (url.pathname === "/__proof/ack" && request.method === "POST") {
+      const body = await readSmallJson(request);
+      if (!body || !isValidSyntheticSeriesKey(body.seriesKey) ||
+          typeof body.consumerId !== "string" ||
+          !/^[A-Za-z0-9._:-]{1,128}$/.test(body.consumerId) ||
+          body.generationId !== "synthetic-v1" ||
+          parseSequence(String(body.sequence), { minimum: SNAPSHOT_WATERMARK + 1 }) === null ||
+          typeof body.eventDigest !== "string" || !/^[0-9a-f]{64}$/.test(body.eventDigest)) {
+        return withCors(jsonResponse({ error: "invalid_ack_request" }, 400), origin);
+      }
+      const stub = env.SERIES_COORDINATOR.get(env.SERIES_COORDINATOR.idFromName(body.seriesKey));
+      const acknowledged = await stub.fetch("https://series.internal/internal/ack", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      return withCors(acknowledged, origin);
     }
 
     if (url.pathname === "/__proof/compact" && request.method === "POST") {

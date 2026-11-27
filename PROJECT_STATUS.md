@@ -1,7 +1,7 @@
 # ACTIVE PROJECT DASHBOARD — DEZZTA CHART (27 November 2026)
 
 **Active branch:** `phase-2/market-data-foundation` — `main` untouched.  
-**Exact source/test SHA:** `c6097506eade1162859adf4312ed6031e99effae`.  
+**Exact source/test SHA:** `c6097506eade1162859adf4312ed6031e99effae`. **ACK receipt foundation candidate:** pending CI.  
 **Dashboard rule:** no active item is labelled RED. GREEN requires implementation, relevant passing tests and exact-head CI. Unverified edges remain YELLOW with exit criteria.
 
 ## Batch 92–93 execution state
@@ -15,7 +15,7 @@
 | Retention compaction | GREEN — synthetic proof scope | Atomic delete + retention-floor update exercised on real workerd SQLite; concurrent compaction/rollback and operational retention policy remain YELLOW |
 | WebSocket resume + frontend protocol | GREEN — tested slice | Worker emits replay_started → update frames → replay_complete; frontend sequence guard validates explicit sequence bounds separately from cursor; real-workerd replay and concurrent replay/live race pass |
 | Multi-page resume and >10-page fallback | YELLOW | Unit/page logic exists; real-workerd multi-page and budget-fallback acceptance remains |
-| ACK / consumer receipts / RESUME extensions | YELLOW | Durable schema foundation exists; receipt transaction and authenticated consumer identity binding remain |
+| ACK / consumer receipts / RESUME extensions | YELLOW | Synthetic-proof-only monotonic receipt transaction now added and tested candidate; production authenticated consumer identity binding and WebSocket ACK frames remain |
 | Public WSS / Android end-to-end | YELLOW | No production endpoint/provider/auth integration or device acceptance; debug APK build only |
 | Exact-head CI | GREEN — 4/4 | All required workflows terminal SUCCESS on exact source/test SHA above |
 
@@ -58,7 +58,7 @@ Zero-cost CI built and verified an installable **debug APK** at source SHA `030f
 1. Real-workerd seeded legacy-KV bootstrap, DO eviction and interrupted-bootstrap recovery.
 2. Multi-page replay and >10-page fallback on real workerd.
 3. Concurrent replay/compaction and transaction rollback/failure-injection tests.
-4. Implement ACK/consumer receipt transaction only after authenticated consumer identity binding is defined; do not trust a client-supplied consumer ID as production identity.
+4. Bind the new synthetic-proof receipt transaction to an owner-authenticated consumer identity before exposing production WebSocket ACK frames; do not trust a client-supplied consumer ID as production identity.
 5. Public WSS, Android device E2E, production identity/provider integration and owner-host recovery after account/host acceptance.
 
 **Delivery target:** approximately **24 December 2026**. ZERO COST. No production completion percentage is inferred.
