@@ -245,6 +245,8 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
         .toArray().map((row) => row.name);
       const identityColumns = sql.exec("PRAGMA table_info(series_identity)")
         .toArray().map((row) => row.name);
+      const consumerColumns = sql.exec("PRAGMA table_info(required_consumers)")
+        .toArray().map((row) => row.name);
 
       sql.exec(
         "INSERT INTO series_identity (series_key, identity_json, identity_digest, created_at_ms) VALUES (?, ?, ?, ?)",
@@ -317,11 +319,12 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
         eventColumns,
         receiptColumns,
         identityColumns,
+        consumerColumns,
         legacyCursor,
       };
     });
 
-    expect(first.versions).toEqual([{ version: 1 }, { version: 2 }, { version: 3 }, { version: 4 }]);
+    expect(first.versions).toEqual([{ version: 1 }, { version: 2 }, { version: 3 }, { version: 4 }, { version: 5 }]);
     expect(first.tables).toEqual([
       "consumer_receipts",
       "required_consumers",
@@ -350,6 +353,10 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       "event_digest", "receipt_version", "updated_at_ms",
     ]);
     expect(first.identityColumns).toEqual(["series_key", "identity_json", "created_at_ms", "identity_digest"]);
+    expect(first.consumerColumns).toEqual([
+      "series_key", "consumer_id", "generation_id", "registered_at_ms", "active",
+      "owner_token", "fence_token", "lease_expires_at_ms",
+    ]);
     expect(first.legacyCursor).toBe(50);
 
     await evictDurableObject(stub);
@@ -364,7 +371,7 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       ).one().count,
     }));
 
-    expect(restored.versions).toEqual([{ version: 1 }, { version: 2 }, { version: 3 }, { version: 4 }]);
+    expect(restored.versions).toEqual([{ version: 1 }, { version: 2 }, { version: 3 }, { version: 4 }, { version: 5 }]);
     expect(restored.legacyCursor).toBe(50);
     expect(restored.eventCount).toBe(1);
   });
@@ -398,7 +405,7 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       ).toArray();
       return { version, hydrated, row };
     });
-    expect(result.version).toBe(4);
+    expect(result.version).toBe(5);
     expect(result.hydrated).toBe(true);
     expect(JSON.parse(result.row[0].identity_json)).toEqual(series);
     expect(result.row[0].identity_digest).toMatch(/^[0-9a-f]{64}$/);
