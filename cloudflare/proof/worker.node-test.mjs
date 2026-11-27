@@ -719,7 +719,8 @@ test("event write fails closed without SQLite and malformed attachments are reje
     authorized: true, seriesKey: SERIES, subject: "synthetic-proof-subject",
     connectedAt: Date.now(), snapshotWatermark: 50,
     subscribed: true, series: canonicalSeriesForTest(),
-    consumerId: "synthetic-proof-websocket", lastDeliveredSequence: 50,
+    consumerId: "ws:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", ownerToken: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    fenceToken: 1, leaseExpiresAtMs: Date.now() + 30_000, lastDeliveredSequence: 50,
   });
   const malformed = new MemorySocket({
     authorized: true, seriesKey: SERIES, subject: "invalid-subject",
@@ -844,7 +845,8 @@ test("fan-out is withheld until a durable SQLite commit succeeds", async () => {
     authorized: true, seriesKey: SERIES, subject: "synthetic-proof-subject",
     connectedAt: Date.now(), snapshotWatermark: 50,
     subscribed: true, series: canonicalSeriesForTest(),
-    consumerId: "synthetic-proof-websocket", lastDeliveredSequence: 50,
+    consumerId: "ws:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", ownerToken: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    fenceToken: 1, leaseExpiresAtMs: Date.now() + 30_000, lastDeliveredSequence: 50,
   });
   failing.send = () => { throw new Error("send must not run before commit"); };
   const healthy = new MemorySocket({
