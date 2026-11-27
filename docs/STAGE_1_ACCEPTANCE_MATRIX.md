@@ -1673,3 +1673,16 @@ The earlier matrix entry that described receipt behavioral coverage as wholly ab
 | Consumer lifecycle / fencing | Registration exists only in synthetic candidate; expiry, ownership and safe deregistration policy remain open | YELLOW — open |
 
 Do not score these candidate branches as accepted foundation functionality until they are reviewed and merged. PR #12 is not merged; main remains untouched.
+
+
+---
+
+## CI closeout — 27 November 2026
+
+PR #12 required-consumer registry candidate head `83a4582dd76a6ca712ae4cb18ee77b0dbb5f7d86` has all four required workflows terminal SUCCESS: Automated Tests [45979657207](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45979657207), CodeQL [45979657185](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45979657185), Secret Audit [45979657177](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45979657177), and OCI ARM64 [45979657275](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45979657275).
+
+PR #11 documentation head `6e15fc634deed2b96aa72d4c819a9f8681d3e99c` also has all four workflows terminal SUCCESS: Automated Tests [45979522475](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45979522475), CodeQL [45979522468](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45979522468), Secret Audit [45979522469](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45979522469), and OCI ARM64 [45979522460](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45979522460).
+
+PR #12's first CI attempt failed two migration-fixture assertions; the fixture was corrected to simulate schema v2 correctly and to expect schema v4, then the new head passed all checks. The initial failure remains in GitHub history.
+
+Passing candidate CI does not mean PR #12 is merged or that production acceptance is complete. PR #7/#10/#11/#12 remain open and unmerged. Required-consumer registry is still synthetic-only; Firebase-derived identity, consumer lifecycle/fencing, WebSocket ACK, provider rights, public WSS and Android/browser E2E remain YELLOW. Stage 1 and Gate 10 remain open.
