@@ -370,7 +370,7 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
     assert.equal((await badDigestAckResponse.json()).reason, "digest_mismatch");
 
     // Exercise a real workerd replay that spans two SQLite pages (100 + 2 events).
-    const pagingSeries = { ...CANONICAL_SERIES, seriesKey: SERIES + ":paging" };
+    const pagingSeries = { ...CANONICAL_SERIES, seriesKey: "synthetic:PAGING:ETHUSD:1m", dataset: "PAGING", rawSymbol: "ETHUSD", instrumentId: 202 };
     for (let sequence = 51; sequence <= 152; sequence += 1) {
       const pagingEmit = await miniflare.dispatchFetch(`${BASE_URL}/__proof/emit`, {
         method: "POST",
