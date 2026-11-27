@@ -24,7 +24,6 @@ const MAX_REQUEST_BYTES = 2_048;
 const SNAPSHOT_BARS = 50;
 const SNAPSHOT_WATERMARK = SNAPSHOT_BARS;
 const TICKET_PURPOSE = "market-data";
-const SYNTHETIC_WS_CONSUMER_ID = "synthetic-proof-websocket";
 const CONSUMER_LEASE_TTL_MS = 30_000;
 const SERIES_PATTERN = /^synthetic:[A-Z0-9._-]{1,24}:[A-Z0-9._-]{1,24}:(1m|5m|15m|1h)$/;
 
@@ -1918,7 +1917,8 @@ export default {
       if (!body || !isValidSyntheticSeriesKey(body.seriesKey) ||
           typeof body.consumerId !== "string" ||
           !/^[A-Za-z0-9._:-]{1,128}$/.test(body.consumerId) ||
-          body.generationId !== "synthetic-v1") {
+          body.generationId !== "synthetic-v1" ||
+          typeof body.ownerToken !== "string" || !/^[0-9a-f]{64}$/.test(body.ownerToken)) {
         return withCors(jsonResponse({ error: "invalid_consumer_registration" }, 400), origin);
       }
       const stub = env.SERIES_COORDINATOR.get(env.SERIES_COORDINATOR.idFromName(body.seriesKey));
@@ -1936,6 +1936,8 @@ export default {
           typeof body.consumerId !== "string" ||
           !/^[A-Za-z0-9._:-]{1,128}$/.test(body.consumerId) ||
           body.generationId !== "synthetic-v1" ||
+          typeof body.ownerToken !== "string" || !/^[0-9a-f]{64}$/.test(body.ownerToken) ||
+          !Number.isSafeInteger(body.fenceToken) || body.fenceToken < 1 ||
           !Number.isSafeInteger(body.sequence) || body.sequence < SNAPSHOT_WATERMARK + 1 ||
           body.sequence > 1_000_000_000 ||
           typeof body.eventDigest !== "string" || !/^[0-9a-f]{64}$/.test(body.eventDigest)) {
