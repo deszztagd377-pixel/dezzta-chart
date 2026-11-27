@@ -968,7 +968,7 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
         seriesKey,
       ).toArray());
     expect(isolated).toEqual([
-      { consumer_id: "consumer-alpha", committed_sequence: 51, receipt_version: 1 },
+      { consumer_id: "consumer-alpha", committed_sequence: 52, receipt_version: 2 },
       { consumer_id: "consumer-beta", committed_sequence: 52, receipt_version: 1 },
     ]);
   });
