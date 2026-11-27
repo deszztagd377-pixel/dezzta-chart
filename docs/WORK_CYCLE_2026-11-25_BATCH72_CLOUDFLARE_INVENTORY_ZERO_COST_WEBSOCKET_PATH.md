@@ -338,3 +338,39 @@ PR #12 was opened against `phase-2/market-data-foundation`; it is not merged. At
 6. Only then design production WSS deployment and Android/browser E2E against a legally approved provider.
 
 **Status correction:** receipt behavioral tests and an observed-receipt compaction guard exist on PR #7. A required-consumer registry and fail-closed handling for missing receipts are proposed on PR #12 and are not yet CI-accepted. Firebase identity, production WebSocket ACK, consumer lifecycle, provider approval, public WSS and Android E2E remain YELLOW.
+
+
+---
+
+## CI closeout — Batch 94 required-consumer registry candidate (27 November 2026)
+
+### PR #12 current head and final checks
+
+PR #12 current head is `83a4582dd76a6ca712ae4cb18ee77b0dbb5f7d86`. All four current-head workflows reached terminal **SUCCESS**:
+
+- [Automated Tests — run 45979657207](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45979657207): SUCCESS. This includes Worker syntax/proof tests, pinned workerd/Miniflare, Durable Object hibernation/alarm/isolation tests, frontend tests/build, backend tests, Redis TLS integration, synthetic benchmarks, backend image build/smoke test, and image scan.
+- [CodeQL — run 45979657185](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45979657185): SUCCESS.
+- [Full Git History Secret Audit — run 45979657177](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45979657177): SUCCESS.
+- [OCI ARM64 Image Readiness — run 45979657275](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45979657275): SUCCESS.
+
+The first attempt at PR #12 (head `a0d1d4b01c238a1e643f36cf0b939ada067863f3`) failed two Durable Object migration fixture assertions. The fixture had retained migration version 4 while simulating a v2 database and still expected schema v3. The fix updates the fixture to remove migration records >=3, expects schema v4, and includes the required-consumer table in schema assertions. The rerun on head `83a4582...` passed all four workflows. The failed attempt remains part of the audit history; it is not hidden.
+
+### PR #11 documentation CI
+
+The latest documentation head `6e15fc634deed2b96aa72d4c819a9f8681d3e99c` also has all four checks terminal SUCCESS:
+
+- [Automated Tests — run 45979522475](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45979522475): SUCCESS.
+- [CodeQL — run 45979522468](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45979522468): SUCCESS.
+- [Full Git History Secret Audit — run 45979522469](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45979522469): SUCCESS.
+- [OCI ARM64 Image Readiness — run 45979522460](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45979522460): SUCCESS.
+
+### Repository state at closeout
+
+- PR #7, #10, #11 and #12 are all OPEN, mergeable, and unmerged; all target `phase-2/market-data-foundation`.
+- PR #12 is a feature candidate branched from PR #7 head. Its passing checks do not merge either candidate into the foundation branch.
+- No in-progress or queued GitHub Actions runs remained in either `dezzta-chart` or `dezzta-chart-runner` at the closeout audit.
+- `main` remains untouched. No Cloudflare deployment/resource, provider credential, paid service, or recurring 10-minute automation was created or changed.
+
+### Acceptance boundary
+
+PR #12 improves the synthetic proof's required-consumer retention safety. It does not complete production consumer lifecycle, Firebase principal binding, WebSocket ACK, provider legal approval, public WSS deployment, or Android/browser E2E. Those remain YELLOW / NOT ACCEPTED. Batch 94 is therefore still **IN PROGRESS / YELLOW**, despite the candidate CI passing.
