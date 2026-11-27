@@ -376,6 +376,42 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     expect(restored.eventCount).toBe(1);
   });
 
+  it("deactivates ownerless legacy required consumers during the v4-to-v5 upgrade", async () => {
+    const stub = coordinatorStub(SERIES_B);
+    const result = await runInDurableObject(stub, async (_instance, state) => {
+      const sql = state.storage.sql;
+      sql.exec("DROP TABLE required_consumers");
+      sql.exec(`
+        CREATE TABLE required_consumers (
+          series_key TEXT NOT NULL CHECK (length(series_key) BETWEEN 1 AND 128),
+          consumer_id TEXT NOT NULL CHECK (length(consumer_id) BETWEEN 1 AND 128),
+          generation_id TEXT NOT NULL CHECK (length(generation_id) BETWEEN 1 AND 128),
+          registered_at_ms INTEGER NOT NULL CHECK (registered_at_ms >= 0),
+          active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+          PRIMARY KEY (series_key, consumer_id)
+        )
+      `);
+      sql.exec(
+        "INSERT INTO required_consumers (series_key, consumer_id, generation_id, registered_at_ms, active) VALUES (?, ?, ?, ?, 1)",
+        SERIES_B, "legacy-ownerless-consumer", "synthetic-v1", 10,
+      );
+      sql.exec("DELETE FROM schema_migrations WHERE version > 4");
+      const version = applyDurableSchemaMigrations(state.storage, 100);
+      const consumer = sql.exec(
+        "SELECT active, owner_token, fence_token, lease_expires_at_ms FROM required_consumers WHERE series_key = ? AND consumer_id = ?",
+        SERIES_B, "legacy-ownerless-consumer",
+      ).toArray();
+      return { version, consumer };
+    });
+    expect(result.version).toBe(5);
+    expect(result.consumer).toEqual([{
+      active: 0,
+      owner_token: "",
+      fence_token: 0,
+      lease_expires_at_ms: 0,
+    }]);
+  });
+
   it("upgrades an existing v2 identity row to v4 without changing its canonical identity", async () => {
     const stub = coordinatorStub(SERIES_B);
     const series = canonicalSeries(SERIES_B);
