@@ -876,4 +876,98 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     });
   });
 
+
+  it("keeps SQLite authoritative after bootstrap even when legacy KV is corrupt, including after eviction", async () => {
+    const seriesKey = "synthetic:DEMO:LEGACYRECOVERY:1m";
+    const stub = coordinatorStub(seriesKey);
+    const seeded = await stub.fetch("https://series.internal/internal/seed-legacy-cursor", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ seriesKey, sequence: 77 }),
+    });
+    expect(seeded.status).toBe(200);
+
+    const first = await emit(seriesKey, 78);
+    expect(first.status).toBe(200);
+    expect(first.payload).toMatchObject({ accepted: true, duplicate: false, sequence: "78" });
+
+    // A stale/corrupt legacy value must not be consulted after SQLite bootstrap.
+    await runInDurableObject(stub, async (_instance, state) => {
+      await state.storage.put("sequence:" + seriesKey, -1);
+    });
+    const second = await emit(seriesKey, 79);
+    expect(second.status).toBe(200);
+    expect(second.payload).toMatchObject({ accepted: true, duplicate: false, sequence: "79" });
+
+    await evictDurableObject(stub);
+    const persisted = await runInDurableObject(stub, async (_instance, state) => ({
+      state: state.storage.sql.exec(
+        "SELECT generation_id, high_water, retention_floor FROM series_state WHERE series_key = ?",
+        seriesKey,
+      ).toArray(),
+      events: state.storage.sql.exec(
+        "SELECT sequence, event_digest, payload FROM series_events WHERE series_key = ? ORDER BY sequence",
+        seriesKey,
+      ).toArray(),
+      legacyCursor: await state.storage.get("sequence:" + seriesKey),
+    }));
+    expect(persisted.state).toEqual([{
+      generation_id: "synthetic-v1",
+      high_water: 79,
+      retention_floor: 77,
+    }]);
+    expect(persisted.events.map((event) => event.sequence)).toEqual([78, 79]);
+    expect(persisted.legacyCursor).toBe(-1);
+    for (const event of persisted.events) {
+      const payload = JSON.parse(event.payload);
+      expect(payload).toMatchObject({
+        type: "market_data.ohlcv.update",
+        sequence: event.sequence,
+        cursor: String(event.sequence),
+        digest: event.event_digest,
+        series: { seriesKey },
+      });
+    }
+
+    const ticket = await issueTicket(seriesKey);
+    const socket = await openSocket(seriesKey);
+    const statusPromise = nextJsonMessage(socket);
+    socket.send(JSON.stringify({ type: "auth", ticket }));
+    expect(await statusPromise).toMatchObject({
+      type: "market_data.status",
+      providerConnected: false,
+      liveProviderEnabled: false,
+    });
+
+    const replayStartedPromise = nextJsonMessage(socket);
+    socket.send(JSON.stringify({
+      type: "market_data.subscribe",
+      version: 1,
+      cursor: "77",
+      series: canonicalSeries(seriesKey),
+    }));
+    expect(await replayStartedPromise).toMatchObject({
+      type: "market_data.ohlcv.replay_started",
+      fromCursor: "77",
+      throughCursor: "79",
+      count: 2,
+    });
+    expect(await nextJsonMessage(socket)).toMatchObject({
+      type: "market_data.ohlcv.update",
+      sequence: 78,
+      cursor: "78",
+    });
+    expect(await nextJsonMessage(socket)).toMatchObject({
+      type: "market_data.ohlcv.update",
+      sequence: 79,
+      cursor: "79",
+    });
+    expect(await nextJsonMessage(socket)).toMatchObject({
+      type: "market_data.ohlcv.replay_complete",
+      cursor: "79",
+      throughSequence: 79,
+      count: 2,
+    });
+  });
+
 });
