@@ -113,3 +113,45 @@ Global calculation invariants remain: warm-up nulls, prefix causality, no future
 
 Delivery planning target remains around 24 December 2026. ZERO COST, `main` untouched, Vercel deferred, no paid data/hosting/monitoring, and no production deployment in this cycle.
 
+
+
+---
+
+## Addendum — 27 November 2026: connected-account inventory refresh
+
+This addendum supersedes only the 25 November account-inventory snapshot above. It does not change the historical record or authorize deployment.
+
+### Current read-only inventory
+
+The connected account now contains one deployed Worker script: `dezzta-chart-runner-relay`.
+
+- The Worker has four recorded deployments. The latest deployment is version 4, created 26 November 2026 at 11:43:55 UTC, with 100% of traffic assigned to that version.
+- The script's Workers subdomain is enabled; previews are disabled. No custom Worker domains are listed.
+- The account currently has zero Durable Object namespaces and zero Pages projects.
+- The Worker script metadata reports `usage_model: standard`. Cloudflare's current pricing documentation says the Standard usage model is available to Workers Paid plan users. The exact account billing plan was not inspected; therefore this Worker is **not certified zero-cost** until the plan/usage model is confirmed. Do not create additional paid resources.
+- The script has secret bindings named `CRON_SECRET` and `GITHUB_TOKEN`. Secret values were not read or exposed.
+
+### What this Worker actually does
+
+Source inspection of the deployed script shows only a `fetch` handler:
+- `GET /health` returns a standby health response.
+- `POST /trigger` validates a bearer secret and dispatches `workflow_dispatch` for `preflight.yml` in the separate `dezzta-chart-runner` repository.
+- It does not implement a WebSocket endpoint, Durable Object binding, or a `scheduled` handler.
+
+The runner workflow at [`.github/workflows/preflight.yml`](https://github.com/deszztagd377-pixel/dezzta-chart-runner/blob/main/.github/workflows/preflight.yml) declares only `workflow_dispatch`; it has no GitHub `schedule` trigger. Its job checks out `phase-2/market-data-foundation`, verifies the branch and `package.json`, and explicitly performs no dependency installation, build, tests, edits, or pushes.
+
+The Worker has no Cloudflare Cron Triggers configured. The runner history contains successful manual/API `workflow_dispatch` executions at ten-minute spacing on 26 November, with the latest listed run [45836285961](https://github.com/deszztagd377-pixel/dezzta-chart-runner/actions/runs/45836285961) completed successfully at 14:10:15 UTC. The runner repository currently has no active workflow runs.
+
+**Conclusion:** the existing relay is a deployed preflight dispatcher, not an autonomous AI engineering agent and not the DEZZTA CHART market-data WebSocket service. The observed ten-minute invocations came from an external trigger; neither the Worker nor the workflow contains a self-scheduling ten-minute trigger. Do not represent those preflight executions as code implementation or APK production.
+
+### WebSocket production boundary
+
+The runner relay does not satisfy the production WSS requirement. The connected Cloudflare account still has no Durable Object namespace, no Pages project, and no custom Worker domain. The separate repository's synthetic Worker proof remains a test artifact; it is not deployed by this runner relay. Production public WSS, authenticated market-data runtime, and real browser/Android acceptance remain YELLOW and unaccepted.
+
+### Cost and change controls
+
+- No Worker, Durable Object namespace, Pages project, domain, Cron Trigger, secret, or deployment was created, changed, or deleted during this audit.
+- No secret value was retrieved.
+- Because the Worker reports the Standard usage model, keep its zero-cost status YELLOW until the account plan is confirmed against Cloudflare's [official Workers pricing documentation](https://developers.cloudflare.com/workers/platform/pricing/).
+- Do not add a Cron Trigger to this script: it has no `scheduled` handler, and doing so would not make it perform AI-assisted project work.
+- `main` remains untouched. No active GitHub Actions run was left running by this audit.
