@@ -877,6 +877,79 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
   });
 
 
+  it("rolls back event deletion when retention-floor advancement fails, then compacts atomically", async () => {
+    const seriesKey = "synthetic:DEMO:COMPACTIONROLLBACK:1m";
+    const stub = coordinatorStub(seriesKey);
+    for (const sequence of [51, 52]) {
+      const result = await emit(seriesKey, sequence);
+      expect(result.status).toBe(200);
+    }
+
+    await runInDurableObject(stub, async (_instance, state) => {
+      state.storage.sql.exec(`
+        CREATE TRIGGER fail_retention_floor_update
+        BEFORE UPDATE OF retention_floor ON series_state
+        BEGIN
+          SELECT RAISE(ABORT, 'injected retention-floor failure');
+        END
+      `);
+    });
+
+    const failed = await stub.fetch("https://series.internal/internal/compact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ seriesKey, throughSequence: 51 }),
+    });
+    expect(failed.status).toBe(503);
+    expect(await failed.json()).toEqual({ error: "temporarily_unavailable" });
+
+    const afterRollback = await runInDurableObject(stub, async (_instance, state) => ({
+      state: state.storage.sql.exec(
+        "SELECT high_water, retention_floor FROM series_state WHERE series_key = ?",
+        seriesKey,
+      ).toArray(),
+      events: state.storage.sql.exec(
+        "SELECT sequence FROM series_events WHERE series_key = ? ORDER BY sequence",
+        seriesKey,
+      ).toArray(),
+    }));
+    expect(afterRollback).toEqual({
+      state: [{ high_water: 52, retention_floor: 50 }],
+      events: [{ sequence: 51 }, { sequence: 52 }],
+    });
+
+    await runInDurableObject(stub, async (_instance, state) => {
+      state.storage.sql.exec("DROP TRIGGER fail_retention_floor_update");
+    });
+    const succeeded = await stub.fetch("https://series.internal/internal/compact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ seriesKey, throughSequence: 51 }),
+    });
+    expect(succeeded.status).toBe(200);
+    expect(await succeeded.json()).toMatchObject({
+      compacted: true,
+      deleted: 1,
+      retentionFloor: 51,
+    });
+
+    const afterCommit = await runInDurableObject(stub, async (_instance, state) => ({
+      state: state.storage.sql.exec(
+        "SELECT high_water, retention_floor FROM series_state WHERE series_key = ?",
+        seriesKey,
+      ).toArray(),
+      events: state.storage.sql.exec(
+        "SELECT sequence FROM series_events WHERE series_key = ? ORDER BY sequence",
+        seriesKey,
+      ).toArray(),
+    }));
+    expect(afterCommit).toEqual({
+      state: [{ high_water: 52, retention_floor: 51 }],
+      events: [{ sequence: 52 }],
+    });
+  });
+
+
   it("keeps SQLite authoritative after bootstrap even when legacy KV is corrupt, including after eviction", async () => {
     const seriesKey = "synthetic:DEMO:LEGACYRECOVERY:1m";
     const stub = coordinatorStub(seriesKey);
