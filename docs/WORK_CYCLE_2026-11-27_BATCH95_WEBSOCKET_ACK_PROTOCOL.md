@@ -108,3 +108,29 @@ Production compatibility gap: FastAPI stream events have per-subscription sequen
 Zero-cost review: Cloudflare Durable Objects Free currently lists 100,000 requests/day, 100,000 SQLite row writes/day, 5 million row reads/day, 5 GB SQLite storage, and 13,000 GB-s/day. Incoming WebSocket messages use a 20:1 request billing ratio; outgoing messages are not charged as requests. The current proof's two writes per event make a sustained 1 Hz stream exceed the row-write allowance before ACKs. High-frequency zero-cost production is therefore not certified. See the [official Durable Objects pricing page](https://developers.cloudflare.com/durable-objects/platform/pricing/).
 
 The frontend ACK implementation and Worker capability advertisement are a repository candidate only. Production Firebase identity, per-session lease/fencing, canonical production event digest, public WSS, provider rights, and device E2E remain YELLOW.
+
+
+## 9. Exact-head validation closeout — 2026-11-27
+
+**Validated HEAD:** `fb25f4eb29536473610b206542f7a356fa6c2c02`
+
+All four required GitHub Actions workflows reached terminal **SUCCESS** on this exact commit:
+
+- Automated Tests — [run 45989797712](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45989797712): **SUCCESS**, 41/41 job steps completed.
+- CodeQL Security Analysis — [run 45989797796](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45989797796): **SUCCESS**.
+- Full Git History Secret Audit — [run 45989797647](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45989797647): **SUCCESS**.
+- OCI ARM64 Image Readiness — [run 45989797592](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45989797592): **SUCCESS**.
+
+### Test correction history
+
+The preceding candidate head `2e5f5230e3f7fab6529ba1b929f18be802ce0232` had one frontend test failure in `coalesces durable ACKs and confirms the highest contiguous applied event`. The second synthetic candle fixture had a close above its high, violating the existing OHLCV invariant. The fixture was corrected by setting the high to the same valid upper boundary; the final head above passed the complete Automated Tests workflow. The ACK protocol implementation itself was not changed for this fixture correction.
+
+### Repository closeout
+
+- PR #13 remains open and unmerged; target branch is `phase-2/market-data-foundation`.
+- `main` remains unchanged at `e3841681bc69b73619058deaf939df82ae5116a1`.
+- No queued or in-progress workflows remained in either `dezzta-chart` or `dezzta-chart-runner` at closeout.
+- No Cloudflare resources or deployments, secrets, paid services, or recurring automations were changed or created.
+- Production Firebase grant, consumer lease/fencing implementation, canonical FastAPI event digest/sequence contract, public WSS, provider rights, account-level zero-cost certification, and browser/Android E2E remain **YELLOW**.
+
+This closeout proves repository CI only. It does not mark the production WebSocket path as accepted.
