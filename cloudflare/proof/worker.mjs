@@ -1418,6 +1418,7 @@ export class SeriesCoordinatorDO {
         dataSource: "synthetic_only_not_market_data",
         providerConnected: false,
         liveProviderEnabled: false,
+        consumerAckProtocolVersion: PROTOCOL_VERSION,
       }));
       await this.scheduleUnauthenticatedSocketAlarm();
       return;
@@ -1702,6 +1703,7 @@ export default {
         dataSource: "synthetic_only_not_market_data",
         providerConnected: false,
         liveProviderEnabled: false,
+        consumerAckProtocolVersion: PROTOCOL_VERSION,
       }), origin);
     }
 

@@ -54,6 +54,12 @@ The existing HTTP proof ACK tests remain in place for receipt duplicate, regress
 
 ## 5. Next engineering sequence
 
+1. Client ACK is now capability-gated: the browser coalesces ACKs only when the server advertises protocol v1 and events contain a generation ID plus SHA-256 digest. The synthetic Worker advertises this capability. The production FastAPI stream does not yet do so and remains unchanged.
+2. Resolve the production event-envelope mismatch: add a canonical per-series generation/sequence/digest contract or define a separately safe global-cursor receipt contract. Do not send the synthetic ACK schema to the current FastAPI path.
+3. Implement the lease/fencing lifecycle and bounded retention policy from the ADR, with no per-heartbeat alarm writes.
+4. Bind a backend-issued, one-time Firebase-verified session grant to the exact series and Worker session identity.
+5. After exact-head tests pass, connect the real ticket path to a deployed WSS endpoint and run browser/Android E2E.
+
 1. Define consumer ownership from the backend's verified Firebase principal plus a separately validated installation identity.
 2. Add lease renewal, expiry, fencing tokens, and explicit safe deregistration semantics. Compaction must include only consumers whose lease/lifecycle state is authoritative; expiry must be designed so an offline but valid consumer is not silently skipped.
 3. Bind the backend-issued short-lived ticket to the exact series and a signed/opaque consumer grant that the Worker can validate without exposing Firebase Admin credentials.
@@ -89,3 +95,16 @@ The intermediate CI attempts on older heads were cancelled by GitHub's branch co
 
 This is repository-level synthetic proof acceptance only. It does not establish Firebase-to-Worker production identity, consumer lease/fencing/deregistration, public WSS, provider rights, billing zero-cost certification, or browser/Android production acceptance. Overall Batch 95 and production Gate 10 remain **YELLOW**.
 
+
+
+## 8. Frontend ACK and cost audit — 2026-11-27
+
+The frontend transport now supports the synthetic ACK protocol only when the server advertises `consumerAckProtocolVersion: 1`. It validates ACK responses, fails closed on rejection/timeout, and coalesces contiguous applied updates into a 10-second batch. The synthetic Worker advertises the capability. The current FastAPI production path does not advertise it, so the client sends no ACK there.
+
+Audit evidence from the existing client: application text ping every 20 seconds, pong timeout 10 seconds, ticket renewal every 45 seconds. The current chart series store and resume cursor are in memory; a page reload starts with a fresh snapshot rather than a durable browser checkpoint.
+
+Production compatibility gap: FastAPI stream events have per-subscription sequence plus global outbox cursor, but do not currently carry the Cloudflare proof's generation ID and digest. The backend WebSocket handler also does not implement the proof ACK response contract. This is an explicit integration gate, not a reason to send incompatible ACK messages.
+
+Zero-cost review: Cloudflare Durable Objects Free currently lists 100,000 requests/day, 100,000 SQLite row writes/day, 5 million row reads/day, 5 GB SQLite storage, and 13,000 GB-s/day. Incoming WebSocket messages use a 20:1 request billing ratio; outgoing messages are not charged as requests. The current proof's two writes per event make a sustained 1 Hz stream exceed the row-write allowance before ACKs. High-frequency zero-cost production is therefore not certified. See the [official Durable Objects pricing page](https://developers.cloudflare.com/durable-objects/platform/pricing/).
+
+The frontend ACK implementation and Worker capability advertisement are a repository candidate only. Production Firebase identity, per-session lease/fencing, canonical production event digest, public WSS, provider rights, and device E2E remain YELLOW.

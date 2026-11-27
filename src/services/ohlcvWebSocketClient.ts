@@ -30,6 +30,8 @@ export interface OhlcvStreamOptions {
   heartbeatIntervalMs?: number;
   /** Close the stream if the server does not answer a heartbeat. */
   heartbeatTimeoutMs?: number;
+  /** Coalesce durable consumer ACKs; only active when the server advertises ACK protocol v1. */
+  consumerAckBatchIntervalMs?: number;
 }
 
 export interface OhlcvStreamConnection {
@@ -115,6 +117,11 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
       heartbeatTimeoutMs >= heartbeatIntervalMs) {
     throw new Error('OHLCV WebSocket heartbeat bounds are invalid.');
   }
+  const consumerAckBatchIntervalMs = options.consumerAckBatchIntervalMs ?? 10_000;
+  if (!Number.isFinite(consumerAckBatchIntervalMs) || consumerAckBatchIntervalMs < 1_000 ||
+      consumerAckBatchIntervalMs > 30_000) {
+    throw new Error('OHLCV consumer ACK batch interval is outside safe bounds.');
+  }
 
   const factory = options.webSocketFactory ?? ((url: string) => new WebSocket(url));
   const socket = factory(buildWebSocketUrl(options.baseUrl, options.identity.seriesKey));
@@ -132,6 +139,12 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
   let ticketRenewalTimer: ReturnType<typeof setTimeout> | null = null;
   let renewalAckTimer: ReturnType<typeof setTimeout> | null = null;
   let renewalPending = false;
+  let consumerAckEnabled = false;
+  let pendingConsumerAck: { sequence: number; eventDigest: string } | null = null;
+  let consumerAckTimer: ReturnType<typeof setTimeout> | null = null;
+  let consumerAckResponseTimer: ReturnType<typeof setTimeout> | null = null;
+  let consumerAckInFlightSequence: number | null = null;
+  let lastConsumerAckSequence = 0;
   let timer: ReturnType<typeof setTimeout> | null = setTimeout(() => {
     fail(new Error('OHLCV WebSocket handshake timed out.'));
   }, timeoutMs);
@@ -171,6 +184,14 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
     renewalAckTimer = null;
     renewalPending = false;
   };
+  const clearConsumerAck = () => {
+    if (consumerAckTimer !== null) clearTimeout(consumerAckTimer);
+    if (consumerAckResponseTimer !== null) clearTimeout(consumerAckResponseTimer);
+    consumerAckTimer = null;
+    consumerAckResponseTimer = null;
+    pendingConsumerAck = null;
+    consumerAckInFlightSequence = null;
+  };
   const startHeartbeat = () => {
     if (heartbeatTimer !== null || state !== 'subscribed') return;
     heartbeatTimer = setInterval(() => {
@@ -195,6 +216,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
     clearTimer();
     clearHeartbeat();
     clearTicketRenewal();
+    clearConsumerAck();
     // Diagnostic observers must never interrupt transport cleanup. A consumer
     // callback can throw; isolate that exception so the socket still closes
     // and the connection state always reaches the terminal state.
@@ -223,6 +245,45 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
         closeRequestFailed ? 'OHLCV stream failure' : 'OHLCV stream ended before close event',
       );
     }
+  };
+
+  const flushConsumerAck = () => {
+    if (!consumerAckEnabled || !pendingConsumerAck || consumerAckInFlightSequence !== null ||
+        state === 'closed' || socket.readyState !== 1) return;
+    const next = pendingConsumerAck;
+    pendingConsumerAck = null;
+    consumerAckInFlightSequence = next.sequence;
+    try {
+      socket.send(JSON.stringify({
+        type: 'market_data.ack',
+        version: 1,
+        sequence: next.sequence,
+        eventDigest: next.eventDigest,
+      }));
+    } catch {
+      fail(new Error('OHLCV durable consumer ACK send failed.'));
+      return;
+    }
+    consumerAckResponseTimer = setTimeout(() => {
+      consumerAckResponseTimer = null;
+      fail(new Error('OHLCV durable consumer ACK acknowledgement timed out.'));
+    }, 10_000);
+  };
+  const queueConsumerAck = (event: OhlcvStreamUpdateMessage) => {
+    if (!consumerAckEnabled) return;
+    if (!event.generationId || !event.digest) {
+      throw new Error('ACK-capable OHLCV server omitted generationId or event digest.');
+    }
+    if (event.sequence <= lastConsumerAckSequence) return;
+    if (!pendingConsumerAck || event.sequence > pendingConsumerAck.sequence) {
+      pendingConsumerAck = { sequence: event.sequence, eventDigest: event.digest };
+    }
+    // During replay, wait until replay_complete confirms the whole range was sent.
+    if (replayExpectedCount !== null || consumerAckInFlightSequence !== null || consumerAckTimer !== null) return;
+    consumerAckTimer = setTimeout(() => {
+      consumerAckTimer = null;
+      flushConsumerAck();
+    }, consumerAckBatchIntervalMs);
   };
 
   const scheduleTicketRenewal = () => {
@@ -296,6 +357,10 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
 
     try {
       if (value.type === 'market_data.status' && state === 'connecting') {
+        if (value.consumerAckProtocolVersion !== undefined && value.consumerAckProtocolVersion !== 1) {
+          throw new Error('Server advertised an unsupported consumer ACK protocol version.');
+        }
+        consumerAckEnabled = value.consumerAckProtocolVersion === 1;
         refreshHandshakeTimer();
         setState('authenticated');
         socket.send(JSON.stringify({
@@ -409,6 +474,11 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
         setState('subscribed');
         startHeartbeat();
         scheduleTicketRenewal();
+        if (pendingConsumerAck && consumerAckInFlightSequence === null) {
+          if (consumerAckTimer !== null) clearTimeout(consumerAckTimer);
+          consumerAckTimer = null;
+          flushConsumerAck();
+        }
         return;
       }
 
@@ -477,11 +547,41 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
         if (!candle) throw new Error('OHLCV update did not contain the subscribed series.');
         options.onUpdate(event, candle);
         if (event.cursor !== undefined) options.onCursor?.(event.cursor);
+        queueConsumerAck(event);
         if (replayExpectedCount !== null) {
           replayReceivedCount += 1;
           refreshHandshakeTimer();
         }
         return;
+      }
+
+      if (value.type === 'market_data.acknowledged') {
+        if (!consumerAckEnabled || consumerAckInFlightSequence === null || value.version !== 1 ||
+            value.accepted !== true || typeof value.committedCursor !== 'string' ||
+            !/^\\d+$/.test(value.committedCursor) || Number(value.committedCursor) !== consumerAckInFlightSequence ||
+            !Number.isSafeInteger(value.receiptVersion) || (value.receiptVersion as number) < 1 ||
+            typeof value.duplicate !== 'boolean') {
+          throw new Error('Unexpected or invalid durable consumer ACK acknowledgement.');
+        }
+        if (consumerAckResponseTimer !== null) clearTimeout(consumerAckResponseTimer);
+        consumerAckResponseTimer = null;
+        lastConsumerAckSequence = consumerAckInFlightSequence;
+        consumerAckInFlightSequence = null;
+        if (pendingConsumerAck && pendingConsumerAck.sequence > lastConsumerAckSequence && consumerAckTimer === null) {
+          consumerAckTimer = setTimeout(() => {
+            consumerAckTimer = null;
+            flushConsumerAck();
+          }, consumerAckBatchIntervalMs);
+        }
+        return;
+      }
+
+      if (value.type === 'market_data.ack_rejected') {
+        if (!consumerAckEnabled || consumerAckInFlightSequence === null || value.version !== 1 ||
+            typeof value.reason !== 'string' || !value.reason.trim()) {
+          throw new Error('Unexpected or invalid durable consumer ACK rejection.');
+        }
+        throw new Error(`Server rejected durable consumer ACK: ${value.reason}`);
       }
 
       if (value.type === 'market_data.auth.renewed') {
@@ -515,6 +615,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
     clearTimer();
     clearHeartbeat();
     clearTicketRenewal();
+    clearConsumerAck();
     const closeEvent = event as CloseEvent;
     if (state !== 'closed') setState('closed');
     notifyClose(closeEvent.code, closeEvent.reason);
@@ -525,6 +626,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
       clearTimer();
       clearHeartbeat();
       clearTicketRenewal();
+      clearConsumerAck();
       let closeRequestFailed = false;
       if (socket.readyState === 1 || socket.readyState === 0) {
         try {
