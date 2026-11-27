@@ -155,3 +155,15 @@ The runner relay does not satisfy the production WSS requirement. The connected 
 - Because the Worker reports the Standard usage model, keep its zero-cost status YELLOW until the account plan is confirmed against Cloudflare's [official Workers pricing documentation](https://developers.cloudflare.com/workers/platform/pricing/).
 - Do not add a Cron Trigger to this script: it has no `scheduled` handler, and doing so would not make it perform AI-assisted project work.
 - `main` remains untouched. No active GitHub Actions run was left running by this audit.
+
+
+### Follow-up verification — 27 November 2026
+
+A further read-only verification was performed after this inventory was drafted:
+
+- Cloudflare identity and account listing succeeded; the existing connector session remains authenticated for the account and Workers read operations.
+- A read of the account billing profile returned HTTP 403 / API error 10000 because this connector session does not have an accepted `billing:read` or `billing:write` scope. This is a permission limitation, not evidence of a billing-plan value. The account's zero-cost status therefore remains **UNVERIFIED / YELLOW**. Do not attempt to bypass this with a new token or change the billing plan.
+- A public `GET /health` probe from the execution environment was blocked by the environment's outbound-request policy (HTTP 403). This does not establish whether the public Worker endpoint is healthy or unhealthy; public endpoint health remains **UNVERIFIED / YELLOW**.
+- A second usage-model read returned HTTP 415 because the request did not satisfy that endpoint's required `application/json` content type. The earlier successful metadata response reporting `usage_model: standard` remains the recorded evidence; no billing-plan inference is added.
+- No Cloudflare resource, secret, schedule, deployment, or billing setting was modified.
+- No recurring 10-minute automation is requested or being continued. The historical runner invocations are retained only as audit history; they are not a current work instruction.
