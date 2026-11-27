@@ -64,7 +64,7 @@ function authorizedHeaders() {
 }
 
 test("synthetic Worker executes real workerd WebSocket, Durable Object storage and fan-out", {
-  timeout: 20_000,
+  timeout: 60_000,
 }, async () => {
   const miniflare = new Miniflare({
     modules: true,
@@ -88,6 +88,7 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
   let retentionSocket;
   let raceSocket;
   let pagingSocket;
+  let overBudgetSocket;
   try {
     await miniflare.ready;
 
@@ -437,6 +438,60 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
     assert.equal(pagingComplete.cursor, "152");
     assert.deepEqual(pagedSequences, Array.from({ length: 102 }, (_, index) => index + 51));
 
+    // A cursor requiring more than the 10-page subscribe budget must resnapshot.
+    const overBudgetSeries = {
+      ...CANONICAL_SERIES,
+      seriesKey: "synthetic:OVERBUDGET:ETHUSD:1m",
+      dataset: "OVERBUDGET",
+      rawSymbol: "ETHUSD",
+      instrumentId: 303,
+    };
+    for (let sequence = 51; sequence <= 1_051; sequence += 1) {
+      const emitResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/emit`, {
+        method: "POST",
+        headers: authorizedHeaders(),
+        body: JSON.stringify({
+          seriesKey: overBudgetSeries.seriesKey,
+          sequence: String(sequence),
+          series: overBudgetSeries,
+          emittedAtNs: (1_900_000_000_000_000_000n + BigInt(sequence)).toString(),
+        }),
+      });
+      assert.equal(emitResponse.status, 200);
+      assert.equal((await emitResponse.json()).accepted, true);
+    }
+    const overBudgetTicketResponse = await miniflare.dispatchFetch(
+      `${BASE_URL}/v1/auth/websocket-ticket`,
+      { method: "POST", headers: authorizedHeaders(), body: JSON.stringify({ seriesKey: overBudgetSeries.seriesKey }) },
+    );
+    const overBudgetTicket = await overBudgetTicketResponse.json();
+    const overBudgetUpgrade = await miniflare.dispatchFetch(
+      `${BASE_URL}/ws/market-data?seriesKey=${encodeURIComponent(overBudgetSeries.seriesKey)}`,
+      { headers: { Origin: ORIGIN, Upgrade: "websocket" } },
+    );
+    assert.equal(overBudgetUpgrade.status, 101);
+    overBudgetSocket = overBudgetUpgrade.webSocket;
+    overBudgetSocket.accept();
+    const overBudgetAuthPromise = nextJsonMessage(overBudgetSocket);
+    overBudgetSocket.send(JSON.stringify({ type: "auth", ticket: overBudgetTicket.ticket }));
+    assert.equal((await overBudgetAuthPromise).type, "market_data.status");
+    const resnapshotPromise = nextJsonMessage(overBudgetSocket);
+    overBudgetSocket.send(JSON.stringify({
+      type: "market_data.subscribe",
+      version: 1,
+      series: overBudgetSeries,
+      cursor: "50",
+    }));
+    const overBudgetResnapshot = await resnapshotPromise;
+    assert.equal(overBudgetResnapshot.type, "market_data.ohlcv.resnapshot_required");
+    assert.equal(overBudgetResnapshot.reason, "replay_backlog_exceeds_page_budget");
+    assert.equal(overBudgetResnapshot.snapshotCursor, "1051");
+    const overBudgetSnapshot = await nextJsonMessage(overBudgetSocket);
+    assert.equal(overBudgetSnapshot.type, "market_data.ohlcv.snapshot");
+    assert.equal(overBudgetSnapshot.cursor, "1051");
+    assert.equal(overBudgetSnapshot.watermark, 1051);
+    assert.equal(overBudgetSnapshot.bars.length, 50);
+
     // Retention compaction is an atomic cursor-floor advance plus event deletion.
     const compactResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/compact`, {
       method: "POST",
@@ -509,6 +564,7 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
       retentionSocket?.close(1000, "Retention integration test complete");
       raceSocket?.close(1000, "Replay/live race integration test complete");
       pagingSocket?.close(1000, "Multi-page replay integration test complete");
+      overBudgetSocket?.close(1000, "Over-budget replay fallback test complete");
     } catch {
       // The runtime may already have closed the test socket during teardown.
     }
