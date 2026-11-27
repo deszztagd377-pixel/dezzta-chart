@@ -1207,7 +1207,10 @@ export class SeriesCoordinatorDO {
       }
       if (!attachment.authorized) {
         nextDeadline = Math.min(nextDeadline, attachment.connectedAt + UNAUTHENTICATED_SOCKET_TTL_MS);
-      } else if (attachment.subscribed === true) {
+      } else if (typeof attachment.consumerId === "string" &&
+          typeof attachment.ownerToken === "string" &&
+          Number.isSafeInteger(attachment.fenceToken) &&
+          Number.isSafeInteger(attachment.leaseExpiresAtMs)) {
         if (attachment.leaseExpiresAtMs <= Date.now()) {
           this.releaseSocketLease(socket);
           try { socket.close(4408, "Consumer lease expired"); } catch { /* already closed */ }
@@ -1232,7 +1235,9 @@ export class SeriesCoordinatorDO {
         try { socket.close(4401, "Invalid connection state"); } catch { /* already closed */ }
         continue;
       }
-      if (attachment.authorized && attachment.subscribed === true) {
+      if (attachment.authorized && typeof attachment.consumerId === "string" &&
+          typeof attachment.ownerToken === "string" && Number.isSafeInteger(attachment.fenceToken) &&
+          Number.isSafeInteger(attachment.leaseExpiresAtMs)) {
         if (attachment.leaseExpiresAtMs <= now) {
           this.releaseSocketLease(socket, now);
           try { socket.close(4408, "Consumer lease expired"); } catch { /* already closed */ }
@@ -1258,7 +1263,10 @@ export class SeriesCoordinatorDO {
 
   releaseSocketLease(socket, now = Date.now()) {
     const attachment = readSocketAttachment(socket);
-    if (!isValidSocketAttachment(attachment) || attachment.subscribed !== true) return false;
+    if (!isValidSocketAttachment(attachment) ||
+        typeof attachment.consumerId !== "string" ||
+        typeof attachment.ownerToken !== "string" ||
+        !Number.isSafeInteger(attachment.fenceToken)) return false;
     return releaseRequiredConsumerLease(this.ctx.storage, {
       seriesKey: attachment.seriesKey,
       consumerId: attachment.consumerId,
@@ -1634,6 +1642,7 @@ export class SeriesCoordinatorDO {
         return;
       }
       return this.runProtocolExclusive(async () => {
+      this.releaseSocketLease(socket);
       const canonicalSeries = canonicalSeriesIdentity(series);
       let identityRegistered;
       try {
@@ -1671,6 +1680,11 @@ export class SeriesCoordinatorDO {
         socket.close(1011, "Consumer registration unavailable");
         return;
       }
+      socket.serializeAttachment({
+        ...attachment, subscribed: false, series: null, consumerId, ownerToken,
+        fenceToken: registration.fenceToken, leaseExpiresAtMs: registration.leaseExpiresAtMs,
+      });
+      await this.scheduleUnauthenticatedSocketAlarm();
       const watermark = await readDurableHighWater(this.ctx.storage, attachment.seriesKey);
       if (!Number.isSafeInteger(watermark) || watermark < SNAPSHOT_WATERMARK || watermark > 1_000_000_000) {
         socket.send(JSON.stringify(createProtocolError(
@@ -1740,6 +1754,7 @@ export class SeriesCoordinatorDO {
             cursor: throughCursor,
             throughSequence,
           }));
+          await this.scheduleUnauthenticatedSocketAlarm();
           return;
         }
         if (replayFailure === "cursor_ahead") {
