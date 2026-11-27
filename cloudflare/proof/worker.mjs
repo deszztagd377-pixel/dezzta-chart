@@ -956,6 +956,22 @@ export function compactDurableEvents(storage, seriesKey, throughSequence, now = 
     if (throughSequence <= state.retention_floor) {
       return { compacted: true, deleted: 0, retentionFloor: state.retention_floor };
     }
+    // Never delete events beyond the slowest receipt already known to this
+    // series. This protects registered/observed consumers from a premature
+    // retention-floor advance; production still requires an authoritative
+    // active-consumer registry before compaction can be enabled.
+    const laggingReceipts = storage.sql.exec(
+      "SELECT COUNT(*) AS count, MIN(committed_sequence) AS minimum_acknowledged " +
+      "FROM consumer_receipts WHERE series_key = ? AND generation_id = ? AND committed_sequence < ?",
+      seriesKey, state.generation_id, throughSequence,
+    ).toArray();
+    if (laggingReceipts[0]?.count > 0) {
+      return {
+        compacted: false,
+        reason: "consumer_ack_behind",
+        minimumAcknowledgedSequence: laggingReceipts[0].minimum_acknowledged,
+      };
+    }
     const deleted = storage.sql.exec(
       "DELETE FROM series_events WHERE series_key = ? AND generation_id = ? AND sequence <= ?",
       seriesKey, state.generation_id, throughSequence,
