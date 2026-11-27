@@ -8,11 +8,11 @@
 
 - PR #13: https://github.com/deszztagd377-pixel/dezzta-chart/pull/13
 - Working branch: `work/batch95-websocket-ack-protocol`
-- Current PR HEAD (documentation checkpoint): `0894d2eece2e38b878b2f7f4c2d7c0bbb5e5b47c`
+- Current PR HEAD (documentation checkpoint): `e826718007baface6ce72135fabd7df880cb0101`
 - Last code/test SHA with exact-head CI: `5cb1dd0b24ee083a0149a8e804ba7276a893a869`
 - PR remains OPEN and mergeable; it is not merged. Application `main` remains untouched.
 - Four required workflows on code/test SHA `5cb1dd0b...` are terminal SUCCESS: Automated Tests [46006459907](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46006459907), CodeQL [46006459864](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46006459864), OCI ARM64 [46006459939](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46006459939), Full Git History Secret Audit [46006459958](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46006459958).
-- The documentation checkpoint `639f476...` is the current PR HEAD. The tested code remains at `5cb1dd0...`; documentation-only changes do not alter the tested source. They do not alter the code tested at `5cb1dd0...`; no new source/test CI is claimed for documentation-only commits.
+- The documentation checkpoints `639f476...` and `e826718...` contain documentation-only changes. The tested code remains at `5cb1dd0...`; no new source/test CI is claimed for documentation-only commits.
 
 ## Six-stage project status
 
