@@ -492,6 +492,53 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
     assert.equal(overBudgetSnapshot.watermark, 1051);
     assert.equal(overBudgetSnapshot.bars.length, 50);
 
+    // Seed the legacy KV cursor, then prove SQLite takes authority after first bootstrap.
+    const legacySeries = {
+      ...CANONICAL_SERIES,
+      seriesKey: "synthetic:LEGACY:ETHUSD:1m",
+      dataset: "LEGACY",
+      rawSymbol: "ETHUSD",
+      instrumentId: 404,
+    };
+    const legacySeedResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/seed-legacy-cursor`, {
+      method: "POST",
+      headers: authorizedHeaders(),
+      body: JSON.stringify({ seriesKey: legacySeries.seriesKey, sequence: 77 }),
+    });
+    assert.equal(legacySeedResponse.status, 200);
+    assert.equal((await legacySeedResponse.json()).seeded, true);
+    const legacyFirstEmit = await miniflare.dispatchFetch(`${BASE_URL}/__proof/emit`, {
+      method: "POST",
+      headers: authorizedHeaders(),
+      body: JSON.stringify({
+        seriesKey: legacySeries.seriesKey,
+        sequence: "78",
+        series: legacySeries,
+        emittedAtNs: "1900000000000000078",
+      }),
+    });
+    assert.equal(legacyFirstEmit.status, 200);
+    assert.equal((await legacyFirstEmit.json()).accepted, true);
+
+    const staleLegacyReseed = await miniflare.dispatchFetch(`${BASE_URL}/__proof/seed-legacy-cursor`, {
+      method: "POST",
+      headers: authorizedHeaders(),
+      body: JSON.stringify({ seriesKey: legacySeries.seriesKey, sequence: 900 }),
+    });
+    assert.equal(staleLegacyReseed.status, 200);
+    const sqliteAuthoritativeEmit = await miniflare.dispatchFetch(`${BASE_URL}/__proof/emit`, {
+      method: "POST",
+      headers: authorizedHeaders(),
+      body: JSON.stringify({
+        seriesKey: legacySeries.seriesKey,
+        sequence: "79",
+        series: legacySeries,
+        emittedAtNs: "1900000000000000079",
+      }),
+    });
+    assert.equal(sqliteAuthoritativeEmit.status, 200);
+    assert.equal((await sqliteAuthoritativeEmit.json()).accepted, true);
+
     // Retention compaction is an atomic cursor-floor advance plus event deletion.
     const compactResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/compact`, {
       method: "POST",

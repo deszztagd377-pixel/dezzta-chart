@@ -1138,6 +1138,17 @@ export class SeriesCoordinatorDO {
       return new Response(null, { status: 101, webSocket: client });
     }
 
+    if (url.pathname === "/internal/seed-legacy-cursor" && request.method === "POST") {
+      const body = await readSmallJson(request);
+      if (!body || !isValidSyntheticSeriesKey(body.seriesKey) ||
+          !Number.isSafeInteger(body.sequence) || body.sequence < 0 ||
+          body.sequence > 1_000_000_000) {
+        return jsonResponse({ error: "invalid_legacy_cursor_seed" }, 400);
+      }
+      await this.ctx.storage.put("sequence:" + body.seriesKey, body.sequence);
+      return jsonResponse({ seeded: true, sequence: body.sequence });
+    }
+
     if (url.pathname === "/internal/ack" && request.method === "POST") {
       const body = await readSmallJson(request);
       if (!body || !isValidSyntheticSeriesKey(body.seriesKey)) {
@@ -1538,6 +1549,22 @@ export default {
         body: JSON.stringify({ seriesKey: body.seriesKey }),
       });
       return withCors(issued, origin);
+    }
+
+    if (url.pathname === "/__proof/seed-legacy-cursor" && request.method === "POST") {
+      const body = await readSmallJson(request);
+      if (!body || !isValidSyntheticSeriesKey(body.seriesKey) ||
+          !Number.isSafeInteger(body.sequence) || body.sequence < 0 ||
+          body.sequence > 1_000_000_000) {
+        return withCors(jsonResponse({ error: "invalid_legacy_cursor_seed" }, 400), origin);
+      }
+      const stub = env.SERIES_COORDINATOR.get(env.SERIES_COORDINATOR.idFromName(body.seriesKey));
+      const seeded = await stub.fetch("https://series.internal/internal/seed-legacy-cursor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      return withCors(seeded, origin);
     }
 
     if (url.pathname === "/__proof/ack" && request.method === "POST") {
