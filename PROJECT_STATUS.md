@@ -1,7 +1,7 @@
 # ACTIVE PROJECT DASHBOARD — DEZZTA CHART (26 November 2026)
 
 **Active branch:** `phase-2/market-data-foundation` — `main` untouched.  
-**Latest exact tested source/test HEAD:** `17857c948cb932d5465eaca1e46dae15ce6c0344`.  
+**Latest exact tested source/test SHA:** `17857c948cb932d5465eaca1e46dae15ce6c0344`. **New race-test candidate:** pending CI.  
 **Reporting rule:** No active dashboard item is labelled RED. Unfinished or unverified work is YELLOW / IN PROGRESS with an explicit next action and exit criteria. GREEN requires implementation plus passing tests and exact-head CI. This colour convention does not disguise incomplete engineering work.
 
 ## Overall checkpoint
@@ -13,7 +13,7 @@
 - **Atomic event commit / high-water:** GREEN — exact-head tests verified canonical payload/digest persistence, atomic high-water advancement, stable identical retry, changed-timestamp conflict, identity mutation rejection, sequence-gap rejection, and concurrent duplicate serialization. Fan-out occurs only after commit.
 - **Legacy cursor bootstrap and cutover:** YELLOW — subscribe performs one-time legacy KV cursor bootstrap into SQLite; SQLite is authoritative afterward and no dual-write is introduced. Node tests now cover seeded cursor, SQLite authority and interrupted-transaction retry; real workerd seeded-KV migration/eviction acceptance remains.
 - **Durable replay / retention:** YELLOW — implemented ordered cursor-exclusive SQLite replay, max 100 events and max 65,536 UTF-8 response bytes, explicit generation/cursor/retention/corrupt-payload/sequence-gap outcomes, and atomic delete-plus-retention-floor compaction. Node covers count/byte boundaries and corruption states; workerd verifies one-event replay and expired-cursor resnapshot. Real-SQLite boundary/fault injection and production retention policy remain.
-- **WebSocket resume / replay-to-live handoff:** YELLOW — valid cursors now replay up to 10 bounded pages inside the per-DO protocol serialization boundary before the socket becomes live-fan-out eligible. Backlogs beyond 10 pages explicitly fall back to a fresh snapshot. Dedicated race/failure tests and multi-page boundary acceptance remain.
+- **WebSocket resume / replay-to-live handoff:** YELLOW — valid cursors replay up to 10 bounded pages inside the per-DO protocol serialization boundary; larger backlogs fall back to a snapshot. A real-workerd concurrent subscribe/emit regression now asserts exact ordered delivery [51,52]; exact-head CI is pending.
 - **Failure injection and exact-head CI:** GREEN — required workflows are 4/4 terminal SUCCESS on exact source/test SHA `17857c948cb932d5465eaca1e46dae15ce6c0344`. Remaining real-workerd seeded-bootstrap, replay/live race and corruption fault-injection cases stay YELLOW and are not claimed complete.
 - **ACK / consumer receipts / RESUME extensions:** YELLOW — queued behind Batch 92 replay correctness.
 - **Public WSS / Android end-to-end:** YELLOW — queued behind protocol and runtime acceptance.

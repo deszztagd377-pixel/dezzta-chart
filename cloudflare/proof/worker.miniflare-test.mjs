@@ -86,6 +86,7 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
   let clientSocket;
   let resumeSocket;
   let retentionSocket;
+  let raceSocket;
   try {
     await miniflare.ready;
 
@@ -243,6 +244,71 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
     assert.equal(replay.hasMore, false);
     assert.ok(new TextEncoder().encode(JSON.stringify(replay)).byteLength <= 65_536);
 
+    // Race a reconnecting cursor-50 subscriber against commit/fan-out of sequence 52.
+    // The only valid outcomes are replay [51,52], or replay [51] followed by live 52.
+    const raceTicketResponse = await miniflare.dispatchFetch(
+      `${BASE_URL}/v1/auth/websocket-ticket`,
+      { method: "POST", headers: authorizedHeaders(), body: JSON.stringify({ seriesKey: SERIES }) },
+    );
+    const raceTicket = await raceTicketResponse.json();
+    const raceResponse = await miniflare.dispatchFetch(
+      `${BASE_URL}/ws/market-data?seriesKey=${encodeURIComponent(SERIES)}`,
+      { headers: { Origin: ORIGIN, Upgrade: "websocket" } },
+    );
+    assert.equal(raceResponse.status, 101);
+    raceSocket = raceResponse.webSocket;
+    raceSocket.accept();
+    const raceAuthPromise = nextJsonMessage(raceSocket);
+    raceSocket.send(JSON.stringify({ type: "auth", ticket: raceTicket.ticket }));
+    assert.equal((await raceAuthPromise).type, "market_data.status");
+    const raceQueue = [];
+    const raceWaiters = [];
+    raceSocket.addEventListener("message", (event) => {
+      const message = JSON.parse(String(event.data));
+      const waiter = raceWaiters.shift();
+      if (waiter) waiter(message);
+      else raceQueue.push(message);
+    });
+    const nextRaceMessage = () => raceQueue.length
+      ? Promise.resolve(raceQueue.shift())
+      : new Promise((resolve) => raceWaiters.push(resolve));
+    const raceFirstMessage = nextRaceMessage();
+    const raceSecondMessage = nextRaceMessage();
+    raceSocket.send(JSON.stringify({
+      type: "market_data.subscribe",
+      version: 1,
+      series: CANONICAL_SERIES,
+      cursor: "50",
+    }));
+    const raceEmitPromise = miniflare.dispatchFetch(`${BASE_URL}/__proof/emit`, {
+      method: "POST",
+      headers: authorizedHeaders(),
+      body: JSON.stringify({
+        seriesKey: SERIES,
+        sequence: "52",
+        series: CANONICAL_SERIES,
+        emittedAtNs: "1800000000000000052",
+      }),
+    });
+    const [firstRaceMessage, raceEmitResponse] = await Promise.all([
+      raceFirstMessage,
+      raceEmitPromise,
+    ]);
+    assert.equal(raceEmitResponse.status, 200);
+    assert.equal((await raceEmitResponse.json()).accepted, true);
+    const observedSequences = firstRaceMessage.type === "market_data.ohlcv.replay"
+      ? firstRaceMessage.events.map((event) => event.sequence)
+      : [firstRaceMessage.sequence];
+    if (!observedSequences.includes(52)) {
+      const secondRaceMessage = await raceSecondMessage;
+      if (secondRaceMessage.type === "market_data.ohlcv.replay") {
+        observedSequences.push(...secondRaceMessage.events.map((event) => event.sequence));
+      } else {
+        observedSequences.push(secondRaceMessage.sequence);
+      }
+    }
+    assert.deepEqual(observedSequences, [51, 52]);
+
     // Retention compaction is an atomic cursor-floor advance plus event deletion.
     const compactResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/compact`, {
       method: "POST",
@@ -313,6 +379,7 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
       clientSocket?.close(1000, "Local workerd integration test complete");
       resumeSocket?.close(1000, "Replay integration test complete");
       retentionSocket?.close(1000, "Retention integration test complete");
+      raceSocket?.close(1000, "Replay/live race integration test complete");
     } catch {
       // The runtime may already have closed the test socket during teardown.
     }
