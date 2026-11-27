@@ -21,7 +21,9 @@ const CANONICAL_SERIES = {
   calendarVersion: "",
 };
 
+let nextJsonMessageCounter = 0;
 function nextJsonMessage(socket, timeoutMs = 5_000) {
+  const messageIndex = ++nextJsonMessageCounter;
   return new Promise((resolve, reject) => {
     const cleanup = () => {
       clearTimeout(timer);
@@ -43,7 +45,7 @@ function nextJsonMessage(socket, timeoutMs = 5_000) {
     };
     const onClose = (event) => {
       cleanup();
-      reject(new Error(`WebSocket closed before the expected message (code ${event.code}).`));
+      reject(new Error(`WebSocket message #${messageIndex} closed before the expected message (code ${event.code}).`));
     };
     const onError = () => {
       cleanup();
