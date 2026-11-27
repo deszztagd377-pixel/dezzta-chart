@@ -1554,7 +1554,7 @@ export class SeriesCoordinatorDO {
     }
 
     if (payload?.type === "market_data.ack" && payload.version === PROTOCOL_VERSION) {
-      return this.runProtocolExclusive(() => {
+      return this.runProtocolExclusive(async () => {
         // Read the attachment inside the protocol queue. Fan-out sends the
         // update before persisting its delivered watermark to the attachment;
         // a fast client can ACK as soon as it receives that frame. Reading the
