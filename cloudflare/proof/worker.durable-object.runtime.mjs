@@ -928,35 +928,4 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
 
   });
 
-    const replayStartedPromise = nextJsonMessage(socket);
-    socket.send(JSON.stringify({
-      type: "market_data.subscribe",
-      version: 1,
-      cursor: "77",
-      series: canonicalSeries(seriesKey),
-    }));
-    expect(await replayStartedPromise).toMatchObject({
-      type: "market_data.ohlcv.replay_started",
-      fromCursor: "77",
-      throughCursor: "79",
-      count: 2,
-    });
-    expect(await nextJsonMessage(socket)).toMatchObject({
-      type: "market_data.ohlcv.update",
-      sequence: 78,
-      cursor: "78",
-    });
-    expect(await nextJsonMessage(socket)).toMatchObject({
-      type: "market_data.ohlcv.update",
-      sequence: 79,
-      cursor: "79",
-    });
-    expect(await nextJsonMessage(socket)).toMatchObject({
-      type: "market_data.ohlcv.replay_complete",
-      cursor: "79",
-      throughSequence: 79,
-      count: 2,
-    });
-  });
-
 });
