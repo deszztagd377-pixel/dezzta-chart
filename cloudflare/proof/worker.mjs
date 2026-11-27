@@ -979,6 +979,17 @@ export function renewRequiredConsumerLease(storage, {
     return { renewed: false, reason: "invalid_lease" };
   }
   return storage.transactionSync(() => {
+    const current = storage.sql.exec(
+      "SELECT generation_id, active, owner_token, fence_token, lease_expires_at_ms " +
+      "FROM required_consumers WHERE series_key = ? AND consumer_id = ?",
+      seriesKey, consumerId,
+    ).toArray()[0];
+    if (!current || current.active !== 1) return { renewed: false, reason: "consumer_not_registered" };
+    if (current.generation_id !== generationId) return { renewed: false, reason: "generation_mismatch" };
+    if (current.owner_token !== ownerToken || current.fence_token !== fenceToken) {
+      return { renewed: false, reason: "lease_fenced" };
+    }
+    if (current.lease_expires_at_ms <= now) return { renewed: false, reason: "lease_expired" };
     const leaseExpiresAtMs = now + CONSUMER_LEASE_TTL_MS;
     storage.sql.exec(
       "UPDATE required_consumers SET lease_expires_at_ms = ? WHERE series_key = ? AND consumer_id = ? " +
@@ -991,7 +1002,7 @@ export function renewRequiredConsumerLease(storage, {
       seriesKey, consumerId, generationId, ownerToken, fenceToken, leaseExpiresAtMs,
     ).toArray();
     return verified.length === 1 ? { renewed: true, leaseExpiresAtMs } :
-      { renewed: false, reason: "lease_expired_or_fenced" };
+      { renewed: false, reason: "lease_renewal_not_committed" };
   });
 }
 
