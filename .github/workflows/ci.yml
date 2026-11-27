@@ -8,6 +8,7 @@ on:
   pull_request:
     branches:
       - main
+      - 'phase-2/market-data-foundation'
   workflow_dispatch:
 
 # Keep only the newest CI run for each branch or pull-request ref.
