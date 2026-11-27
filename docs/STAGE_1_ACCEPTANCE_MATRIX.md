@@ -1611,3 +1611,42 @@ Inspected source baseline: `phase-2/market-data-foundation` base SHA `4979bd4a69
 - Behavioral test coverage for ACK receipt commit and receipt-aware compaction was not found in the inspected test files. Schema tests alone do not close those acceptance items.
 
 Updated batch disposition: Batch 90 schema — implemented in synthetic proof, production acceptance open; Batch 92 event commit/replay — implemented in synthetic proof, production integration open; Batch 93 — partial proof primitives only, authenticated ACK/RESUME protocol and receipt-aware retention still open. Stage 1 remains 30/40 = 75% provisional; Gate 10 remains 0/10 formally closed. This correction awards no Stage 1 points and does not advance the official stage.
+
+
+---
+
+## Batch 94 live status update — 27 November 2026
+
+This is an evidence-status update, not a stage-closure declaration.
+
+| Acceptance area | Current evidence | Status |
+|---|---|---|
+| Durable event persistence and replay source proof | SQLite event commit/high-water transaction and bounded replay exist in synthetic proof source | YELLOW — source proof only |
+| Durable Object eviction/replay | PR #7 current head `80ca695e68badf87b084ce08f01878c604ac02a4`; Automated Tests, CodeQL, Secret Audit, OCI ARM64 all terminal SUCCESS | YELLOW — synthetic runtime test; production acceptance open |
+| Durable consumer receipt behavior | Receipt write primitive/schema exists; direct behavioral coverage not yet accepted | YELLOW — open |
+| Authenticated ACK | Proof-only HTTP ACK uses shared synthetic bearer and client-supplied consumer ID; no verified Firebase principal binding or WebSocket ACK branch | YELLOW — open |
+| Receipt-bounded compaction | Compaction primitive does not yet enforce minimum durable ACK across required consumers; destructive retention prohibited | YELLOW — safety invariant open |
+| Provider eligibility | PR #10 screens Coinbase, Kraken, Binance Spot and Binance Vision; no provider approved for exact display/redistribution + zero-cost scope | YELLOW — legal/technical gate open |
+| Cloudflare production runtime | Existing relay is a preflight dispatcher; no production WSS deployment or Durable Object namespace in connected account inventory | YELLOW — not deployed/accepted |
+| Firebase identity and entitlement | No production verified-principal binding demonstrated in synthetic Worker | YELLOW — open |
+| Browser/Android WSS E2E | No public TLS/WSS + Firebase + Android reconnect/recovery evidence | YELLOW — open |
+| ZERO COST certification | Account billing entitlement and provider rights not fully verified | YELLOW — unverified |
+| Stage 1 / Gate 10 | Required acceptance evidence remains outstanding | OPEN — not closed |
+
+### Batch and PR bookkeeping
+
+- PR #7: OPEN, mergeable, not merged; current head `80ca695e68badf87b084ce08f01878c604ac02a4`. Current-head Automated Tests run 45944090033, CodeQL 45944090027, Secret Audit 45944090069, OCI ARM64 45944089968 — all terminal SUCCESS.
+- PR #10: OPEN, mergeable, not merged; current head `4ebeb0a147d1cf474ef8a2ec9a2578a53326897d`. Current-head Automated Tests run 45939059711, CodeQL 45939060366, Secret Audit 45939059764, OCI ARM64 45939059713 — all terminal SUCCESS.
+- PR #11: OPEN, mergeable, not merged; latest documentation head before this update `aedc14c3d5d897254be782156cd2bd7b96948a8b`. That docs-only commit had no associated CI run. The full execution record and next-stage plan are in [the Batch 72/94 work-cycle record](WORK_CYCLE_2026-11-25_BATCH72_CLOUDFLARE_INVENTORY_ZERO_COST_WEBSOCKET_PATH.md).
+- All three PRs target `phase-2/market-data-foundation`; none has been merged. `main` remains untouched.
+
+### Next required work
+
+1. Add direct receipt persistence/idempotency/rejection/storage-failure tests.
+2. Bind ACK consumer identity to verified Firebase principal and implement the WebSocket ACK message path.
+3. Enforce and test compaction floor <= minimum durable ACK of all required consumers; keep destructive trim disabled until green.
+4. Complete provider rights and zero-cost eligibility review.
+5. Only after those invariants pass, implement production identity/ticket/WSS integration and run real browser/Android E2E.
+6. Close Stage 1 acceptance and Gate 10 before declaring a formal stage transition.
+
+**Overall Batch 94: IN PROGRESS / YELLOW.** Successful synthetic CI is not production acceptance. Target date remains 24 December 2026.
