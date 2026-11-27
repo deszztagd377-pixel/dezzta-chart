@@ -8,7 +8,7 @@
 
 - PR #13: https://github.com/deszztagd377-pixel/dezzta-chart/pull/13
 - Working branch: `work/batch95-websocket-ack-protocol`
-- Current PR HEAD (latest source/test checkpoint): `7dcf148b772d37c4321122a1c45d49bae0e43868`
+- Current PR HEAD (documentation checkpoint): `2bfe7b2e8732ee92ddf1f25e4c8ffe944e007ebe`
 - Last code/test SHA with exact-head CI: `5cb1dd0b24ee083a0149a8e804ba7276a893a869`
 - PR remains OPEN and mergeable; it is not merged. Application `main` remains untouched.
 - Four required workflows on code/test SHA `5cb1dd0b...` are terminal SUCCESS: Automated Tests [46006459907](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46006459907), CodeQL [46006459864](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46006459864), OCI ARM64 [46006459939](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46006459939), Full Git History Secret Audit [46006459958](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46006459958).
