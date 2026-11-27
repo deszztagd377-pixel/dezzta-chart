@@ -1,7 +1,7 @@
 # ACTIVE PROJECT DASHBOARD — DEZZTA CHART (27 November 2026)
 
 **Active branch:** `phase-2/market-data-foundation` — `main` untouched.  
-**Exact source/test SHA:** `5aca3aa65ab6f588b83f0c7245ca38641c781a95`.  
+**Exact source/test SHA:** `9e7a7ec4534e0985b9ad123d70edfe9fdec76418`.  
 **Dashboard rule:** no active item is labelled RED. GREEN requires implementation, relevant passing tests and exact-head CI. Unverified edges remain YELLOW with exit criteria.
 
 ## Batch 92–93 execution state
@@ -10,7 +10,7 @@
 |---|---|---|
 | SQLite schema v2/v3 + immutable canonical identity | GREEN | Fresh v1→v3, existing-v2 migration, digest hydration, immutable triggers and DO eviction persistence tested |
 | Atomic event commit + high-water | GREEN | Atomic payload/digest/high-water, stable retry, changed-payload conflict, sequence gap and concurrency tests |
-| Legacy cursor bootstrap | YELLOW | Seeded cursor, SQLite authority and interrupted-bootstrap retry covered by Node tests; real workerd seeded-KV migration/eviction remains |
+| Legacy cursor bootstrap | YELLOW | Real workerd verifies seeded legacy cursor 77 → first committed event 78, then SQLite authority rejects stale KV reseed 900 and accepts contiguous event 79; interrupted initialization and eviction/restart persistence remain |
 | Durable replay pages | GREEN — synthetic proof scope | Cursor-exclusive order, 100-event/65,536 UTF-8 byte caps, corruption/gap/retention outcomes; real workerd verifies two-page replay |
 | Retention compaction | GREEN — synthetic proof scope | Atomic delete + retention-floor update exercised on real workerd SQLite; concurrent compaction/rollback and operational retention policy remain YELLOW |
 | WebSocket resume + frontend protocol | GREEN — tested slice | Worker emits replay_started → update frames → replay_complete; frontend validates explicit sequence bounds separately from cursor; real-workerd replay/live race passes |
@@ -18,20 +18,20 @@
 | Consumer receipt persistence | GREEN — synthetic proof scope | Real-workerd SQLite verifies event digest, generation, high-water and retention; identical retry is idempotent, ACK regression and digest mismatch rejected |
 | Production WebSocket ACK / RESUME | YELLOW | Receipt route is proof-only; stable consumer identity must be owner-authenticated before production ACK frames |
 | Public WSS / Android end-to-end | YELLOW | No production endpoint/provider/auth integration or device acceptance; debug APK build only |
-| Exact-head CI | GREEN — 4/4 | All required workflows terminal SUCCESS on exact source/test SHA above |
+| Exact-head CI | GREEN — 4/4 | Automated Tests, CodeQL, full-history secret audit and OCI ARM64 all terminal SUCCESS on exact source/test SHA above |
 
 ## Exact-head CI evidence — 27 November 2026
 
 | Workflow | Run | Result |
 |---|---:|---|
-| Automated Tests | [45923912285](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45923912285) | SUCCESS |
-| CodeQL Security Analysis | [45923912246](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45923912246) | SUCCESS |
-| Full Git History Secret Audit | [45923912532](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45923912532) | SUCCESS |
-| OCI ARM64 Image Readiness | [45923912159](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45923912159) | SUCCESS |
+| Automated Tests | [45924670976](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45924670976) | SUCCESS |
+| CodeQL Security Analysis | [45924670994](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45924670994) | SUCCESS |
+| Full Git History Secret Audit | [45924671013](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45924671013) | SUCCESS |
+| OCI ARM64 Image Readiness | [45924671124](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45924671124) | SUCCESS |
 
-**Test/build totals on exact SHA `5aca3aa65ab6f588b83f0c7245ca38641c781a95`:**
+**Test/build totals on exact SHA `9e7a7ec4534e0985b9ad123d70edfe9fdec76418`:**
 - Worker Node proof: **38/38 passed**
-- Real Miniflare/workerd WebSocket + SQLite replay/compaction/resnapshot/race + receipt checks + 102-event two-page replay + 1,001-event over-budget fallback: **1/1 passed**
+- Real Miniflare/workerd WebSocket + SQLite replay/compaction/resnapshot/race + receipt checks + 102-event two-page replay + 1,001-event over-budget fallback + seeded legacy-KV cursor/SQLite-authority regression: **1/1 passed**
 - Durable Object runtime suite: **18/18 passed**
 - Frontend Vitest: **35 files / 332 tests passed**
 - Backend pytest: **1,435 passed / 1 skipped / 6 warnings**
@@ -59,7 +59,7 @@ Zero-cost CI built and verified an installable **debug APK** at frontend source 
 
 ## Next engineering order
 
-1. Real-workerd seeded legacy-KV bootstrap, DO eviction and interrupted-bootstrap recovery.
+1. Interrupted legacy-cursor initialization and Durable Object eviction/restart persistence regression.
 2. Concurrent replay/compaction and transaction rollback/corruption fault injection.
 3. Define owner-authenticated stable consumer identity, then bind production WebSocket ACK/RESUME to it.
 4. Public WSS, Android device E2E, production identity/provider integration and owner-host recovery after account/host acceptance.
@@ -67,6 +67,8 @@ Zero-cost CI built and verified an installable **debug APK** at frontend source 
 **Delivery target:** approximately **24 December 2026**. ZERO COST. No production completion percentage is inferred.
 
 **Detailed report:** `docs/WORK_CYCLE_2026-11-27_BATCH93_EXACT_HEAD_CI_REPORT.md`.
+
+**Dashboard policy:** all current open gates are YELLOW with explicit exit criteria. Historical status snapshots below are retained as dated records; they do not override this active dashboard.
 
 
 ---

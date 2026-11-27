@@ -2,7 +2,7 @@
 
 **Date:** 27 November 2026  
 **Branch:** `phase-2/market-data-foundation`  
-**Exact source/test SHA:** `5aca3aa65ab6f588b83f0c7245ca38641c781a95`  
+**Exact source/test SHA:** `9e7a7ec4534e0985b9ad123d70edfe9fdec76418`  
 **State:** replay, retention, two-page resume, >10-page fallback and synthetic consumer receipt persistence GREEN for tested proof scope; production identity and edge integrations remain YELLOW  
 **Cost/deployment:** ZERO COST; no production deployment or new paid resource.
 
@@ -10,12 +10,12 @@
 
 | Workflow | Run | Result |
 |---|---:|---|
-| Automated Tests | [45923912285](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45923912285) | SUCCESS |
-| CodeQL Security Analysis | [45923912246](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45923912246) | SUCCESS |
-| Full Git History Secret Audit | [45923912532](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45923912532) | SUCCESS |
-| OCI ARM64 Image Readiness | [45923912159](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45923912159) | SUCCESS |
+| Automated Tests | [45924670976](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45924670976) | SUCCESS |
+| CodeQL Security Analysis | [45924670994](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45924670994) | SUCCESS |
+| Full Git History Secret Audit | [45924671013](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45924671013) | SUCCESS |
+| OCI ARM64 Image Readiness | [45924671124](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45924671124) | SUCCESS |
 
-All four required workflows completed on the same source/test SHA. No required workflow remains in progress or failed for this SHA.
+All four required workflows completed on the same source/test SHA. No required workflow remains in progress or failed for this SHA. Automated Tests job `140263202767` is terminal SUCCESS; all 35 recorded steps completed successfully.
 
 ## Runtime and build evidence
 
@@ -30,6 +30,10 @@ All four required workflows completed on the same source/test SHA. No required w
 - OCI ARM64 build/smoke, CodeQL Python and JavaScript/TypeScript, and full reachable-history secret audit: passed
 
 The skipped pytest case is the optional Redis TLS integration case in the main backend suite; the dedicated TLS integration fixture passed separately. The six warnings are recorded, not suppressed.
+
+## Additional exact-head legacy cursor verification
+
+Real Miniflare/workerd seeded the legacy KV cursor at 77, committed the first durable event at sequence 78, then deliberately rewrote the legacy KV value to stale 900. The next contiguous sequence 79 was accepted from SQLite's authoritative high-water, proving the old KV cursor is not consulted after bootstrap. This covers seeded legacy migration and stale-KV isolation in real workerd. Interrupted initialization and DO eviction/restart persistence remain open regression cases.
 
 ## Correctness changes verified
 
@@ -54,7 +58,7 @@ The skipped pytest case is the optional Redis TLS integration case in the main b
 
 ## Remaining YELLOW exit criteria
 
-- Real-workerd seeded legacy-KV bootstrap, interrupted initialization and DO eviction persistence.
+- Interrupted legacy-cursor initialization and DO eviction/restart persistence.
 - Concurrent replay/compaction and injected rollback/corruption failures.
 - Owner-authenticated stable consumer identity; current proof ACK consumerId is caller-supplied and cannot be used as production identity.
 - Production WebSocket ACK/RESUME, public WSS, provider integration and Android device E2E.
@@ -64,3 +68,17 @@ The skipped pytest case is the optional Redis TLS integration case in the main b
 Zero-cost CI produced and verified a debug APK on frontend source SHA `030fca35477e1f5e3fbc0b2bec2c298b027d4775`, run [45921041784](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45921041784), SUCCESS. App source was unchanged by later commits through the exact source/test SHA above. This is not release signing, publication or device E2E.
 
 **Target:** approximately 24 December 2026. **main remains untouched.** Synthetic proof is not production market data.
+
+
+## Exact-head CI update — 27 November 2026
+
+This report supersedes the earlier Batch 93 candidate SHA `5aca3aa65ab6f588b83f0c7245ca38641c781a95`. The exact current source/test SHA is `9e7a7ec4534e0985b9ad123d70edfe9fdec76418`; all four required workflows are terminal SUCCESS:
+
+- Automated Tests [45924670976](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45924670976) — SUCCESS
+- CodeQL [45924670994](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45924670994) — SUCCESS
+- Full Git History Secret Audit [45924671013](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45924671013) — SUCCESS
+- OCI ARM64 Image Readiness [45924671124](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45924671124) — SUCCESS
+
+Automated Tests on this exact SHA reports Worker Node 38/38, auxiliary Node proof suites 11/11, Miniflare/workerd 1/1, Durable Object runtime 18/18, frontend Vitest 35 files / 332 tests, backend pytest 1,435 passed / 1 skipped / 6 warnings in 64.20s, and dedicated Redis TLS integration 1/1. Frontend build, backend container build, Redis/persistent-volume container smoke, image vulnerability scan and dependency audits all passed. The one skipped pytest case is the optional Redis TLS fixture in the general pytest run; the dedicated TLS fixture separately passed 1/1.
+
+The additional real-workerd legacy-cursor test proves seed 77 → first durable event 78, stale legacy KV reseed 900 ignored after SQLite bootstrap, and contiguous event 79 accepted from SQLite high-water. Interrupted initialization and DO eviction/restart persistence remain YELLOW.
