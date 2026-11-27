@@ -890,6 +890,10 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       authorized: true,
       seriesKey: SERIES_HIBERNATE,
       subject: "synthetic-proof-subject",
+      consumerId: expect.stringMatching(/^ws:[0-9a-f]{64}$/),
+      ownerToken: expect.stringMatching(/^[0-9a-f]{64}$/),
+      fenceToken: 1,
+      leaseExpiresAtMs: expect.any(Number),
     });
 
     const pongPromise = nextJsonMessage(client.socket);
@@ -928,6 +932,29 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     expect((await Promise.all([firstPong, secondPong])).every((pong) =>
       typeof pong.serverTimeNs === "string" && /^\d{1,32}$/.test(pong.serverTimeNs)
     )).toBe(true);
+  });
+
+  it("expires and releases an authenticated socket lease through the Durable Object alarm", async () => {
+    const client = await connectAuthenticated(SERIES_ALARM);
+    const stub = coordinatorStub(SERIES_ALARM);
+    await runInDurableObject(stub, async (_instance, state) => {
+      const [serverSocket] = state.getWebSockets();
+      const attachment = serverSocket.deserializeAttachment();
+      serverSocket.serializeAttachment({ ...attachment, leaseExpiresAtMs: Date.now() - 1 });
+      state.storage.sql.exec(
+        "UPDATE required_consumers SET lease_expires_at_ms = ? WHERE series_key = ? AND consumer_id = ?",
+        Date.now() - 1, SERIES_ALARM, attachment.consumerId,
+      );
+    });
+    const closedPromise = nextClose(client.socket);
+    expect(await runDurableObjectAlarm(stub)).toBe(true);
+    expect((await closedPromise).code).toBe(4408);
+    const rows = await runInDurableObject(stub, async (_instance, state) => (
+      state.storage.sql.exec(
+        "SELECT active FROM required_consumers WHERE series_key = ?", SERIES_ALARM,
+      ).toArray()
+    ));
+    expect(rows).toEqual([{ active: 0 }]);
   });
 
   it("runs the real Durable Object alarm and closes an expired unauthenticated socket", async () => {
