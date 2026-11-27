@@ -235,3 +235,65 @@ These runs validate the checked-out PR merge context and its configured CI suite
 - Latest audit found no in-progress Actions in either `dezzta-chart` or `dezzta-chart-runner`.
 
 **Batch 94 overall: IN PROGRESS / YELLOW.** Next engineering sequence: preserve PR #7 eviction proof, then add behavioral receipt/ACK/compaction invariants; keep provider selection gated until authoritative terms and free-tier limits satisfy every acceptance criterion. The 24 December 2026 target remains unchanged.
+
+
+---
+
+## Live continuation audit — 27 November 2026 (session update)
+
+This update records the live GitHub state after the prior Batch 94 checkpoint. It supersedes earlier head-SHA and CI snapshots where they differ. No merge, main-branch write, Cloudflare mutation, provider credential access, paid subscription, or recurring automation was performed.
+
+### Pull-request state and CI evidence
+
+| Workstream | Current branch / PR | Current head | State | Latest head-associated CI |
+|---|---|---|---|---|
+| Durable Object eviction/replay proof | `work/batch94-gate-batch93-eviction-test`, [PR #7](https://github.com/deszztagd377-pixel/dezzta-chart/pull/7) | `80ca695e68badf87b084ce08f01878c604ac02a4` | OPEN, mergeable, not merged | Automated Tests [45944090033](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45944090033), CodeQL [45944090027](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45944090027), Secret Audit [45944090069](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45944090069), OCI ARM64 [45944089968](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45944089968): all COMPLETED / SUCCESS |
+| Zero-cost provider eligibility gate | `audit/batch94-zero-cost-provider-gate`, [PR #10](https://github.com/deszztagd377-pixel/dezzta-chart/pull/10) | `4ebeb0a147d1cf474ef8a2ec9a2578a53326897d` | OPEN, mergeable, not merged | Automated Tests [45939059711](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45939059711), CodeQL [45939060366](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45939060366), Secret Audit [45939059764](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45939059764), OCI ARM64 [45939059713](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45939059713): all COMPLETED / SUCCESS |
+| Cloudflare runner inventory / project audit | `audit/batch95-cloudflare-runner-inventory`, [PR #11](https://github.com/deszztagd377-pixel/dezzta-chart/pull/11) | `aedc14c3d5d897254be782156cd2bd7b96948a8b` | OPEN, mergeable, not merged | No workflow run associated with this documentation-only head; its preceding tested base is documented separately above |
+
+All three PRs target `phase-2/market-data-foundation`. None is merged. The current branch head for PR #7 has advanced from the earlier recorded SHA; the four checks above are the runs associated with the current head, not merely the historical prior attempt.
+
+### Verified work state
+
+- Batch 94 is active and has a passing synthetic Durable Object eviction/replay integration test on the current PR #7 head.
+- PR #10's provider screen is an eligibility gate, not approval to connect a provider. Provider selection remains blocked until terms explicitly permit the intended real-time display, redistribution/multi-user use, storage/replay, and zero-cost operating envelope.
+- The source-level receipt write primitive exists, but verified Firebase-principal-to-consumer binding, WebSocket ACK handling, receipt behavioral tests, and receipt-bounded compaction are still not accepted.
+- The Cloudflare runner relay remains a preflight dispatcher, not an AI coding agent, market-data gateway, or production WSS endpoint. The account billing entitlement and public endpoint health remain unverified as described in the preceding addenda.
+- No production WSS + Firebase auth + Android lifecycle E2E evidence has been established.
+- Stage 1 / Gate 10 closure, overall project percentage, and zero-cost certification must not be promoted based solely on successful synthetic CI.
+
+### Next engineering stage — ordered execution plan
+
+**Batch 94 closeout (next immediate work):**
+1. Inspect the current PR #7 diff and test fixture to confirm eviction test assertions cover durable event payload, digest, high-water, replay ordering, and reconnect behavior without relying on in-memory state.
+2. Add direct behavioral tests for receipt persistence: valid receipt, duplicate/idempotent receipt, stale cursor, wrong series/consumer, malformed digest, and storage failure. Tests must assert durable state, not merely table schema.
+3. Add authenticated ACK protocol design and tests. The consumer identity must be derived from a verified Firebase principal/server-side mapping, never trusted from a client-supplied `consumerId`.
+4. Add compaction safety tests proving the retention floor cannot advance beyond the minimum accepted durable high-water of every required consumer. Until this invariant is implemented and tested, keep destructive event deletion/trim disabled.
+5. Re-run the complete relevant CI matrix on the resulting feature branch and wait for terminal outcomes. Do not call a commit tested if no workflow run exists for that exact head.
+
+**Batch 95 — production identity and WSS contract (after Batch 94 invariants pass):**
+6. Define the end-to-end identity contract: Firebase ID-token verification, issuer/audience/project checks, expiry/revocation policy, entitlement authorization, server-derived consumer/gateway identity, one-time ticket issuance, short expiry, single use, and revocation.
+7. Define the production WSS protocol: subscribe, snapshot watermark, replay cursor, ordered updates, ACK, reconnect/resume, backpressure, heartbeat, close/error codes, schema versioning, and bounded message sizes.
+8. Define the durable recovery model: event commit-before-fan-out, replay after object eviction/restart, receipt ledger, owner/gateway fencing, idempotency, and safe retention floor. Preserve the rule that Redis XACK is not the owner-accepted high-water ACK.
+9. Select Cloudflare-native versus Cloudflare Tunnel/origin architecture only after the actual zero-cost hosting/account constraints and an always-on origin (if Route B) are evidenced. No deployment is implied by this design work.
+
+**Batch 96 — provider and end-to-end acceptance (only after contracts are approved):**
+10. Complete legal/technical provider review for the exact product scope; validate rate limits, symbol coverage, historical/replay rights, attribution, caching/storage, redistribution, and service continuity. No provider passes by assumption.
+11. Implement one narrow provider adapter behind a normalized canonical market-data contract, with deterministic fixtures and explicit provenance; do not mix synthetic data with live-provider truth.
+12. Test the full chain: provider -> canonical validation -> durable event log -> WSS fan-out -> authenticated Android client -> reconnect/replay -> durable ACK -> safe compaction.
+13. Complete browser and Android E2E under real TLS/WSS, network interruption, token expiry, app background/foreground, process death, duplicate/out-of-order events, and Durable Object eviction.
+
+**Stage 1 acceptance and stage transition:**
+14. Close the remaining Stage 1 security/data-integrity acceptance items and Gate 10 with evidence. Only then score Stage 1 as closed and authorize the next formal stage. Indicator UI/Footprint/Heatmap work remains gated by its existing Stage 4 blueprint and review constraints.
+
+### Schedule and capacity
+
+The target date remains 24 December 2026. From 27 November to 24 December there are 27 calendar days. This is a constrained delivery window: prioritize a minimal, secure WSS vertical slice and defer nonessential indicator/UI scope rather than weaken identity, receipt, retention, provider-rights, or recovery gates. ZERO COST remains a hard constraint; any required paid entitlement or provider license is a blocker requiring redesign, not an assumed exception.
+
+### Session controls
+
+- `main` untouched; no PR merged.
+- No Cloudflare resources, secrets, billing settings, domains, deployments, or schedules changed.
+- No recurring 10-minute job created or re-enabled.
+- PR #7 and #10 current-head CI checks are terminal SUCCESS. PR #11 latest documentation-only commit has no CI run; do not label that exact commit CI-tested.
+- Batch 94 overall remains **IN PROGRESS / YELLOW**. Production WSS, Firebase identity binding, provider eligibility, zero-cost certification, Android E2E, and Stage 1 closure remain **YELLOW / NOT ACCEPTED**.
