@@ -394,7 +394,7 @@ export async function acceptNextSequence(storage, seriesKey, sequence) {
   });
 }
 
-const DURABLE_SCHEMA_VERSION = 4;
+const DURABLE_SCHEMA_VERSION = 5;
 const MAX_DURABLE_EVENT_BYTES = 8_192;
 
 /**
@@ -572,6 +572,34 @@ export function applyDurableSchemaMigrations(storage, now = Date.now()) {
         CREATE INDEX IF NOT EXISTS required_consumers_active_generation
           ON required_consumers (series_key, generation_id, active);
         INSERT INTO schema_migrations (version, applied_at_ms) VALUES (4, ${now});
+      `);
+    }
+
+    if (currentVersion < 5) {
+      const consumerColumns = sql.exec("PRAGMA table_info(required_consumers)")
+        .toArray().map((row) => row.name);
+      if (!consumerColumns.includes("owner_token")) {
+        sql.exec(`
+          ALTER TABLE required_consumers ADD COLUMN owner_token TEXT NOT NULL DEFAULT ''
+            CHECK (length(owner_token) <= 128)
+        `);
+      }
+      if (!consumerColumns.includes("fence_token")) {
+        sql.exec(`
+          ALTER TABLE required_consumers ADD COLUMN fence_token INTEGER NOT NULL DEFAULT 0
+            CHECK (fence_token >= 0)
+        `);
+      }
+      if (!consumerColumns.includes("lease_expires_at_ms")) {
+        sql.exec(`
+          ALTER TABLE required_consumers ADD COLUMN lease_expires_at_ms INTEGER NOT NULL DEFAULT 0
+            CHECK (lease_expires_at_ms >= 0)
+        `);
+      }
+      sql.exec(`
+        CREATE INDEX IF NOT EXISTS required_consumers_lease_expiry
+          ON required_consumers (series_key, generation_id, active, lease_expires_at_ms);
+        INSERT INTO schema_migrations (version, applied_at_ms) VALUES (5, ${now});
       `);
     }
 
