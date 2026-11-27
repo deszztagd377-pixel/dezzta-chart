@@ -134,3 +134,22 @@ The preceding candidate head `2e5f5230e3f7fab6529ba1b929f18be802ce0232` had one 
 - Production Firebase grant, consumer lease/fencing implementation, canonical FastAPI event digest/sequence contract, public WSS, provider rights, account-level zero-cost certification, and browser/Android E2E remain **YELLOW**.
 
 This closeout proves repository CI only. It does not mark the production WebSocket path as accepted.
+
+
+## 10. Immediate ACK race correction — exact-head closeout (27 November 2026)
+
+**Validated source/test SHA:** `76a8d51b5bfa135576aea4b66eb6e5ea67a68fff`.
+
+A repeat run on the unchanged Batch 95 source exposed a race in the real-workerd WebSocket integration test. The ACK handler read the socket attachment before entering `runProtocolExclusive`. A fast client could receive a fan-out update and send its ACK while the preceding fan-out operation had not yet serialized the new `lastDeliveredSequence` attachment. The ACK was then rejected against a stale watermark.
+
+**Correction:** the ACK handler now enters the protocol queue first, reads the current socket attachment inside that queue, validates the delivered watermark there, and only then commits the durable receipt. This preserves the invariant that ACK validation observes all preceding serialized delivery operations. The test assertion also includes the rejected payload in failure output for future diagnosis.
+
+**Exact-head GitHub Actions — all terminal SUCCESS:**
+- Automated Tests — [46003712453](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46003712453)
+- CodeQL Security Analysis — [46003712587](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46003712587)
+- Full Git History Secret Audit — [46003712685](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46003712685)
+- OCI ARM64 Image Readiness — [46003712578](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46003712578)
+
+Automated Tests completed the Worker Node proof, pinned workerd WebSocket/SQLite integration, Durable Object runtime tests, frontend tests/build and secret scans, backend tests, Redis TLS integration, synthetic benchmarks, backend container build/smoke and image scan. All four workflows ran against the same source/test SHA above.
+
+**Scope boundary:** this remains synthetic repository proof. Production Firebase grants, lease/fencing lifecycle, production event digest contract, public WSS, provider rights, account-level zero-cost certification and browser/Android production E2E remain YELLOW. PR #13 remains OPEN and unmerged; `main` remains untouched.
