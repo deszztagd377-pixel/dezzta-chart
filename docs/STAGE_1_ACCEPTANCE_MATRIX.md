@@ -4,7 +4,7 @@
 **Stage 1 meter:** 30/40 criteria = 75% provisional. **Gate 10:** 0/10 external criteria formally closed.  
 **Stages 2–6:** Stage 2 remains preparatory; Stages 3, 5 and 6 are not scored; Stage 4 remains gated. Overall project percentage is not scored.
 
-**Latest repository candidate:** PR [#13](https://github.com/deszztagd377-pixel/dezzta-chart/pull/13), branch `work/batch95-websocket-ack-protocol`, candidate SHA `76a8d51b5bfa135576aea4b66eb6e5ea67a68fff`. The synthetic WebSocket ACK implementation passed all four exact-head workflows (Automated Tests, CodeQL, Full Git History Secret Audit and OCI ARM64). The immediate-ACK delivered-watermark race was corrected by reading the socket attachment inside the serialized protocol queue; exact-head CI is 4/4 SUCCESS on the candidate SHA. PR #13 remains open and unmerged. This does not establish production WebSocket acceptance.
+**Latest repository candidate:** PR [#13](https://github.com/deszztagd377-pixel/dezzta-chart/pull/13), branch `work/batch95-websocket-ack-protocol`, current PR HEAD `d62e040d9963db93fcc64928e69d6829a586c480` (documentation-only). The latest source/test SHA is `5cb1dd0b24ee083a0149a8e804ba7276a893a869`; all four required workflows (Automated Tests, CodeQL, Full Git History Secret Audit and OCI ARM64) reached terminal SUCCESS on that exact source/test SHA. No source changes were made after it; later commits only corrected project documentation. PR #13 remains open and unmerged. This does not establish production WebSocket acceptance.
 
 **Remaining Stage 1 external criteria — all YELLOW / evidence pending:**
 - **8:** actual production secret injection, host permissions, runtime exposure and rotation.
@@ -20,7 +20,7 @@
 
 Repository tests, synthetic proof, documentation and CI do not close these external gates. No Stage 1 ticks are awarded without the specified owner-host/device/production evidence. The current single-device/no-PC/no-second-phone and zero-cost constraints remain binding; no paid trial, billing upgrade, new hardware or production resource is assumed.
 
-**Next code sequence on the existing PR branch:** Batch 96 — implement and test the synthetic required-consumer lease/fencing lifecycle before any production identity binding. Acceptance must cover migration, same-owner renewal, active-owner collision, expiry/reacquisition with incremented fence, stale ACK/close rejection, multiple sockets, compaction and eviction/restart. The PR is not to be merged automatically.
+**Next code sequence on the existing PR branch:** Batch 96 — implement and test the synthetic required-consumer lease/fencing lifecycle before any production identity binding. The v4 registry currently has only `registered_at_ms` and `active`; lease expiry, owner token, fencing token, renewal, stale-owner rejection and safe deregistration are not implemented. Acceptance must cover additive migration, same-owner renewal, active-owner collision, expiry/reacquisition with incremented fence, stale ACK/close rejection, multiple sockets, compaction and eviction/restart. No Batch 96 source implementation is claimed at this checkpoint. The PR is not to be merged automatically.
 
 **Historical record note:** sections below retain dated checkpoints. Where an older snapshot says Batch 92–93 ACK/replay work is absent, that statement is historical and superseded by the Batch 95 candidate evidence above.
 
