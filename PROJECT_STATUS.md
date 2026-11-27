@@ -8,7 +8,7 @@
 
 - PR #13: https://github.com/deszztagd377-pixel/dezzta-chart/pull/13
 - Working branch: `work/batch95-websocket-ack-protocol`
-- Current PR HEAD (documentation checkpoint): `f5567e88cc138920a0ebb83b78bb836f93a97c8f`
+- Current PR HEAD (latest source/test checkpoint): `7dcf148b772d37c4321122a1c45d49bae0e43868`
 - Last code/test SHA with exact-head CI: `5cb1dd0b24ee083a0149a8e804ba7276a893a869`
 - PR remains OPEN and mergeable; it is not merged. Application `main` remains untouched.
 - Four required workflows on code/test SHA `5cb1dd0b...` are terminal SUCCESS: Automated Tests [46006459907](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46006459907), CodeQL [46006459864](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46006459864), OCI ARM64 [46006459939](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46006459939), Full Git History Secret Audit [46006459958](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46006459958).
@@ -46,8 +46,8 @@ Repository CI and synthetic Miniflare tests are not substitutes for owner-host o
 
 ## Current WebSocket engineering checkpoint
 
-- Synthetic Worker/SQLite Durable Object ACK replay baseline correction is implemented and passed all four required CI workflows on code/test SHA `5cb1dd0...`.
-- Consumer lease/expiry/fencing lifecycle remains unimplemented in this synthetic proof. The existing v4 registry has only registration time and active flag; its ADR is a proposed design, not implementation evidence.
+- Synthetic Worker/SQLite Durable Object ACK replay baseline correction passed all four required CI workflows on source/test SHA `5cb1dd0...`.
+- Batch 96A schema groundwork is committed at source SHA `5e043321...`: v4→v5 additive columns for owner token, fence token and lease expiry, with runtime migration assertions. Lease lifecycle enforcement is still unimplemented. The existing v4 registry has only registration time and active flag; its ADR is a proposed design, not implementation evidence.
 - Production FastAPI stream envelope currently lacks the proof's generation + SHA-256 digest contract and does not advertise/accept the proof ACK v1 message. Production Firebase grant binding, public WSS and browser/Android E2E remain unaccepted.
 - Next source batch must be split into independently testable slices: (1) additive v4→v5 migration with safe deactivation of ownerless legacy rows; (2) lease acquisition/renewal/expiry/fencing; (3) ACK and close-handler owner/fence validation; (4) compaction expiry and retention-floor behavior; (5) pinned workerd migration/restart/race tests. Do not mark any slice GREEN until its tests and exact-head CI pass.
 - The production FastAPI/Redis source-gateway runtime acceptance is a separate Gate 25/36 workstream. Do not treat the synthetic Cloudflare proof as its replacement.
@@ -2071,3 +2071,10 @@ Exact SHA CI: **4/4 workflows SUCCESS**. Backend **1,435 passed, 1 skipped, 6 wa
 Batch 81 remains 🟨 foundation/hardening pending owner callback; 82 🟨 foundation; 83 🟨 broad matrix; 84 🟧 receipt foundation; 85 🟥 production WSS/E2E; 86 🟧 local recovery foundation. No indicator source/UI changed; indicator status receives no new completion credit. Full evidence and CI run IDs are recorded in `docs/WORK_CYCLE_2026-11-25_BATCH81_GATEWAY_IDENTITY_RECEIPT_BINDING.md`.
 
 Cloudflare: expected account display name `DZZTV2GD ENGINE SERVER` is not present in the currently connected account list (exact-name read-only lookup returned zero). No account/resource mutation or billing action was performed. Batch 85 must use the existing account after it is connected; do not create duplicate infrastructure.
+
+
+## Batch 96A — current execution
+
+- Batch 96A source change: additive SQLite schema v4→v5 adds `owner_token`, `fence_token`, and `lease_expires_at_ms` to `required_consumers`; legacy rows receive safe empty/zero defaults. This is schema groundwork only: lease acquisition/renewal, expiry enforcement, fencing validation, ACK/close integration and safe deregistration are NOT implemented.
+- Batch 96A runtime migration test was updated to assert v5 columns, migration version, and existing v2→v5 upgrade path.
+- Batch 96A CI is running on exact source/test HEAD `7dcf148b772d37c4321122a1c45d49bae0e43868`: Automated Tests [46010599247], CodeQL [46010599101], OCI ARM64 [46010599133], Secret Audit [46010599070]. Secret Audit is terminal SUCCESS; the other three were still in progress at last poll. No CI pass is claimed until each reaches terminal SUCCESS.
