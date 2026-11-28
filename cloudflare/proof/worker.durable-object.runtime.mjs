@@ -6,7 +6,13 @@ import {
   runInDurableObject,
 } from "cloudflare:test";
 import { afterEach, describe, expect, it } from "vitest";
-import { applyDurableSchemaMigrations, proofLimits, registerCanonicalSeriesIdentity } from "./worker.mjs";
+import {
+  applyDurableSchemaMigrations,
+  commitConsumerReceipt,
+  proofLimits,
+  registerCanonicalSeriesIdentity,
+  registerRequiredConsumer,
+} from "./worker.mjs";
 
 const ORIGIN = "http://localhost:3000";
 const TOKEN = "synthetic-proof-test-token-000000000000000000000000";
@@ -950,6 +956,67 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       cursor: "51",
       throughSequence: 51,
       count: 1,
+    });
+  });
+
+  it("reactivates an inactive required consumer before accepting its next receipt", async () => {
+    const seriesKey = "synthetic:DEMO:CONSUMERREACTIVATION:1m";
+    const emitted = await emit(seriesKey, 51);
+    expect(emitted.status).toBe(200);
+
+    const stub = coordinatorStub(seriesKey);
+    const firstRegistration = await runInDurableObject(stub, async (_instance, state) =>
+      registerRequiredConsumer(state.storage, {
+        seriesKey,
+        consumerId: "consumer-reactivation",
+        generationId: "synthetic-v1",
+      }, 1_800_000_000_100));
+    expect(firstRegistration).toEqual({ registered: true, duplicate: false });
+
+    await runInDurableObject(stub, async (_instance, state) => {
+      state.storage.sql.exec(
+        "UPDATE required_consumers SET active = 0 WHERE series_key = ? AND consumer_id = ?",
+        seriesKey,
+        "consumer-reactivation",
+      );
+    });
+
+    const reactivated = await runInDurableObject(stub, async (_instance, state) =>
+      registerRequiredConsumer(state.storage, {
+        seriesKey,
+        consumerId: "consumer-reactivation",
+        generationId: "synthetic-v1",
+      }, 1_800_000_000_200));
+    expect(reactivated).toEqual({ registered: true, duplicate: false });
+
+    const persisted = await runInDurableObject(stub, async (_instance, state) => ({
+      registration: state.storage.sql.exec(
+        "SELECT generation_id, active FROM required_consumers WHERE series_key = ? AND consumer_id = ?",
+        seriesKey,
+        "consumer-reactivation",
+      ).toArray(),
+      event: state.storage.sql.exec(
+        "SELECT event_digest FROM series_events WHERE series_key = ? AND sequence = ?",
+        seriesKey,
+        51,
+      ).toArray(),
+    }));
+    expect(persisted.registration).toEqual([{ generation_id: "synthetic-v1", active: 1 }]);
+    expect(persisted.event).toHaveLength(1);
+
+    const receipt = await runInDurableObject(stub, async (_instance, state) =>
+      commitConsumerReceipt(state.storage, {
+        seriesKey,
+        consumerId: "consumer-reactivation",
+        generationId: "synthetic-v1",
+        sequence: 51,
+        eventDigest: persisted.event[0].event_digest,
+      }, 1_800_000_000_300));
+    expect(receipt).toMatchObject({
+      accepted: true,
+      duplicate: false,
+      committedCursor: "51",
+      receiptVersion: 1,
     });
   });
 

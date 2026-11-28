@@ -899,7 +899,10 @@ export function registerRequiredConsumer(storage, {
     }
     storage.sql.exec(
       "INSERT INTO required_consumers (series_key, consumer_id, generation_id, registered_at_ms, active) " +
-      "VALUES (?, ?, ?, ?, 1) ON CONFLICT(series_key, consumer_id) DO NOTHING",
+      "VALUES (?, ?, ?, ?, 1) ON CONFLICT(series_key, consumer_id) DO UPDATE SET " +
+      "registered_at_ms = excluded.registered_at_ms, active = 1 " +
+      "WHERE required_consumers.generation_id = excluded.generation_id " +
+      "AND required_consumers.active = 0",
       seriesKey, consumerId, generationId, now,
     );
     return {
