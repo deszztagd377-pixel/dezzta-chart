@@ -1720,14 +1720,14 @@ export class SeriesCoordinatorDO {
       await initializeDurableSeriesState(this.ctx.storage, attachment.seriesKey);
       const ownerToken = createLeaseToken();
       // Client instance ID is a stable slot label, never an authentication claim.
-       // Bind it to the server-validated ticket subject and series; a fresh owner
-       // token still fences stale sockets after reconnect.
-       const consumerId = typeof payload.clientInstanceId === "string"
-         ? "ws:" + await sha256Hex(
-           "dezzta-consumer-v1\0" + attachment.subject + "\0" +
-           attachment.seriesKey + "\0" + payload.clientInstanceId,
-         )
-         : "ws:" + ownerToken;
+      // Bind it to the server-validated ticket subject and series; a fresh owner
+      // token still fences stale sockets after reconnect.
+      const consumerId = typeof payload.clientInstanceId === "string"
+        ? "ws:" + await sha256Hex(
+          "dezzta-consumer-v1\0" + attachment.subject + "\0" +
+          attachment.seriesKey + "\0" + payload.clientInstanceId,
+        )
+        : "ws:" + ownerToken;
       const registration = registerRequiredConsumer(this.ctx.storage, {
         seriesKey: attachment.seriesKey,
         consumerId,
