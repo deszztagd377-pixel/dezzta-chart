@@ -24,6 +24,7 @@ const MAX_REQUEST_BYTES = 2_048;
 const SNAPSHOT_BARS = 50;
 const SNAPSHOT_WATERMARK = SNAPSHOT_BARS;
 const TICKET_PURPOSE = "market-data";
+const CONSUMER_LEASE_TTL_MS = 30_000;
 const SERIES_PATTERN = /^synthetic:[A-Z0-9._-]{1,24}:[A-Z0-9._-]{1,24}:(1m|5m|15m|1h)$/;
 
 export function isValidSyntheticSeriesKey(value) {
@@ -227,6 +228,12 @@ export async function consumeTicket(storage, ticket, expectedSeriesKey, now = Da
   });
 }
 
+function createLeaseToken() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
+}
+
 function readSocketAttachment(socket) {
   try {
     return socket.deserializeAttachment();
@@ -253,7 +260,16 @@ function isValidSocketAttachment(attachment) {
     if (!validBase) return false;
     if (attachment.subscribed === true) {
       return validateSyntheticCanonicalSeries(attachment.series) &&
-        attachment.series.seriesKey === attachment.seriesKey;
+        attachment.series.seriesKey === attachment.seriesKey &&
+        typeof attachment.consumerId === "string" &&
+        /^ws:[0-9a-f]{64}$/.test(attachment.consumerId) &&
+        typeof attachment.ownerToken === "string" &&
+        /^[0-9a-f]{64}$/.test(attachment.ownerToken) &&
+        Number.isSafeInteger(attachment.fenceToken) && attachment.fenceToken > 0 &&
+        Number.isSafeInteger(attachment.leaseExpiresAtMs) && attachment.leaseExpiresAtMs > 0 &&
+        Number.isSafeInteger(attachment.lastDeliveredSequence) &&
+        attachment.lastDeliveredSequence >= attachment.snapshotWatermark &&
+        attachment.lastDeliveredSequence <= 1_000_000_000;
     }
     return attachment.subscribed === undefined || attachment.subscribed === false;
   }
@@ -389,7 +405,7 @@ export async function acceptNextSequence(storage, seriesKey, sequence) {
   });
 }
 
-const DURABLE_SCHEMA_VERSION = 3;
+const DURABLE_SCHEMA_VERSION = 5;
 const MAX_DURABLE_EVENT_BYTES = 8_192;
 
 /**
@@ -546,6 +562,60 @@ export function applyDurableSchemaMigrations(storage, now = Date.now()) {
           SELECT RAISE(ABORT, 'series identity is immutable');
         END;
         INSERT INTO schema_migrations (version, applied_at_ms) VALUES (3, ${now});
+      `);
+    }
+
+    if (currentVersion < 4) {
+      sql.exec(`
+        CREATE TABLE IF NOT EXISTS required_consumers (
+          series_key TEXT NOT NULL
+            CHECK (length(series_key) BETWEEN 1 AND 128),
+          consumer_id TEXT NOT NULL
+            CHECK (length(consumer_id) BETWEEN 1 AND 128),
+          generation_id TEXT NOT NULL
+            CHECK (length(generation_id) BETWEEN 1 AND 128),
+          registered_at_ms INTEGER NOT NULL
+            CHECK (registered_at_ms >= 0),
+          active INTEGER NOT NULL DEFAULT 1
+            CHECK (active IN (0, 1)),
+          PRIMARY KEY (series_key, consumer_id)
+        );
+        CREATE INDEX IF NOT EXISTS required_consumers_active_generation
+          ON required_consumers (series_key, generation_id, active);
+        INSERT INTO schema_migrations (version, applied_at_ms) VALUES (4, ${now});
+      `);
+    }
+
+    if (currentVersion < 5) {
+      const consumerColumns = sql.exec("PRAGMA table_info(required_consumers)")
+        .toArray().map((row) => row.name);
+      if (!consumerColumns.includes("owner_token")) {
+        sql.exec(`
+          ALTER TABLE required_consumers ADD COLUMN owner_token TEXT NOT NULL DEFAULT ''
+            CHECK (length(owner_token) <= 128)
+        `);
+      }
+      if (!consumerColumns.includes("fence_token")) {
+        sql.exec(`
+          ALTER TABLE required_consumers ADD COLUMN fence_token INTEGER NOT NULL DEFAULT 0
+            CHECK (fence_token >= 0)
+        `);
+      }
+      if (!consumerColumns.includes("lease_expires_at_ms")) {
+        sql.exec(`
+          ALTER TABLE required_consumers ADD COLUMN lease_expires_at_ms INTEGER NOT NULL DEFAULT 0
+            CHECK (lease_expires_at_ms >= 0)
+        `);
+      }
+      // Legacy v4 registrations have no authenticated owner or valid lease.
+      // They must not remain retention-critical or ACK-capable after upgrade.
+      sql.exec(`
+        UPDATE required_consumers
+        SET active = 0
+        WHERE owner_token = '' OR fence_token = 0 OR lease_expires_at_ms = 0;
+        CREATE INDEX IF NOT EXISTS required_consumers_lease_expiry
+          ON required_consumers (series_key, generation_id, active, lease_expires_at_ms);
+        INSERT INTO schema_migrations (version, applied_at_ms) VALUES (5, ${now});
       `);
     }
 
@@ -848,88 +918,220 @@ export function readDurableReplayPage(storage, seriesKey, cursor, expectedGenera
   return { ok: true, page, responseBytes };
 }
 
-/** Persist a monotonic consumer receipt against the exact retained event digest. */
-export function commitConsumerReceipt(storage, {
-  seriesKey, consumerId, generationId, sequence, eventDigest,
+/** Acquire one consumer lease atomically. Takeover increments the fencing token. */
+export function registerRequiredConsumer(storage, {
+  seriesKey, consumerId, generationId, ownerToken, leaseTtlMs = CONSUMER_LEASE_TTL_MS,
 }, now = Date.now()) {
   if (!storage?.sql || typeof storage.sql.exec !== "function" ||
       typeof storage.transactionSync !== "function" ||
       !isValidSyntheticSeriesKey(seriesKey) ||
       typeof consumerId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(consumerId) ||
       typeof generationId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(generationId) ||
+      typeof ownerToken !== "string" || !/^[0-9a-f]{64}$/.test(ownerToken) ||
+      !Number.isSafeInteger(leaseTtlMs) || leaseTtlMs < 5_000 || leaseTtlMs > 120_000 ||
+      !Number.isSafeInteger(now) || now < 0 || now + leaseTtlMs > Number.MAX_SAFE_INTEGER) {
+    throw new TypeError("Required consumer lease input is invalid.");
+  }
+  return storage.transactionSync(() => {
+    const states = storage.sql.exec(
+      "SELECT generation_id FROM series_state WHERE series_key = ?", seriesKey,
+    ).toArray();
+    if (states.length !== 1) return { registered: false, reason: "series_state_missing" };
+    if (states[0].generation_id !== generationId) return { registered: false, reason: "generation_mismatch" };
+    const rows = storage.sql.exec(
+      "SELECT generation_id, active, owner_token, fence_token, lease_expires_at_ms " +
+      "FROM required_consumers WHERE series_key = ? AND consumer_id = ?", seriesKey, consumerId,
+    ).toArray();
+    const previous = rows[0];
+    if (previous && previous.generation_id !== generationId) return { registered: false, reason: "generation_mismatch" };
+    if (previous && previous.active === 1 && previous.lease_expires_at_ms > now &&
+        previous.owner_token !== ownerToken) return { registered: false, reason: "lease_held" };
+    const sameOwner = previous && previous.active === 1 &&
+      previous.owner_token === ownerToken && previous.lease_expires_at_ms > now;
+    const fenceToken = sameOwner ? previous.fence_token : (previous ? previous.fence_token + 1 : 1);
+    if (!Number.isSafeInteger(fenceToken) || fenceToken < 1 || fenceToken > 2_147_483_647) {
+      return { registered: false, reason: "fence_exhausted" };
+    }
+    const leaseExpiresAtMs = now + leaseTtlMs;
+    storage.sql.exec(
+      "INSERT INTO required_consumers " +
+      "(series_key, consumer_id, generation_id, registered_at_ms, active, owner_token, fence_token, lease_expires_at_ms) " +
+      "VALUES (?, ?, ?, ?, 1, ?, ?, ?) ON CONFLICT(series_key, consumer_id) DO UPDATE SET " +
+      "generation_id = excluded.generation_id, registered_at_ms = excluded.registered_at_ms, active = 1, " +
+      "owner_token = excluded.owner_token, fence_token = excluded.fence_token, " +
+      "lease_expires_at_ms = excluded.lease_expires_at_ms",
+      seriesKey, consumerId, generationId, now, ownerToken, fenceToken, leaseExpiresAtMs,
+    );
+    return { registered: true, duplicate: Boolean(sameOwner), ownerToken, fenceToken, leaseExpiresAtMs };
+  });
+}
+
+/** Extend a live lease only for its current owner and fencing generation. */
+export function renewRequiredConsumerLease(storage, {
+  seriesKey, consumerId, generationId, ownerToken, fenceToken,
+}, now = Date.now()) {
+  if (!storage?.sql || typeof storage.sql.exec !== "function" ||
+      typeof storage.transactionSync !== "function" || !isValidSyntheticSeriesKey(seriesKey) ||
+      typeof consumerId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(consumerId) ||
+      typeof generationId !== "string" || typeof ownerToken !== "string" ||
+      !/^[0-9a-f]{64}$/.test(ownerToken) || !Number.isSafeInteger(fenceToken) || fenceToken < 1 ||
+      !Number.isSafeInteger(now) || now < 0 || now + CONSUMER_LEASE_TTL_MS > Number.MAX_SAFE_INTEGER) {
+    return { renewed: false, reason: "invalid_lease" };
+  }
+  return storage.transactionSync(() => {
+    const current = storage.sql.exec(
+      "SELECT generation_id, active, owner_token, fence_token, lease_expires_at_ms " +
+      "FROM required_consumers WHERE series_key = ? AND consumer_id = ?",
+      seriesKey, consumerId,
+    ).toArray()[0];
+    if (!current || current.active !== 1) return { renewed: false, reason: "consumer_not_registered" };
+    if (current.generation_id !== generationId) return { renewed: false, reason: "generation_mismatch" };
+    if (current.owner_token !== ownerToken || current.fence_token !== fenceToken) {
+      return { renewed: false, reason: "lease_fenced" };
+    }
+    if (current.lease_expires_at_ms <= now) return { renewed: false, reason: "lease_expired" };
+    const leaseExpiresAtMs = now + CONSUMER_LEASE_TTL_MS;
+    storage.sql.exec(
+      "UPDATE required_consumers SET lease_expires_at_ms = ? WHERE series_key = ? AND consumer_id = ? " +
+      "AND generation_id = ? AND active = 1 AND owner_token = ? AND fence_token = ? AND lease_expires_at_ms > ?",
+      leaseExpiresAtMs, seriesKey, consumerId, generationId, ownerToken, fenceToken, now,
+    );
+    const verified = storage.sql.exec(
+      "SELECT lease_expires_at_ms FROM required_consumers WHERE series_key = ? AND consumer_id = ? " +
+      "AND generation_id = ? AND active = 1 AND owner_token = ? AND fence_token = ? AND lease_expires_at_ms = ?",
+      seriesKey, consumerId, generationId, ownerToken, fenceToken, leaseExpiresAtMs,
+    ).toArray();
+    return verified.length === 1 ? { renewed: true, leaseExpiresAtMs } :
+      { renewed: false, reason: "lease_renewal_not_committed" };
+  });
+}
+
+/** Release is fenced so a stale socket cannot deactivate a replacement owner. */
+export function releaseRequiredConsumerLease(storage, {
+  seriesKey, consumerId, generationId, ownerToken, fenceToken,
+}, now = Date.now()) {
+  if (!storage?.sql || typeof storage.sql.exec !== "function" ||
+      typeof storage.transactionSync !== "function" || !isValidSyntheticSeriesKey(seriesKey) ||
+      typeof consumerId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(consumerId) ||
+      typeof generationId !== "string" || typeof ownerToken !== "string" ||
+      !/^[0-9a-f]{64}$/.test(ownerToken) || !Number.isSafeInteger(fenceToken) || fenceToken < 1 ||
+      !Number.isSafeInteger(now) || now < 0) return false;
+  return storage.transactionSync(() => {
+    storage.sql.exec(
+      "UPDATE required_consumers SET active = 0, lease_expires_at_ms = ? WHERE series_key = ? " +
+      "AND consumer_id = ? AND generation_id = ? AND active = 1 AND owner_token = ? AND fence_token = ?",
+      now, seriesKey, consumerId, generationId, ownerToken, fenceToken,
+    );
+    const verified = storage.sql.exec(
+      "SELECT active FROM required_consumers WHERE series_key = ? AND consumer_id = ? " +
+      "AND generation_id = ? AND owner_token = ? AND fence_token = ? AND active = 0",
+      seriesKey, consumerId, generationId, ownerToken, fenceToken,
+    ).toArray();
+    return verified.length === 1;
+  });
+}
+
+/** Confirm that a socket still owns the authoritative, unexpired lease before fan-out. */
+function isCurrentRequiredConsumerLease(storage, attachment, now = Date.now()) {
+  if (!storage?.sql || !attachment || typeof attachment.seriesKey !== "string" ||
+      typeof attachment.consumerId !== "string" || typeof attachment.ownerToken !== "string" ||
+      !/^[0-9a-f]{64}$/.test(attachment.ownerToken) ||
+      !Number.isSafeInteger(attachment.fenceToken) || attachment.fenceToken < 1 ||
+      !Number.isSafeInteger(now) || now < 0) return false;
+  const rows = storage.sql.exec(
+    "SELECT 1 AS owned FROM required_consumers WHERE series_key = ? AND consumer_id = ? " +
+    "AND generation_id = ? AND active = 1 AND owner_token = ? AND fence_token = ? " +
+    "AND lease_expires_at_ms > ? LIMIT 1",
+    attachment.seriesKey, attachment.consumerId, "synthetic-v1",
+    attachment.ownerToken, attachment.fenceToken, now,
+  ).toArray();
+  return rows.length === 1;
+}
+
+/** Persist a monotonic receipt only while the exact owner/fence lease is live. */
+export function commitConsumerReceipt(storage, {
+  seriesKey, consumerId, generationId, ownerToken, fenceToken, sequence, eventDigest,
+}, now = Date.now()) {
+  if (!storage?.sql || typeof storage.sql.exec !== "function" ||
+      typeof storage.transactionSync !== "function" || !isValidSyntheticSeriesKey(seriesKey) ||
+      typeof consumerId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(consumerId) ||
+      typeof generationId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(generationId) ||
+      typeof ownerToken !== "string" || !/^[0-9a-f]{64}$/.test(ownerToken) ||
+      !Number.isSafeInteger(fenceToken) || fenceToken < 1 ||
       !Number.isSafeInteger(sequence) || sequence < SNAPSHOT_WATERMARK + 1 ||
-      sequence > 1_000_000_000 ||
-      typeof eventDigest !== "string" || !/^[0-9a-f]{64}$/.test(eventDigest) ||
-      !Number.isSafeInteger(now) || now < 0) {
+      sequence > 1_000_000_000 || typeof eventDigest !== "string" ||
+      !/^[0-9a-f]{64}$/.test(eventDigest) || !Number.isSafeInteger(now) || now < 0) {
     throw new TypeError("Consumer receipt input is invalid.");
   }
   return storage.transactionSync(() => {
     const states = storage.sql.exec(
-      "SELECT generation_id, high_water, retention_floor FROM series_state WHERE series_key = ?",
-      seriesKey,
+      "SELECT generation_id, high_water, retention_floor FROM series_state WHERE series_key = ?", seriesKey,
     ).toArray();
     if (states.length !== 1) return { accepted: false, reason: "series_state_missing" };
     const state = states[0];
-    if (state.generation_id !== generationId) {
-      return { accepted: false, reason: "generation_mismatch" };
-    }
+    if (state.generation_id !== generationId) return { accepted: false, reason: "generation_mismatch" };
     if (sequence > state.high_water) return { accepted: false, reason: "cursor_ahead" };
     if (sequence <= state.retention_floor) return { accepted: false, reason: "cursor_expired" };
+    const leases = storage.sql.exec(
+      "SELECT generation_id, active, owner_token, fence_token, lease_expires_at_ms " +
+      "FROM required_consumers WHERE series_key = ? AND consumer_id = ?", seriesKey, consumerId,
+    ).toArray();
+    const lease = leases[0];
+    if (!lease || lease.active !== 1) return { accepted: false, reason: "consumer_not_registered" };
+    if (lease.generation_id !== generationId) return { accepted: false, reason: "generation_mismatch" };
+    if (lease.owner_token !== ownerToken || lease.fence_token !== fenceToken) return { accepted: false, reason: "lease_fenced" };
+    if (lease.lease_expires_at_ms <= now) return { accepted: false, reason: "lease_expired" };
     const events = storage.sql.exec(
       "SELECT event_digest FROM series_events WHERE series_key = ? AND generation_id = ? AND sequence = ?",
       seriesKey, generationId, sequence,
     ).toArray();
     if (events.length !== 1) return { accepted: false, reason: "event_missing" };
-    if (events[0].event_digest !== eventDigest) {
-      return { accepted: false, reason: "digest_mismatch" };
-    }
+    if (events[0].event_digest !== eventDigest) return { accepted: false, reason: "digest_mismatch" };
     const receipts = storage.sql.exec(
       "SELECT generation_id, committed_sequence, event_digest, receipt_version, updated_at_ms " +
-      "FROM consumer_receipts WHERE series_key = ? AND consumer_id = ?",
-      seriesKey, consumerId,
+      "FROM consumer_receipts WHERE series_key = ? AND consumer_id = ?", seriesKey, consumerId,
     ).toArray();
     if (receipts.length > 1) throw new Error("Consumer receipt primary-key invariant failed.");
     let receiptVersion = 1;
+    let duplicate = false;
     if (receipts.length === 1) {
       const previous = receipts[0];
-      if (previous.generation_id !== generationId) {
-        return { accepted: false, reason: "generation_mismatch" };
-      }
-      if (sequence < previous.committed_sequence) {
-        return { accepted: false, reason: "ack_regression" };
-      }
+      if (previous.generation_id !== generationId) return { accepted: false, reason: "generation_mismatch" };
+      if (sequence < previous.committed_sequence) return { accepted: false, reason: "ack_regression" };
       if (sequence === previous.committed_sequence) {
-        if (previous.event_digest !== eventDigest) {
-          return { accepted: false, reason: "digest_mismatch" };
-        }
-        return {
-          accepted: true,
-          duplicate: true,
-          committedCursor: String(sequence),
-          receiptVersion: previous.receipt_version,
-          committedAtNs: (BigInt(previous.updated_at_ms) * 1_000_000n).toString(),
-        };
+        if (previous.event_digest !== eventDigest) return { accepted: false, reason: "digest_mismatch" };
+        receiptVersion = previous.receipt_version;
+        duplicate = true;
+      } else {
+        receiptVersion = previous.receipt_version + 1;
+        storage.sql.exec(
+          "UPDATE consumer_receipts SET committed_sequence = ?, event_digest = ?, receipt_version = ?, updated_at_ms = ? " +
+          "WHERE series_key = ? AND consumer_id = ?",
+          sequence, eventDigest, receiptVersion, now, seriesKey, consumerId,
+        );
       }
-      receiptVersion = previous.receipt_version + 1;
-      storage.sql.exec(
-        "UPDATE consumer_receipts SET committed_sequence = ?, event_digest = ?, " +
-        "receipt_version = ?, updated_at_ms = ? WHERE series_key = ? AND consumer_id = ?",
-        sequence, eventDigest, receiptVersion, now, seriesKey, consumerId,
-      );
     } else {
       storage.sql.exec(
-        "INSERT INTO consumer_receipts " +
-        "(series_key, consumer_id, generation_id, committed_sequence, event_digest, receipt_version, updated_at_ms) " +
+        "INSERT INTO consumer_receipts (series_key, consumer_id, generation_id, committed_sequence, event_digest, receipt_version, updated_at_ms) " +
         "VALUES (?, ?, ?, ?, ?, ?, ?)",
         seriesKey, consumerId, generationId, sequence, eventDigest, receiptVersion, now,
       );
     }
+    const leaseExpiresAtMs = now + CONSUMER_LEASE_TTL_MS;
+    storage.sql.exec(
+      "UPDATE required_consumers SET lease_expires_at_ms = ? WHERE series_key = ? AND consumer_id = ? " +
+      "AND generation_id = ? AND active = 1 AND owner_token = ? AND fence_token = ? AND lease_expires_at_ms > ?",
+      leaseExpiresAtMs, seriesKey, consumerId, generationId, ownerToken, fenceToken, now,
+    );
+    const renewed = storage.sql.exec(
+      "SELECT 1 AS renewed FROM required_consumers WHERE series_key = ? AND consumer_id = ? " +
+      "AND generation_id = ? AND active = 1 AND owner_token = ? AND fence_token = ? AND lease_expires_at_ms = ?",
+      seriesKey, consumerId, generationId, ownerToken, fenceToken, leaseExpiresAtMs,
+    ).toArray();
+    if (renewed.length !== 1) return { accepted: false, reason: "lease_expired_or_fenced" };
     return {
-      accepted: true,
-      duplicate: false,
-      committedCursor: String(sequence),
-      receiptVersion,
-      committedAtNs: (BigInt(now) * 1_000_000n).toString(),
+      accepted: true, duplicate, committedCursor: String(sequence), receiptVersion,
+      committedAtNs: (BigInt(now) * 1_000_000n).toString(), leaseExpiresAtMs,
     };
   });
 }
@@ -955,6 +1157,41 @@ export function compactDurableEvents(storage, seriesKey, throughSequence, now = 
     }
     if (throughSequence <= state.retention_floor) {
       return { compacted: true, deleted: 0, retentionFloor: state.retention_floor };
+    }
+    storage.sql.exec(
+      "UPDATE required_consumers SET active = 0 WHERE series_key = ? AND generation_id = ? " +
+      "AND active = 1 AND lease_expires_at_ms <= ?",
+      seriesKey, state.generation_id, now,
+    );
+    const registered = storage.sql.exec(
+      "SELECT COUNT(*) AS count FROM required_consumers " +
+      "WHERE series_key = ? AND generation_id = ? AND active = 1 AND lease_expires_at_ms > ?",
+      seriesKey, state.generation_id, now,
+    ).toArray();
+    if (registered[0]?.count === 0) {
+      return { compacted: false, reason: "required_consumer_registry_empty" };
+    }
+    // Every active required consumer must have a durable receipt at or beyond
+    // the proposed floor. Missing receipts fail closed; known receipts alone
+    // are not a substitute for an authoritative consumer registry.
+    const laggingReceipts = storage.sql.exec(
+      "SELECT COUNT(*) AS count, " +
+      "SUM(CASE WHEN r.consumer_id IS NULL THEN 1 ELSE 0 END) AS missing_count, " +
+      "MIN(r.committed_sequence) AS minimum_acknowledged " +
+      "FROM required_consumers c LEFT JOIN consumer_receipts r " +
+      "ON r.series_key = c.series_key AND r.consumer_id = c.consumer_id " +
+      "AND r.generation_id = c.generation_id " +
+      "WHERE c.series_key = ? AND c.generation_id = ? AND c.active = 1 " +
+      "AND c.lease_expires_at_ms > ? AND (r.consumer_id IS NULL OR r.committed_sequence < ?)",
+      seriesKey, state.generation_id, now, throughSequence,
+    ).toArray();
+    if (laggingReceipts[0]?.count > 0) {
+      return {
+        compacted: false,
+        reason: "consumer_ack_behind",
+        minimumAcknowledgedSequence: laggingReceipts[0].minimum_acknowledged ?? null,
+        missingConsumerReceipts: laggingReceipts[0].missing_count ?? 0,
+      };
     }
     const deleted = storage.sql.exec(
       "DELETE FROM series_events WHERE series_key = ? AND generation_id = ? AND sequence <= ?",
@@ -1012,10 +1249,17 @@ export class SeriesCoordinatorDO {
         continue;
       }
       if (!attachment.authorized) {
-        nextDeadline = Math.min(
-          nextDeadline,
-          attachment.connectedAt + UNAUTHENTICATED_SOCKET_TTL_MS,
-        );
+        nextDeadline = Math.min(nextDeadline, attachment.connectedAt + UNAUTHENTICATED_SOCKET_TTL_MS);
+      } else if (typeof attachment.consumerId === "string" &&
+          typeof attachment.ownerToken === "string" &&
+          Number.isSafeInteger(attachment.fenceToken) &&
+          Number.isSafeInteger(attachment.leaseExpiresAtMs)) {
+        if (attachment.leaseExpiresAtMs <= Date.now()) {
+          this.releaseSocketLease(socket);
+          try { socket.close(4408, "Consumer lease expired"); } catch { /* already closed */ }
+        } else {
+          nextDeadline = Math.min(nextDeadline, attachment.leaseExpiresAtMs);
+        }
       }
     }
     if (Number.isFinite(nextDeadline)) {
@@ -1034,6 +1278,17 @@ export class SeriesCoordinatorDO {
         try { socket.close(4401, "Invalid connection state"); } catch { /* already closed */ }
         continue;
       }
+      if (attachment.authorized && typeof attachment.consumerId === "string" &&
+          typeof attachment.ownerToken === "string" && Number.isSafeInteger(attachment.fenceToken) &&
+          Number.isSafeInteger(attachment.leaseExpiresAtMs)) {
+        if (attachment.leaseExpiresAtMs <= now) {
+          this.releaseSocketLease(socket, now);
+          try { socket.close(4408, "Consumer lease expired"); } catch { /* already closed */ }
+        } else {
+          nextDeadline = Math.min(nextDeadline, attachment.leaseExpiresAtMs);
+        }
+        continue;
+      }
       if (attachment.authorized) continue;
       const deadline = attachment.connectedAt + UNAUTHENTICATED_SOCKET_TTL_MS;
       if (deadline <= now) {
@@ -1047,6 +1302,21 @@ export class SeriesCoordinatorDO {
     } else {
       await this.ctx.storage.deleteAlarm();
     }
+  }
+
+  releaseSocketLease(socket, now = Date.now()) {
+    const attachment = readSocketAttachment(socket);
+    if (!isValidSocketAttachment(attachment) ||
+        typeof attachment.consumerId !== "string" ||
+        typeof attachment.ownerToken !== "string" ||
+        !Number.isSafeInteger(attachment.fenceToken)) return false;
+    return releaseRequiredConsumerLease(this.ctx.storage, {
+      seriesKey: attachment.seriesKey,
+      consumerId: attachment.consumerId,
+      generationId: "synthetic-v1",
+      ownerToken: attachment.ownerToken,
+      fenceToken: attachment.fenceToken,
+    }, now);
   }
 
   async fetch(request) {
@@ -1149,6 +1419,19 @@ export class SeriesCoordinatorDO {
       return jsonResponse({ seeded: true, sequence: body.sequence });
     }
 
+    if (url.pathname === "/internal/register-consumer" && request.method === "POST") {
+      const body = await readSmallJson(request);
+      if (!body || !isValidSyntheticSeriesKey(body.seriesKey)) {
+        return jsonResponse({ error: "invalid_consumer_registration" }, 400);
+      }
+      try {
+        const result = registerRequiredConsumer(this.ctx.storage, body);
+        return jsonResponse(result, result.registered ? 200 : 409);
+      } catch {
+        return jsonResponse({ error: "temporarily_unavailable" }, 503);
+      }
+    }
+
     if (url.pathname === "/internal/ack" && request.method === "POST") {
       const body = await readSmallJson(request);
       if (!body || !isValidSyntheticSeriesKey(body.seriesKey)) {
@@ -1205,10 +1488,19 @@ export class SeriesCoordinatorDO {
               continue;
             }
             if (attachment.authorized && attachment.seriesKey === body.seriesKey &&
-                attachment.subscribed === true && attachment.series &&
+                attachment.subscribed === true && attachment.leaseExpiresAtMs > Date.now() &&
+                isCurrentRequiredConsumerLease(this.ctx.storage, attachment) && attachment.series &&
                 canonicalSeriesIdentityJson(attachment.series) === canonicalSeriesIdentityJson(series)) {
-              try { socket.send(committed.payload); delivered += 1; }
-              catch { try { socket.close(1011, "Synthetic fan-out failed"); } catch { /* already closed */ } }
+              try {
+                socket.send(committed.payload);
+                socket.serializeAttachment({
+                  ...attachment,
+                  lastDeliveredSequence: sequence,
+                });
+                delivered += 1;
+              } catch {
+                try { socket.close(1011, "Synthetic fan-out failed"); } catch { /* already closed */ }
+              }
             }
           }
           return jsonResponse({ accepted: true, duplicate: false, sequence: String(sequence), delivered });
@@ -1226,14 +1518,6 @@ export class SeriesCoordinatorDO {
     const raw = typeof message === "string"
       ? message
       : new TextDecoder().decode(message);
-    if (raw === "ping") {
-      socket.send(JSON.stringify({
-        type: "market_data.pong",
-        version: PROTOCOL_VERSION,
-        serverTimeNs: (BigInt(Date.now()) * 1_000_000n).toString(),
-      }));
-      return;
-    }
     if (new TextEncoder().encode(raw).byteLength > MAX_REQUEST_BYTES) {
       socket.close(4400, "Message too large");
       return;
@@ -1241,7 +1525,7 @@ export class SeriesCoordinatorDO {
 
     let payload;
     try {
-      payload = JSON.parse(raw);
+      payload = raw === "ping" ? { type: "ping" } : JSON.parse(raw);
     } catch {
       socket.close(4400, "Invalid message");
       return;
@@ -1291,18 +1575,93 @@ export class SeriesCoordinatorDO {
         dataSource: "synthetic_only_not_market_data",
         providerConnected: false,
         liveProviderEnabled: false,
+        consumerAckProtocolVersion: PROTOCOL_VERSION,
       }));
       await this.scheduleUnauthenticatedSocketAlarm();
       return;
     }
 
-    if (raw === "ping" || payload?.type === "ping") {
+    if (payload?.type === "ping") {
+      if (attachment.subscribed === true) {
+        const renewal = renewRequiredConsumerLease(this.ctx.storage, {
+          seriesKey: attachment.seriesKey,
+          consumerId: attachment.consumerId,
+          generationId: "synthetic-v1",
+          ownerToken: attachment.ownerToken,
+          fenceToken: attachment.fenceToken,
+        });
+        if (!renewal.renewed) {
+          socket.close(4408, "Consumer lease lost");
+          return;
+        }
+        socket.serializeAttachment({ ...attachment, leaseExpiresAtMs: renewal.leaseExpiresAtMs });
+      }
       socket.send(JSON.stringify({
         type: "market_data.pong",
         version: PROTOCOL_VERSION,
         serverTimeNs: (BigInt(Date.now()) * 1_000_000n).toString(),
       }));
+      await this.scheduleUnauthenticatedSocketAlarm();
       return;
+    }
+
+    if (payload?.type === "market_data.ack" && payload.version === PROTOCOL_VERSION) {
+      return this.runProtocolExclusive(async () => {
+        // Read the attachment inside the protocol queue. Fan-out sends the
+        // update before persisting its delivered watermark to the attachment;
+        // a fast client can ACK as soon as it receives that frame. Reading the
+        // attachment before queue admission can therefore reject a valid ACK
+        // against the previous watermark.
+        const currentAttachment = readSocketAttachment(socket);
+        if (!isValidSocketAttachment(currentAttachment) ||
+            !currentAttachment.subscribed ||
+            typeof currentAttachment.consumerId !== "string" ||
+            !currentAttachment.ownerToken || !Number.isSafeInteger(currentAttachment.fenceToken) ||
+            currentAttachment.leaseExpiresAtMs <= Date.now() ||
+            !Number.isSafeInteger(payload.sequence) ||
+            payload.sequence <= currentAttachment.snapshotWatermark ||
+            payload.sequence > currentAttachment.lastDeliveredSequence ||
+            payload.sequence > 1_000_000_000 ||
+            typeof payload.eventDigest !== "string" ||
+            !/^[0-9a-f]{64}$/.test(payload.eventDigest)) {
+          socket.send(JSON.stringify({
+            type: "market_data.ack_rejected",
+            version: PROTOCOL_VERSION,
+            reason: "ack_not_delivered_or_invalid",
+          }));
+          return;
+        }
+        const receipt = commitConsumerReceipt(this.ctx.storage, {
+          seriesKey: currentAttachment.seriesKey,
+          consumerId: currentAttachment.consumerId,
+          generationId: "synthetic-v1",
+          ownerToken: currentAttachment.ownerToken,
+          fenceToken: currentAttachment.fenceToken,
+          sequence: payload.sequence,
+          eventDigest: payload.eventDigest,
+        });
+        if (!receipt.accepted) {
+          socket.send(JSON.stringify({
+            type: "market_data.ack_rejected",
+            version: PROTOCOL_VERSION,
+            reason: receipt.reason,
+          }));
+          return;
+        }
+        socket.send(JSON.stringify({
+          type: "market_data.acknowledged",
+          version: PROTOCOL_VERSION,
+          accepted: true,
+          duplicate: receipt.duplicate,
+          committedCursor: receipt.committedCursor,
+          receiptVersion: receipt.receiptVersion,
+        }));
+        socket.serializeAttachment({
+          ...currentAttachment,
+          leaseExpiresAtMs: receipt.leaseExpiresAtMs,
+        });
+        await this.scheduleUnauthenticatedSocketAlarm();
+      });
     }
 
     if (payload?.type === "market_data.subscribe" && payload.version === PROTOCOL_VERSION) {
@@ -1327,6 +1686,7 @@ export class SeriesCoordinatorDO {
         return;
       }
       return this.runProtocolExclusive(async () => {
+      this.releaseSocketLease(socket);
       const canonicalSeries = canonicalSeriesIdentity(series);
       let identityRegistered;
       try {
@@ -1348,6 +1708,27 @@ export class SeriesCoordinatorDO {
         return;
       }
       await initializeDurableSeriesState(this.ctx.storage, attachment.seriesKey);
+      const ownerToken = createLeaseToken();
+      const consumerId = "ws:" + ownerToken;
+      const registration = registerRequiredConsumer(this.ctx.storage, {
+        seriesKey: attachment.seriesKey,
+        consumerId,
+        generationId: "synthetic-v1",
+        ownerToken,
+      });
+      if (!registration.registered) {
+        socket.send(JSON.stringify(createProtocolError(
+          "consumer_registration_failed", true, "consumer-" + Date.now(),
+          "The synthetic WebSocket consumer could not be durably registered.",
+        )));
+        socket.close(1011, "Consumer registration unavailable");
+        return;
+      }
+      socket.serializeAttachment({
+        ...attachment, subscribed: false, series: null, consumerId, ownerToken,
+        fenceToken: registration.fenceToken, leaseExpiresAtMs: registration.leaseExpiresAtMs,
+      });
+      await this.scheduleUnauthenticatedSocketAlarm();
       const watermark = await readDurableHighWater(this.ctx.storage, attachment.seriesKey);
       if (!Number.isSafeInteger(watermark) || watermark < SNAPSHOT_WATERMARK || watermark > 1_000_000_000) {
         socket.send(JSON.stringify(createProtocolError(
@@ -1382,12 +1763,6 @@ export class SeriesCoordinatorDO {
             ? replayPages[replayPages.length - 1].nextCursor
             : payload.cursor;
           const throughSequence = Number(throughCursor);
-          socket.serializeAttachment({
-            ...attachment,
-            snapshotWatermark: watermark,
-            subscribed: true,
-            series: canonicalSeries,
-          });
           socket.send(JSON.stringify({
             type: "market_data.ohlcv.replay_started",
             version: PROTOCOL_VERSION,
@@ -1399,6 +1774,23 @@ export class SeriesCoordinatorDO {
             throughSequence,
           }));
           for (const event of replayEvents) socket.send(JSON.stringify(event));
+          // Advance the delivered watermark only after every replay frame has
+          // been accepted by the socket send API.
+          socket.serializeAttachment({
+            ...attachment,
+            // A replay is cursor-exclusive. The resume cursor is the baseline
+            // already held by the client; the current durable high-water may
+            // be newer because events in this replay are precisely what the
+            // client must be allowed to ACK.
+            snapshotWatermark: Number(payload.cursor),
+            subscribed: true,
+            series: canonicalSeries,
+            consumerId,
+            ownerToken,
+            fenceToken: registration.fenceToken,
+            leaseExpiresAtMs: registration.leaseExpiresAtMs,
+            lastDeliveredSequence: throughSequence,
+          });
           socket.send(JSON.stringify({
             type: "market_data.ohlcv.replay_complete",
             version: PROTOCOL_VERSION,
@@ -1406,6 +1798,7 @@ export class SeriesCoordinatorDO {
             cursor: throughCursor,
             throughSequence,
           }));
+          await this.scheduleUnauthenticatedSocketAlarm();
           return;
         }
         if (replayFailure === "cursor_ahead") {
@@ -1436,6 +1829,11 @@ export class SeriesCoordinatorDO {
         snapshotWatermark: watermark,
         subscribed: true,
         series: canonicalSeries,
+        consumerId,
+        ownerToken,
+        fenceToken: registration.fenceToken,
+        leaseExpiresAtMs: registration.leaseExpiresAtMs,
+        lastDeliveredSequence: watermark,
       });
       socket.send(JSON.stringify({
         ...snapshot,
@@ -1443,6 +1841,7 @@ export class SeriesCoordinatorDO {
         watermark: watermark,
         cursor: String(watermark),
       }));
+      await this.scheduleUnauthenticatedSocketAlarm();
       });
       return;
     }
@@ -1450,7 +1849,9 @@ export class SeriesCoordinatorDO {
     socket.close(4400, "Unsupported synthetic proof message");
   }
 
-  webSocketClose(socket, code, reason) {
+  async webSocketClose(socket, code, reason) {
+    this.releaseSocketLease(socket);
+    await this.scheduleUnauthenticatedSocketAlarm();
     if (code >= 1000 && code < 5000 && ![1004, 1005, 1006, 1015].includes(code)) {
       try { socket.close(code, reason); } catch { /* already closed */ }
     } else {
@@ -1458,7 +1859,9 @@ export class SeriesCoordinatorDO {
     }
   }
 
-  webSocketError(socket) {
+  async webSocketError(socket) {
+    this.releaseSocketLease(socket);
+    await this.scheduleUnauthenticatedSocketAlarm();
     try { socket.close(1011, "WebSocket error"); } catch { /* already closed */ }
   }
 }
@@ -1513,6 +1916,7 @@ export default {
         dataSource: "synthetic_only_not_market_data",
         providerConnected: false,
         liveProviderEnabled: false,
+        consumerAckProtocolVersion: PROTOCOL_VERSION,
       }), origin);
     }
 
@@ -1567,12 +1971,32 @@ export default {
       return withCors(seeded, origin);
     }
 
+    if (url.pathname === "/__proof/register-consumer" && request.method === "POST") {
+      const body = await readSmallJson(request);
+      if (!body || !isValidSyntheticSeriesKey(body.seriesKey) ||
+          typeof body.consumerId !== "string" ||
+          !/^[A-Za-z0-9._:-]{1,128}$/.test(body.consumerId) ||
+          body.generationId !== "synthetic-v1" ||
+          typeof body.ownerToken !== "string" || !/^[0-9a-f]{64}$/.test(body.ownerToken)) {
+        return withCors(jsonResponse({ error: "invalid_consumer_registration" }, 400), origin);
+      }
+      const stub = env.SERIES_COORDINATOR.get(env.SERIES_COORDINATOR.idFromName(body.seriesKey));
+      const registered = await stub.fetch("https://series.internal/internal/register-consumer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      return withCors(registered, origin);
+    }
+
     if (url.pathname === "/__proof/ack" && request.method === "POST") {
       const body = await readSmallJson(request);
       if (!body || !isValidSyntheticSeriesKey(body.seriesKey) ||
           typeof body.consumerId !== "string" ||
           !/^[A-Za-z0-9._:-]{1,128}$/.test(body.consumerId) ||
           body.generationId !== "synthetic-v1" ||
+          typeof body.ownerToken !== "string" || !/^[0-9a-f]{64}$/.test(body.ownerToken) ||
+          !Number.isSafeInteger(body.fenceToken) || body.fenceToken < 1 ||
           !Number.isSafeInteger(body.sequence) || body.sequence < SNAPSHOT_WATERMARK + 1 ||
           body.sequence > 1_000_000_000 ||
           typeof body.eventDigest !== "string" || !/^[0-9a-f]{64}$/.test(body.eventDigest)) {

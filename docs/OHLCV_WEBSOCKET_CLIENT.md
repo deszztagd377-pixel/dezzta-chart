@@ -15,6 +15,7 @@
 7. Initialize the sequence guard from the server-provided `streamId` and `watermark`.
 8. Validate each update and accept only the next sequence number for the exact stream and series.
 9. After snapshot or replay completion, send the server's literal text-frame `ping` every 20 seconds and require `market_data.pong` within 10 seconds. Stop heartbeat timers on failure, remote close, or explicit stop.
+10. The synthetic Cloudflare proof Worker binds each subscribed socket to a unique server-generated consumer lease (30-second TTL). The server renews the lease on the text ping and on a valid durable ACK; it closes sockets whose lease expires or whose owner/fencing token has been superseded. Owner tokens and fencing tokens remain server-side and are not sent by the browser client. This is synthetic-proof implementation, not proof of production deployment.
 
 ## Ticket renewal
 

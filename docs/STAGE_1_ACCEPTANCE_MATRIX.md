@@ -1,14 +1,221 @@
+# AUTHORITATIVE CURRENT CHECKPOINT — 28 November 2026 / Batch 97
+
+**Validated source/test HEAD:** `e29040d4f3e9e5da5c9dd1400e102f5139b9ba41` on `work/batch95-websocket-ack-protocol`.  
+**PR #13:** OPEN and unmerged; base `phase-2/market-data-foundation`.  
+**Repository safety:** `main` remains `e3841681bc69b73619058deaf939df82ae5116a1`; no merge, deployment, billing change, paid service, or new Cloudflare resource.
+
+## Exact-head CI — 4/4 terminal SUCCESS
+
+- Automated Tests — [46107071181](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46107071181): SUCCESS, 41/41 steps; frontend 339/339 tests; backend 1,437 passed, 1 skipped, 6 warnings; Worker runtime 26/26.
+- CodeQL — [46107071199](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46107071199): SUCCESS.
+- OCI ARM64 Image Readiness — [46107071235](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46107071235): SUCCESS.
+- Full Git History Secret Audit — [46107071288](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46107071288): SUCCESS.
+
+Automated Tests completed all 41 steps, including frontend build, backend tests, pinned workerd/DO runtime, Redis TLS CA/hostname enforcement step, SQLite benchmarks, backend container build/smoke test with shared Redis guard and persistent volume, and container scan/report. One backend pytest case was skipped because its isolated Redis TLS fixture was not configured for that test; the dedicated Redis TLS workflow step itself passed. No required workflow remains in progress for this exact source/test HEAD.
+
+## Batch 97 — frontend OHLCV event digest verification
+
+- Added deterministic synchronous SHA-256 recomputation in `src/services/ohlcvStreamProtocol.ts`.
+- The WebSocket client verifies the raw event frame before normalization and before applying it to chart state.
+- Replay-only fields remain included in the digest input; tampered payloads fail closed.
+- ACK-capable sessions reject missing generation identity or digest.
+- Protocol and WebSocket regression fixtures now use actual payload digests.
+- Full implementation, exact test scope, security boundary, and next steps: [Batch 97 work-cycle report](WORK_CYCLE_2026-11-28_BATCH97_FRONTEND_EVENT_DIGEST_VERIFICATION.md).
+
+The first run exposed two placeholder-digest test fixtures; they were corrected. The final exact-head four-workflow run passed. This is a frontend integrity improvement only; it does not activate production ACK.
+
+## Stage control — unchanged
+
+**Stage 1: 30/40 = 75% provisional. Gate 10: 0/10 formally closed.** Remaining owner-controlled criteria **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39** remain YELLOW pending real evidence. No Stage 1 tick is added by Batch 97. Stage 2 remains preparatory and unauthorized until Stage 1 reaches 40/40 and the owner explicitly approves.
+
+**Production WebSocket — YELLOW:** frontend raw-event digest verification is now implemented and tested. FastAPI still does not advertise ACK protocol v1 and has no production ACK receive/validation or durable receipt handler. Stable consumer identity across reconnects, durable owner/fence-bound receipts, restart reconciliation, public WSS/TLS and browser/Android E2E remain pending. SHA-256 digest verification is not a digital signature or provider-authenticity proof.
+
+**Deadline:** 24 December 2026 — **26 calendar days remained** at the 28 November checkpoint.
+
+**Controls:** ZERO COST; no paid service, billing change, deployment, new Cloudflare resource, PR merge, or `main` modification. No autonomous background/10-minute coding is running; CI was checked during the active session.
+
+---
+
+# VERIFIED CURRENT CHECKPOINT — 28 November 2026
+
+**Validated code/test HEAD:** `9f49d1affc7f784904bb99dc1c5b3393dc87a6a9` on `work/batch95-websocket-ack-protocol`.  
+**PR #13:** OPEN, unmerged; base `phase-2/market-data-foundation`.  
+**Repository safety:** `main` remains `e3841681bc69b73619058deaf939df82ae5116a1`; no merge, deployment, paid service, billing change, or new Cloudflare resource.
+
+## Exact-head CI — 4/4 SUCCESS
+
+- Automated Tests — [run 46104901664](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46104901664): **SUCCESS**, 41/41 steps; frontend 338/338 tests; backend 1,437 passed, 1 skipped; Worker runtime 26/26.
+- CodeQL — [run 46104901668](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46104901668): **SUCCESS**.
+- OCI ARM64 Image Readiness — [run 46104901656](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46104901656): **SUCCESS**.
+- Full Git History Secret Audit — [run 46104901671](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46104901671): **SUCCESS**.
+
+The Automated Tests workflow completed all 41 steps. It includes the pinned workerd/Miniflare proof, Durable Object runtime suite, frontend tests/build, Redis TLS fixture, backend suite, SQLite benchmarks, dependency audit, container build/smoke test, and image scan. Test totals from the run: Worker runtime 26/26; frontend 338/338 across 35 files; backend 1,437 passed and 1 skipped. All four workflow runs are terminal; none remains in progress.
+
+## Latest protocol change
+
+The frontend OHLCV parser now enforces generation identity binding:
+- Production stream events require `generationId === streamId`.
+- Synthetic proof events require generation `synthetic-v1` and stream ID `synthetic:${seriesKey}`.
+- Tests cover production binding, synthetic binding, mismatches, and the cursor/digest fixtures.
+
+The first two CI attempts exposed stale fixtures; those fixtures were aligned with the intended contract. The final exact-head run above passed. This change does **not** activate production ACK.
+
+## Stage control
+
+**Stage 1: 30/40 = 75% provisional. Gate 10: 0/10 formally closed.** Stage 2 remains preparatory and is not authorized. The ten owner-controlled evidence criteria still open are **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39**. All are YELLOW pending real evidence; repository CI or synthetic proof cannot substitute for production acceptance.
+
+**Production WebSocket boundary — YELLOW:** FastAPI still has no production ACK receive/receipt handler. The synthetic Worker ACK proof is code/test-only. The frontend checks digest syntax but does not yet cryptographically verify the event digest before applying it. Production Firebase-to-Worker session grants, stable reconnect receipt semantics, public WSS, browser/Android E2E, provider redistribution rights and account-level zero-cost certification remain open.
+
+**Deadline:** 24 December 2026 — **26 calendar days remain** from 28 November.
+
+**Controls:** ZERO COST; no paid services, billing changes, deployment, PR merge, or `main` modification. No autonomous background/10-minute coding is running; CI is monitored during the active session.
+
+---
+
+# VERIFIED CURRENT CHECKPOINT — 27 November 2026 (supersedes older snapshots below)
+
+**Last validated code/test HEAD:** `0409c8690650eb9fa78d28e7f4a3bb64b28b634e`.  
+**Documentation follow-ups:** subsequent commits in this branch update only these two status documents; no source/runtime files changed and no new CI run is claimed for documentation-only commits.  
+**PR #13:** OPEN, unmerged, base `phase-2/market-data-foundation`.  
+**Stage 1:** 30/40 = 75% provisional; Gate 10 = 0/10 formally closed. Stage 2 remains preparatory and is not authorized.
+
+## WebSocket lease lifecycle — GREEN at synthetic code/test level only
+
+The validated code/test HEAD `0409c8690650eb9fa78d28e7f4a3bb64b28b634e` has all four required GitHub Actions workflows terminal SUCCESS:
+- Automated Tests — [46019484467](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46019484467), SUCCESS (41/41 job steps).
+- CodeQL — [46019484655](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46019484655), SUCCESS.
+- OCI ARM64 — [46019484485](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46019484485), SUCCESS.
+- Full Git History Secret Audit — [46019484584](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46019484584), SUCCESS.
+
+The six code/test checks recorded as GREEN are: atomic lease acquisition/collision-safe takeover; same-owner renewal and expiry; monotonic fencing on takeover; owner/fence/live-lease validation on ACK; per-socket lifecycle with ping/ACK renewal, close/error release, alarm expiry and stale-owner fan-out rejection; expiry-aware compaction. The Automated Tests job passed the pinned workerd/Miniflare proof, Durable Object runtime tests, frontend tests/build, backend tests, Redis TLS fixture, container build/smoke/scan and related checks.
+
+**Production boundary remains YELLOW:** Firebase-verified session grant and real consumer identity; production event generation/sequence/digest contract and FastAPI ACK integration; public WSS/TLS and browser/Android E2E; lawful provider/redistribution rights and account-level zero-cost certification; owner-host backup/restore, monitoring and incident evidence. Synthetic tests do not close these gates or add Stage 1 ticks.
+
+## Remaining Stage 1 evidence gates — YELLOW
+
+Criteria **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39** remain pending owner-controlled production evidence. No gate is marked accepted from documentation or synthetic CI alone.
+
+**Controls:** ZERO COST; no paid service, billing change, new Cloudflare resource, production deployment, PR merge or `main` modification. PR #13 stays open. No autonomous 10-minute AI execution is running; CI is checked during an active session only.
+
+**Deadline:** 24 December 2026 — 27 calendar days remained at this checkpoint.
+
+---
+
+# OWNER CHECKPOINT — Batch 96C WebSocket lease lifecycle
+
+**WebSocket implementation: 6/6 GREEN at code/test level on tested source commit `a9b7a126cefd87e87d11d52bd7d2016d7f71e363`.**
+- Atomic lease acquisition and collision-safe takeover — verified.
+- Lease renewal and expiry handling — verified.
+- Monotonic fencing token increment on takeover — verified.
+- ACK bound to current owner token, fence token and live lease — verified.
+- Per-socket lifecycle, ping/ACK renewal, close/error release, alarm expiry and stale-owner fan-out rejection — verified.
+- Expiry-aware compaction — verified.
+
+**Exact test evidence on the tested source commit:**
+- Automated Tests run [46018548453](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46018548453) — SUCCESS. Includes Miniflare/workerd WebSocket test, Durable Object runtime suite, frontend tests, backend tests, Redis TLS fixture, backend build/smoke test and image scan.
+- CodeQL run [46018548662](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46018548662) — SUCCESS.
+- OCI ARM64 run [46018548597](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46018548597) — SUCCESS.
+- Full Git History Secret Audit [46018548415](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46018548415) — SUCCESS.
+
+**Clean source commit:** `57dd158fe085207989cad19d47f15214805a7397` removes temporary diagnostic logging only; exact-head CI is being rerun before this clean commit is finally accepted. No feature behavior was intentionally changed by that cleanup.
+
+**Stage 1 is NOT complete:** remains 30/40 = 75% provisional; Gate 10 = 0/10 formally closed. These six synthetic code-level items do not prove public production WSS or close external Stage 1 criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. Stage 2 remains preparatory and requires Stage 1 40/40 plus explicit owner approval. Zero cost; no new infrastructure. Target: 24 December 2026.
+
+---
+
+# AUTHORITATIVE OWNER CHECKPOINT — 27 November 2026, Batch 96C implementation candidate
+
+**Stage control:** Stage 1 remains 30/40 (75% provisional); Gate 10 remains 0/10 formally closed. Stage 2 is preparatory only and cannot begin until Stage 1 is accepted at 40/40 and the owner explicitly approves.
+
+**Parallel implementation streams completed in this candidate:**
+- Core lease primitives: atomic acquisition, same-owner renewal, active-owner collision rejection, expiry takeover with monotonically incremented fence, fenced release, and owner/fence/expiry-validated receipt commit.
+- WebSocket lifecycle: unique owner token and consumer ID per socket, lease renewal on ping/ACK, alarm-driven expiry, fan-out expiry guard, close/error release, and re-subscribe release.
+- Retention safety: compaction deactivates expired leases and only blocks on non-expired active consumers.
+- Runtime tests: acquisition/collision/renewal/takeover, stale ACK/release rejection, expired-lease compaction, socket isolation/close release, and ping+ACK renewal.
+
+**Verification is still pending.** One prior Automated Tests run failed at JavaScript syntax checking because an ACK callback containing `await` was not marked `async`; this was corrected in commit `bebd1c66ee262240e593409f9c7ddee78b544045`. Follow-up fixes for pending lease cleanup and replay alarm scheduling are in `247b22344b437f729d026f05bc80f8469a889e4c`. The latest exact-head CI must still reach terminal SUCCESS on all four required workflows. No WebSocket item is accepted or awarded a Stage 1 tick until that evidence and runtime edge-case review pass.
+
+**Latest candidate source commit:** `247b22344b437f729d026f05bc80f8469a889e4c`. Runtime-test commit: `d2760d18c7194bdd19b88e71adccf2e681fe7a02`. Subsequent documentation-only commits may move PR HEAD without changing source/test content.
+
+**Remaining external Stage 1 gates:** 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 still require real owner-host, Firebase, backup/key recovery, deployment, public WSS/device, monitoring or incident evidence. Synthetic CI cannot close them. ZERO COST; no paid services or new infrastructure. Target: 24 December 2026.
+
+---
+
+# AUTHORITATIVE OWNER CHECKPOINT — 27 November 2026, Batch 96C candidate
+
+**Stage 1:** 30/40 = 75% provisional; Gate 10 = 0/10 formally closed. Stage 2 remains preparatory and requires Stage 1 100% plus explicit owner approval.
+
+**Batch 96C source implementation:** atomic per-socket lease acquisition/takeover, same-owner renewal, fenced release, owner/fence/expiry ACK validation, lease renewal on ping/ACK, expiry-aware compaction, alarm expiry, and per-socket attachment binding have been added in `cloudflare/proof/worker.mjs`. Runtime tests have been added for acquisition/collision/renewal/takeover, stale ACK/release rejection, expired-lease compaction, socket isolation/close release, and ping+ACK renewal.
+
+**Verification state:** implementation is a candidate, NOT green or accepted yet. Exact-head CI must reach terminal SUCCESS for Automated Tests, CodeQL, OCI ARM64 and Full Git History Secret Audit. Any failure must be fixed and rerun. Runtime eviction/race/expiry edge cases remain to be checked. Do not award Stage 1 ticks until evidence is accepted.
+
+**Source commit:** `8afee18c54e49c97bed7549da89255944d053f58`. **Runtime-test commit:** `d2760d18c7194bdd19b88e71adccf2e681fe7a02`. The final candidate HEAD changes again as follow-up fixes land.
+
+**Stage 1 external gates:** criteria 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39 still require owner-host/production/Firebase/backup/deployment/WSS/monitoring evidence. Synthetic WebSocket tests cannot close these external gates. Zero-cost constraint remains; no new resources or paid services. Target 24 December 2026.
+
+---
+
+**Official stage:** Stage 1 — Foundation, Security & Data Integrity. Stage 2 is preparatory only and cannot officially start until Stage 1 reaches 100% and the owner explicitly authorizes the transition.
+
+**Stage 1 accounting:** 30/40 = 75% provisional. The ten remaining external acceptance criteria are 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. Gate 10 remains 0/10 formally closed. These are not ten missing source-code functions: each requires owner-host, real Firebase, backup/key custody, deployment, public WSS/device, monitoring or incident evidence. Repository CI cannot truthfully close them. No ticks are added by documentation or synthetic tests.
+
+**Exact source/test HEAD:** `96cb3d505b7f70d70147f6773d879632d71e9a58`. PR #13 remains OPEN and unmerged; branch `work/batch95-websocket-ack-protocol`; `main` untouched. The exact source/test SHA has all four required workflows terminal SUCCESS:
+- Automated Tests [46011891943](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46011891943) — **41/41 steps SUCCESS**.
+- CodeQL [46011891956](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46011891956) — **SUCCESS**.
+- OCI ARM64 [46011892089](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46011892089) — **SUCCESS**.
+- Full Git History Secret Audit [46011892151](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46011892151) — **SUCCESS**.
+
+Automated Tests passed Worker/DO runtime tests, frontend tests and build, Android read-only preflight, Redis TLS CA/hostname fixture, backend tests, SQLite outbox/metrics benchmarks, dependency audit, backend image build, persistent-volume/Redis-guard smoke test, image scan/report and audit enforcement. This is repository/synthetic evidence, not a production deployment or owner-host acceptance.
+
+**Batch 96B change:** schema v5 migration now deactivates legacy consumer rows without valid owner/fence/lease metadata. Regression test added for v4-to-v5 migration. The change is included in the exact SHA above and therefore has full four-workflow CI success.
+
+**Remaining WebSocket lifecycle work:** implement atomic lease acquisition/renewal/release; monotonic fencing on expired takeover; owner+fence+expiry validation on ACK; expiry-aware compaction; socket lifecycle integration; stale owner/duplicate owner/takeover/restart/eviction/concurrency tests. These are still open. Do not claim WebSocket lifecycle complete.
+
+**Project status:** Stage 1 75% provisional; Stage 2 preparatory; Stage 3/5/6 unscored; Stage 4 gated; overall project percentage not scored. ZERO COST. No paid trials, new resources, deployments or billing changes. Delivery target 24 December 2026: 27 calendar days remain from 27 November. No autonomous background AI coding is claimed; the 10-minute relay runs preflight only.
+
+---
+
+# HISTORICAL SNAPSHOT — Batch 95 (superseded by checkpoint above)
+
+# Current Stage 1 acceptance snapshot — Batch 95 (27 November 2026)
+
+**Official active stage:** Stage 1 — Foundation, Security & Data Integrity.  
+**Stage 1 meter:** 30/40 criteria = 75% provisional. **Gate 10:** 0/10 external criteria formally closed.  
+**Stages 2–6:** Stage 2 remains preparatory; Stages 3, 5 and 6 are not scored; Stage 4 remains gated. Overall project percentage is not scored.
+
+**Latest repository candidate:** PR [#13](https://github.com/deszztagd377-pixel/dezzta-chart/pull/13), branch `work/batch95-websocket-ack-protocol`, current PR HEAD `2bfe7b2e8732ee92ddf1f25e4c8ffe944e007ebe` (documentation-only). The latest source/test SHA is `7dcf148b772d37c4321122a1c45d49bae0e43868`; all four required workflows (Automated Tests, CodeQL, Full Git History Secret Audit and OCI ARM64) reached terminal SUCCESS on that exact source/test SHA. Batch 96A adds the v5 consumer lease schema and its runtime migration assertions; exact-head CI is in progress. PR #13 remains open and unmerged. This does not establish production WebSocket acceptance.
+
+**Remaining Stage 1 external criteria — all YELLOW / evidence pending:**
+- **8:** actual production secret injection, host permissions, runtime exposure and rotation.
+- **20:** real Firebase sign-in/revocation/entitlement and browser/Android integration under verified no-billing terms.
+- **25:** owner-host Redis TLS, ACL, persistence and failover.
+- **30:** owner-environment database backup/restore drill with application-record verification.
+- **31:** encrypted off-host backup and independent key-recovery evidence.
+- **34:** real persistent-volume mount, permissions, restart durability and recovery.
+- **35:** backend HTTPS deployment on an existing zero-incremental-cost host.
+- **36:** public WSS/reverse-proxy and browser/Android E2E.
+- **38:** external metrics/logging/dashboard, retention and access-control evidence.
+- **39:** delivered alert, acknowledgement, escalation and incident-recovery drill.
+
+Repository tests, synthetic proof, documentation and CI do not close these external gates. No Stage 1 ticks are awarded without the specified owner-host/device/production evidence. The current single-device/no-PC/no-second-phone and zero-cost constraints remain binding; no paid trial, billing upgrade, new hardware or production resource is assumed.
+
+**Next code sequence on the existing PR branch:** Batch 96 — implement and test the synthetic required-consumer lease/fencing lifecycle before any production identity binding. Batch 96A adds additive v5 columns `owner_token`, `fence_token`, and `lease_expires_at_ms`, with migration assertions. Lease acquisition/renewal, expiry enforcement, stale-owner rejection, ACK/close fencing and safe deregistration remain unimplemented. Acceptance must cover additive migration, same-owner renewal, active-owner collision, expiry/reacquisition with incremented fence, stale ACK/close rejection, multiple sockets, compaction and eviction/restart. No Batch 96 source implementation is claimed at this checkpoint. The PR is not to be merged automatically.
+
+**Historical record note:** sections below retain dated checkpoints. Where an older snapshot says Batch 92–93 ACK/replay work is absent, that statement is historical and superseded by the Batch 95 candidate evidence above.
+
+---
+
 # Stage 1 / project architecture reconciliation — Work Cycle 89 (25 November 2026)
 
 **Selected architecture:** Cloudflare Native / Zero-Origin. Historical owner-host/Redis Batch 80–86 execution and the earlier Python Workers spike are superseded as active work.  
 **Stage 1 meter:** 30/40 = 75% provisional 🟨; not whole-project completion.  
-**Gate 10:** 0/10 formally closed 🟥. Remaining criteria: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.  
+**Gate 10:** 0/10 formally closed 🟨. Remaining criteria: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.  
 **Stage 2:** 🟦 PREPARATORY. **Stage 3:** ⚪ NOT SCORED. **Stage 4:** 🟪 GATED. **Stage 5/6:** ⚪ NOT SCORED.  
 **Overall project / IP3S:** ⚪ NOT SCORED; no approved reproducible weighted denominator.  
-**Production WebSocket:** 🟥 OPEN; Worker remains synthetic-only proof and is not deployed evidence.  
-**Project Gate 25:** 🟥 OPEN; durable signed snapshot/receipt/high-water acceptance not proven.  
-**Gate 36:** 🟥 OPEN; public WSS/TLS/browser/Android E2E not proven.  
-**Live market data:** 🟥 OPEN; lawful, compatible and genuinely zero-cost provider access not established.  
+**Production WebSocket:** 🟨 OPEN; Worker remains synthetic-only proof and is not deployed evidence.  
+**Project Gate 25:** 🟨 OPEN; durable signed snapshot/receipt/high-water acceptance not proven.  
+**Gate 36:** 🟨 OPEN; public WSS/TLS/browser/Android E2E not proven.  
+**Live market data:** 🟨 OPEN; lawful, compatible and genuinely zero-cost provider access not established.  
 **CI:** documentation-only commits use `[skip ci]`; this is not a source/runtime test pass. Empty status/run results mean UNKNOWN / NOT VERIFIED.  
 **Cost:** ZERO COST; no deployment, paid service, resource creation or `main` changes.
 
@@ -26,13 +233,13 @@ Parallel preparation is limited to independent contract review and failure-injec
 
 ## Current acceptance disposition
 
-- Batch 89: 🟥 OPEN; runtime commands not executed in the current connector environment.
+- Batch 89: 🟨 OPEN; runtime commands not executed in the current connector environment.
 - Batches 90–91: 🟦 design/preparation; implementation acceptance open.
-- Batches 92–93: 🟥 durable event log/replay and ACK/receipt/RESUME missing from inspected source.
-- Batch 94: 🟥 lawful zero-cost provider gate not passed.
-- Batch 95 / Gate 36: 🟥 public WSS/TLS/browser/Android E2E absent.
-- Project Gate 25: 🟥 durable signed snapshot receipt/high-water acceptance open.
-- Redis destructive retention: 🟧 BLOCKED; do not enable without durable receipt and retention-floor proof.
+- Batches 92–93: 🟨 durable event log/replay and ACK/receipt/RESUME missing from inspected source.
+- Batch 94: 🟨 lawful zero-cost provider gate not passed.
+- Batch 95 / Gate 36: 🟨 public WSS/TLS/browser/Android E2E absent.
+- Project Gate 25: 🟨 durable signed snapshot receipt/high-water acceptance open.
+- Redis destructive retention: 🟨 BLOCKED; do not enable without durable receipt and retention-floor proof.
 
 The repository connector does not provide a checkout/terminal. No current install/build/test/audit execution is claimed. Runtime code must not be committed without a supported execution path and captured acceptance evidence.
 
@@ -46,10 +253,10 @@ The repository connector does not provide a checkout/terminal. No current instal
 
 **Audited source/test HEAD:** `471eb4413a716922b20a5503fe5165607e77947f`.  
 **Stage 1:** 30/40 = 75% provisional 🟨; this is not whole-project progress.  
-**Gate 10:** 0/10 formally closed 🟥. Remaining criteria: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.  
+**Gate 10:** 0/10 formally closed 🟨. Remaining criteria: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.  
 **Stage 2:** 🟦 PREPARATORY only. **Stage 4:** 🟪 GATED. Stages 3, 5 and 6 ⚪ NOT SCORED.  
 **Project overall and IP3S:** ⚪ NOT SCORED; no approved denominator/formula.  
-**WebSocket:** synthetic-only Worker proof exists in repository, but production deployment/public WSS is not evidenced. Project Gate 25 signed receipt/high-water ACK and Gate 36 public WSS/TLS/device E2E remain 🟥 OPEN. Redis destructive retention remains 🟧 BLOCKED.  
+**WebSocket:** synthetic-only Worker proof exists in repository, but production deployment/public WSS is not evidenced. Project Gate 25 signed receipt/high-water ACK and Gate 36 public WSS/TLS/device E2E remain 🟨 OPEN. Redis destructive retention remains 🟨 BLOCKED.  
 **CI:** latest source SHA status query returned no checks; available workflow-run query returned no PR-triggered runs. Current CI state is UNKNOWN / NOT VERIFIED, not SUCCESS.  
 **ZERO COST:** maintained; no paid service, resource creation or deployment. `main` untouched.
 
@@ -63,7 +270,7 @@ Full Work Cycle 87 audit: `docs/WORK_CYCLE_2026-11-25_BATCH87_INDICATOR_AND_WEBS
 
 **Audited source HEAD:** `6a6e9e82ed2de725bef94e8ed1fa7f28c60e0a49`; Batch 71 CI 4/4 terminal SUCCESS.  
 **Official active stage:** Stage 1 — Foundation, Security & Data Integrity.  
-**Stage 1:** 30/40 = 75% provisional 🟨. **Gate 10:** 0/10 formally closed 🟥.  
+**Stage 1:** 30/40 = 75% provisional 🟨. **Gate 10:** 0/10 formally closed 🟨.  
 **Cloudflare acceptance evidence:** repository Worker/DO proof is synthetic-only and not deployed. The connected Cloudflare account inventory contains no Worker, Pages project, Tunnel, Durable Object namespace, Zone, or Worker domain. Therefore it does not close Stage 1 criteria 8/25/35/36/38/39 or Project Gate 25.  
 **Zero-cost restriction:** Workers Free + SQLite DO may be used within free quotas; Cloudflare Containers require Workers Paid and are excluded. A Tunnel requires an existing owner-operated origin. No resources were created or deployed.  
 **Gate 10 remains:** 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. No docs, synthetic tests, or CI pass substitutes for actual host/device/production evidence.  
@@ -77,13 +284,13 @@ Full Work Cycle 87 audit: `docs/WORK_CYCLE_2026-11-25_BATCH87_INDICATOR_AND_WEBS
 **Current branch HEAD at audit:** `19de41d3dc613a11a0441e65a075f7a1ed5cc685`; Batch 70 exact-HEAD CI 4/4 SUCCESS.  
 **Official active stage:** Stage 1 — Foundation, Security & Data Integrity.  
 **Stage 1 evidence meter:** 30/40 = 75% provisional 🟨.  
-**Gate 10:** 0/10 formally closed 🟥.
+**Gate 10:** 0/10 formally closed 🟨.
 
 Gate 10 comprises only these ten remaining Stage 1 criteria: **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39**. They do not migrate wholesale into Stage 2. Early Stage 2 market-data foundation work on `phase-2/market-data-foundation` is preparatory technical work, not official stage advancement.
 
 - 🟨 Host/owner proof pending: 8, 30, 34, 35, 39.
-- 🟧 Operational/owner proof partially prepared: 38.
-- 🟥 External production/device acceptance open: 20, 25, 31, 36.
+- 🟨 Operational/owner proof partially prepared: 38.
+- 🟨 External production/device acceptance open: 20, 25, 31, 36.
 - **Important:** Stage 1 criterion #25 is Redis TLS/ACL/persistence on owner hardware. Project Gate 25 is Ed25519 signed snapshot transfer/receipt/high-water ACK. They are separate blockers.
 - No criterion is formally closed by docs, synthetic tests or CI alone.
 - ZERO COST; `main` untouched; no paid hosting/data/monitoring/backup; Vercel deferred; Redis destructive retention blocked.
@@ -108,14 +315,14 @@ The Stage 1 matrix has 40 acceptance criteria. 30 have repository implementation
 | Criterion | Remaining proof required | Current blocker |
 |---|---|---|
 | 8 | Actual owner-host secret injection, owner/mode, UID 10001 readability, runtime exposure/rotation/log checks | 🟨 Host evidence absent |
-| 20 | Real no-billing Firebase sign-in, expiry/revocation, entitlement denial, ticket exchange and web/Android reconnect | 🟥 Real project/device E2E absent; billing must remain disabled |
-| 25 (Stage 1 checklist) | Self-hosted Redis TLS certificate validation, ACL, private binding/firewall, persistence, restart/failure/recovery on existing owner hardware | 🟥 Owner-host Redis acceptance absent; managed paid Redis prohibited |
+| 20 | Real no-billing Firebase sign-in, expiry/revocation, entitlement denial, ticket exchange and web/Android reconnect | 🟨 Real project/device E2E absent; billing must remain disabled |
+| 25 (Stage 1 checklist) | Self-hosted Redis TLS certificate validation, ACL, private binding/firewall, persistence, restart/failure/recovery on existing owner hardware | 🟨 Owner-host Redis acceptance absent; managed paid Redis prohibited |
 | 30 | Restore the actual application DB into a fresh target-host destination and verify application records | 🟨 Owner-target restore drill absent |
-| 31 | Encrypted off-host backup, separate key custody, retention/access policy and successful key-recovery restore | 🟥 No zero-cost off-host destination/key-custody evidence |
+| 31 | Encrypted off-host backup, separate key custody, retention/access policy and successful key-recovery restore | 🟨 No zero-cost off-host destination/key-custody evidence |
 | 34 | Actual persistent volume mount/owner/permissions, restart durability, disk-pressure and recovery | 🟨 Owner-host volume proof absent |
 | 35 | Backend on existing owner hardware, health/startup/secret injection; public route only if no incremental cost | 🟨 Host route/runtime proof absent; public route may be zero-cost constrained |
-| 36 | Authenticated HTTPS/WSS through owner-controlled reverse proxy from real web and Android clients; reconnect/resnapshot/cross-instance | 🟥 Production WSS/device proof absent |
-| 38 | Durable owner-host metrics, retention, backup/restore, disk pressure, firewall, token rotation, dashboard, independent alert/ACK/recovery | 🟧 Host observability/operations proof absent |
+| 36 | Authenticated HTTPS/WSS through owner-controlled reverse proxy from real web and Android clients; reconnect/resnapshot/cross-instance | 🟨 Production WSS/device proof absent |
+| 38 | Durable owner-host metrics, retention, backup/restore, disk pressure, firewall, token rotation, dashboard, independent alert/ACK/recovery | 🟨 Host observability/operations proof absent |
 | 39 | Demonstrated zero-cost local alert route plus incident owner, escalation, acknowledgement and recovery drill | 🟨 Operator drill absent |
 
 **Important naming distinction:** Stage 1 checklist criterion **#25** is the Redis TLS/ACL/persistence acceptance item above. The separately tracked project **Gate 25** is the Ed25519 signed-snapshot installation/receipt/high-water-ACK acceptance path. They are different work items and both remain open. Project Gate 25 still needs owner-host private-key custody, authenticated transfer to each gateway, persisted receipt retrieval after restart, re-verification, and durable per-gateway high-water ACK.
@@ -151,9 +358,9 @@ The Stage 1 matrix has 40 acceptance criteria. 30 have repository implementation
 - The 62J-95 retry-jitter experiment was rejected after measured regressions and reverted in this HEAD. Do not claim jitter improved tail latency. The restored 62J-94 implementation and tests passed the exact-head workflows above.
 - Restored-source benchmark on the CI runner: 16-thread p95/p99 295.505/644.926 ms, writer-lock p99 613.413 ms, transaction p99 18.152 ms, 68 retries; four-process p95/p99 59.106/135.398 ms, writer-lock p99 128.640 ms, transaction p99 9.771 ms, 0 retries. These are synthetic stress results, not production-host measurements or an SLA. Phase percentiles are independently calculated and cannot be treated as the exact share of an individual flush.
 - WebSocket protocol/auth/replay/snapshot/cursor/Redis paths were not changed by Batches 62J-94–96. Production WSS remains host/client gated.
-- **Gate 10: 0/10 formally closed.** Gates **8, 30, 34, 35, 39** remain 🟨🟩 repository-ready / host-owner verification only. Gates **20, 25, 31, 36, 38** remain 🟧 externally open. Yellow-green is not closure; bright green requires complete acceptance evidence.
+- **Gate 10: 0/10 formally closed.** Gates **8, 30, 34, 35, 39** remain 🟨🟩 repository-ready / host-owner verification only. Gates **20, 25, 31, 36, 38** remain 🟨 externally open. Yellow-green is not closure; bright green requires complete acceptance evidence.
 - **Stage 1: 30/40 = 300/400 = 75% provisional.** Stages 2–6 remain unscored. Overall project percentage remains unscored without approved weights/denominators.
-- Indicators unchanged: SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, Shared Hook 🟨, Footprint 🟧, Heatmap 🟥, Liquidation Maps 🟥.
+- Indicators unchanged: SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, Shared Hook 🟨, Footprint 🟨, Heatmap 🟨, Liquidation Maps 🟨.
 - ZERO COST. No deployment, paid service, Vercel/Cloudflare operation, Termux/device action, production credentials or `main` modification.
 
 ---
@@ -169,9 +376,9 @@ The Stage 1 matrix has 40 acceptance criteria. 30 have repository implementation
 - Frontend npm audit: 0 vulnerabilities; backend dependency audit: no known vulnerabilities; Trivy scanned Alpine and Python package targets with 0 reported vulnerabilities.
 - Gate 38 batch-read optimization passed exact-head CI. Full 899-series benchmark passed for 1/4/16 threads and four separate OS processes; read-only failure/recovery, SQLite `SQLITE_FULL` rollback/recovery and application-level HTTP/WebSocket failure isolation passed.
 - WebSocket repository-side automated failure matrix remains complete. Production HTTPS/WSS, Redis owner-host topology, snapshot distribution and browser/Android owner acceptance remain external.
-- **Gate 10: 0/10 formally closed.** Gates **8, 30, 34, 35, 39** are 🟨🟩 repository-ready / host-owner verification only. Gates **20, 25, 31, 36, 38** remain 🟧 externally open. Yellow-green is not closure; bright green requires full acceptance evidence.
+- **Gate 10: 0/10 formally closed.** Gates **8, 30, 34, 35, 39** are 🟨🟩 repository-ready / host-owner verification only. Gates **20, 25, 31, 36, 38** remain 🟨 externally open. Yellow-green is not closure; bright green requires full acceptance evidence.
 - **Stage 1: 30/40 = 300/400 = 75% provisional**, unchanged; no gate tick awarded by this source optimization. Stages 2–6 remain unscored. Overall project percentage remains unscored without approved weights/denominators.
-- Indicators unchanged: SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, Shared Hook 🟨, Footprint 🟧, Heatmap 🟥, Liquidation Maps 🟥.
+- Indicators unchanged: SMA20 🟨, EMA20 🟨, RSI14 🟨, MACD12/26/9 🟨, Bollinger20,2 🟨, Shared Hook 🟨, Footprint 🟨, Heatmap 🟨, Liquidation Maps 🟨.
 - ZERO COST. No deployment, paid service, Vercel/Cloudflare operation, Termux/device action, production credentials or `main` modification.
 
 ---
@@ -300,7 +507,7 @@ This matrix separates repository implementation from evidence that must come fro
 ### F. Operations and production acceptance
 
 37. **Implemented / test present** — the market-data status endpoint exposes bounded application-level operational state; it is not external monitoring.
-38. **🟧 External verification required / paid observability prohibited** — repository-side instrumentation now includes bounded HTTP/WebSocket process-local metrics and a same-host SQLite multi-worker collector (899 logical series, 15-minute buckets, 7-day retention, 650,000-row cap, up to 16 live workers). Exact-head CI verifies full-cardinality thread/process benchmarks, SQLite read-only and `SQLITE_FULL` recovery, and HTTP/WebSocket failure isolation. Batch 62J-93 reduces per-flush bucket reads to one SELECT (99.8888% fewer SELECT statements at 899 series) and records both improved and regressed latency percentiles. This remains CI evidence only. Actual owner-host persistent volume, permissions, restart, retention, disk pressure, backup/restore, firewall, operator token rotation, dashboard, independent notification and acknowledgement/recovery remain required.
+38. **🟨 External verification required / paid observability prohibited** — repository-side instrumentation now includes bounded HTTP/WebSocket process-local metrics and a same-host SQLite multi-worker collector (899 logical series, 15-minute buckets, 7-day retention, 650,000-row cap, up to 16 live workers). Exact-head CI verifies full-cardinality thread/process benchmarks, SQLite read-only and `SQLITE_FULL` recovery, and HTTP/WebSocket failure isolation. Batch 62J-93 reduces per-flush bucket reads to one SELECT (99.8888% fewer SELECT statements at 899 series) and records both improved and regressed latency percentiles. This remains CI evidence only. Actual owner-host persistent volume, permissions, restart, retention, disk pressure, backup/restore, firewall, operator token rotation, dashboard, independent notification and acknowledgement/recovery remain required.
 39. **🟨🟩 Host/operator verification only / paid delivery prohibited** — demonstrate a no-incremental-cost local alert path and document incident ownership, escalation, and recovery steps. Do not assume email/SMS/push delivery is free.
 40. **Owner-approved design — complete (2026-11-10)** — the owner explicitly approved the detailed replay cursor model, outbox retention policy, reconnect semantics, benchmark plan, and short-lived scoped WebSocket-ticket threat model in [WEBSOCKET_RELIABILITY_DESIGN.md](WEBSOCKET_RELIABILITY_DESIGN.md). This closes the owner-approval criterion. Durable outbox/replay implementation still requires incremental code review and regression evidence; ticket exchange additionally remains gated on an independent security review before ticket code is added.
 
@@ -1360,13 +1567,13 @@ The following documentation-only reconciliation commit does not change runtime/s
 
 Batches 74–77 already existed and are reconciled; they are not reimplemented. Exact-source CI recorded by Batch 77: Automated Tests 41/41 (1,426 passed, 1 skipped, 6 warnings), CodeQL 16/16, OCI ARM64 7/7, Secret Audit 6/6; dedicated Redis TLS integration 1 passed. The subsequent branch commits are documentation-only and marked `[skip ci]`; no new source CI run is claimed for them.
 
-**Stage dashboard:** Stage 1 official active, 30/40 = 75% provisional 🟨; Gate 10 = 0/10 formally closed 🟥 (criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, 39). Stage 2 🟦 preparatory only; Stage 3 ⚪ not scored; Stage 4 🟪 gated; Stages 5–6 ⚪ not scored. Overall project, aggregate indicator completion and IP3S remain ⚪ NOT SCORED because no approved weighted denominator exists.
+**Stage dashboard:** Stage 1 official active, 30/40 = 75% provisional 🟨; Gate 10 = 0/10 formally closed 🟨 (criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, 39). Stage 2 🟦 preparatory only; Stage 3 ⚪ not scored; Stage 4 🟪 gated; Stages 5–6 ⚪ not scored. Overall project, aggregate indicator completion and IP3S remain ⚪ NOT SCORED because no approved weighted denominator exists.
 
 **WebSocket/Gate 25:** production WSS, Firebase identity/entitlement, lawful zero-cost provider provenance, production ticket issuance, signed snapshot transfer, authenticated persisted receipt retrieval, durable per-gateway high-water ACK/fencing/restart reconciliation and public browser/Android E2E remain OPEN. Redis `XTRIM`, `XDEL` and consumer-group destruction remain BLOCKED until durable gateway ACK acceptance. Cloudflare Worker/DO remains synthetic-only; no production resources were created. The connected account inventory is empty, while the user has separately stated the project server is on Cloudflare; do not infer that the connected account is the hosting account or create duplicate infrastructure.
 
 **Recovery/monitoring:** CI verifies container-scope health, Redis ACL/AOF restart, outage fail-closed/reconnect, non-root execution, volume ownership smoke, SQLite integrity/restart, rate limiting and isolated TLS. Owner-host secret/volume/DB restore/off-host encrypted backup, independent alert/incident drill, production WSS and device recovery remain unaccepted.
 
-**Indicators:** SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain 🟨 FOUNDATION; Footprint PRO 2GD 🟧 GATED; Volume Profile, Complete Volume Profile, Movable-range Volume Profile, Heatmap and Liquidation Maps 🟥 OPEN. Focused declarations remain 28 (21 calculation + 7 hook), not completion. No indicator source/UI change and no completion credit in Batch 78. `CandlestickChart.tsx` integration remains absent. Preserve warm-up nulls, prefix causality, no lookahead/repaint, exact timestamp alignment and Footprint OFF normal candle spacing.
+**Indicators:** SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain 🟨 FOUNDATION; Footprint PRO 2GD 🟨 GATED; Volume Profile, Complete Volume Profile, Movable-range Volume Profile, Heatmap and Liquidation Maps 🟨 OPEN. Focused declarations remain 28 (21 calculation + 7 hook), not completion. No indicator source/UI change and no completion credit in Batch 78. `CandlestickChart.tsx` integration remains absent. Preserve warm-up nulls, prefix causality, no lookahead/repaint, exact timestamp alignment and Footprint OFF normal candle spacing.
 
 **Controls:** ZERO COST; `main` untouched; Vercel deferred; no paid data/hosting/monitoring/backup; no production deployment; delivery target around 24 December 2026.
 
@@ -1387,9 +1594,9 @@ Authoritative work package: [WORK_CYCLE_2026-11-25_BATCH80_86_UNIFIED_RUNTIME_AN
 
 **CI:** source/test SHA `a2d2e7a03e2afee89429bb9d22c4641fd5b8a833` has prior exact-source evidence: Automated Tests 41/41, 1,426 passed, 1 skipped, 6 warnings; CodeQL 16/16; OCI ARM64 7/7; Secret Audit 6/6; dedicated Redis TLS 1 passed. Current documentation HEAD `fd756cee2bf3e427a628c3089c37d07d9f75ada7` is 12 commits ahead, zero behind, documentation-only by compare; no new source CI is claimed. The documentation commit uses `[skip ci]` and has no run/status. Previously recorded source jobs are terminal success; no running jobs left.
 
-**Progress unchanged:** Stage 1 30/40 = 75% provisional 🟨; Gate 10 0/10 closed 🔴 (8, 20, 25, 30, 31, 34, 35, 36, 38, 39); Stage 2 🟦 preparatory; Stage 3 ⚪ not scored; Stage 4 🟪 gated; Stages 5–6 ⚪ not scored. Overall project/IP3S ⚪ NOT SCORED. WebSocket runtime, Gate 25 durable ACK, public Cloudflare WSS/device E2E and owner-host recovery remain 🔴 OPEN.
+**Progress unchanged:** Stage 1 30/40 = 75% provisional 🟨; Gate 10 0/10 closed 🟨 (8, 20, 25, 30, 31, 34, 35, 36, 38, 39); Stage 2 🟦 preparatory; Stage 3 ⚪ not scored; Stage 4 🟪 gated; Stages 5–6 ⚪ not scored. Overall project/IP3S ⚪ NOT SCORED. WebSocket runtime, Gate 25 durable ACK, public Cloudflare WSS/device E2E and owner-host recovery remain 🟨 OPEN.
 
-**Indicator ledger unchanged:** SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook 🟨 FOUNDATION; Footprint PRO 2GD 🟧 GATED; Volume Profile, Complete Volume Profile, Movable-range VP, Heatmap and Liquidation Maps 🔴 OPEN. 28 focused declarations (21 calculation + 7 hook) are not a completion percentage. No indicator source/UI changes. Keep warm-up nulls, prefix causality, no lookahead/repaint, timestamp alignment, stale-output clearing and no calculations on unavailable/demo/error/empty snapshots. Footprint OFF remains normal spacing; Footprint ON alone uses spaced clusters. Footprint references are available; Heatmap reference is still required before visual work.
+**Indicator ledger unchanged:** SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook 🟨 FOUNDATION; Footprint PRO 2GD 🟨 GATED; Volume Profile, Complete Volume Profile, Movable-range VP, Heatmap and Liquidation Maps 🟨 OPEN. 28 focused declarations (21 calculation + 7 hook) are not a completion percentage. No indicator source/UI changes. Keep warm-up nulls, prefix causality, no lookahead/repaint, timestamp alignment, stale-output clearing and no calculations on unavailable/demo/error/empty snapshots. Footprint OFF remains normal spacing; Footprint ON alone uses spaced clusters. Footprint references are available; Heatmap reference is still required before visual work.
 
 Controls: ZERO COST; `main` untouched; Vercel deferred; no new/duplicate Cloudflare resources; no paid data/hosting/monitoring/backup; delivery target around 24 December 2026.
 
@@ -1437,7 +1644,7 @@ Automated Tests also completed the Redis TLS fixture step, backend dependency au
 
 ### Boundary — what is still not complete
 
-The module-level production ASGI app does not invent owner-specific snapshot callbacks. Source publisher activation still requires an owner-provided snapshot_verifier that verifies the exact snapshot and every required gateway's durable installation receipt. Gateway activation still requires an authenticated snapshot_installer and owner-pinned Ed25519 trust keys. These callbacks are not guessed or fabricated. Therefore production publisher/gateway runtime wiring, Gate 25 owner-accepted durable high-water ACK, public Cloudflare WSS, browser/Android E2E and owner-host recovery remain 🔴 OPEN. No production deployment or Cloudflare resource was changed.
+The module-level production ASGI app does not invent owner-specific snapshot callbacks. Source publisher activation still requires an owner-provided snapshot_verifier that verifies the exact snapshot and every required gateway's durable installation receipt. Gateway activation still requires an authenticated snapshot_installer and owner-pinned Ed25519 trust keys. These callbacks are not guessed or fabricated. Therefore production publisher/gateway runtime wiring, Gate 25 owner-accepted durable high-water ACK, public Cloudflare WSS, browser/Android E2E and owner-host recovery remain 🟨 OPEN. No production deployment or Cloudflare resource was changed.
 
 ### Next ordered work
 
@@ -1453,7 +1660,7 @@ Do not trim/delete Redis stream entries or destroy consumer groups until every r
 ### Project and indicator progress — no percentage inflation
 
 - Stage 1: **30/40 = 75% provisional 🟨** (unchanged; Batch 80 does not auto-close Stage 1 criteria).
-- Gate 10: **0/10 formally closed 🔴**; criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.
+- Gate 10: **0/10 formally closed 🟨**; criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, 39.
 - Stage 2: 🟦 preparatory, not officially entered/scored.
 - Stage 3: ⚪ not scored.
 - Stage 4: 🟪 gated.
@@ -1471,12 +1678,12 @@ Do not trim/delete Redis stream entries or destroy consumer groups until every r
 | MACD12/26/9 | 🟨 FOUNDATION | Calculation foundation only | MACD line first valid index 25; signal and histogram index 33 |
 | Bollinger20,2 | 🟨 FOUNDATION | Calculation foundation only | First valid index 19; population standard deviation per current contract |
 | Shared Indicator Hook | 🟨 FOUNDATION | 7 focused declarations | Chart integration into CandlestickChart.tsx remains open |
-| Footprint PRO 2GD | 🟧 GATED | Synthetic/offline accumulator only | Visual work must match both saved Footprint references; OFF keeps normal candle spacing, ON alone enables spaced clusters |
-| Volume Profile | 🟥 OPEN | Not accepted | Price-bin volume conservation, range semantics and timestamp boundaries |
-| Complete Volume Profile | 🟥 OPEN | Not accepted | Full-session completeness, POC/VA derivation and conservation |
-| Movable-range Volume Profile | 🟥 OPEN | Not accepted | User-selected range bounds and deterministic recomputation |
-| Heatmap | 🟥 OPEN | Visual implementation not started | Must wait for the user's Heatmap reference image |
-| Liquidation Maps | 🟥 OPEN | Not accepted | Data provenance and methodology remain unapproved |
+| Footprint PRO 2GD | 🟨 GATED | Synthetic/offline accumulator only | Visual work must match both saved Footprint references; OFF keeps normal candle spacing, ON alone enables spaced clusters |
+| Volume Profile | 🟨 OPEN | Not accepted | Price-bin volume conservation, range semantics and timestamp boundaries |
+| Complete Volume Profile | 🟨 OPEN | Not accepted | Full-session completeness, POC/VA derivation and conservation |
+| Movable-range Volume Profile | 🟨 OPEN | Not accepted | User-selected range bounds and deterministic recomputation |
+| Heatmap | 🟨 OPEN | Visual implementation not started | Must wait for the user's Heatmap reference image |
+| Liquidation Maps | 🟨 OPEN | Not accepted | Data provenance and methodology remain unapproved |
 
 Focused declaration inventory remains **28 total = 21 calculation + 7 shared-hook declarations**. This is not an indicator completion percentage or count of accepted indicators. Batch 80 changed no indicator calculation or chart UI; indicator progress credit is therefore unchanged.
 
@@ -1497,10 +1704,10 @@ Blueprint: `docs/WORK_CYCLE_2026-11-25_BATCH89_93_ZERO_ORIGIN_BLUEPRINT.md`. Thi
 | 91 | 🟦 Provider-neutral API contract drafted | Existing frontend contract reconciliation, implementation and route tests |
 | 92 | 🟦 Series DO/event/replay design drafted | Durable implementation and concurrency/restart/gap/idempotency tests |
 | 93 | 🟦 WebSocket/receipt design drafted | Authenticated ticket, hibernation, reconnect, durable receipt and restart tests |
-| 94 | 🟥 Provider gate blocked | Lawful zero-cost source and runtime/transport compatibility evidence |
-| 95 | 🟥 Public acceptance blocked | Explicit deployment authorization, public WSS/TLS, browser/Android E2E, quota and restore drill |
+| 94 | 🟨 Provider gate blocked | Lawful zero-cost source and runtime/transport compatibility evidence |
+| 95 | 🟨 Public acceptance blocked | Explicit deployment authorization, public WSS/TLS, browser/Android E2E, quota and restore drill |
 
-Production WebSocket: 🟥 OPEN. Project Gate 25: 🟥 OPEN. Gate 36: 🟥 OPEN. No production Worker/API is claimed deployed. No deployment or Cloudflare resource creation occurred. Zero Cost and main-branch isolation preserved.
+Production WebSocket: 🟨 OPEN. Project Gate 25: 🟨 OPEN. Gate 36: 🟨 OPEN. No production Worker/API is claimed deployed. No deployment or Cloudflare resource creation occurred. Zero Cost and main-branch isolation preserved.
 
 
 ---
@@ -1516,19 +1723,19 @@ The owner approved the Batch 89–93 Zero-Origin blueprint. Approval authorizes 
 - WebSocket protocol currently handles auth and ping only; ACK/RESUME are absent.
 - No durable consumer receipt ledger or restart receipt reconciliation exists.
 
-Therefore production WebSocket remains 🟥 OPEN. Correct order: DO SQLite atomic event+cursor → bounded replay → durable ACK receipt → reconnect/resnapshot → public WSS/browser/Android E2E. Gate 25 and Gate 36 remain open.
+Therefore production WebSocket remains 🟨 OPEN. Correct order: DO SQLite atomic event+cursor → bounded replay → durable ACK receipt → reconnect/resnapshot → public WSS/browser/Android E2E. Gate 25 and Gate 36 remain open.
 
 ## Execution status
 
 | Batch | Status | Evidence |
 |---:|---|---|
-| 89 | 🟨 platform feasibility / 🟥 runtime unverified | FastAPI ASGI path documented; no exact repository runtime execution |
+| 89 | 🟨 platform feasibility / 🟨 runtime unverified | FastAPI ASGI path documented; no exact repository runtime execution |
 | 90 | 🟦 design | DO SQLite schema and migration invariants |
 | 91 | 🟦 design | provider-neutral API and fail-closed response contract |
 | 92 | 🟦 design | durable series event/cursor/replay contract |
 | 93 | 🟦 design | ticket, ACK receipt, hibernation and reconnect contract |
-| 94 | 🟥 blocked | no provider passed zero-cost lawful compatibility gate |
-| 95 | 🟥 blocked | no production WSS/device E2E/restore evidence |
+| 94 | 🟨 blocked | no provider passed zero-cost lawful compatibility gate |
+| 95 | 🟨 blocked | no production WSS/device E2E/restore evidence |
 
 No code was committed without a runnable test environment. GitHub connector currently exposes file operations only, and local container could not resolve github.com. This limitation is recorded rather than disguising untested source as successful.
 
@@ -1543,13 +1750,13 @@ This audit confirms that the current synthetic Worker remains proof-only. The se
 
 | Acceptance item | Status | Evidence required to close |
 |---|---|---|
-| Python Worker dependency compatibility (Batch 89) | 🟥 OPEN | Exact isolated runtime probes, package versions and terminal test output |
+| Python Worker dependency compatibility (Batch 89) | 🟨 OPEN | Exact isolated runtime probes, package versions and terminal test output |
 | DO SQLite schema/migration (Batch 90) | 🟦 DESIGN | Tested DDL, repeatable migration, rollback and legacy digest parity |
 | Provider-neutral API (Batch 91) | 🟦 DESIGN | Frontend contract reconciliation, route tests and fail-closed status semantics |
-| Durable event log/replay (Batch 92) | 🟥 OPEN | Atomic event+digest+high-water, bounded replay, gap/duplicate/eviction tests |
-| WebSocket ACK/receipt/reconnect (Batch 93) | 🟥 OPEN | Bound ACK validation, durable monotonic receipts, RESUME/resnapshot and race/restart tests |
-| Provider ingress (Batch 94) | 🟥 BLOCKED | Lawful terms, technical compatibility and zero-cost proof |
-| Public WSS/device E2E (Batch 95) | 🟥 BLOCKED | Explicit deployment authorization, TLS, browser/Android reconnect, quota and restore proof |
+| Durable event log/replay (Batch 92) | 🟨 OPEN | Atomic event+digest+high-water, bounded replay, gap/duplicate/eviction tests |
+| WebSocket ACK/receipt/reconnect (Batch 93) | 🟨 OPEN | Bound ACK validation, durable monotonic receipts, RESUME/resnapshot and race/restart tests |
+| Provider ingress (Batch 94) | 🟨 BLOCKED | Lawful terms, technical compatibility and zero-cost proof |
+| Public WSS/device E2E (Batch 95) | 🟨 BLOCKED | Explicit deployment authorization, TLS, browser/Android reconnect, quota and restore proof |
 
 The current session has no checked-out repository command runner. No runtime tests, build, lint or Cloudflare simulator suite were executed. The GitHub status endpoint returned no status entries and the available workflow endpoint is PR-filtered; neither is evidence of a successful CI run. No code was committed without runnable tests.
 
@@ -1581,7 +1788,7 @@ Existing ticket-consumption race tests and socket-attachment restoration tests a
 
 The detailed cross-batch contract is maintained in [BATCH90_95_DURABLE_WEBSOCKET_DELIVERY_SPEC.md](BATCH90_95_DURABLE_WEBSOCKET_DELIVERY_SPEC.md), commit `327cac59c17894859d0deb6ac99644cdd3aa101f`.
 
-New combined acceptance groups: (1) compatible additive DO SQLite schema; (2) atomic event payload+digest+high-water; (3) duplicate idempotency/conflict and gap rollback; (4) fan-out-after-commit; (5) bounded contiguous replay and retention-floor resnapshot; (6) authenticated ACK and durable monotonic receipts; (7) RESUME/hibernation/eviction recovery; (8) provider legal/free/runtime gate; (9) public WSS/browser/Android/restore E2E. All remain 🟥 OPEN until executable evidence is attached to the exact commit.
+New combined acceptance groups: (1) compatible additive DO SQLite schema; (2) atomic event payload+digest+high-water; (3) duplicate idempotency/conflict and gap rollback; (4) fan-out-after-commit; (5) bounded contiguous replay and retention-floor resnapshot; (6) authenticated ACK and durable monotonic receipts; (7) RESUME/hibernation/eviction recovery; (8) provider legal/free/runtime gate; (9) public WSS/browser/Android/restore E2E. All remain 🟨 OPEN until executable evidence is attached to the exact commit.
 
 No acceptance gate closes from this design document. Stage 1 remains 30/40 = 75% provisional; Gate 10 remains 0/10 formally closed; Gate 25 and Gate 36 remain OPEN. No runtime code or Cloudflare resources were changed.
 
@@ -1595,3 +1802,6 @@ Detailed evidence and blob SHAs: [BATCH89_93_SOURCE_AUDIT_2026-11-25.md](BATCH89
 Static test inventory: 31 Node proof + 11 Durable Object Vitest + 1 Miniflare declarations = 43, all NOT RUN. Static lockfile root metadata matches package.json; no runtime compatibility or installation claim follows from this check.
 
 Batch 92 source blocker: sequence cursor only is committed; event payload/digest replay storage is absent. Batch 93 source blocker: ACK, durable consumer receipt, RESUME and replay recovery are absent. Existing socket attachment restore tests do not close these gates. All Batch 89–93 runtime acceptance conditions remain OPEN pending exact-SHA execution evidence.
+
+
+**Batch 96A CI:** exact source/test HEAD `7dcf148b772d37c4321122a1c45d49bae0e43868`. Automated Tests run 46010599247, CodeQL 46010599101 and OCI ARM64 46010599133 were still running at last poll; Full Git History Secret Audit run 46010599070 reached SUCCESS. Do not treat Batch 96A as accepted until all required workflows are terminal SUCCESS.

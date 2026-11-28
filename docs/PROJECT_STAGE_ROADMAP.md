@@ -1,3 +1,27 @@
+# AUTHORITATIVE OWNER CHECKPOINT — 27 November 2026, Batch 96B
+
+**Official stage:** Stage 1 — Foundation, Security & Data Integrity. Stage 2 is preparatory only and cannot officially start until Stage 1 reaches 100% and the owner explicitly authorizes the transition.
+
+**Stage 1 accounting:** 30/40 = 75% provisional. The ten remaining external acceptance criteria are 8, 20, 25, 30, 31, 34, 35, 36, 38 and 39. Gate 10 remains 0/10 formally closed. These are not ten missing source-code functions: each requires owner-host, real Firebase, backup/key custody, deployment, public WSS/device, monitoring or incident evidence. Repository CI cannot truthfully close them. No ticks are added by documentation or synthetic tests.
+
+**Exact source/test HEAD:** `96cb3d505b7f70d70147f6773d879632d71e9a58`. PR #13 remains OPEN and unmerged; branch `work/batch95-websocket-ack-protocol`; `main` untouched. The exact source/test SHA has all four required workflows terminal SUCCESS:
+- Automated Tests [46011891943](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46011891943) — **41/41 steps SUCCESS**.
+- CodeQL [46011891956](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46011891956) — **SUCCESS**.
+- OCI ARM64 [46011892089](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46011892089) — **SUCCESS**.
+- Full Git History Secret Audit [46011892151](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46011892151) — **SUCCESS**.
+
+Automated Tests passed Worker/DO runtime tests, frontend tests and build, Android read-only preflight, Redis TLS CA/hostname fixture, backend tests, SQLite outbox/metrics benchmarks, dependency audit, backend image build, persistent-volume/Redis-guard smoke test, image scan/report and audit enforcement. This is repository/synthetic evidence, not a production deployment or owner-host acceptance.
+
+**Batch 96B change:** schema v5 migration now deactivates legacy consumer rows without valid owner/fence/lease metadata. Regression test added for v4-to-v5 migration. The change is included in the exact SHA above and therefore has full four-workflow CI success.
+
+**Remaining WebSocket lifecycle work:** implement atomic lease acquisition/renewal/release; monotonic fencing on expired takeover; owner+fence+expiry validation on ACK; expiry-aware compaction; socket lifecycle integration; stale owner/duplicate owner/takeover/restart/eviction/concurrency tests. These are still open. Do not claim WebSocket lifecycle complete.
+
+**Project status:** Stage 1 75% provisional; Stage 2 preparatory; Stage 3/5/6 unscored; Stage 4 gated; overall project percentage not scored. ZERO COST. No paid trials, new resources, deployments or billing changes. Delivery target 24 December 2026: 27 calendar days remain from 27 November. No autonomous background AI coding is claimed; the 10-minute relay runs preflight only.
+
+---
+
+# OFFICIAL SIX-STAGE ROADMAP
+
 ## Cloudflare deployment boundary — Batch 72 (25 November 2026)
 
 Cloudflare is an intended platform component and the repository contains a tested synthetic Worker/SQLite Durable Object proof. That proof is not a deployed production service: its Wrangler config disables Workers.dev and preview URLs, sets synthetic-only mode, and the Worker source explicitly excludes FastAPI, Firebase, live providers and UI integration. The currently connected Cloudflare account inventory returned no deployed Worker, Pages project, Tunnel, Durable Object namespace, Queue, D1, KV, Zone or Worker domain. Do not treat this as Stage 1 acceptance.
@@ -199,3 +223,44 @@ Focused declaration inventory remains **28 total = 21 calculation + 7 shared-hoo
 Cross-indicator acceptance remains mandatory: warm-up values null until mathematically valid; prefix causality; no future-candle lookahead/repaint; exact timestamp/series identity alignment; stale-output clearing on identity change; deterministic repeated results; bounded computation; no mutation of source candle data; no calculations for demo/loading/unavailable/error/empty snapshots.
 
 **Controls:** ZERO COST; active branch only phase-2/market-data-foundation; main untouched; no Vercel; no paid market data, hosting, monitoring, backup, subscription or publication; no duplicate Cloudflare infrastructure. Planning target remains around **24 December 2026**.
+
+
+---
+
+## Authoritative checkpoint — Batch 96A CI terminal verification (27 November 2026)
+
+**This section supersedes older CI/SHA snapshots above for the current checkpoint.** Older dated entries remain historical evidence and must not be read as the latest branch state.
+
+- Official stage remains **Stage 1 — Foundation, Security & Data Integrity**.
+- Stage 1 remains **30/40 criteria = 75% provisional 🟨**. No score increase is claimed for Batch 96A.
+- Ten external Stage 1 acceptance criteria remain open and awaiting evidence: **8, 20, 25, 30, 31, 34, 35, 36, 38, 39**. No active item is presented as accepted without owner-host evidence.
+- Stage 2 remains preparatory only. Stage 2 cannot officially begin until Stage 1 reaches 100% and the owner explicitly authorizes the transition.
+- PR #13 remains OPEN and unmerged. Branch: `work/batch95-websocket-ack-protocol`. Latest PR/documentation HEAD at this checkpoint: `f9ddd7f62951fd48471cbb7ece12594702f1407b`. Application `main` remains untouched.
+- Latest source/test SHA with exact-head CI: `7dcf148b772d37c4321122a1c45d49bae0e43868`. The documentation HEAD is later than the tested source/test SHA; do not conflate them.
+- Four workflows on source/test SHA `7dcf148b772d37c4321122a1c45d49bae0e43868` are now terminal SUCCESS:
+  - Automated Tests [46010599247](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46010599247)
+  - CodeQL Security Analysis [46010599101](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46010599101)
+  - OCI ARM64 Image Readiness [46010599133](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46010599133)
+  - Full Git History Secret Audit [46010599070](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46010599070)
+- Automated Tests job completed SUCCESS with all steps successful, including Worker proof, pinned workerd/DO runtime, frontend tests/build, Android read-only preflight, Redis TLS CA/hostname enforcement, backend tests, SQLite benchmarks, backend container build/smoke test and image scan/report.
+- Batch 96A source work adds Durable Object SQLite schema v5 fields to `required_consumers`: `owner_token`, `fence_token`, and `lease_expires_at_ms`, plus the lease-expiry index. Runtime migration tests assert v5 columns, migration history and eviction persistence.
+- **Scope boundary:** this is schema/migration groundwork only. Lease acquire/renew/expire/fencing enforcement, owner-bound ACK and close validation, safe deregistration, expiry-aware compaction and lifecycle race/restart acceptance are not implemented or claimed complete. Production FastAPI/Redis runtime wiring, Firebase owner identity, public WSS and browser/Android E2E remain unaccepted.
+- Next implementation order: (1) make legacy ownerless consumer rows fail closed; (2) implement atomic lease acquire/renew/release with monotonic fencing; (3) bind ACK and socket close to owner + fence + unexpired lease; (4) make compaction evaluate only valid active leases and reject unsafe stale owners; (5) add expiry, takeover, duplicate-owner, stale-fence, restart/eviction and concurrent ACK/compaction tests; (6) run all four exact-source CI workflows to terminal state.
+- CI success is synthetic proof/repository evidence, not production acceptance and not closure of any external Stage 1 gate.
+- Delivery target remains **24 December 2026**; from 27 November, **27 calendar days** remain. ZERO COST. Do not merge PR #13 or modify `main` without explicit owner authorization. No autonomous 10-minute AI coding is claimed; the configured relay runs preflight only.
+
+
+## Automation reality audit — 27 November 2026 (read-only Cloudflare + GitHub verification)
+
+The Cloudflare account currently contains one Worker script, `dezzta-chart-runner-relay`; the account has **zero** Durable Object namespaces, Pages projects, zones, and Worker custom domains. The Worker account subdomain exists, but that does not mean the DEZZTA CHART application Worker is deployed.
+
+- The relay's Cron Trigger schedules endpoint returns an empty schedule list. No 10-minute Cron Trigger is configured.
+- The relay Worker has a `fetch` handler only; its health endpoint reports `mode: standby`. Its authenticated `POST /trigger` route dispatches GitHub workflow `preflight.yml` in `dezzta-chart-runner`. It does not invoke ChatGPT or edit application code.
+- The runner workflow has only `workflow_dispatch`, checks out application branch `phase-2/market-data-foundation` (not the active PR branch `work/batch95-websocket-ack-protocol`), verifies branch/package metadata, and explicitly performs **no install, build, tests, edits, or pushes**.
+- Therefore the prior description of an autonomous 10-minute AI coding loop was inaccurate. Do not represent the relay as an AI agent, scheduled build/test runner, or autonomous coding system. Do not add a Cron Trigger that only repeats a no-op preflight or would consume free CI minutes without delivering code progress.
+
+This audit used read-only account/resource queries and source inspection. No Cloudflare resource, secret, schedule, billing setting, deployment, or repository application code was changed by this audit.
+
+## Current exact-head CI — documentation-only head
+
+After the checkpoint above, three documentation-only commits updated the owner dashboard, roadmap, and acceptance matrix. Latest PR HEAD is `7a5255a9935ccdf728f91bfc71ad98aaf67bc08d`. Four workflows on this exact HEAD are terminal SUCCESS: Automated Tests [46012847491] (41/41 steps), CodeQL [46012847240], OCI ARM64 [46012847230], and Full Git History Secret Audit [46012847260]. The latest source/test implementation remains `96cb3d505b7f70d70147f6773d879632d71e9a58`; documentation-only changes do not change its application behavior.
