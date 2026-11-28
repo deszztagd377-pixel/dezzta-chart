@@ -21,6 +21,7 @@ vi.mock('../auth/AuthProvider', () => ({
 vi.mock('lightweight-charts', () => ({
   createChart: mocks.createChart,
   CandlestickSeries: {},
+  LineSeries: {},
 }));
 
 vi.mock('../services/ohlcvSeriesSupervisorRegistry', () => ({
@@ -154,6 +155,11 @@ afterEach(() => {
 });
 
 describe('CandlestickChart WebSocket browser lifecycle integration', () => {
+  it('creates the SMA, EMA and Bollinger overlay series with the candlestick chart', () => {
+    renderChart();
+    expect(chartApi.addSeries).toHaveBeenCalledTimes(6);
+  });
+
   it('uses a loaded CME calendar release only for daily-or-higher chart series', () => {
     const cmeContract: FuturesContractDto = {
       ...selectedContract,
