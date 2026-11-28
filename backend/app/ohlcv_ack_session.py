@@ -74,7 +74,7 @@ class OhlcvAckEventLedger:
     def _parse_event(event: Any, expected_stream_id: str) -> OhlcvAckedEvent:
         if not isinstance(event, dict):
             raise OhlcvAckProtocolError("OHLCV event must be an object.")
-        if event.get("type") != "market_data.ohlcv.update" or event.get("version") != 1:
+        if event.get("type") != "market_data.ohlcv.update" or type(event.get("version")) is not int or event.get("version") != 1:
             raise OhlcvAckProtocolError("Only version 1 OHLCV update events can be acknowledged.")
         stream_id = event.get("streamId")
         if stream_id != expected_stream_id:
@@ -105,8 +105,8 @@ class OhlcvAckEventLedger:
     def record_sent_event(self, event: Any) -> OhlcvAckedEvent:
         """Record a durable event after successful delivery to this socket."""
         parsed = self._parse_event(event, self.stream_id)
-        if parsed.sequence <= self._last_registered_sequence:
-            raise OhlcvAckStale("Sent event sequence must increase strictly.")
+        if parsed.sequence != self._last_registered_sequence + 1:
+            raise OhlcvAckStale("Sent event sequence must be contiguous and increase by one.")
         if parsed.cursor <= self._last_registered_cursor:
             raise OhlcvAckStale("Sent event cursor must increase strictly.")
         if len(self._pending) >= self.max_pending_events:
@@ -122,7 +122,7 @@ class OhlcvAckEventLedger:
             raise OhlcvAckProtocolError("OHLCV ACK must be an object.")
         if set(message) != {"type", "version", "sequence", "eventDigest"}:
             raise OhlcvAckProtocolError("OHLCV ACK fields do not match protocol version 1.")
-        if message.get("type") != "market_data.ack" or message.get("version") != 1:
+        if message.get("type") != "market_data.ack" or type(message.get("version")) is not int or message.get("version") != 1:
             raise OhlcvAckProtocolError("Unsupported OHLCV ACK message.")
         sequence = message.get("sequence")
         if type(sequence) is not int or not 1 <= sequence <= MAX_JS_SAFE_INTEGER:
