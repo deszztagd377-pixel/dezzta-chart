@@ -9,6 +9,13 @@ import {
 import type { ChartData } from '../types';
 import { getBucketPolicyForTimeframe } from '../utils/ohlcvBucketPolicy';
 
+const MAX_SQLITE_CURSOR_DECIMAL = '9223372036854775807';
+
+function isPositiveSqliteCursor(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^[1-9][0-9]{0,18}$/.test(value)) return false;
+  return value.length < MAX_SQLITE_CURSOR_DECIMAL.length || value <= MAX_SQLITE_CURSOR_DECIMAL;
+}
+
 export interface OhlcvStreamOptions {
   baseUrl: string;
   identity: OhlcvSeriesIdentity;
@@ -566,11 +573,10 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
 
       if (value.type === 'market_data.acknowledged') {
         if (!consumerAckEnabled || consumerAckInFlightSequence === null || value.version !== 1 ||
-            value.accepted !== true || typeof value.committedCursor !== 'string' ||
-            !/^\d+$/.test(value.committedCursor) || Number(value.committedCursor) !== consumerAckInFlightSequence ||
+            value.accepted !== true || value.sequence !== consumerAckInFlightSequence ||
+            !isPositiveSqliteCursor(value.committedCursor) ||
             !Number.isSafeInteger(value.receiptVersion) || (value.receiptVersion as number) < 1 ||
             typeof value.duplicate !== 'boolean') {
-          throw new Error('Unexpected or invalid durable consumer ACK acknowledgement.');
         }
         if (consumerAckResponseTimer !== null) clearTimeout(consumerAckResponseTimer);
         consumerAckResponseTimer = null;
