@@ -30,7 +30,7 @@ def make_store(tmp_path, *, clock=lambda: 1_700_000_000_000_000_000):
 
 def commit(store, *, cursor=41, event_id=EVENT_1, digest=DIGEST_1,
            stream=STREAM, sequence=1, subject=SUBJECT, consumer=CONSUMER,
-           series=SERIES):
+           series=SERIES, fencing_token=1):
     return store.commit_receipt(
         account_subject=subject,
         consumer_id=consumer,
@@ -40,6 +40,7 @@ def commit(store, *, cursor=41, event_id=EVENT_1, digest=DIGEST_1,
         event_digest=digest,
         stream_id=stream,
         sequence=sequence,
+        fencing_token=fencing_token,
     )
 
 
@@ -51,6 +52,7 @@ def test_first_receipt_is_durable_and_scoped_to_identity(tmp_path):
         "duplicate": False,
         "committed_cursor": "41",
         "receipt_version": 1,
+        "fencing_token": 1,
     }
 
     reopened = make_store(tmp_path)
@@ -64,6 +66,7 @@ def test_first_receipt_is_durable_and_scoped_to_identity(tmp_path):
     assert receipt["event_id"] == EVENT_1
     assert receipt["event_digest"] == DIGEST_1
     assert receipt["receipt_version"] == 1
+    assert receipt["fencing_token"] == 1
 
 
 def test_duplicate_ack_is_idempotent_across_reconnect_generation(tmp_path):
@@ -79,6 +82,64 @@ def test_duplicate_ack_is_idempotent_across_reconnect_generation(tmp_path):
         series_key=SERIES,
     )
     assert receipt["stream_id"] == "stream-generation-2"
+
+
+def test_higher_fencing_token_takes_over_without_regressing_cursor(tmp_path):
+    store = make_store(tmp_path)
+    commit(store, cursor=41, fencing_token=4)
+
+    takeover = commit(
+        store,
+        cursor=41,
+        stream="stream-generation-2",
+        sequence=1,
+        fencing_token=5,
+    )
+    assert takeover["accepted"] is True
+    assert takeover["duplicate"] is True
+    assert takeover["receipt_version"] == 2
+    assert takeover["fencing_token"] == 5
+
+    receipt = store.get_receipt(
+        account_subject=SUBJECT,
+        consumer_id=CONSUMER,
+        series_key=SERIES,
+    )
+    assert receipt["committed_cursor"] == "41"
+    assert receipt["fencing_token"] == 5
+    assert receipt["stream_id"] == "stream-generation-2"
+
+
+def test_stale_fencing_token_cannot_advance_a_new_owner_receipt(tmp_path):
+    store = make_store(tmp_path)
+    commit(store, cursor=41, fencing_token=8)
+    with pytest.raises(OhlcvConsumerReceiptStale, match="fencing token"):
+        commit(
+            store,
+            cursor=42,
+            event_id="event-42",
+            digest=hashlib.sha256(b"event-42").hexdigest(),
+            sequence=2,
+            fencing_token=7,
+        )
+    receipt = store.get_receipt(
+        account_subject=SUBJECT,
+        consumer_id=CONSUMER,
+        series_key=SERIES,
+    )
+    assert receipt["committed_cursor"] == "41"
+    assert receipt["fencing_token"] == 8
+
+
+def test_higher_fence_cannot_regress_the_committed_cursor(tmp_path):
+    store = make_store(tmp_path)
+    commit(store, cursor=45, event_id="event-45",
+           digest=hashlib.sha256(b"event-45").hexdigest(),
+           sequence=5, fencing_token=3)
+    with pytest.raises(OhlcvConsumerReceiptStale, match="cursor"):
+        commit(store, cursor=44, event_id="event-44",
+               digest=hashlib.sha256(b"event-44").hexdigest(),
+               sequence=4, fencing_token=4)
 
 
 def test_receipt_cursor_must_advance_monotonically(tmp_path):
@@ -129,6 +190,10 @@ def test_receipts_are_isolated_by_account_consumer_and_series(tmp_path):
         {"sequence": True},
         {"sequence": 0},
         {"sequence": 1 << 53},
+        {"fencing_token": True},
+        {"fencing_token": 0},
+        {"fencing_token": -1},
+        {"fencing_token": 1 << 63},
         {"digest": "not-a-digest"},
         {"series": "A" * 64},
         {"consumer": "not a safe id"},
