@@ -12,10 +12,11 @@ on:
       - 'phase-2/market-data-foundation'
   workflow_dispatch:
 
-# Keep only the newest CI run for each branch or pull-request ref.
+# Preserve verification evidence: serialize each ref without canceling active runs.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  queue: max
+  cancel-in-progress: false
 
 permissions:
   contents: read
