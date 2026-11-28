@@ -116,7 +116,69 @@ class OhlcvAckEventLedger:
         self._last_registered_cursor = parsed.cursor
         return parsed
 
+    def resolve_ack(self, message: Any) -> tuple[OhlcvAckedEvent, bool]:
+        """Validate an ACK without consuming its pending event.
+
+        Production callers must durably commit the returned cursor and fencing
+        token first, then call commit_ack(). This two-phase API prevents a
+        transient storage failure from advancing only the in-memory ledger.
+        """
+        if not isinstance(message, dict):
+            raise OhlcvAckProtocolError("OHLCV ACK must be an object.")
+        if set(message) != {"type", "version", "sequence", "eventDigest"}:
+            raise OhlcvAckProtocolError("OHLCV ACK fields do not match protocol version 1.")
+        if message.get("type") != "market_data.ack" or type(message.get("version")) is not int or message.get("version") != 1:
+            raise OhlcvAckProtocolError("Unsupported OHLCV ACK message.")
+        sequence = message.get("sequence")
+        if type(sequence) is not int or not 1 <= sequence <= MAX_JS_SAFE_INTEGER:
+            raise OhlcvAckProtocolError("OHLCV ACK sequence is invalid.")
+        digest = message.get("eventDigest")
+        if not isinstance(digest, str) or not _DIGEST_RE.fullmatch(digest):
+            raise OhlcvAckProtocolError("OHLCV ACK digest is invalid.")
+
+        if self._last_acked is not None and sequence == self._last_acked.sequence:
+            if digest != self._last_acked.event_digest:
+                raise OhlcvAckDigestMismatch("Duplicate ACK digest conflicts with the committed event.")
+            return self._last_acked, True
+        if self._last_acked is not None and sequence < self._last_acked.sequence:
+            raise OhlcvAckStale("ACK sequence is older than the committed sequence.")
+
+        event = self._pending.get(sequence)
+        if event is None:
+            raise OhlcvAckUnknownEvent("ACK does not match an event sent on this WebSocket.")
+        if event.event_digest != digest:
+            raise OhlcvAckDigestMismatch("ACK digest does not match the event sent on this WebSocket.")
+        if self._last_acked is not None and event.cursor <= self._last_acked.cursor:
+            raise OhlcvAckStale("ACK cursor is older than the committed cursor.")
+        return event, False
+
+    def commit_ack(self, event: OhlcvAckedEvent) -> None:
+        """Advance the in-memory ledger only after durable receipt commit."""
+        if not isinstance(event, OhlcvAckedEvent) or event.stream_id != self.stream_id:
+            raise OhlcvAckUnknownEvent("ACK commit does not belong to this WebSocket stream.")
+        if self._last_acked is not None and event.sequence <= self._last_acked.sequence:
+            raise OhlcvAckStale("ACK commit does not advance the committed sequence.")
+        pending = self._pending.get(event.sequence)
+        if pending != event:
+            raise OhlcvAckUnknownEvent("ACK commit does not match a pending sent event.")
+        if self._last_acked is not None and event.cursor <= self._last_acked.cursor:
+            raise OhlcvAckStale("ACK commit does not advance the committed cursor.")
+        for pending_sequence in tuple(self._pending):
+            if pending_sequence <= event.sequence:
+                del self._pending[pending_sequence]
+        self._last_acked = event
+
     def acknowledge(self, message: Any) -> tuple[OhlcvAckedEvent, bool]:
+        """Resolve and immediately commit an ACK for in-memory-only callers.
+
+        Production callers should use resolve_ack(), durably commit the receipt,
+        and then call commit_ack().
+        """
+        event, duplicate = self.resolve_ack(message)
+        if not duplicate:
+            self.commit_ack(event)
+        return event, duplicate
+
         """Resolve a client ACK to the exact sent event; return (event, duplicate)."""
         if not isinstance(message, dict):
             raise OhlcvAckProtocolError("OHLCV ACK must be an object.")
