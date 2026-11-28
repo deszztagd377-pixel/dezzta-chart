@@ -82,6 +82,7 @@ describe('parseOhlcvStreamUpdate', () => {
       cursor: '8',
       digest: 'a'.repeat(64),
       provenance,
+      streamId: 'synthetic:synthetic:DEMO:ES:1s',
       series: { ...series, seriesKey: 'synthetic:DEMO:ES:1s' },
     });
     expect(valid.generationId).toBe('synthetic-v1');
@@ -109,9 +110,9 @@ describe('parseOhlcvStreamUpdate', () => {
     expect(() => event({ generationId: 'synthetic-v1' })).toThrow(/provided together/i);
     expect(() => event({ digest: 'a'.repeat(64) })).toThrow(/provided together/i);
     expect(event({
-      generationId: 'synthetic-v1',
+      generationId: 'stream-es-1s-a',
       digest: 'a'.repeat(64),
-    }).generationId).toBe('synthetic-v1');
+    }).generationId).toBe('stream-es-1s-a');
   });
 
   it('binds production generation identity to the subscription stream', () => {
