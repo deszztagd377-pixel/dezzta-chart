@@ -24,6 +24,7 @@ const SERIES_B = "synthetic:DEMO:ETHUSD:1m";
 const SERIES_REPLAY = "synthetic:DEMO:REPLAY:1m";
 const SERIES_HIBERNATE = "synthetic:DEMO:HIBERNATE:1m";
 const SERIES_ALARM = "synthetic:DEMO:ALARM:1m";
+const SERIES_RECONNECT = "synthetic:DEMO:RECONNECT:1m";
 
 const openSockets = new Set();
 
@@ -145,7 +146,7 @@ function canonicalSeries(seriesKey) {
   };
 }
 
-async function connectAuthenticated(seriesKey, suppliedTicket) {
+async function connectAuthenticated(seriesKey, suppliedTicket, clientInstanceId = crypto.randomUUID()) {
   const ticket = suppliedTicket ?? await issueTicket(seriesKey);
   const socket = await openSocket(seriesKey);
   const statusPromise = nextJsonMessage(socket);
@@ -161,6 +162,7 @@ async function connectAuthenticated(seriesKey, suppliedTicket) {
   socket.send(JSON.stringify({
     type: "market_data.subscribe",
     version: 1,
+    clientInstanceId,
     series: canonicalSeries(seriesKey),
   }));
   const snapshot = await snapshotPromise;
@@ -529,6 +531,58 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     ));
     expect(after.map((item) => item.active).sort()).toEqual([0, 1]);
     expect(second.socket.readyState).toBe(1);
+  });
+
+  it("keeps the durable consumer identity and receipt across reconnect while fencing the old socket", async () => {
+    const clientInstanceId = "android-installation-reconnect-01";
+    const first = await connectAuthenticated(SERIES_RECONNECT, undefined, clientInstanceId);
+    const stub = coordinatorStub(SERIES_RECONNECT);
+    const firstLease = await runInDurableObject(stub, async (_instance, state) => (
+      state.getWebSockets()[0].deserializeAttachment()
+    ));
+
+    const updatePromise = nextJsonMessage(first.socket);
+    const emitted = await emit(SERIES_RECONNECT, 51);
+    expect(emitted.status).toBe(200);
+    const update = await updatePromise;
+    const ackPromise = nextJsonMessage(first.socket);
+    first.socket.send(JSON.stringify({
+      type: "market_data.ack", version: 1, sequence: 51, eventDigest: update.digest,
+    }));
+    expect(await ackPromise).toMatchObject({
+      type: "market_data.acknowledged", accepted: true, committedCursor: "51",
+    });
+
+    const receiptBefore = await runInDurableObject(stub, async (_instance, state) => (
+      state.storage.sql.exec(
+        "SELECT consumer_id, committed_sequence, receipt_version FROM consumer_receipts WHERE series_key = ?",
+        SERIES_RECONNECT,
+      ).toArray()
+    ));
+    expect(receiptBefore).toHaveLength(1);
+    expect(receiptBefore[0].consumer_id).toBe(firstLease.consumerId);
+
+    const closePromise = nextClose(first.socket);
+    first.socket.close(1000, "simulate reconnect");
+    await closePromise;
+
+    const second = await connectAuthenticated(SERIES_RECONNECT, undefined, clientInstanceId);
+    const secondLease = await runInDurableObject(stub, async (_instance, state) => (
+      state.getWebSockets().find((socket) => socket.deserializeAttachment().subscribed)
+        .deserializeAttachment()
+    ));
+    const receiptAfter = await runInDurableObject(stub, async (_instance, state) => (
+      state.storage.sql.exec(
+        "SELECT consumer_id, committed_sequence, receipt_version FROM consumer_receipts WHERE series_key = ?",
+        SERIES_RECONNECT,
+      ).toArray()
+    ));
+
+    expect(secondLease.consumerId).toBe(firstLease.consumerId);
+    expect(secondLease.ownerToken).not.toBe(firstLease.ownerToken);
+    expect(secondLease.fenceToken).toBe(firstLease.fenceToken + 1);
+    expect(receiptAfter).toEqual(receiptBefore);
+    second.socket.close(1000, "test complete");
   });
 
   it("withholds fan-out and rejects heartbeat after a socket lease is fenced by a successor", async () => {
