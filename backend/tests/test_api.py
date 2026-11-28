@@ -405,6 +405,42 @@ def test_websocket_sends_status_after_authentication() -> None:
     assert message["instruments"] == ["ES", "NQ", "GC"]
 
 
+def test_market_data_ack_is_not_advertised_or_accepted_before_durable_route_integration() -> None:
+    application = _app_with_bars()
+    client = TestClient(application)
+
+    with client.websocket_connect("/ws/market-data") as websocket:
+        websocket.send_json({"type": "auth", "token": "valid-firebase-token"})
+        status = websocket.receive_json()
+        assert status["type"] == "market_data.status"
+        assert "consumerAckProtocolVersion" not in status
+
+        websocket.send_json({
+            "type": "market_data.subscribe",
+            "version": 1,
+            "canonicalInstrumentId": "0b6c5b4e-35d7-4d2f-9f6b-8c2f5f9d7a11",
+            "series": {
+                "dataset": "GLBX.MDP3",
+                "publisherId": 1,
+                "instrumentId": 101,
+                "rawSymbol": "ESZ6",
+                "timeframe": "1s",
+            },
+        })
+        snapshot = websocket.receive_json()
+        assert snapshot["type"] == "market_data.ohlcv.snapshot"
+
+        websocket.send_json({
+            "type": "market_data.ack",
+            "version": 1,
+            "sequence": 1,
+            "eventDigest": "a" * 64,
+        })
+        with pytest.raises(WebSocketDisconnect) as closed:
+            websocket.receive_json()
+        assert closed.value.code == 1008
+
+
 def test_ohlcv_endpoint_requires_bearer_authentication() -> None:
     client = TestClient(create_app(make_settings()))
     response = client.get(
