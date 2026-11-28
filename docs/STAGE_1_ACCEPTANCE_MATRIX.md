@@ -1,3 +1,30 @@
+# CURRENT ACCEPTANCE RECONCILIATION — 28 NOVEMBER 2026
+
+**Official active stage:** Stage 1 — Foundation, Security & Data Integrity.  
+**Evidence meter:** 30/40 = 75% provisional 🟨.  
+**Gate 10:** 0/10 formally closed; all ten remaining criteria are recorded **YELLOW / owner evidence pending**, not RED and not accepted.  
+**Deadline:** 24 December 2026; 26 calendar days remained on this reconciliation date.  
+**Rule:** GREEN is reserved for completed acceptance evidence. YELLOW means the item remains open, constrained, or awaits owner-host/device/production proof. Historical red labels in older dated sections below are retained only as historical snapshots and do not describe the current dashboard.
+
+| Criterion | Current status | Required exit evidence |
+|---|---|---|
+| 8 — Secret injection/rotation | YELLOW | Owner-host injection, owner/mode, UID readability, rotation and log-exposure evidence |
+| 20 — Firebase identity/entitlement | YELLOW | No-billing sign-in, expiry/revocation, entitlement denial, ticket exchange and real web/Android reconnect |
+| 25 — Redis TLS/ACL/persistence | YELLOW | Existing owner-host TLS/CA, ACL, private binding, persistence, restart and recovery drill |
+| 30 — Database restore | YELLOW | Actual application DB restored to a fresh owner-controlled destination and verified |
+| 31 — Encrypted off-host backup | YELLOW | Zero-cost destination, separate key custody, key recovery and successful restore |
+| 34 — Persistent volume | YELLOW | Real mount, ownership/permissions, restart durability and disk-pressure recovery |
+| 35 — Owner-host backend runtime | YELLOW | Backend health/startup/secret injection on existing hardware; no incremental-cost public route |
+| 36 — HTTPS/WSS device E2E | YELLOW | Authenticated owner-controlled HTTPS/WSS, browser + Android reconnect/resnapshot/cross-instance tests |
+| 38 — Durable observability | YELLOW | Host metrics, retention, backup/restore, alert acknowledgement and recovery evidence |
+| 39 — Incident response | YELLOW | Zero-cost local alert, named escalation path, acknowledgement and recovery drill |
+
+**Automation owner decision:** recurring 10-minute auto-running is CANCELLED. No cron-job.org, Cloudflare Cron, GitHub schedule, or replacement recurring trigger is authorized. This is separate from the Stage 1 technical acceptance gates.
+
+**Scope boundary:** CI success and synthetic Worker tests do not close any owner-controlled criterion above. Stage 2 remains preparatory only until Stage 1 reaches 40/40 and the owner explicitly approves the transition. ZERO COST; no paid host, provider, backup, monitoring or deployment.
+
+---
+
 # Stage 1 / project architecture reconciliation — Work Cycle 89 (25 November 2026)
 
 **Selected architecture:** Cloudflare Native / Zero-Origin. Historical owner-host/Redis Batch 80–86 execution and the earlier Python Workers spike are superseded as active work.  
