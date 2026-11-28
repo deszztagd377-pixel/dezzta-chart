@@ -15,7 +15,6 @@ import { marketDataSeriesStore } from '../services/marketDataSeriesStore';
 import { useMarketDataSeriesSnapshot } from '../services/useMarketDataSeriesSnapshot';
 import { toCandlestickSeriesData } from '../utils/candlestickSeriesData';
 import { buildChartOptions } from '../utils/chartOptions';
-import FootprintPanel from './FootprintPanel';
 import { getMeasurableChartSize } from '../utils/chartViewport';
 import { getBucketIdentityForTimeframe } from '../utils/ohlcvBucketPolicy';
 
@@ -61,7 +60,6 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
   const lastRenderedTimestampRef = useRef<number | null>(null);
 
   const [isChartReady, setIsChartReady] = useState(false);
-  const [isFootprintOpen, setIsFootprintOpen] = useState(false);
   const [chartError, setChartError] = useState<string | null>(null);
   const [marketDataStatus, setMarketDataStatus] = useState<MarketDataStatus>('demo');
   const [marketDataDetail, setMarketDataDetail] = useState<string | null>(null);
@@ -409,14 +407,6 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
         position: 'relative',
       }}
     >
-      <button
-        type="button"
-        aria-expanded={isFootprintOpen}
-        aria-controls="dezzta-footprint-panel"
-        onClick={() => setIsFootprintOpen((open) => !open)}
-        style={{ position: 'absolute', top: 10, right: 10, zIndex: 4, border: '1px solid #365064', borderRadius: 6, padding: '7px 10px', background: '#142330', color: '#dceaf4', fontSize: 10, fontWeight: 700, cursor: 'pointer' }}
-      >{isFootprintOpen ? 'CLOSE FOOTPRINT' : 'FOOTPRINT PRO'}</button>
-      {isFootprintOpen && <div id="dezzta-footprint-panel"><FootprintPanel /></div>}
       <div
         aria-label={isBackendData ? 'Validated backend OHLCV data' : 'Sample data, not live market data'}
         style={{
