@@ -75,13 +75,20 @@ jobs:
         run: |
           chmod +x ./gradlew
           ./gradlew --no-daemon --stacktrace assembleDebug
-      - name: Verify APK artifact and calculate checksum
+      - name: Verify APK package identity, signature and checksum
         run: |
           set -euo pipefail
           apk=android/app/build/outputs/apk/debug/app-debug.apk
+          aapt="$ANDROID_HOME/build-tools/35.0.0/aapt"
+          apksigner="$ANDROID_HOME/build-tools/35.0.0/apksigner"
           test -s "$apk"
+          test -x "$aapt"
+          test -x "$apksigner"
           file "$apk"
+          "$aapt" dump badging "$apk" | grep -F "package: name='com.dezzta.chart'"
+          "$apksigner" verify --verbose "$apk"
           sha256sum "$apk" | tee android/app/build/outputs/apk/debug/app-debug.apk.sha256
+          sha256sum --check android/app/build/outputs/apk/debug/app-debug.apk.sha256
       - name: Upload short-lived CI APK artifact
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
