@@ -219,6 +219,26 @@ describe('connectOhlcvStream', () => {
     connection.close();
   });
 
+  it('rejects a payload modified after its SHA-256 attestation before applying it', () => {
+    const { socket, onUpdate, onError, connection } = setup();
+    socket.readyState = 1;
+    socket.emit('open', new Event('open'));
+    socket.message({ type: 'market_data.status', version: 1, consumerAckProtocolVersion: 1 });
+    socket.message(snapshot);
+
+    socket.message({
+      ...ackUpdate,
+      // Keep the original digest while altering a field covered by the digest.
+      bar: { ...ackUpdate.bar, close: '9999.000' },
+    });
+
+    expect(onUpdate).not.toHaveBeenCalled();
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError.mock.calls[0][0].message).toMatch(/SHA-256 digest verification failed/i);
+    expect(connection.state).toBe('closed');
+    expect(socket.closed[0].code).toBe(1011);
+  });
+
   it('does not send consumer ACKs unless the server explicitly advertises the capability', () => {
     vi.useFakeTimers();
     const { socket, connection } = setup();
