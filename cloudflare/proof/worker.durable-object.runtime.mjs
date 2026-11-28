@@ -876,4 +876,56 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     });
   });
 
+
+  it("keeps SQLite authoritative after bootstrap even when legacy KV is corrupt, including after eviction", async () => {
+    const seriesKey = "synthetic:DEMO:LEGACYRECOVERY:1m";
+    const stub = coordinatorStub(seriesKey);
+    await runInDurableObject(stub, async (_instance, state) => {
+      await state.storage.put("sequence:" + seriesKey, 77);
+    });
+
+    const first = await emit(seriesKey, 78);
+    expect(first.status).toBe(200);
+    expect(first.payload).toMatchObject({ accepted: true, duplicate: false, sequence: "78" });
+
+    // A stale/corrupt legacy value must not be consulted after SQLite bootstrap.
+    await runInDurableObject(stub, async (_instance, state) => {
+      await state.storage.put("sequence:" + seriesKey, -1);
+    });
+    const second = await emit(seriesKey, 79);
+    expect(second.status).toBe(200);
+    expect(second.payload).toMatchObject({ accepted: true, duplicate: false, sequence: "79" });
+
+    await evictDurableObject(stub);
+    const persisted = await runInDurableObject(stub, async (_instance, state) => ({
+      state: state.storage.sql.exec(
+        "SELECT generation_id, high_water, retention_floor FROM series_state WHERE series_key = ?",
+        seriesKey,
+      ).toArray(),
+      events: state.storage.sql.exec(
+        "SELECT sequence, event_digest, payload FROM series_events WHERE series_key = ? ORDER BY sequence",
+        seriesKey,
+      ).toArray(),
+      legacyCursor: await state.storage.get("sequence:" + seriesKey),
+    }));
+    expect(persisted.state).toEqual([{
+      generation_id: "synthetic-v1",
+      high_water: 79,
+      retention_floor: 77,
+    }]);
+    expect(persisted.events.map((event) => event.sequence)).toEqual([78, 79]);
+    expect(persisted.legacyCursor).toBe(-1);
+    for (const event of persisted.events) {
+      const payload = JSON.parse(event.payload);
+      expect(payload).toMatchObject({
+        type: "market_data.ohlcv.update",
+        sequence: event.sequence,
+        cursor: String(event.sequence),
+        digest: event.event_digest,
+        series: { seriesKey },
+      });
+    }
+
+  });
+
 });
