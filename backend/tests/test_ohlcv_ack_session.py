@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from app.ohlcv_ack_session import (
+    OhlcvAckedEvent,
     OhlcvAckDigestMismatch,
     OhlcvAckEventLedger,
     OhlcvAckProtocolError,
