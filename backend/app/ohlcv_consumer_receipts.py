@@ -93,10 +93,23 @@ class SQLiteOhlcvConsumerReceiptStore:
                     stream_id TEXT NOT NULL,
                     sequence INTEGER NOT NULL CHECK(sequence > 0),
                     receipt_version INTEGER NOT NULL CHECK(receipt_version > 0),
+                    fencing_token INTEGER NOT NULL CHECK(fencing_token > 0),
                     updated_at_ns INTEGER NOT NULL CHECK(updated_at_ns >= 0),
                     PRIMARY KEY(account_subject, consumer_id, series_key)
                 )"""
             )
+            columns = {
+                str(row["name"])
+                for row in db.execute("PRAGMA table_info(ohlcv_consumer_receipts)")
+            }
+            if "fencing_token" not in columns:
+                # Existing receipts predate owner fencing. Zero marks them as
+                # legacy until a current lease holder safely advances them.
+                db.execute(
+                    """ALTER TABLE ohlcv_consumer_receipts
+                    ADD COLUMN fencing_token INTEGER NOT NULL DEFAULT 0
+                    CHECK(fencing_token >= 0)"""
+                )
             db.execute(
                 """CREATE INDEX IF NOT EXISTS idx_ohlcv_consumer_receipts_updated
                 ON ohlcv_consumer_receipts(updated_at_ns)"""
@@ -151,6 +164,7 @@ class SQLiteOhlcvConsumerReceiptStore:
         event_digest: str,
         stream_id: str,
         sequence: int,
+        fencing_token: int,
     ) -> dict[str, object]:
         account_subject = self._validate_text(
             account_subject, "account_subject", MAX_ACCOUNT_SUBJECT_LENGTH,
@@ -169,6 +183,8 @@ class SQLiteOhlcvConsumerReceiptStore:
             raise OhlcvConsumerReceiptError("cursor must be a positive SQLite-safe integer.")
         if type(sequence) is not int or not 1 <= sequence <= (1 << 53) - 1:
             raise OhlcvConsumerReceiptError("sequence must be a positive JavaScript-safe integer.")
+        if type(fencing_token) is not int or not 1 <= fencing_token <= MAX_SQLITE_INTEGER:
+            raise OhlcvConsumerReceiptError("fencing_token must be a positive SQLite-safe integer.")
         updated_at_ns = self._clock_ns()
         if type(updated_at_ns) is not int or not 0 <= updated_at_ns <= MAX_SQLITE_INTEGER:
             raise OhlcvConsumerReceiptError("clock_ns returned an invalid timestamp.")
@@ -177,7 +193,7 @@ class SQLiteOhlcvConsumerReceiptStore:
         try:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute(
-                """SELECT committed_cursor,event_id,event_digest,receipt_version
+                """SELECT committed_cursor,event_id,event_digest,receipt_version,fencing_token
                 FROM ohlcv_consumer_receipts
                 WHERE account_subject=? AND consumer_id=? AND series_key=?""",
                 (account_subject, consumer_id, series_key),
@@ -188,18 +204,21 @@ class SQLiteOhlcvConsumerReceiptStore:
                     """INSERT INTO ohlcv_consumer_receipts(
                         account_subject,consumer_id,series_key,committed_cursor,
                         event_id,event_digest,stream_id,sequence,receipt_version,
-                        updated_at_ns
-                    ) VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                        fencing_token,updated_at_ns
+                    ) VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
                     (
                         account_subject, consumer_id, series_key, cursor,
                         event_id, event_digest, stream_id, sequence,
-                        receipt_version, updated_at_ns,
+                        receipt_version, fencing_token, updated_at_ns,
                     ),
                 )
                 duplicate = False
             else:
                 previous_cursor = int(row["committed_cursor"])
+                previous_fence = int(row["fencing_token"])
                 receipt_version = int(row["receipt_version"])
+                if fencing_token < previous_fence:
+                    raise OhlcvConsumerReceiptStale("ACK fencing token is older than the committed owner.")
                 if cursor < previous_cursor:
                     raise OhlcvConsumerReceiptStale("ACK cursor is older than the committed receipt.")
                 if cursor == previous_cursor:
@@ -208,12 +227,15 @@ class SQLiteOhlcvConsumerReceiptStore:
                             "ACK cursor conflicts with the committed event identity."
                         )
                     duplicate = True
+                    fence_advanced = fencing_token > previous_fence
+                    if fence_advanced:
+                        receipt_version += 1
                     db.execute(
                         """UPDATE ohlcv_consumer_receipts
-                        SET stream_id=?,sequence=?,updated_at_ns=?
+                        SET stream_id=?,sequence=?,fencing_token=?,receipt_version=?,updated_at_ns=?
                         WHERE account_subject=? AND consumer_id=? AND series_key=?""",
                         (
-                            stream_id, sequence, updated_at_ns,
+                            stream_id, sequence, fencing_token, receipt_version, updated_at_ns,
                             account_subject, consumer_id, series_key,
                         ),
                     )
@@ -223,11 +245,11 @@ class SQLiteOhlcvConsumerReceiptStore:
                     db.execute(
                         """UPDATE ohlcv_consumer_receipts SET
                             committed_cursor=?,event_id=?,event_digest=?,
-                            stream_id=?,sequence=?,receipt_version=?,updated_at_ns=?
+                            stream_id=?,sequence=?,fencing_token=?,receipt_version=?,updated_at_ns=?
                         WHERE account_subject=? AND consumer_id=? AND series_key=?""",
                         (
                             cursor, event_id, event_digest, stream_id, sequence,
-                            receipt_version, updated_at_ns,
+                            fencing_token, receipt_version, updated_at_ns,
                             account_subject, consumer_id, series_key,
                         ),
                     )
@@ -237,6 +259,7 @@ class SQLiteOhlcvConsumerReceiptStore:
                 "duplicate": duplicate,
                 "committed_cursor": str(cursor),
                 "receipt_version": receipt_version,
+                "fencing_token": fencing_token,
             }
         except Exception:
             if db.in_transaction:
@@ -261,7 +284,7 @@ class SQLiteOhlcvConsumerReceiptStore:
         try:
             row = db.execute(
                 """SELECT committed_cursor,event_id,event_digest,stream_id,
-                    sequence,receipt_version,updated_at_ns
+                    sequence,receipt_version,fencing_token,updated_at_ns
                 FROM ohlcv_consumer_receipts
                 WHERE account_subject=? AND consumer_id=? AND series_key=?""",
                 (account_subject, consumer_id, series_key),
@@ -275,6 +298,7 @@ class SQLiteOhlcvConsumerReceiptStore:
                 "stream_id": str(row["stream_id"]),
                 "sequence": int(row["sequence"]),
                 "receipt_version": int(row["receipt_version"]),
+                "fencing_token": int(row["fencing_token"]),
                 "updated_at_ns": int(row["updated_at_ns"]),
             }
         finally:
