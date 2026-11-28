@@ -133,11 +133,11 @@ describe('parseOhlcvStreamUpdate', () => {
       digest,
       cursor: '8',
     });
-    await expect(verifyOhlcvStreamEventDigest(attested)).resolves.toBe(true);
-    await expect(verifyOhlcvStreamEventDigest({
+    expect(verifyOhlcvStreamEventDigest(attested)).toBe(true);
+    expect(verifyOhlcvStreamEventDigest({
       ...attested,
       eventId: 'tampered-event',
-    })).resolves.toBe(false);
+    })).toBe(false);
   });
 
   it('requires generation identity and digest to be present as a pair', () => {
