@@ -123,7 +123,7 @@ describe('parseOhlcvStreamUpdate', () => {
       }
       return value;
     };
-    const payload = { ...unsigned } as Record<string, unknown>;
+    const payload = { ...unsigned, replayed: true } as Record<string, unknown>;
     delete payload.digest;
     const bytes = new TextEncoder().encode(JSON.stringify(sort(payload)));
     const hash = await crypto.subtle.digest('SHA-256', bytes);
@@ -133,9 +133,10 @@ describe('parseOhlcvStreamUpdate', () => {
       digest,
       cursor: '8',
     });
-    expect(verifyOhlcvStreamEventDigest(attested)).toBe(true);
+    const rawAttested = { ...attested, replayed: true };
+    expect(verifyOhlcvStreamEventDigest(rawAttested)).toBe(true);
     expect(verifyOhlcvStreamEventDigest({
-      ...attested,
+      ...rawAttested,
       eventId: 'tampered-event',
     })).toBe(false);
   });
