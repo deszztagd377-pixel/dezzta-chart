@@ -88,16 +88,30 @@ describe('parseOhlcvStreamUpdate', () => {
     expect(valid.cursor).toBe('8');
     expect(valid.digest).toBe('a'.repeat(64));
     // The durable outbox cursor is global; stream sequence is subscription-local.
-    expect(event({ generationId: 'synthetic-v1', cursor: '42', sequence: 8 }).cursor).toBe('42');
-    expect(() => event({ generationId: 'synthetic-v1', cursor: '08' })).toThrow(/cursor/i);
+    expect(event({
+      generationId: 'synthetic-v1', digest: 'a'.repeat(64), cursor: '42', sequence: 8,
+    }).cursor).toBe('42');
+    expect(() => event({
+      generationId: 'synthetic-v1', digest: 'a'.repeat(64), cursor: '08',
+    })).toThrow(/cursor/i);
     expect(() => event({ generationId: 'synthetic-v1', digest: 'A'.repeat(64) })).toThrow(/digest/i);
     expect(() => event({
       generationId: 'synthetic-v1',
+      digest: 'a'.repeat(64),
       provenance: { ...provenance, dataStatus: 'live' },
     })).toThrow(/provenance/i);
     expect(() => event({
       series: { ...series, seriesKey: 'bad series key' },
     })).toThrow(/seriesKey/i);
+  });
+
+  it('requires generation identity and digest to be present as a pair', () => {
+    expect(() => event({ generationId: 'synthetic-v1' })).toThrow(/provided together/i);
+    expect(() => event({ digest: 'a'.repeat(64) })).toThrow(/provided together/i);
+    expect(event({
+      generationId: 'synthetic-v1',
+      digest: 'a'.repeat(64),
+    }).generationId).toBe('synthetic-v1');
   });
 
   it('rejects unsupported versions and missing event identity', () => {
