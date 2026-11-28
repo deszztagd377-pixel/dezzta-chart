@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
+import sqlite3
 
 import pytest
 
@@ -67,6 +68,57 @@ def test_first_receipt_is_durable_and_scoped_to_identity(tmp_path):
     assert receipt["event_digest"] == DIGEST_1
     assert receipt["receipt_version"] == 1
     assert receipt["fencing_token"] == 1
+
+
+def test_legacy_receipt_schema_migrates_and_requires_positive_fence_on_takeover(tmp_path):
+    database = tmp_path / "market.sqlite3"
+    db = sqlite3.connect(database)
+    db.execute(
+        """CREATE TABLE ohlcv_consumer_receipts (
+            account_subject TEXT NOT NULL,
+            consumer_id TEXT NOT NULL,
+            series_key TEXT NOT NULL,
+            committed_cursor INTEGER NOT NULL CHECK(committed_cursor > 0),
+            event_id TEXT NOT NULL,
+            event_digest TEXT NOT NULL CHECK(length(event_digest) = 64),
+            stream_id TEXT NOT NULL,
+            sequence INTEGER NOT NULL CHECK(sequence > 0),
+            receipt_version INTEGER NOT NULL CHECK(receipt_version > 0),
+            updated_at_ns INTEGER NOT NULL CHECK(updated_at_ns >= 0),
+            PRIMARY KEY(account_subject, consumer_id, series_key)
+        )"""
+    )
+    db.execute(
+        """INSERT INTO ohlcv_consumer_receipts(
+            account_subject,consumer_id,series_key,committed_cursor,event_id,
+            event_digest,stream_id,sequence,receipt_version,updated_at_ns
+        ) VALUES (?,?,?,?,?,?,?,?,?,?)""",
+        (SUBJECT, CONSUMER, SERIES, 41, EVENT_1, DIGEST_1, STREAM, 1, 1, 1),
+    )
+    db.commit()
+    db.close()
+
+    store = SQLiteOhlcvConsumerReceiptStore(str(database))
+    migrated = store.get_receipt(
+        account_subject=SUBJECT,
+        consumer_id=CONSUMER,
+        series_key=SERIES,
+    )
+    assert migrated is not None
+    assert migrated["fencing_token"] == 0
+
+    takeover = commit(store, cursor=41, fencing_token=1, stream="stream-generation-2")
+    assert takeover["accepted"] is True
+    assert takeover["duplicate"] is True
+    assert takeover["fencing_token"] == 1
+
+    upgraded = store.get_receipt(
+        account_subject=SUBJECT,
+        consumer_id=CONSUMER,
+        series_key=SERIES,
+    )
+    assert upgraded["fencing_token"] == 1
+    assert upgraded["stream_id"] == "stream-generation-2"
 
 
 def test_duplicate_ack_is_idempotent_across_reconnect_generation(tmp_path):
