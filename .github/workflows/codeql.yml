@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - 'phase-2/market-data-foundation'
+      - 'test/**'
   pull_request:
     branches:
       - main

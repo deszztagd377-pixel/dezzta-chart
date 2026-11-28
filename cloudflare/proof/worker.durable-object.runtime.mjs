@@ -6,7 +6,7 @@ import {
   runInDurableObject,
 } from "cloudflare:test";
 import { afterEach, describe, expect, it } from "vitest";
-import { applyDurableSchemaMigrations, proofLimits, registerCanonicalSeriesIdentity } from "./worker.mjs";
+import { applyDurableSchemaMigrations, commitConsumerReceipt, compactDurableEvents, proofLimits, readDurableReplayPage, registerCanonicalSeriesIdentity } from "./worker.mjs";
 
 const ORIGIN = "http://localhost:3000";
 const TOKEN = "synthetic-proof-test-token-000000000000000000000000";
@@ -873,6 +873,175 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       type: "market_data.ohlcv.update",
       sequence: 52,
       cursor: "52",
+    });
+  });
+
+
+  it("keeps replay whole-or-expired when compaction races a replay read", async () => {
+    const seriesKey = "synthetic:DEMO:REPLAYCOMPACTIONRACE:1m";
+    const stub = coordinatorStub(seriesKey);
+    for (const sequence of [51, 52, 53]) {
+      const result = await emit(seriesKey, sequence);
+      expect(result.status).toBe(200);
+    }
+
+    const [compaction, replay] = await Promise.all([
+      stub.fetch("https://series.internal/internal/compact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ seriesKey, throughSequence: 51 }),
+      }),
+      runInDurableObject(stub, async (_instance, state) =>
+        readDurableReplayPage(state.storage, seriesKey, "50", "synthetic-v1")),
+    ]);
+
+    expect(compaction.status).toBe(200);
+    const compacted = await compaction.json();
+    expect(compacted).toMatchObject({ compacted: true, retentionFloor: 51 });
+    if (replay.ok) {
+      expect(replay.page.events.map((event) => event.sequence)).toEqual([51, 52, 53]);
+      expect(replay.page.nextCursor).toBe("53");
+    } else {
+      expect(replay.reason).toBe("retention_expired");
+      expect(replay.retentionFloor).toBe(51);
+    }
+
+    const retained = await runInDurableObject(stub, async (_instance, state) =>
+      readDurableReplayPage(state.storage, seriesKey, "51", "synthetic-v1"));
+    expect(retained.ok).toBe(true);
+    expect(retained.page.events.map((event) => event.sequence)).toEqual([52, 53]);
+    expect(retained.page.nextCursor).toBe("53");
+  });
+
+  it("isolates durable consumer receipts and enforces per-consumer monotonic acknowledgements", async () => {
+    const seriesKey = "synthetic:DEMO:CONSUMERISOLATION:1m";
+    const stub = coordinatorStub(seriesKey);
+    for (const sequence of [51, 52]) {
+      const result = await emit(seriesKey, sequence);
+      expect(result.status).toBe(200);
+    }
+
+    const events = await runInDurableObject(stub, async (_instance, state) =>
+      state.storage.sql.exec(
+        "SELECT sequence, event_digest FROM series_events WHERE series_key = ? ORDER BY sequence",
+        seriesKey,
+      ).toArray());
+
+    const first = await runInDurableObject(stub, async (_instance, state) =>
+      commitConsumerReceipt(state.storage, {
+        seriesKey, consumerId: "consumer-alpha", generationId: "synthetic-v1",
+        sequence: 51, eventDigest: events[0].event_digest,
+      }, 1_800_000_000_001));
+    expect(first).toMatchObject({ accepted: true, duplicate: false, committedCursor: "51", receiptVersion: 1 });
+
+    const duplicate = await runInDurableObject(stub, async (_instance, state) =>
+      commitConsumerReceipt(state.storage, {
+        seriesKey, consumerId: "consumer-alpha", generationId: "synthetic-v1",
+        sequence: 51, eventDigest: events[0].event_digest,
+      }, 1_800_000_000_002));
+    expect(duplicate).toMatchObject({ accepted: true, duplicate: true, committedCursor: "51", receiptVersion: 1 });
+
+    const advanced = await runInDurableObject(stub, async (_instance, state) =>
+      commitConsumerReceipt(state.storage, {
+        seriesKey, consumerId: "consumer-alpha", generationId: "synthetic-v1",
+        sequence: 52, eventDigest: events[1].event_digest,
+      }, 1_800_000_000_003));
+    expect(advanced).toMatchObject({ accepted: true, duplicate: false, committedCursor: "52", receiptVersion: 2 });
+
+    const secondConsumer = await runInDurableObject(stub, async (_instance, state) =>
+      commitConsumerReceipt(state.storage, {
+        seriesKey, consumerId: "consumer-beta", generationId: "synthetic-v1",
+        sequence: 52, eventDigest: events[1].event_digest,
+      }, 1_800_000_000_004));
+    expect(secondConsumer).toMatchObject({ accepted: true, duplicate: false, committedCursor: "52", receiptVersion: 1 });
+
+    const regression = await runInDurableObject(stub, async (_instance, state) =>
+      commitConsumerReceipt(state.storage, {
+        seriesKey, consumerId: "consumer-alpha", generationId: "synthetic-v1",
+        sequence: 51, eventDigest: events[0].event_digest,
+      }, 1_800_000_000_005));
+    expect(regression).toMatchObject({ accepted: false, reason: "ack_regression" });
+
+    const isolated = await runInDurableObject(stub, async (_instance, state) =>
+      state.storage.sql.exec(
+        "SELECT consumer_id, committed_sequence, receipt_version FROM consumer_receipts WHERE series_key = ? ORDER BY consumer_id",
+        seriesKey,
+      ).toArray());
+    expect(isolated).toEqual([
+      { consumer_id: "consumer-alpha", committed_sequence: 52, receipt_version: 2 },
+      { consumer_id: "consumer-beta", committed_sequence: 52, receipt_version: 1 },
+    ]);
+  });
+
+  it("rolls back event deletion when retention-floor advancement fails, then compacts atomically", async () => {
+    const seriesKey = "synthetic:DEMO:COMPACTIONROLLBACK:1m";
+    const stub = coordinatorStub(seriesKey);
+    for (const sequence of [51, 52]) {
+      const result = await emit(seriesKey, sequence);
+      expect(result.status).toBe(200);
+    }
+
+    await runInDurableObject(stub, async (_instance, state) => {
+      state.storage.sql.exec(`
+        CREATE TRIGGER fail_retention_floor_update
+        BEFORE UPDATE OF retention_floor ON series_state
+        BEGIN
+          SELECT RAISE(ABORT, 'injected retention-floor failure');
+        END
+      `);
+    });
+
+    const failed = await stub.fetch("https://series.internal/internal/compact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ seriesKey, throughSequence: 51 }),
+    });
+    expect(failed.status).toBe(503);
+    expect(await failed.json()).toEqual({ error: "temporarily_unavailable" });
+
+    const afterRollback = await runInDurableObject(stub, async (_instance, state) => ({
+      state: state.storage.sql.exec(
+        "SELECT high_water, retention_floor FROM series_state WHERE series_key = ?",
+        seriesKey,
+      ).toArray(),
+      events: state.storage.sql.exec(
+        "SELECT sequence FROM series_events WHERE series_key = ? ORDER BY sequence",
+        seriesKey,
+      ).toArray(),
+    }));
+    expect(afterRollback).toEqual({
+      state: [{ high_water: 52, retention_floor: 50 }],
+      events: [{ sequence: 51 }, { sequence: 52 }],
+    });
+
+    await runInDurableObject(stub, async (_instance, state) => {
+      state.storage.sql.exec("DROP TRIGGER fail_retention_floor_update");
+    });
+    const succeeded = await stub.fetch("https://series.internal/internal/compact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ seriesKey, throughSequence: 51 }),
+    });
+    expect(succeeded.status).toBe(200);
+    expect(await succeeded.json()).toMatchObject({
+      compacted: true,
+      deleted: 1,
+      retentionFloor: 51,
+    });
+
+    const afterCommit = await runInDurableObject(stub, async (_instance, state) => ({
+      state: state.storage.sql.exec(
+        "SELECT high_water, retention_floor FROM series_state WHERE series_key = ?",
+        seriesKey,
+      ).toArray(),
+      events: state.storage.sql.exec(
+        "SELECT sequence FROM series_events WHERE series_key = ? ORDER BY sequence",
+        seriesKey,
+      ).toArray(),
+    }));
+    expect(afterCommit).toEqual({
+      state: [{ high_water: 52, retention_floor: 51 }],
+      events: [{ sequence: 52 }],
     });
   });
 

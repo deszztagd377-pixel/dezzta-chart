@@ -5,9 +5,13 @@ on:
     branches:
       - main
       - 'phase-2/market-data-foundation'
+      - 'fix/**'
+      - 'test/**'
+      - 'work/**'
   pull_request:
     branches:
       - main
+      - 'fix/**'
   workflow_dispatch:
 
 # Keep only the newest CI run for each branch or pull-request ref.
