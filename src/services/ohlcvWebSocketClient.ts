@@ -15,8 +15,6 @@ export interface OhlcvStreamOptions {
   canonicalInstrumentId: string;
   ticket: string;
   getRenewalTicket: () => Promise<string>;
-  /** Stable opaque client identity; reused by the supervisor across socket reconnects. */
-  clientInstanceId?: string;
   ticketRenewalIntervalMs?: number;
   resumeCursor?: string;
   onCursor?: (cursor: string) => void;
@@ -103,11 +101,6 @@ function snapshotFromSocket(payload: unknown): {
  */
 export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConnection {
   if (!options.ticket.trim()) throw new Error('A short-lived WebSocket ticket is required.');
-  if (options.clientInstanceId !== undefined &&
-      (typeof options.clientInstanceId !== 'string' ||
-       !/^[A-Za-z0-9._:-]{1,128}$/.test(options.clientInstanceId))) {
-    throw new Error('OHLCV client instance ID is invalid.');
-  }
   if (options.resumeCursor !== undefined && !/^\d+$/.test(options.resumeCursor)) {
     throw new Error('OHLCV resume cursor must be an unsigned decimal string.');
   }
@@ -375,7 +368,6 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
           type: 'market_data.subscribe',
           version: 1,
           canonicalInstrumentId: options.canonicalInstrumentId,
-          ...(options.clientInstanceId !== undefined ? { clientInstanceId: options.clientInstanceId } : {}),
           ...(options.resumeCursor !== undefined ? { cursor: options.resumeCursor } : {}),
           series: {
             ...(options.identity.seriesKey !== undefined ? { seriesKey: options.identity.seriesKey } : {}),

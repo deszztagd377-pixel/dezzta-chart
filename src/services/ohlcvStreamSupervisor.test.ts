@@ -213,10 +213,6 @@ describe('OHLCV stream supervisor', () => {
     sockets[0].readyState = 1;
     sockets[0].emit('open', new Event('open'));
     sockets[0].message({ type: 'market_data.status', version: 1 });
-    const firstSubscribe = JSON.parse(sockets[0].sent[1]);
-    expect(firstSubscribe.type).toBe('market_data.subscribe');
-    expect(firstSubscribe.clientInstanceId).toMatch(/^runtime-[0-9a-f]{32}$/);
-    const clientInstanceId = firstSubscribe.clientInstanceId as string;
     sockets[0].message(snapshot);
     expect(getMarketDataSnapshot().bars).toHaveLength(1);
 
@@ -232,7 +228,6 @@ describe('OHLCV stream supervisor', () => {
     expect(JSON.parse(sockets[1].sent[1])).toMatchObject({
       type: 'market_data.subscribe',
       cursor: '100',
-      clientInstanceId,
     });
 
     sockets[1].message({

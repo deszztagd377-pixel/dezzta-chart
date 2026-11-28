@@ -44,24 +44,6 @@ export interface OhlcvStreamSupervisor {
   readonly status: OhlcvSupervisorStatus;
 }
 
-function createRuntimeClientInstanceId(): string {
-  const bytes = new Uint8Array(16);
-  if (typeof globalThis.crypto !== 'undefined' &&
-      typeof globalThis.crypto.getRandomValues === 'function') {
-    globalThis.crypto.getRandomValues(bytes);
-  } else {
-    // This identifier is a stable slot label, not a credential or security token.
-    for (let index = 0; index < bytes.length; index += 1) {
-      bytes[index] = Math.floor(Math.random() * 256);
-    }
-  }
-  return `runtime-${Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('')}`;
-}
-
-// One opaque consumer identity per page runtime; the supervisor reuses it
-// across transport reconnects. A native host may inject a persisted ID.
-const DEFAULT_CLIENT_INSTANCE_ID = createRuntimeClientInstanceId();
-
 // The market-data store is a singleton, so it must have exactly one active
 // supervisor owner. Replacing a chart selection stops the previous owner first.
 let activeSupervisorStop: (() => void) | null = null;
@@ -110,10 +92,6 @@ function publishMarketDataUpdates(
 export function startOhlcvStreamSupervisor(
   options: OhlcvStreamSupervisorOptions,
 ): OhlcvStreamSupervisor {
-  const clientInstanceId = options.clientInstanceId ?? DEFAULT_CLIENT_INSTANCE_ID;
-  if (!/^[A-Za-z0-9._:-]{1,128}$/.test(clientInstanceId)) {
-    throw new Error('OHLCV client instance ID is invalid.');
-  }
   const minDelay = options.minReconnectDelayMs ?? 500;
   const maxDelay = options.maxReconnectDelayMs ?? 15_000;
   const random = options.random ?? Math.random;
@@ -239,7 +217,6 @@ export function startOhlcvStreamSupervisor(
       if (stopped) return;
       connection = connectOhlcvStream({
         ...options,
-        clientInstanceId,
         ticket,
         getRenewalTicket: getTicket,
         resumeCursor,
