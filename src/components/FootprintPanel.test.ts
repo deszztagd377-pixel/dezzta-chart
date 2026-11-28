@@ -1,5 +1,10 @@
-import { describe, expect, it } from 'vitest';
+// @vitest-environment jsdom
+import { createElement } from 'react';
+import { act } from 'react-dom/test-utils';
+import { createRoot, type Root } from 'react-dom/client';
+import { afterEach, describe, expect, it } from 'vitest';
 import { getFootprintCellMetrics } from './FootprintPanel';
+import FootprintPanel from './FootprintPanel';
 
 describe('getFootprintCellMetrics', () => {
   it('calculates ask-side delta, total volume and delta percentage', () => {
@@ -28,13 +33,6 @@ describe('getFootprintCellMetrics', () => {
     });
   });
 });
-
-// @vitest-environment jsdom
-import { createElement } from 'react';
-import { act } from 'react-dom/test-utils';
-import { createRoot, type Root } from 'react-dom/client';
-import { afterEach } from 'vitest';
-import FootprintPanel from './FootprintPanel';
 
 const mountedRoots: Root[] = [];
 
