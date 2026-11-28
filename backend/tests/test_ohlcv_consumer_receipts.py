@@ -124,7 +124,9 @@ def test_legacy_receipt_schema_migrates_and_requires_positive_fence_on_takeover(
 def test_duplicate_ack_is_idempotent_across_reconnect_generation(tmp_path):
     store = make_store(tmp_path)
     commit(store)
-    result = commit(store, stream="stream-generation-2", sequence=1)
+    result = commit(
+        store, stream="stream-generation-2", sequence=1, fencing_token=2,
+    )
     assert result["accepted"] is True
     assert result["duplicate"] is True
     assert result["receipt_version"] == 1
@@ -134,6 +136,44 @@ def test_duplicate_ack_is_idempotent_across_reconnect_generation(tmp_path):
         series_key=SERIES,
     )
     assert receipt["stream_id"] == "stream-generation-2"
+
+
+def test_same_fencing_token_cannot_take_over_a_new_stream_generation(tmp_path):
+    store = make_store(tmp_path)
+    commit(store, cursor=41, fencing_token=5)
+
+    with pytest.raises(OhlcvConsumerReceiptStale, match="stream generation"):
+        commit(
+            store,
+            cursor=41,
+            stream="stream-generation-2",
+            sequence=1,
+            fencing_token=5,
+        )
+
+    receipt = store.get_receipt(
+        account_subject=SUBJECT,
+        consumer_id=CONSUMER,
+        series_key=SERIES,
+    )
+    assert receipt["stream_id"] == STREAM
+    assert receipt["fencing_token"] == 5
+
+
+def test_same_fencing_token_cannot_rewrite_sequence_for_committed_event(tmp_path):
+    store = make_store(tmp_path)
+    commit(store, cursor=41, sequence=3, fencing_token=5)
+
+    with pytest.raises(OhlcvConsumerReceiptStale, match="sequence changed"):
+        commit(store, cursor=41, sequence=1, fencing_token=5)
+
+    receipt = store.get_receipt(
+        account_subject=SUBJECT,
+        consumer_id=CONSUMER,
+        series_key=SERIES,
+    )
+    assert receipt["sequence"] == 3
+    assert receipt["fencing_token"] == 5
 
 
 def test_higher_fencing_token_takes_over_without_regressing_cursor(tmp_path):
