@@ -87,7 +87,7 @@ const update = {
 const ackUpdate = {
   ...update,
   cursor: '8',
-  generationId: 'synthetic-v1',
+  generationId: 'stream-a',
   digest: 'a'.repeat(64),
 };
 
