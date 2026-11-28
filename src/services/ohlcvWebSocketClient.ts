@@ -340,8 +340,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
     }
   });
 
-  let messageQueue: Promise<void> = Promise.resolve();
-  const processMessage = async (message: Event) => {
+  socket.addEventListener('message', (message) => {
     if (state === 'closed') return;
     let payload: unknown;
     try {
@@ -531,7 +530,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
         if (consumerAckEnabled && (!event.generationId || !event.digest)) {
           throw new Error('ACK-capable OHLCV server omitted generationId or event digest.');
         }
-        if (event.digest !== undefined && !(await verifyOhlcvStreamEventDigest(event))) {
+        if (event.digest !== undefined && !verifyOhlcvStreamEventDigest(event)) {
           throw new Error('OHLCV stream event SHA-256 digest verification failed.');
         }
         const decision = guard.accept(event);
@@ -614,14 +613,6 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
     } catch (error) {
       fail(error instanceof Error ? error : new Error('OHLCV WebSocket protocol error.'));
     }
-  };
-
-  socket.addEventListener('message', (message) => {
-    // Web Crypto verification is asynchronous; serialize frames so a later
-    // update cannot overtake an earlier update while its digest is checked.
-    messageQueue = messageQueue.then(() => processMessage(message)).catch((error) => {
-      fail(error instanceof Error ? error : new Error('OHLCV WebSocket message processing failed.'));
-    });
   });
 
   socket.addEventListener('error', () => {
