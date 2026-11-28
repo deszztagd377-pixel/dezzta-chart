@@ -539,6 +539,33 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
     assert.equal(sqliteAuthoritativeEmit.status, 200);
     assert.equal((await sqliteAuthoritativeEmit.json()).accepted, true);
 
+    // A lagging, already-registered consumer must prevent compaction past its ACK.
+    const laggingAckBody = {
+      seriesKey: SERIES,
+      consumerId: "synthetic-proof-consumer-lagging",
+      generationId: "synthetic-v1",
+      sequence: 51,
+      eventDigest: event51Digest,
+    };
+    const laggingAckResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/ack`, {
+      method: "POST",
+      headers: authorizedHeaders(),
+      body: JSON.stringify(laggingAckBody),
+    });
+    assert.equal(laggingAckResponse.status, 200);
+    assert.equal((await laggingAckResponse.json()).accepted, true);
+
+    const blockedCompactResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/compact`, {
+      method: "POST",
+      headers: authorizedHeaders(),
+      body: JSON.stringify({ seriesKey: SERIES, throughSequence: 52 }),
+    });
+    assert.equal(blockedCompactResponse.status, 409);
+    const blockedCompaction = await blockedCompactResponse.json();
+    assert.equal(blockedCompaction.compacted, false);
+    assert.equal(blockedCompaction.reason, "consumer_ack_behind");
+    assert.equal(blockedCompaction.minimumAcknowledgedSequence, 51);
+
     // Retention compaction is an atomic cursor-floor advance plus event deletion.
     const compactResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/compact`, {
       method: "POST",
