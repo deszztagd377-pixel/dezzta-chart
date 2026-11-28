@@ -1,5 +1,10 @@
 # Indicator ledger — latest reconciliation, Work Cycle 89 (25 November 2026)
 
+## Owner-supplied visual reference update — 28 November 2026
+
+The Heatmap visual reference has now been supplied in the project conversation as `heatmap-3.png` (PNG, 1080×455; SHA-256 `bb89a21dfe97379a69d69cc7ff1629229bd97b9098465e0e13a1c80f0a0d9a0a`). This satisfies the previously missing visual-reference input only. It does **not** authorize Stage 4 implementation, establish a lawful depth-data source, or close aggregation, decay, provenance, performance, and owner-acceptance requirements. Heatmap remains OPEN / Stage 4-gated; no indicator completion credit is added.
+
+
 **Indicator implementation status:** unchanged; this work cycle audited WebSocket/backend delivery and corrected project documentation only. **Indicator implementation credit: 0.**  
 **Branch:** `phase-2/market-data-foundation`; current backend source audit baseline is documented in `docs/BATCH89_93_SOURCE_AUDIT_2026-11-25.md`.  
 **Focused test declarations:** 21 calculation + 7 shared-hook = 28; these are declarations, not a pass count or completion percentage.  
