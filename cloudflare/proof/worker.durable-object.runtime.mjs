@@ -146,7 +146,7 @@ function canonicalSeries(seriesKey) {
   };
 }
 
-async function connectAuthenticated(seriesKey, suppliedTicket, clientInstanceId = crypto.randomUUID()) {
+async function connectAuthenticated(seriesKey, suppliedTicket, clientInstanceId = crypto.randomUUID(), expectedHighWaterCursor = "50") {
   const ticket = suppliedTicket ?? await issueTicket(seriesKey);
   const socket = await openSocket(seriesKey);
   const statusPromise = nextJsonMessage(socket);
@@ -169,7 +169,7 @@ async function connectAuthenticated(seriesKey, suppliedTicket, clientInstanceId 
   expect(snapshot).toMatchObject({
     type: "market_data.ohlcv.snapshot",
     version: 1,
-    highWaterCursor: "50",
+    highWaterCursor: expectedHighWaterCursor,
     provenance: { mode: "synthetic", dataStatus: "synthetic_only", providerConnected: false },
   });
   expect(snapshot.bars).toHaveLength(50);
@@ -566,7 +566,7 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     first.socket.close(1000, "simulate reconnect");
     await closePromise;
 
-    const second = await connectAuthenticated(SERIES_RECONNECT, undefined, clientInstanceId);
+    const second = await connectAuthenticated(SERIES_RECONNECT, undefined, clientInstanceId, "51");
     const secondLease = await runInDurableObject(stub, async (_instance, state) => (
       state.getWebSockets().find((socket) => socket.deserializeAttachment().subscribed)
         .deserializeAttachment()
