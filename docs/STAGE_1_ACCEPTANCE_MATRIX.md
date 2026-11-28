@@ -1595,3 +1595,94 @@ Detailed evidence and blob SHAs: [BATCH89_93_SOURCE_AUDIT_2026-11-25.md](BATCH89
 Static test inventory: 31 Node proof + 11 Durable Object Vitest + 1 Miniflare declarations = 43, all NOT RUN. Static lockfile root metadata matches package.json; no runtime compatibility or installation claim follows from this check.
 
 Batch 92 source blocker: sequence cursor only is committed; event payload/digest replay storage is absent. Batch 93 source blocker: ACK, durable consumer receipt, RESUME and replay recovery are absent. Existing socket attachment restore tests do not close these gates. All Batch 89–93 runtime acceptance conditions remain OPEN pending exact-SHA execution evidence.
+
+---
+
+## Source-status correction — 27 November 2026
+
+This addendum supersedes older source-only statements in this matrix that describe the synthetic Worker as having no durable event log/replay or receipt schema. It does not change formal Stage 1 gate closure or overall scoring.
+
+Inspected source baseline: `phase-2/market-data-foundation` base SHA `4979bd4a69dfd37b4571a125790150931c4154ee`; Worker blob `e8b4b5b5c4c35c5b7915ff46df00ced39e894f88`.
+
+- SQLite schema v3, series event payload/digest/high-water transaction, bounded durable replay and serialized subscribe/fan-out are implemented in the synthetic proof source.
+- A durable consumer receipt primitive and proof-only HTTP ACK route exist. The consumer ID is client-supplied under synthetic bearer-token authorization; Firebase identity binding and a WebSocket ACK message are not implemented.
+- The compaction function does not enforce a retention floor bounded by all required consumers' durable receipts. Do not enable destructive retention for production.
+- The Worker remains synthetic-only and is not deployed as the production WSS service. Public WSS, Firebase-authenticated consumer identity, provider ingress, browser/Android E2E and production recovery remain unaccepted.
+- Behavioral test coverage for ACK receipt commit and receipt-aware compaction was not found in the inspected test files. Schema tests alone do not close those acceptance items.
+
+Updated batch disposition: Batch 90 schema — implemented in synthetic proof, production acceptance open; Batch 92 event commit/replay — implemented in synthetic proof, production integration open; Batch 93 — partial proof primitives only, authenticated ACK/RESUME protocol and receipt-aware retention still open. Stage 1 remains 30/40 = 75% provisional; Gate 10 remains 0/10 formally closed. This correction awards no Stage 1 points and does not advance the official stage.
+
+
+---
+
+## Batch 94 live status update — 27 November 2026
+
+This is an evidence-status update, not a stage-closure declaration.
+
+| Acceptance area | Current evidence | Status |
+|---|---|---|
+| Durable event persistence and replay source proof | SQLite event commit/high-water transaction and bounded replay exist in synthetic proof source | YELLOW — source proof only |
+| Durable Object eviction/replay | PR #7 current head `80ca695e68badf87b084ce08f01878c604ac02a4`; Automated Tests, CodeQL, Secret Audit, OCI ARM64 all terminal SUCCESS | YELLOW — synthetic runtime test; production acceptance open |
+| Durable consumer receipt behavior | Receipt write primitive/schema exists; direct behavioral coverage not yet accepted | YELLOW — open |
+| Authenticated ACK | Proof-only HTTP ACK uses shared synthetic bearer and client-supplied consumer ID; no verified Firebase principal binding or WebSocket ACK branch | YELLOW — open |
+| Receipt-bounded compaction | Compaction primitive does not yet enforce minimum durable ACK across required consumers; destructive retention prohibited | YELLOW — safety invariant open |
+| Provider eligibility | PR #10 screens Coinbase, Kraken, Binance Spot and Binance Vision; no provider approved for exact display/redistribution + zero-cost scope | YELLOW — legal/technical gate open |
+| Cloudflare production runtime | Existing relay is a preflight dispatcher; no production WSS deployment or Durable Object namespace in connected account inventory | YELLOW — not deployed/accepted |
+| Firebase identity and entitlement | No production verified-principal binding demonstrated in synthetic Worker | YELLOW — open |
+| Browser/Android WSS E2E | No public TLS/WSS + Firebase + Android reconnect/recovery evidence | YELLOW — open |
+| ZERO COST certification | Account billing entitlement and provider rights not fully verified | YELLOW — unverified |
+| Stage 1 / Gate 10 | Required acceptance evidence remains outstanding | OPEN — not closed |
+
+### Batch and PR bookkeeping
+
+- PR #7: OPEN, mergeable, not merged; current head `80ca695e68badf87b084ce08f01878c604ac02a4`. Current-head Automated Tests run 45944090033, CodeQL 45944090027, Secret Audit 45944090069, OCI ARM64 45944089968 — all terminal SUCCESS.
+- PR #10: OPEN, mergeable, not merged; current head `4ebeb0a147d1cf474ef8a2ec9a2578a53326897d`. Current-head Automated Tests run 45939059711, CodeQL 45939060366, Secret Audit 45939059764, OCI ARM64 45939059713 — all terminal SUCCESS.
+- PR #11: OPEN, mergeable, not merged; latest documentation head before this update `aedc14c3d5d897254be782156cd2bd7b96948a8b`. That docs-only commit had no associated CI run. The full execution record and next-stage plan are in [the Batch 72/94 work-cycle record](WORK_CYCLE_2026-11-25_BATCH72_CLOUDFLARE_INVENTORY_ZERO_COST_WEBSOCKET_PATH.md).
+- All three PRs target `phase-2/market-data-foundation`; none has been merged. `main` remains untouched.
+
+### Next required work
+
+1. Add direct receipt persistence/idempotency/rejection/storage-failure tests.
+2. Bind ACK consumer identity to verified Firebase principal and implement the WebSocket ACK message path.
+3. Enforce and test compaction floor <= minimum durable ACK of all required consumers; keep destructive trim disabled until green.
+4. Complete provider rights and zero-cost eligibility review.
+5. Only after those invariants pass, implement production identity/ticket/WSS integration and run real browser/Android E2E.
+6. Close Stage 1 acceptance and Gate 10 before declaring a formal stage transition.
+
+**Overall Batch 94: IN PROGRESS / YELLOW.** Successful synthetic CI is not production acceptance. Target date remains 24 December 2026.
+
+
+---
+
+## Evidence correction — Batch 94 receipt and retention candidates (27 November 2026)
+
+The earlier matrix entry that described receipt behavioral coverage as wholly absent referred to the pre-PR #7 foundation baseline. Current candidate branches provide additional evidence:
+
+- **PR #7** contains workerd/Miniflare behavioral coverage for receipt creation, duplicate ACK, ACK regression, digest mismatch, and compaction bounded by an already-recorded lagging receipt. Its eviction/replay test and all four checks on head `80ca695e68badf87b084ce08f01878c604ac02a4` are successful.
+- **PR #7 limitation:** consumers without an initial receipt are not visible to a receipt-only compaction query. It does not establish a complete required-consumer registry.
+- **PR #12** proposes schema v4 required-consumer registration, rejects ACK from unregistered consumers, and blocks compaction when the registry is empty or an active required consumer has no receipt / has a lagging cursor. Its current head is `a0d1d4b01c238a1e643f36cf0b939ada067863f3`; CI is pending at the time of this note.
+
+| Acceptance area | Updated candidate evidence | Status |
+|---|---|---|
+| Receipt behavior | PR #7 integration tests cover create, duplicate, regression, digest mismatch | YELLOW — candidate branch only |
+| Receipt-aware compaction | PR #7 blocks compaction past known lagging receipt | YELLOW — candidate branch only |
+| Required consumer registry | PR #12 adds schema v4 and registration gate | YELLOW — CI pending |
+| Missing receipt fail-closed | PR #12 integration test asserts compaction is blocked for registered consumer without receipt | YELLOW — CI pending |
+| Firebase-derived identity | Not implemented; proof bearer and supplied consumer ID remain synthetic-only | YELLOW — open |
+| WebSocket ACK frame | No authenticated production ACK message branch demonstrated | YELLOW — open |
+| Consumer lifecycle / fencing | Registration exists only in synthetic candidate; expiry, ownership and safe deregistration policy remain open | YELLOW — open |
+
+Do not score these candidate branches as accepted foundation functionality until they are reviewed and merged. PR #12 is not merged; main remains untouched.
+
+
+---
+
+## CI closeout — 27 November 2026
+
+PR #12 required-consumer registry candidate head `83a4582dd76a6ca712ae4cb18ee77b0dbb5f7d86` has all four required workflows terminal SUCCESS: Automated Tests [45979657207](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45979657207), CodeQL [45979657185](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45979657185), Secret Audit [45979657177](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45979657177), and OCI ARM64 [45979657275](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45979657275).
+
+PR #11 documentation head `6e15fc634deed2b96aa72d4c819a9f8681d3e99c` also has all four workflows terminal SUCCESS: Automated Tests [45979522475](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45979522475), CodeQL [45979522468](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45979522468), Secret Audit [45979522469](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45979522469), and OCI ARM64 [45979522460](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45979522460).
+
+PR #12's first CI attempt failed two migration-fixture assertions; the fixture was corrected to simulate schema v2 correctly and to expect schema v4, then the new head passed all checks. The initial failure remains in GitHub history.
+
+Passing candidate CI does not mean PR #12 is merged or that production acceptance is complete. PR #7/#10/#11/#12 remain open and unmerged. Required-consumer registry is still synthetic-only; Firebase-derived identity, consumer lifecycle/fencing, WebSocket ACK, provider rights, public WSS and Android/browser E2E remain YELLOW. Stage 1 and Gate 10 remain open.
