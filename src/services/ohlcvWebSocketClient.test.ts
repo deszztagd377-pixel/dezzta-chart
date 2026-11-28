@@ -211,12 +211,42 @@ describe('connectOhlcvStream', () => {
       version: 1,
       accepted: true,
       duplicate: false,
-      committedCursor: '9',
+      sequence: 9,
+      // Durable outbox cursors are global positions, not socket-local sequences.
+      committedCursor: '9007199254740993123',
       receiptVersion: 1,
     });
     expect(connection.state).toBe('subscribed');
     expect(onError).not.toHaveBeenCalled();
     connection.close();
+  });
+
+  it('rejects ACK confirmations with a mismatched sequence or an invalid SQLite cursor', () => {
+    vi.useFakeTimers();
+    for (const response of [
+      { sequence: 7, committedCursor: '100' },
+      { sequence: 8, committedCursor: '9223372036854775808' },
+      { sequence: 8, committedCursor: '01' },
+    ]) {
+      const { socket, onError, connection } = setup();
+      socket.readyState = 1;
+      socket.emit('open', new Event('open'));
+      socket.message({ type: 'market_data.status', version: 1, consumerAckProtocolVersion: 1 });
+      socket.message(snapshot);
+      socket.message(ackUpdate);
+      vi.advanceTimersByTime(10_000);
+      socket.message({
+        type: 'market_data.acknowledged',
+        version: 1,
+        accepted: true,
+        duplicate: false,
+        ...response,
+        receiptVersion: 1,
+      });
+      expect(onError).toHaveBeenCalledOnce();
+      expect(connection.state).toBe('closed');
+      connection.close();
+    }
   });
 
   it('rejects a payload modified after its SHA-256 attestation before applying it', () => {
