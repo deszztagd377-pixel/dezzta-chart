@@ -1,12 +1,22 @@
 # CURRENT RECONCILIATION — 28 NOVEMBER 2026 (AUTHORITATIVE)
 
 **Active application branch:** `phase-2/market-data-foundation`  
-**Application branch HEAD:** `9b7facc9ae88d8d525da9f975c32c306963d70b7` (documentation-only Batch 99 commit).  
+**Branch HEAD at the start of this reconciliation:** `9b7facc9ae88d8d525da9f975c32c306963d70b7` (documentation-only Batch 99 commit); this status correction is committed separately in the branch history.  
 **Latest validated source/test SHA:** `41f42a232a25987513c175ea6d271ae5389b1437`; no application runtime source/test changes were introduced after this SHA in the Batch 98/99 documentation commits.  
 **Required CI on exact source/test SHA 41f42a2:** 4/4 terminal SUCCESS — [Automated Tests #2664](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46108286306), [Secret History Audit #1591](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46108286305), [OCI ARM64 #638](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46108286297), [CodeQL #2009](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46108286284). These are exact-SHA results, not a claim that docs-only HEAD 9b7f ran CI.
 **Current Actions inspection:** no in-progress runs were present in the 100 latest application workflow runs or the complete 14-run Runner history at this reconciliation.  
 **Official stage:** Stage 1 — 30/40 = 75% provisional 🟨. Gate 10 remains 0/10 formally closed. Remaining owner-controlled criteria: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39. Stage 2 remains preparatory only.  
 **Zero-cost and branch boundaries:** ZERO COST; application `main` untouched; no production deployment, billing change, secret-value access or auto-merge.
+
+## Open PR and exact-head CI reconciliation — 28 November 2026
+
+- PR #7 (Durable Object eviction/replay test): open, unmerged; all four required workflows succeeded on head `80ca695e68badf87b084ce08f01878c604ac02a4`: [Automated Tests](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45944090033), [CodeQL](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45944090027), [Secret Audit](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45944090069), [OCI ARM64](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45944089968).
+- PR #8 (legacy cursor authority recovery): open, unmerged; all four required workflows succeeded on head `ed7b892e6b87a5c222e8df1e9d34ed304611b197`: [Automated Tests](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45929823680), [CodeQL](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45929823690), [Secret Audit](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45929823674), [OCI ARM64](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45929823701).
+- PR #9 (compaction/replay rollback fault injection): open and depends on PR #8. The current head `d9afdf13e388b0186a9ce0137d830ab273256017` has successful Automated Tests runs [45935033733](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45935033733) and [45935028328](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/45935028328). The inspected branch run list does not show a complete four-workflow validation set on this head; do not label it 4/4 green.
+- PR #13 (synthetic WebSocket ACK protocol): open and unmerged; all four required workflows succeeded on source/test SHA `e29040d4f3e9e5da5c9dd1400e102f5139b9ba41`: [Automated Tests](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46107071181), [CodeQL](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46107071199), [OCI ARM64](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46107071235), [Secret Audit](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46107071288). PR head `119d3b621ca6067d96a0b532c1a882620b8f5597` is now 4 commits behind the current base after documentation updates; compare reports divergence (111 ahead / 4 behind). Do not force-push, merge, or infer conflict-free synchronization.
+- No PR was merged. PR #8 must precede dependent PR #9. PR #7 is independently reviewable. PR #13 remains synthetic proof only; production FastAPI ACK/receipt handling remains incomplete.
+
+All runs listed above are terminal; no current in-progress run was found. A completed failure or cancelled run on an older superseded SHA is retained as history and is not misreported as current success.
 
 ## Owner decision — recurring 10-minute automation CANCELLED
 
