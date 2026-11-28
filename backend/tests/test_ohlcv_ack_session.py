@@ -177,3 +177,62 @@ def test_malformed_ack_messages_are_rejected(payload: object) -> None:
     ledger = OhlcvAckEventLedger(STREAM_ID)
     with pytest.raises(OhlcvAckProtocolError):
         ledger.acknowledge(payload)
+
+def test_resolve_ack_does_not_advance_ledger_before_durable_commit() -> None:
+    ledger = OhlcvAckEventLedger(STREAM_ID)
+    sent = ledger.record_sent_event(event(1, 101))
+
+    resolved, duplicate = ledger.resolve_ack(ack(1))
+
+    assert resolved == sent
+    assert duplicate is False
+    assert ledger.pending_count == 1
+    assert ledger.last_acked is None
+
+    ledger.commit_ack(resolved)
+
+    assert ledger.pending_count == 0
+    assert ledger.last_acked == sent
+
+
+def test_resolve_ack_can_be_retried_after_a_durable_commit_failure() -> None:
+    ledger = OhlcvAckEventLedger(STREAM_ID)
+    sent = ledger.record_sent_event(event(1, 101))
+
+    # Re-resolving is safe while the caller retries its durable transaction.
+    first, first_duplicate = ledger.resolve_ack(ack(1))
+    second, second_duplicate = ledger.resolve_ack(ack(1))
+    assert first == second == sent
+    assert first_duplicate is second_duplicate is False
+    assert ledger.pending_count == 1
+
+    ledger.commit_ack(second)
+    resolved, duplicate = ledger.resolve_ack(ack(1))
+    assert resolved == sent
+    assert duplicate is True
+
+
+def test_commit_ack_rejects_an_event_not_pending_on_this_socket() -> None:
+    ledger = OhlcvAckEventLedger(STREAM_ID)
+    foreign = OhlcvAckedEvent(
+        stream_id="another-stream",
+        sequence=1,
+        cursor=101,
+        event_id="event-1",
+        event_digest=DIGEST_1,
+    )
+
+    with pytest.raises(OhlcvAckUnknownEvent):
+        ledger.commit_ack(foreign)
+
+
+def test_commit_ack_requires_exact_pending_event() -> None:
+    ledger = OhlcvAckEventLedger(STREAM_ID)
+    ledger.record_sent_event(event(1, 101))
+    altered = OhlcvAckEventLedger(STREAM_ID).record_sent_event(event(1, 102))
+
+    with pytest.raises(OhlcvAckUnknownEvent):
+        ledger.commit_ack(altered)
+
+    assert ledger.pending_count == 1
+    assert ledger.last_acked is None
