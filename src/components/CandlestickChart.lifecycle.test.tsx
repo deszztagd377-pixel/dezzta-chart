@@ -68,6 +68,10 @@ let chartApi: {
   resize: ReturnType<typeof vi.fn>;
   remove: ReturnType<typeof vi.fn>;
 };
+let chartSeries: Array<{
+  setData: ReturnType<typeof vi.fn>;
+  update: ReturnType<typeof vi.fn>;
+}>;
 
 function setBrowserLifecycle(online: boolean, visibility: DocumentVisibilityState) {
   Object.defineProperty(navigator, 'onLine', {
@@ -119,11 +123,13 @@ beforeEach(() => {
   document.body.appendChild(container);
   root = createRoot(container);
 
+  chartSeries = [];
   chartApi = {
-    addSeries: vi.fn(() => ({
-      setData: vi.fn(),
-      update: vi.fn(),
-    })),
+    addSeries: vi.fn(() => {
+      const series = { setData: vi.fn(), update: vi.fn() };
+      chartSeries.push(series);
+      return series;
+    }),
     timeScale: vi.fn(() => ({
       fitContent: vi.fn(),
       applyOptions: vi.fn(),
@@ -158,6 +164,39 @@ describe('CandlestickChart WebSocket browser lifecycle integration', () => {
   it('creates the SMA, EMA and Bollinger overlay series with the candlestick chart', () => {
     renderChart();
     expect(chartApi.addSeries).toHaveBeenCalledTimes(6);
+  });
+
+  it('renders finite indicator values from the selected backend snapshot', () => {
+    renderChart();
+    const bars = Array.from({ length: 25 }, (_, index) => ({
+      timestamp: 1_800_000_000 + index * 60,
+      open: 100 + index,
+      high: 102 + index,
+      low: 99 + index,
+      close: 100 + index,
+      volume: 10 + index,
+    }));
+
+    act(() => marketDataSeriesStore.publishSnapshot({
+      identity: marketDataIdentity,
+      status: 'ready',
+      bars,
+    }));
+
+    expect(chartSeries).toHaveLength(6);
+    const overlayData = chartSeries.slice(1).map((series) => {
+      const calls = series.setData.mock.calls;
+      return calls[calls.length - 1]?.[0] as Array<{ time: number; value: number }>;
+    });
+    expect(overlayData).toHaveLength(5);
+    for (const points of overlayData) {
+      expect(points).toHaveLength(6);
+      expect(points.every((point) => Number.isFinite(point.value))).toBe(true);
+    }
+    expect(overlayData[0][0].time).toBe(bars[19].timestamp);
+    expect(overlayData[0][5].value).toBeCloseTo(114.5, 10);
+    expect(overlayData[1][5].value).toBeCloseTo(114.5, 10);
+    expect(overlayData[2][5].value).toBeCloseTo(114.5, 10);
   });
 
   it('uses a loaded CME calendar release only for daily-or-higher chart series', () => {
