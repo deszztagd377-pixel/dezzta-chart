@@ -3,8 +3,9 @@ import { useAuth } from '../auth/AuthProvider';
 import {
   createChart,
   CandlestickSeries,
+  LineSeries,
 } from 'lightweight-charts';
-import type { CandlestickData, IChartApi } from 'lightweight-charts';
+import type { CandlestickData, IChartApi, LineData } from 'lightweight-charts';
 import type { Timeframe } from '../types';
 import type { FuturesContractDto } from '../types/instrumentCatalogApi';
 import { demoCandles, getDemoCandleValidationErrors } from '../data/demoCandles';
@@ -13,6 +14,7 @@ import { getOhlcvStreamLifecycle } from '../services/ohlcvStreamLifecycle';
 import { resetMarketDataSnapshot, isSameMarketSeriesIdentity } from '../services/marketDataStore';
 import { marketDataSeriesStore } from '../services/marketDataSeriesStore';
 import { useMarketDataSeriesSnapshot } from '../services/useMarketDataSeriesSnapshot';
+import { useMarketIndicators } from '../indicators/useMarketIndicators';
 import { toCandlestickSeriesData } from '../utils/candlestickSeriesData';
 import { buildChartOptions } from '../utils/chartOptions';
 import { getMeasurableChartSize } from '../utils/chartViewport';
@@ -52,10 +54,12 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
     };
   }, [selectedContract, timeframe]);
   const marketDataSnapshot = useMarketDataSeriesSnapshot(marketDataIdentity);
+  const marketIndicators = useMarketIndicators(marketDataIdentity);
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const setSeriesDataRef = useRef<((data: CandlestickData[]) => void) | null>(null);
   const updateSeriesRef = useRef<((data: CandlestickData) => void) | null>(null);
+  const setIndicatorDataRef = useRef<((indicators: NonNullable<typeof marketIndicators.indicators> | null, candles: CandlestickData[]) => void) | null>(null);
   const lastRenderedRevisionRef = useRef<number | null>(null);
   const lastRenderedTimestampRef = useRef<number | null>(null);
 
@@ -130,6 +134,42 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
 
       setSeriesDataRef.current = (data) => candleSeries.setData(data);
       updateSeriesRef.current = (data) => candleSeries.update(data);
+      const smaSeries = activeChart.addSeries(LineSeries, {
+        color: '#f5c451', lineWidth: 2, priceLineVisible: false,
+        lastValueVisible: false, crosshairMarkerVisible: false,
+      });
+      const emaSeries = activeChart.addSeries(LineSeries, {
+        color: '#5da9ff', lineWidth: 2, priceLineVisible: false,
+        lastValueVisible: false, crosshairMarkerVisible: false,
+      });
+      const bollingerMiddleSeries = activeChart.addSeries(LineSeries, {
+        color: 'rgba(184, 146, 255, 0.72)', lineWidth: 1, priceLineVisible: false,
+        lastValueVisible: false, crosshairMarkerVisible: false,
+      });
+      const bollingerUpperSeries = activeChart.addSeries(LineSeries, {
+        color: 'rgba(184, 146, 255, 0.48)', lineWidth: 1, priceLineVisible: false,
+        lastValueVisible: false, crosshairMarkerVisible: false,
+      });
+      const bollingerLowerSeries = activeChart.addSeries(LineSeries, {
+        color: 'rgba(184, 146, 255, 0.48)', lineWidth: 1, priceLineVisible: false,
+        lastValueVisible: false, crosshairMarkerVisible: false,
+      });
+      const toLineData = (values: readonly (number | null)[], candles: CandlestickData[]): LineData[] =>
+        values.flatMap((value, index) => (
+          value === null || !Number.isFinite(value) || !candles[index]
+            ? []
+            : [{ time: candles[index].time, value }]
+        ));
+      setIndicatorDataRef.current = (indicators, candles) => {
+        smaSeries.setData(indicators ? toLineData(indicators.sma20, candles) : []);
+        emaSeries.setData(indicators ? toLineData(indicators.ema20, candles) : []);
+        bollingerMiddleSeries.setData(indicators
+          ? toLineData(indicators.bollinger20.map((point) => point.middle), candles) : []);
+        bollingerUpperSeries.setData(indicators
+          ? toLineData(indicators.bollinger20.map((point) => point.upper), candles) : []);
+        bollingerLowerSeries.setData(indicators
+          ? toLineData(indicators.bollinger20.map((point) => point.lower), candles) : []);
+      };
       lastRenderedRevisionRef.current = null;
       lastRenderedTimestampRef.current = null;
       candleSeries.setData(demoCandles);
@@ -167,6 +207,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       chartRef.current = null;
       setSeriesDataRef.current = null;
       updateSeriesRef.current = null;
+      setIndicatorDataRef.current = null;
       lastRenderedRevisionRef.current = null;
       lastRenderedTimestampRef.current = null;
       return;
@@ -180,6 +221,7 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
       chartRef.current = null;
       setSeriesDataRef.current = null;
       updateSeriesRef.current = null;
+      setIndicatorDataRef.current = null;
       lastRenderedRevisionRef.current = null;
       lastRenderedTimestampRef.current = null;
     };
@@ -375,6 +417,16 @@ const CandlestickChart: React.FC<CandlestickChartProps> = ({
     streamLifecycle.shouldConnect,
     streamLifecycle.reason,
   ]);
+
+  useEffect(() => {
+    if (!isChartReady || !setIndicatorDataRef.current) return;
+    const indicators = marketIndicators.source === 'backend' &&
+      (marketIndicators.status === 'ready' || marketIndicators.status === 'degraded')
+      ? marketIndicators.indicators
+      : null;
+    const candles = indicators ? toCandlestickSeriesData(marketDataSnapshot.bars) : [];
+    setIndicatorDataRef.current(indicators, candles);
+  }, [isChartReady, marketDataSnapshot, marketIndicators.indicators, marketIndicators.source, marketIndicators.status]);
 
   const selectedSymbol = selectedContract?.raw_symbol;
   const badgeText = !selectedSymbol
