@@ -193,7 +193,7 @@ class SQLiteOhlcvConsumerReceiptStore:
         try:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute(
-                """SELECT committed_cursor,event_id,event_digest,receipt_version,fencing_token
+                """SELECT committed_cursor,event_id,event_digest,stream_id,sequence,receipt_version,fencing_token
                 FROM ohlcv_consumer_receipts
                 WHERE account_subject=? AND consumer_id=? AND series_key=?""",
                 (account_subject, consumer_id, series_key),
@@ -219,6 +219,10 @@ class SQLiteOhlcvConsumerReceiptStore:
                 receipt_version = int(row["receipt_version"])
                 if fencing_token < previous_fence:
                     raise OhlcvConsumerReceiptStale("ACK fencing token is older than the committed owner.")
+                if fencing_token == previous_fence and stream_id != row["stream_id"]:
+                    raise OhlcvConsumerReceiptStale(
+                        "ACK stream generation changed without a higher fencing token."
+                    )
                 if cursor < previous_cursor:
                     raise OhlcvConsumerReceiptStale("ACK cursor is older than the committed receipt.")
                 if cursor == previous_cursor:
@@ -227,6 +231,10 @@ class SQLiteOhlcvConsumerReceiptStore:
                             "ACK cursor conflicts with the committed event identity."
                         )
                     duplicate = True
+                    if fencing_token == previous_fence and sequence != int(row["sequence"]):
+                        raise OhlcvConsumerReceiptStale(
+                            "ACK sequence changed without a higher fencing token."
+                        )
                     fence_advanced = fencing_token > previous_fence
                     if fence_advanced:
                         receipt_version += 1
