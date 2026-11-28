@@ -146,7 +146,12 @@ function canonicalSeries(seriesKey) {
   };
 }
 
-async function connectAuthenticated(seriesKey, suppliedTicket, clientInstanceId = crypto.randomUUID()) {
+async function connectAuthenticated(
+  seriesKey,
+  suppliedTicket,
+  clientInstanceId = crypto.randomUUID(),
+  resumeCursor,
+) {
   const ticket = suppliedTicket ?? await issueTicket(seriesKey);
   const socket = await openSocket(seriesKey);
   const statusPromise = nextJsonMessage(socket);
@@ -158,14 +163,32 @@ async function connectAuthenticated(seriesKey, suppliedTicket, clientInstanceId 
     providerConnected: false,
     liveProviderEnabled: false,
   });
-  const snapshotPromise = nextJsonMessage(socket);
+  const firstResponsePromise = nextJsonMessage(socket);
   socket.send(JSON.stringify({
     type: "market_data.subscribe",
     version: 1,
     clientInstanceId,
+    ...(resumeCursor !== undefined ? { cursor: resumeCursor } : {}),
     series: canonicalSeries(seriesKey),
   }));
-  const snapshot = await snapshotPromise;
+  const firstResponse = await firstResponsePromise;
+  if (resumeCursor !== undefined) {
+    expect(firstResponse).toMatchObject({
+      type: "market_data.ohlcv.replay_started",
+      fromCursor: resumeCursor,
+    });
+    const replayEvents = [];
+    for (let index = 0; index < firstResponse.count; index += 1) {
+      replayEvents.push(await nextJsonMessage(socket));
+    }
+    const replayComplete = await nextJsonMessage(socket);
+    expect(replayComplete).toMatchObject({
+      type: "market_data.ohlcv.replay_complete",
+      count: firstResponse.count,
+    });
+    return { socket, ticket, replayStarted: firstResponse, replayEvents, replayComplete };
+  }
+  const snapshot = firstResponse;
   expect(snapshot).toMatchObject({
     type: "market_data.ohlcv.snapshot",
     version: 1,
@@ -566,7 +589,28 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     first.socket.close(1000, "simulate reconnect");
     await closePromise;
 
-    const second = await connectAuthenticated(SERIES_RECONNECT, undefined, clientInstanceId);
+    // The receipt and event log must survive eviction, not merely socket
+    // attachment restoration inside the same Durable Object instance.
+    await evictDurableObject(stub);
+
+    const second = await connectAuthenticated(
+      SERIES_RECONNECT, undefined, clientInstanceId, "50",
+    );
+    expect(second.replayStarted).toMatchObject({
+      fromCursor: "50",
+      throughCursor: "51",
+      count: 1,
+    });
+    expect(second.replayEvents).toHaveLength(1);
+    expect(second.replayEvents[0]).toMatchObject({
+      type: "market_data.ohlcv.update",
+      sequence: 51,
+      cursor: "51",
+      digest: update.digest,
+      generationId: "synthetic-v1",
+    });
+    expect(second.replayComplete).toMatchObject({ cursor: "51", throughSequence: 51 });
+
     const secondLease = await runInDurableObject(stub, async (_instance, state) => (
       state.getWebSockets().find((socket) => socket.deserializeAttachment().subscribed)
         .deserializeAttachment()
@@ -582,6 +626,21 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     expect(secondLease.ownerToken).not.toBe(firstLease.ownerToken);
     expect(secondLease.fenceToken).toBe(firstLease.fenceToken + 1);
     expect(receiptAfter).toEqual(receiptBefore);
+
+    const duplicateAckPromise = nextJsonMessage(second.socket);
+    second.socket.send(JSON.stringify({
+      type: "market_data.ack",
+      version: 1,
+      sequence: 51,
+      eventDigest: second.replayEvents[0].digest,
+    }));
+    expect(await duplicateAckPromise).toMatchObject({
+      type: "market_data.acknowledged",
+      accepted: true,
+      duplicate: true,
+      committedCursor: "51",
+      receiptVersion: receiptBefore[0].receipt_version,
+    });
     second.socket.close(1000, "test complete");
   });
 
