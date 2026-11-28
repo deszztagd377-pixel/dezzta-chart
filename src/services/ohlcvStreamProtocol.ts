@@ -211,6 +211,40 @@ export function parseOhlcvStreamUpdate(payload: unknown): OhlcvStreamUpdateMessa
   };
 }
 
+
+function canonicalizeDigestValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalizeDigestValue);
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.keys(value).sort().map((key) => [key, canonicalizeDigestValue(value[key])]),
+    );
+  }
+  return value;
+}
+
+/**
+ * Recompute the server's SHA-256 event attestation before applying an update.
+ * The digest covers the complete event object except the digest field itself.
+ * This intentionally fails closed when Web Crypto is unavailable.
+ */
+export async function verifyOhlcvStreamEventDigest(
+  event: OhlcvStreamUpdateMessage,
+): Promise<boolean> {
+  if (!event.generationId || !event.digest) return false;
+  if (!globalThis.crypto?.subtle) {
+    throw new Error('Web Crypto SHA-256 is unavailable; refusing an unattested OHLCV event.');
+  }
+  const payload: Record<string, unknown> = { ...event };
+  delete payload.digest;
+  const canonical = JSON.stringify(canonicalizeDigestValue(payload));
+  const bytes = new TextEncoder().encode(canonical);
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes);
+  const actual = Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, '0'),
+  ).join('');
+  return actual === event.digest;
+}
+
 export type OhlcvSequenceDecision =
   | { accepted: true; lastSequence: number }
   | { accepted: false; reason: 'duplicate' | 'stale' | 'gap' | 'stream_mismatch' | 'series_mismatch'; expectedSequence: number; receivedSequence: number };
