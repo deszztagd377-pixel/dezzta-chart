@@ -3,6 +3,7 @@ import { parseOhlcvSnapshot, toChartCandles, type OhlcvSeriesIdentity } from '..
 import {
   OhlcvStreamSequenceGuard,
   parseOhlcvStreamUpdate,
+  verifyOhlcvStreamEventDigest,
   type OhlcvStreamUpdateMessage,
 } from './ohlcvStreamProtocol';
 import type { ChartData } from '../types';
@@ -339,7 +340,8 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
     }
   });
 
-  socket.addEventListener('message', (message) => {
+  let messageQueue: Promise<void> = Promise.resolve();
+  const processMessage = async (message: Event) => {
     if (state === 'closed') return;
     let payload: unknown;
     try {
@@ -526,6 +528,12 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
           throw new Error('OHLCV replay delivered more events than declared.');
         }
         const event = parseOhlcvStreamUpdate(value);
+        if (consumerAckEnabled && (!event.generationId || !event.digest)) {
+          throw new Error('ACK-capable OHLCV server omitted generationId or event digest.');
+        }
+        if (event.digest !== undefined && !(await verifyOhlcvStreamEventDigest(event))) {
+          throw new Error('OHLCV stream event SHA-256 digest verification failed.');
+        }
         const decision = guard.accept(event);
         if (!decision.accepted) {
           throw new Error(
@@ -606,6 +614,14 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
     } catch (error) {
       fail(error instanceof Error ? error : new Error('OHLCV WebSocket protocol error.'));
     }
+  };
+
+  socket.addEventListener('message', (message) => {
+    // Web Crypto verification is asynchronous; serialize frames so a later
+    // update cannot overtake an earlier update while its digest is checked.
+    messageQueue = messageQueue.then(() => processMessage(message)).catch((error) => {
+      fail(error instanceof Error ? error : new Error('OHLCV WebSocket message processing failed.'));
+    });
   });
 
   socket.addEventListener('error', () => {
