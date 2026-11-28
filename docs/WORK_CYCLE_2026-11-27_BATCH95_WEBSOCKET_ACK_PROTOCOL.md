@@ -194,3 +194,12 @@ Acceptance behavior:
 - If bid/ask values are estimated/simulated, show that provenance in the detail view; never label estimates as actual exchange order flow.
 
 This is a future Footprint-stage requirement and remains gated; this clarification records the interaction contract only and does not claim implementation.
+
+
+## VERIFIED CHECKPOINT — 28 November 2026
+
+**Current branch HEAD:** `9f49d1affc7f784904bb99dc1c5b3393dc87a6a9`. Parser generation binding is now enforced: production `generationId` must equal `streamId`; synthetic proof events must use `synthetic-v1` and `synthetic:${seriesKey}`. Regression tests cover both variants and mismatches.
+
+**Exact-head CI:** all four workflows terminal SUCCESS on this SHA. Automated Tests [46104901664](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46104901664) — 41/41 steps, frontend 338/338 tests, backend 1,437 passed / 1 skipped, Worker runtime 26/26; CodeQL [46104901668](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46104901668); OCI ARM64 [46104901656](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46104901656); Secret Audit [46104901671](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46104901671).
+
+**Boundary:** this is repository-level validation only. FastAPI production ACK/receipt handling, cryptographic client-side digest verification, production identity grant, public WSS/device E2E, provider rights and zero-cost production certification remain YELLOW. Stage 1 remains 30/40 provisional; Gate 10 remains 0/10 formally closed. PR #13 remains open and unmerged; `main` remains untouched. Deadline 24 December 2026: 26 calendar days remain.

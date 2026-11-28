@@ -1,3 +1,39 @@
+# VERIFIED CURRENT CHECKPOINT — 28 November 2026
+
+**Validated code/test HEAD:** `9f49d1affc7f784904bb99dc1c5b3393dc87a6a9` on `work/batch95-websocket-ack-protocol`.  
+**PR #13:** OPEN, unmerged; base `phase-2/market-data-foundation`.  
+**Repository safety:** `main` remains `e3841681bc69b73619058deaf939df82ae5116a1`; no merge, deployment, paid service, billing change, or new Cloudflare resource.
+
+## Exact-head CI — 4/4 SUCCESS
+
+- Automated Tests — [run 46104901664](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46104901664): **SUCCESS**, 41/41 steps; frontend 338/338 tests; backend 1,437 passed, 1 skipped; Worker runtime 26/26.
+- CodeQL — [run 46104901668](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46104901668): **SUCCESS**.
+- OCI ARM64 Image Readiness — [run 46104901656](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46104901656): **SUCCESS**.
+- Full Git History Secret Audit — [run 46104901671](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46104901671): **SUCCESS**.
+
+The Automated Tests workflow completed all 41 steps. It includes the pinned workerd/Miniflare proof, Durable Object runtime suite, frontend tests/build, Redis TLS fixture, backend suite, SQLite benchmarks, dependency audit, container build/smoke test, and image scan. Test totals from the run: Worker runtime 26/26; frontend 338/338 across 35 files; backend 1,437 passed and 1 skipped. All four workflow runs are terminal; none remains in progress.
+
+## Latest protocol change
+
+The frontend OHLCV parser now enforces generation identity binding:
+- Production stream events require `generationId === streamId`.
+- Synthetic proof events require generation `synthetic-v1` and stream ID `synthetic:${seriesKey}`.
+- Tests cover production binding, synthetic binding, mismatches, and the cursor/digest fixtures.
+
+The first two CI attempts exposed stale fixtures; those fixtures were aligned with the intended contract. The final exact-head run above passed. This change does **not** activate production ACK.
+
+## Stage control
+
+**Stage 1: 30/40 = 75% provisional. Gate 10: 0/10 formally closed.** Stage 2 remains preparatory and is not authorized. The ten owner-controlled evidence criteria still open are **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39**. All are YELLOW pending real evidence; repository CI or synthetic proof cannot substitute for production acceptance.
+
+**Production WebSocket boundary — YELLOW:** FastAPI still has no production ACK receive/receipt handler. The synthetic Worker ACK proof is code/test-only. The frontend checks digest syntax but does not yet cryptographically verify the event digest before applying it. Production Firebase-to-Worker session grants, stable reconnect receipt semantics, public WSS, browser/Android E2E, provider redistribution rights and account-level zero-cost certification remain open.
+
+**Deadline:** 24 December 2026 — **26 calendar days remain** from 28 November.
+
+**Controls:** ZERO COST; no paid services, billing changes, deployment, PR merge, or `main` modification. No autonomous background/10-minute coding is running; CI is monitored during the active session.
+
+---
+
 # VERIFIED CURRENT CHECKPOINT — 27 November 2026 (supersedes older snapshots below)
 
 **Last validated code/test HEAD:** `0409c8690650eb9fa78d28e7f4a3bb64b28b634e`.  
@@ -312,7 +348,7 @@ Detailed evidence: `docs/WORK_CYCLE_2026-11-26_BATCH90_SQLITE_SCHEMA_MIGRATION.m
 **Active branch:** `phase-2/market-data-foundation`  
 **Audited source/test SHA:** `6a6e9e82ed2de725bef94e8ed1fa7f28c60e0a49`; Batch 71 CI 4/4 terminal SUCCESS.  
 **Cloudflare:** repo contains a synthetic-only Worker/SQLite DO proof; it is not deployed or wired to production FastAPI/Firebase/live provider/UI. Connected account inventory currently has no Worker, Pages project, Tunnel, DO namespace, Zone or Worker domain. Workers Free + SQLite DO are candidate zero-cost edge components within quota; Containers are paid-only and excluded.  
-**Stage:** Stage 1 official active, 30/40 = 75% provisional 🟨; Gate 10 0/10 🟥. Stage 2 preparatory; Stage 4 gated. Overall and IP3S remain not scored.  
+**Stage:** Stage 1 official active, 30/40 = 75% provisional 🟨; Gate 10 0/10 🟨. Stage 2 preparatory; Stage 4 gated. Overall and IP3S remain not scored.  
 **Indicators:** 6 foundation (SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2, Shared Hook); Footprint PRO 2GD gated; 5 advanced studies open. 28 declarations are not completion.  
 **Gate 25 / WebSocket:** production transport, Firebase identity, live-provider provenance, durable per-gateway ACK/receipt and Gate 36 browser/Android WSS remain open. Redis destructive retention remains blocked.  
 **Controls:** ZERO COST; `main` untouched; no paid hosting/data; no Cloudflare resources created/deployed; target ~24 December 2026.
@@ -333,10 +369,10 @@ Full Batch 72 evidence: `docs/WORK_CYCLE_2026-11-25_BATCH72_CLOUDFLARE_INVENTORY
 All workflows are terminal; no active run remains for the code/test SHA.
 
 **Source change:** POSIX private-key loader now uses O_NOFOLLOW + O_NONBLOCK before fstat; FIFO/device paths cannot block before regular-file validation. Permission error wording reflects the true no-group/world-access invariant.
-**Gate 25:** repository-side file boundary hardened. Owner-host custody, authenticated remote snapshot transfer, persisted receipt retrieval from every gateway, restart re-verification, and durable per-gateway high-water ACK remain 🟥 OPEN.
-**WebSocket:** Gate 36 public HTTPS/WSS, reverse proxy/TLS, production runtime, Firebase production sign-in/entitlement/revocation E2E and real browser/Android lifecycle/multi-instance acceptance remain 🟥 OPEN. Redis destructive retention remains 🟧 BLOCKED.
-**Indicators:** 28 focused indicator declarations = 21 calculation + 7 shared-hook; no new indicator tests or UI integrations in this batch. SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook 🟨 foundation-only; Footprint PRO 2GD 🟧 synthetic/reference-gated; Volume Profile variants, Heatmap and Liquidation Maps 🟥 incomplete/not integrated. Aggregate completion ⚪ NOT SCORED.
-**Project:** Stage 1 30/40 = 75% provisional 🟨 (inherited); Stage 2 🟦 active / NOT SCORED; Stage 3 ⬜ NOT SCORED; Stage 4 🟪 gated; Stage 5 ⬜ NOT SCORED; Stage 6 ⬜ NOT SCORED; Gate 10 0/10 🟥; overall ⚪ NOT SCORED; IP3S ⚪ NOT SCORED.
+**Gate 25:** repository-side file boundary hardened. Owner-host custody, authenticated remote snapshot transfer, persisted receipt retrieval from every gateway, restart re-verification, and durable per-gateway high-water ACK remain 🟨 OPEN.
+**WebSocket:** Gate 36 public HTTPS/WSS, reverse proxy/TLS, production runtime, Firebase production sign-in/entitlement/revocation E2E and real browser/Android lifecycle/multi-instance acceptance remain 🟨 OPEN. Redis destructive retention remains 🟨 BLOCKED.
+**Indicators:** 28 focused indicator declarations = 21 calculation + 7 shared-hook; no new indicator tests or UI integrations in this batch. SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook 🟨 foundation-only; Footprint PRO 2GD 🟨 synthetic/reference-gated; Volume Profile variants, Heatmap and Liquidation Maps 🟨 incomplete/not integrated. Aggregate completion ⚪ NOT SCORED.
+**Project:** Stage 1 30/40 = 75% provisional 🟨 (inherited); Stage 2 🟦 active / NOT SCORED; Stage 3 ⬜ NOT SCORED; Stage 4 🟪 gated; Stage 5 ⬜ NOT SCORED; Stage 6 ⬜ NOT SCORED; Gate 10 0/10 🟨; overall ⚪ NOT SCORED; IP3S ⚪ NOT SCORED.
 **Controls:** ZERO COST; main untouched; no Vercel deployment; no destructive Redis action; APK target around 24 December 2026.
 
 ---
@@ -347,9 +383,9 @@ All workflows are terminal; no active run remains for the code/test SHA.
 **Parent:** 821b3b6602fa2568bf2e103bb725651b1a60de6c  
 **Change:** POSIX key loading adds O_NONBLOCK beside O_NOFOLLOW so FIFO/device paths cannot block before fstat rejects non-regular files. Added POSIX FIFO regression test. Permission diagnostic now accurately describes owner-only/no group-world access rather than implying exactly 0600.  
 **CI:** pending exact new SHA; parent CI is not inherited.  
-**Gate 25:** repository file-open boundary hardened; owner-host custody, authenticated remote transfer, per-gateway receipt retrieval, restart re-verification and durable high-water ACK remain 🟥 OPEN.  
-**Indicator inventory:** 28 focused declarations = 21 calculation + 7 shared-hook; FIFO regression is backend security coverage and excluded. SMA20/EMA20/RSI14/MACD/Bollinger/Shared Hook 🟨 foundation; Footprint 🟧 gated; Volume Profile variants/Heatmap/Liquidation Maps 🟥 incomplete/not integrated. Aggregate ⚪ NOT SCORED.  
-**Project:** Stage 1 30/40 = 75% provisional 🟨; Stage 2 🟦 active / NOT SCORED; Stage 3 ⬜ NOT SCORED; Stage 4 🟪 gated; Stage 5 ⬜ NOT SCORED; Stage 6 ⬜ NOT SCORED; Gate 10 0/10 🟥; overall ⚪ NOT SCORED; IP3S ⚪ NOT SCORED.  
+**Gate 25:** repository file-open boundary hardened; owner-host custody, authenticated remote transfer, per-gateway receipt retrieval, restart re-verification and durable high-water ACK remain 🟨 OPEN.  
+**Indicator inventory:** 28 focused declarations = 21 calculation + 7 shared-hook; FIFO regression is backend security coverage and excluded. SMA20/EMA20/RSI14/MACD/Bollinger/Shared Hook 🟨 foundation; Footprint 🟨 gated; Volume Profile variants/Heatmap/Liquidation Maps 🟨 incomplete/not integrated. Aggregate ⚪ NOT SCORED.  
+**Project:** Stage 1 30/40 = 75% provisional 🟨; Stage 2 🟦 active / NOT SCORED; Stage 3 ⬜ NOT SCORED; Stage 4 🟪 gated; Stage 5 ⬜ NOT SCORED; Stage 6 ⬜ NOT SCORED; Gate 10 0/10 🟨; overall ⚪ NOT SCORED; IP3S ⚪ NOT SCORED.  
 **Controls:** ZERO COST; main untouched; no Vercel deployment; no destructive Redis action; APK target around 24 December 2026.
 
 ---
@@ -361,10 +397,10 @@ All workflows are terminal; no active run remains for the code/test SHA.
 **Latest code/test batch:** Batch 62J-230 added three explicit Gate 25 private-key loader regression tests: POSIX symlink rejection, non-regular path rejection and 64 KiB size-bound rejection.  
 **Exact-HEAD CI:** 4/4 required workflows terminal SUCCESS on this exact SHA. Automated Tests 41/41 steps; CodeQL Python 8/8 + JavaScript/TypeScript 8/8; OCI ARM64 7/7; Full Git History Secret Audit 6/6. Backend pytest summary: 1,393 passed, 1 skipped, 6 warnings in 61.36 seconds. The single skip is the separately configured Redis TLS integration fixture; it is not one of the three new key-loader tests. All three new key-loader tests explicitly PASSED.  
 **Security source/test:** backend/app/snapshot_attestation.py; backend/tests/test_snapshot_attestation.py. The source uses a verified no-follow descriptor on POSIX, requires a regular file and effective-service-user ownership, rejects group/world permissions and caps PEM input at 64 KiB.  
-**Gate 25:** repository-side Ed25519 verification, immutable receipt and private-key file boundary have verified foundations. Real owner-host key custody, authenticated remote snapshot transfer, every gateway's persisted receipt retrieval, restart re-verification and durable per-gateway high-water ACK remain 🟥 OPEN.  
-**Gate 36 / production WebSocket:** public HTTPS/WSS, reverse proxy/TLS, production runtime, Firebase production sign-in/entitlement/revocation E2E and real browser/Android lifecycle plus production multi-instance acceptance remain 🟥 OPEN. Redis destructive retention remains 🟧 BLOCKED until every safety prerequisite is proven.  
-**Indicators:** 28 focused indicator declarations = 21 calculation + 7 shared-hook. SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook 🟨 foundation only; Footprint PRO 2GD 🟧 synthetic/reference-gated; Volume Profile variants, Heatmap and Liquidation Maps 🟥 incomplete/not integrated. Aggregate indicator completion ⚪ NOT SCORED.  
-**Project progress:** Stage 1 30/40 = 75% provisional 🟨 (inherited baseline); Stage 2 🟦 active / NOT SCORED; Stage 3 ⬜ NOT SCORED; Stage 4 🟪 gated; Stage 5 ⬜ NOT SCORED; Stage 6 ⬜ NOT SCORED; Gate 10 0/10 formally closed 🟥; overall project ⚪ NOT SCORED; IP3S ⚪ NOT SCORED.  
+**Gate 25:** repository-side Ed25519 verification, immutable receipt and private-key file boundary have verified foundations. Real owner-host key custody, authenticated remote snapshot transfer, every gateway's persisted receipt retrieval, restart re-verification and durable per-gateway high-water ACK remain 🟨 OPEN.  
+**Gate 36 / production WebSocket:** public HTTPS/WSS, reverse proxy/TLS, production runtime, Firebase production sign-in/entitlement/revocation E2E and real browser/Android lifecycle plus production multi-instance acceptance remain 🟨 OPEN. Redis destructive retention remains 🟨 BLOCKED until every safety prerequisite is proven.  
+**Indicators:** 28 focused indicator declarations = 21 calculation + 7 shared-hook. SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook 🟨 foundation only; Footprint PRO 2GD 🟨 synthetic/reference-gated; Volume Profile variants, Heatmap and Liquidation Maps 🟨 incomplete/not integrated. Aggregate indicator completion ⚪ NOT SCORED.  
+**Project progress:** Stage 1 30/40 = 75% provisional 🟨 (inherited baseline); Stage 2 🟦 active / NOT SCORED; Stage 3 ⬜ NOT SCORED; Stage 4 🟪 gated; Stage 5 ⬜ NOT SCORED; Stage 6 ⬜ NOT SCORED; Gate 10 0/10 formally closed 🟨; overall project ⚪ NOT SCORED; IP3S ⚪ NOT SCORED.  
 **Cost/deployment:** ZERO COST; main untouched; no Vercel deployment; delivery target approximately 24 December 2026 (planning target only).
 
 ---
@@ -377,9 +413,9 @@ All workflows are terminal; no active run remains for the code/test SHA.
 **Change:** adds explicit regression coverage for POSIX symbolic-link rejection, non-regular key paths and PEM files larger than 64 KiB.  
 **Changed file:** backend/tests/test_snapshot_attestation.py.  
 **Current exact-HEAD CI:** PENDING for the new correction commit; parent CI is not inherited.  
-**Gate 25:** source-side private-key file boundary code is hardened, and the missing regression cases are now added. Real owner-host key custody, authenticated remote snapshot transfer, per-gateway receipt retrieval, restart re-verification and durable high-water ACK remain 🟥 OPEN.  
-**Indicator status:** no indicator code changed. Focused indicator suite remains 28 named declarations (21 calculation + 7 shared-hook); the three added tests belong to Gate 25 backend security, not indicator inventory. SMA20/EMA20/RSI14/MACD/Bollinger/Shared Hook 🟨 foundation; Footprint 🟧 gated; Volume Profile variants, Heatmap and Liquidation Maps 🟥 open. Aggregate indicator completion ⚪ NOT SCORED.  
-**Project meters:** Stage 1 30/40 = 75% provisional 🟨 (inherited, not rescored); Stage 2 🟦 active / NOT SCORED; Stage 3 ⬜ NOT SCORED; Stage 4 🟪 gated; Stage 5 ⬜ NOT SCORED; Stage 6 ⬜ NOT SCORED; Gate 10 0/10 🟥; overall project ⚪ NOT SCORED; IP3S ⚪ NOT SCORED.  
+**Gate 25:** source-side private-key file boundary code is hardened, and the missing regression cases are now added. Real owner-host key custody, authenticated remote snapshot transfer, per-gateway receipt retrieval, restart re-verification and durable high-water ACK remain 🟨 OPEN.  
+**Indicator status:** no indicator code changed. Focused indicator suite remains 28 named declarations (21 calculation + 7 shared-hook); the three added tests belong to Gate 25 backend security, not indicator inventory. SMA20/EMA20/RSI14/MACD/Bollinger/Shared Hook 🟨 foundation; Footprint 🟨 gated; Volume Profile variants, Heatmap and Liquidation Maps 🟨 open. Aggregate indicator completion ⚪ NOT SCORED.  
+**Project meters:** Stage 1 30/40 = 75% provisional 🟨 (inherited, not rescored); Stage 2 🟦 active / NOT SCORED; Stage 3 ⬜ NOT SCORED; Stage 4 🟪 gated; Stage 5 ⬜ NOT SCORED; Stage 6 ⬜ NOT SCORED; Gate 10 0/10 🟨; overall project ⚪ NOT SCORED; IP3S ⚪ NOT SCORED.  
 **Cost/deployment:** ZERO COST; main untouched; no Vercel deployment; target approximately 24 December 2026.
 
 ---
@@ -391,10 +427,10 @@ All workflows are terminal; no active run remains for the code/test SHA.
 **Current batch:** hardened owner-host Ed25519 private-key file loading; exact-head CI for the resulting commit must be checked independently.  
 **Source/test:** backend/app/snapshot_attestation.py; backend/tests/test_snapshot_attestation.py.  
 **Security delta:** key loading now uses a no-follow file descriptor on POSIX, verifies a regular file and service-user ownership, enforces owner-only permissions, and caps PEM input at 64 KiB. Regression coverage rejects symlinks, non-regular paths and oversized files.  
-**Gate 25:** repository-side key-file boundary hardened; real owner-host custody, authenticated remote transfer, each gateway's persisted receipt retrieval, restart re-verification and durable per-gateway high-water ACK remain 🟥 OPEN. This patch does not close Gate 25.  
-**WebSocket:** Gate 25 🟥 OPEN; Gate 36 public HTTPS/WSS and production runtime 🟥 OPEN; Firebase production sign-in/entitlement/revocation E2E 🟥 OPEN; real browser/Android lifecycle and production multi-instance acceptance 🟥 OPEN. Redis destructive retention remains 🟧 BLOCKED pending every safety prerequisite.  
-**Indicator ledger:** 21 calculation tests + 7 shared-hook tests = 28 focused named test declarations. SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain 🟨 foundation-only; Footprint PRO 2GD 🟧 synthetic/reference-gated; Volume Profile, Complete Volume Profile, movable-range VP, Heatmap and Liquidation Maps 🟥 incomplete/not integrated. Aggregate indicator completion remains ⚪ NOT SCORED.  
-**Project meters:** Stage 1 = 30/40 criteria = 75% provisional 🟨 (inherited baseline; not rescored by this patch); Stage 2 🟦 active / NOT SCORED; Stage 3 ⬜ NOT SCORED; Stage 4 🟪 gated pending stage gate and reviewed blueprint; Stage 5 ⬜ NOT SCORED; Stage 6 ⬜ NOT SCORED; Gate 10 = 0/10 formally closed 🟥; overall project ⚪ NOT SCORED; IP3S/significant progress ⚪ NOT SCORED.  
+**Gate 25:** repository-side key-file boundary hardened; real owner-host custody, authenticated remote transfer, each gateway's persisted receipt retrieval, restart re-verification and durable per-gateway high-water ACK remain 🟨 OPEN. This patch does not close Gate 25.  
+**WebSocket:** Gate 25 🟨 OPEN; Gate 36 public HTTPS/WSS and production runtime 🟨 OPEN; Firebase production sign-in/entitlement/revocation E2E 🟨 OPEN; real browser/Android lifecycle and production multi-instance acceptance 🟨 OPEN. Redis destructive retention remains 🟨 BLOCKED pending every safety prerequisite.  
+**Indicator ledger:** 21 calculation tests + 7 shared-hook tests = 28 focused named test declarations. SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain 🟨 foundation-only; Footprint PRO 2GD 🟨 synthetic/reference-gated; Volume Profile, Complete Volume Profile, movable-range VP, Heatmap and Liquidation Maps 🟨 incomplete/not integrated. Aggregate indicator completion remains ⚪ NOT SCORED.  
+**Project meters:** Stage 1 = 30/40 criteria = 75% provisional 🟨 (inherited baseline; not rescored by this patch); Stage 2 🟦 active / NOT SCORED; Stage 3 ⬜ NOT SCORED; Stage 4 🟪 gated pending stage gate and reviewed blueprint; Stage 5 ⬜ NOT SCORED; Stage 6 ⬜ NOT SCORED; Gate 10 = 0/10 formally closed 🟨; overall project ⚪ NOT SCORED; IP3S/significant progress ⚪ NOT SCORED.  
 **Cost/deployment:** ZERO COST; main untouched; no Vercel deployment; delivery target approximately 24 December 2026 (planning target only).
 
 ---
@@ -407,9 +443,9 @@ All workflows are terminal; no active run remains for the code/test SHA.
 **Exact-head CI:** PENDING / NOT YET VERIFIED for the new code/test HEAD; earlier parent results are not inherited.  
 **Change:** the shared OHLCV supervisor registry now rejects a same-series owner whose transport endpoint or canonical instrument mapping conflicts with the active supervisor. A regression test covers both mismatch paths and confirms the existing owner remains intact.  
 **Changed source/test:** `src/services/ohlcvSeriesSupervisorRegistry.ts`; `src/services/ohlcvSeriesSupervisorRegistry.test.ts`.  
-**Indicator ledger:** 17 calculation-engine tests + 7 shared-hook tests = 24 focused named cases. SMA20/EMA20/RSI14/MACD12/26/9/Bollinger20,2 and Shared Indicator Hook remain 🟨 foundation; Footprint 🟧 synthetic/reference-gated; Heatmap and Liquidation Maps 🟥 not implemented. Visible chart integration remains unimplemented; indicator aggregate remains NOT SCORED.  
+**Indicator ledger:** 17 calculation-engine tests + 7 shared-hook tests = 24 focused named cases. SMA20/EMA20/RSI14/MACD12/26/9/Bollinger20,2 and Shared Indicator Hook remain 🟨 foundation; Footprint 🟨 synthetic/reference-gated; Heatmap and Liquidation Maps 🟨 not implemented. Visible chart integration remains unimplemented; indicator aggregate remains NOT SCORED.  
 **WebSocket:** Gate 25 and Gate 36 remain OPEN; Redis destructive retention remains BLOCKED.  
-**Progress:** Stage 1 = 30/40 criteria = 75% provisional 🟨; Stage 2 active engineering but NOT SCORED 🟦; Stages 3–6 NOT SCORED ⬜; Gate 10 = 0/10 formally closed 🟥; overall project NOT SCORED ⚪; IP3S for this batch NOT SCORED ⚪.  
+**Progress:** Stage 1 = 30/40 criteria = 75% provisional 🟨; Stage 2 active engineering but NOT SCORED 🟦; Stages 3–6 NOT SCORED ⬜; Gate 10 = 0/10 formally closed 🟨; overall project NOT SCORED ⚪; IP3S for this batch NOT SCORED ⚪.  
 **Cost/deployment:** ZERO COST; `main` untouched; no Vercel deployment; target approximately 24 December 2026 (planning target only).
 
 ---
@@ -439,9 +475,9 @@ The two indicator-specific suites contain **24 named tests**: 17 calculation-eng
 | MACD 12/26/9 | EMA12 − EMA26; EMA9 signal; histogram = MACD − signal | MACD 25; signal/histogram 33 | Dedicated pane, lines, histogram, zero guide, toggle and legend not integrated | 🟨 Foundation |
 | Bollinger 20,2 | 20-close mean ± 2 population standard deviations | 19 | Upper/middle/lower bands, fill, toggle and latest values not integrated | 🟨 Foundation |
 | Shared indicator hook | Exact keyed immutable backend snapshot; shared WeakMap calculation cache per snapshot object; non-backend/untrusted states suppress output | Per study | Hook is not imported or called by `CandlestickChart.tsx` | 🟨 Foundation |
-| Footprint | Deterministic synthetic/offline aggregation fixtures only; not exchange-native bid/ask truth | N/A | Visual work requires owner reference image(s) and reviewed blueprint; OFF keeps normal candles, ON alone uses spaced clusters | 🟧 Gated |
-| Heatmap | No accepted depth/liquidity renderer verified | N/A | Not implemented; owner reference and validated depth contract required | 🟥 Open |
-| Liquidation Maps | No accepted calculation/runtime renderer verified | N/A | Not implemented; data provenance and reviewed blueprint required | 🟥 Open |
+| Footprint | Deterministic synthetic/offline aggregation fixtures only; not exchange-native bid/ask truth | N/A | Visual work requires owner reference image(s) and reviewed blueprint; OFF keeps normal candles, ON alone uses spaced clusters | 🟨 Gated |
+| Heatmap | No accepted depth/liquidity renderer verified | N/A | Not implemented; owner reference and validated depth contract required | 🟨 Open |
+| Liquidation Maps | No accepted calculation/runtime renderer verified | N/A | Not implemented; data provenance and reviewed blueprint required | 🟨 Open |
 
 ### Exact indicator test inventory
 
@@ -520,7 +556,7 @@ Changed files: `backend/app/ohlcv_redis_config.py`, `backend/tests/test_ohlcv_re
 | Meter | Verified state | Status |
 |---|---:|---|
 | Stage 1 | 30/40 criteria • 300/400 ticks • 75% provisional | 🟨 Active |
-| Gate 10 | 0/10 formally closed; open 8, 20, 25, 30, 31, 34, 35, 36, 38, 39 | 🟥 Open |
+| Gate 10 | 0/10 formally closed; open 8, 20, 25, 30, 31, 34, 35, 36, 38, 39 | 🟨 Open |
 | Stages 2–6 | Not officially opened/scored | 🟦 / ⬜ Parked |
 | Overall project | No approved weighted denominator | ⚪ NOT SCORED |
 | Aggregate indicator progress | No approved indicator denominator | ⚪ NOT SCORED |
@@ -534,9 +570,9 @@ Changed files: `backend/app/ohlcv_redis_config.py`, `backend/tests/test_ohlcv_re
 | MACD 12/26/9 | MACD index 25; signal/histogram index 33; tests | No dedicated pane/visible histogram/zero guide | 🟨 Foundation |
 | Bollinger 20,2 | Mean ± 2 population SD; first valid index 19; tests | No bands/fill/toggle | 🟨 Foundation |
 | Shared indicator hook | Identity-bound validated backend snapshot; trust-state suppression | Hook only; not chart-integrated | 🟨 Foundation |
-| Footprint | Deterministic synthetic/offline aggregation + fixtures | Wait for owner reference + scoped blueprint; OFF normal candles, ON spaced clusters | 🟧 Gated |
-| Heatmap | No implementation verified | Not implemented; wait for owner reference | 🟥 Open |
-| Liquidation Maps | No implementation verified | Not implemented; wait for owner reference | 🟥 Open |
+| Footprint | Deterministic synthetic/offline aggregation + fixtures | Wait for owner reference + scoped blueprint; OFF normal candles, ON spaced clusters | 🟨 Gated |
+| Heatmap | No implementation verified | Not implemented; wait for owner reference | 🟨 Open |
+| Liquidation Maps | No implementation verified | Not implemented; wait for owner reference | 🟨 Open |
 
 No aggregate indicator percentage is invented. Calculation foundations are not finished visible features. Stage 4 remains parked; Footprint and Heatmap visual work waits for owner references and scoped blueprint review.
 
@@ -1649,10 +1685,10 @@ No workflow was queued or in progress in the exact-SHA query. This is GitHub CI 
 
 - 🟩 Repository foundations: protocol validation, ticket/authentication enforcement, reconnect/sequence/replay and Redis replica/recovery logic; Batch 223 shared-series owner consistency has exact-head CI acceptance.
 - 🟩 Gate 25 repository-side checks: owner-pinned Ed25519 allow-list, persisted receipt signature re-verification, identity/key binding, durable checkpoint digest comparison and fail-closed validation before Redis client construction.
-- 🟥 Gate 25 external acceptance remains OPEN: owner private-key custody, authenticated owner-host callback transport, actual signed snapshot transfer, retrieval of each gateway's persisted immutable receipt, restart-time re-verification and multi-gateway durable high-water acknowledgement.
-- 🟥 Gate 36 remains OPEN: public HTTPS/WSS and reverse proxy/TLS, independent runtime/Fluid Compute read-back, Android-native WSS lifecycle and production multi-instance fan-out.
-- 🟥 Firebase production sign-in/revocation/entitlement E2E remains OPEN.
-- 🟥 Redis destructive retention remains BLOCKED until gateway inventory/retirement, pending-entry policy, per-gateway durable floor acknowledgements, separate retention authority and crash-safe trim/reconcile are accepted. XTRIM/XDEL and consumer-group destruction remain unauthorized.
+- 🟨 Gate 25 external acceptance remains OPEN: owner private-key custody, authenticated owner-host callback transport, actual signed snapshot transfer, retrieval of each gateway's persisted immutable receipt, restart-time re-verification and multi-gateway durable high-water acknowledgement.
+- 🟨 Gate 36 remains OPEN: public HTTPS/WSS and reverse proxy/TLS, independent runtime/Fluid Compute read-back, Android-native WSS lifecycle and production multi-instance fan-out.
+- 🟨 Firebase production sign-in/revocation/entitlement E2E remains OPEN.
+- 🟨 Redis destructive retention remains BLOCKED until gateway inventory/retirement, pending-entry policy, per-gateway durable floor acknowledgements, separate retention authority and crash-safe trim/reconcile are accepted. XTRIM/XDEL and consumer-group destruction remain unauthorized.
 - No external host credentials, private keys, production endpoint or second device were available to verify. Do not convert repository tests or synthetic preview evidence into production acceptance.
 
 ### Indicator ledger — no score inflation
@@ -1665,10 +1701,10 @@ No workflow was queued or in progress in the exact-SHA query. This is GitHub CI 
 | MACD12/26/9 | EMA12−EMA26; signal EMA9; histogram identity; MACD index 25, signal/histogram 33 | No pane/lines/histogram | 🟨 Foundation |
 | Bollinger20,2 | Population standard deviation; mean ± 2σ; first valid index 19 | No three-line overlay/fill | 🟨 Foundation |
 | Shared Indicator Hook | Exact keyed immutable snapshot, shared cache, trust gating, stale-output clearing | Not integrated into CandlestickChart | 🟨 Foundation |
-| Footprint PRO 2GD | Synthetic/offline accumulator only | Owner references recorded; renderer gated | 🟧 Gated |
-| Volume Profile / Complete VP / movable-range VP tool | No complete production implementation verified | Not integrated | 🟥 Open |
-| Heatmap | No accepted depth/liquidity engine and renderer | Not integrated; owner reference/data contract required | 🟥 Open |
-| Liquidation Maps | No accepted methodology/provenance/renderer | Not integrated | 🟥 Open |
+| Footprint PRO 2GD | Synthetic/offline accumulator only | Owner references recorded; renderer gated | 🟨 Gated |
+| Volume Profile / Complete VP / movable-range VP tool | No complete production implementation verified | Not integrated | 🟨 Open |
+| Heatmap | No accepted depth/liquidity engine and renderer | Not integrated; owner reference/data contract required | 🟨 Open |
+| Liquidation Maps | No accepted methodology/provenance/renderer | Not integrated | 🟨 Open |
 
 Focused test inventory remains 17 calculation-engine + 7 shared-hook = 24 named tests; it is not a completion percentage. Footprint OFF must preserve ordinary candle spacing; explicit ON alone enables the spaced-cluster layout. Indicator visual expansion remains behind the official Stage 4 gate, scoped blueprint and owner review. Aggregate indicator completion remains **NOT SCORED** because no approved denominator/weights exist.
 
@@ -1771,10 +1807,10 @@ The exact-HEAD Automated Tests workflow succeeded. The count is test inventory, 
 | MACD12/26/9 | EMA12−EMA26; EMA9 signal; histogram identity; MACD index 25, signal/histogram 33 | Pane, lines, histogram, zero guide absent | 🟨 Foundation |
 | Bollinger20,2 | 20-close mean ± 2 population standard deviations; first valid index 19 | Three-line overlay, fill, toggle and latest values absent | 🟨 Foundation |
 | Shared Indicator Hook | Exact keyed immutable backend snapshot, shared cache, trust gating, stale-output clearing | Not integrated into CandlestickChart | 🟨 Foundation |
-| Footprint PRO 2GD | Synthetic/offline accumulator only; not exchange-native bid/ask truth | Visual renderer remains gated; user references recorded | 🟧 Gated |
-| Volume Profile / Complete VP / movable-range VP tool | No complete production implementation verified | Not integrated | 🟥 Open |
-| Heatmap | No accepted depth/liquidity engine and renderer | Not integrated; reference and validated depth contract still required | 🟥 Open |
-| Liquidation Maps | No accepted methodology/provenance and renderer | Not integrated | 🟥 Open |
+| Footprint PRO 2GD | Synthetic/offline accumulator only; not exchange-native bid/ask truth | Visual renderer remains gated; user references recorded | 🟨 Gated |
+| Volume Profile / Complete VP / movable-range VP tool | No complete production implementation verified | Not integrated | 🟨 Open |
+| Heatmap | No accepted depth/liquidity engine and renderer | Not integrated; reference and validated depth contract still required | 🟨 Open |
+| Liquidation Maps | No accepted methodology/provenance and renderer | Not integrated | 🟨 Open |
 
 Footprint OFF must preserve normal candlestick spacing; explicit ON alone activates the dedicated spaced-cluster layout. Footprint and Heatmap visuals remain reference/blueprint gated. Major indicator chart integration remains behind the official Stage 4 gate and scoped user-reviewed blueprint. The older 24-test count in historical batch entries remains historical; this 28-test recount is the current source inventory. **Aggregate indicator progress remains NOT SCORED.**
 
@@ -1788,7 +1824,7 @@ Footprint OFF must preserve normal candlestick spacing; explicit ON alone activa
 | Stage 4 | Waiting on stage gate / approved blueprint | 🟪 Gated / NOT SCORED |
 | Stage 5 | Not officially opened/scored | ⬜ NOT SCORED |
 | Stage 6 | Not officially opened/scored | ⬜ NOT SCORED |
-| Gate 10 | 0/10 formally closed | 🟥 Open |
+| Gate 10 | 0/10 formally closed | 🟨 Open |
 | Overall project | No approved six-stage weighted denominator | ⚪ NOT SCORED |
 | Aggregate indicator completion | No approved indicator denominator/weights | ⚪ NOT SCORED |
 | IP3S / significant progress | No approved scoring formula applied | ⚪ NOT SCORED |
@@ -1820,8 +1856,8 @@ The following color legend is now authoritative for new progress entries:
 |---|---|---|
 | 🟩 Green | The named criterion is implemented and verified at the stated scope, with evidence | Does not automatically close its parent production gate |
 | 🟨 Yellow | Partial foundation or repository-side capability exists; additional integration/acceptance remains | Does not mean production acceptance is complete |
-| 🟧 Orange | Gated or blocked on a prerequisite, owner input, reference, or safety condition | Does not imply a code failure |
-| 🟥 Red | The named acceptance criterion or parent end-to-end gate remains unmet/open | Does not mean already-green repository tests regressed |
+| 🟨 Orange | Gated or blocked on a prerequisite, owner input, reference, or safety condition | Does not imply a code failure |
+| 🟨 Red | The named acceptance criterion or parent end-to-end gate remains unmet/open | Does not mean already-green repository tests regressed |
 | 🟦 Blue | Active work or CI currently running | Not a pass/fail result |
 | 🟪 Purple | Stage/blueprint gate prevents implementation from starting | Not a defect report |
 | ⬜ Grey | Not started / not yet assessed | Not evidence of failure |
@@ -1834,13 +1870,13 @@ The following color legend is now authoritative for new progress entries:
 | Browser protocol, ticket/authentication, replay and reconnect foundations | 🟩 Repository-verified | Existing source and exact-HEAD CI coverage |
 | Redis replica, replay, recovery and consumer lifecycle foundations | 🟩 Repository-verified | Existing backend suites and synthetic Redis fixtures |
 | Gate 25 owner-pinned Ed25519 verification, immutable receipt re-verification, source/key binding and fail-before-Redis | 🟩 Repository-verified | Batch 62J-221 source/test contract and exact-HEAD CI |
-| Gate 25 owner-host private-key custody, authenticated remote transfer, each gateway's persisted receipt retrieval, restart re-verification and per-gateway durable high-water ACK | 🟥 External acceptance open | Requires actual owner-controlled host/gateway evidence; repository callback tests cannot prove remote custody or network authentication |
-| Gate 25 parent acceptance | 🟥 OPEN | Parent gate closes only after all required external owner-host evidence is accepted |
-| Gate 36 public HTTPS/WSS, reverse proxy/TLS, production runtime and physical Android lifecycle | 🟥 OPEN | Requires public endpoint and real deployment/device evidence |
-| Firebase production sign-in, entitlement and revocation E2E | 🟥 OPEN | Requires owner-controlled Firebase project evidence |
-| Browser/Android process-death, network handover, production multi-instance failover | 🟨/🟥 PARTIAL / OPEN | Repository foundations exist; deployed browser and real-device/host acceptance incomplete |
-| Redis destructive retention | 🟧 BLOCKED | No XTRIM/XDEL/group destruction until gateway inventory/retirement, PEL policy, per-gateway floor ACK, separate authority and crash-safe trim/reconcile are proven |
-| Whole WebSocket production end-to-end | 🟥 NOT COMPLETE | Parent status is determined by outstanding external acceptance, not the green repository rows |
+| Gate 25 owner-host private-key custody, authenticated remote transfer, each gateway's persisted receipt retrieval, restart re-verification and per-gateway durable high-water ACK | 🟨 External acceptance open | Requires actual owner-controlled host/gateway evidence; repository callback tests cannot prove remote custody or network authentication |
+| Gate 25 parent acceptance | 🟨 OPEN | Parent gate closes only after all required external owner-host evidence is accepted |
+| Gate 36 public HTTPS/WSS, reverse proxy/TLS, production runtime and physical Android lifecycle | 🟨 OPEN | Requires public endpoint and real deployment/device evidence |
+| Firebase production sign-in, entitlement and revocation E2E | 🟨 OPEN | Requires owner-controlled Firebase project evidence |
+| Browser/Android process-death, network handover, production multi-instance failover | 🟨/🟨 PARTIAL / OPEN | Repository foundations exist; deployed browser and real-device/host acceptance incomplete |
+| Redis destructive retention | 🟨 BLOCKED | No XTRIM/XDEL/group destruction until gateway inventory/retirement, PEL policy, per-gateway floor ACK, separate authority and crash-safe trim/reconcile are proven |
+| Whole WebSocket production end-to-end | 🟨 NOT COMPLETE | Parent status is determined by outstanding external acceptance, not the green repository rows |
 
 **Important:** A green sub-row does not make Gate 25 or the complete WebSocket green. Likewise, a red parent gate does not invalidate a previously successful unit test or CI run. Future dashboards must show the scope next to every colored status.
 
@@ -1865,10 +1901,10 @@ This 4/4 result applies to this exact HEAD only. It is repository CI, not extern
 | MACD12/26/9 | EMA12−EMA26; EMA9 signal; histogram identity; first MACD index 25, signal/histogram index 33 | Pane/lines/histogram/zero guide absent | 🟨 Foundation |
 | Bollinger20,2 | 20-close mean ± 2 population standard deviations; first valid index 19 | Three-line overlay/fill/toggle/latest values absent | 🟨 Foundation |
 | Shared Indicator Hook | Keyed immutable snapshot, shared cache, trust gating, stale-output clearing | Not integrated into CandlestickChart | 🟨 Foundation |
-| Footprint PRO 2GD | Synthetic/offline accumulator only; not exchange-native bid/ask truth | Renderer gated; two user reference images on record | 🟧 Gated |
-| Volume Profile / Complete VP / movable-range VP | No complete production implementation verified | Not integrated | 🟥 Open |
-| Heatmap | Depth/liquidity engine and accepted renderer not verified | Visual implementation remains gated; user reference/data contract outstanding | 🟥 Open |
-| Liquidation Maps | Methodology/provenance and renderer not accepted | Not integrated | 🟥 Open |
+| Footprint PRO 2GD | Synthetic/offline accumulator only; not exchange-native bid/ask truth | Renderer gated; two user reference images on record | 🟨 Gated |
+| Volume Profile / Complete VP / movable-range VP | No complete production implementation verified | Not integrated | 🟨 Open |
+| Heatmap | Depth/liquidity engine and accepted renderer not verified | Visual implementation remains gated; user reference/data contract outstanding | 🟨 Open |
+| Liquidation Maps | Methodology/provenance and renderer not accepted | Not integrated | 🟨 Open |
 
 Focused test declaration inventory remains **28 total = 21 calculation tests + 7 shared-hook tests**. This is not a count of completed indicators or a completion percentage. All 28 are declarations in the two focused test files; exact-HEAD CI is the pass/fail authority. Older 24-count notes are historical source snapshots, not current inventory.
 
@@ -1884,7 +1920,7 @@ Footprint OFF must retain standard candle spacing; explicit ON alone enables the
 | Stage 4 Indicators & Analytics | Stage gate / blueprint required | 🟪 NOT SCORED |
 | Stage 5 Professional UI & Interactive Tools | Not formally scored | ⬜ NOT SCORED |
 | Stage 6 Hardening, Validation & APK Release | Not formally scored | ⬜ NOT SCORED |
-| Gate 10 | 0/10 formally closed | 🟥 OPEN |
+| Gate 10 | 0/10 formally closed | 🟨 OPEN |
 | Overall project | No approved weighted six-stage denominator | ⚪ NOT SCORED |
 | Aggregate indicator completion | No approved denominator/weights | ⚪ NOT SCORED |
 | IP3S / significant progress | No approved formula applied | ⚪ NOT SCORED |
@@ -1998,13 +2034,13 @@ The following documentation-only reconciliation commit does not change runtime/s
 
 Batches 74–77 already existed and are reconciled; they are not reimplemented. Exact-source CI recorded by Batch 77: Automated Tests 41/41 (1,426 passed, 1 skipped, 6 warnings), CodeQL 16/16, OCI ARM64 7/7, Secret Audit 6/6; dedicated Redis TLS integration 1 passed. The subsequent branch commits are documentation-only and marked `[skip ci]`; no new source CI run is claimed for them.
 
-**Stage dashboard:** Stage 1 official active, 30/40 = 75% provisional 🟨; Gate 10 = 0/10 formally closed 🟥 (criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, 39). Stage 2 🟦 preparatory only; Stage 3 ⚪ not scored; Stage 4 🟪 gated; Stages 5–6 ⚪ not scored. Overall project, aggregate indicator completion and IP3S remain ⚪ NOT SCORED because no approved weighted denominator exists.
+**Stage dashboard:** Stage 1 official active, 30/40 = 75% provisional 🟨; Gate 10 = 0/10 formally closed 🟨 (criteria 8, 20, 25, 30, 31, 34, 35, 36, 38, 39). Stage 2 🟦 preparatory only; Stage 3 ⚪ not scored; Stage 4 🟪 gated; Stages 5–6 ⚪ not scored. Overall project, aggregate indicator completion and IP3S remain ⚪ NOT SCORED because no approved weighted denominator exists.
 
 **WebSocket/Gate 25:** production WSS, Firebase identity/entitlement, lawful zero-cost provider provenance, production ticket issuance, signed snapshot transfer, authenticated persisted receipt retrieval, durable per-gateway high-water ACK/fencing/restart reconciliation and public browser/Android E2E remain OPEN. Redis `XTRIM`, `XDEL` and consumer-group destruction remain BLOCKED until durable gateway ACK acceptance. Cloudflare Worker/DO remains synthetic-only; no production resources were created. The connected account inventory is empty, while the user has separately stated the project server is on Cloudflare; do not infer that the connected account is the hosting account or create duplicate infrastructure.
 
 **Recovery/monitoring:** CI verifies container-scope health, Redis ACL/AOF restart, outage fail-closed/reconnect, non-root execution, volume ownership smoke, SQLite integrity/restart, rate limiting and isolated TLS. Owner-host secret/volume/DB restore/off-host encrypted backup, independent alert/incident drill, production WSS and device recovery remain unaccepted.
 
-**Indicators:** SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain 🟨 FOUNDATION; Footprint PRO 2GD 🟧 GATED; Volume Profile, Complete Volume Profile, Movable-range Volume Profile, Heatmap and Liquidation Maps 🟥 OPEN. Focused declarations remain 28 (21 calculation + 7 hook), not completion. No indicator source/UI change and no completion credit in Batch 78. `CandlestickChart.tsx` integration remains absent. Preserve warm-up nulls, prefix causality, no lookahead/repaint, exact timestamp alignment and Footprint OFF normal candle spacing.
+**Indicators:** SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook remain 🟨 FOUNDATION; Footprint PRO 2GD 🟨 GATED; Volume Profile, Complete Volume Profile, Movable-range Volume Profile, Heatmap and Liquidation Maps 🟨 OPEN. Focused declarations remain 28 (21 calculation + 7 hook), not completion. No indicator source/UI change and no completion credit in Batch 78. `CandlestickChart.tsx` integration remains absent. Preserve warm-up nulls, prefix causality, no lookahead/repaint, exact timestamp alignment and Footprint OFF normal candle spacing.
 
 **Controls:** ZERO COST; `main` untouched; Vercel deferred; no paid data/hosting/monitoring/backup; no production deployment; delivery target around 24 December 2026.
 
@@ -2021,7 +2057,7 @@ Source audit report: [Batch 79 production runtime wiring and Gate 25 composition
 
 **CI boundary:** exact source/test SHA `a2d2e7a03e2afee89429bb9d22c4641fd5b8a833` has recorded Automated Tests 41/41 (1,426 passed, 1 skipped, 6 warnings), CodeQL 16/16, OCI ARM64 7/7, Secret Audit 6/6 and dedicated Redis TLS 1 passed. Documentation HEAD `114d8464e085977aba2d95b3581ee49a95990c18` has six documentation-only commits ahead of that source SHA and no source/runtime diff; the docs-only commit has no CI runs/status because of `[skip ci]`. No new source CI is claimed.
 
-**Progress:** Stage 1 30/40 = 75% provisional 🟨; Gate 10 0/10 formally closed 🟥 (8, 20, 25, 30, 31, 34, 35, 36, 38, 39). Stage 2 🟦 preparatory only; Stage 3 ⚪ not scored; Stage 4 🟪 gated; Stages 5–6 ⚪ not scored. Overall project and IP3S ⚪ NOT SCORED. Indicator inventory unchanged: SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Hook 🟨 FOUNDATION; Footprint PRO 2GD 🟧 GATED; Volume Profile, Complete Volume Profile, Movable-range Volume Profile, Heatmap and Liquidation Maps 🟥 OPEN. Focused declarations 28 (21 calculation + 7 hook), not completion. No indicator source/UI changes.
+**Progress:** Stage 1 30/40 = 75% provisional 🟨; Gate 10 0/10 formally closed 🟨 (8, 20, 25, 30, 31, 34, 35, 36, 38, 39). Stage 2 🟦 preparatory only; Stage 3 ⚪ not scored; Stage 4 🟪 gated; Stages 5–6 ⚪ not scored. Overall project and IP3S ⚪ NOT SCORED. Indicator inventory unchanged: SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Hook 🟨 FOUNDATION; Footprint PRO 2GD 🟨 GATED; Volume Profile, Complete Volume Profile, Movable-range Volume Profile, Heatmap and Liquidation Maps 🟨 OPEN. Focused declarations 28 (21 calculation + 7 hook), not completion. No indicator source/UI changes.
 
 **Next order:** define strict source/gateway role configuration; implement source factory; implement gateway factory with signed snapshot install before Redis initialization; add multi-process source-to-two-gateway integration and restart/fencing tests; prove per-gateway durable receipt/high-water ACK; then public Cloudflare WSS/browser/Android E2E; then owner-host backup/restore/monitoring acceptance. Keep Redis destructive retention blocked until ACK acceptance.
 
@@ -2046,7 +2082,7 @@ Authoritative work package: [WORK_CYCLE_2026-11-25_BATCH80_86_UNIFIED_RUNTIME_AN
 
 **Progress unchanged:** Stage 1 30/40 = 75% provisional 🟨; Gate 10 0/10 closed 🔴 (8, 20, 25, 30, 31, 34, 35, 36, 38, 39); Stage 2 🟦 preparatory; Stage 3 ⚪ not scored; Stage 4 🟪 gated; Stages 5–6 ⚪ not scored. Overall project/IP3S ⚪ NOT SCORED. WebSocket runtime, Gate 25 durable ACK, public Cloudflare WSS/device E2E and owner-host recovery remain 🔴 OPEN.
 
-**Indicator ledger unchanged:** SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook 🟨 FOUNDATION; Footprint PRO 2GD 🟧 GATED; Volume Profile, Complete Volume Profile, Movable-range VP, Heatmap and Liquidation Maps 🔴 OPEN. 28 focused declarations (21 calculation + 7 hook) are not a completion percentage. No indicator source/UI changes. Keep warm-up nulls, prefix causality, no lookahead/repaint, timestamp alignment, stale-output clearing and no calculations on unavailable/demo/error/empty snapshots. Footprint OFF remains normal spacing; Footprint ON alone uses spaced clusters. Footprint references are available; Heatmap reference is still required before visual work.
+**Indicator ledger unchanged:** SMA20, EMA20, RSI14 Wilder, MACD12/26/9, Bollinger20,2 and Shared Indicator Hook 🟨 FOUNDATION; Footprint PRO 2GD 🟨 GATED; Volume Profile, Complete Volume Profile, Movable-range VP, Heatmap and Liquidation Maps 🔴 OPEN. 28 focused declarations (21 calculation + 7 hook) are not a completion percentage. No indicator source/UI changes. Keep warm-up nulls, prefix causality, no lookahead/repaint, timestamp alignment, stale-output clearing and no calculations on unavailable/demo/error/empty snapshots. Footprint OFF remains normal spacing; Footprint ON alone uses spaced clusters. Footprint references are available; Heatmap reference is still required before visual work.
 
 Controls: ZERO COST; `main` untouched; Vercel deferred; no new/duplicate Cloudflare resources; no paid data/hosting/monitoring/backup; delivery target around 24 December 2026.
 
@@ -2128,12 +2164,12 @@ Do not trim/delete Redis stream entries or destroy consumer groups until every r
 | MACD12/26/9 | 🟨 FOUNDATION | Calculation foundation only | MACD line first valid index 25; signal and histogram index 33 |
 | Bollinger20,2 | 🟨 FOUNDATION | Calculation foundation only | First valid index 19; population standard deviation per current contract |
 | Shared Indicator Hook | 🟨 FOUNDATION | 7 focused declarations | Chart integration into CandlestickChart.tsx remains open |
-| Footprint PRO 2GD | 🟧 GATED | Synthetic/offline accumulator only | Visual work must match both saved Footprint references; OFF keeps normal candle spacing, ON alone enables spaced clusters |
-| Volume Profile | 🟥 OPEN | Not accepted | Price-bin volume conservation, range semantics and timestamp boundaries |
-| Complete Volume Profile | 🟥 OPEN | Not accepted | Full-session completeness, POC/VA derivation and conservation |
-| Movable-range Volume Profile | 🟥 OPEN | Not accepted | User-selected range bounds and deterministic recomputation |
-| Heatmap | 🟥 OPEN | Visual implementation not started | Must wait for the user's Heatmap reference image |
-| Liquidation Maps | 🟥 OPEN | Not accepted | Data provenance and methodology remain unapproved |
+| Footprint PRO 2GD | 🟨 GATED | Synthetic/offline accumulator only | Visual work must match both saved Footprint references; OFF keeps normal candle spacing, ON alone enables spaced clusters |
+| Volume Profile | 🟨 OPEN | Not accepted | Price-bin volume conservation, range semantics and timestamp boundaries |
+| Complete Volume Profile | 🟨 OPEN | Not accepted | Full-session completeness, POC/VA derivation and conservation |
+| Movable-range Volume Profile | 🟨 OPEN | Not accepted | User-selected range bounds and deterministic recomputation |
+| Heatmap | 🟨 OPEN | Visual implementation not started | Must wait for the user's Heatmap reference image |
+| Liquidation Maps | 🟨 OPEN | Not accepted | Data provenance and methodology remain unapproved |
 
 Focused declaration inventory remains **28 total = 21 calculation + 7 shared-hook declarations**. This is not an indicator completion percentage or count of accepted indicators. Batch 80 changed no indicator calculation or chart UI; indicator progress credit is therefore unchanged.
 
@@ -2173,7 +2209,7 @@ Source/test SHA `e1d2cfe05130e705264f416c61f56c6d12a73df3` adds `authenticated_g
 
 Exact SHA CI: **4/4 workflows SUCCESS**. Backend **1,435 passed, 1 skipped, 6 warnings** in 58.80s; dedicated isolated Redis TLS test **1 passed in 0.08s**. CodeQL, full reachable-history secret audit and OCI ARM64 readiness all passed. No running jobs remain.
 
-Batch 81 remains 🟨 foundation/hardening pending owner callback; 82 🟨 foundation; 83 🟨 broad matrix; 84 🟧 receipt foundation; 85 🟥 production WSS/E2E; 86 🟧 local recovery foundation. No indicator source/UI changed; indicator status receives no new completion credit. Full evidence and CI run IDs are recorded in `docs/WORK_CYCLE_2026-11-25_BATCH81_GATEWAY_IDENTITY_RECEIPT_BINDING.md`.
+Batch 81 remains 🟨 foundation/hardening pending owner callback; 82 🟨 foundation; 83 🟨 broad matrix; 84 🟨 receipt foundation; 85 🟨 production WSS/E2E; 86 🟨 local recovery foundation. No indicator source/UI changed; indicator status receives no new completion credit. Full evidence and CI run IDs are recorded in `docs/WORK_CYCLE_2026-11-25_BATCH81_GATEWAY_IDENTITY_RECEIPT_BINDING.md`.
 
 Cloudflare: expected account display name `DZZTV2GD ENGINE SERVER` is not present in the currently connected account list (exact-name read-only lookup returned zero). No account/resource mutation or billing action was performed. Batch 85 must use the existing account after it is connected; do not create duplicate infrastructure.
 
