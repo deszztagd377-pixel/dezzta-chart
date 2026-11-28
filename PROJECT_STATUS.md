@@ -1,7 +1,7 @@
 # CURRENT RECONCILIATION — 28 NOVEMBER 2026 (AUTHORITATIVE)
 
 **Active application branch:** `phase-2/market-data-foundation`  
-**Current active-branch HEAD:** `cb887950ae9a24f087cd2e3252097e7df5a19723` (Stage 1 matrix/dashboard documentation update).  
+**Active-branch source/test baseline:** `41f42a232a25987513c175ea6d271ae5389b1437`; subsequent commits in this reconciliation are documentation-only.  
 **Application main:** `e3841681bc69b73619058deaf939df82ae5116a1` — unchanged.  
 **Latest validated source/test SHA on the active application branch:** `41f42a232a25987513c175ea6d271ae5389b1437`; Batch 98/99 and the later active-branch status update are documentation-only. Exact-SHA required CI 4/4 SUCCESS: [Automated Tests #2664](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46108286306), [Secret History Audit #1591](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46108286305), [OCI ARM64 #638](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46108286297), [CodeQL #2009](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46108286284). Do not imply these runs tested documentation-only HEAD `cb88795`.
 
