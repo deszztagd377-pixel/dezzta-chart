@@ -26,7 +26,8 @@ permissions:
   contents: write
 concurrency:
   group: android-apk-${{ github.ref }}
-  cancel-in-progress: true
+  queue: max
+  cancel-in-progress: false
 jobs:
   build-debug-apk:
     name: Build installable Android debug APK
