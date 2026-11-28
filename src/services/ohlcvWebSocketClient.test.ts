@@ -113,11 +113,16 @@ function setup() {
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllEnvs();
-  localStorage.clear();
+  vi.unstubAllGlobals();
 });
 
 describe('stable WebSocket consumer instance identity', () => {
   it('persists one non-secret UUID across connection instances', () => {
+    const values = new Map<string, string>();
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+    });
     const first = getStableConsumerInstanceId();
     const second = getStableConsumerInstanceId();
     expect(first).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
