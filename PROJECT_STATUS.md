@@ -1,3 +1,55 @@
+# AUTHORITATIVE CURRENT PROJECT CHECKPOINT — 28 November 2026 / Batch 97
+
+**Current validated source/test HEAD:** `e29040d4f3e9e5da5c9dd1400e102f5139b9ba41`.  
+**Current documentation HEAD:** documentation-only follow-ups are recorded after the validated source/test commit; do not treat those docs commits as additional application-code changes.  
+**Active branch:** `work/batch95-websocket-ack-protocol`.  
+**PR #13:** OPEN, unmerged; base `phase-2/market-data-foundation`.  
+**Application `main`:** remains `e3841681bc69b73619058deaf939df82ae5116a1`.
+
+## Latest implementation — Batch 97
+
+Frontend OHLCV WebSocket event digest verification is implemented:
+- SHA-256 is recomputed deterministically from the raw event frame before parser normalization or chart application.
+- Raw replay extension fields remain covered by the digest input.
+- Tampered event payloads fail closed.
+- ACK-capable sessions require generation identity and digest.
+- No new dependency or paid service was introduced.
+
+Full change details and security boundary: [Batch 97 work-cycle report](docs/WORK_CYCLE_2026-11-28_BATCH97_FRONTEND_EVENT_DIGEST_VERIFICATION.md).
+
+## Exact source/test validation — 4/4 required workflows terminal SUCCESS
+
+Validated source/test SHA: `e29040d4f3e9e5da5c9dd1400e102f5139b9ba41`.
+
+- Automated Tests [46107071181](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46107071181): SUCCESS, 41/41 steps.
+- CodeQL [46107071199](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46107071199): SUCCESS.
+- OCI ARM64 [46107071235](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46107071235): SUCCESS.
+- Full Git History Secret Audit [46107071288](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46107071288): SUCCESS.
+
+Automated Tests: frontend 339/339; backend 1,437 passed, 1 skipped, 6 warnings; Cloudflare Worker runtime 26/26. All 41 workflow steps passed, including frontend build, Redis TLS CA/hostname enforcement step, SQLite benchmarks, backend container build/smoke test with Redis guard and persistent volume, and image scan/report. One backend pytest case was skipped because its isolated Redis TLS fixture was not configured for that specific test; the separate dedicated Redis TLS workflow step passed. All four required workflows are terminal; none remains running on this source/test SHA.
+
+## Stage 1 — no percentage inflation
+
+- Official stage: **Stage 1**.
+- Stage 1: **30/40 = 75% provisional**.
+- Gate 10: **0/10 formally closed**.
+- Remaining owner-controlled criteria **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39** remain YELLOW pending actual owner-host, Firebase, Redis, backup/key recovery, deployment, public WSS/device, monitoring and incident evidence.
+- Batch 97 does not close any external criterion and adds no Stage 1 tick.
+- Stage 2 remains preparatory only; it requires Stage 1 40/40 and explicit owner approval.
+
+## Production boundary
+
+Production ACK remains disabled. FastAPI does not advertise ACK protocol v1 and has no production ACK receive/validation plus durable receipt handler. Stable consumer identity across reconnects, owner/fence-bound durable receipts, restart reconciliation, public WSS/TLS and browser/Android E2E remain YELLOW / pending. SHA-256 digest consistency is not a digital signature or proof of provider authenticity.
+
+## Deadline and controls
+
+**Target:** 24 December 2026 — 26 calendar days remained on 28 November.  
+**ZERO COST:** no paid service, billing change, deployment, new Cloudflare resource, or new dependency.  
+**Branch safety:** PR #13 is not merged; `main` is unchanged.  
+**Automation reality:** no autonomous 10-minute AI coding loop exists or is claimed. Workflow runs are checked during the active session; no background coding is promised.
+
+---
+
 # VERIFIED CURRENT CHECKPOINT — 28 November 2026
 
 **Validated code/test HEAD:** `9f49d1affc7f784904bb99dc1c5b3393dc87a6a9` on `work/batch95-websocket-ack-protocol`.  
