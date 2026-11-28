@@ -6,7 +6,13 @@ import {
   runInDurableObject,
 } from "cloudflare:test";
 import { afterEach, describe, expect, it } from "vitest";
-import { applyDurableSchemaMigrations, proofLimits, registerCanonicalSeriesIdentity } from "./worker.mjs";
+import {
+  applyDurableSchemaMigrations,
+  commitConsumerReceipt,
+  proofLimits,
+  registerCanonicalSeriesIdentity,
+  registerRequiredConsumer,
+} from "./worker.mjs";
 
 const ORIGIN = "http://localhost:3000";
 const TOKEN = "synthetic-proof-test-token-000000000000000000000000";
@@ -234,7 +240,7 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       ).toArray();
       const tables = sql.exec(
         "SELECT name FROM sqlite_master WHERE type = 'table' " +
-        "AND name IN ('schema_migrations', 'series_state', 'series_events', 'consumer_receipts', 'series_identity') " +
+        "AND name IN ('schema_migrations', 'series_state', 'series_events', 'consumer_receipts', 'series_identity', 'required_consumers') " +
         "ORDER BY name",
       ).toArray().map((row) => row.name);
       const stateColumns = sql.exec("PRAGMA table_info(series_state)")
@@ -321,9 +327,10 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       };
     });
 
-    expect(first.versions).toEqual([{ version: 1 }, { version: 2 }, { version: 3 }]);
+    expect(first.versions).toEqual([{ version: 1 }, { version: 2 }, { version: 3 }, { version: 4 }]);
     expect(first.tables).toEqual([
       "consumer_receipts",
+      "required_consumers",
       "schema_migrations",
       "series_events",
       "series_identity",
@@ -363,19 +370,19 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       ).one().count,
     }));
 
-    expect(restored.versions).toEqual([{ version: 1 }, { version: 2 }, { version: 3 }]);
+    expect(restored.versions).toEqual([{ version: 1 }, { version: 2 }, { version: 3 }, { version: 4 }]);
     expect(restored.legacyCursor).toBe(50);
     expect(restored.eventCount).toBe(1);
   });
 
-  it("upgrades an existing v2 identity row to v3 without changing its canonical identity", async () => {
+  it("upgrades an existing v2 identity row to v4 without changing its canonical identity", async () => {
     const stub = coordinatorStub(SERIES_B);
     const series = canonicalSeries(SERIES_B);
     await runInDurableObject(stub, async (_instance, state) => {
       const sql = state.storage.sql;
       sql.exec("DROP TRIGGER IF EXISTS series_identity_immutable_update");
       sql.exec("ALTER TABLE series_identity DROP COLUMN identity_digest");
-      sql.exec("DELETE FROM schema_migrations WHERE version = 3");
+      sql.exec("DELETE FROM schema_migrations WHERE version >= 3");
       sql.exec(
         "INSERT INTO series_identity (series_key, identity_json, created_at_ms) VALUES (?, ?, ?)",
         SERIES_B, JSON.stringify(series), 1,
@@ -397,7 +404,7 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       ).toArray();
       return { version, hydrated, row };
     });
-    expect(result.version).toBe(3);
+    expect(result.version).toBe(4);
     expect(result.hydrated).toBe(true);
     expect(JSON.parse(result.row[0].identity_json)).toEqual(series);
     expect(result.row[0].identity_digest).toMatch(/^[0-9a-f]{64}$/);
@@ -873,6 +880,143 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       type: "market_data.ohlcv.update",
       sequence: 52,
       cursor: "52",
+    });
+  });
+
+
+  it("replays the committed event after Durable Object eviction and reconstruction", async () => {
+    const seriesKey = "synthetic:DEMO:EVICTION:1m";
+    const emitted = await emit(seriesKey, 51);
+    expect(emitted.status).toBe(200);
+    expect(emitted.payload).toMatchObject({
+      accepted: true,
+      duplicate: false,
+      sequence: "51",
+    });
+
+    const stub = coordinatorStub(seriesKey);
+    await evictDurableObject(stub);
+
+    const persisted = await runInDurableObject(stub, async (_instance, state) => ({
+      state: state.storage.sql.exec(
+        "SELECT generation_id, high_water, retention_floor FROM series_state WHERE series_key = ?",
+        seriesKey,
+      ).toArray(),
+      events: state.storage.sql.exec(
+        "SELECT sequence, event_digest, payload FROM series_events WHERE series_key = ? ORDER BY sequence",
+        seriesKey,
+      ).toArray(),
+    }));
+
+    expect(persisted.state).toEqual([{
+      generation_id: "synthetic-v1",
+      high_water: 51,
+      retention_floor: 50,
+    }]);
+    expect(persisted.events).toHaveLength(1);
+    expect(JSON.parse(persisted.events[0].payload)).toMatchObject({
+      type: "market_data.ohlcv.update",
+      sequence: 51,
+      cursor: "51",
+      digest: persisted.events[0].event_digest,
+      series: { seriesKey },
+    });
+
+    const ticket = await issueTicket(seriesKey);
+    const socket = await openSocket(seriesKey);
+    const statusPromise = nextJsonMessage(socket);
+    socket.send(JSON.stringify({ type: "auth", ticket }));
+    expect(await statusPromise).toMatchObject({
+      type: "market_data.status",
+      providerConnected: false,
+      liveProviderEnabled: false,
+    });
+
+    const replayStartedPromise = nextJsonMessage(socket);
+    socket.send(JSON.stringify({
+      type: "market_data.subscribe",
+      version: 1,
+      cursor: "50",
+      series: canonicalSeries(seriesKey),
+    }));
+    expect(await replayStartedPromise).toMatchObject({
+      type: "market_data.ohlcv.replay_started",
+      fromCursor: "50",
+      throughCursor: "51",
+      count: 1,
+    });
+    expect(await nextJsonMessage(socket)).toMatchObject({
+      type: "market_data.ohlcv.update",
+      sequence: 51,
+      cursor: "51",
+      digest: persisted.events[0].event_digest,
+    });
+    expect(await nextJsonMessage(socket)).toMatchObject({
+      type: "market_data.ohlcv.replay_complete",
+      cursor: "51",
+      throughSequence: 51,
+      count: 1,
+    });
+  });
+
+  it("reactivates an inactive required consumer before accepting its next receipt", async () => {
+    const seriesKey = "synthetic:DEMO:CONSUMERREACTIVATION:1m";
+    const emitted = await emit(seriesKey, 51);
+    expect(emitted.status).toBe(200);
+
+    const stub = coordinatorStub(seriesKey);
+    const firstRegistration = await runInDurableObject(stub, async (_instance, state) =>
+      registerRequiredConsumer(state.storage, {
+        seriesKey,
+        consumerId: "consumer-reactivation",
+        generationId: "synthetic-v1",
+      }, 1_800_000_000_100));
+    expect(firstRegistration).toEqual({ registered: true, duplicate: false });
+
+    await runInDurableObject(stub, async (_instance, state) => {
+      state.storage.sql.exec(
+        "UPDATE required_consumers SET active = 0 WHERE series_key = ? AND consumer_id = ?",
+        seriesKey,
+        "consumer-reactivation",
+      );
+    });
+
+    const reactivated = await runInDurableObject(stub, async (_instance, state) =>
+      registerRequiredConsumer(state.storage, {
+        seriesKey,
+        consumerId: "consumer-reactivation",
+        generationId: "synthetic-v1",
+      }, 1_800_000_000_200));
+    expect(reactivated).toEqual({ registered: true, duplicate: false });
+
+    const persisted = await runInDurableObject(stub, async (_instance, state) => ({
+      registration: state.storage.sql.exec(
+        "SELECT generation_id, active FROM required_consumers WHERE series_key = ? AND consumer_id = ?",
+        seriesKey,
+        "consumer-reactivation",
+      ).toArray(),
+      event: state.storage.sql.exec(
+        "SELECT event_digest FROM series_events WHERE series_key = ? AND sequence = ?",
+        seriesKey,
+        51,
+      ).toArray(),
+    }));
+    expect(persisted.registration).toEqual([{ generation_id: "synthetic-v1", active: 1 }]);
+    expect(persisted.event).toHaveLength(1);
+
+    const receipt = await runInDurableObject(stub, async (_instance, state) =>
+      commitConsumerReceipt(state.storage, {
+        seriesKey,
+        consumerId: "consumer-reactivation",
+        generationId: "synthetic-v1",
+        sequence: 51,
+        eventDigest: persisted.event[0].event_digest,
+      }, 1_800_000_000_300));
+    expect(receipt).toMatchObject({
+      accepted: true,
+      duplicate: false,
+      committedCursor: "51",
+      receiptVersion: 1,
     });
   });
 

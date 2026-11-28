@@ -331,6 +331,15 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
     assert.deepEqual(observedSequences, [51, 52]);
     assert.ok(event52 && /^[0-9a-f]{64}$/.test(event52.digest));
 
+    const primaryRegistration = await miniflare.dispatchFetch(`${BASE_URL}/__proof/register-consumer`, {
+      method: "POST", headers: authorizedHeaders(),
+      body: JSON.stringify({
+        seriesKey: SERIES, consumerId: "synthetic-proof-consumer-1", generationId: "synthetic-v1",
+      }),
+    });
+    assert.equal(primaryRegistration.status, 200);
+    assert.equal((await primaryRegistration.json()).registered, true);
+
     const ackBody = {
       seriesKey: SERIES,
       consumerId: "synthetic-proof-consumer-1",
@@ -538,6 +547,74 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
     });
     assert.equal(sqliteAuthoritativeEmit.status, 200);
     assert.equal((await sqliteAuthoritativeEmit.json()).accepted, true);
+
+    const emptyRegistryCompact = await miniflare.dispatchFetch(`${BASE_URL}/__proof/compact`, {
+      method: "POST", headers: authorizedHeaders(),
+      body: JSON.stringify({ seriesKey: legacySeries.seriesKey, throughSequence: 79 }),
+    });
+    assert.equal(emptyRegistryCompact.status, 409);
+    assert.equal((await emptyRegistryCompact.json()).reason, "required_consumer_registry_empty");
+
+    // Registering a required consumer without an ACK must block compaction.
+    const noAckRegistration = await miniflare.dispatchFetch(`${BASE_URL}/__proof/register-consumer`, {
+      method: "POST", headers: authorizedHeaders(),
+      body: JSON.stringify({
+        seriesKey: SERIES, consumerId: "synthetic-proof-consumer-no-ack", generationId: "synthetic-v1",
+      }),
+    });
+    assert.equal(noAckRegistration.status, 200);
+    const noAckCompactResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/compact`, {
+      method: "POST", headers: authorizedHeaders(),
+      body: JSON.stringify({ seriesKey: SERIES, throughSequence: 52 }),
+    });
+    assert.equal(noAckCompactResponse.status, 409);
+    const noAckCompaction = await noAckCompactResponse.json();
+    assert.equal(noAckCompaction.reason, "consumer_ack_behind");
+    assert.equal(noAckCompaction.missingConsumerReceipts, 1);
+
+    const noAckReceiptResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/ack`, {
+      method: "POST", headers: authorizedHeaders(),
+      body: JSON.stringify({
+        seriesKey: SERIES, consumerId: "synthetic-proof-consumer-no-ack",
+        generationId: "synthetic-v1", sequence: 52, eventDigest: event52.digest,
+      }),
+    });
+    assert.equal(noAckReceiptResponse.status, 200);
+    assert.equal((await noAckReceiptResponse.json()).accepted, true);
+
+    // A lagging, already-registered consumer must prevent compaction past its ACK.
+    const laggingRegistration = await miniflare.dispatchFetch(`${BASE_URL}/__proof/register-consumer`, {
+      method: "POST", headers: authorizedHeaders(),
+      body: JSON.stringify({
+        seriesKey: SERIES, consumerId: "synthetic-proof-consumer-lagging", generationId: "synthetic-v1",
+      }),
+    });
+    assert.equal(laggingRegistration.status, 200);
+    const laggingAckBody = {
+      seriesKey: SERIES,
+      consumerId: "synthetic-proof-consumer-lagging",
+      generationId: "synthetic-v1",
+      sequence: 51,
+      eventDigest: event51Digest,
+    };
+    const laggingAckResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/ack`, {
+      method: "POST",
+      headers: authorizedHeaders(),
+      body: JSON.stringify(laggingAckBody),
+    });
+    assert.equal(laggingAckResponse.status, 200);
+    assert.equal((await laggingAckResponse.json()).accepted, true);
+
+    const blockedCompactResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/compact`, {
+      method: "POST",
+      headers: authorizedHeaders(),
+      body: JSON.stringify({ seriesKey: SERIES, throughSequence: 52 }),
+    });
+    assert.equal(blockedCompactResponse.status, 409);
+    const blockedCompaction = await blockedCompactResponse.json();
+    assert.equal(blockedCompaction.compacted, false);
+    assert.equal(blockedCompaction.reason, "consumer_ack_behind");
+    assert.equal(blockedCompaction.minimumAcknowledgedSequence, 51);
 
     // Retention compaction is an atomic cursor-floor advance plus event deletion.
     const compactResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/compact`, {
