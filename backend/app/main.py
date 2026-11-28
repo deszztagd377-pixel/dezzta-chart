@@ -60,7 +60,7 @@ from app.provider_demand import (
     ProviderDemandKey,
 )
 from app.databento_definition_sync import DatabentoDefinitionSynchronizer
-from app.ohlcv_stream import OhlcvStreamHub, OhlcvStreamResnapshotRequired
+from app.ohlcv_stream import (OhlcvStreamHub, OhlcvStreamResnapshotRequired, attest_ohlcv_stream_event)
 from app.ohlcv_store import SQLiteOhlcvReplicaStore, SQLiteOhlcvStore
 from app.ohlcv_event_loop import EventLoopCallbackDispatcher
 from app.ohlcv_redis_worker import RedisOhlcvGatewayWorker
@@ -1706,6 +1706,7 @@ def create_app(
                         replay_payload["isFinal"] = isinstance(replay_bar, dict) and replay_bar.get("completeness") == "complete"
                         replay_payload["cursor"] = str(event["cursor"])
                         replay_payload["replayed"] = True
+                        replay_payload = attest_ohlcv_stream_event(replay_payload, generation_id=subscription.stream_id)
                         await websocket.send_json(replay_payload)
                     try:
                         stream_hub.merge_replay_boundary(

@@ -6,7 +6,16 @@ import {
   runInDurableObject,
 } from "cloudflare:test";
 import { afterEach, describe, expect, it } from "vitest";
-import { applyDurableSchemaMigrations, proofLimits, registerCanonicalSeriesIdentity } from "./worker.mjs";
+import {
+  applyDurableSchemaMigrations,
+  commitConsumerReceipt,
+  compactDurableEvents,
+  proofLimits,
+  registerCanonicalSeriesIdentity,
+  registerRequiredConsumer,
+  releaseRequiredConsumerLease,
+  renewRequiredConsumerLease,
+} from "./worker.mjs";
 
 const ORIGIN = "http://localhost:3000";
 const TOKEN = "synthetic-proof-test-token-000000000000000000000000";
@@ -15,6 +24,7 @@ const SERIES_B = "synthetic:DEMO:ETHUSD:1m";
 const SERIES_REPLAY = "synthetic:DEMO:REPLAY:1m";
 const SERIES_HIBERNATE = "synthetic:DEMO:HIBERNATE:1m";
 const SERIES_ALARM = "synthetic:DEMO:ALARM:1m";
+const SERIES_RECONNECT = "synthetic:DEMO:RECONNECT:1m";
 
 const openSockets = new Set();
 
@@ -136,7 +146,7 @@ function canonicalSeries(seriesKey) {
   };
 }
 
-async function connectAuthenticated(seriesKey, suppliedTicket) {
+async function connectAuthenticated(seriesKey, suppliedTicket, clientInstanceId = crypto.randomUUID()) {
   const ticket = suppliedTicket ?? await issueTicket(seriesKey);
   const socket = await openSocket(seriesKey);
   const statusPromise = nextJsonMessage(socket);
@@ -152,6 +162,7 @@ async function connectAuthenticated(seriesKey, suppliedTicket) {
   socket.send(JSON.stringify({
     type: "market_data.subscribe",
     version: 1,
+    clientInstanceId,
     series: canonicalSeries(seriesKey),
   }));
   const snapshot = await snapshotPromise;
@@ -234,7 +245,7 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       ).toArray();
       const tables = sql.exec(
         "SELECT name FROM sqlite_master WHERE type = 'table' " +
-        "AND name IN ('schema_migrations', 'series_state', 'series_events', 'consumer_receipts', 'series_identity') " +
+        "AND name IN ('schema_migrations', 'series_state', 'series_events', 'consumer_receipts', 'series_identity', 'required_consumers') " +
         "ORDER BY name",
       ).toArray().map((row) => row.name);
       const stateColumns = sql.exec("PRAGMA table_info(series_state)")
@@ -244,6 +255,8 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       const receiptColumns = sql.exec("PRAGMA table_info(consumer_receipts)")
         .toArray().map((row) => row.name);
       const identityColumns = sql.exec("PRAGMA table_info(series_identity)")
+        .toArray().map((row) => row.name);
+      const consumerColumns = sql.exec("PRAGMA table_info(required_consumers)")
         .toArray().map((row) => row.name);
 
       sql.exec(
@@ -317,13 +330,15 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
         eventColumns,
         receiptColumns,
         identityColumns,
+        consumerColumns,
         legacyCursor,
       };
     });
 
-    expect(first.versions).toEqual([{ version: 1 }, { version: 2 }, { version: 3 }]);
+    expect(first.versions).toEqual([{ version: 1 }, { version: 2 }, { version: 3 }, { version: 4 }, { version: 5 }]);
     expect(first.tables).toEqual([
       "consumer_receipts",
+      "required_consumers",
       "schema_migrations",
       "series_events",
       "series_identity",
@@ -349,6 +364,10 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       "event_digest", "receipt_version", "updated_at_ms",
     ]);
     expect(first.identityColumns).toEqual(["series_key", "identity_json", "created_at_ms", "identity_digest"]);
+    expect(first.consumerColumns).toEqual([
+      "series_key", "consumer_id", "generation_id", "registered_at_ms", "active",
+      "owner_token", "fence_token", "lease_expires_at_ms",
+    ]);
     expect(first.legacyCursor).toBe(50);
 
     await evictDurableObject(stub);
@@ -363,19 +382,274 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       ).one().count,
     }));
 
-    expect(restored.versions).toEqual([{ version: 1 }, { version: 2 }, { version: 3 }]);
+    expect(restored.versions).toEqual([{ version: 1 }, { version: 2 }, { version: 3 }, { version: 4 }, { version: 5 }]);
     expect(restored.legacyCursor).toBe(50);
     expect(restored.eventCount).toBe(1);
   });
 
-  it("upgrades an existing v2 identity row to v3 without changing its canonical identity", async () => {
+  it("deactivates ownerless legacy required consumers during the v4-to-v5 upgrade", async () => {
+    const stub = coordinatorStub(SERIES_B);
+    const result = await runInDurableObject(stub, async (_instance, state) => {
+      const sql = state.storage.sql;
+      sql.exec("DROP TABLE required_consumers");
+      sql.exec(`
+        CREATE TABLE required_consumers (
+          series_key TEXT NOT NULL CHECK (length(series_key) BETWEEN 1 AND 128),
+          consumer_id TEXT NOT NULL CHECK (length(consumer_id) BETWEEN 1 AND 128),
+          generation_id TEXT NOT NULL CHECK (length(generation_id) BETWEEN 1 AND 128),
+          registered_at_ms INTEGER NOT NULL CHECK (registered_at_ms >= 0),
+          active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+          PRIMARY KEY (series_key, consumer_id)
+        )
+      `);
+      sql.exec(
+        "INSERT INTO required_consumers (series_key, consumer_id, generation_id, registered_at_ms, active) VALUES (?, ?, ?, ?, 1)",
+        SERIES_B, "legacy-ownerless-consumer", "synthetic-v1", 10,
+      );
+      sql.exec("DELETE FROM schema_migrations WHERE version > 4");
+      const version = applyDurableSchemaMigrations(state.storage, 100);
+      const consumer = sql.exec(
+        "SELECT active, owner_token, fence_token, lease_expires_at_ms FROM required_consumers WHERE series_key = ? AND consumer_id = ?",
+        SERIES_B, "legacy-ownerless-consumer",
+      ).toArray();
+      return { version, consumer };
+    });
+    expect(result.version).toBe(5);
+    expect(result.consumer).toEqual([{
+      active: 0,
+      owner_token: "",
+      fence_token: 0,
+      lease_expires_at_ms: 0,
+    }]);
+  });
+
+  it("enforces atomic consumer lease acquisition, renewal, fencing, ACK ownership and release", async () => {
+    const seeded = await emit(SERIES_A, 51);
+    expect(seeded.status).toBe(200);
+    const stub = coordinatorStub(SERIES_A);
+    const result = await runInDurableObject(stub, async (_instance, state) => {
+      const storage = state.storage;
+      const event = storage.sql.exec(
+        "SELECT event_digest FROM series_events WHERE series_key = ? AND sequence = 51", SERIES_A,
+      ).one();
+      const first = {
+        seriesKey: SERIES_A, consumerId: "lease-test-consumer", generationId: "synthetic-v1",
+        ownerToken: "a".repeat(64), leaseTtlMs: 5_000,
+      };
+      const acquired = registerRequiredConsumer(storage, first, 1_000);
+      const sameOwner = registerRequiredConsumer(storage, first, 1_500);
+      const collision = registerRequiredConsumer(storage, {
+        ...first, ownerToken: "b".repeat(64),
+      }, 2_000);
+      const renewed = renewRequiredConsumerLease(storage, {
+        ...first, fenceToken: acquired.fenceToken,
+      }, 2_500);
+      const takeover = registerRequiredConsumer(storage, {
+        ...first, ownerToken: "b".repeat(64),
+      }, renewed.leaseExpiresAtMs + 1);
+      const staleAck = commitConsumerReceipt(storage, {
+        seriesKey: SERIES_A, consumerId: first.consumerId, generationId: "synthetic-v1",
+        ownerToken: first.ownerToken, fenceToken: acquired.fenceToken,
+        sequence: 51, eventDigest: event.event_digest,
+      }, renewed.leaseExpiresAtMs + 2);
+      const acceptedAck = commitConsumerReceipt(storage, {
+        seriesKey: SERIES_A, consumerId: first.consumerId, generationId: "synthetic-v1",
+        ownerToken: "b".repeat(64), fenceToken: takeover.fenceToken,
+        sequence: 51, eventDigest: event.event_digest,
+      }, renewed.leaseExpiresAtMs + 3);
+      const staleRelease = releaseRequiredConsumerLease(storage, {
+        seriesKey: SERIES_A, consumerId: first.consumerId, generationId: "synthetic-v1",
+        ownerToken: first.ownerToken, fenceToken: acquired.fenceToken,
+      }, renewed.leaseExpiresAtMs + 4);
+      const currentRelease = releaseRequiredConsumerLease(storage, {
+        seriesKey: SERIES_A, consumerId: first.consumerId, generationId: "synthetic-v1",
+        ownerToken: "b".repeat(64), fenceToken: takeover.fenceToken,
+      }, renewed.leaseExpiresAtMs + 5);
+      return { acquired, sameOwner, collision, renewed, takeover, staleAck, acceptedAck, staleRelease, currentRelease };
+    });
+    expect(result.acquired).toMatchObject({ registered: true, fenceToken: 1 });
+    expect(result.sameOwner).toMatchObject({ registered: true, duplicate: true, fenceToken: 1 });
+    expect(result.collision).toMatchObject({ registered: false, reason: "lease_held" });
+    expect(result.renewed.renewed).toBe(true);
+    expect(result.takeover).toMatchObject({ registered: true, fenceToken: 2 });
+    expect(result.staleAck).toMatchObject({ accepted: false, reason: "lease_fenced" });
+    expect(result.acceptedAck).toMatchObject({ accepted: true, committedCursor: "51" });
+    expect(result.staleRelease).toBe(false);
+    expect(result.currentRelease).toBe(true);
+  });
+
+  it("excludes expired leases from compaction retention and deactivates them", async () => {
+    const seeded = await emit(SERIES_B, 51);
+    expect(seeded.status).toBe(200);
+    const stub = coordinatorStub(SERIES_B);
+    const result = await runInDurableObject(stub, async (_instance, state) => {
+      const storage = state.storage;
+      const lease = registerRequiredConsumer(storage, {
+        seriesKey: SERIES_B, consumerId: "expiring-consumer", generationId: "synthetic-v1",
+        ownerToken: "c".repeat(64), leaseTtlMs: 5_000,
+      }, 1_000);
+      const compacted = compactDurableEvents(storage, SERIES_B, 51, lease.leaseExpiresAtMs + 1);
+      const row = storage.sql.exec(
+        "SELECT active, lease_expires_at_ms FROM required_consumers WHERE series_key = ? AND consumer_id = ?",
+        SERIES_B, "expiring-consumer",
+      ).one();
+      return { lease, compacted, row };
+    });
+    expect(result.lease.registered).toBe(true);
+    expect(result.compacted).toMatchObject({ compacted: false, reason: "required_consumer_registry_empty" });
+    expect(result.row.active).toBe(0);
+  });
+
+  it("binds each WebSocket to its own lease and releases it on close", async () => {
+    const [first, second] = await Promise.all([
+      connectAuthenticated(SERIES_REPLAY),
+      connectAuthenticated(SERIES_REPLAY),
+    ]);
+    const stub = coordinatorStub(SERIES_REPLAY);
+    const before = await runInDurableObject(stub, async (_instance, state) => ({
+      attachments: state.getWebSockets().map((socket) => socket.deserializeAttachment()),
+      leases: state.storage.sql.exec(
+        "SELECT consumer_id, owner_token, fence_token, active FROM required_consumers WHERE series_key = ?",
+        SERIES_REPLAY,
+      ).toArray(),
+    }));
+    expect(before.attachments).toHaveLength(2);
+    expect(before.attachments[0].consumerId).not.toBe(before.attachments[1].consumerId);
+    expect(before.attachments[0].ownerToken).not.toBe(before.attachments[1].ownerToken);
+    expect(before.attachments.every((item) => item.fenceToken === 1 && item.leaseExpiresAtMs > Date.now())).toBe(true);
+    expect(before.leases).toHaveLength(2);
+    expect(before.leases.every((item) => item.active === 1)).toBe(true);
+
+    const closePromise = nextClose(first.socket);
+    first.socket.close(1000, "test close");
+    await closePromise;
+    const after = await runInDurableObject(stub, async (_instance, state) => (
+      state.storage.sql.exec(
+        "SELECT active FROM required_consumers WHERE series_key = ? ORDER BY consumer_id",
+        SERIES_REPLAY,
+      ).toArray()
+    ));
+    expect(after.map((item) => item.active).sort()).toEqual([0, 1]);
+    expect(second.socket.readyState).toBe(1);
+  });
+
+  it("keeps the durable consumer identity and receipt across reconnect while fencing the old socket", async () => {
+    const clientInstanceId = "android-installation-reconnect-01";
+    const first = await connectAuthenticated(SERIES_RECONNECT, undefined, clientInstanceId);
+    const stub = coordinatorStub(SERIES_RECONNECT);
+    const firstLease = await runInDurableObject(stub, async (_instance, state) => (
+      state.getWebSockets()[0].deserializeAttachment()
+    ));
+
+    const updatePromise = nextJsonMessage(first.socket);
+    const emitted = await emit(SERIES_RECONNECT, 51);
+    expect(emitted.status).toBe(200);
+    const update = await updatePromise;
+    const ackPromise = nextJsonMessage(first.socket);
+    first.socket.send(JSON.stringify({
+      type: "market_data.ack", version: 1, sequence: 51, eventDigest: update.digest,
+    }));
+    expect(await ackPromise).toMatchObject({
+      type: "market_data.acknowledged", accepted: true, committedCursor: "51",
+    });
+
+    const receiptBefore = await runInDurableObject(stub, async (_instance, state) => (
+      state.storage.sql.exec(
+        "SELECT consumer_id, committed_sequence, receipt_version FROM consumer_receipts WHERE series_key = ?",
+        SERIES_RECONNECT,
+      ).toArray()
+    ));
+    expect(receiptBefore).toHaveLength(1);
+    expect(receiptBefore[0].consumer_id).toBe(firstLease.consumerId);
+
+    const closePromise = nextClose(first.socket);
+    first.socket.close(1000, "simulate reconnect");
+    await closePromise;
+
+    const second = await connectAuthenticated(SERIES_RECONNECT, undefined, clientInstanceId);
+    const secondLease = await runInDurableObject(stub, async (_instance, state) => (
+      state.getWebSockets().find((socket) => socket.deserializeAttachment().subscribed)
+        .deserializeAttachment()
+    ));
+    const receiptAfter = await runInDurableObject(stub, async (_instance, state) => (
+      state.storage.sql.exec(
+        "SELECT consumer_id, committed_sequence, receipt_version FROM consumer_receipts WHERE series_key = ?",
+        SERIES_RECONNECT,
+      ).toArray()
+    ));
+
+    expect(secondLease.consumerId).toBe(firstLease.consumerId);
+    expect(secondLease.ownerToken).not.toBe(firstLease.ownerToken);
+    expect(secondLease.fenceToken).toBe(firstLease.fenceToken + 1);
+    expect(receiptAfter).toEqual(receiptBefore);
+    second.socket.close(1000, "test complete");
+  });
+
+  it("withholds fan-out and rejects heartbeat after a socket lease is fenced by a successor", async () => {
+    const client = await connectAuthenticated(SERIES_REPLAY);
+    const stub = coordinatorStub(SERIES_REPLAY);
+    const attachment = await runInDurableObject(stub, async (_instance, state) => {
+      const [serverSocket] = state.getWebSockets();
+      return serverSocket.deserializeAttachment();
+    });
+    await runInDurableObject(stub, async (_instance, state) => {
+      state.storage.sql.exec(
+        "UPDATE required_consumers SET owner_token = ?, fence_token = fence_token + 1 " +
+        "WHERE series_key = ? AND consumer_id = ?",
+        "d".repeat(64), SERIES_REPLAY, attachment.consumerId,
+      );
+    });
+    const emitted = await emit(SERIES_REPLAY, 51);
+    expect(emitted.status).toBe(200);
+    expect(emitted.payload.delivered).toBe(0);
+    const closePromise = nextClose(client.socket);
+    client.socket.send("ping");
+    expect((await closePromise).code).toBe(4408);
+  });
+
+  it("renews the active socket lease on ping and binds ACK to that lease", async () => {
+    const client = await connectAuthenticated(SERIES_A);
+    const stub = coordinatorStub(SERIES_A);
+    const before = await runInDurableObject(stub, async (_instance, state) => (
+      state.getWebSockets()[0].deserializeAttachment()
+    ));
+    const pongPromise = nextJsonMessage(client.socket);
+    client.socket.send(JSON.stringify({ type: "ping" }));
+    expect(await pongPromise).toMatchObject({ type: "market_data.pong" });
+    const afterPing = await runInDurableObject(stub, async (_instance, state) => (
+      state.getWebSockets()[0].deserializeAttachment()
+    ));
+    expect(afterPing.leaseExpiresAtMs).toBeGreaterThanOrEqual(before.leaseExpiresAtMs);
+
+    const updatePromise = nextJsonMessage(client.socket);
+    const emitted = await emit(SERIES_A, 51);
+    expect(emitted.status).toBe(200);
+    const update = await updatePromise;
+    const ackPromise = nextJsonMessage(client.socket);
+    client.socket.send(JSON.stringify({
+      type: "market_data.ack", version: 1, sequence: 51, eventDigest: update.digest,
+    }));
+    expect(await ackPromise).toMatchObject({
+      type: "market_data.acknowledged", accepted: true, committedCursor: "51",
+    });
+    const receipt = await runInDurableObject(stub, async (_instance, state) => ({
+      rows: state.storage.sql.exec(
+        "SELECT committed_sequence FROM consumer_receipts WHERE series_key = ?", SERIES_A,
+      ).toArray(),
+      attachment: state.getWebSockets()[0].deserializeAttachment(),
+    }));
+    expect(receipt.rows).toEqual([{ committed_sequence: 51 }]);
+    expect(receipt.attachment.leaseExpiresAtMs).toBeGreaterThan(Date.now());
+  });
+
+  it("upgrades an existing v2 identity row to v4 without changing its canonical identity", async () => {
     const stub = coordinatorStub(SERIES_B);
     const series = canonicalSeries(SERIES_B);
     await runInDurableObject(stub, async (_instance, state) => {
       const sql = state.storage.sql;
       sql.exec("DROP TRIGGER IF EXISTS series_identity_immutable_update");
       sql.exec("ALTER TABLE series_identity DROP COLUMN identity_digest");
-      sql.exec("DELETE FROM schema_migrations WHERE version = 3");
+      sql.exec("DELETE FROM schema_migrations WHERE version >= 3");
       sql.exec(
         "INSERT INTO series_identity (series_key, identity_json, created_at_ms) VALUES (?, ?, ?)",
         SERIES_B, JSON.stringify(series), 1,
@@ -397,7 +671,7 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       ).toArray();
       return { version, hydrated, row };
     });
-    expect(result.version).toBe(3);
+    expect(result.version).toBe(5);
     expect(result.hydrated).toBe(true);
     expect(JSON.parse(result.row[0].identity_json)).toEqual(series);
     expect(result.row[0].identity_digest).toMatch(/^[0-9a-f]{64}$/);
@@ -692,6 +966,10 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       authorized: true,
       seriesKey: SERIES_HIBERNATE,
       subject: "synthetic-proof-subject",
+      consumerId: expect.stringMatching(/^ws:[0-9a-f]{64}$/),
+      ownerToken: expect.stringMatching(/^[0-9a-f]{64}$/),
+      fenceToken: 1,
+      leaseExpiresAtMs: expect.any(Number),
     });
 
     const pongPromise = nextJsonMessage(client.socket);
@@ -730,6 +1008,29 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
     expect((await Promise.all([firstPong, secondPong])).every((pong) =>
       typeof pong.serverTimeNs === "string" && /^\d{1,32}$/.test(pong.serverTimeNs)
     )).toBe(true);
+  });
+
+  it("expires and releases an authenticated socket lease through the Durable Object alarm", async () => {
+    const client = await connectAuthenticated(SERIES_ALARM);
+    const stub = coordinatorStub(SERIES_ALARM);
+    await runInDurableObject(stub, async (_instance, state) => {
+      const [serverSocket] = state.getWebSockets();
+      const attachment = serverSocket.deserializeAttachment();
+      serverSocket.serializeAttachment({ ...attachment, leaseExpiresAtMs: Date.now() - 1 });
+      state.storage.sql.exec(
+        "UPDATE required_consumers SET lease_expires_at_ms = ? WHERE series_key = ? AND consumer_id = ?",
+        Date.now() - 1, SERIES_ALARM, attachment.consumerId,
+      );
+    });
+    const closedPromise = nextClose(client.socket);
+    expect(await runDurableObjectAlarm(stub)).toBe(true);
+    expect((await closedPromise).code).toBe(4408);
+    const rows = await runInDurableObject(stub, async (_instance, state) => (
+      state.storage.sql.exec(
+        "SELECT active FROM required_consumers WHERE series_key = ?", SERIES_ALARM,
+      ).toArray()
+    ));
+    expect(rows).toEqual([{ active: 0 }]);
   });
 
   it("runs the real Durable Object alarm and closes an expired unauthenticated socket", async () => {
@@ -873,6 +1174,82 @@ describe("synthetic Cloudflare Durable Object runtime", () => {
       type: "market_data.ohlcv.update",
       sequence: 52,
       cursor: "52",
+    });
+  });
+
+
+  it("replays the committed event after Durable Object eviction and reconstruction", async () => {
+    const seriesKey = "synthetic:DEMO:EVICTION:1m";
+    const emitted = await emit(seriesKey, 51);
+    expect(emitted.status).toBe(200);
+    expect(emitted.payload).toMatchObject({
+      accepted: true,
+      duplicate: false,
+      sequence: "51",
+    });
+
+    const stub = coordinatorStub(seriesKey);
+    await evictDurableObject(stub);
+
+    const persisted = await runInDurableObject(stub, async (_instance, state) => ({
+      state: state.storage.sql.exec(
+        "SELECT generation_id, high_water, retention_floor FROM series_state WHERE series_key = ?",
+        seriesKey,
+      ).toArray(),
+      events: state.storage.sql.exec(
+        "SELECT sequence, event_digest, payload FROM series_events WHERE series_key = ? ORDER BY sequence",
+        seriesKey,
+      ).toArray(),
+    }));
+
+    expect(persisted.state).toEqual([{
+      generation_id: "synthetic-v1",
+      high_water: 51,
+      retention_floor: 50,
+    }]);
+    expect(persisted.events).toHaveLength(1);
+    expect(JSON.parse(persisted.events[0].payload)).toMatchObject({
+      type: "market_data.ohlcv.update",
+      sequence: 51,
+      cursor: "51",
+      digest: persisted.events[0].event_digest,
+      series: { seriesKey },
+    });
+
+    const ticket = await issueTicket(seriesKey);
+    const socket = await openSocket(seriesKey);
+    const statusPromise = nextJsonMessage(socket);
+    socket.send(JSON.stringify({ type: "auth", ticket }));
+    expect(await statusPromise).toMatchObject({
+      type: "market_data.status",
+      providerConnected: false,
+      liveProviderEnabled: false,
+    });
+
+    const replayStartedPromise = nextJsonMessage(socket);
+    socket.send(JSON.stringify({
+      type: "market_data.subscribe",
+      version: 1,
+      cursor: "50",
+      series: canonicalSeries(seriesKey),
+    }));
+    expect(await replayStartedPromise).toMatchObject({
+      type: "market_data.ohlcv.replay_started",
+      fromCursor: "50",
+      throughCursor: "51",
+      count: 1,
+    });
+    expect(await nextJsonMessage(socket)).toMatchObject({
+      type: "market_data.ohlcv.update",
+      sequence: 51,
+      cursor: "51",
+      digest: persisted.events[0].event_digest,
+    });
+    expect(await nextJsonMessage(socket)).toMatchObject({
+      type: "market_data.ohlcv.replay_complete",
+      cursor: "51",
+      throughSequence: 51,
+      count: 1,
     });
   });
 

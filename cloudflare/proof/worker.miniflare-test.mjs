@@ -21,7 +21,9 @@ const CANONICAL_SERIES = {
   calendarVersion: "",
 };
 
+let nextJsonMessageCounter = 0;
 function nextJsonMessage(socket, timeoutMs = 5_000) {
+  const messageIndex = ++nextJsonMessageCounter;
   return new Promise((resolve, reject) => {
     const cleanup = () => {
       clearTimeout(timer);
@@ -43,7 +45,7 @@ function nextJsonMessage(socket, timeoutMs = 5_000) {
     };
     const onClose = (event) => {
       cleanup();
-      reject(new Error(`WebSocket closed before the expected message (code ${event.code}).`));
+      reject(new Error(`WebSocket message #${messageIndex} closed before the expected message (code ${event.code}).`));
     };
     const onError = () => {
       cleanup();
@@ -331,10 +333,61 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
     assert.deepEqual(observedSequences, [51, 52]);
     assert.ok(event52 && /^[0-9a-f]{64}$/.test(event52.digest));
 
+    // ACK is now a first-class WebSocket protocol message. A cursor beyond the
+    // highest event delivered on this connection is rejected before persistence.
+    const aheadAckPromise = nextRaceMessage();
+    raceSocket.send(JSON.stringify({
+      type: "market_data.ack",
+      version: 1,
+      sequence: 53,
+      eventDigest: event52.digest,
+    }));
+    const aheadAck = await aheadAckPromise;
+    assert.equal(aheadAck.type, "market_data.ack_rejected");
+    assert.equal(aheadAck.reason, "ack_not_delivered_or_invalid");
+
+    const websocketAckPromise = nextRaceMessage();
+    raceSocket.send(JSON.stringify({
+      type: "market_data.ack",
+      version: 1,
+      sequence: 52,
+      eventDigest: event52.digest,
+    }));
+    const websocketAck = await websocketAckPromise;
+    assert.equal(websocketAck.type, "market_data.acknowledged", JSON.stringify(websocketAck));
+    assert.equal(websocketAck.accepted, true);
+    assert.equal(websocketAck.duplicate, false);
+    assert.equal(websocketAck.committedCursor, "52");
+    assert.equal(websocketAck.receiptVersion, 1);
+
+    // Close the three transport consumers before isolating the manual retention
+    // proof below. Their leases are required consumers too and must be released.
+    const closeTestSocket = (socket, reason) => new Promise((resolve) => {
+      socket.addEventListener("close", resolve, { once: true });
+      socket.close(1000, reason);
+    });
+    await Promise.all([
+      closeTestSocket(clientSocket, "initial transport complete"),
+      closeTestSocket(resumeSocket, "replay transport complete"),
+      closeTestSocket(raceSocket, "ACK transport complete"),
+    ]);
+
+    const primaryRegistration = await miniflare.dispatchFetch(`${BASE_URL}/__proof/register-consumer`, {
+      method: "POST", headers: authorizedHeaders(),
+      body: JSON.stringify({
+        seriesKey: SERIES, consumerId: "synthetic-proof-consumer-1", generationId: "synthetic-v1",
+        ownerToken: "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      }),
+    });
+    assert.equal(primaryRegistration.status, 200);
+    assert.equal((await primaryRegistration.json()).registered, true);
+
     const ackBody = {
       seriesKey: SERIES,
       consumerId: "synthetic-proof-consumer-1",
       generationId: "synthetic-v1",
+      ownerToken: "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      fenceToken: 1,
       sequence: 52,
       eventDigest: event52.digest,
     };
@@ -538,6 +591,79 @@ test("synthetic Worker executes real workerd WebSocket, Durable Object storage a
     });
     assert.equal(sqliteAuthoritativeEmit.status, 200);
     assert.equal((await sqliteAuthoritativeEmit.json()).accepted, true);
+
+    const emptyRegistryCompact = await miniflare.dispatchFetch(`${BASE_URL}/__proof/compact`, {
+      method: "POST", headers: authorizedHeaders(),
+      body: JSON.stringify({ seriesKey: legacySeries.seriesKey, throughSequence: 79 }),
+    });
+    assert.equal(emptyRegistryCompact.status, 409);
+    assert.equal((await emptyRegistryCompact.json()).reason, "required_consumer_registry_empty");
+
+    // Registering a required consumer without an ACK must block compaction.
+    const noAckRegistration = await miniflare.dispatchFetch(`${BASE_URL}/__proof/register-consumer`, {
+      method: "POST", headers: authorizedHeaders(),
+      body: JSON.stringify({
+        seriesKey: SERIES, consumerId: "synthetic-proof-consumer-no-ack", generationId: "synthetic-v1",
+        ownerToken: "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      }),
+    });
+    assert.equal(noAckRegistration.status, 200);
+    const noAckCompactResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/compact`, {
+      method: "POST", headers: authorizedHeaders(),
+      body: JSON.stringify({ seriesKey: SERIES, throughSequence: 52 }),
+    });
+    assert.equal(noAckCompactResponse.status, 409);
+    const noAckCompaction = await noAckCompactResponse.json();
+    assert.equal(noAckCompaction.reason, "consumer_ack_behind");
+    assert.equal(noAckCompaction.missingConsumerReceipts, 1);
+
+    const noAckReceiptResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/ack`, {
+      method: "POST", headers: authorizedHeaders(),
+      body: JSON.stringify({
+        seriesKey: SERIES, consumerId: "synthetic-proof-consumer-no-ack",
+        generationId: "synthetic-v1", ownerToken: "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", fenceToken: 1,
+        sequence: 52, eventDigest: event52.digest,
+      }),
+    });
+    assert.equal(noAckReceiptResponse.status, 200);
+    assert.equal((await noAckReceiptResponse.json()).accepted, true);
+
+    // A lagging, already-registered consumer must prevent compaction past its ACK.
+    const laggingRegistration = await miniflare.dispatchFetch(`${BASE_URL}/__proof/register-consumer`, {
+      method: "POST", headers: authorizedHeaders(),
+      body: JSON.stringify({
+        seriesKey: SERIES, consumerId: "synthetic-proof-consumer-lagging", generationId: "synthetic-v1",
+        ownerToken: "9999999999999999999999999999999999999999999999999999999999999999",
+      }),
+    });
+    assert.equal(laggingRegistration.status, 200);
+    const laggingAckBody = {
+      seriesKey: SERIES,
+      consumerId: "synthetic-proof-consumer-lagging",
+      generationId: "synthetic-v1",
+      ownerToken: "9999999999999999999999999999999999999999999999999999999999999999",
+      fenceToken: 1,
+      sequence: 51,
+      eventDigest: event51Digest,
+    };
+    const laggingAckResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/ack`, {
+      method: "POST",
+      headers: authorizedHeaders(),
+      body: JSON.stringify(laggingAckBody),
+    });
+    assert.equal(laggingAckResponse.status, 200);
+    assert.equal((await laggingAckResponse.json()).accepted, true);
+
+    const blockedCompactResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/compact`, {
+      method: "POST",
+      headers: authorizedHeaders(),
+      body: JSON.stringify({ seriesKey: SERIES, throughSequence: 52 }),
+    });
+    assert.equal(blockedCompactResponse.status, 409);
+    const blockedCompaction = await blockedCompactResponse.json();
+    assert.equal(blockedCompaction.compacted, false);
+    assert.equal(blockedCompaction.reason, "consumer_ack_behind");
+    assert.equal(blockedCompaction.minimumAcknowledgedSequence, 51);
 
     // Retention compaction is an atomic cursor-floor advance plus event deletion.
     const compactResponse = await miniflare.dispatchFetch(`${BASE_URL}/__proof/compact`, {

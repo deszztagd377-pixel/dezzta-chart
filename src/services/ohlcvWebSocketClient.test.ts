@@ -84,6 +84,12 @@ const update = {
   series: identity,
   bar: { ...bar, sequence: 8, close: '6001.000' },
 };
+const ackUpdate = {
+  ...update,
+  cursor: '8',
+  generationId: 'stream-a',
+  digest: '28d8b04abd0a25acd1c4dcd177d64d14ef959675a456dc277c30e6376afa535f',
+};
 
 function setup() {
   const socket = new FakeSocket();
@@ -158,6 +164,93 @@ describe('connectOhlcvStream', () => {
     expect(onUpdate).toHaveBeenCalledOnce();
     expect(onUpdate.mock.calls[0][0].sequence).toBe(8);
     expect(onUpdate.mock.calls[0][1].close).toBe(6001);
+  });
+
+  it('coalesces durable ACKs and confirms the highest contiguous applied event', () => {
+    vi.useFakeTimers();
+    const { socket, onError, connection } = setup();
+    socket.readyState = 1;
+    socket.emit('open', new Event('open'));
+    socket.message({ type: 'market_data.status', version: 1, consumerAckProtocolVersion: 1 });
+    socket.message(snapshot);
+    socket.message(ackUpdate);
+    socket.message({
+      ...ackUpdate,
+      eventId: 'event-9',
+      cursor: '9',
+      sequence: 9,
+      digest: '2517afa58108b20bbcf9f4e448fbbd5b03ad31b99dc9b0163e617a8f0ee08535',
+      emittedAtNs: '1793577602000000000',
+      bar: {
+        ...bar,
+        tsStartNs: '1793577601000000000',
+        tsEventNs: '1793577601999000000',
+        tsReceivedNs: '1793577602000000000',
+        sequence: 9,
+        high: '6002.000',
+        close: '6002.000',
+      },
+    });
+
+    expect(onError).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(9_999);
+    expect(socket.sent.map((value) => JSON.parse(value)).filter((value) => value.type === 'market_data.ack')).toHaveLength(0);
+    vi.advanceTimersByTime(1);
+    const acknowledgements = socket.sent.map((value) => JSON.parse(value))
+      .filter((value) => value.type === 'market_data.ack');
+    expect(onError).not.toHaveBeenCalled();
+    expect(acknowledgements).toEqual([{
+      type: 'market_data.ack',
+      version: 1,
+      sequence: 9,
+      eventDigest: '2517afa58108b20bbcf9f4e448fbbd5b03ad31b99dc9b0163e617a8f0ee08535',
+    }]);
+
+    socket.message({
+      type: 'market_data.acknowledged',
+      version: 1,
+      accepted: true,
+      duplicate: false,
+      committedCursor: '9',
+      receiptVersion: 1,
+    });
+    expect(connection.state).toBe('subscribed');
+    expect(onError).not.toHaveBeenCalled();
+    connection.close();
+  });
+
+  it('does not send consumer ACKs unless the server explicitly advertises the capability', () => {
+    vi.useFakeTimers();
+    const { socket, connection } = setup();
+    socket.readyState = 1;
+    socket.emit('open', new Event('open'));
+    socket.message({ type: 'market_data.status', version: 1 });
+    socket.message(snapshot);
+    socket.message(ackUpdate);
+    vi.advanceTimersByTime(10_000);
+    expect(socket.sent.filter((value) => value.startsWith('{')).map((value) => JSON.parse(value))
+      .some((value) => value.type === 'market_data.ack')).toBe(false);
+    connection.close();
+  });
+
+  it('fails closed when the server rejects a durable consumer ACK', () => {
+    vi.useFakeTimers();
+    const { socket, onError, connection } = setup();
+    socket.readyState = 1;
+    socket.emit('open', new Event('open'));
+    socket.message({ type: 'market_data.status', version: 1, consumerAckProtocolVersion: 1 });
+    socket.message(snapshot);
+    socket.message(ackUpdate);
+    vi.advanceTimersByTime(10_000);
+    socket.message({
+      type: 'market_data.ack_rejected',
+      version: 1,
+      reason: 'consumer_fenced',
+    });
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError.mock.calls[0][0].message).toMatch(/consumer ACK: consumer_fenced/i);
+    expect(connection.state).toBe('closed');
+    expect(socket.closed[0].code).toBe(1011);
   });
 
   it('resumes from a durable cursor and applies replay before switching to live updates', () => {

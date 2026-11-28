@@ -8,6 +8,8 @@ snapshot/watermark hand-off atomic relative to publish() on the same loop.
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import json
 import time
 import uuid
 from dataclasses import dataclass
@@ -18,6 +20,20 @@ from app.ohlcv import (
 )
 
 STREAM_QUEUE_CAPACITY = 256
+
+
+def attest_ohlcv_stream_event(event: dict[str, Any], *, generation_id: str) -> dict[str, Any]:
+    """Attach a deterministic SHA-256 digest to a generation-scoped event."""
+    if not isinstance(event, dict):
+        raise TypeError("event must be a dictionary")
+    if not isinstance(generation_id, str) or not generation_id or len(generation_id) > 128:
+        raise ValueError("generation_id must be a non-empty string up to 128 characters")
+    payload = dict(event)
+    payload.pop("digest", None)
+    payload["generationId"] = generation_id
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode("utf-8")
+    payload["digest"] = hashlib.sha256(canonical).hexdigest()
+    return payload
 SeriesIdentity = tuple[str, str, int, int, str, str, str, str, str, str]
 
 
@@ -232,7 +248,7 @@ class OhlcvStreamHub:
             if durable_cursor is not None and durable_cursor <= subscription.durable_cursor:
                 continue
             next_sequence = subscription.watermark + 1
-            message = {
+            message = attest_ohlcv_stream_event({
                 "type": "market_data.ohlcv.update",
                 "version": 1,
                 "streamId": subscription.stream_id,
@@ -255,7 +271,7 @@ class OhlcvStreamHub:
                     "calendarVersion": bar.calendar_version,
                 },
                 "bar": payload_bar,
-            }
+            }, generation_id=subscription.stream_id)
             try:
                 subscription.queue.put_nowait(message)
             except asyncio.QueueFull:

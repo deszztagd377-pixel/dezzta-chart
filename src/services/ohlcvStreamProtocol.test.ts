@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   OhlcvStreamSequenceGuard,
   parseOhlcvStreamUpdate,
+  verifyOhlcvStreamEventDigest,
   type OhlcvStreamUpdateMessage,
 } from './ohlcvStreamProtocol';
 
@@ -82,21 +83,127 @@ describe('parseOhlcvStreamUpdate', () => {
       cursor: '8',
       digest: 'a'.repeat(64),
       provenance,
+      streamId: 'synthetic:synthetic:DEMO:ES:1s',
       series: { ...series, seriesKey: 'synthetic:DEMO:ES:1s' },
     });
     expect(valid.generationId).toBe('synthetic-v1');
     expect(valid.cursor).toBe('8');
     expect(valid.digest).toBe('a'.repeat(64));
-    expect(() => event({ generationId: 'synthetic-v1', cursor: '08' })).toThrow(/cursor/i);
-    expect(() => event({ generationId: 'synthetic-v1', cursor: '9' })).toThrow(/cursor/i);
-    expect(() => event({ generationId: 'synthetic-v1', digest: 'A'.repeat(64) })).toThrow(/digest/i);
+    // The durable outbox cursor is global; stream sequence is subscription-local.
+    expect(event({
+      generationId: 'stream-es-1s-a', digest: 'a'.repeat(64), cursor: '42', sequence: 8,
+    }).cursor).toBe('42');
+    expect(() => event({
+      generationId: 'stream-es-1s-a', digest: 'a'.repeat(64), cursor: '08',
+    })).toThrow(/cursor/i);
+    expect(() => event({ generationId: 'stream-es-1s-a', digest: 'A'.repeat(64) })).toThrow(/digest/i);
     expect(() => event({
       generationId: 'synthetic-v1',
+      digest: 'a'.repeat(64),
       provenance: { ...provenance, dataStatus: 'live' },
     })).toThrow(/provenance/i);
     expect(() => event({
       series: { ...series, seriesKey: 'bad series key' },
     })).toThrow(/seriesKey/i);
+  });
+
+
+  it('cryptographically verifies the canonical SHA-256 event digest and rejects tampering', async () => {
+    const unsigned = event({
+      generationId: 'stream-es-1s-a',
+      digest: '0'.repeat(64),
+      cursor: '8',
+    });
+    const sort = (value: unknown): unknown => {
+      if (Array.isArray(value)) return value.map(sort);
+      if (typeof value === 'object' && value !== null) {
+        return Object.fromEntries(
+          Object.keys(value).sort().map((key) => [key, sort((value as Record<string, unknown>)[key])]),
+        );
+      }
+      return value;
+    };
+    const payload = { ...unsigned, replayed: true } as Record<string, unknown>;
+    delete payload.digest;
+    const bytes = new TextEncoder().encode(JSON.stringify(sort(payload)));
+    const hash = await crypto.subtle.digest('SHA-256', bytes);
+    const digest = Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, '0')).join('');
+    const attested = event({
+      generationId: 'stream-es-1s-a',
+      digest,
+      cursor: '8',
+    });
+    const rawAttested = { ...attested, replayed: true };
+    expect(verifyOhlcvStreamEventDigest(rawAttested)).toBe(true);
+    expect(verifyOhlcvStreamEventDigest({
+      ...rawAttested,
+      eventId: 'tampered-event',
+    })).toBe(false);
+  });
+
+  it('requires generation identity and digest to be present as a pair', () => {
+    expect(() => event({ generationId: 'synthetic-v1' })).toThrow(/provided together/i);
+    expect(() => event({ digest: 'a'.repeat(64) })).toThrow(/provided together/i);
+    expect(event({
+      generationId: 'stream-es-1s-a',
+      digest: 'a'.repeat(64),
+    }).generationId).toBe('stream-es-1s-a');
+  });
+
+  it('binds production generation identity to the subscription stream', () => {
+    expect(event({
+      generationId: 'stream-es-1s-a',
+      digest: 'a'.repeat(64),
+    }).generationId).toBe('stream-es-1s-a');
+    expect(() => event({
+      generationId: 'another-stream',
+      digest: 'a'.repeat(64),
+    })).toThrow(/generationId must match/i);
+  });
+
+  it('binds synthetic generation identity to its canonical series stream', () => {
+    const syntheticSeries = {
+      ...series,
+      provider: 'synthetic',
+      seriesKey: 'synthetic:DEMO:ES:1m',
+    };
+    const syntheticBar = {
+      ...bar,
+      provider: 'synthetic',
+    };
+    const syntheticProvenance = {
+      mode: 'synthetic',
+      dataStatus: 'synthetic_only',
+      provider: null,
+      dataset: 'DEMO',
+      asOfNs: '1793577601000000000',
+      providerConnected: false,
+    };
+    const valid = event({
+      streamId: 'synthetic:synthetic:DEMO:ES:1m',
+      generationId: 'synthetic-v1',
+      digest: 'a'.repeat(64),
+      series: syntheticSeries,
+      bar: syntheticBar,
+      provenance: syntheticProvenance,
+    });
+    expect(valid.generationId).toBe('synthetic-v1');
+    expect(() => event({
+      streamId: 'wrong-stream',
+      generationId: 'synthetic-v1',
+      digest: 'a'.repeat(64),
+      series: syntheticSeries,
+      bar: syntheticBar,
+      provenance: syntheticProvenance,
+    })).toThrow(/synthetic OHLCV generation identity/i);
+    expect(() => event({
+      streamId: 'synthetic:synthetic:DEMO:ES:1m',
+      generationId: 'another-generation',
+      digest: 'a'.repeat(64),
+      series: syntheticSeries,
+      bar: syntheticBar,
+      provenance: syntheticProvenance,
+    })).toThrow(/synthetic OHLCV generation identity/i);
   });
 
   it('rejects unsupported versions and missing event identity', () => {
