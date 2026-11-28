@@ -88,7 +88,7 @@ const ackUpdate = {
   ...update,
   cursor: '8',
   generationId: 'stream-a',
-  digest: 'a'.repeat(64),
+  digest: '28d8b04abd0a25acd1c4dcd177d64d14ef959675a456dc277c30e6376afa535f',
 };
 
 function setup() {
@@ -179,7 +179,7 @@ describe('connectOhlcvStream', () => {
       eventId: 'event-9',
       cursor: '9',
       sequence: 9,
-      digest: 'b'.repeat(64),
+      digest: '2517afa58108b20bbcf9f4e448fbbd5b03ad31b99dc9b0163e617a8f0ee08535',
       emittedAtNs: '1793577602000000000',
       bar: {
         ...bar,
@@ -203,7 +203,7 @@ describe('connectOhlcvStream', () => {
       type: 'market_data.ack',
       version: 1,
       sequence: 9,
-      eventDigest: 'b'.repeat(64),
+      eventDigest: '2517afa58108b20bbcf9f4e448fbbd5b03ad31b99dc9b0163e617a8f0ee08535',
     }]);
 
     socket.message({
