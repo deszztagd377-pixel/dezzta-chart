@@ -277,12 +277,14 @@ function sha256Hex(input: Uint8Array): string {
 }
 
 /** Recompute the canonical SHA-256 event attestation synchronously before applying an update. */
-export function verifyOhlcvStreamEventDigest(event: OhlcvStreamUpdateMessage): boolean {
-  if (!event.generationId || !event.digest) return false;
-  const payload: Record<string, unknown> = { ...event };
+export function verifyOhlcvStreamEventDigest(value: unknown): boolean {
+  if (!isRecord(value) || typeof value.generationId !== 'string' ||
+      typeof value.digest !== 'string' || !isOhlcvSha256(value.digest)) return false;
+  const payload: Record<string, unknown> = { ...value };
+  const expected = value.digest;
   delete payload.digest;
   const canonical = JSON.stringify(canonicalizeDigestValue(payload));
-  return sha256Hex(new TextEncoder().encode(canonical)) === event.digest;
+  return sha256Hex(new TextEncoder().encode(canonical)) === expected;
 }
 
 export type OhlcvSequenceDecision =
