@@ -1,4 +1,32 @@
-# AUTHORITATIVE OWNER CHECKPOINT — 27 November 2026, Batch 96B
+# AUTHORITATIVE OWNER CHECKPOINT — 28 November 2026, Batch 98
+
+**Official stage:** Stage 1 — Foundation, Security & Data Integrity. Stage 2 remains preparatory and is not authorized until Stage 1 reaches 40/40 and the owner explicitly approves transition.
+
+**Stage 1:** 30/40 = 75% provisional; Gate 10 = 0/10 formally closed. Owner-controlled acceptance criteria **8, 20, 25, 30, 31, 34, 35, 36, 38 and 39** remain open pending production/owner evidence. No score is added by CI, documentation, synthetic fixtures or preview builds.
+
+**Branch / PR:** `work/batch95-websocket-ack-protocol`; PR #13 remains open and unmerged. Branch head at this checkpoint: `f5b48995705e10b32bc6d4c44bb24f60b6ea0cd2` (documentation-only Heatmap reference receipt). The authoritative source/test HEAD remains `e29040d4f3e9e5da5c9dd1400e102f5139b9ba41`, as recorded in the Stage 1 acceptance matrix. `main` remains untouched; no merge or production deployment performed.
+
+**Exact source/test HEAD CI: 4/4 terminal SUCCESS**
+- Automated Tests [46107071181](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46107071181) — SUCCESS; 41/41 steps; frontend 339/339, backend 1,437 passed / 1 skipped, Worker runtime 26/26.
+- CodeQL [46107071199](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46107071199) — SUCCESS.
+- OCI ARM64 Image Readiness [46107071235](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46107071235) — SUCCESS.
+- Full Git History Secret Audit [46107071288](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46107071288) — SUCCESS.
+
+**Five independent workstream reconciliation — 28 November**
+1. **CI / test integrity:** exact source/test HEAD above has all four required workflows terminal SUCCESS. The later docs-only commit `f5b4899` is not represented as a new source/test CI run.
+2. **WebSocket / backend:** ACK session ledger and SQLite receipt primitives exist with unit tests, but `backend/app/main.py` does not yet receive `market_data.ack`, resolve it against the socket ledger, commit the durable receipt, or emit an ACK confirmation. Production ACK remains YELLOW / not advertised. Do not call WebSocket production-complete.
+3. **Indicators / chart:** `CandlestickChart.tsx` does not import or invoke the indicator hook. Existing calculation declarations are foundations, not chart-visible indicators. Footprint remains synthetic/offline; Volume Profile and Heatmap remain open and Stage 4-gated. The Heatmap reference receipt is recorded in the indicator ledger only.
+4. **Android / release:** `.github/workflows/android-apk.yml` builds an installable debug APK on workflow dispatch or relevant pushes, uploads a 7-day CI artifact, and defaults preview-release publication to false. This is not a final signed/release APK; no new APK build is claimed by this checkpoint.
+5. **Hosting / deployment:** Vercel has READY historical preview deployments for older commits, alongside canceled attempts. No deployment for current branch head `f5b4899` was verified, and no production deployment was made. Preserve ZERO COST; avoid unnecessary deployment churn and free-tier quota consumption.
+
+**Production boundaries still open:** Firebase-verified stable consumer identity, durable owner/fence-bound receipt enforcement, restart reconciliation, public WSS/TLS, browser/Android E2E, lawful market-data redistribution, owner-host backup/restore and monitoring/incident evidence. SHA-256 event digest validation is integrity checking, not a digital signature or provider authenticity proof.
+
+**Deadline:** 24 December 2026 — 26 calendar days remain from 28 November. This is a delivery target, not a basis for bypassing Stage 1 acceptance or release gates.
+
+**Controls:** ZERO COST; no paid services, billing changes, new Cloudflare resources, production deployment, PR merge or `main` modification. No autonomous background/10-minute coding is running. CI status was checked during this active session only.
+
+---
+
 
 **Official stage:** Stage 1 — Foundation, Security & Data Integrity. Stage 2 is preparatory only and cannot officially start until Stage 1 reaches 100% and the owner explicitly authorizes the transition.
 
