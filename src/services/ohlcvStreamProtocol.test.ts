@@ -114,6 +114,62 @@ describe('parseOhlcvStreamUpdate', () => {
     }).generationId).toBe('synthetic-v1');
   });
 
+  it('binds production generation identity to the subscription stream', () => {
+    expect(event({
+      generationId: 'stream-es-1s-a',
+      digest: 'a'.repeat(64),
+    }).generationId).toBe('stream-es-1s-a');
+    expect(() => event({
+      generationId: 'another-stream',
+      digest: 'a'.repeat(64),
+    })).toThrow(/generationId must match/i);
+  });
+
+  it('binds synthetic generation identity to its canonical series stream', () => {
+    const syntheticSeries = {
+      ...series,
+      provider: 'synthetic',
+      seriesKey: 'synthetic:DEMO:ES:1m',
+    };
+    const syntheticBar = {
+      ...bar,
+      provider: 'synthetic',
+    };
+    const syntheticProvenance = {
+      mode: 'synthetic',
+      dataStatus: 'synthetic_only',
+      provider: null,
+      dataset: 'DEMO',
+      asOfNs: '1793577601000000000',
+      providerConnected: false,
+    };
+    const valid = event({
+      streamId: 'synthetic:synthetic:DEMO:ES:1m',
+      generationId: 'synthetic-v1',
+      digest: 'a'.repeat(64),
+      series: syntheticSeries,
+      bar: syntheticBar,
+      provenance: syntheticProvenance,
+    });
+    expect(valid.generationId).toBe('synthetic-v1');
+    expect(() => event({
+      streamId: 'wrong-stream',
+      generationId: 'synthetic-v1',
+      digest: 'a'.repeat(64),
+      series: syntheticSeries,
+      bar: syntheticBar,
+      provenance: syntheticProvenance,
+    })).toThrow(/synthetic OHLCV generation identity/i);
+    expect(() => event({
+      streamId: 'synthetic:synthetic:DEMO:ES:1m',
+      generationId: 'another-generation',
+      digest: 'a'.repeat(64),
+      series: syntheticSeries,
+      bar: syntheticBar,
+      provenance: syntheticProvenance,
+    })).toThrow(/synthetic OHLCV generation identity/i);
+  });
+
   it('rejects unsupported versions and missing event identity', () => {
     expect(() => event({ version: 2 })).toThrow(/type or version/i);
     expect(() => event({ eventId: '' })).toThrow(/streamId and eventId/i);
