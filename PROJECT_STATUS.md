@@ -1,3 +1,28 @@
+# CURRENT RECONCILIATION — 28 NOVEMBER 2026 (AUTHORITATIVE)
+
+**Active application branch:** `phase-2/market-data-foundation`  
+**Application branch HEAD:** `9b7facc9ae88d8d525da9f975c32c306963d70b7` (documentation-only Batch 99 commit).  
+**Latest validated source/test SHA:** `41f42a232a25987513c175ea6d271ae5389b1437`; no application runtime source/test changes were introduced after this SHA in the Batch 98/99 documentation commits.  
+**Required CI on exact source/test SHA 41f42a2:** 4/4 terminal SUCCESS — [Automated Tests #2664](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46108286306), [Secret History Audit #1591](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46108286305), [OCI ARM64 #638](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46108286297), [CodeQL #2009](https://github.com/deszztagd377-pixel/dezzta-chart/actions/runs/46108286284). These are exact-SHA results, not a claim that docs-only HEAD 9b7f ran CI.
+**Current Actions inspection:** no in-progress runs were present in the 100 latest application workflow runs or the complete 14-run Runner history at this reconciliation.  
+**Official stage:** Stage 1 — 30/40 = 75% provisional 🟨. Gate 10 remains 0/10 formally closed. Remaining owner-controlled criteria: 8, 20, 25, 30, 31, 34, 35, 36, 38, 39. Stage 2 remains preparatory only.  
+**Zero-cost and branch boundaries:** ZERO COST; application `main` untouched; no production deployment, billing change, secret-value access or auto-merge.
+
+## Owner decision — recurring 10-minute automation CANCELLED
+
+The owner explicitly cancelled the recurring 10-minute auto-running system. This decision supersedes every older automation note below and every prior plan proposing to preserve or reactivate a 10-minute cadence.
+
+- Do not configure, enable, recreate, or schedule cron-job.org or any replacement recurring trigger.
+- Do not route the Cloudflare relay to AI coding, Preflight, Batch 89, or another recurring workflow.
+- Do not describe recurring automation as active, pending activation, or a future deliverable.
+- Keep the deployed relay inert with respect to recurring dispatch; do not delete or alter it without separate owner instruction.
+- Manual GitHub Actions runs remain separate and may be used only when deliberately initiated for an approved task. Batch 89 must never be scheduled.
+- The external cron-job.org account state is not readable through the connected tools; the cancellation is the governing owner instruction, not a claim that the external service has been inspected.
+
+Historical automation records below are retained as dated history and must not override this decision.
+
+---
+
 # ACTIVE PROJECT DASHBOARD — DEZZTA CHART (27 November 2026)
 
 **Active branch:** `phase-2/market-data-foundation` — `main` untouched.  
