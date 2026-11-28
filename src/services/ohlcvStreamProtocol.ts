@@ -89,11 +89,16 @@ export function parseOhlcvStreamUpdate(payload: unknown): OhlcvStreamUpdateMessa
   if (!isPositiveSafeInteger(payload.sequence)) {
     throw new Error('OHLCV stream sequence must be a positive safe integer.');
   }
-  if (payload.generationId !== undefined &&
+  const hasGenerationId = payload.generationId !== undefined;
+  const hasDigest = payload.digest !== undefined;
+  if (hasGenerationId !== hasDigest) {
+    throw new Error('OHLCV generationId and event digest must be provided together.');
+  }
+  if (hasGenerationId &&
       (typeof payload.generationId !== 'string' || !/^[A-Za-z0-9._:-]{1,128}$/.test(payload.generationId))) {
     throw new Error('OHLCV generationId is invalid.');
   }
-  if (payload.digest !== undefined && !isOhlcvSha256(payload.digest)) {
+  if (hasDigest && !isOhlcvSha256(payload.digest)) {
     throw new Error('OHLCV event digest must be lowercase SHA-256 hex.');
   }
   if (payload.provenance !== undefined && !isValidOhlcvProvenance(payload.provenance)) {
