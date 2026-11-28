@@ -1674,6 +1674,16 @@ export class SeriesCoordinatorDO {
         socket.close(4400, "Invalid subscription");
         return;
       }
+      if (payload.clientInstanceId !== undefined &&
+          (typeof payload.clientInstanceId !== "string" ||
+           !/^[A-Za-z0-9._:-]{1,128}$/.test(payload.clientInstanceId))) {
+        socket.send(JSON.stringify(createProtocolError(
+          "consumer_instance_invalid", false, "consumer-instance-" + Date.now(),
+          "The consumer instance identifier is invalid.",
+        )));
+        socket.close(4400, "Invalid consumer instance");
+        return;
+      }
       if (payload.cursor !== undefined &&
           (typeof payload.cursor !== "string" ||
            payload.cursor.length > 16 ||
@@ -1709,7 +1719,15 @@ export class SeriesCoordinatorDO {
       }
       await initializeDurableSeriesState(this.ctx.storage, attachment.seriesKey);
       const ownerToken = createLeaseToken();
-      const consumerId = "ws:" + ownerToken;
+      // Client instance ID is a stable slot label, never an authentication claim.
+       // Bind it to the server-validated ticket subject and series; a fresh owner
+       // token still fences stale sockets after reconnect.
+       const consumerId = typeof payload.clientInstanceId === "string"
+         ? "ws:" + await sha256Hex(
+           "dezzta-consumer-v1\0" + attachment.subject + "\0" +
+           attachment.seriesKey + "\0" + payload.clientInstanceId,
+         )
+         : "ws:" + ownerToken;
       const registration = registerRequiredConsumer(this.ctx.storage, {
         seriesKey: attachment.seriesKey,
         consumerId,
