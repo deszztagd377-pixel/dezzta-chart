@@ -104,6 +104,19 @@ export function parseOhlcvStreamUpdate(payload: unknown): OhlcvStreamUpdateMessa
   if (payload.provenance !== undefined && !isValidOhlcvProvenance(payload.provenance)) {
     throw new Error('OHLCV event provenance is invalid.');
   }
+  if (hasGenerationId) {
+    const provenance = payload.provenance as import('../types/marketDataProtocol').OhlcvProvenance | undefined;
+    if (provenance?.mode === 'synthetic') {
+      if (payload.generationId !== 'synthetic-v1' ||
+          typeof payload.series !== 'object' || payload.series === null ||
+          typeof (payload.series as Record<string, unknown>).seriesKey !== 'string' ||
+          payload.streamId !== `synthetic:${(payload.series as Record<string, unknown>).seriesKey}`) {
+        throw new Error('Synthetic OHLCV generation identity does not match its canonical stream.');
+      }
+    } else if (payload.generationId !== payload.streamId) {
+      throw new Error('Production OHLCV generationId must match its subscription streamId.');
+    }
+  }
   if (!isNanosecondString(payload.emittedAtNs)) {
     throw new Error('OHLCV stream emittedAtNs must be an unsigned nanosecond string.');
   }
