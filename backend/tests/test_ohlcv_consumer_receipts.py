@@ -129,7 +129,7 @@ def test_duplicate_ack_is_idempotent_across_reconnect_generation(tmp_path):
     )
     assert result["accepted"] is True
     assert result["duplicate"] is True
-    assert result["receipt_version"] == 1
+    assert result["receipt_version"] == 2
     receipt = store.get_receipt(
         account_subject=SUBJECT,
         consumer_id=CONSUMER,
