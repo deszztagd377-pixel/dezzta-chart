@@ -160,6 +160,30 @@ def test_same_fencing_token_cannot_take_over_a_new_stream_generation(tmp_path):
     assert receipt["fencing_token"] == 5
 
 
+def test_same_fencing_token_requires_sequence_advance_when_cursor_advances(tmp_path):
+    store = make_store(tmp_path)
+    commit(store, cursor=41, sequence=5, fencing_token=5)
+
+    with pytest.raises(OhlcvConsumerReceiptStale, match="sequence must advance"):
+        commit(
+            store,
+            cursor=42,
+            event_id="event-42",
+            digest=hashlib.sha256(b"event-42").hexdigest(),
+            sequence=4,
+            fencing_token=5,
+        )
+
+    receipt = store.get_receipt(
+        account_subject=SUBJECT,
+        consumer_id=CONSUMER,
+        series_key=SERIES,
+    )
+    assert receipt["committed_cursor"] == "41"
+    assert receipt["sequence"] == 5
+    assert receipt["fencing_token"] == 5
+
+
 def test_same_fencing_token_cannot_rewrite_sequence_for_committed_event(tmp_path):
     store = make_store(tmp_path)
     commit(store, cursor=41, sequence=3, fencing_token=5)

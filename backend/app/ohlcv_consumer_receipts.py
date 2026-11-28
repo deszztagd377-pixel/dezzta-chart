@@ -225,6 +225,15 @@ class SQLiteOhlcvConsumerReceiptStore:
                     )
                 if cursor < previous_cursor:
                     raise OhlcvConsumerReceiptStale("ACK cursor is older than the committed receipt.")
+                if (
+                    cursor > previous_cursor
+                    and fencing_token == previous_fence
+                    and stream_id == row["stream_id"]
+                    and sequence <= int(row["sequence"])
+                ):
+                    raise OhlcvConsumerReceiptStale(
+                        "ACK sequence must advance with the committed cursor."
+                    )
                 if cursor == previous_cursor:
                     if row["event_id"] != event_id or row["event_digest"] != event_digest:
                         raise OhlcvConsumerReceiptConflict(
