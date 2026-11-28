@@ -577,6 +577,7 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
             !isPositiveSqliteCursor(value.committedCursor) ||
             !Number.isSafeInteger(value.receiptVersion) || (value.receiptVersion as number) < 1 ||
             typeof value.duplicate !== 'boolean') {
+          throw new Error('Unexpected or invalid durable consumer ACK acknowledgement.');
         }
         if (consumerAckResponseTimer !== null) clearTimeout(consumerAckResponseTimer);
         consumerAckResponseTimer = null;
