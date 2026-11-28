@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   OhlcvStreamSequenceGuard,
   parseOhlcvStreamUpdate,
+  verifyOhlcvStreamEventDigest,
   type OhlcvStreamUpdateMessage,
 } from './ohlcvStreamProtocol';
 
@@ -104,6 +105,39 @@ describe('parseOhlcvStreamUpdate', () => {
     expect(() => event({
       series: { ...series, seriesKey: 'bad series key' },
     })).toThrow(/seriesKey/i);
+  });
+
+
+  it('cryptographically verifies the canonical SHA-256 event digest and rejects tampering', async () => {
+    const unsigned = event({
+      generationId: 'stream-es-1s-a',
+      digest: '0'.repeat(64),
+      cursor: '8',
+    });
+    const sort = (value: unknown): unknown => {
+      if (Array.isArray(value)) return value.map(sort);
+      if (typeof value === 'object' && value !== null) {
+        return Object.fromEntries(
+          Object.keys(value).sort().map((key) => [key, sort((value as Record<string, unknown>)[key])]),
+        );
+      }
+      return value;
+    };
+    const payload = { ...unsigned } as Record<string, unknown>;
+    delete payload.digest;
+    const bytes = new TextEncoder().encode(JSON.stringify(sort(payload)));
+    const hash = await crypto.subtle.digest('SHA-256', bytes);
+    const digest = Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, '0')).join('');
+    const attested = event({
+      generationId: 'stream-es-1s-a',
+      digest,
+      cursor: '8',
+    });
+    await expect(verifyOhlcvStreamEventDigest(attested)).resolves.toBe(true);
+    await expect(verifyOhlcvStreamEventDigest({
+      ...attested,
+      eventId: 'tampered-event',
+    })).resolves.toBe(false);
   });
 
   it('requires generation identity and digest to be present as a pair', () => {
