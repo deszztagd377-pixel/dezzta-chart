@@ -526,13 +526,15 @@ export function connectOhlcvStream(options: OhlcvStreamOptions): OhlcvStreamConn
         if (replayExpectedCount !== null && replayReceivedCount >= replayExpectedCount) {
           throw new Error('OHLCV replay delivered more events than declared.');
         }
-        const event = parseOhlcvStreamUpdate(value);
-        if (consumerAckEnabled && (!event.generationId || !event.digest)) {
+        if (consumerAckEnabled && (
+          typeof value.generationId !== 'string' || typeof value.digest !== 'string'
+        )) {
           throw new Error('ACK-capable OHLCV server omitted generationId or event digest.');
         }
-        if (event.digest !== undefined && !verifyOhlcvStreamEventDigest(event)) {
+        if (value.digest !== undefined && !verifyOhlcvStreamEventDigest(value)) {
           throw new Error('OHLCV stream event SHA-256 digest verification failed.');
         }
+        const event = parseOhlcvStreamUpdate(value);
         const decision = guard.accept(event);
         if (!decision.accepted) {
           throw new Error(
